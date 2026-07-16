@@ -1,3 +1,28 @@
+export {
+  AUTH_ADMIN_IDENTITY_TYPES,
+  AUTH_ADMIN_MUTATION_ACTIONS,
+  AUTH_REPRESENTATION_MUTATION_ACTIONS,
+  AUTH_USER_ROLES,
+  AUTH_USER_STATUSES,
+} from "./admin-contracts";
+export type {
+  AgentPersonClaimInput as AuthAdminAgentPersonClaimInput,
+  AuthAdminIdentityType,
+  AuthAdminMutation,
+  AuthAdminMutationAction,
+  AuthAdminPrincipal,
+  AuthAdminRole,
+  AuthAdminStatus,
+  AuthAdminUserSummary,
+  AuthAdminUsersResponse,
+  AuthAgentPersonSummary,
+  AuthIdentitySourceKind as AuthAdminIdentitySourceKind,
+  AuthIdentitySummary,
+  AuthIdentityVisibility as AuthAdminIdentityVisibility,
+  AuthPasskeySummary,
+  AuthRepresentationMutation,
+  AuthRepresentationsResponse,
+} from "./admin-contracts";
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 export {

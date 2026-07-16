@@ -102,18 +102,17 @@ export const agentNetworkWidgetScript = `(function () {
       });
     });
 
-    var promotionAvailable = Boolean(document.querySelector("[data-people-panel]"));
+    var promotionAvailable = document.body.getAttribute("data-auth-role") === "anchor";
     promoteButtons.forEach(function (button) {
       button.hidden = !promotionAvailable;
       if (!promotionAvailable) return;
       button.addEventListener("click", function () {
-        window.dispatchEvent(new CustomEvent("brains:agent-promote", {
-          detail: {
-            agentId: button.getAttribute("data-agent-promote"),
-            displayName: button.getAttribute("data-agent-promote-name"),
-            claims: parsePersonClaims(button)
-          }
+        sessionStorage.setItem("brains:people-agent-promotion", JSON.stringify({
+          agentId: button.getAttribute("data-agent-promote"),
+          displayName: button.getAttribute("data-agent-promote-name"),
+          claims: parsePersonClaims(button)
         }));
+        window.location.assign("/admin");
       });
     });
 

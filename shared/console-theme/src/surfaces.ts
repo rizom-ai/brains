@@ -24,6 +24,7 @@ const SURFACE_PLUGINS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "web-chat", label: "Chat" },
   { id: "cms", label: "CMS" },
+  { id: "admin", label: "Admin" },
 ] as const;
 
 export function deriveConsoleSurfaces(

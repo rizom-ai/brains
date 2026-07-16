@@ -71,7 +71,7 @@ describe("@rizom/brain package metadata", () => {
     });
   });
 
-  it("builds web-chat UI into the published dist contract", () => {
+  it("builds console UIs into the published dist contract", () => {
     const buildScript = readPackageFile("scripts/build.ts");
 
     expect(packageJson.files).toContain("dist");
@@ -82,6 +82,12 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).toContain('join(outdir, "ui")');
     expect(buildScript).toContain(
       'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
+    );
+    expect(buildScript).toContain(
+      'const peoplePackageDir = join(monorepoRoot, "plugins", "people")',
+    );
+    expect(buildScript).toContain(
+      'cpSync(peopleUiAssetPath, join(bundledWebChatUiDir, "people-app.js"))',
     );
   });
 

@@ -2,6 +2,27 @@ import { describe, expect, it } from "bun:test";
 import { buildConsoleJumpGroups } from "../src/console-jump";
 
 describe("buildConsoleJumpGroups", () => {
+  it("adds the registered admin console surface", () => {
+    const groups = buildConsoleJumpGroups({
+      query: "peop",
+      groups: [],
+      dashboardPath: "/dashboard",
+      cmsPath: undefined,
+      adminPath: "/admin",
+      entities: [],
+    });
+
+    expect(groups.find((group) => group.id === "surfaces")?.items).toEqual([
+      {
+        id: "surface/admin",
+        title: "Admin",
+        sub: "People, access and identity",
+        href: "/admin",
+        tag: "console",
+      },
+    ]);
+  });
+
   it("maps entity hits to CMS edit doors", () => {
     const groups = buildConsoleJumpGroups({
       query: "verd",

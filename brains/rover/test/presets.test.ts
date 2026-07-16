@@ -25,6 +25,15 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("atproto");
   });
 
+  it("includes the standalone admin console in every preset", () => {
+    for (const preset of ["core", "default", "full"] as const) {
+      const config = resolve(rover, {}, { preset });
+      const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+      expect(pluginIds).toContain("admin");
+    }
+  });
+
   it("registers Rover's professional profile extension in every preset", () => {
     for (const preset of ["core", "default", "full"] as const) {
       const config = resolve(rover, {}, { preset });

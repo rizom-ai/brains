@@ -15,6 +15,8 @@ describe("deriveConsoleSurfaces", () => {
         route("web-chat", "/chat/api/messages"),
         route("cms", "/cms"),
         route("cms", "/cms/api/types"),
+        route("admin", "/admin"),
+        route("admin", "/admin/assets/app.js"),
       ],
       { activeId: "dashboard" },
     );
@@ -28,6 +30,7 @@ describe("deriveConsoleSurfaces", () => {
       },
       { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
       { id: "cms", label: "CMS", href: "/cms", isActive: false },
+      { id: "admin", label: "Admin", href: "/admin", isActive: false },
     ]);
   });
 

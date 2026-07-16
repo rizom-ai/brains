@@ -28,6 +28,7 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
+    "@brains/people": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",
@@ -59,7 +60,7 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/people",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",

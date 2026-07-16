@@ -9,11 +9,6 @@ import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
-import { DASHBOARD_PEOPLE_SCRIPT, PeoplePanel } from "./render/people-panel";
-import {
-  DASHBOARD_REPRESENTATIONS_SCRIPT,
-  RepresentationsPanel,
-} from "./render/representations-panel";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import {
   CONSOLE_CLIMATE_SCRIPT,
@@ -369,15 +364,7 @@ function ConsoleStrip({
   );
 }
 
-function TabBar({
-  tabs,
-  showPeople,
-  showRepresentations,
-}: {
-  tabs: WidgetTab[];
-  showPeople: boolean;
-  showRepresentations: boolean;
-}): JSX.Element {
+function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
   return (
     <nav class="dashboard-tabs" aria-label="Dashboard sections" role="tablist">
       <a
@@ -406,28 +393,6 @@ function TabBar({
           ) : null}
         </a>
       ))}
-      {showRepresentations && (
-        <a
-          class="dashboard-tab"
-          href="#my-agents"
-          role="tab"
-          aria-selected="false"
-          data-dashboard-tab-link="my-agents"
-        >
-          My agents
-        </a>
-      )}
-      {showPeople && (
-        <a
-          class="dashboard-tab"
-          href="#people"
-          role="tab"
-          aria-selected="false"
-          data-dashboard-tab-link="people"
-        >
-          People
-        </a>
-      )}
     </nav>
   );
 }
@@ -993,8 +958,6 @@ function DashboardDocument({
   const tabs = groupExternalWidgets(input.widgets);
   const showAccessGate =
     input.authAccess !== undefined && input.authAccess.hiddenWidgetCount > 0;
-  const showPeople = input.authAccess?.principal?.role === "anchor";
-  const showRepresentations = input.authAccess?.principal !== undefined;
   const dashboardPath = input.dashboardPath ?? "/dashboard";
   const now = new Date();
 
@@ -1025,7 +988,7 @@ function DashboardDocument({
           dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
         />
       </head>
-      <body>
+      <body data-auth-role={input.authAccess?.principal?.role}>
         <ConsoleStrip
           dashboardPath={dashboardPath}
           surfaces={
@@ -1043,11 +1006,7 @@ function DashboardDocument({
         <main class="console" data-component="dashboard:dashboard">
           <div class="frame">
             <Masthead title={input.title} tagline={input.profile.description} />
-            <TabBar
-              tabs={tabs}
-              showPeople={showPeople}
-              showRepresentations={showRepresentations}
-            />
+            <TabBar tabs={tabs} />
 
             <div class="canvas">
               <div class="dashboard-tab-panels">
@@ -1064,8 +1023,6 @@ function DashboardDocument({
                     now={now}
                   />
                 ))}
-                {showRepresentations && <RepresentationsPanel />}
-                {showPeople && <PeoplePanel />}
               </div>
             </div>
           </div>
@@ -1080,18 +1037,6 @@ function DashboardDocument({
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
-        {showRepresentations && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: DASHBOARD_REPRESENTATIONS_SCRIPT,
-            }}
-          />
-        )}
-        {showPeople && (
-          <script
-            dangerouslySetInnerHTML={{ __html: DASHBOARD_PEOPLE_SCRIPT }}
-          />
-        )}
         {input.widgetScripts.map((script, index) => (
           <script
             key={`widget-script:${index}`}

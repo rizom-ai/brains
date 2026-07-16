@@ -1,0 +1,37 @@
+{
+  "name": "@brains/people",
+  "version": "0.2.0-alpha.156",
+  "description": "Authenticated administration console with People access and representation",
+  "dependencies": {
+    "@brains/auth-service": "workspace:*",
+    "@brains/console-theme": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "build": "bun scripts/build-ui.ts",
+    "build:ui": "bun scripts/build-ui.ts",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json"
+  },
+  "type": "module"
+}

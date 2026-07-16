@@ -1,54 +1,22 @@
 import { z } from "@brains/utils/zod";
+import {
+  AUTH_ADMIN_IDENTITY_TYPES,
+  AUTH_ADMIN_MUTATION_ACTIONS,
+  AUTH_USER_ROLES,
+  AUTH_USER_STATUSES,
+  type AuthAdminPrincipal,
+  type AuthIdentitySummary,
+  type AuthPasskeySummary,
+} from "./admin-contracts";
 import type {
-  AuthIdentitySourceKind,
   AuthIdentityType,
-  AuthIdentityVisibility,
   AuthUserRole,
   AuthUserStatus,
 } from "./user-store";
 
-interface AdminPrincipal {
-  userId: string;
-  personId: string;
-  displayName: string;
-  role: AuthUserRole;
-  status: AuthUserStatus;
-  permissionLevel: AuthUserRole;
-  canonicalId?: string;
-}
-
-export interface AuthIdentitySummary {
-  id: string;
-  personId: string;
-  userId: string;
-  type: AuthIdentityType;
-  visibility: AuthIdentityVisibility;
-  evidence: Array<{
-    sourceKind: AuthIdentitySourceKind;
-    sourceId?: string;
-    assurance: "asserted" | "verified";
-    verifiedAt?: number;
-  }>;
-  issuer?: string;
-  label?: string;
-  verifiedAt?: number;
-  revokedAt?: number;
-  createdAt: number;
-}
-
-export interface AuthPasskeySummary {
-  id: string;
-  userId: string;
-  transports?: string[];
-  credentialDeviceType?: string;
-  credentialBackedUp: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
 export interface AuthAdminOperations {
-  resolveSession(request: Request): Promise<AdminPrincipal | undefined>;
-  listUsers(): Promise<AdminPrincipal[]>;
+  resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
+  listUsers(): Promise<AuthAdminPrincipal[]>;
   listPersonAgents(personId: string): Promise<
     Array<{
       agentId: string;
@@ -69,7 +37,7 @@ export interface AuthAdminOperations {
       status: AuthUserStatus;
     },
     actorUserId: string,
-  ): Promise<AdminPrincipal>;
+  ): Promise<AuthAdminPrincipal>;
   promoteAgentPerson(
     input: {
       agentId: string;
@@ -86,7 +54,7 @@ export interface AuthAdminOperations {
     },
     actorUserId: string,
   ): Promise<{
-    user: AdminPrincipal;
+    user: AuthAdminPrincipal;
     representation: {
       agentId: string;
       personId: string;
@@ -120,12 +88,12 @@ export interface AuthAdminOperations {
     userId: string,
     role: AuthUserRole,
     actorUserId: string,
-  ): Promise<AdminPrincipal>;
+  ): Promise<AuthAdminPrincipal>;
   updateUserStatus(
     userId: string,
     status: AuthUserStatus,
     actorUserId: string,
-  ): Promise<AdminPrincipal>;
+  ): Promise<AuthAdminPrincipal>;
   attachIdentity(
     input: {
       userId: string;
@@ -152,17 +120,9 @@ export interface AuthAdminOperations {
   ): Promise<{ sessions: number; refreshTokens: number }>;
 }
 
-const roleSchema = z.enum(["anchor", "trusted", "public"]);
-const statusSchema = z.enum(["active", "invited", "suspended"]);
-const identityTypeSchema = z.enum([
-  "passkey",
-  "discord",
-  "mcp",
-  "oauth",
-  "email",
-  "did",
-  "a2a",
-]);
+const roleSchema = z.enum(AUTH_USER_ROLES);
+const statusSchema = z.enum(AUTH_USER_STATUSES);
+const identityTypeSchema = z.enum(AUTH_ADMIN_IDENTITY_TYPES);
 
 const agentPersonClaimSchema = z.strictObject({
   type: z.enum(["discord", "mcp", "oauth", "email", "did"]),
@@ -174,15 +134,15 @@ const agentPersonClaimSchema = z.strictObject({
 
 const adminMutationSchema = z.discriminatedUnion("action", [
   z.strictObject({
-    action: z.literal("createUser"),
-    confirmation: z.literal("createUser"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
     displayName: z.string().trim().min(1).max(200),
     role: roleSchema,
     status: statusSchema.default("active"),
   }),
   z.strictObject({
-    action: z.literal("promoteAgentPerson"),
-    confirmation: z.literal("promoteAgentPerson"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson),
     agentId: z.string().trim().min(1).max(500),
     displayName: z.string().trim().min(1).max(200),
     profileEntityId: z.string().trim().min(1).max(500).optional(),
@@ -190,51 +150,53 @@ const adminMutationSchema = z.discriminatedUnion("action", [
     claims: z.array(agentPersonClaimSchema).max(10).optional(),
   }),
   z.strictObject({
-    action: z.literal("linkAgentPerson"),
-    confirmation: z.literal("linkAgentPerson"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson),
     agentId: z.string().trim().min(1).max(500),
     userId: z.string().min(1),
     claims: z.array(agentPersonClaimSchema).max(10).optional(),
   }),
   z.strictObject({
-    action: z.literal("updateUserRole"),
-    confirmation: z.literal("updateUserRole"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole),
     userId: z.string().min(1),
     role: roleSchema,
   }),
   z.strictObject({
-    action: z.literal("updateUserStatus"),
-    confirmation: z.literal("updateUserStatus"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus),
     userId: z.string().min(1),
     status: statusSchema,
   }),
   z.strictObject({
-    action: z.literal("attachIdentity"),
-    confirmation: z.literal("attachIdentity"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity),
     userId: z.string().min(1),
-    type: identityTypeSchema.exclude(["passkey"]),
+    type: identityTypeSchema,
     subject: z.string().trim().min(1).max(2_000),
     issuer: z.string().trim().min(1).max(2_000).optional(),
     label: z.string().trim().min(1).max(200).optional(),
   }),
   z.strictObject({
-    action: z.literal("detachIdentity"),
-    confirmation: z.literal("detachIdentity"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity),
     identityId: z.string().min(1),
   }),
   z.strictObject({
-    action: z.literal("revokePasskey"),
-    confirmation: z.literal("revokePasskey"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey),
     credentialId: z.string().min(1),
   }),
   z.strictObject({
-    action: z.literal("startPasskeyRegistration"),
-    confirmation: z.literal("startPasskeyRegistration"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration),
+    confirmation: z.literal(
+      AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+    ),
     userId: z.string().min(1),
   }),
   z.strictObject({
-    action: z.literal("revokeUserSessions"),
-    confirmation: z.literal("revokeUserSessions"),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions),
     userId: z.string().min(1),
   }),
 ]);

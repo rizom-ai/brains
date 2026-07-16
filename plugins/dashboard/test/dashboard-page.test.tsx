@@ -67,7 +67,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain('class="access-gate-link"');
   });
 
-  it("should render the People administration client only for anchors", () => {
+  it("keeps People administration out of the monitoring dashboard", () => {
     const anchorInput: DashboardRenderInput = {
       title: "Test Brain",
       baseUrl: "https://brain.test",
@@ -87,56 +87,15 @@ describe("renderDashboardPageHtml", () => {
         logoutUrl: "/logout",
       },
     };
-    const trustedInput: DashboardRenderInput = {
-      ...anchorInput,
-      authAccess: {
-        ...anchorInput.authAccess,
-        principal: {
-          displayName: "Mira",
-          role: "trusted",
-          permissionLevel: "trusted",
-        },
-      },
-    };
 
-    const anchorHtml = renderDashboardPageHtml(anchorInput);
-    const trustedHtml = renderDashboardPageHtml(trustedInput);
+    const html = renderDashboardPageHtml(anchorInput);
 
-    expect(anchorHtml).toContain('href="#people"');
-    expect(anchorHtml).toContain('href="#my-agents"');
-    expect(anchorHtml).toContain('data-people-list="true"');
-    expect(anchorHtml).toContain('data-people-detail="true"');
-    expect(anchorHtml).toContain('id="people-add-dialog"');
-    expect(anchorHtml).toContain('id="people-confirm-dialog"');
-    expect(anchorHtml).toContain('id="people-identity-dialog"');
-    expect(anchorHtml).toContain('id="people-setup-dialog"');
-    expect(anchorHtml).toContain('id="people-promote-agent-dialog"');
-    expect(anchorHtml).toContain("/auth/admin/users");
-    expect(anchorHtml).toContain("/auth/admin/mutations");
-    expect(anchorHtml).toContain("createUser");
-    expect(anchorHtml).toContain("updateUserRole");
-    expect(anchorHtml).toContain("updateUserStatus");
-    expect(anchorHtml).toContain("attachIdentity");
-    expect(anchorHtml).toContain("detachIdentity");
-    expect(anchorHtml).toContain("revokePasskey");
-    expect(anchorHtml).toContain("startPasskeyRegistration");
-    expect(anchorHtml).toContain("revokeUserSessions");
-    expect(anchorHtml).toContain("function agentContent(user)");
-    expect(anchorHtml).toContain("Linked agents");
-    expect(anchorHtml).toContain("user.agents");
-    expect(anchorHtml).toContain("identity.evidence");
-    expect(anchorHtml).toContain("Asserted — cannot authenticate");
-    expect(anchorHtml).toContain("promoteAgentPerson");
-    expect(anchorHtml).toContain("linkAgentPerson");
-    expect(anchorHtml).toContain('formData.get("claims")');
-    expect(anchorHtml).toContain("agent-carried identity assertion");
-    expect(anchorHtml).toContain("Link an existing person");
-    expect(anchorHtml).toContain("brains:agent-promote");
-    expect(trustedHtml).not.toContain('href="#people"');
-    expect(trustedHtml).not.toContain('data-people-list="true"');
-    expect(trustedHtml).toContain('href="#my-agents"');
-    expect(trustedHtml).toContain("/auth/representations");
-    expect(trustedHtml).toContain("acceptRepresentation");
+    expect(html).not.toContain('href="#people"');
+    expect(html).not.toContain('href="#my-agents"');
+    expect(html).not.toContain('data-people-panel="true"');
+    expect(html).not.toContain('data-representations-panel="true"');
+    expect(html).not.toContain("/auth/admin/users");
+    expect(html).not.toContain("/auth/representations");
   });
 
   it("should inject theme CSS before dashboard component styles", () => {

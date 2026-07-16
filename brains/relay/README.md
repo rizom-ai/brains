@@ -23,7 +23,8 @@
 | `agents`         | peer-brain discovery entities               |
 | `auth-service`   | OAuth/passkey operator auth                 |
 | `cms`            | CMS surface                                 |
-| `dashboard`      | operator dashboard widgets                  |
+| `dashboard`      | role-aware monitoring widgets               |
+| `admin`          | People, access, and representation console  |
 | `web-chat`       | operator web chat UI                        |
 | `image`          | image handling for site-facing instances    |
 | `site-info`      | site identity metadata                      |
@@ -47,13 +48,13 @@ Instances can override these defaults with `permissions.entityActions` in `brain
 
 ## Interfaces
 
-| Interface   | Purpose                                              |
-| ----------- | ---------------------------------------------------- |
-| `mcp`       | Model Context Protocol                               |
-| `discord`   | team chat interface with URL capture                 |
-| `a2a`       | agent-to-agent RPC surface                           |
-| `webserver` | HTTP host for site, CMS, dashboard, chat, and health |
-| `web-chat`  | browser chat surface for operators                   |
+| Interface   | Purpose                                                     |
+| ----------- | ----------------------------------------------------------- |
+| `mcp`       | Model Context Protocol                                      |
+| `discord`   | team chat interface with URL capture                        |
+| `a2a`       | agent-to-agent RPC surface                                  |
+| `webserver` | HTTP host for site, CMS, dashboard, Admin, chat, and health |
+| `web-chat`  | browser chat surface for operators                          |
 
 ## Eval coverage
 

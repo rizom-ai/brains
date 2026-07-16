@@ -136,6 +136,19 @@ describe("DashboardPlugin", () => {
       await harness.installPlugin(authPlugin);
       const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
+      harness.getMockShell().registerPlugin({
+        id: "admin",
+        getWebRoutes: () => [
+          {
+            path: "/admin",
+            method: "GET",
+            public: true,
+            handler: async (): Promise<Response> => new Response("ok"),
+          },
+        ],
+      } as unknown as Parameters<
+        ReturnType<typeof harness.getMockShell>["registerPlugin"]
+      >[0]);
 
       const route = plugin
         .getWebRoutes()
@@ -154,6 +167,9 @@ describe("DashboardPlugin", () => {
       expect(tabs?.items.map((item) => item.href)).toContain(
         "/dashboard#system",
       );
+      expect(
+        data.groups.find((group) => group.id === "surfaces")?.items,
+      ).toContainEqual(expect.objectContaining({ href: "/admin" }));
       // No CMS plugin in this harness → entity doors have no destination.
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
@@ -463,7 +479,7 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain('href="#people"');
     });
 
-    it("should show anchor endpoints, interactions, and People to an anchor", async () => {
+    it("should show anchor endpoints and interactions without embedding People", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-auth-${Date.now()}`,
       });
@@ -514,9 +530,9 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Anchor");
       expect(html).toContain("MCP");
       expect(html).toContain("CMS");
-      expect(html).toContain('href="#people"');
-      expect(html).toContain('id="people"');
-      expect(html).toContain("/auth/admin/users");
+      expect(html).not.toContain('href="#people"');
+      expect(html).not.toContain('id="people"');
+      expect(html).not.toContain("/auth/admin/users");
       expect(html).not.toContain("restricted widget is hidden");
     });
   });

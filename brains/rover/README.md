@@ -78,7 +78,7 @@ Rover meets you where you are.
 Available today:
 
 - **MCP clients** like Claude Desktop and Cursor
-- **Browser routes** for presets that include the webserver/dashboard/CMS surface
+- **Browser routes** for presets that include the webserver, dashboard, CMS, and Admin surfaces
 - **Discord** when configured
 - **A2A** for peer-brain communication when configured
 
@@ -148,6 +148,7 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `auth-service`         | x      | x         | x      |
 | `cms`                  | x      | x         | x      |
 | `dashboard`            | x      | x         | x      |
+| `admin`                | x      | x         | x      |
 | `mcp`                  | x      | x         | x      |
 | `webserver`            | x      | x         | x      |
 | `discord`              | x      | x         | x      |
@@ -167,7 +168,7 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `newsletter`           |        |           | x      |
 | `stock-photo`          |        |           | x      |
 
-- **`core`** — minimal on-ramp: capture, sync, dashboard + CMS, MCP/web/Discord/A2A, but no site-builder
+- **`core`** — minimal on-ramp: capture, sync, dashboard + CMS + Admin, MCP/web/Discord/A2A, but no site-builder
 - **`default`** — adds the website and publishing surface
 - **`full`** — adds portfolio, automation, document/PDF, newsletter, and stock-photo workflows
 

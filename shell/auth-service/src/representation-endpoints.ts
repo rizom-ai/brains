@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { AUTH_REPRESENTATION_MUTATION_ACTIONS } from "./admin-contracts";
 import type { AgentPersonLink } from "./runtime-schema";
 
 interface RepresentationPrincipal {
@@ -18,8 +19,10 @@ export interface AuthRepresentationOperations {
 }
 
 const representationMutationSchema = z.strictObject({
-  action: z.literal("acceptRepresentation"),
-  confirmation: z.literal("acceptRepresentation"),
+  action: z.literal(AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation),
+  confirmation: z.literal(
+    AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation,
+  ),
   agentId: z.string().trim().min(1).max(500),
 });
 

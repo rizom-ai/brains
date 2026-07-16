@@ -61,6 +61,8 @@ const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
 const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
 const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
+const peoplePackageDir = join(monorepoRoot, "plugins", "people");
+const peopleUiAssetPath = join(peoplePackageDir, "dist", "ui", "people-app.js");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -97,6 +99,21 @@ if (cmsBuildResult.exitCode !== 0) {
 }
 if (!existsSync(cmsUiAssetPath)) {
   console.error(`CMS editor UI asset not found at ${cmsUiAssetPath}`);
+  process.exit(1);
+}
+
+console.log("Building bundled People UI...");
+const peopleBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: peoplePackageDir,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (peopleBuildResult.exitCode !== 0) {
+  console.error("People UI build failed");
+  process.exit(1);
+}
+if (!existsSync(peopleUiAssetPath)) {
+  console.error(`People UI asset not found at ${peopleUiAssetPath}`);
   process.exit(1);
 }
 
@@ -318,6 +335,11 @@ cpSync(cmsUiAssetPath, join(bundledWebChatUiDir, "cms-app.js"));
 const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
 if (existsSync(cmsSourceMapPath)) {
   cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
+}
+cpSync(peopleUiAssetPath, join(bundledWebChatUiDir, "people-app.js"));
+const peopleSourceMapPath = `${peopleUiAssetPath}.map`;
+if (existsSync(peopleSourceMapPath)) {
+  cpSync(peopleSourceMapPath, join(bundledWebChatUiDir, "people-app.js.map"));
 }
 
 // ─── Copy migrations ──────────────────────────────────────────────────────

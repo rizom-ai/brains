@@ -548,9 +548,15 @@ export class DashboardPlugin extends ServicePlugin<
           const widgetGroups = (
             this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? []
           ).map((widget) => widget.group);
-          const cmsPath = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
+          const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",
-          }).find((surface) => surface.id === "cms")?.href;
+          });
+          const cmsPath = surfaces.find(
+            (surface) => surface.id === "cms",
+          )?.href;
+          const adminPath = surfaces.find(
+            (surface) => surface.id === "admin",
+          )?.href;
 
           return Response.json({
             groups: buildConsoleJumpGroups({
@@ -558,6 +564,7 @@ export class DashboardPlugin extends ServicePlugin<
               groups: [...widgetGroups, "knowledge", "system"],
               dashboardPath: this.config.routePath,
               cmsPath,
+              adminPath,
               entities,
             }),
           });

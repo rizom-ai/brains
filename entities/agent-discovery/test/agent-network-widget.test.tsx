@@ -8,8 +8,14 @@ import {
 
 describe("AgentNetworkWidget", () => {
   it("bridges approved-agent promotion into the Anchor People flow", () => {
-    expect(agentNetworkWidgetScript).toContain("brains:agent-promote");
-    expect(agentNetworkWidgetScript).toContain("[data-people-panel]");
+    expect(agentNetworkWidgetScript).toContain(
+      'sessionStorage.setItem("brains:people-agent-promotion"',
+    );
+    expect(agentNetworkWidgetScript).toContain(
+      'window.location.assign("/admin")',
+    );
+    expect(agentNetworkWidgetScript).not.toContain("brains:agent-promote");
+    expect(agentNetworkWidgetScript).toContain('data-auth-role") === "anchor"');
     expect(agentNetworkWidgetScript).toContain("data-agent-person-claims");
   });
 

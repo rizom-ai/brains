@@ -1,11 +1,11 @@
 import type { ActorRef } from "@brains/contracts";
 import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
-import {
-  handleAuthAdminRequest,
-  type AuthIdentitySummary,
-  type AuthPasskeySummary,
-} from "./admin-endpoints";
+import { handleAuthAdminRequest } from "./admin-endpoints";
+import type {
+  AuthIdentitySummary,
+  AuthPasskeySummary,
+} from "./admin-contracts";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import {
   AuthorizationCodeStore,

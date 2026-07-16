@@ -7,13 +7,10 @@
  */
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import componentStyles from "./styles/components.css" with { type: "text" };
-import peoplePanelStyles from "./styles/people-panel.css" with { type: "text" };
 import responsiveStyles from "./styles/responsive.css" with { type: "text" };
 
 export const DASHBOARD_STYLES: string = `${CONSOLE_THEME_CSS}
 
 ${componentStyles}
-
-${peoplePanelStyles}
 
 ${responsiveStyles}`;
