@@ -60,14 +60,14 @@ describe("NotePlugin", () => {
     });
   });
 
-  async function runQueuedUploadImport(): Promise<void> {
+  async function runQueuedUploadImport(): Promise<unknown> {
     const handler = registeredHandlers.get("note:upload-import");
     if (!handler) throw new Error("note:upload-import handler not registered");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload import job not queued");
     const reporter = ProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
-    await handler.process(job.data, "queued-note-job", reporter);
+    return handler.process(job.data, "queued-note-job", reporter);
   }
 
   describe("upload markdown imports", () => {
@@ -138,6 +138,71 @@ describe("NotePlugin", () => {
         `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
       );
       expect(entity?.metadata).toEqual({ title: "research-notes" });
+    });
+
+    it("does not overwrite a note edited while its upload import is queued", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000707",
+      });
+      const upload = await uploadStore.save({
+        filename: "launch-plan.md",
+        mediaType: "text/markdown",
+        content: Buffer.from("# Launch Plan\n\nLaunch day: Monday.", "utf8"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "note",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", userId: "operator" },
+      );
+      expect(result.kind).toBe("handled");
+
+      const entityService = harness.getEntityService();
+      const stub = await entityService.getEntity({
+        entityType: "note",
+        id: "launch-plan",
+      });
+      if (!stub) throw new Error("note import stub not found");
+      const editedContent = "# Launch Plan\n\nLaunch day: Friday.\n";
+      await entityService.updateEntity({
+        entity: {
+          ...stub,
+          content: editedContent,
+          metadata: { title: "Launch Plan" },
+        },
+      });
+
+      const current = await entityService.getEntity({
+        entityType: "note",
+        id: "launch-plan",
+      });
+      expect(current?.contentHash).not.toBe(stub.contentHash);
+      expect(enqueuedJobs[0]).toMatchObject({
+        data: { stubContentHash: stub.contentHash },
+      });
+
+      const importResult = await runQueuedUploadImport();
+
+      expect(importResult).toEqual({
+        entityId: "launch-plan",
+        status: "superseded",
+      });
+      const edited = await entityService.getEntity({
+        entityType: "note",
+        id: "launch-plan",
+      });
+      expect(edited?.content).toContain("Launch day: Friday.");
+      expect(edited?.content).not.toContain("Launch day: Monday.");
     });
 
     it("imports an uploaded JSON file as a markdown note", async () => {

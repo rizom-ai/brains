@@ -29,6 +29,17 @@ describe("system_update tool", () => {
     );
   });
 
+  it("tells models to update imported entities instead of duplicating them", () => {
+    const tool = createSystemTools(createMockSystemServices()).find(
+      (candidate) => candidate.name === "system_update",
+    );
+
+    expect(tool?.description).toContain(
+      "already created or imported in this conversation",
+    );
+    expect(tool?.description).toContain("instead of creating a duplicate");
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 

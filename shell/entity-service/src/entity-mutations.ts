@@ -308,6 +308,21 @@ export class EntityMutations {
     }
 
     if (
+      options?.expectedContentHash !== undefined &&
+      existingEntity.contentHash !== options.expectedContentHash
+    ) {
+      this.logger.debug(
+        `Skipping stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+      return {
+        entityId: validatedEntity.id,
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      };
+    }
+
+    if (
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -328,7 +343,7 @@ export class EntityMutations {
       return { entityId: validatedEntity.id, jobId: "", skipped: true };
     }
 
-    await this.db
+    const updateResult = await this.db
       .update(entities)
       .set({
         content: markdown,
@@ -341,8 +356,26 @@ export class EntityMutations {
         and(
           eq(entities.id, validatedEntity.id),
           eq(entities.entityType, validatedEntity.entityType),
+          options?.expectedContentHash !== undefined
+            ? eq(entities.contentHash, options.expectedContentHash)
+            : undefined,
         ),
       );
+
+    if (
+      options?.expectedContentHash !== undefined &&
+      Number(updateResult.rowsAffected) === 0
+    ) {
+      this.logger.debug(
+        `Skipping concurrently stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+      return {
+        entityId: validatedEntity.id,
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      };
+    }
 
     // Update FTS5 index
     await this.upsertFtsIndex(

@@ -165,6 +165,45 @@ describe("Immediate Entity Persistence", () => {
       expect(updated?.content).toContain("Updated content");
     });
 
+    test("skips a stale update when the expected content hash changed", async () => {
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: createNoteInput({
+          title: "Importing Note",
+          content: "Generating placeholder",
+          tags: [],
+        }),
+      });
+      const placeholder = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      if (!placeholder) throw new Error("Entity should exist");
+
+      await ctx.entityService.updateEntity({
+        entity: {
+          ...placeholder,
+          content: "User-edited content",
+        },
+      });
+      const result = await ctx.entityService.updateEntity({
+        entity: {
+          ...placeholder,
+          content: "Late async import content",
+        },
+        options: { expectedContentHash: placeholder.contentHash },
+      });
+
+      expect(result).toMatchObject({
+        skipped: true,
+        skipReason: "content-conflict",
+      });
+      const current = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      expect(current?.content).toContain("User-edited content");
+    });
+
     test("metadata-only updates persist when serialized markdown is unchanged", async () => {
       const noteData = createNoteInput({
         title: "Series Note",

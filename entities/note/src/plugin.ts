@@ -119,11 +119,19 @@ export class NotePlugin extends EntityPlugin<
         },
         options: { deduplicateId: true },
       });
+      const stubEntity = await context.entityService.getEntity({
+        entityType: "note",
+        id: created.entityId,
+      });
+      if (!stubEntity) {
+        throw new Error("Created note import stub could not be read");
+      }
       const jobId = await context.jobs.enqueue({
         type: "upload-import",
         data: {
           uploadId,
           entityId: created.entityId,
+          stubContentHash: stubEntity.contentHash,
           ...(input.title !== undefined ? { title: input.title } : {}),
         },
       });

@@ -48,6 +48,7 @@ import {
   type DataSource,
   type EntityAdapter,
   type UploadSaveHandlerRegistration,
+  type UpdateEntityOptions,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -337,7 +338,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       } as BaseEntity;
       return entityService.createEntity({ entity });
     },
-    updateEntity: async (request: { entity: BaseEntity }) => {
+    updateEntity: async (request: {
+      entity: BaseEntity;
+      options?: UpdateEntityOptions;
+    }) => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
@@ -345,6 +349,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = entities.get(entity.id);
+      if (
+        request.options?.expectedContentHash !== undefined &&
+        existing?.contentHash !== request.options.expectedContentHash
+      ) {
+        return {
+          entityId: entity.id,
+          jobId: "",
+          skipped: true,
+          skipReason: "content-conflict" as const,
+        };
+      }
       if (
         existing?.contentHash === contentHash &&
         existing.visibility === entity.visibility &&

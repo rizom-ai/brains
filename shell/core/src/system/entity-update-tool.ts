@@ -225,7 +225,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "update",
-    "Update an entity's fields or content. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
+    "Update an entity's fields or content. Use this tool when the user edits or revises an entity already created or imported in this conversation; update the known entity instead of creating a duplicate or re-importing its upload. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
     updateInputSchema,
     async (input, context) => {
       const visibilityScope = permissionToVisibilityScope(

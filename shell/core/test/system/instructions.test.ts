@@ -64,6 +64,12 @@ describe("system instructions", () => {
     expect(instructions).toContain("Use `fields` for title, status");
     expect(instructions).toContain("system_update");
     expect(instructions).toContain(
+      "already created or imported in this conversation",
+    );
+    expect(instructions).toContain(
+      "do not create another entity or re-import the original upload",
+    );
+    expect(instructions).toContain(
       "For explicit publish requests, use the publishing tool",
     );
   });

@@ -289,6 +289,18 @@ describe("system_create tool", () => {
     );
   });
 
+  it("tells models not to create duplicates for edits to imported entities", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_create",
+    );
+
+    expect(tool?.description).toContain(
+      "already created or imported in this conversation",
+    );
+    expect(tool?.description).toContain("instead of creating a duplicate");
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 

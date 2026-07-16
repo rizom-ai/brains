@@ -82,6 +82,7 @@ export type {
   ContentVisibility,
   RawContentVisibility,
   CreateEntityOptions,
+  UpdateEntityOptions,
   CreateEntityFromMarkdownInput,
   EntityMutationResult,
   StoreEmbeddingData,

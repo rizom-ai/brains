@@ -18,6 +18,8 @@ const webChatUploadsScope = {
 export interface UploadMarkdownImportJobData {
   uploadId: string;
   entityId: string;
+  /** Hash of the import stub this job is allowed to replace. */
+  stubContentHash?: string | undefined;
   title?: string | undefined;
 }
 
@@ -25,11 +27,13 @@ export const uploadMarkdownImportJobSchema: z.ZodType<UploadMarkdownImportJobDat
   z.object({
     uploadId: z.string().min(1),
     entityId: z.string().min(1),
+    stubContentHash: z.string().min(1).optional(),
     title: z.string().optional(),
   });
 
 export type UploadMarkdownImportJobResult =
-  { entityId: string; status: "created" } | { success: false; error: string };
+  | { entityId: string; status: "created" | "superseded" }
+  | { success: false; error: string };
 
 export class UploadMarkdownImportJobHandler extends BaseJobHandler<
   "upload-import",
@@ -87,7 +91,18 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
           created: now,
           updated: now,
         },
+        ...(data.stubContentHash !== undefined
+          ? { expectedContentHash: data.stubContentHash }
+          : {}),
       });
+
+      if (result.mutation.skipReason === "content-conflict") {
+        await this.reportProgress(progressReporter, {
+          progress: 100,
+          message: "Upload import superseded by newer note content",
+        });
+        return { entityId: result.entityId, status: "superseded" };
+      }
 
       await this.reportProgress(progressReporter, {
         progress: 100,
@@ -96,12 +111,20 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
 
       return { entityId: result.entityId, status: "created" };
     } catch (error) {
-      await this.markStubFailed(data.entityId, getErrorMessage(error));
+      await this.markStubFailed(
+        data.entityId,
+        getErrorMessage(error),
+        data.stubContentHash,
+      );
       return JobResult.failure(error);
     }
   }
 
-  private async markStubFailed(entityId: string, error: string): Promise<void> {
+  private async markStubFailed(
+    entityId: string,
+    error: string,
+    stubContentHash?: string,
+  ): Promise<void> {
     try {
       const existing = await this.context.entityService.getEntity({
         entityType: "note",
@@ -119,6 +142,9 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
           ),
           metadata: { ...existing.metadata, status: "failed", error },
         },
+        ...(stubContentHash !== undefined
+          ? { options: { expectedContentHash: stubContentHash } }
+          : {}),
       });
     } catch (failure) {
       this.logger.warn("Failed to mark import stub as failed", {
@@ -135,6 +161,7 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
       uploadId: data.uploadId,
       entityId: data.entityId,
       hasTitle: data.title !== undefined,
+      hasStubContentHash: data.stubContentHash !== undefined,
     };
   }
 }

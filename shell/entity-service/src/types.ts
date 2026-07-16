@@ -59,14 +59,21 @@ export interface CreateEntityOptions extends EntityJobOptions {
   deduplicateId?: boolean;
 }
 
+/** Options for updating an existing entity. */
+export interface UpdateEntityOptions extends EntityJobOptions {
+  /** Apply only while the stored entity still has this content hash. */
+  expectedContentHash?: string | undefined;
+}
+
 /**
  * Result of an entity mutation that triggers an embedding job.
- * When skipped is true, content was unchanged — no DB write, no event, no embedding job.
+ * When skipped is true, no DB write, event, or embedding job was produced.
  */
 export interface EntityMutationResult {
   entityId: string;
   jobId: string;
   skipped: boolean;
+  skipReason?: "content-conflict" | undefined;
 }
 
 /**
@@ -555,7 +562,7 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
-  options?: EntityJobOptions | undefined;
+  options?: UpdateEntityOptions | undefined;
 }
 
 export interface DeleteEntityRequest {
