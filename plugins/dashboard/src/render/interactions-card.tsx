@@ -2,6 +2,7 @@
 import type { AppInfo, InteractionInfo } from "@brains/plugins";
 import { displayLinkLabel, resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
+import { CardHeader } from "./ui";
 
 const INTERACTION_KIND_LABELS: Record<InteractionInfo["kind"], string> = {
   human: "Human",
@@ -22,9 +23,7 @@ export function InteractionsCard(props: {
 
   return (
     <aside class="card interactions-card">
-      <div class="card-head">
-        <span class="card-title">Ways to connect</span>
-      </div>
+      <CardHeader title="Ways to connect" />
       <div class="interactions-list">
         {interactions.slice(0, 5).map((interaction) => {
           const resolved = resolveUrl(interaction.href, baseUrl);

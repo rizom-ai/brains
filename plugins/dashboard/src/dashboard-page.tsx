@@ -9,6 +9,8 @@ import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
+import { CardHeader, EmptyState, KeyValueList } from "./render/ui";
+import { DASHBOARD_TABS_SCRIPT } from "./render/tabs-script";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import {
   CONSOLE_CLIMATE_SCRIPT,
@@ -194,56 +196,6 @@ function groupExternalWidgets(
   });
 }
 
-const DASHBOARD_TABS_SCRIPT = `(function () {
-  var root = document.documentElement;
-  var links = Array.prototype.slice.call(document.querySelectorAll("[data-dashboard-tab-link]"));
-  var panels = Array.prototype.slice.call(document.querySelectorAll("[data-dashboard-tab-panel]"));
-  if (!links.length || !panels.length) return;
-
-  root.classList.add("dashboard-tabs-ready");
-
-  function panelExists(id) {
-    return panels.some(function (panel) { return panel.id === id; });
-  }
-
-  function resolveId(hash) {
-    var id = (hash || "").replace(/^#/, "");
-    return id && panelExists(id) ? id : "overview";
-  }
-
-  function activate(id, updateHash) {
-    links.forEach(function (link) {
-      var active = link.getAttribute("data-dashboard-tab-link") === id;
-      link.classList.toggle("is-active", active);
-      link.setAttribute("aria-selected", active ? "true" : "false");
-    });
-
-    panels.forEach(function (panel) {
-      var active = panel.id === id;
-      panel.classList.toggle("is-active", active);
-      panel.toggleAttribute("hidden", !active);
-    });
-
-    if (updateHash && window.history && window.history.pushState) {
-      window.history.pushState(null, "", "#" + id);
-    }
-  }
-
-  links.forEach(function (link) {
-    link.addEventListener("click", function (event) {
-      var id = link.getAttribute("data-dashboard-tab-link");
-      if (!id) return;
-      event.preventDefault();
-      activate(id, true);
-    });
-  });
-
-  activate(resolveId(window.location.hash), false);
-  window.addEventListener("hashchange", function () {
-    activate(resolveId(window.location.hash), false);
-  });
-})();`;
-
 function OperatorGate({
   hiddenWidgetCount,
   loginUrl,
@@ -349,21 +301,25 @@ function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
   return (
     <nav class="dashboard-tabs" aria-label="Dashboard sections" role="tablist">
       <a
+        id="dashboard-tab-overview"
         class="dashboard-tab is-active"
         href="#overview"
         role="tab"
         aria-selected="true"
         data-dashboard-tab-link="overview"
+        data-ui-tab="overview"
       >
         Overview
       </a>
       {tabs.map((tab) => (
         <a
+          id={`dashboard-tab-${tab.id}`}
           class="dashboard-tab"
           href={`#${tab.id}`}
           role="tab"
           aria-selected="false"
           data-dashboard-tab-link={tab.id}
+          data-ui-tab={tab.id}
           key={tab.id}
         >
           <span>{tab.label}</span>
@@ -460,12 +416,9 @@ function IdentityCapsule({
 
   return (
     <aside class="card identity-capsule">
-      <div class="card-head">
-        <span class="card-title">Identity</span>
-        <span class="card-from">identity</span>
-      </div>
+      <CardHeader title="Identity" source="identity" />
       <div class="identity-capsule-body">
-        {role && <span class="identity-role">“{role}”</span>}
+        {role && <span class="identity-capsule-role">“{role}”</span>}
         {values.length > 0 && (
           <span class="values">
             {values.map((value) => (
@@ -475,7 +428,7 @@ function IdentityCapsule({
             ))}
           </span>
         )}
-        {purpose && <span class="identity-purpose">{purpose}</span>}
+        {purpose && <span class="identity-capsule-purpose">{purpose}</span>}
       </div>
     </aside>
   );
@@ -485,10 +438,8 @@ function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
   if (cards.length === 0) {
     return (
       <section class="card overview-empty-digest">
-        <div class="card-head">
-          <span class="card-title">Group digests</span>
-        </div>
-        <p class="muted">No plugin groups are visible yet.</p>
+        <CardHeader title="Group digests" />
+        <EmptyState>No plugin groups are visible yet.</EmptyState>
       </section>
     );
   }
@@ -554,12 +505,11 @@ function ActivityLedger({
 }): JSX.Element {
   return (
     <section class="card activity-ledger">
-      <div class="card-head">
-        <span class="card-title">Activity</span>
-        <span class="card-from">entity events</span>
-      </div>
+      <CardHeader title="Activity" source="entity events" />
       {events.length === 0 ? (
-        <p class="muted">No entity activity has been observed this session.</p>
+        <EmptyState>
+          No entity activity has been observed this session.
+        </EmptyState>
       ) : (
         <ol class="ledger">
           {events.map((event) => (
@@ -665,19 +615,18 @@ function SemanticIndexCard({
 
   return (
     <section class="card semantic-index-card">
-      <div class="card-head">
-        <span class="card-title">Semantic index</span>
-        <span class="card-from">entity-service</span>
-      </div>
+      <CardHeader title="Semantic index" source="entity-service" />
       {input.indexStatus ? (
         <IndexGauge status={input.indexStatus} />
       ) : (
-        <dl class="kv">
-          <div class="kv-row">
-            <dt>Semantic index</dt>
-            <dd>{indexReady ? "Ready" : "Pending"}</dd>
-          </div>
-        </dl>
+        <KeyValueList
+          items={[
+            {
+              label: "Semantic index",
+              value: indexReady ? "Ready" : "Pending",
+            },
+          ]}
+        />
       )}
     </section>
   );
@@ -704,40 +653,32 @@ function ContentSyncCard({
 
   return (
     <section class="card content-sync-card">
-      <div class="card-head">
-        <span class="card-title">Content sync</span>
-        <span class="card-from">directory-sync</span>
-      </div>
-      <dl class="kv">
-        <div class="kv-row">
-          <dt>Path</dt>
-          <dd>{status.syncPath}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Files</dt>
-          <dd>
-            {typeSummary ? `${fileSummary} · ${typeSummary}` : fileSummary}
-          </dd>
-        </div>
-        <div class="kv-row">
-          <dt>Watch</dt>
-          <dd>
-            {status.watchEnabled
+      <CardHeader title="Content sync" source="directory-sync" />
+      <KeyValueList
+        items={[
+          { label: "Path", value: status.syncPath },
+          {
+            label: "Files",
+            value: typeSummary
+              ? `${fileSummary} · ${typeSummary}`
+              : fileSummary,
+          },
+          {
+            label: "Watch",
+            value: status.watchEnabled
               ? "Watching"
               : status.isInitialized
                 ? "Manual"
-                : "Not initialized"}
-          </dd>
-        </div>
-        <div class="kv-row">
-          <dt>Last sync</dt>
-          <dd>
-            {status.lastSync
+                : "Not initialized",
+          },
+          {
+            label: "Last sync",
+            value: status.lastSync
               ? `last sync ${formatTimestamp(status.lastSync)}`
-              : "—"}
-          </dd>
-        </div>
-      </dl>
+              : "—",
+          },
+        ]}
+      />
       <div class="pipeline-mini" aria-label="Write pipeline">
         <span class={`pipeline-step${status.isInitialized ? " is-done" : ""}`}>
           entity db
@@ -778,12 +719,9 @@ function JobQueueCard({
 }): JSX.Element {
   return (
     <section class="card widget-card--wide job-queue-card">
-      <div class="card-head">
-        <span class="card-title">Job queue</span>
-        <span class="card-from">job-queue</span>
-      </div>
+      <CardHeader title="Job queue" source="job-queue" />
       {jobs.length === 0 ? (
-        <p class="muted">No recent job progress observed.</p>
+        <EmptyState>No recent job progress observed.</EmptyState>
       ) : (
         <table class="jobs">
           <thead>
@@ -834,6 +772,8 @@ function OverviewPanel({
       id="overview"
       class="dashboard-tab-panel is-active"
       data-dashboard-tab-panel
+      data-ui-panel="overview"
+      role="tabpanel"
       aria-labelledby="dashboard-tab-overview"
     >
       <VitalsRow input={input} />
@@ -872,6 +812,9 @@ function WidgetTabPanel({
       class="dashboard-tab-panel"
       data-dashboard-tab-panel
       data-dashboard-group={tab.group}
+      data-ui-panel={tab.id}
+      role="tabpanel"
+      aria-labelledby={`dashboard-tab-${tab.id}`}
     >
       <header class="tab-section-head">
         <h2>{tab.label}</h2>
@@ -986,7 +929,12 @@ function DashboardDocument({
           operatorAccess={input.operatorAccess}
         />
         <main class="console" data-component="dashboard:dashboard">
-          <div class="frame">
+          <div
+            class="frame"
+            data-ui-tabs
+            data-ui-tabs-default="overview"
+            data-ui-tabs-hash="true"
+          >
             <Masthead title={input.title} tagline={input.profile.description} />
             <TabBar tabs={tabs} />
 

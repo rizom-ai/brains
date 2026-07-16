@@ -69,8 +69,13 @@ function AgentPanel({
 }): JSX.Element {
   return (
     <div
+      id={`agent-network-kind-panel-${kind}`}
       class={`agent-network-panel${active ? " is-active" : ""}`}
       data-agent-network-panel={kind}
+      data-ui-panel={kind}
+      role="tabpanel"
+      aria-labelledby={`agent-network-kind-tab-${kind}`}
+      hidden={!active}
     >
       {items.length > 0 ? (
         <ul class="list agent-network-list">
@@ -95,31 +100,38 @@ function SkillsPanel({
   filters: AgentNetworkTagFilter[];
 }): JSX.Element {
   return (
-    <div class="agent-network-panel" data-agent-network-panel="skills">
+    <div
+      id="agent-network-view-panel-skills"
+      class="agent-network-view-panel"
+      data-agent-network-panel="skills"
+      data-ui-panel="skills"
+      role="tabpanel"
+      aria-labelledby="agent-network-view-tab-skills"
+      hidden
+    >
       <div
-        class="agent-network-filter-row"
-        role="tablist"
+        class="widget-filter-tabs widget-filter-tabs--compact"
         aria-label="Filter skills by tag"
       >
         <button
-          class="agent-network-filter is-active"
+          class="widget-filter-tab is-active"
           type="button"
           data-agent-network-tag-filter="all"
           aria-pressed="true"
         >
-          <span class="count">{count}</span>
-          <span class="label">all</span>
+          <span class="widget-filter-count">{count}</span>
+          <span class="widget-filter-label">all</span>
         </button>
         {filters.map((filter) => (
           <button
             key={filter.tag}
-            class={`agent-network-filter${filter.variant === "gap" ? " is-gap" : ""}`}
+            class={`widget-filter-tab${filter.variant === "gap" ? " is-gap" : ""}`}
             type="button"
             data-agent-network-tag-filter={filter.tag}
             aria-pressed="false"
           >
-            <span class="count">{filter.count}</span>
-            <span class="label">{filter.tag}</span>
+            <span class="widget-filter-count">{filter.count}</span>
+            <span class="widget-filter-label">{filter.tag}</span>
           </button>
         ))}
       </div>
@@ -149,68 +161,92 @@ export function AgentNetworkWidget({
   const widgetData = parsed.data;
 
   return (
-    <div data-agent-network-widget data-agent-network-view="agents">
+    <div
+      data-agent-network-widget
+      data-agent-network-view="agents"
+      data-ui-tabs
+      data-ui-tabs-default="agents"
+      data-ui-tabs-state-attribute="data-agent-network-view"
+    >
       <div
-        class="agent-network-view-tabs"
+        class="widget-tabs"
         role="tablist"
         aria-label="Browse the agent network"
       >
         <button
-          class="agent-network-view-tab is-active"
+          id="agent-network-view-tab-agents"
+          class="widget-tab is-active"
           type="button"
+          role="tab"
           data-agent-network-view-tab="agents"
-          aria-pressed="true"
+          data-ui-tab="agents"
+          aria-controls="agent-network-view-panel-agents"
+          aria-selected="true"
         >
           Agents
-          <span class="agent-network-view-count">
-            {widgetData.counts.agents}
-          </span>
+          <span class="widget-tab-count">{widgetData.counts.agents}</span>
         </button>
         <button
-          class="agent-network-view-tab"
+          id="agent-network-view-tab-skills"
+          class="widget-tab"
           type="button"
+          role="tab"
           data-agent-network-view-tab="skills"
-          aria-pressed="false"
+          data-ui-tab="skills"
+          aria-controls="agent-network-view-panel-skills"
+          aria-selected="false"
         >
           Skills
-          <span class="agent-network-view-count">
-            {widgetData.counts.skills}
-          </span>
+          <span class="widget-tab-count">{widgetData.counts.skills}</span>
         </button>
       </div>
 
       <div
-        class="agent-network-kind-tabs"
-        role="tablist"
-        aria-label="Filter agents by kind"
+        id="agent-network-view-panel-agents"
+        class="agent-network-view-panel is-active"
+        data-ui-panel="agents"
+        role="tabpanel"
+        aria-labelledby="agent-network-view-tab-agents"
       >
-        {AGENT_NETWORK_KINDS.map((kind) => {
-          const isActive = kind === "all";
-          return (
-            <button
-              key={kind}
-              class={`agent-network-kind-tab${isActive ? " is-active" : ""}`}
-              type="button"
-              data-agent-network-kind-tab={kind}
-              aria-pressed={isActive ? "true" : "false"}
-            >
-              <span class="agent-network-kind-count">
-                {widgetData.agents[kind].length}
-              </span>
-              <span class="agent-network-kind-label">{kind}</span>
-            </button>
-          );
-        })}
-      </div>
+        <div data-ui-tabs data-ui-tabs-default="all">
+          <div
+            class="widget-filter-tabs"
+            role="tablist"
+            aria-label="Filter agents by kind"
+          >
+            {AGENT_NETWORK_KINDS.map((kind) => {
+              const isActive = kind === "all";
+              return (
+                <button
+                  id={`agent-network-kind-tab-${kind}`}
+                  key={kind}
+                  class={`widget-filter-tab${isActive ? " is-active" : ""}`}
+                  type="button"
+                  role="tab"
+                  data-agent-network-kind-tab={kind}
+                  data-ui-tab={kind}
+                  aria-controls={`agent-network-kind-panel-${kind}`}
+                  aria-selected={isActive ? "true" : "false"}
+                >
+                  <span class="widget-filter-count">
+                    {widgetData.agents[kind].length}
+                  </span>
+                  <span class="widget-filter-label">{kind}</span>
+                </button>
+              );
+            })}
+          </div>
 
-      {AGENT_NETWORK_KINDS.map((kind) => (
-        <AgentPanel
-          key={kind}
-          kind={kind}
-          items={widgetData.agents[kind]}
-          active={kind === "all"}
-        />
-      ))}
+          {AGENT_NETWORK_KINDS.map((kind) => (
+            <AgentPanel
+              key={kind}
+              kind={kind}
+              items={widgetData.agents[kind]}
+              active={kind === "all"}
+            />
+          ))}
+        </div>
+      </div>
       <SkillsPanel
         skills={widgetData.skills}
         count={widgetData.counts.skills}

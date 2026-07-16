@@ -32,6 +32,19 @@ describe("DASHBOARD_STYLES", () => {
     expect(localStyles).not.toContain(".session-chip");
   });
 
+  it("provides generic widget tab and filter primitives", () => {
+    expect(DASHBOARD_STYLES).toContain(".widget-tabs,");
+    expect(DASHBOARD_STYLES).toContain(".widget-tab,");
+    expect(DASHBOARD_STYLES).toContain(".widget-filter-tabs,");
+    expect(DASHBOARD_STYLES).toContain(".widget-filter-tab,");
+  });
+
+  it("contains no styles for the removed identity card", () => {
+    expect(DASHBOARD_STYLES).not.toContain(".identity-card");
+    expect(DASHBOARD_STYLES).not.toContain(".identity-role");
+    expect(DASHBOARD_STYLES).not.toContain(".identity-purpose");
+  });
+
   it("ships a phone composition for tabs, vitals, and job rows", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");

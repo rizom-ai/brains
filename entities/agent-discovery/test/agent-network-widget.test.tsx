@@ -89,6 +89,13 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain('data-agent-network-view="agents"');
     expect(html).toContain('data-agent-network-view-tab="agents"');
     expect(html).toContain('data-agent-network-view-tab="skills"');
+    expect(html).toContain('data-ui-tabs-default="agents"');
+    expect(html).toContain(
+      'data-ui-tabs-state-attribute="data-agent-network-view"',
+    );
+    expect(html).toContain('data-ui-tabs-default="all"');
+    expect(html).toContain('data-ui-tab="skills"');
+    expect(html).toContain('data-ui-panel="professional"');
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
   });

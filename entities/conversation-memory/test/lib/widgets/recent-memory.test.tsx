@@ -155,6 +155,10 @@ describe("RecentConversationMemoryWidget", () => {
     expect(html).toContain('data-recent-memory-view-tab="byChannel"');
     expect(html).toContain('data-recent-memory-panel="all"');
     expect(html).toContain('data-recent-memory-panel="byChannel"');
+    expect(html).toContain('data-ui-tabs-default="all"');
+    expect(html).toContain('data-ui-tab="byChannel"');
+    expect(html).toContain('data-ui-panel="byChannel"');
+    expect(html).toContain('role="tabpanel"');
     expect(html).toContain("Design A");
     expect(html).toContain("Ops planning");
     expect(html).toContain("#Design");

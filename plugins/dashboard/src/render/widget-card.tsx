@@ -3,6 +3,7 @@ import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
+import { CardHeader, EmptyState, KeyValueList } from "./ui";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
 const COMPACT_WIDGET_RENDERERS = new Set([
@@ -102,13 +103,13 @@ function CountChip({ widget }: RendererProps): JSX.Element | null {
     return null;
   }
 
-  return <span class="chip">{items.length}</span>;
+  return <span class="tab-badge tab-badge--muted">{items.length}</span>;
 }
 
 function KeyValueBody({ widget }: RendererProps): JSX.Element {
   const data = parsedKvData(widget.data);
   if (!data) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   const entries = Object.entries(data).filter(
@@ -116,18 +117,16 @@ function KeyValueBody({ widget }: RendererProps): JSX.Element {
   );
 
   if (entries.length === 0) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   return (
-    <dl class="kv">
-      {entries.map(([key, value]) => (
-        <div key={key} class="kv-row">
-          <dt>{formatLabel(key)}</dt>
-          <dd>{toDisplayValue(value)}</dd>
-        </div>
-      ))}
-    </dl>
+    <KeyValueList
+      items={entries.map(([key, value]) => ({
+        label: formatLabel(key),
+        value: toDisplayValue(value),
+      }))}
+    />
   );
 }
 
@@ -177,7 +176,7 @@ function ListRow({ item }: { item: ListItem }): JSX.Element {
 function ListBody({ widget }: RendererProps): JSX.Element {
   const items = parsedListData(widget.data);
   if (items.length === 0) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   return (
@@ -209,7 +208,7 @@ function PipelineMetric({
 function PipelineBody({ widget }: RendererProps): JSX.Element {
   const parsed = pipelineWidgetDataSchema.safeParse(widget.data);
   if (!parsed.success) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   const { summary, failures, managementUrl } = parsed.data;
@@ -286,10 +285,9 @@ export function WidgetCard({
 
   return (
     <article class={className}>
-      <div class="card-head">
-        <span class="card-title">{widget.widget.title}</span>
+      <CardHeader title={widget.widget.title}>
         <CountChip widget={widget} />
-      </div>
+      </CardHeader>
       <WidgetBody widget={widget} />
     </article>
   );

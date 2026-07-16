@@ -2,6 +2,7 @@
 import type { AppInfo } from "@brains/plugins";
 import { displayLinkLabel, resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
+import { CardHeader } from "./ui";
 
 function endpointHost(url: string): string {
   try {
@@ -28,9 +29,7 @@ export function EndpointsCard(props: {
 
   return (
     <aside class="card">
-      <div class="card-head">
-        <span class="card-title">Endpoints</span>
-      </div>
+      <CardHeader title="Endpoints" />
       <dl class="links">
         {sorted.map((endpoint) => {
           const resolved = resolveUrl(endpoint.url, baseUrl);

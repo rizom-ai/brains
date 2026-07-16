@@ -2,6 +2,7 @@
 import { formatLabel } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { EntityCount } from "./types";
+import { CardHeader, EmptyState } from "./ui";
 
 function BreakdownRow({
   entityType,
@@ -30,10 +31,8 @@ export function EntitySummaryCard(props: {
   if (entityCounts.length === 0) {
     return (
       <article class="card card--entity-summary">
-        <div class="card-head">
-          <span class="card-title">Entities</span>
-        </div>
-        <p class="muted">No indexed entities yet.</p>
+        <CardHeader title="Entities" />
+        <EmptyState>No indexed entities yet.</EmptyState>
       </article>
     );
   }
@@ -43,10 +42,7 @@ export function EntitySummaryCard(props: {
 
   return (
     <article class="card card--entity-summary">
-      <div class="card-head">
-        <span class="card-title">Entities</span>
-        <span class="card-subtitle">corpus · sorted by volume</span>
-      </div>
+      <CardHeader title="Entities" subtitle="corpus · sorted by volume" />
       <div class="entities">
         <div>
           <div class="entity-summary-number">{total}</div>

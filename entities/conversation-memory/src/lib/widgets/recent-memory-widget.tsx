@@ -10,38 +10,6 @@ import { channelLabel, formatTimeRange } from "./format";
 
 void h;
 
-export const recentConversationMemoryScript = `(function () {
-  function setActive(nodes, match) {
-    nodes.forEach(function (node) {
-      var active = match(node);
-      node.classList.toggle("is-active", active);
-      if (node.hasAttribute("aria-pressed")) {
-        node.setAttribute("aria-pressed", active ? "true" : "false");
-      }
-    });
-  }
-  document.querySelectorAll("[data-recent-memory-widget]").forEach(function (widget) {
-    var tabs = widget.querySelectorAll("[data-recent-memory-view-tab]");
-    var panels = widget.querySelectorAll("[data-recent-memory-panel]");
-    function setView(view) {
-      setActive(tabs, function (tab) {
-        return tab.getAttribute("data-recent-memory-view-tab") === view;
-      });
-      panels.forEach(function (panel) {
-        var match = panel.getAttribute("data-recent-memory-panel") === view;
-        panel.style.display = match ? "" : "none";
-      });
-    }
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        var view = tab.getAttribute("data-recent-memory-view-tab");
-        if (view) setView(view);
-      });
-    });
-    setView("all");
-  });
-})();`;
-
 function EntryRow({ row }: { row: SummaryEntryRow }): JSX.Element {
   const meta = [
     channelLabel(row.channelName, row.channelId),
@@ -77,8 +45,13 @@ function Panel({
 }): JSX.Element {
   return (
     <div
+      id={`recent-memory-panel-${view}`}
+      class={active ? "is-active" : undefined}
       data-recent-memory-panel={view}
-      style={{ display: active ? undefined : "none" }}
+      data-ui-panel={view}
+      role="tabpanel"
+      aria-labelledby={`recent-memory-tab-${view}`}
+      hidden={!active}
     >
       {rows.length > 0 ? (
         <ul class="list">
@@ -102,29 +75,37 @@ export function RecentConversationMemoryWidget({
   }
   const { all, byChannel } = parsed.data;
   return (
-    <div data-recent-memory-widget>
+    <div data-recent-memory-widget data-ui-tabs data-ui-tabs-default="all">
       <div
-        class="view-tabs"
+        class="widget-tabs"
         role="tablist"
         aria-label="Recent conversation memory views"
       >
         <button
-          class="view-tab is-active"
+          id="recent-memory-tab-all"
+          class="widget-tab is-active"
           type="button"
+          role="tab"
           data-recent-memory-view-tab="all"
-          aria-pressed="true"
+          data-ui-tab="all"
+          aria-controls="recent-memory-panel-all"
+          aria-selected="true"
         >
           All
-          <span class="view-tab-count">{all.length}</span>
+          <span class="widget-tab-count">{all.length}</span>
         </button>
         <button
-          class="view-tab"
+          id="recent-memory-tab-byChannel"
+          class="widget-tab"
           type="button"
+          role="tab"
           data-recent-memory-view-tab="byChannel"
-          aria-pressed="false"
+          data-ui-tab="byChannel"
+          aria-controls="recent-memory-panel-byChannel"
+          aria-selected="false"
         >
           By channel
-          <span class="view-tab-count">{byChannel.length}</span>
+          <span class="widget-tab-count">{byChannel.length}</span>
         </button>
       </div>
       <Panel view="all" rows={all} active={true} />

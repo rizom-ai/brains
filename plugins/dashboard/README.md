@@ -36,6 +36,20 @@ Widgets are registered with the widget registry and rendered in the tabbed dashb
 
 The `group` field is required. A group tab exists only when at least one visible widget declares that group.
 
+## Custom widget controls
+
+The dashboard progressively enhances tab sets declared by custom widgets. A
+tab root uses `data-ui-tabs` and `data-ui-tabs-default`, triggers use
+`data-ui-tab`, and matching panels use `data-ui-panel`. Tab sets can be nested;
+the controller only changes triggers and panels owned by the nearest root.
+
+Use the generic `widget-tabs` / `widget-tab` classes for view tabs and
+`widget-filter-tabs` / `widget-filter-tab` for pill-style filters. Legacy
+widget-specific tab classes remain styled for compatibility.
+
+`clientScript` is still available for behavior beyond tab selection, such as
+filtering rows or inspecting a visualization.
+
 ## Templates
 
 - `dashboard:layout` - Main dashboard layout with widget grid

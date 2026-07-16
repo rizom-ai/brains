@@ -10,6 +10,7 @@
   }
   .dashboard-tabs::-webkit-scrollbar { display: none; }
   .dashboard-tab { flex: 0 0 auto; }
+  .widget-tabs,
   .view-tabs,
   .agent-network-view-tabs {
     gap: 20px;
@@ -17,8 +18,10 @@
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
   }
+  .widget-tabs::-webkit-scrollbar,
   .view-tabs::-webkit-scrollbar,
   .agent-network-view-tabs::-webkit-scrollbar { display: none; }
+  .widget-tab,
   .view-tab,
   .agent-network-view-tab { flex: 0 0 auto; }
 }
@@ -93,7 +96,7 @@
     display: grid;
     gap: 8px;
   }
-  .identity-purpose { grid-row: 2; }
+  .identity-capsule-purpose { grid-row: 2; }
   .overview-grid,
   .digests { gap: 8px; }
   .card,
@@ -184,8 +187,10 @@
   .jobs td:nth-child(3)::before,
   .jobs td:nth-child(4)::before { display: none; }
 
+  .widget-tab,
   .view-tab,
   .agent-network-view-tab,
+  .widget-filter-tab,
   .agent-network-kind-tab,
   .agent-network-filter {
     min-height: 40px;

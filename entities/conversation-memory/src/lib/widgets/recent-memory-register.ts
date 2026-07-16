@@ -3,10 +3,7 @@ import {
   buildRecentConversationMemoryData,
   RECENT_MEMORY_WIDGET_ID,
 } from "./recent-memory";
-import {
-  RecentConversationMemoryWidget,
-  recentConversationMemoryScript,
-} from "./recent-memory-widget";
+import { RecentConversationMemoryWidget } from "./recent-memory-widget";
 
 export function registerRecentConversationMemoryWidget(params: {
   context: EntityPluginContext;
@@ -27,7 +24,6 @@ export function registerRecentConversationMemoryWidget(params: {
           priority: 35,
           rendererName: "CustomWidget",
           component: RecentConversationMemoryWidget,
-          clientScript: recentConversationMemoryScript,
           dataProvider: () => buildRecentConversationMemoryData(context),
         },
       });

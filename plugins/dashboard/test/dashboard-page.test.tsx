@@ -258,6 +258,10 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Entities");
     expect(html).toContain("Publication Pipeline");
     expect(html).toContain("dashboard-tabs-ready");
+    expect(html).toContain('data-ui-tabs-default="overview"');
+    expect(html).toContain('data-ui-tab="overview"');
+    expect(html).toContain('data-ui-panel="publishing"');
+    expect(html).toContain('aria-labelledby="dashboard-tab-publishing"');
     expect(html).not.toContain('hidden=""');
   });
 
