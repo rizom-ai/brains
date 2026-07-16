@@ -1,9 +1,17 @@
 /** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
-import { AgentNetworkWidget } from "../src/widgets/agent-network-widget";
+import {
+  AgentNetworkWidget,
+  agentNetworkWidgetScript,
+} from "../src/widgets/agent-network-widget";
 
 describe("AgentNetworkWidget", () => {
+  it("bridges approved-agent promotion into the Anchor People flow", () => {
+    expect(agentNetworkWidgetScript).toContain("brains:agent-promote");
+    expect(agentNetworkWidgetScript).toContain("[data-people-panel]");
+  });
+
   it("renders agents and skills tabs in one widget", () => {
     const html = render(
       <AgentNetworkWidget
@@ -91,5 +99,9 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain('data-agent-network-view-tab="skills"');
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
+    expect(html).toContain('data-agent-promote="kai.brain"');
+    expect(html).toContain('data-agent-promote-name="Kai"');
+    expect(html.match(/data-agent-promote=/g)).toHaveLength(2);
+    expect(html).not.toContain('data-agent-promote="north.ops"');
   });
 });

@@ -108,6 +108,7 @@ describe("renderDashboardPageHtml", () => {
     expect(anchorHtml).toContain('id="people-confirm-dialog"');
     expect(anchorHtml).toContain('id="people-identity-dialog"');
     expect(anchorHtml).toContain('id="people-setup-dialog"');
+    expect(anchorHtml).toContain('id="people-promote-agent-dialog"');
     expect(anchorHtml).toContain("/auth/admin/users");
     expect(anchorHtml).toContain("/auth/admin/mutations");
     expect(anchorHtml).toContain("createUser");
@@ -121,6 +122,8 @@ describe("renderDashboardPageHtml", () => {
     expect(anchorHtml).toContain("function agentContent(user)");
     expect(anchorHtml).toContain("Linked agents");
     expect(anchorHtml).toContain("user.agents");
+    expect(anchorHtml).toContain("promoteAgentPerson");
+    expect(anchorHtml).toContain("brains:agent-promote");
     expect(trustedHtml).not.toContain('href="#people"');
     expect(trustedHtml).not.toContain('data-people-list="true"');
   });

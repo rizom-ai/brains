@@ -98,6 +98,57 @@ export function PeoplePanel(): JSX.Element {
         </form>
       </dialog>
 
+      <dialog id="people-promote-agent-dialog" class="people-dialog">
+        <form method="dialog" data-people-promote-agent-form>
+          <header>
+            <div class="eyebrow">Agent → user promotion</div>
+            <h3>Grant represented person access</h3>
+            <p>
+              Create an invited user from this agent’s represented person, then
+              send the one-time claim link privately.
+            </p>
+          </header>
+          <div class="people-dialog-body">
+            <label>
+              <span>Agent</span>
+              <input name="agentLabel" readOnly />
+              <input name="agentId" type="hidden" />
+            </label>
+            <label>
+              <span>Represented person</span>
+              <input name="displayName" maxlength={200} required />
+            </label>
+            <label>
+              <span>Initial role</span>
+              <select name="role">
+                <option value="public">Public</option>
+                <option value="trusted" selected>
+                  Trusted
+                </option>
+                <option value="anchor">Anchor</option>
+              </select>
+            </label>
+            <p class="people-warning">
+              Agent assertions do not authenticate this person. Access activates
+              only after they register a passkey with the targeted claim link.
+            </p>
+          </div>
+          <footer>
+            <button
+              class="people-button"
+              value="cancel"
+              type="button"
+              data-dialog-cancel
+            >
+              Cancel
+            </button>
+            <button class="people-button people-button--primary" type="submit">
+              Create invitation
+            </button>
+          </footer>
+        </form>
+      </dialog>
+
       <dialog id="people-identity-dialog" class="people-dialog">
         <form method="dialog" data-people-identity-form>
           <header>
@@ -231,6 +282,7 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
   var feedback = panel.querySelector("[data-people-feedback]");
   var addDialog = document.getElementById("people-add-dialog");
   var identityDialog = document.getElementById("people-identity-dialog");
+  var promoteAgentDialog = document.getElementById("people-promote-agent-dialog");
   var confirmDialog = document.getElementById("people-confirm-dialog");
   var setupDialog = document.getElementById("people-setup-dialog");
   var users = [];
@@ -538,6 +590,15 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     }
   }
 
+  window.addEventListener("brains:agent-promote", function (event) {
+    if (!event.detail || !event.detail.agentId) return;
+    var form = panel.querySelector("[data-people-promote-agent-form]");
+    form.elements.agentId.value = event.detail.agentId;
+    form.elements.agentLabel.value = event.detail.displayName || event.detail.agentId;
+    form.elements.displayName.value = event.detail.displayName || "";
+    promoteAgentDialog.showModal();
+  });
+
   panel.querySelector("[data-people-add]").addEventListener("click", function () { addDialog.showModal(); });
   panel.querySelectorAll("[data-dialog-cancel]").forEach(function (button) {
     button.addEventListener("click", function () { button.closest("dialog").close("cancel"); });
@@ -559,6 +620,28 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
       form.reset();
       await loadUsers(result.user.userId);
       setFeedback("Person created", "good");
+    } catch (error) { setFeedback(error.message, "error"); }
+  });
+
+  panel.querySelector("[data-people-promote-agent-form]").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var form = event.currentTarget;
+    var formData = new FormData(form);
+    try {
+      var result = await mutate({
+        action: "promoteAgentPerson",
+        confirmation: "promoteAgentPerson",
+        agentId: String(formData.get("agentId") || ""),
+        displayName: String(formData.get("displayName") || ""),
+        role: String(formData.get("role") || "trusted")
+      });
+      promoteAgentDialog.close("confirm");
+      form.reset();
+      await loadUsers(result.user.userId);
+      setupDialog.querySelector("[data-setup-link]").textContent = result.registration.setupUrl;
+      setupDialog.querySelector("[data-setup-copy]").textContent = "Send this single-use link to " + result.user.displayName + " through a private channel. It expires " + formatDate(result.registration.expiresAt * 1000) + ".";
+      setupDialog.showModal();
+      setFeedback("Invitation created", "good");
     } catch (error) { setFeedback(error.message, "error"); }
   });
 

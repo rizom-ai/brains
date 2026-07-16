@@ -28,8 +28,18 @@ function AgentListItem({ item }: { item: AgentNetworkAgentRow }): JSX.Element {
         )}
       </div>
       <div class="list-meta">
-        {item.status === "discovered" && (
+        {item.status === "discovered" ? (
           <span class="pill pill--warn">review</span>
+        ) : (
+          <button
+            class="agent-network-promote"
+            type="button"
+            data-agent-promote={item.id}
+            data-agent-promote-name={item.name.split(" · ", 1)[0] ?? item.name}
+            hidden
+          >
+            Grant access
+          </button>
         )}
       </div>
     </li>

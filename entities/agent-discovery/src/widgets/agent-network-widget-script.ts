@@ -26,6 +26,7 @@ export const agentNetworkWidgetScript = `(function () {
     var panels = widget.querySelectorAll("[data-agent-network-panel]");
     var tagFilters = widget.querySelectorAll("[data-agent-network-tag-filter]");
     var skillRows = widget.querySelectorAll("[data-agent-network-skill-row]");
+    var promoteButtons = widget.querySelectorAll("[data-agent-promote]");
 
     function showPanel(key) {
       setActive(panels, function (panel) {
@@ -87,6 +88,20 @@ export const agentNetworkWidgetScript = `(function () {
       button.addEventListener("click", function () {
         var filter = button.getAttribute("data-agent-network-tag-filter");
         if (filter) setTagFilter(filter);
+      });
+    });
+
+    var promotionAvailable = Boolean(document.querySelector("[data-people-panel]"));
+    promoteButtons.forEach(function (button) {
+      button.hidden = !promotionAvailable;
+      if (!promotionAvailable) return;
+      button.addEventListener("click", function () {
+        window.dispatchEvent(new CustomEvent("brains:agent-promote", {
+          detail: {
+            agentId: button.getAttribute("data-agent-promote"),
+            displayName: button.getAttribute("data-agent-promote-name")
+          }
+        }));
       });
     });
 
