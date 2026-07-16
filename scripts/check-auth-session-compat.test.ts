@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import {
   findDeprecatedAuthSessionConsumers,
   isLegacyCookieRemovalEligible,
+  isLegacyDatabaseBridgeRemovalEligible,
   stampCompatibilityRelease,
 } from "./check-auth-session-compat";
 
@@ -40,6 +41,7 @@ describe("auth-session compatibility gate", () => {
         metadataPath,
         JSON.stringify({
           newCookieIntroducedIn: "unreleased",
+          drizzleMigrationsIntroducedIn: "unreleased",
           minimumSupportedUpgradeVersion: null,
         }),
       );
@@ -50,6 +52,7 @@ describe("auth-session compatibility gate", () => {
       );
       expect(JSON.parse(await Bun.file(metadataPath).text())).toEqual({
         newCookieIntroducedIn: "0.3.0",
+        drizzleMigrationsIntroducedIn: "0.3.0",
         minimumSupportedUpgradeVersion: null,
       });
       expect(await stampCompatibilityRelease(metadataPath, packagePath)).toBe(
@@ -64,18 +67,36 @@ describe("auth-session compatibility gate", () => {
     expect(
       isLegacyCookieRemovalEligible({
         newCookieIntroducedIn: "unreleased",
+        drizzleMigrationsIntroducedIn: "unreleased",
         minimumSupportedUpgradeVersion: null,
       }),
     ).toBe(false);
     expect(
       isLegacyCookieRemovalEligible({
         newCookieIntroducedIn: "0.3.0",
+        drizzleMigrationsIntroducedIn: "0.3.0",
         minimumSupportedUpgradeVersion: "0.2.9",
       }),
     ).toBe(false);
     expect(
       isLegacyCookieRemovalEligible({
         newCookieIntroducedIn: "0.3.0",
+        drizzleMigrationsIntroducedIn: "0.3.0",
+        minimumSupportedUpgradeVersion: "0.3.0",
+      }),
+    ).toBe(true);
+
+    expect(
+      isLegacyDatabaseBridgeRemovalEligible({
+        newCookieIntroducedIn: "0.3.0",
+        drizzleMigrationsIntroducedIn: "unreleased",
+        minimumSupportedUpgradeVersion: "0.3.0",
+      }),
+    ).toBe(false);
+    expect(
+      isLegacyDatabaseBridgeRemovalEligible({
+        newCookieIntroducedIn: "0.3.0",
+        drizzleMigrationsIntroducedIn: "0.3.0",
         minimumSupportedUpgradeVersion: "0.3.0",
       }),
     ).toBe(true);

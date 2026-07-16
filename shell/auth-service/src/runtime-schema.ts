@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   sqliteTable,
@@ -180,51 +181,62 @@ export const authUsers: AuthUsersTable = sqliteTable(
       table.canonicalId,
     ),
     personIdIdx: uniqueIndex("idx_auth_users_person_id").on(table.personId),
+    roleCheck: check(
+      "auth_users_role_check",
+      sql`${table.role} IN ('anchor', 'trusted', 'public')`,
+    ),
+    statusCheck: check(
+      "auth_users_status_check",
+      sql`${table.status} IN ('active', 'invited', 'suspended')`,
+    ),
   }),
 );
 
-type AuthIdentitiesTable = AuthTable<
-  "auth_identities",
+type PersonIdentityClaimsTable = AuthTable<
+  "person_identity_claims",
   {
-    id: AuthTextColumn<"auth_identities", "id", true, true>;
-    personId: AuthTextColumn<"auth_identities", "person_id", true>;
-    userId: AuthTextColumn<"auth_identities", "user_id", true>;
+    id: AuthTextColumn<"person_identity_claims", "id", true, true>;
+    personId: AuthTextColumn<"person_identity_claims", "person_id", true>;
     type: AuthTextColumn<
-      "auth_identities",
+      "person_identity_claims",
       "type",
       true,
       false,
       "passkey" | "discord" | "mcp" | "oauth" | "email" | "did" | "a2a",
       ["passkey", "discord", "mcp", "oauth", "email", "did", "a2a"]
     >;
-    issuer: AuthTextColumn<"auth_identities", "issuer", false>;
+    issuer: AuthTextColumn<"person_identity_claims", "issuer", false>;
     identityKeyHash: AuthTextColumn<
-      "auth_identities",
+      "person_identity_claims",
       "identity_key_hash",
       true
     >;
     deliverySubject: AuthTextColumn<
-      "auth_identities",
+      "person_identity_claims",
       "delivery_subject",
       false
     >;
-    label: AuthTextColumn<"auth_identities", "label", false>;
-    verifiedAt: AuthIntegerColumn<"auth_identities", "verified_at", false>;
-    revokedAt: AuthIntegerColumn<"auth_identities", "revoked_at", false>;
-    createdAt: AuthIntegerColumn<"auth_identities", "created_at", true>;
+    label: AuthTextColumn<"person_identity_claims", "label", false>;
+    visibility: AuthTextColumn<
+      "person_identity_claims",
+      "visibility",
+      true,
+      false,
+      "private" | "trusted" | "public",
+      ["private", "trusted", "public"]
+    >;
+    revokedAt: AuthIntegerColumn<"person_identity_claims", "revoked_at", false>;
+    createdAt: AuthIntegerColumn<"person_identity_claims", "created_at", true>;
   }
 >;
 
-export const authIdentities: AuthIdentitiesTable = sqliteTable(
-  "auth_identities",
+export const authIdentities: PersonIdentityClaimsTable = sqliteTable(
+  "person_identity_claims",
   {
     id: text("id").primaryKey(),
     personId: text("person_id")
       .notNull()
       .references(() => authPeople.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => authUsers.id, { onDelete: "cascade" }),
     type: text("type", {
       enum: ["passkey", "discord", "mcp", "oauth", "email", "did", "a2a"],
     }).notNull(),
@@ -232,16 +244,98 @@ export const authIdentities: AuthIdentitiesTable = sqliteTable(
     identityKeyHash: text("identity_key_hash").notNull(),
     deliverySubject: text("delivery_subject"),
     label: text("label"),
-    verifiedAt: integer("verified_at"),
+    visibility: text("visibility", {
+      enum: ["private", "trusted", "public"],
+    }).notNull(),
     revokedAt: integer("revoked_at"),
     createdAt: integer("created_at").notNull(),
   },
   (table) => ({
-    activeKeyIdx: uniqueIndex("idx_auth_identities_active_key")
+    activeKeyIdx: uniqueIndex("idx_person_identity_claims_active_key")
       .on(table.identityKeyHash)
       .where(sql`revoked_at IS NULL`),
-    personIdIdx: index("idx_auth_identities_person_id").on(table.personId),
-    userIdIdx: index("idx_auth_identities_user_id").on(table.userId),
+    keyIdx: index("idx_person_identity_claims_key").on(table.identityKeyHash),
+    personIdIdx: index("idx_person_identity_claims_person_id").on(
+      table.personId,
+    ),
+    typeCheck: check(
+      "person_identity_claims_type_check",
+      sql`${table.type} IN ('passkey', 'discord', 'mcp', 'oauth', 'email', 'did', 'a2a')`,
+    ),
+    visibilityCheck: check(
+      "person_identity_claims_visibility_check",
+      sql`${table.visibility} IN ('private', 'trusted', 'public')`,
+    ),
+  }),
+);
+
+type AuthIdentityEvidenceTable = AuthTable<
+  "auth_identity_evidence",
+  {
+    id: AuthTextColumn<"auth_identity_evidence", "id", true, true>;
+    claimId: AuthTextColumn<"auth_identity_evidence", "claim_id", true>;
+    sourceKind: AuthTextColumn<
+      "auth_identity_evidence",
+      "source_kind",
+      true,
+      false,
+      "admin" | "agent" | "migration" | "provider",
+      ["admin", "agent", "migration", "provider"]
+    >;
+    sourceId: AuthTextColumn<"auth_identity_evidence", "source_id", false>;
+    assurance: AuthTextColumn<
+      "auth_identity_evidence",
+      "assurance",
+      true,
+      false,
+      "asserted" | "verified",
+      ["asserted", "verified"]
+    >;
+    verifiedAt: AuthIntegerColumn<
+      "auth_identity_evidence",
+      "verified_at",
+      false
+    >;
+    createdAt: AuthIntegerColumn<"auth_identity_evidence", "created_at", true>;
+  }
+>;
+
+export const authIdentityEvidence: AuthIdentityEvidenceTable = sqliteTable(
+  "auth_identity_evidence",
+  {
+    id: text("id").primaryKey(),
+    claimId: text("claim_id")
+      .notNull()
+      .references(() => authIdentities.id, { onDelete: "cascade" }),
+    sourceKind: text("source_kind", {
+      enum: ["admin", "agent", "migration", "provider"],
+    }).notNull(),
+    sourceId: text("source_id"),
+    assurance: text("assurance", {
+      enum: ["asserted", "verified"],
+    }).notNull(),
+    verifiedAt: integer("verified_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => ({
+    claimIdIdx: index("idx_auth_identity_evidence_claim_id").on(table.claimId),
+    verifiedIdx: index("idx_auth_identity_evidence_verified").on(
+      table.claimId,
+      table.assurance,
+    ),
+    sourceKindCheck: check(
+      "auth_identity_evidence_source_kind_check",
+      sql`${table.sourceKind} IN ('admin', 'agent', 'migration', 'provider')`,
+    ),
+    assuranceCheck: check(
+      "auth_identity_evidence_assurance_check",
+      sql`${table.assurance} IN ('asserted', 'verified')`,
+    ),
+    verificationCheck: check(
+      "auth_identity_evidence_verification_check",
+      sql`(${table.assurance} = 'asserted' AND ${table.verifiedAt} IS NULL)
+          OR (${table.assurance} = 'verified' AND ${table.verifiedAt} IS NOT NULL)`,
+    ),
   }),
 );
 
@@ -295,6 +389,10 @@ export const agentPersonLinks: AgentPersonLinksTable = sqliteTable(
   },
   (table) => ({
     personIdIdx: index("idx_agent_person_links_person_id").on(table.personId),
+    statusCheck: check(
+      "agent_person_links_status_check",
+      sql`${table.status} IN ('pending', 'active', 'revoked')`,
+    ),
   }),
 );
 
@@ -387,6 +485,10 @@ export const webauthnChallenges: WebauthnChallengesTable = sqliteTable(
   },
   (table) => ({
     userIdIdx: index("idx_webauthn_challenges_user_id").on(table.userId),
+    kindCheck: check(
+      "webauthn_challenges_kind_check",
+      sql`${table.kind} IN ('registration', 'authentication')`,
+    ),
   }),
 );
 
@@ -548,6 +650,19 @@ export const oauthSigningKeys: OauthSigningKeysTable = sqliteTable(
     createdAt: integer("created_at").notNull(),
     retiredAt: integer("retired_at"),
   },
+  (table) => ({
+    activePurposeIdx: uniqueIndex("idx_oauth_signing_keys_active_purpose")
+      .on(table.purpose)
+      .where(sql`status = 'active'`),
+    purposeCheck: check(
+      "oauth_signing_keys_purpose_check",
+      sql`${table.purpose} IN ('oauth', 'a2a')`,
+    ),
+    statusCheck: check(
+      "oauth_signing_keys_status_check",
+      sql`${table.status} IN ('active', 'retired')`,
+    ),
+  }),
 );
 
 type SetupTokensTable = AuthTable<
@@ -616,6 +731,22 @@ export const authAuditEvents: AuthAuditEventsTable = sqliteTable(
   }),
 );
 
+type AuthLegacyImportsTable = AuthTable<
+  "auth_legacy_imports",
+  {
+    source: AuthTextColumn<"auth_legacy_imports", "source", true, true>;
+    completedAt: AuthIntegerColumn<"auth_legacy_imports", "completed_at", true>;
+  }
+>;
+
+export const authLegacyImports: AuthLegacyImportsTable = sqliteTable(
+  "auth_legacy_imports",
+  {
+    source: text("source").primaryKey(),
+    completedAt: integer("completed_at").notNull(),
+  },
+);
+
 type A2aPeerTrustTable = AuthTable<
   "a2a_peer_trust",
   {
@@ -634,41 +765,33 @@ type A2aPeerTrustTable = AuthTable<
   }
 >;
 
-export const a2aPeerTrust: A2aPeerTrustTable = sqliteTable("a2a_peer_trust", {
-  domain: text("domain").primaryKey(),
-  keyFingerprint: text("key_fingerprint").notNull(),
-  grantedLevel: text("granted_level", {
-    enum: ["public", "trusted"],
-  }).notNull(),
-  createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull(),
-});
-
-type AuthSchemaMigrationsTable = AuthTable<
-  "auth_schema_migrations",
+export const a2aPeerTrust: A2aPeerTrustTable = sqliteTable(
+  "a2a_peer_trust",
   {
-    id: AuthIntegerColumn<"auth_schema_migrations", "id", true, true, true>;
-    name: AuthTextColumn<"auth_schema_migrations", "name", true>;
-    appliedAt: AuthIntegerColumn<"auth_schema_migrations", "applied_at", true>;
-  }
->;
-
-export const authSchemaMigrations: AuthSchemaMigrationsTable = sqliteTable(
-  "auth_schema_migrations",
-  {
-    id: integer("id").primaryKey(),
-    name: text("name").notNull(),
-    appliedAt: integer("applied_at").notNull(),
+    domain: text("domain").primaryKey(),
+    keyFingerprint: text("key_fingerprint").notNull(),
+    grantedLevel: text("granted_level", {
+      enum: ["public", "trusted"],
+    }).notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
   },
+  (table) => ({
+    grantedLevelCheck: check(
+      "a2a_peer_trust_granted_level_check",
+      sql`${table.grantedLevel} IN ('public', 'trusted')`,
+    ),
+  }),
 );
 
 export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
   agentPersonLinks: AgentPersonLinksTable;
   authAuditEvents: AuthAuditEventsTable;
-  authIdentities: AuthIdentitiesTable;
+  authIdentities: PersonIdentityClaimsTable;
+  authIdentityEvidence: AuthIdentityEvidenceTable;
+  authLegacyImports: AuthLegacyImportsTable;
   authPeople: AuthPeopleTable;
-  authSchemaMigrations: AuthSchemaMigrationsTable;
   authUsers: AuthUsersTable;
   oauthAuthCodes: OauthAuthCodesTable;
   oauthClients: OauthClientsTable;
@@ -683,8 +806,9 @@ export const authRuntimeSchema: {
   agentPersonLinks,
   authAuditEvents,
   authIdentities,
+  authIdentityEvidence,
+  authLegacyImports,
   authPeople,
-  authSchemaMigrations,
   authUsers,
   oauthAuthCodes,
   oauthClients,
@@ -704,3 +828,6 @@ export type AuthUser = typeof authUsers.$inferSelect;
 export type InsertAuthUser = typeof authUsers.$inferInsert;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type InsertAuthIdentity = typeof authIdentities.$inferInsert;
+export type AuthIdentityEvidence = typeof authIdentityEvidence.$inferSelect;
+export type InsertAuthIdentityEvidence =
+  typeof authIdentityEvidence.$inferInsert;

@@ -327,6 +327,10 @@ mkdirSync(migrationsDir, { recursive: true });
 
 const migrationSources = [
   {
+    name: "auth-service",
+    path: join(monorepoRoot, "shell/auth-service/drizzle"),
+  },
+  {
     name: "entity-service",
     path: join(monorepoRoot, "shell/entity-service/drizzle"),
   },

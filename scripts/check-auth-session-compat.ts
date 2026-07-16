@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 export interface AuthSessionCompatibilityMetadata {
   newCookieIntroducedIn: string;
+  drizzleMigrationsIntroducedIn: string;
   minimumSupportedUpgradeVersion: string | null;
 }
 
@@ -68,7 +69,12 @@ export async function stampCompatibilityRelease(
   const metadata = JSON.parse(
     await readFile(metadataPath, "utf8"),
   ) as AuthSessionCompatibilityMetadata;
-  if (metadata.newCookieIntroducedIn !== "unreleased") return false;
+  if (
+    metadata.newCookieIntroducedIn !== "unreleased" &&
+    metadata.drizzleMigrationsIntroducedIn !== "unreleased"
+  ) {
+    return false;
+  }
 
   const packageJson = JSON.parse(await readFile(packagePath, "utf8")) as {
     version?: unknown;
@@ -80,7 +86,15 @@ export async function stampCompatibilityRelease(
   await writeFile(
     metadataPath,
     `${JSON.stringify(
-      { ...metadata, newCookieIntroducedIn: packageJson.version },
+      {
+        ...metadata,
+        ...(metadata.newCookieIntroducedIn === "unreleased"
+          ? { newCookieIntroducedIn: packageJson.version }
+          : {}),
+        ...(metadata.drizzleMigrationsIntroducedIn === "unreleased"
+          ? { drizzleMigrationsIntroducedIn: packageJson.version }
+          : {}),
+      },
       null,
       2,
     )}\n`,
@@ -91,18 +105,32 @@ export async function stampCompatibilityRelease(
 export function isLegacyCookieRemovalEligible(
   metadata: AuthSessionCompatibilityMetadata,
 ): boolean {
+  return isRemovalEligible(
+    metadata.newCookieIntroducedIn,
+    metadata.minimumSupportedUpgradeVersion,
+  );
+}
+
+export function isLegacyDatabaseBridgeRemovalEligible(
+  metadata: AuthSessionCompatibilityMetadata,
+): boolean {
+  return isRemovalEligible(
+    metadata.drizzleMigrationsIntroducedIn,
+    metadata.minimumSupportedUpgradeVersion,
+  );
+}
+
+function isRemovalEligible(
+  introducedIn: string,
+  minimumSupportedUpgradeVersion: string | null,
+): boolean {
   if (
-    metadata.newCookieIntroducedIn === "unreleased" ||
-    metadata.minimumSupportedUpgradeVersion === null
+    introducedIn === "unreleased" ||
+    minimumSupportedUpgradeVersion === null
   ) {
     return false;
   }
-  return (
-    compareVersions(
-      metadata.minimumSupportedUpgradeVersion,
-      metadata.newCookieIntroducedIn,
-    ) >= 0
-  );
+  return compareVersions(minimumSupportedUpgradeVersion, introducedIn) >= 0;
 }
 
 async function sourceFiles(root: string): Promise<string[]> {
@@ -190,8 +218,8 @@ async function main(): Promise<void> {
   const retainsLegacyReader = sessionStore.includes(
     "LEGACY_OPERATOR_SESSION_COOKIE",
   );
-  const removalEligible = isLegacyCookieRemovalEligible(metadata);
-  if (!retainsLegacyReader && !removalEligible) {
+  const cookieRemovalEligible = isLegacyCookieRemovalEligible(metadata);
+  if (!retainsLegacyReader && !cookieRemovalEligible) {
     console.error(
       "Legacy cookie support was removed before the release compatibility gate became eligible.",
     );
@@ -199,10 +227,27 @@ async function main(): Promise<void> {
     return;
   }
 
+  const runtimeDatabase = await readFile(
+    resolve(root, "shell/auth-service/src/runtime-db.ts"),
+    "utf8",
+  );
+  const retainsLegacyDatabaseBridge = runtimeDatabase.includes(
+    "upgradeLegacyAuthDatabase",
+  );
+  const databaseBridgeRemovalEligible =
+    isLegacyDatabaseBridgeRemovalEligible(metadata);
+  if (!retainsLegacyDatabaseBridge && !databaseBridgeRemovalEligible) {
+    console.error(
+      "The pre-Drizzle database bridge was removed before the release compatibility gate became eligible.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   console.log(
-    removalEligible
-      ? "Auth-session consumers are migrated; legacy cookie removal is release-eligible."
-      : "Auth-session consumers are migrated; legacy cookie compatibility remains required.",
+    cookieRemovalEligible && databaseBridgeRemovalEligible
+      ? "Auth compatibility consumers are migrated; legacy compatibility removal is release-eligible."
+      : "Auth compatibility consumers are migrated; legacy compatibility remains required.",
   );
 }
 

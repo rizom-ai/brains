@@ -422,7 +422,18 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
   function identityContent(user) {
     var content = node("div", "people-stack");
     user.identities.forEach(function (identity) {
-      var value = identity.label || "Private verified identity";
+      var evidence = identity.evidence || [];
+      var verified = evidence.some(function (item) {
+        return item.assurance === "verified" && item.verifiedAt;
+      });
+      var sources = evidence.map(function (item) {
+        return roleLabel(item.sourceKind);
+      }).filter(function (source, index, all) {
+        return all.indexOf(source) === index;
+      });
+      var assurance = verified ? "Verified" : "Asserted — cannot authenticate";
+      var value = (identity.label || "Private identity") + " · " + assurance;
+      if (sources.length) value += " via " + sources.join(", ");
       var detach = actionButton("Detach", function () {
         openConfirmation({
           title: "Detach this identity?",

@@ -36,7 +36,7 @@ The mainline runtime subject is still `single-operator`. Canonical identity plum
 
 Implemented on `feature/auth-runtime-db`:
 
-- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, and five ordered, idempotent schema migrations.
+- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, generated Drizzle Kit migration assets, and a release-gated one-time bridge for pre-Drizzle schemas.
 - Database-backed users, identities, passkeys, WebAuthn challenges, sessions, OAuth clients/codes/refresh tokens, setup tokens, OAuth and A2A signing keys, A2A peer trust, and structured audit events.
 - Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
 - Transactional first-anchor creation and last-active-anchor protection with concurrent mutation coverage.
@@ -69,10 +69,10 @@ Each item is `file:line — problem → fix`. Verified severity in brackets.
 
 Findings below share one root cause: `migrateLegacy*` imports run unconditionally on every startup with no "legacy import complete" marker. **Deeper fix that resolves the first and fourth together:** record legacy-import completion once (a row in `auth_schema_migrations` or a dedicated one-shot guard) so imports never re-read the immutable JSON after the first success. Individual fixes still listed in case the one-shot guard is deferred.
 
-- [ ] **Unknown legacy subject crash-loops the whole auth surface** [confirmed] — `shell/auth-service/src/auth-service.ts:359` (passkeys), `:426` (sessions), `:466` (auth codes), `:512` (refresh tokens) `throw` when a record's subject is not a known user; `handleRequest` awaits `initialize()` first, so one orphaned row in a never-pruned JSON file 500s OAuth, WebAuthn, sessions, and MCP auth on every boot. **Fix:** skip-and-log orphaned records instead of throwing (the migration already logs `skippedLegacy`); the expiry check should also precede the user lookup so stale codes/tokens are dropped, not resolved.
-- [ ] **FK violation aborts boot** [confirmed] — `importToken`/`importCode` (`refresh-token-store.ts:129`, `auth-code-store.ts:121`) insert rows with `client_id TEXT NOT NULL REFERENCES oauth_clients(...)` and `PRAGMA foreign_keys = ON` (`runtime-db.ts:95,423,436`), but `client-store.ts:137` silently drops legacy clients that fail the current schema. A token referencing a dropped client throws `FOREIGN KEY constraint failed`; `onConflictDoNothing` does not cover FK violations, so boot crash-loops. **Fix:** skip tokens/codes whose client was not imported (or catch the FK error and log-skip).
-- [ ] **`AuthRuntimeDatabase.start()` has a first-init race** [confirmed] — `runtime-db.ts:60-71` guards only on `if (this.active)`, then `await`s before assigning `this.active`, with no in-flight dedupe. `start()` is called lazily from ~20 public methods, so two concurrent requests during first init both create clients and re-run non-idempotent migration batches (missing `IF NOT EXISTS`/`OR IGNORE` at `:292,309`); the loser's `catch` calls `stop()`, which closes whichever client is in `this.active` — possibly the winner's. **Fix:** cache the in-flight start promise and reuse it; assign `this.active` only after migrations succeed; don't have the error path close a shared client.
-- [ ] **Revoked A2A peer trust resurrects on restart** [confirmed] — `peer-trust-store.ts:145` hard-deletes on `revoke()` with no tombstone, and `migrateLegacyPeerTrust` (`auth-service.ts:482`) re-imports from the immutable `a2a-peer-trust.json` via `onConflictDoNothing` on every restart — which no longer conflicts once the row is deleted, silently restoring trusted access with no audit event. **Fix:** the one-shot legacy-import guard above; or tombstone revocations.
+- [x] **Unknown legacy subjects caused startup failure** [fixed] — one-time legacy import now filters expired/consumed records before relationship lookup and aggregate-log-skips orphaned users rather than blocking auth startup.
+- [x] **Legacy grant FK failures blocked startup** [fixed] — authorization-code and refresh-token import verifies that the referenced client and user were imported before insertion, skips invalid relationships, and preserves the immutable backup.
+- [x] **`AuthRuntimeDatabase.start()` first-init race** [fixed] — startup now caches and reuses one in-flight promise, publishes the active client only after migration succeeds, and closes only the failed local client. Concurrent-start coverage verifies one initialization path.
+- [x] **Revoked A2A peer trust resurrected on restart** [fixed] — `auth_legacy_imports` records successful completion of the immutable JSON/JWK import set. Later restarts never reread legacy trust grants; revocation persistence has restart coverage.
 
 ### P1 — Correctness / data loss
 
@@ -85,7 +85,7 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 ### P2 — Efficiency
 
 - [ ] **Identity-resolution cache is dead code** [confirmed] — `shell/identity-service/src/canonical-identity-service.ts:82-119`: `refreshCache` never populates `actorIndex`, so the `cachedResolution` branch is unreachable and every message pays a message-bus round trip + auth-DB query (`turn-processor.ts` calls `enrichActor` twice per turn), including external actors that can never resolve. **Fix:** populate the cache from resolutions and cache negative results with a TTL.
-- [ ] **Unindexed identity full-scan on every unresolved lookup** [confirmed] — `shell/auth-service/src/user-store.ts:400` filters `identity_key_hash` without `revoked_at IS NULL`, but the only index (`idx_person_identity_claims_active_key`) is partial on that predicate, so SQLite can't use it. This runs per-message for every unlinked Discord/web user (up to 3× per Discord message) and degrades linearly. **Fix:** add a total index on `identity_key_hash`, or include the `revoked_at IS NULL` predicate.
+- [x] **Unindexed historical identity lookup** [fixed] — `person_identity_claims` now has both its active unique index and a total `identity_key_hash` index for denied/revoked-binding lookups.
 - [ ] **People-admin endpoint is ~4N+1 queries** [confirmed] — `shell/auth-service/src/admin-endpoints.ts:206` fires `listUserIdentities` (which itself does a `requireUser` first) + `listUserPasskeys` + `listPersonAgents` per user (fan-out is concurrent via `Promise.all`, but ~200 queries for 50 users). **Fix:** bulk-select identities/passkeys/links and group in memory.
 - [ ] **JWT verified twice per MCP request** [confirmed] — `interfaces/mcp/src/mcp-interface.ts:134-136` calls `verifyBearerToken` then `resolveBearerToken`, which re-verifies internally (`auth-service.ts:986`). **Fix:** one method returning principal + scope from a single verification.
 - [ ] **Session resolved twice per web-chat request** [confirmed] — `interfaces/web-chat/src/web-chat-interface.ts:143-147` default `resolveAuthSession` is itself another `resolveAuthPrincipal` call, so the fallback re-runs the cookie+session+user lookups for a guaranteed-identical result; `resolvePermissionLevel` (`:734`) has the same double-resolve. **Fix:** don't double-resolve; keep the override seam without re-querying on the default path.
@@ -94,7 +94,7 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 ### P3 — Altitude / cleanup
 
 - [ ] **ActorRef is flattened back to a stringly-typed `userId`** [confirmed] — `shell/ai-service/src/turn-processor.ts:333` and `call-options.ts:26` duplicate `kind === "user" ? userId : actorRefKey(...)` with sentinels (`"agent-user"`, `"mcp-user"`), and consumers reverse-engineer it by `startsWith("usr_")`. `shell/job-queue/src/job-helpers.ts:97` writes `requestedByUserId: toolContext.userId` **unguarded**, so a non-user actor's encoded key (`external:ext_<hash>`) or a sentinel is persisted into job rows as a user id — the exact misattribution the discriminated `ActorRef` (Phase 6) was introduced to prevent, and the root enabler of the MCP `_meta` P0. **Fix:** carry `ActorRef` through `ToolContext` and one policy helper (`authenticatedUserId(context)`); stop encoding to strings at the boundary.
-- [ ] **Auth DB hand-rolls a fourth libSQL/migration stack and defines every table twice** [confirmed] — `shell/auth-service/src/runtime-db.ts` reimplements the client + WAL + a bespoke `auth_schema_migrations` runner that `shell/job-queue`, `shell/runtime-state`, and `shell/entity-service` already do via `drizzle-orm/libsql` `migrate()`; all 16 tables exist as both raw SQL DDL (runtime-db.ts) and drizzle `sqliteTable` (runtime-schema.ts). This dual definition is the root drift risk behind the schema/migration mismatches. **Fix:** single drizzle-based migration source of truth. (The untracked `src/migrations/` in the working tree appears to already head this way — reconcile it with these findings before landing.)
+- [x] **Divergent auth migration stack** [fixed] — the current schema is defined once in Drizzle, migration SQL/journal/snapshots are generated by Drizzle Kit, runtime startup uses the standard Drizzle migrator, and the CLI bundles the generated assets. A marker-detected pre-Drizzle bridge remains only until the compatibility release gate permits removal.
 - [ ] **People administration is a management surface miscast as a dashboard tab** [confirmed] — `plugins/dashboard/src/render/people-panel.tsx` (692 lines) grafts an anchor-only admin surface onto the dashboard SSR page as a hardcoded `{showPeople && …}` conditional with an inline vanilla-JS controller. The HTTP boundary is clean (thin client over `/auth/admin/*`; domain stays in auth-service), but the surface sidesteps the widget-registry model every other tab obeys, so ⌘K can't reach it (`console-jump.ts` builds doors from widget groups only — same root cause as the `/api/console/jump` P2 gap), and it re-declares auth's role list and mutation-action names as string literals that drift from `admin-endpoints.ts`. CMS is the precedent: a mutating management surface is its own console surface, not a monitoring widget. **Fix:** extract to its own `/people` React console surface, peer to `/cms`/`/chat`, per [multi-user.md decision 11](./multi-user.md); dashboard returns to pure monitoring.
 - [ ] **Duplicated migration/hash scaffolding** [confirmed] — six near-identical `migrateLegacy*` methods (`auth-service.ts:349-527`) and five `runX` migration methods (`runtime-db.ts:119+`) differ only in table/label; six+ copies of the `sha256→base64url` hash one-liner live across the stores. **Fix:** a table-driven `migrateLegacyRecords(lister, importer, label)` helper and one shared hashing util (values are persisted in PK columns, so drift silently breaks lookups).
 
@@ -146,6 +146,7 @@ Names are illustrative; final migrations should use snake_case tables and explic
 ```ts
 interface AuthUserRow {
   id: string; // usr_<uuid>
+  person_id: string; // stable person subject
   display_name: string;
   role: "anchor" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
@@ -155,22 +156,34 @@ interface AuthUserRow {
 }
 ```
 
-### Identity bindings
+### Person identity claims and evidence
 
 ```ts
-interface AuthIdentityRow {
+interface PersonIdentityClaimRow {
   id: string;
-  user_id: string;
+  person_id: string;
   type: "passkey" | "discord" | "mcp" | "oauth" | "email" | "did" | "a2a";
   issuer?: string;
   identity_key_hash: string; // sha256(normalized identity key) — used for lookup
-  delivery_subject?: string; // raw deliverable address (e.g. email) — only set for delivery-capable types; only used for sending when verified_at is set
+  delivery_subject?: string; // private raw routing address when required
   label?: string; // redacted/display-safe label, e.g. Daniel#1234
-  verified_at?: number;
+  visibility: "private" | "trusted" | "public";
   revoked_at?: number;
   created_at: number;
 }
+
+interface AuthIdentityEvidenceRow {
+  id: string;
+  claim_id: string;
+  source_kind: "admin" | "agent" | "migration" | "provider";
+  source_id?: string;
+  assurance: "asserted" | "verified";
+  verified_at?: number;
+  created_at: number;
+}
 ```
+
+Claims belong to people. Independent evidence rows preserve agent assertion, administrator confirmation, provider verification, and migration provenance without overwriting one another. Only an active claim with verified evidence can authenticate.
 
 Normalized lookup keys:
 
@@ -181,15 +194,15 @@ Normalized lookup keys:
 - `email:<lowercase-email>`
 - `did:<did>`
 
-Active identities should be unique by `identity_key_hash`.
+Active claims are unique by `identity_key_hash`; a second total index supports denied and historical-binding lookups.
 
-Delivery model: the auth DB does not store user emails on `auth_users`. When a user verifies an email identity (or other addressable channel), the raw deliverable address lands on the corresponding `auth_identities` row as `delivery_subject`. Configured setup emails continue to use existing config + recipient-hash dedupe (`shell/auth-service/src/setup-state-store.ts`) and are not affected. CMS commit attribution keeps using the configured `directory-sync` `git.authorEmail` (`Brain <brain@localhost>` by default); per-user attribution, if needed later, goes in commit trailers, not the author line.
+Delivery model: the auth DB does not store user emails on `auth_users`. When a person verifies an email identity (or other addressable channel), the raw deliverable address lands on the corresponding `person_identity_claims` row as `delivery_subject`. Configured setup emails continue to use existing config + recipient-hash dedupe (`shell/auth-service/src/setup-state-store.ts`) and are not affected. CMS commit attribution keeps using the configured `directory-sync` `git.authorEmail` (`Brain <brain@localhost>` by default); per-user attribution, if needed later, goes in commit trailers, not the author line.
 
 ### Credentials and grants
 
 - `passkey_credentials`: credential id, user id, public key, counter, transports JSON, device type, backup state, timestamps.
 - `webauthn_challenges`: challenge hash, optional user id, kind, expiry, consumed timestamp. Registration challenges bind a user; discoverable-credential authentication challenges do not know the user until verification.
-- `operator_sessions` (legacy name; migrate to `auth_sessions` in phase 7): session token hash, user id, expiry, revoked timestamp.
+- `auth_sessions`: session token hash, user id, expiry, revoked timestamp. The historical table name is supported only by the pre-Drizzle upgrade bridge.
 - `oauth_clients`: client id, optional secret hash, registered metadata JSON, timestamps.
 - `oauth_auth_codes`: code hash, client id, user id, redirect URI, PKCE challenge, scope, expiry, consumed timestamp.
 - `oauth_refresh_tokens`: token hash, client id, user id, scope, expiry, revoked/replaced metadata.
@@ -308,7 +321,7 @@ Migration should be repeatable and should not create duplicate users, credential
 
 ### Phase 1 — DB foundation and schema
 
-**Status: implemented.** Local lifecycle, ordered migrations, permissions, explicit declaration-safe schema types, and temp-DB tests exist.
+**Status: implemented.** Local lifecycle, generated Drizzle migrations, release-gated legacy upgrade bridge, permissions, explicit declaration-safe schema types, and temp-DB tests exist.
 
 - Add auth DB open/close lifecycle and migrations.
 - Add repositories and tests against a temp SQLite DB.
@@ -381,8 +394,8 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 - [x] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; no deprecated wrappers remain in the private workspace API.
 - [x] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
   - `bun run auth-session:compat-check` enforces zero deprecated source consumers and blocks early removal of the legacy cookie reader.
-  - `shell/auth-service/auth-session-compat.json` records the introduction release and minimum supported upgrade version. The release workflow stamps the introduction version after the auth-service package is versioned.
-  - Remove the legacy cookie reader only when the recorded minimum supported upgrade version is at least the introduction version.
+  - `shell/auth-service/auth-session-compat.json` records the cookie and Drizzle-migration introduction releases plus the minimum supported upgrade version. The release workflow stamps introduction versions after the auth-service package is versioned.
+  - Remove either the legacy cookie reader or pre-Drizzle database bridge only when the recorded minimum supported upgrade version is at least that compatibility path's introduction version.
 - [x] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to generic passkey/authenticated-session language.
 - [x] Keep `single-operator` only as an immutable historical migration alias.
 - [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
@@ -392,7 +405,7 @@ Validation: existing sessions survive migration; trusted sessions stay trusted i
 
 ### Phase 8 — Person subjects and canonical identity claims
 
-**Status: in progress.** Migration 6 backfills a stable person for every existing user, makes canonical identity rows person-addressable without changing their ids or user bindings, and adds consent-bearing runtime agent/person links. The Anchor-confirmed promotion API atomically creates a person, invited user, and pending representation; targeted passkey registration activates the invited user and accepts the link before issuing a session. People now lists linked-agent state, and approved Agent Network entries open the Anchor-only promotion/claim-link flow. Asserted-claim provenance, exact-claim reuse from agent-carried identities, and conflict reconciliation remain. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
+**Status: in progress.** The generated schema stores normalized person claims and independent evidence; the bounded bridge preserves legacy claim ids while backfilling migration evidence. Agent assertions cannot authenticate, while provider/admin verification remains separate. Stable person backfill, consent-bearing agent/person links, promotion, targeted registration, People linked-agent state, and the approved-agent promotion entry point are implemented. Agent-carried claim import, exact-match reuse during existing-user linking, and conflict reconciliation remain. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
 
 - Add stable runtime person records and link every auth user to one person through an ordered migration.
 - Preserve user ids, passkeys, sessions, roles, statuses, and existing identity row ids during backfill.
@@ -418,7 +431,7 @@ Validation: migrations are row-preserving and restart-idempotent; exact verified
 ## Resolved decisions
 
 1. **DB stack**: libSQL + Drizzle, following `shell/entity-service` and `shell/job-queue`. No `bun:sqlite`, no second stack.
-2. **User emails**: not stored on `auth_users`. Deliverable addresses live on `auth_identities.delivery_subject` for verified email (and other delivery-capable) identities. Configured setup emails keep the existing recipient-hash pattern; CMS commits keep the existing `directory-sync` author config.
+2. **User emails**: not stored on `auth_users`. Deliverable addresses live on person-owned `person_identity_claims.delivery_subject` for verified email (and other delivery-capable) identities. Configured setup emails keep the existing recipient-hash pattern; CMS commits keep the existing `directory-sync` author config.
 3. **`canonical_id`**: generated `user:<id-suffix>` on user creation. Administratively renameable later when a People management surface lands; field is a nullable string so rename is a column update with no migration.
 4. **OAuth clients**: migrate in the same phase as grants (Phase 3). Avoids a JSON/SQL hybrid with weak referential integrity.
 5. **Backup/restore**: no auth-specific policy. Auth DB lives under the runtime data dir and is covered by whatever already backs it up.

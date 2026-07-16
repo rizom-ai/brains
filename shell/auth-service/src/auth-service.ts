@@ -1,4 +1,5 @@
 import type { ActorRef } from "@brains/contracts";
+import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
 import {
   handleAuthAdminRequest,
@@ -13,6 +14,10 @@ import {
 import { OAuthClientStore, RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
+import {
+  LEGACY_AUTH_FILES_IMPORT,
+  LegacyAuthImportStore,
+} from "./legacy-import-store";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
@@ -29,10 +34,11 @@ import {
   type GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
-import type { AgentPersonLink, AuthIdentity, AuthUser } from "./runtime-schema";
+import type { AgentPersonLink, AuthUser } from "./runtime-schema";
 import {
   AuthUserStore,
   type AttachAuthIdentityInput,
+  type AuthIdentityRecord,
   type AuthUserRole,
   type AuthUserStatus,
   type CreateAuthUserInput,
@@ -169,6 +175,7 @@ export class AuthService {
   private readonly legacyPeerTrustStore: A2APeerTrustStore;
   private readonly peerTrustStore: RuntimeA2APeerTrustStore;
   private readonly legacyPasskeyStore: PasskeyStore;
+  private readonly legacyImportStore: LegacyAuthImportStore;
   private readonly passkeyService: PasskeyService;
   private readonly legacySetupStateStore: SetupStateStore;
   private readonly setupStateStore: RuntimeSetupStateStore;
@@ -223,6 +230,7 @@ export class AuthService {
     this.legacyPasskeyStore = new PasskeyStore({
       storageDir: options.storageDir,
     });
+    this.legacyImportStore = new LegacyAuthImportStore(this.runtimeDatabase);
     this.passkeyService = new PasskeyService({
       storageDir: options.storageDir,
       runtimeDatabase: this.runtimeDatabase,
@@ -297,17 +305,25 @@ export class AuthService {
 
   private async initializeInternal(): Promise<void> {
     await this.ensureUserStoreStarted();
-    await this.migrateLegacyPasskeys();
-    await this.migrateLegacySessions();
-    await this.migrateLegacyOAuthClients();
-    await this.migrateLegacyAuthorizationCodes();
-    await this.migrateLegacyRefreshTokens();
-    await this.migrateLegacySetupState();
-    await this.migrateLegacyPeerTrust();
+    const legacyImportComplete = await this.legacyImportStore.isComplete(
+      LEGACY_AUTH_FILES_IMPORT,
+    );
+    if (!legacyImportComplete) {
+      await this.migrateLegacyPasskeys();
+      await this.migrateLegacySessions();
+      await this.migrateLegacyOAuthClients();
+      await this.migrateLegacyAuthorizationCodes();
+      await this.migrateLegacyRefreshTokens();
+      await this.migrateLegacySetupState();
+      await this.migrateLegacyPeerTrust();
+    }
     await Promise.all([
       this.keyStore.getPrivateJwk(),
       this.a2aKeyStore.getPrivateJwk(),
     ]);
+    if (!legacyImportComplete) {
+      await this.legacyImportStore.markComplete(LEGACY_AUTH_FILES_IMPORT);
+    }
     this.logger?.debug("Auth service signing keys loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
@@ -349,6 +365,7 @@ export class AuthService {
   private async migrateLegacyPasskeys(): Promise<void> {
     const credentials = await this.legacyPasskeyStore.listCredentials();
     let migrated = 0;
+    let skipped = 0;
     let anchorUser: AuthUser | undefined;
 
     for (const credential of credentials) {
@@ -357,18 +374,16 @@ export class AuthService {
           ? (anchorUser ??= await this.ensureFirstAnchorUser())
           : await this.getUserStore().getUser(credential.subject);
       if (!user) {
-        throw new Error(
-          `Cannot migrate passkey ${credential.id}: auth user ${credential.subject} was not found`,
-        );
+        skipped += 1;
+        continue;
       }
 
       const stored = await this.getCredentialStore().getPasskeyRecord(
         credential.id,
       );
       if (stored && stored.userId !== user.id) {
-        throw new Error(
-          `Cannot migrate passkey ${credential.id}: credential belongs to another auth user`,
-        );
+        skipped += 1;
+        continue;
       }
 
       if (!stored) {
@@ -402,12 +417,14 @@ export class AuthService {
         subject: credential.id,
         label: "Passkey credential",
         verifiedAt: legacyTimestampToMilliseconds(credential.created_at),
+        source: { kind: "migration", id: "legacy-passkeys.json" },
       });
     }
 
-    if (migrated > 0) {
+    if (migrated > 0 || skipped > 0) {
       this.logger?.info("Migrated legacy passkey credentials", {
         migrated,
+        skipped,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
     }
@@ -416,26 +433,28 @@ export class AuthService {
   private async migrateLegacySessions(): Promise<void> {
     const sessions = await this.legacySessionStore.listSessions();
     let migrated = 0;
+    let skipped = 0;
     let anchorUser: AuthUser | undefined;
 
     for (const session of sessions) {
+      if (session.expires_at <= nowSeconds()) continue;
       const user =
         session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
           ? (anchorUser ??= await this.ensureFirstAnchorUser())
           : await this.getUserStore().getUser(session.subject);
       if (!user) {
-        throw new Error(
-          `Cannot migrate browser session: auth user ${session.subject} was not found`,
-        );
+        skipped += 1;
+        continue;
       }
       if (await this.sessionStore.importSession(session, user.id)) {
         migrated += 1;
       }
     }
 
-    if (migrated > 0) {
+    if (migrated > 0 || skipped > 0) {
       this.logger?.info("Migrated legacy browser sessions", {
         migrated,
+        skipped,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
     }
@@ -457,24 +476,32 @@ export class AuthService {
   private async migrateLegacyAuthorizationCodes(): Promise<void> {
     const codes = await this.legacyAuthCodeStore.listCodes();
     let migrated = 0;
+    let skipped = 0;
     let anchorUser: AuthUser | undefined;
     for (const code of codes) {
+      if (code.consumed_at !== undefined || code.expires_at <= nowSeconds()) {
+        continue;
+      }
+      if (!(await this.clientStore.getClient(code.client_id))) {
+        skipped += 1;
+        continue;
+      }
       const user =
         code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
           ? (anchorUser ??= await this.ensureFirstAnchorUser())
           : await this.getUserStore().getUser(code.subject);
       if (!user) {
-        throw new Error(
-          `Cannot migrate authorization code: auth user ${code.subject} was not found`,
-        );
+        skipped += 1;
+        continue;
       }
       if (await this.authCodeStore.importCode(code, user.id)) {
         migrated += 1;
       }
     }
-    if (migrated > 0) {
+    if (migrated > 0 || skipped > 0) {
       this.logger?.info("Migrated legacy OAuth authorization codes", {
         migrated,
+        skipped,
       });
     }
   }
@@ -503,25 +530,32 @@ export class AuthService {
     const tokens = await this.legacyRefreshTokenStore.listTokens();
     let migrated = 0;
     let skippedLegacy = 0;
+    let skippedInvalid = 0;
     for (const token of tokens) {
+      if (token.revoked_at !== undefined || token.expires_at <= nowSeconds()) {
+        continue;
+      }
       if (token.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT) {
         skippedLegacy += 1;
         continue;
       }
-      const user = await this.getUserStore().getUser(token.subject);
-      if (!user) {
-        throw new Error(
-          `Cannot migrate refresh token: auth user ${token.subject} was not found`,
-        );
+      const [user, client] = await Promise.all([
+        this.getUserStore().getUser(token.subject),
+        this.clientStore.getClient(token.client_id),
+      ]);
+      if (!user || !client) {
+        skippedInvalid += 1;
+        continue;
       }
       if (await this.refreshTokenStore.importToken(token)) {
         migrated += 1;
       }
     }
-    if (migrated > 0 || skippedLegacy > 0) {
+    if (migrated > 0 || skippedLegacy > 0 || skippedInvalid > 0) {
       this.logger?.info("Migrated legacy OAuth refresh tokens", {
         migrated,
         skippedLegacy,
+        skippedInvalid,
       });
     }
   }
@@ -768,8 +802,8 @@ export class AuthService {
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
     await this.ensureUserStoreStarted();
-    return (await this.getUserStore().listIdentities(userId)).map(
-      identitySummary,
+    return (await this.getUserStore().listIdentities(userId)).map((identity) =>
+      identitySummary(identity, userId),
     );
   }
 
@@ -852,15 +886,25 @@ export class AuthService {
   async attachIdentity(
     input: AttachAuthIdentityInput,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentity> {
+  ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
-    const identity = await this.getUserStore().attachIdentity(input);
+    const identity = await this.getUserStore().attachIdentity({
+      ...input,
+      ...(input.source
+        ? {}
+        : {
+            source: {
+              kind: "admin" as const,
+              ...(context.actorUserId ? { id: context.actorUserId } : {}),
+            },
+          }),
+    });
     await this.getAuditStore().append({
       ...auditActor(context),
       action: "auth.identity.attached",
       targetType: "identity",
       targetId: identity.id,
-      metadata: { type: identity.type, userId: identity.userId },
+      metadata: { type: identity.type, userId: input.userId },
     });
     return identity;
   }
@@ -868,16 +912,20 @@ export class AuthService {
   async detachIdentity(
     identityId: string,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentity> {
+  ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
     const identity = await this.getUserStore().detachIdentity(identityId);
-    await this.revokeUserSessionsAndRefreshTokens(identity.userId);
+    const user = await this.getUserStore().getUserByPersonId(identity.personId);
+    if (user) await this.revokeUserSessionsAndRefreshTokens(user.id);
     await this.getAuditStore().append({
       ...auditActor(context),
       action: "auth.identity.detached",
       targetType: "identity",
       targetId: identity.id,
-      metadata: { type: identity.type, userId: identity.userId },
+      metadata: {
+        type: identity.type,
+        ...(user ? { userId: user.id } : {}),
+      },
     });
     return identity;
   }
@@ -1203,9 +1251,18 @@ export class AuthService {
       updateUserStatus: (userId, status, actorUserId) =>
         this.updateUserStatus(userId, status, { actorUserId }),
       attachIdentity: async (input, actorUserId) =>
-        identitySummary(await this.attachIdentity(input, { actorUserId })),
-      detachIdentity: async (identityId, actorUserId) =>
-        identitySummary(await this.detachIdentity(identityId, { actorUserId })),
+        identitySummary(
+          await this.attachIdentity(input, { actorUserId }),
+          input.userId,
+        ),
+      detachIdentity: async (identityId, actorUserId) => {
+        const identity = await this.detachIdentity(identityId, { actorUserId });
+        const user = await this.getUserStore().getUserByPersonId(
+          identity.personId,
+        );
+        if (!user) throw new Error("Identity person has no auth user");
+        return identitySummary(identity, user.id);
+      },
       revokePasskey: (credentialId, actorUserId) =>
         this.revokePasskey(credentialId, { actorUserId }),
       startPasskeyRegistration: (userId, actorUserId) =>
@@ -1262,12 +1319,22 @@ function legacyTimestampToMilliseconds(timestamp: number): number {
   return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
 }
 
-function identitySummary(identity: AuthIdentity): AuthIdentitySummary {
+function identitySummary(
+  identity: AuthIdentityRecord,
+  userId: string,
+): AuthIdentitySummary {
   return {
     id: identity.id,
     personId: identity.personId,
-    userId: identity.userId,
+    userId,
     type: identity.type,
+    visibility: identity.visibility,
+    evidence: identity.evidence.map((item) => ({
+      sourceKind: item.sourceKind,
+      ...(item.sourceId ? { sourceId: item.sourceId } : {}),
+      assurance: item.assurance,
+      ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
+    })),
     ...(identity.issuer ? { issuer: identity.issuer } : {}),
     ...(identity.label ? { label: identity.label } : {}),
     ...(identity.verifiedAt !== null

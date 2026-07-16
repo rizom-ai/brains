@@ -2,6 +2,8 @@ import { createClient, type Client } from "@libsql/client";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
+import { upgradeLegacyAuthDatabase } from "./legacy-auth-database-upgrade";
 import { authRuntimeSchema } from "./runtime-schema";
 
 export type AuthRuntimeDB = LibSQLDatabase<typeof authRuntimeSchema>;
@@ -20,18 +22,12 @@ interface StartedDatabase {
   url: string;
 }
 
-const INITIAL_MIGRATION_ID = 1;
-const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
-const A2A_PEER_TRUST_MIGRATION_ID = 3;
-const SIGNING_KEY_PURPOSE_MIGRATION_ID = 4;
-const AUTH_SESSION_TERMINOLOGY_MIGRATION_ID = 5;
-const PERSON_SUBJECT_MIGRATION_ID = 6;
-
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
   private readonly configuredUrl: string | undefined;
   private readonly authToken: string | undefined;
   private active: StartedDatabase | undefined;
+  private starting: Promise<void> | undefined;
 
   constructor(options: AuthRuntimeDatabaseOptions = {}) {
     this.storageDir = options.storageDir ?? join(".", "data", "auth");
@@ -58,433 +54,76 @@ export class AuthRuntimeDatabase {
   }
 
   async start(): Promise<void> {
-    if (this.active) {
-      return;
-    }
+    if (this.active) return;
+    if (this.starting) return this.starting;
 
-    await this.prepareLocalDatabasePath();
-
-    const client = this.authToken
-      ? createClient({ url: this.url, authToken: this.authToken })
-      : createClient({ url: this.url });
-    const db = drizzle(client, { schema: authRuntimeSchema });
-    this.active = { client, db, url: this.url };
-
+    const starting = this.startDatabase();
+    this.starting = starting;
     try {
-      await this.configureConnection();
-      await this.runMigrations();
-      await this.runOptionalChallengeUserMigration();
-      await this.runA2APeerTrustMigration();
-      await this.runSigningKeyPurposeMigration();
-      await this.runAuthSessionTerminologyMigration();
-      await this.runPersonSubjectMigration();
-      await this.secureLocalDatabaseFile();
-    } catch (error) {
-      await this.stop();
-      throw error;
+      await starting;
+    } finally {
+      if (this.starting === starting) this.starting = undefined;
     }
   }
 
   async stop(): Promise<void> {
+    const starting = this.starting;
+    if (starting) {
+      try {
+        await starting;
+      } catch {
+        // The start path closes its own client before rejecting.
+      }
+    }
     const active = this.active;
     this.active = undefined;
     active?.client.close();
   }
 
-  private async configureConnection(): Promise<void> {
-    await this.client.execute("PRAGMA foreign_keys = ON");
+  private async startDatabase(): Promise<void> {
+    await this.prepareLocalDatabasePath();
+    const client = this.authToken
+      ? createClient({ url: this.url, authToken: this.authToken })
+      : createClient({ url: this.url });
+    const db = drizzle(client, { schema: authRuntimeSchema });
+
+    try {
+      await this.configureConnection(client);
+      await upgradeLegacyAuthDatabase(client);
+      await migrate(db, { migrationsFolder: authMigrationsFolder() });
+      await this.secureLocalDatabaseFile();
+      this.active = { client, db, url: this.url };
+    } catch (error) {
+      client.close();
+      throw error;
+    }
+  }
+
+  private async configureConnection(client: Client): Promise<void> {
+    await client.execute("PRAGMA foreign_keys = ON");
     if (isLocalFileUrl(this.url)) {
-      await this.client.execute("PRAGMA journal_mode = WAL");
-      await this.client.execute("PRAGMA busy_timeout = 5000");
+      await client.execute("PRAGMA journal_mode = WAL");
+      await client.execute("PRAGMA busy_timeout = 5000");
     }
   }
 
   private async prepareLocalDatabasePath(): Promise<void> {
     const path = localPathFromFileUrl(this.url);
-    if (!path) {
-      return;
-    }
+    if (!path) return;
     await mkdir(dirname(path), { recursive: true, mode: 0o700 });
     await chmod(dirname(path), 0o700);
   }
 
   private async secureLocalDatabaseFile(): Promise<void> {
     const path = localPathFromFileUrl(this.url);
-    if (!path) {
-      return;
-    }
-    await chmod(path, 0o600);
+    if (path) await chmod(path, 0o600);
   }
+}
 
-  private async runPersonSubjectMigration(): Promise<void> {
-    const existing = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [PERSON_SUBJECT_MIGRATION_ID],
-    });
-    if (existing.rows.length > 0) {
-      return;
-    }
-
-    await this.client.batch(
-      [
-        `CREATE TABLE IF NOT EXISTS auth_people (
-          id TEXT PRIMARY KEY,
-          display_name TEXT NOT NULL,
-          profile_entity_id TEXT,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`,
-        `CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_people_profile_entity_id
-          ON auth_people(profile_entity_id)
-          WHERE profile_entity_id IS NOT NULL`,
-        `ALTER TABLE auth_users
-          ADD COLUMN person_id TEXT REFERENCES auth_people(id) ON DELETE RESTRICT`,
-        `INSERT INTO auth_people
-          (id, display_name, profile_entity_id, created_at, updated_at)
-          SELECT
-            CASE
-              WHEN id LIKE 'usr_%' THEN 'prsn_' || substr(id, 5)
-              ELSE 'prsn_' || id
-            END,
-            display_name,
-            NULL,
-            created_at,
-            updated_at
-          FROM auth_users`,
-        `UPDATE auth_users
-          SET person_id = CASE
-            WHEN id LIKE 'usr_%' THEN 'prsn_' || substr(id, 5)
-            ELSE 'prsn_' || id
-          END
-          WHERE person_id IS NULL`,
-        `CREATE UNIQUE INDEX idx_auth_users_person_id
-          ON auth_users(person_id)`,
-        `ALTER TABLE auth_identities
-          ADD COLUMN person_id TEXT REFERENCES auth_people(id) ON DELETE CASCADE`,
-        `UPDATE auth_identities
-          SET person_id = (
-            SELECT auth_users.person_id
-            FROM auth_users
-            WHERE auth_users.id = auth_identities.user_id
-          )
-          WHERE person_id IS NULL`,
-        `CREATE INDEX idx_auth_identities_person_id
-          ON auth_identities(person_id)`,
-        `CREATE TABLE agent_person_links (
-          agent_id TEXT PRIMARY KEY,
-          person_id TEXT NOT NULL REFERENCES auth_people(id) ON DELETE CASCADE,
-          status TEXT NOT NULL CHECK (status IN ('pending', 'active', 'revoked')),
-          created_by_user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
-          consented_by_user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX idx_agent_person_links_person_id
-          ON agent_person_links(person_id)`,
-        {
-          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [PERSON_SUBJECT_MIGRATION_ID, "person-subjects", Date.now()],
-        },
-      ],
-      "write",
-    );
-  }
-
-  private async runAuthSessionTerminologyMigration(): Promise<void> {
-    const existing = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [AUTH_SESSION_TERMINOLOGY_MIGRATION_ID],
-    });
-    if (existing.rows.length > 0) {
-      return;
-    }
-
-    await this.client.batch(
-      [
-        "ALTER TABLE operator_sessions RENAME TO auth_sessions",
-        "DROP INDEX IF EXISTS idx_operator_sessions_user_id",
-        `CREATE INDEX idx_auth_sessions_user_id
-          ON auth_sessions(user_id)`,
-        {
-          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [
-            AUTH_SESSION_TERMINOLOGY_MIGRATION_ID,
-            "auth-session-terminology",
-            Date.now(),
-          ],
-        },
-      ],
-      "write",
-    );
-  }
-
-  private async runSigningKeyPurposeMigration(): Promise<void> {
-    const existing = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [SIGNING_KEY_PURPOSE_MIGRATION_ID],
-    });
-    if (existing.rows.length > 0) {
-      return;
-    }
-
-    await this.client.batch(
-      [
-        `ALTER TABLE oauth_signing_keys
-          ADD COLUMN purpose TEXT NOT NULL DEFAULT 'oauth'
-          CHECK (purpose IN ('oauth', 'a2a'))`,
-        `CREATE UNIQUE INDEX idx_oauth_signing_keys_active_purpose
-          ON oauth_signing_keys(purpose) WHERE status = 'active'`,
-        {
-          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [
-            SIGNING_KEY_PURPOSE_MIGRATION_ID,
-            "signing-key-purpose",
-            Date.now(),
-          ],
-        },
-      ],
-      "write",
-    );
-  }
-
-  private async runA2APeerTrustMigration(): Promise<void> {
-    const existing = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [A2A_PEER_TRUST_MIGRATION_ID],
-    });
-    if (existing.rows.length > 0) {
-      return;
-    }
-
-    await this.client.batch(
-      [
-        `CREATE TABLE IF NOT EXISTS a2a_peer_trust (
-          domain TEXT PRIMARY KEY,
-          key_fingerprint TEXT NOT NULL,
-          granted_level TEXT NOT NULL CHECK (granted_level IN ('public', 'trusted')),
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`,
-        {
-          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [A2A_PEER_TRUST_MIGRATION_ID, "a2a-peer-trust", Date.now()],
-        },
-      ],
-      "write",
-    );
-  }
-
-  private async runOptionalChallengeUserMigration(): Promise<void> {
-    const existing = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [OPTIONAL_CHALLENGE_USER_MIGRATION_ID],
-    });
-    if (existing.rows.length > 0) {
-      return;
-    }
-
-    await this.client.batch(
-      [
-        `CREATE TABLE webauthn_challenges_v2 (
-          challenge_hash TEXT PRIMARY KEY,
-          user_id TEXT REFERENCES auth_users(id) ON DELETE CASCADE,
-          kind TEXT NOT NULL CHECK (kind IN ('registration', 'authentication')),
-          expires_at INTEGER NOT NULL,
-          consumed_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`,
-        `INSERT INTO webauthn_challenges_v2
-          (challenge_hash, user_id, kind, expires_at, consumed_at, created_at)
-          SELECT challenge_hash, user_id, kind, expires_at, consumed_at, created_at
-          FROM webauthn_challenges`,
-        "DROP TABLE webauthn_challenges",
-        "ALTER TABLE webauthn_challenges_v2 RENAME TO webauthn_challenges",
-        `CREATE INDEX idx_webauthn_challenges_user_id
-          ON webauthn_challenges(user_id)`,
-        {
-          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [
-            OPTIONAL_CHALLENGE_USER_MIGRATION_ID,
-            "optional-webauthn-challenge-user",
-            Date.now(),
-          ],
-        },
-      ],
-      "write",
-    );
-  }
-
-  private async runMigrations(): Promise<void> {
-    await this.client
-      .execute(`CREATE TABLE IF NOT EXISTS auth_schema_migrations (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      applied_at INTEGER NOT NULL
-    )`);
-    const authSessionMigration = await this.client.execute({
-      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
-      args: [AUTH_SESSION_TERMINOLOGY_MIGRATION_ID],
-    });
-    const sessionSchemaStatements =
-      authSessionMigration.rows.length > 0
-        ? [
-            `CREATE TABLE IF NOT EXISTS auth_sessions (
-              token_hash TEXT PRIMARY KEY,
-              user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-              expires_at INTEGER NOT NULL,
-              revoked_at INTEGER,
-              created_at INTEGER NOT NULL
-            )`,
-            `CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id
-              ON auth_sessions(user_id)`,
-          ]
-        : [
-            `CREATE TABLE IF NOT EXISTS operator_sessions (
-              token_hash TEXT PRIMARY KEY,
-              user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-              expires_at INTEGER NOT NULL,
-              revoked_at INTEGER,
-              created_at INTEGER NOT NULL
-            )`,
-            `CREATE INDEX IF NOT EXISTS idx_operator_sessions_user_id
-              ON operator_sessions(user_id)`,
-          ];
-
-    await this.client.batch(
-      [
-        `CREATE TABLE IF NOT EXISTS auth_users (
-          id TEXT PRIMARY KEY,
-          display_name TEXT NOT NULL,
-          role TEXT NOT NULL CHECK (role IN ('anchor', 'trusted', 'public')),
-          status TEXT NOT NULL CHECK (status IN ('active', 'invited', 'suspended')),
-          canonical_id TEXT,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`,
-        `CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_users_canonical_id
-          ON auth_users(canonical_id)
-          WHERE canonical_id IS NOT NULL`,
-        `CREATE TABLE IF NOT EXISTS auth_identities (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          type TEXT NOT NULL CHECK (type IN ('passkey', 'discord', 'mcp', 'oauth', 'email', 'did', 'a2a')),
-          issuer TEXT,
-          identity_key_hash TEXT NOT NULL,
-          delivery_subject TEXT,
-          label TEXT,
-          verified_at INTEGER,
-          revoked_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_identities_active_key
-          ON auth_identities(identity_key_hash)
-          WHERE revoked_at IS NULL`,
-        `CREATE INDEX IF NOT EXISTS idx_auth_identities_user_id
-          ON auth_identities(user_id)`,
-        `CREATE TABLE IF NOT EXISTS passkey_credentials (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          public_key TEXT NOT NULL,
-          counter INTEGER NOT NULL,
-          transports_json TEXT,
-          credential_device_type TEXT,
-          credential_backed_up INTEGER NOT NULL DEFAULT 0,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL,
-          revoked_at INTEGER
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
-          ON passkey_credentials(user_id)`,
-        `CREATE TABLE IF NOT EXISTS webauthn_challenges (
-          challenge_hash TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          kind TEXT NOT NULL CHECK (kind IN ('registration', 'authentication')),
-          expires_at INTEGER NOT NULL,
-          consumed_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_user_id
-          ON webauthn_challenges(user_id)`,
-        ...sessionSchemaStatements,
-        `CREATE TABLE IF NOT EXISTS oauth_clients (
-          client_id TEXT PRIMARY KEY,
-          secret_hash TEXT,
-          metadata_json TEXT NOT NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`,
-        `CREATE TABLE IF NOT EXISTS oauth_auth_codes (
-          code_hash TEXT PRIMARY KEY,
-          client_id TEXT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          redirect_uri TEXT NOT NULL,
-          pkce_challenge TEXT NOT NULL,
-          scope TEXT NOT NULL,
-          expires_at INTEGER NOT NULL,
-          consumed_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_client_id
-          ON oauth_auth_codes(client_id)`,
-        `CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
-          token_hash TEXT PRIMARY KEY,
-          client_id TEXT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          scope TEXT NOT NULL,
-          expires_at INTEGER NOT NULL,
-          revoked_at INTEGER,
-          replaced_by_hash TEXT,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_user_id
-          ON oauth_refresh_tokens(user_id)`,
-        `CREATE TABLE IF NOT EXISTS oauth_signing_keys (
-          kid TEXT PRIMARY KEY,
-          private_jwk TEXT NOT NULL,
-          status TEXT NOT NULL CHECK (status IN ('active', 'retired')),
-          created_at INTEGER NOT NULL,
-          retired_at INTEGER
-        )`,
-        `CREATE TABLE IF NOT EXISTS setup_tokens (
-          token_hash TEXT PRIMARY KEY,
-          purpose TEXT NOT NULL,
-          target_user_id TEXT REFERENCES auth_users(id) ON DELETE CASCADE,
-          expires_at INTEGER NOT NULL,
-          consumed_at INTEGER,
-          delivery_key_hash TEXT,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_setup_tokens_target_user_id
-          ON setup_tokens(target_user_id)`,
-        `CREATE TABLE IF NOT EXISTS auth_audit_events (
-          id TEXT PRIMARY KEY,
-          actor_user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
-          action TEXT NOT NULL,
-          target_type TEXT,
-          target_id TEXT,
-          metadata_json TEXT,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_auth_audit_events_actor_user_id
-          ON auth_audit_events(actor_user_id)`,
-        {
-          sql: `INSERT OR IGNORE INTO auth_schema_migrations (id, name, applied_at)
-            VALUES (?, ?, ?)`,
-          args: [
-            INITIAL_MIGRATION_ID,
-            "initial-auth-runtime-schema",
-            Date.now(),
-          ],
-        },
-      ],
-      "write",
-    );
-  }
+function authMigrationsFolder(): string {
+  return import.meta.url.includes("/dist/")
+    ? new URL("./migrations/auth-service", import.meta.url).pathname
+    : new URL("../drizzle", import.meta.url).pathname;
 }
 
 function isLocalFileUrl(url: string): boolean {

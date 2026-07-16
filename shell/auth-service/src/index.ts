@@ -133,7 +133,10 @@ export type {
 } from "./session-store";
 export type {
   AttachAuthIdentityInput,
+  AuthIdentityRecord,
+  AuthIdentitySourceKind,
   AuthIdentityType,
+  AuthIdentityVisibility,
   AuthUserRole,
   AuthUserStatus,
   CreateAuthPersonInput,

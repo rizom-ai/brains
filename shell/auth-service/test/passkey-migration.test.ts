@@ -20,6 +20,41 @@ afterEach(async () => {
 });
 
 describe("legacy passkey migration", () => {
+  it("skips orphaned legacy credentials without blocking startup", async () => {
+    const storageDir = await tempStorageDir();
+    await new PasskeyStore({ storageDir }).addCredential({
+      id: "orphaned-credential",
+      public_key: "orphaned-public-key",
+      counter: 0,
+      subject: "usr_missing",
+      user_name: "Missing",
+      credential_device_type: "singleDevice",
+      credential_backed_up: false,
+      created_at: 1_700_000_000,
+      updated_at: 1_700_000_001,
+    });
+    const backupPath = join(storageDir, "oauth-passkeys.json");
+    const backupBefore = await readFile(backupPath, "utf8");
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+    await service.initialize();
+    await service.close();
+
+    const client = createClient({ url: `file:${join(storageDir, "auth.db")}` });
+    try {
+      const credentials = await client.execute(
+        "SELECT id FROM passkey_credentials",
+      );
+      expect(credentials.rows).toHaveLength(0);
+      expect(await readFile(backupPath, "utf8")).toBe(backupBefore);
+    } finally {
+      client.close();
+    }
+  });
+
   it("revokes a migrated passkey, its user sessions, and records audit", async () => {
     const storageDir = await tempStorageDir();
     await new PasskeyStore({ storageDir }).addCredential({
@@ -170,8 +205,17 @@ describe("legacy passkey migration", () => {
       expect(userId).toStartWith("usr_");
 
       const identities = await client.execute({
-        sql: `SELECT user_id, type, identity_key_hash, verified_at
-          FROM auth_identities WHERE revoked_at IS NULL`,
+        sql: `SELECT auth_users.id AS user_id,
+                     person_identity_claims.type,
+                     person_identity_claims.identity_key_hash,
+                     auth_identity_evidence.verified_at
+          FROM person_identity_claims
+          JOIN auth_users
+            ON auth_users.person_id = person_identity_claims.person_id
+          JOIN auth_identity_evidence
+            ON auth_identity_evidence.claim_id = person_identity_claims.id
+          WHERE person_identity_claims.revoked_at IS NULL
+            AND auth_identity_evidence.assurance = 'verified'`,
         args: [],
       });
       expect(identities.rows).toHaveLength(1);

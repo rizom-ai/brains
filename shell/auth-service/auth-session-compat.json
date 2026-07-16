@@ -1,4 +1,5 @@
 {
   "newCookieIntroducedIn": "unreleased",
+  "drizzleMigrationsIntroducedIn": "unreleased",
   "minimumSupportedUpgradeVersion": null
 }

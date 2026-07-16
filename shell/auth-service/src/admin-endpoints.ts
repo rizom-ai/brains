@@ -1,6 +1,8 @@
 import { z } from "@brains/utils/zod";
 import type {
+  AuthIdentitySourceKind,
   AuthIdentityType,
+  AuthIdentityVisibility,
   AuthUserRole,
   AuthUserStatus,
 } from "./user-store";
@@ -20,6 +22,13 @@ export interface AuthIdentitySummary {
   personId: string;
   userId: string;
   type: AuthIdentityType;
+  visibility: AuthIdentityVisibility;
+  evidence: Array<{
+    sourceKind: AuthIdentitySourceKind;
+    sourceId?: string;
+    assurance: "asserted" | "verified";
+    verifiedAt?: number;
+  }>;
   issuer?: string;
   label?: string;
   verifiedAt?: number;

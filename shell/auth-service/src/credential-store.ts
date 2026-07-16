@@ -97,6 +97,7 @@ export class RuntimePasskeyStore {
       subject: credential.id,
       label: "Passkey credential",
       verifiedAt: timestampToMilliseconds(credential.created_at),
+      source: { kind: "provider", id: "webauthn" },
     });
     await new AuthAuditStore(this.database.db).append({
       action: "auth.passkey.registered",

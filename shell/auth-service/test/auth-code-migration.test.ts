@@ -30,6 +30,49 @@ afterEach(async () => {
 });
 
 describe("legacy authorization code migration", () => {
+  it("skips codes with unavailable clients or users", async () => {
+    const storageDir = await tempStorageDir();
+    const clients = new OAuthClientStore({ storageDir });
+    const validClient = await clients.registerClient({
+      redirect_uris: ["https://client.example.com/callback"],
+    });
+    const codes = new AuthorizationCodeStore({ storageDir });
+    await codes.createCode({
+      clientId: validClient.client_id,
+      redirectUri: "https://client.example.com/callback",
+      codeChallenge: await pkceChallenge(verifier),
+      subject: "usr_missing",
+    });
+    await codes.createCode({
+      clientId: "missing-client",
+      redirectUri: "https://client.example.com/callback",
+      codeChallenge: await pkceChallenge(verifier),
+      subject: "single-operator",
+    });
+    const backupPath = join(storageDir, "oauth-auth-codes.json");
+    const backupBefore = await readFile(backupPath, "utf8");
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+    await service.initialize();
+    await service.close();
+
+    const database = createClient({
+      url: `file:${join(storageDir, "auth.db")}`,
+    });
+    try {
+      const rows = await database.execute(
+        "SELECT code_hash FROM oauth_auth_codes",
+      );
+      expect(rows.rows).toHaveLength(0);
+      expect(await readFile(backupPath, "utf8")).toBe(backupBefore);
+    } finally {
+      database.close();
+    }
+  });
+
   it("imports active codes hashed and preserves one-use exchange", async () => {
     const storageDir = await tempStorageDir();
     const client = await new OAuthClientStore({ storageDir }).registerClient({

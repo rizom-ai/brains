@@ -55,7 +55,6 @@ describe("legacy A2A peer trust migration", () => {
       database.close();
     }
     expect(await readFile(backupPath, "utf8")).toBe(backupBefore);
-    await rm(backupPath);
 
     const second = new AuthService({
       storageDir,
@@ -72,6 +71,18 @@ describe("legacy A2A peer trust migration", () => {
       expect(await second.getA2APeerTrust("peer.example.com")).toBeUndefined();
     } finally {
       await second.close();
+    }
+
+    const third = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+    await third.initialize();
+    try {
+      expect(await third.getA2APeerTrust("peer.example.com")).toBeUndefined();
+      expect(await readFile(backupPath, "utf8")).toBe(backupBefore);
+    } finally {
+      await third.close();
     }
   });
 });

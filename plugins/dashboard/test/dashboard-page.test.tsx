@@ -122,6 +122,8 @@ describe("renderDashboardPageHtml", () => {
     expect(anchorHtml).toContain("function agentContent(user)");
     expect(anchorHtml).toContain("Linked agents");
     expect(anchorHtml).toContain("user.agents");
+    expect(anchorHtml).toContain("identity.evidence");
+    expect(anchorHtml).toContain("Asserted — cannot authenticate");
     expect(anchorHtml).toContain("promoteAgentPerson");
     expect(anchorHtml).toContain("brains:agent-promote");
     expect(trustedHtml).not.toContain('href="#people"');

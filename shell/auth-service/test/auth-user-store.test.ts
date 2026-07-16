@@ -154,7 +154,7 @@ describe("AuthUserStore", () => {
       });
 
       const rows = await database.client.execute({
-        sql: "SELECT identity_key_hash, label, delivery_subject FROM auth_identities",
+        sql: "SELECT identity_key_hash, label, delivery_subject FROM person_identity_claims",
         args: [],
       });
       expect(rows.rows).toHaveLength(1);
@@ -163,6 +163,101 @@ describe("AuthUserStore", () => {
       );
       expect(rows.rows[0]?.["label"]).toBe("Alex on Discord");
       expect(rows.rows[0]?.["delivery_subject"]).toBeNull();
+    });
+  });
+
+  it("preserves agent assertion and provider verification as separate evidence", async () => {
+    await withUserStore(async (store) => {
+      const user = await store.createUser({ displayName: "Claimed Person" });
+      const asserted = await store.attachIdentity({
+        userId: user.id,
+        type: "discord",
+        subject: "1442828818493735015",
+        label: "@claimed",
+        source: { kind: "agent", id: "agent:claimed" },
+      });
+
+      expect(asserted).toMatchObject({
+        personId: user.personId,
+        visibility: "private",
+        verifiedAt: null,
+      });
+      expect(asserted.evidence).toEqual([
+        expect.objectContaining({
+          claimId: asserted.id,
+          sourceKind: "agent",
+          sourceId: "agent:claimed",
+          assurance: "asserted",
+          verifiedAt: null,
+        }),
+      ]);
+      expect(
+        await store.resolveIdentityAccess({
+          type: "discord",
+          subject: "1442828818493735015",
+        }),
+      ).toEqual({ state: "denied" });
+
+      const verified = await store.attachIdentity({
+        userId: user.id,
+        type: "discord",
+        subject: "1442828818493735015",
+        verifiedAt: 200,
+        source: { kind: "provider", id: "discord" },
+      });
+
+      expect(verified.id).toBe(asserted.id);
+      expect(verified.verifiedAt).toBe(200);
+      expect(verified.evidence).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sourceKind: "agent",
+            assurance: "asserted",
+          }),
+          expect.objectContaining({
+            sourceKind: "provider",
+            sourceId: "discord",
+            assurance: "verified",
+            verifiedAt: 200,
+          }),
+        ]),
+      );
+      expect(await store.listIdentities(user.id)).toHaveLength(1);
+      expect(
+        await store.resolveIdentity({
+          type: "discord",
+          subject: "1442828818493735015",
+        }),
+      ).toMatchObject({ id: user.id });
+    });
+  });
+
+  it("does not treat agent-carried verification as authentication evidence", async () => {
+    await withUserStore(async (store) => {
+      const user = await store.createUser({ displayName: "Asserted Person" });
+      const identity = await store.attachIdentity({
+        userId: user.id,
+        type: "email",
+        subject: "asserted@example.com",
+        verifiedAt: 300,
+        source: { kind: "agent", id: "agent:asserted" },
+      });
+
+      expect(identity.verifiedAt).toBeNull();
+      expect(identity.evidence).toEqual([
+        expect.objectContaining({
+          sourceKind: "agent",
+          sourceId: "agent:asserted",
+          assurance: "asserted",
+          verifiedAt: null,
+        }),
+      ]);
+      expect(
+        await store.resolveIdentityAccess({
+          type: "email",
+          subject: "asserted@example.com",
+        }),
+      ).toEqual({ state: "denied" });
     });
   });
 
