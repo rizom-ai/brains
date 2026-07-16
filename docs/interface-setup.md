@@ -6,13 +6,13 @@ Interfaces are selected by the active brain model preset, then refined with `add
 
 ## Quick reference
 
-| Interface | Plugin id   | Local surface                        | Common use                                 |
-| --------- | ----------- | ------------------------------------ | ------------------------------------------ |
-| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling |
-| Webserver | `webserver` | `http://localhost:8080`              | site, CMS, dashboard, shared HTTP routes   |
-| Discord   | `discord`   | Discord bot                          | chat with the brain from Discord           |
-| A2A       | `a2a`       | `http://localhost:8080/a2a`          | agent-to-agent communication               |
-| Chat REPL | command     | `brain chat`                         | local terminal chat                        |
+| Interface | Plugin id   | Local surface                        | Common use                                  |
+| --------- | ----------- | ------------------------------------ | ------------------------------------------- |
+| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling  |
+| Webserver | `webserver` | `http://localhost:8080`              | site, CMS, dashboard, People, shared routes |
+| Discord   | `discord`   | Discord bot                          | chat with the brain from Discord            |
+| A2A       | `a2a`       | `http://localhost:8080/a2a`          | agent-to-agent communication                |
+| Chat REPL | command     | `brain chat`                         | local terminal chat                         |
 
 ## Shared setup
 
@@ -160,7 +160,7 @@ brain --remote https://your-domain.com --token "$MCP_AUTH_TOKEN" status
 
 ## Webserver
 
-The webserver is the shared HTTP surface for the site, CMS, dashboard, MCP HTTP, A2A, health routes, and plugin API routes.
+The webserver is the shared HTTP surface for the site, CMS, dashboard, Admin console, MCP HTTP, A2A, health routes, and plugin API routes.
 
 Common local URLs:
 
@@ -168,6 +168,7 @@ Common local URLs:
 http://localhost:8080/           # public site or dashboard route, depending on preset/config
 http://localhost:8080/cms        # CMS when enabled
 http://localhost:8080/dashboard  # dashboard when enabled
+http://localhost:8080/admin      # administration console; People section when enabled
 http://localhost:8080/mcp        # MCP HTTP when enabled
 http://localhost:8080/a2a        # A2A when enabled
 ```
