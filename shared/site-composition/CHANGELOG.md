@@ -1,5 +1,20 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- [`14cab1b`](https://github.com/rizom-ai/brains/commit/14cab1b4de0e2498129d0e00a6fe2df1d5bdfc5e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - extendSite: replace head scripts instead of concatenating base + override.
+  Both rizomBaseSite and createRizomSite emit buildRizomHeadScript(), so the
+  concat shipped /boot.js twice — each copy bound its own #themeToggle click
+  listener and one click toggled the theme twice, making the light-mode
+  toggle a visible no-op.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+  - @brains/templates@0.2.0-alpha.184
+  - @rizom/site@0.2.0-alpha.184
+
 ## 0.2.0-alpha.183
 
 ### Patch Changes

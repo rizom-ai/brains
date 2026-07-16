@@ -324,6 +324,7 @@
     "shared-recurring-checks",
     "sharp-lazy-load",
     "shell-lifecycle-registration-rollback",
+    "site-composition-headscripts-dedupe",
     "site-datasource-helpers",
     "site-rizom-jsx-pragma",
     "site-width-system-chrome",
