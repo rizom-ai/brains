@@ -12,6 +12,14 @@ import {
 const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const pdfBuffer = Buffer.from("%PDF-1.7\n%test");
 
+function deferred(): { promise: Promise<void>; resolve(): void } {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 class FakePage implements MediaPage {
   private readonly screenshotData: Buffer;
   private readonly pdfData: Buffer;
@@ -78,7 +86,7 @@ class FakeBrowser implements MediaBrowser {
   }
 }
 
-function fakeFactory(browser: FakeBrowser): BrowserFactory {
+function fakeFactory(browser: MediaBrowser): BrowserFactory {
   return {
     async launch(): Promise<MediaBrowser> {
       return browser;
@@ -149,6 +157,51 @@ describe("media renderer", () => {
     // Allow any straggling microtasks scheduled by Promise.race to settle.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(browser.closeCalls).toBe(1);
+  });
+
+  it("currently returns a timeout before browser close settles", async () => {
+    const releaseClose = deferred();
+    let closeStarted: (() => void) | undefined;
+    const closeWasStarted = new Promise<void>((resolve) => {
+      closeStarted = resolve;
+    });
+    let killCalls = 0;
+    const page = new FakePage();
+    page.goto = async (): Promise<void> => new Promise<void>(() => {});
+    const browser: MediaBrowser = {
+      newPage: async () => page,
+      close: async () => {
+        closeStarted?.();
+        await releaseClose.promise;
+      },
+      process: () => ({
+        kill: (): boolean => {
+          killCalls++;
+          return true;
+        },
+      }),
+    };
+    let renderError: unknown;
+    const rendering = renderPdf("http://localhost/_media/carousel/slow-close", {
+      browserFactory: fakeFactory(browser),
+      timeoutMs: 5,
+    }).catch((error: unknown) => {
+      renderError = error;
+    });
+
+    await closeWasStarted;
+    const state = await Promise.race([
+      rendering.then(() => "settled" as const),
+      new Promise<"pending">((resolve) =>
+        setTimeout(() => resolve("pending"), 25),
+      ),
+    ]);
+
+    expect(state).toBe("settled");
+    expect(renderError).toMatchObject({ code: "render-timeout" });
+    expect(killCalls).toBe(0);
+    releaseClose.resolve();
+    await rendering;
   });
 
   it("times out when browser launch hangs", async () => {
