@@ -12,10 +12,7 @@ import {
   type RefreshTokenPersistence,
 } from "./refresh-token-store";
 import type { AuthKeyStore } from "./key-store";
-import type {
-  AuthSessionPersistence,
-  AuthSessionRecord,
-} from "./session-store";
+import type { AuthSessionRecord } from "./session-store";
 import { signJwt } from "./jwt";
 import { hasMatchingRedirectUri } from "./redirect-uri";
 import {
@@ -46,7 +43,7 @@ export interface OAuthEndpointsOptions {
   clientStore: OAuthClientPersistence;
   authCodeStore: AuthorizationCodePersistence;
   refreshTokenStore: RefreshTokenPersistence;
-  sessionStore: AuthSessionPersistence;
+  resolveSession: (request: Request) => Promise<AuthSessionRecord | undefined>;
   keyStore: AuthKeyStore;
 }
 
@@ -59,7 +56,9 @@ export class OAuthEndpoints {
   private readonly clientStore: OAuthClientPersistence;
   private readonly authCodeStore: AuthorizationCodePersistence;
   private readonly refreshTokenStore: RefreshTokenPersistence;
-  private readonly sessionStore: AuthSessionPersistence;
+  private readonly resolveSession: (
+    request: Request,
+  ) => Promise<AuthSessionRecord | undefined>;
   private readonly keyStore: AuthKeyStore;
   private readonly authorizationApprovalTokens = new Map<
     string,
@@ -70,12 +69,12 @@ export class OAuthEndpoints {
     this.clientStore = options.clientStore;
     this.authCodeStore = options.authCodeStore;
     this.refreshTokenStore = options.refreshTokenStore;
-    this.sessionStore = options.sessionStore;
+    this.resolveSession = options.resolveSession;
     this.keyStore = options.keyStore;
   }
 
   async handleAuthorizePage(request: Request): Promise<Response> {
-    const session = await this.sessionStore.getSessionFromRequest(request);
+    const session = await this.resolveSession(request);
     if (!session) {
       return unauthorizedHtmlResponse(request);
     }
@@ -95,7 +94,7 @@ export class OAuthEndpoints {
   }
 
   async handleAuthorizeApproval(request: Request): Promise<Response> {
-    const session = await this.sessionStore.getSessionFromRequest(request);
+    const session = await this.resolveSession(request);
     if (!session) {
       return unauthorizedHtmlResponse(request);
     }

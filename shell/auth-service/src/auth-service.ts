@@ -145,6 +145,11 @@ export interface A2ASigningKey {
   keyId: string;
 }
 
+export interface AuthBearerGrant {
+  principal: AuthPrincipal;
+  token: VerifiedAccessToken;
+}
+
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
   storageDir: string;
@@ -258,7 +263,8 @@ export class AuthService {
       clientStore: this.clientStore,
       authCodeStore: this.authCodeStore,
       refreshTokenStore: this.refreshTokenStore,
-      sessionStore: this.sessionStore,
+      resolveSession: async (request): Promise<AuthSessionRecord | undefined> =>
+        (await this.resolveActiveSession(request))?.session,
       keyStore: this.keyStore,
     });
     this.webauthnEndpoints = new WebAuthnEndpoints({
@@ -1056,18 +1062,20 @@ export class AuthService {
     return this.sessionStore.getSessionFromRequest(request);
   }
 
-  async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
+  private async resolveActiveSession(
+    request: Request,
+  ): Promise<{ session: AuthSessionRecord; user: AuthUser } | undefined> {
     await this.ensureUserStoreStarted();
     const session = await this.getAuthSession(request);
-    if (!session) {
-      return undefined;
-    }
+    if (!session) return undefined;
 
     const user = await this.getUserStore().getUser(session.subject);
-    if (user?.status !== "active") {
-      return undefined;
-    }
-    return principalFromUser(user);
+    return user?.status === "active" ? { session, user } : undefined;
+  }
+
+  async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
+    const resolved = await this.resolveActiveSession(request);
+    return resolved ? principalFromUser(resolved.user) : undefined;
   }
 
   createAuthLoginResponse(request: Request): Response {
@@ -1091,21 +1099,25 @@ export class AuthService {
     });
   }
 
+  async resolveBearerGrant(
+    request: Request,
+    options: { issuer?: string; audience?: string } = {},
+  ): Promise<AuthBearerGrant | undefined> {
+    await this.ensureUserStoreStarted();
+    const token = await this.verifyBearerToken(request, options);
+    if (!token) return undefined;
+
+    const user = await this.getUserStore().getUser(token.subject);
+    return user?.status === "active"
+      ? { principal: principalFromUser(user), token }
+      : undefined;
+  }
+
   async resolveBearerToken(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthPrincipal | undefined> {
-    await this.ensureUserStoreStarted();
-    const verified = await this.verifyBearerToken(request, options);
-    if (!verified) {
-      return undefined;
-    }
-
-    const user = await this.getUserStore().getUser(verified.subject);
-    if (user?.status !== "active") {
-      return undefined;
-    }
-    return principalFromUser(user);
+    return (await this.resolveBearerGrant(request, options))?.principal;
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {

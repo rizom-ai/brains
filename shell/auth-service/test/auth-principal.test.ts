@@ -204,6 +204,31 @@ describe("AuthService principals", () => {
     expect(principal).toBeUndefined();
   });
 
+  it("resolves a bearer principal and token claims in one grant", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    const session = await service.createAuthSession();
+    const token = await issueAccessToken(service, session.cookie);
+    const grant = await service.resolveBearerGrant(
+      new Request("https://brain.example.com/mcp", {
+        headers: { authorization: `Bearer ${token.accessToken}` },
+      }),
+      { issuer: "https://brain.example.com", audience: token.clientId },
+    );
+
+    expect(grant?.principal).toMatchObject({
+      userId: session.subject,
+      permissionLevel: "anchor",
+    });
+    expect(grant?.token).toMatchObject({
+      subject: session.subject,
+      scope: ["mcp"],
+    });
+  });
+
   it("resolves bearer tokens to active auth principals", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
@@ -233,14 +258,15 @@ describe("AuthService principals", () => {
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
-    const suspended = await service.createUser({
+    const user = await service.createUser({
       displayName: "Suspended Bearer",
       role: "trusted",
-      status: "suspended",
+      status: "active",
     });
 
-    const session = await service.createAuthSession(suspended.userId);
+    const session = await service.createAuthSession(user.userId);
     const token = await issueAccessToken(service, session.cookie);
+    await service.updateUserStatus(user.userId, "suspended");
     const principal = await service.resolveBearerToken(
       new Request("https://brain.example.com/mcp", {
         headers: { authorization: `Bearer ${token.accessToken}` },

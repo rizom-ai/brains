@@ -131,18 +131,16 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
                   }
                 | undefined
               > => {
-                const verified = await authService.verifyBearerToken(request);
-                if (!verified) return undefined;
-                const principal = await authService.resolveBearerToken(request);
-                if (!principal) return undefined;
+                const grant = await authService.resolveBearerGrant(request);
+                if (!grant) return undefined;
                 return {
-                  subject: verified.subject,
-                  scope: verified.scope,
-                  permissionLevel: principal.permissionLevel,
-                  ...(principal.canonicalId
-                    ? { canonicalId: principal.canonicalId }
+                  subject: grant.token.subject,
+                  scope: grant.token.scope,
+                  permissionLevel: grant.principal.permissionLevel,
+                  ...(grant.principal.canonicalId
+                    ? { canonicalId: grant.principal.canonicalId }
                     : {}),
-                  displayName: principal.displayName,
+                  displayName: grant.principal.displayName,
                 };
               },
             }

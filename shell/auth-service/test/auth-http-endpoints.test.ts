@@ -167,6 +167,39 @@ describe("login page", () => {
 });
 
 describe("authorize request validation", () => {
+  it("denies surviving sessions for suspended users on both authorize methods", async () => {
+    const service = await makeService();
+    const client = await registerTestClient(service);
+    const suspended = await service.createUser({
+      displayName: "Suspended user",
+      role: "trusted",
+      status: "suspended",
+    });
+    const session = await service.createAuthSession(suspended.userId);
+    const params = authorizeParams(client, await pkceChallenge("verifier"));
+
+    const [page, approval] = await Promise.all([
+      service.handleRequest(
+        new Request(`${ISSUER}/authorize?${params}`, {
+          headers: { cookie: session.cookie },
+        }),
+      ),
+      service.handleRequest(
+        new Request(`${ISSUER}/authorize`, {
+          method: "POST",
+          headers: {
+            cookie: session.cookie,
+            "content-type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
+        }),
+      ),
+    ]);
+
+    expect(page.status).toBe(401);
+    expect(approval.status).toBe(401);
+  });
+
   async function authorizePageResponse(
     service: AuthService,
     params: URLSearchParams,

@@ -1,5 +1,10 @@
 import { z } from "@brains/utils/zod";
 import {
+  isSameOriginRequest,
+  privateJsonResponse,
+  readJsonRequest,
+} from "./http-responses";
+import {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
@@ -209,16 +214,16 @@ export async function handleAuthAdminRequest(
 ): Promise<Response> {
   const principal = await operations.resolveSession(request);
   if (!principal) {
-    return adminJson({ error: "Authentication required" }, 401);
+    return privateJsonResponse({ error: "Authentication required" }, 401);
   }
   if (principal.permissionLevel !== "anchor") {
-    return adminJson({ error: "Anchor access required" }, 403);
+    return privateJsonResponse({ error: "Anchor access required" }, 403);
   }
 
   const path = new URL(request.url).pathname;
   if (request.method === "GET" && path === "/auth/admin/users") {
     const users = await operations.listUsers();
-    return adminJson({
+    return privateJsonResponse({
       users: await Promise.all(
         users.map(async (user) => ({
           ...user,
@@ -231,31 +236,39 @@ export async function handleAuthAdminRequest(
   }
 
   if (request.method === "POST" && path === "/auth/admin/mutations") {
-    if (!isSameOrigin(request)) {
-      return adminJson({ error: "Same-origin request required" }, 403);
+    if (!isSameOriginRequest(request)) {
+      return privateJsonResponse(
+        { error: "Same-origin request required" },
+        403,
+      );
     }
     if (!request.headers.get("content-type")?.startsWith("application/json")) {
-      return adminJson({ error: "JSON request required" }, 415);
+      return privateJsonResponse({ error: "JSON request required" }, 415);
     }
 
-    const parsed = adminMutationSchema.safeParse(await readJson(request));
+    const parsed = adminMutationSchema.safeParse(
+      await readJsonRequest(request),
+    );
     if (!parsed.success) {
-      return adminJson({ error: "Invalid or unconfirmed auth mutation" }, 400);
+      return privateJsonResponse(
+        { error: "Invalid or unconfirmed auth mutation" },
+        400,
+      );
     }
 
     try {
-      return adminJson(
+      return privateJsonResponse(
         await executeMutation(parsed.data, principal.userId, operations),
       );
     } catch (error) {
-      return adminJson(
+      return privateJsonResponse(
         { error: error instanceof Error ? error.message : "Mutation failed" },
         400,
       );
     }
   }
 
-  return adminJson({ error: "Not Found" }, 404);
+  return privateJsonResponse({ error: "Not Found" }, 404);
 }
 
 async function executeMutation(
@@ -378,27 +391,4 @@ function safeIdentityLabel(
   return trimmedLabel.toLowerCase().includes(subject.trim().toLowerCase())
     ? undefined
     : trimmedLabel;
-}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    return undefined;
-  }
-}
-
-function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  return origin !== null && origin === new URL(request.url).origin;
-}
-
-function adminJson(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
 }

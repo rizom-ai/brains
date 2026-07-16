@@ -1,5 +1,10 @@
 import { z } from "@brains/utils/zod";
 import { AUTH_REPRESENTATION_MUTATION_ACTIONS } from "./admin-contracts";
+import {
+  isSameOriginRequest,
+  privateJsonResponse,
+  readJsonRequest,
+} from "./http-responses";
 import type { AgentPersonLink } from "./runtime-schema";
 
 interface RepresentationPrincipal {
@@ -31,68 +36,47 @@ export async function handleAuthRepresentationRequest(
   operations: AuthRepresentationOperations,
 ): Promise<Response> {
   const principal = await operations.resolveSession(request);
-  if (!principal) return privateJson({ error: "Authentication required" }, 401);
+  if (!principal) {
+    return privateJsonResponse({ error: "Authentication required" }, 401);
+  }
 
   if (request.method === "GET") {
-    return privateJson({
+    return privateJsonResponse({
       representations: await operations.listPersonAgents(principal.personId),
     });
   }
 
   if (request.method !== "POST") {
-    return privateJson({ error: "Method not allowed" }, 405);
+    return privateJsonResponse({ error: "Method not allowed" }, 405);
   }
-  if (!isSameOrigin(request)) {
-    return privateJson({ error: "Same-origin request required" }, 403);
+  if (!isSameOriginRequest(request)) {
+    return privateJsonResponse({ error: "Same-origin request required" }, 403);
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return privateJson({ error: "JSON request required" }, 415);
+    return privateJsonResponse({ error: "JSON request required" }, 415);
   }
 
   const parsed = representationMutationSchema.safeParse(
-    await readJson(request),
+    await readJsonRequest(request),
   );
   if (!parsed.success) {
-    return privateJson(
+    return privateJsonResponse(
       { error: "Invalid or unconfirmed representation mutation" },
       400,
     );
   }
 
   try {
-    return privateJson({
+    return privateJsonResponse({
       representation: await operations.acceptRepresentation(
         parsed.data.agentId,
         principal.userId,
       ),
     });
   } catch (error) {
-    return privateJson(
+    return privateJsonResponse(
       { error: error instanceof Error ? error.message : "Mutation failed" },
       400,
     );
   }
-}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    return undefined;
-  }
-}
-
-function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  return origin !== null && origin === new URL(request.url).origin;
-}
-
-function privateJson(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
 }
