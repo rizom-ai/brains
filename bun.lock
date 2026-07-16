@@ -664,6 +664,7 @@
         "@types/bun": "^1.3.14",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.0.3",
+        "happy-dom": "^20.10.6",
         "typescript": "^7.0.2",
         "vite": "^8.0.16",
       },

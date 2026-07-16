@@ -345,6 +345,7 @@ export function App(): React.ReactElement {
       : "ready";
   const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const startupRestoreAttemptedRef = useRef(false);
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
   >(null);
@@ -571,6 +572,15 @@ export function App(): React.ReactElement {
       setLoadingConversationId(null);
     }
   }
+
+  useEffect(() => {
+    if (!sessionsQuery.isSuccess || startupRestoreAttemptedRef.current) return;
+    startupRestoreAttemptedRef.current = true;
+
+    if (sessions.some((session) => session.id === conversationId)) {
+      void switchConversation(conversationId);
+    }
+  }, [conversationId, sessions, sessionsQuery.isSuccess]);
 
   async function submitMessage(
     textOverride?: string,
