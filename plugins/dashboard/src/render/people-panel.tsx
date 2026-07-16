@@ -113,6 +113,7 @@ export function PeoplePanel(): JSX.Element {
               <span>Agent</span>
               <input name="agentLabel" readOnly />
               <input name="agentId" type="hidden" />
+              <input name="claims" type="hidden" />
             </label>
             <label>
               <span>Access path</span>
@@ -139,6 +140,7 @@ export function PeoplePanel(): JSX.Element {
                 <option value="anchor">Anchor</option>
               </select>
             </label>
+            <p class="people-note" data-promote-claims-note hidden />
             <p class="people-warning">
               Agent assertions never authenticate a person. New access requires
               a passkey; existing-person links require that person’s consent.
@@ -632,6 +634,13 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     promotionForm.elements.agentId.value = event.detail.agentId;
     promotionForm.elements.agentLabel.value = event.detail.displayName || event.detail.agentId;
     promotionForm.elements.displayName.value = event.detail.displayName || "";
+    var claims = Array.isArray(event.detail.claims) ? event.detail.claims : [];
+    promotionForm.elements.claims.value = JSON.stringify(claims);
+    var claimsNote = promotionForm.querySelector("[data-promote-claims-note]");
+    claimsNote.hidden = claims.length === 0;
+    claimsNote.textContent = claims.length === 1
+      ? "1 agent-carried identity assertion will be retained for review."
+      : claims.length + " agent-carried identity assertions will be retained for review.";
     var existingSelect = promotionForm.elements.userId;
     existingSelect.replaceChildren();
     users.forEach(function (user) {
@@ -673,15 +682,22 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     event.preventDefault();
     var form = event.currentTarget;
     var formData = new FormData(form);
+    var claims = [];
+    try {
+      var parsedClaims = JSON.parse(String(formData.get("claims") || "[]"));
+      claims = Array.isArray(parsedClaims) ? parsedClaims : [];
+    } catch (_) { claims = []; }
     try {
       if (formData.get("accessPath") === "link") {
         var userId = String(formData.get("userId") || "");
-        await mutate({
+        var linkPayload = {
           action: "linkAgentPerson",
           confirmation: "linkAgentPerson",
           agentId: String(formData.get("agentId") || ""),
           userId: userId
-        });
+        };
+        if (claims.length) linkPayload.claims = claims;
+        await mutate(linkPayload);
         promoteAgentDialog.close("confirm");
         form.reset();
         await loadUsers(userId);
@@ -689,13 +705,15 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
         return;
       }
 
-      var result = await mutate({
+      var promotePayload = {
         action: "promoteAgentPerson",
         confirmation: "promoteAgentPerson",
         agentId: String(formData.get("agentId") || ""),
         displayName: String(formData.get("displayName") || ""),
         role: String(formData.get("role") || "trusted")
-      });
+      };
+      if (claims.length) promotePayload.claims = claims;
+      var result = await mutate(promotePayload);
       promoteAgentDialog.close("confirm");
       form.reset();
       await loadUsers(result.user.userId);

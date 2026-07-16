@@ -168,6 +168,41 @@ describe("PersonAgentStore", () => {
     });
   });
 
+  it("atomically blocks agent claims owned by another person", async () => {
+    await withStores(async (users, links) => {
+      const anchor = await users.ensureFirstAnchorUser({
+        displayName: "Anchor",
+      });
+      const first = await users.createUser({ displayName: "First" });
+      const second = await users.createUser({ displayName: "Second" });
+      await users.attachIdentity({
+        userId: first.id,
+        type: "discord",
+        subject: "1442828818493735015",
+        verifiedAt: 200,
+        source: { kind: "provider", id: "discord" },
+      });
+
+      await expectRejectsWithMessage(
+        links.linkAgent({
+          agentId: "agent:conflict",
+          personId: second.personId,
+          createdByUserId: anchor.id,
+          claims: [
+            {
+              type: "discord",
+              subject: "1442828818493735015",
+              label: "@conflict",
+            },
+          ],
+        }),
+        "Canonical identity claim belongs to another person; reconciliation required",
+      );
+      expect(await links.getByAgentId("agent:conflict")).toBeUndefined();
+      expect(await users.listIdentities(second.id)).toHaveLength(0);
+    });
+  });
+
   it("does not let one agent silently switch represented people", async () => {
     await withStores(async (users, links) => {
       const anchor = await users.ensureFirstAnchorUser({

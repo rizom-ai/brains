@@ -1,19 +1,36 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   agentPersonLinks,
+  authIdentities,
+  authIdentityEvidence,
   authPeople,
   authUsers,
   type AgentPersonLink,
   type AuthPerson,
   type AuthUser,
 } from "./runtime-schema";
+import {
+  hashIdentityKey,
+  normalizeIdentityKey,
+  type AuthIdentityType,
+  type AuthIdentityVisibility,
+} from "./user-store";
+
+export interface AgentPersonIdentityClaimInput {
+  type: Exclude<AuthIdentityType, "passkey" | "a2a">;
+  subject: string;
+  issuer?: string | undefined;
+  label?: string | undefined;
+  visibility?: AuthIdentityVisibility | undefined;
+}
 
 export interface LinkAgentToPersonInput {
   agentId: string;
   personId: string;
   createdByUserId: string;
+  claims?: AgentPersonIdentityClaimInput[];
 }
 
 export interface PromoteAgentPersonInput {
@@ -22,6 +39,7 @@ export interface PromoteAgentPersonInput {
   profileEntityId?: string;
   role: AuthUser["role"];
   createdByUserId: string;
+  claims?: AgentPersonIdentityClaimInput[];
 }
 
 export interface PromotedAgentPerson {
@@ -65,6 +83,7 @@ export class PersonAgentStore {
             .limit(1),
         ]);
         if (person && user) {
+          await attachAgentClaims(tx, person.id, agentId, input.claims ?? []);
           return { person, user, link: existingLink };
         }
         throw new Error(
@@ -104,6 +123,7 @@ export class PersonAgentStore {
 
       await tx.insert(authPeople).values(person);
       await tx.insert(authUsers).values(user);
+      await attachAgentClaims(tx, person.id, agentId, input.claims ?? []);
       await tx.insert(agentPersonLinks).values(link);
       return { person, user, link };
     });
@@ -138,6 +158,12 @@ export class PersonAgentStore {
         if (existing.personId !== input.personId) {
           throw new Error("Agent is already linked to another person");
         }
+        await attachAgentClaims(
+          tx,
+          existing.personId,
+          agentId,
+          input.claims ?? [],
+        );
         return existing;
       }
 
@@ -162,6 +188,7 @@ export class PersonAgentStore {
         createdAt: now,
         updatedAt: now,
       } satisfies typeof agentPersonLinks.$inferInsert;
+      await attachAgentClaims(tx, input.personId, agentId, input.claims ?? []);
       await tx.insert(agentPersonLinks).values(link);
       return link;
     });
@@ -204,6 +231,91 @@ export class PersonAgentStore {
         updatedAt,
       };
     });
+  }
+}
+
+type AgentClaimDatabase = Pick<AuthRuntimeDB, "select" | "insert">;
+
+async function attachAgentClaims(
+  db: AgentClaimDatabase,
+  personId: string,
+  agentId: string,
+  claims: AgentPersonIdentityClaimInput[],
+): Promise<void> {
+  const uniqueClaims = new Map<
+    string,
+    { input: AgentPersonIdentityClaimInput; identityKeyHash: string }
+  >();
+  for (const input of claims) {
+    const identityKeyHash = hashIdentityKey(
+      normalizeIdentityKey({
+        type: input.type,
+        subject: input.subject,
+        ...(input.issuer ? { issuer: input.issuer } : {}),
+      }),
+    );
+    uniqueClaims.set(identityKeyHash, { input, identityKeyHash });
+  }
+
+  const prepared = await Promise.all(
+    Array.from(uniqueClaims.values()).map(async (claim) => {
+      const [existing] = await db
+        .select()
+        .from(authIdentities)
+        .where(
+          and(
+            eq(authIdentities.identityKeyHash, claim.identityKeyHash),
+            isNull(authIdentities.revokedAt),
+          ),
+        )
+        .limit(1);
+      if (existing && existing.personId !== personId) {
+        throw new Error(
+          "Canonical identity claim belongs to another person; reconciliation required",
+        );
+      }
+      return { ...claim, existing };
+    }),
+  );
+
+  for (const claim of prepared) {
+    const claimId = claim.existing?.id ?? createPrefixedId("aid");
+    if (!claim.existing) {
+      await db.insert(authIdentities).values({
+        id: claimId,
+        personId,
+        type: claim.input.type,
+        issuer: claim.input.issuer ?? null,
+        identityKeyHash: claim.identityKeyHash,
+        deliverySubject: null,
+        label: claim.input.label ?? null,
+        visibility: claim.input.visibility ?? "private",
+        revokedAt: null,
+        createdAt: Date.now(),
+      });
+    }
+
+    const evidence = await db
+      .select()
+      .from(authIdentityEvidence)
+      .where(eq(authIdentityEvidence.claimId, claimId));
+    const alreadyAsserted = evidence.some(
+      (item) =>
+        item.sourceKind === "agent" &&
+        item.sourceId === agentId &&
+        item.assurance === "asserted",
+    );
+    if (!alreadyAsserted) {
+      await db.insert(authIdentityEvidence).values({
+        id: createPrefixedId("aev"),
+        claimId,
+        sourceKind: "agent",
+        sourceId: agentId,
+        assurance: "asserted",
+        verifiedAt: null,
+        createdAt: Date.now(),
+      });
+    }
   }
 }
 

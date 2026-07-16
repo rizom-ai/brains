@@ -36,6 +36,11 @@ function AgentListItem({ item }: { item: AgentNetworkAgentRow }): JSX.Element {
             type="button"
             data-agent-promote={item.id}
             data-agent-promote-name={item.name.split(" · ", 1)[0] ?? item.name}
+            data-agent-person-claims={
+              item.representedPersonClaims
+                ? JSON.stringify(item.representedPersonClaims)
+                : undefined
+            }
             hidden
           >
             Grant access

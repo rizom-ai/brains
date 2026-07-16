@@ -76,6 +76,13 @@ export interface AuthAdminOperations {
       displayName: string;
       profileEntityId?: string;
       role: AuthUserRole;
+      claims?: Array<{
+        type: "discord" | "mcp" | "oauth" | "email" | "did";
+        subject: string;
+        issuer?: string | undefined;
+        label?: string | undefined;
+        visibility?: "private" | "trusted" | "public" | undefined;
+      }>;
     },
     actorUserId: string,
   ): Promise<{
@@ -88,7 +95,17 @@ export interface AuthAdminOperations {
     registration: { setupUrl: string; expiresAt: number };
   }>;
   linkAgentPerson(
-    input: { agentId: string; userId: string },
+    input: {
+      agentId: string;
+      userId: string;
+      claims?: Array<{
+        type: "discord" | "mcp" | "oauth" | "email" | "did";
+        subject: string;
+        issuer?: string | undefined;
+        label?: string | undefined;
+        visibility?: "private" | "trusted" | "public" | undefined;
+      }>;
+    },
     actorUserId: string,
   ): Promise<{
     agentId: string;
@@ -147,6 +164,14 @@ const identityTypeSchema = z.enum([
   "a2a",
 ]);
 
+const agentPersonClaimSchema = z.strictObject({
+  type: z.enum(["discord", "mcp", "oauth", "email", "did"]),
+  subject: z.string().trim().min(1).max(2_000),
+  issuer: z.string().trim().min(1).max(2_000).optional(),
+  label: z.string().trim().min(1).max(200).optional(),
+  visibility: z.enum(["private", "trusted", "public"]).optional(),
+});
+
 const adminMutationSchema = z.discriminatedUnion("action", [
   z.strictObject({
     action: z.literal("createUser"),
@@ -162,12 +187,14 @@ const adminMutationSchema = z.discriminatedUnion("action", [
     displayName: z.string().trim().min(1).max(200),
     profileEntityId: z.string().trim().min(1).max(500).optional(),
     role: roleSchema,
+    claims: z.array(agentPersonClaimSchema).max(10).optional(),
   }),
   z.strictObject({
     action: z.literal("linkAgentPerson"),
     confirmation: z.literal("linkAgentPerson"),
     agentId: z.string().trim().min(1).max(500),
     userId: z.string().min(1),
+    claims: z.array(agentPersonClaimSchema).max(10).optional(),
   }),
   z.strictObject({
     action: z.literal("updateUserRole"),
@@ -295,13 +322,18 @@ async function executeMutation(
             ? { profileEntityId: mutation.profileEntityId }
             : {}),
           role: mutation.role,
+          ...(mutation.claims ? { claims: mutation.claims } : {}),
         },
         actorUserId,
       );
     case "linkAgentPerson":
       return {
         representation: await operations.linkAgentPerson(
-          { agentId: mutation.agentId, userId: mutation.userId },
+          {
+            agentId: mutation.agentId,
+            userId: mutation.userId,
+            ...(mutation.claims ? { claims: mutation.claims } : {}),
+          },
           actorUserId,
         ),
       };

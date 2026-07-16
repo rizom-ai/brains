@@ -37,6 +37,7 @@ export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
 export { PersonAgentStore } from "./person-agent-store";
 export type {
+  AgentPersonIdentityClaimInput,
   LinkAgentToPersonInput,
   PromoteAgentPersonInput,
   PromotedAgentPerson,

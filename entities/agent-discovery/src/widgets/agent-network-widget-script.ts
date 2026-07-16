@@ -20,6 +20,17 @@ export const agentNetworkWidgetScript = `(function () {
     }
   }
 
+  function parsePersonClaims(button) {
+    var raw = button.getAttribute("data-agent-person-claims");
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   document.querySelectorAll("[data-agent-network-widget]").forEach(function (widget) {
     var viewTabs = widget.querySelectorAll("[data-agent-network-view-tab]");
     var kindTabs = widget.querySelectorAll("[data-agent-network-kind-tab]");
@@ -99,7 +110,8 @@ export const agentNetworkWidgetScript = `(function () {
         window.dispatchEvent(new CustomEvent("brains:agent-promote", {
           detail: {
             agentId: button.getAttribute("data-agent-promote"),
-            displayName: button.getAttribute("data-agent-promote-name")
+            displayName: button.getAttribute("data-agent-promote-name"),
+            claims: parsePersonClaims(button)
           }
         }));
       });

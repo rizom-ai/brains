@@ -156,6 +156,13 @@ describe("auth admin API", () => {
         displayName: "Mira Reyes",
         profileEntityId: "person-profile/mira-reyes",
         role: "trusted",
+        claims: [
+          {
+            type: "did",
+            subject: "did:plc:mira",
+            label: "Mira's asserted DID",
+          },
+        ],
       }),
     );
 
@@ -179,6 +186,25 @@ describe("auth admin API", () => {
     expect(promoted.registration.setupUrl).toStartWith(
       `${ISSUER}/setup?token=`,
     );
+    expect(await service.listUserIdentities(promoted.user.userId)).toEqual([
+      expect.objectContaining({
+        personId: promoted.user.personId,
+        type: "did",
+        evidence: [
+          expect.objectContaining({
+            sourceKind: "agent",
+            sourceId: "agent:mira-field",
+            assurance: "asserted",
+          }),
+        ],
+      }),
+    ]);
+    expect(
+      await service.resolveIdentityAccess({
+        type: "did",
+        subject: "did:plc:mira",
+      }),
+    ).toEqual({ state: "denied" });
     const setupToken = new URL(promoted.registration.setupUrl).searchParams.get(
       "token",
     );
@@ -228,6 +254,13 @@ describe("auth admin API", () => {
       role: "trusted",
     });
     const session = await service.createAuthSession(anchor.userId);
+    const existingClaim = await service.attachIdentity({
+      userId: collaborator.userId,
+      type: "discord",
+      subject: "1442828818493735015",
+      verifiedAt: 200,
+      source: { kind: "provider", id: "discord" },
+    });
 
     const response = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
@@ -235,6 +268,13 @@ describe("auth admin API", () => {
         confirmation: "linkAgentPerson",
         agentId: "agent:mira-field",
         userId: collaborator.userId,
+        claims: [
+          {
+            type: "discord",
+            subject: "1442828818493735015",
+            label: "@mira",
+          },
+        ],
       }),
     );
 
@@ -250,6 +290,22 @@ describe("auth admin API", () => {
         updatedAt: expect.any(Number),
       },
     });
+    expect(await service.listUserIdentities(collaborator.userId)).toEqual([
+      expect.objectContaining({
+        id: existingClaim.id,
+        evidence: expect.arrayContaining([
+          expect.objectContaining({
+            sourceKind: "provider",
+            assurance: "verified",
+          }),
+          expect.objectContaining({
+            sourceKind: "agent",
+            sourceId: "agent:mira-field",
+            assurance: "asserted",
+          }),
+        ]),
+      }),
+    ]);
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

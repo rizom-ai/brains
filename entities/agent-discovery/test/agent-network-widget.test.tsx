@@ -10,6 +10,7 @@ describe("AgentNetworkWidget", () => {
   it("bridges approved-agent promotion into the Anchor People flow", () => {
     expect(agentNetworkWidgetScript).toContain("brains:agent-promote");
     expect(agentNetworkWidgetScript).toContain("[data-people-panel]");
+    expect(agentNetworkWidgetScript).toContain("data-agent-person-claims");
   });
 
   it("renders agents and skills tabs in one widget", () => {
@@ -28,6 +29,13 @@ describe("AgentNetworkWidget", () => {
                 kind: "professional",
                 status: "approved",
                 discoveredAt: "2026-04-20T00:00:00.000Z",
+                representedPersonClaims: [
+                  {
+                    type: "did",
+                    subject: "did:plc:kai",
+                    label: "Kai DID",
+                  },
+                ],
               },
               {
                 id: "north.ops",
@@ -101,6 +109,8 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain(">review<");
     expect(html).toContain('data-agent-promote="kai.brain"');
     expect(html).toContain('data-agent-promote-name="Kai"');
+    expect(html).toContain("data-agent-person-claims");
+    expect(html).toContain("did:plc:kai");
     expect(html.match(/data-agent-promote=/g)).toHaveLength(2);
     expect(html).not.toContain('data-agent-promote="north.ops"');
   });

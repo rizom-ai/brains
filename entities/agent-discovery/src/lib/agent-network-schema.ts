@@ -4,6 +4,18 @@ import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
 const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
   agentFrontmatterSchema.shape.kind;
 
+type RepresentedPersonClaimSchema = z.ZodObject<{
+  type: z.ZodLiteral<"did">;
+  subject: z.ZodString;
+  label: z.ZodOptional<z.ZodString>;
+}>;
+
+const representedPersonClaimSchema: RepresentedPersonClaimSchema = z.object({
+  type: z.literal("did"),
+  subject: z.string(),
+  label: z.string().optional(),
+});
+
 export const AGENT_NETWORK_KINDS: readonly [
   "all",
   "professional",
@@ -19,6 +31,9 @@ export const agentNetworkAgentRowSchema: z.ZodObject<{
   kind: typeof agentKindSchema;
   status: typeof agentStatusSchema;
   discoveredAt: z.ZodString;
+  representedPersonClaims: z.ZodOptional<
+    z.ZodArray<typeof representedPersonClaimSchema>
+  >;
 }> = z.object({
   id: z.string(),
   name: z.string(),
@@ -27,6 +42,7 @@ export const agentNetworkAgentRowSchema: z.ZodObject<{
   kind: agentKindSchema,
   status: agentStatusSchema,
   discoveredAt: z.string(),
+  representedPersonClaims: z.array(representedPersonClaimSchema).optional(),
 });
 
 export const agentNetworkSkillRowSchema: z.ZodObject<{

@@ -25,6 +25,7 @@ import {
 import { PasskeyStore } from "./passkey-store";
 import {
   PersonAgentStore,
+  type AgentPersonIdentityClaimInput,
   type PromoteAgentPersonInput,
 } from "./person-agent-store";
 import {
@@ -130,6 +131,7 @@ export type PromoteAgentPersonRequest = Omit<
 export interface LinkAgentPersonRequest {
   agentId: string;
   userId: string;
+  claims?: AgentPersonIdentityClaimInput[];
 }
 
 export interface PromotedAgentAccess {
@@ -787,6 +789,7 @@ export class AuthService {
         personId: promoted.person.id,
         userId: promoted.user.id,
         role: promoted.user.role,
+        claimCount: input.claims?.length ?? 0,
       },
     });
     return {
@@ -811,6 +814,7 @@ export class AuthService {
       agentId: input.agentId,
       personId: user.personId,
       createdByUserId: context.actorUserId,
+      ...(input.claims ? { claims: input.claims } : {}),
     });
     await this.getAuditStore().append({
       ...auditActor(context),
@@ -821,6 +825,7 @@ export class AuthService {
         personId: link.personId,
         userId: user.id,
         status: link.status,
+        claimCount: input.claims?.length ?? 0,
       },
     });
     return link;
