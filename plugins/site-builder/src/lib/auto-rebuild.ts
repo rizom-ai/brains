@@ -52,6 +52,9 @@ export class RebuildManager {
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
   private unsubscribeFunctions: Array<() => void> = [];
+  private readonly activeTasks = new Set<Promise<void>>();
+  private disposePromise: Promise<void> | null = null;
+  private disposed = false;
 
   constructor(
     config: SiteBuilderConfig,
@@ -72,15 +75,23 @@ export class RebuildManager {
    * Both auto-rebuild (entity events) and the build-site tool use this.
    */
   requestBuild(environment?: "preview" | "production"): void {
+    if (this.disposed) return;
     const env =
       environment ?? (this.config.previewOutputDir ? "preview" : "production");
 
-    void this.statusService?.markRequested(env);
+    if (this.statusService) {
+      this.runTrackedTask(
+        "mark build requested",
+        () => this.statusService?.markRequested(env) ?? Promise.resolve(),
+      );
+    }
 
     let debounce = this.debounces.get(env);
     if (!debounce) {
       debounce = new LeadingTrailingDebounce(() => {
-        void this.enqueueBuild(env);
+        this.runTrackedTask(`enqueue ${env} build`, () =>
+          this.enqueueBuild(env),
+        );
       }, this.config.rebuildDebounce);
       this.debounces.set(env, debounce);
     }
@@ -93,6 +104,7 @@ export class RebuildManager {
    * a site rebuild.
    */
   setupAutoRebuild(): void {
+    if (this.disposed) return;
     const excludedTypes = new Set(["note"]);
 
     const entityEventHandler = async (
@@ -121,16 +133,48 @@ export class RebuildManager {
   /**
    * Cancel pending rebuilds and unsubscribe from all event subscriptions.
    */
-  dispose(): void {
+  dispose(): Promise<void> {
+    if (this.disposePromise) return this.disposePromise;
+    this.disposed = true;
+    this.disposePromise = this.disposeOnce();
+    return this.disposePromise;
+  }
+
+  private async disposeOnce(): Promise<void> {
+    const cleanupErrors: unknown[] = [];
     for (const debounce of this.debounces.values()) {
-      debounce.dispose();
+      try {
+        debounce.dispose();
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
     }
     this.debounces.clear();
 
     for (const unsubscribe of this.unsubscribeFunctions) {
-      unsubscribe();
+      try {
+        unsubscribe();
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
     }
     this.unsubscribeFunctions = [];
+
+    await Promise.all([...this.activeTasks]);
+    if (cleanupErrors.length > 0) throw cleanupErrors[0];
+  }
+
+  private runTrackedTask(
+    description: string,
+    operation: () => Promise<void>,
+  ): void {
+    const task = operation().catch((error: unknown) => {
+      this.logger.error(`Failed to ${description}`, { error });
+    });
+    this.activeTasks.add(task);
+    void task.then(() => {
+      this.activeTasks.delete(task);
+    });
   }
 
   private async enqueueBuild(

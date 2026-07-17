@@ -50,7 +50,7 @@ describe("RebuildManager", () => {
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
-    manager.dispose();
+    await manager.dispose();
   });
 
   test("requestBuild defaults to production when previewOutputDir is empty", async () => {
@@ -71,10 +71,10 @@ describe("RebuildManager", () => {
     const data = enqueue.mock.calls[0]?.[0]?.data;
     expect(data.environment).toBe("production");
 
-    manager.dispose();
+    await manager.dispose();
   });
 
-  test("currently returns from dispose while an admitted enqueue is active", async () => {
+  test("waits for an admitted enqueue during dispose", async () => {
     let signalEnqueueStarted: (() => void) | undefined;
     const enqueueStarted = new Promise<void>((resolve) => {
       signalEnqueueStarted = resolve;
@@ -97,15 +97,31 @@ describe("RebuildManager", () => {
     manager.requestBuild();
     await enqueueStarted;
 
-    manager.dispose();
-    let enqueueSettled = false;
-    void enqueueGate.then(() => {
-      enqueueSettled = true;
+    let disposeSettled = false;
+    const disposing = manager.dispose().then(() => {
+      disposeSettled = true;
     });
-    expect(enqueueSettled).toBe(false);
+    await Promise.resolve();
+    expect(disposeSettled).toBe(false);
 
     releaseEnqueue?.();
-    await enqueueGate;
+    await disposing;
+    expect(disposeSettled).toBe(true);
+  });
+
+  test("does not admit builds after disposal", async () => {
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    await manager.dispose();
+
+    manager.requestBuild();
+    await Promise.resolve();
+
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
 
   test("explicit environment overrides the default", async () => {
@@ -127,6 +143,6 @@ describe("RebuildManager", () => {
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 
-    manager.dispose();
+    await manager.dispose();
   });
 });
