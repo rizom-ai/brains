@@ -54,9 +54,9 @@ plugins:
 
 ## Slack configuration
 
-Slack supports a single workspace in either webhook or Socket Mode. Create a Slack app with the scopes and events documented in [`docs/plans/slack-chat-sdk.md`](../../docs/plans/slack-chat-sdk.md), including `files:read` for incoming uploads and `files:write` for native generated-artifact delivery.
+Slack supports a single workspace in either webhook or Socket Mode. Create the app from [`slack-app-manifest.yaml`](./slack-app-manifest.yaml), which declares the supported events and scopes, including `files:read` for incoming uploads and `files:write` for native generated-artifact delivery.
 
-For local testing, create the Slack app from [`slack-app-manifest.yaml`](./slack-app-manifest.yaml), authorize/install it in the test workspace, then create an app-level `xapp-...` token with `connections:write`. The manifest enables Socket Mode and declares the supported scopes/events.
+For local testing, authorize/install the app in the test workspace, then create an app-level `xapp-...` token with `connections:write`. The manifest enables Socket Mode.
 
 The dedicated Rover trial validates credentials and starts with one command:
 
