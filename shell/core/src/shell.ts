@@ -510,10 +510,9 @@ export class Shell implements IShell {
     }
   }
 
-  public unregisterPluginCapabilities(pluginId: string): void {
+  public async unregisterPluginCapabilities(pluginId: string): Promise<void> {
     this.services.mcpService.unregisterPlugin?.(pluginId);
     this.services.jobQueueService.unregisterPluginHandlers(pluginId);
-    this.services.recurringCheckService.unregisterPlugin(pluginId);
     this.endpointRegistry.unregister(pluginId);
     this.interactionRegistry.unregister(pluginId);
 
@@ -533,6 +532,7 @@ export class Shell implements IShell {
     }
 
     this.services.agentService.invalidateAgent();
+    await this.services.recurringCheckService.unregisterPlugin(pluginId);
   }
 
   // Plugin, daemon, and endpoint registration

@@ -87,6 +87,8 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
 class TestJobQueue {
   readonly enqueued: JobQueueEnqueueRequest[] = [];
   readonly unregistered: string[] = [];
+  enqueueHook:
+    ((request: JobQueueEnqueueRequest) => Promise<string>) | undefined;
   private readonly handlers = new Map<string, JobHandler>();
 
   registerHandler(type: string, handler: JobHandler): void {
@@ -104,7 +106,10 @@ class TestJobQueue {
 
   enqueue(request: JobQueueEnqueueRequest): Promise<string> {
     this.enqueued.push(request);
-    return Promise.resolve(`job-${this.enqueued.length}`);
+    return (
+      this.enqueueHook?.(request) ??
+      Promise.resolve(`job-${this.enqueued.length}`)
+    );
   }
 
   async processLatest(): Promise<void> {
@@ -388,7 +393,7 @@ describe("RecurringCheckService", () => {
     expect(await run).toEqual(new Error("Recurring check service stopped"));
   });
 
-  it("currently leaves an active check running after unregister", async () => {
+  it("aborts an active check when it is unregistered", async () => {
     const { service } = createService();
     let observedSignal: AbortSignal | undefined;
     let markStarted: (() => void) | undefined;
@@ -415,10 +420,117 @@ describe("RecurringCheckService", () => {
 
     unregister();
     await Promise.resolve();
-    expect(observedSignal?.aborted).toBe(false);
-
+    expect(observedSignal?.aborted).toBe(true);
+    expect(await run).toEqual(
+      new Error("Recurring check unregistered: agent:directory-scan"),
+    );
     await service.stop();
-    expect(await run).toEqual(new Error("Recurring check service stopped"));
+  });
+
+  it("waits for active plugin checks to settle during unregister", async () => {
+    const { service } = createService();
+    let observedSignal: AbortSignal | undefined;
+    let markStarted: (() => void) | undefined;
+    let releaseRun: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const blocked = new Promise<void>((resolve) => {
+      releaseRun = resolve;
+    });
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async ({ signal }) => {
+        observedSignal = signal;
+        markStarted?.();
+        await blocked;
+        return {};
+      },
+    });
+    const run = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await started;
+
+    let unregisterSettled = false;
+    const unregistering = service.unregisterPlugin("agent").then(() => {
+      unregisterSettled = true;
+    });
+    await Promise.resolve();
+    expect(observedSignal?.aborted).toBe(true);
+    expect(unregisterSettled).toBe(false);
+
+    releaseRun?.();
+    await unregistering;
+    expect(await run).toEqual(
+      new Error("Recurring check plugin unregistered: agent"),
+    );
+  });
+
+  it("keeps unrelated plugin checks available during unregister", async () => {
+    const { service } = createService();
+    let releaseRun: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => {
+      releaseRun = resolve;
+    });
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => {
+        await blocked;
+        return {};
+      },
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "weekly",
+      run: async () => ({}),
+    });
+    const activeRun = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await Promise.resolve();
+
+    const unregistering = service.unregisterPlugin("agent");
+    expect(service.getRegisteredCheckIds()).toEqual([
+      "monitoring:health-check",
+    ]);
+    expect(await service.runNow("monitoring:health-check")).toBe(true);
+
+    releaseRun?.();
+    await unregistering;
+    await activeRun;
+  });
+
+  it("drains admitted catch-up enqueue work during plugin unregister", async () => {
+    const { service, queue } = createService();
+    await service.start();
+    let releaseEnqueue: (() => void) | undefined;
+    const blockedEnqueue = new Promise<void>((resolve) => {
+      releaseEnqueue = resolve;
+    });
+    queue.enqueueHook = async (): Promise<string> => {
+      await blockedEnqueue;
+      return "job-catch-up";
+    };
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({}),
+    });
+    await Promise.resolve();
+
+    let unregisterSettled = false;
+    const unregistering = service.unregisterPlugin("agent").then(() => {
+      unregisterSettled = true;
+    });
+    await Promise.resolve();
+    expect(unregisterSettled).toBe(false);
+
+    releaseEnqueue?.();
+    await unregistering;
+    expect(queue.enqueued).toHaveLength(1);
   });
 
   it("does not overlap runs of the same check", async () => {

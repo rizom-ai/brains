@@ -53,7 +53,7 @@ describe("Plugin shutdown lifecycle", () => {
     expect(shutdownMock).toHaveBeenCalledTimes(1);
   });
 
-  test("concurrent disable currently returns before teardown settles", async () => {
+  test("concurrent disable callers join one teardown", async () => {
     const shutdownStarted = deferred();
     const releaseShutdown = deferred();
     const plugin: Plugin = {
@@ -82,11 +82,46 @@ describe("Plugin shutdown lifecycle", () => {
       .then(() => {
         secondSettled = true;
       });
-    await secondDisable;
+    await Promise.resolve();
 
-    expect(secondSettled).toBe(true);
+    expect(secondSettled).toBe(false);
     releaseShutdown.resolve();
-    await firstDisable;
+    await Promise.all([firstDisable, secondDisable]);
+    expect(secondSettled).toBe(true);
+  });
+
+  test("drains scoped resource release before plugin shutdown", async () => {
+    const releaseStarted = deferred();
+    const releaseResources = deferred();
+    let shutdownCalled = false;
+    mockShell.unregisterPluginCapabilities = async (): Promise<void> => {
+      releaseStarted.resolve();
+      await releaseResources.promise;
+    };
+    const plugin: Plugin = {
+      id: "ordered-shutdown",
+      version: "1.0.0",
+      type: "service",
+      description: "Test",
+      packageName: "@test/ordered-shutdown",
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+      shutdown: async (): Promise<void> => {
+        shutdownCalled = true;
+      },
+    };
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    const disabling = pluginManager.disablePlugin("ordered-shutdown");
+    await releaseStarted.promise;
+    expect(shutdownCalled).toBe(false);
+
+    releaseResources.resolve();
+    await disabling;
+    expect(shutdownCalled).toBe(true);
   });
 
   test("disablePlugin should work when plugin has no shutdown method", async () => {

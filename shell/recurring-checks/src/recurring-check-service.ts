@@ -77,10 +77,18 @@ const recurringCheckStateSchema: z.ZodType<
   }),
 ]);
 
+interface ActiveCheck {
+  controller: AbortController;
+  settled: Promise<void>;
+}
+
 interface RegisteredCheck {
   definition: RecurringCheckDefinition;
   pluginId: string;
   scheduledJob?: ScheduledJob | undefined;
+  activeCheck?: ActiveCheck | undefined;
+  catchUpTasks: Set<Promise<void>>;
+  releasePromise?: Promise<void> | undefined;
 }
 
 export interface RecurringCheckDelivery {
@@ -117,9 +125,10 @@ export class RecurringCheckService {
   private readonly clock: Clock.Clock | undefined;
   private readonly nowFallback: () => Date;
   private readonly checks = new Map<string, RegisteredCheck>();
-  private readonly runningChecks = new Map<string, AbortController>();
+  private readonly pluginChecks = new Map<string, Set<RegisteredCheck>>();
   private handlerRegistered = false;
   private started = false;
+  private stopPromise: Promise<void> | null = null;
 
   constructor(options: RecurringCheckServiceOptions) {
     this.brainId = options.brainId;
@@ -178,11 +187,15 @@ export class RecurringCheckService {
     const registered: RegisteredCheck = {
       pluginId,
       definition: { ...definition, id: checkId },
+      catchUpTasks: new Set(),
     };
     this.checks.set(checkId, registered);
+    const pluginChecks = this.pluginChecks.get(pluginId) ?? new Set();
+    pluginChecks.add(registered);
+    this.pluginChecks.set(pluginId, pluginChecks);
     if (this.started) {
       this.schedule(registered);
-      void this.enqueueCatchUpIfNeeded(registered.definition).catch((error) => {
+      void this.trackCatchUp(registered).catch((error) => {
         this.logger.error(
           `Failed to enqueue recurring check ${checkId}`,
           error,
@@ -190,47 +203,70 @@ export class RecurringCheckService {
       });
     }
 
-    return (): void => this.unregister(checkId);
+    return (): void => {
+      void this.releaseRegisteredCheck(
+        registered,
+        new Error(`Recurring check unregistered: ${checkId}`),
+      ).catch((error) => {
+        this.logger.error(
+          `Failed to unregister recurring check ${checkId}`,
+          error,
+        );
+      });
+    };
   }
 
-  unregisterPlugin(pluginId: string): void {
-    for (const [checkId, registered] of this.checks) {
-      if (registered.pluginId === pluginId) this.unregister(checkId);
-    }
-  }
-
-  async start(): Promise<void> {
-    if (this.started) return;
-    this.started = true;
-    for (const registered of this.checks.values()) this.schedule(registered);
+  async unregisterPlugin(pluginId: string): Promise<void> {
+    const registered = [...(this.pluginChecks.get(pluginId) ?? [])];
     await Promise.all(
-      [...this.checks.values()].map(({ definition }) =>
-        this.enqueueCatchUpIfNeeded(definition),
+      registered.map((check) =>
+        this.releaseRegisteredCheck(
+          check,
+          new Error(`Recurring check plugin unregistered: ${pluginId}`),
+        ),
       ),
     );
   }
 
-  async stop(): Promise<void> {
+  async start(): Promise<void> {
+    if (this.started) return;
+    if (this.stopPromise) {
+      await this.stopPromise;
+      this.stopPromise = null;
+    }
+    this.started = true;
+    for (const registered of this.checks.values()) this.schedule(registered);
+    await Promise.all(
+      [...this.checks.values()].map((registered) =>
+        this.trackCatchUp(registered),
+      ),
+    );
+  }
+
+  stop(): Promise<void> {
+    this.stopPromise ??= this.stopChecks();
+    return this.stopPromise;
+  }
+
+  private async stopChecks(): Promise<void> {
     this.started = false;
-    const stoppingJobs: Promise<void>[] = [];
-    for (const registered of this.checks.values()) {
-      if (registered.scheduledJob) {
-        stoppingJobs.push(registered.scheduledJob.stop());
-        delete registered.scheduledJob;
-      }
-    }
     const stopError = new Error("Recurring check service stopped");
-    for (const controller of this.runningChecks.values()) {
-      controller.abort(stopError);
-    }
-    await Promise.all(stoppingJobs);
+    const registered = [...this.pluginChecks.values()].flatMap((checks) => [
+      ...checks,
+    ]);
+    await Promise.all(
+      registered.map(
+        (check) =>
+          check.releasePromise ?? this.settleRegisteredCheck(check, stopError),
+      ),
+    );
   }
 
   async runNow(checkId: string, signal?: AbortSignal): Promise<boolean> {
     signal?.throwIfAborted();
     const registered = this.checks.get(checkId);
     if (!registered) throw new Error(`Unknown recurring check: ${checkId}`);
-    if (this.runningChecks.has(checkId)) {
+    if (registered.activeCheck) {
       this.logger.debug(`Skipping overlapping recurring check: ${checkId}`);
       return false;
     }
@@ -239,7 +275,26 @@ export class RecurringCheckService {
     const runSignal = signal
       ? AbortSignal.any([controller.signal, signal])
       : controller.signal;
-    this.runningChecks.set(checkId, controller);
+    const run = this.executeRegisteredCheck(registered, runSignal);
+    const activeCheck: ActiveCheck = {
+      controller,
+      settled: Promise.resolve(),
+    };
+    registered.activeCheck = activeCheck;
+    const clearActiveCheck = (): void => {
+      if (registered.activeCheck === activeCheck) {
+        delete registered.activeCheck;
+      }
+    };
+    activeCheck.settled = run.then(clearActiveCheck, clearActiveCheck);
+    return run;
+  }
+
+  private async executeRegisteredCheck(
+    registered: RegisteredCheck,
+    runSignal: AbortSignal,
+  ): Promise<boolean> {
+    const checkId = registered.definition.id;
     const execution = Effect.tryPromise({
       try: async (effectSignal) => {
         const checkSignal = AbortSignal.any([runSignal, effectSignal]);
@@ -270,26 +325,78 @@ export class RecurringCheckService {
       catch: (error) => error,
     });
 
-    try {
-      const exit = await Effect.runPromiseExit(execution, {
-        signal: runSignal,
-      });
-      if (Exit.isSuccess(exit)) return true;
-      if (runSignal.aborted) throw runSignal.reason;
-      throw Cause.squash(exit.cause);
-    } finally {
-      this.runningChecks.delete(checkId);
-    }
+    const exit = await Effect.runPromiseExit(execution, {
+      signal: runSignal,
+    });
+    if (Exit.isSuccess(exit)) return true;
+    if (runSignal.aborted) throw runSignal.reason;
+    throw Cause.squash(exit.cause);
   }
 
   getRegisteredCheckIds(): string[] {
     return [...this.checks.keys()];
   }
 
-  private unregister(checkId: string): void {
-    const registered = this.checks.get(checkId);
-    void registered?.scheduledJob?.stop();
-    this.checks.delete(checkId);
+  private trackCatchUp(registered: RegisteredCheck): Promise<void> {
+    const task = this.enqueueCatchUpIfNeeded(registered.definition);
+    registered.catchUpTasks.add(task);
+    const remove = (): void => {
+      registered.catchUpTasks.delete(task);
+    };
+    void task.then(remove, remove);
+    return task;
+  }
+
+  private releaseRegisteredCheck(
+    registered: RegisteredCheck,
+    reason: Error,
+  ): Promise<void> {
+    if (registered.releasePromise) return registered.releasePromise;
+    const checkId = registered.definition.id;
+    if (this.checks.get(checkId) === registered) {
+      this.checks.delete(checkId);
+    }
+
+    const release = this.releaseRegisteredCheckOnce(registered, reason);
+    registered.releasePromise = release;
+    return release;
+  }
+
+  private async releaseRegisteredCheckOnce(
+    registered: RegisteredCheck,
+    reason: Error,
+  ): Promise<void> {
+    try {
+      await this.settleRegisteredCheck(registered, reason);
+    } finally {
+      const pluginChecks = this.pluginChecks.get(registered.pluginId);
+      pluginChecks?.delete(registered);
+      if (pluginChecks?.size === 0) {
+        this.pluginChecks.delete(registered.pluginId);
+      }
+    }
+  }
+
+  private async settleRegisteredCheck(
+    registered: RegisteredCheck,
+    reason: Error,
+  ): Promise<void> {
+    const tasks: Promise<unknown>[] = [];
+    if (registered.scheduledJob) {
+      tasks.push(registered.scheduledJob.stop());
+      delete registered.scheduledJob;
+    }
+    if (registered.activeCheck) {
+      registered.activeCheck.controller.abort(reason);
+      tasks.push(registered.activeCheck.settled);
+    }
+    tasks.push(...registered.catchUpTasks);
+
+    const results = await Promise.allSettled(tasks);
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) throw failure.reason;
   }
 
   private schedule(registered: RegisteredCheck): void {
