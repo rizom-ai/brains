@@ -40,13 +40,12 @@ function createDeps(overrides?: {
     enqueue,
     deps: {
       client: {
-        fetchProfile: mock(
+        fetchDomain: mock(
           async () =>
             overrides?.records ?? [
               { "First Name": "Ada", "Last Name": "Morgan" },
             ],
         ),
-        fetchDomain: mock(async () => overrides?.records ?? []),
       },
       entityService: {
         getEntity: mock(async () => profile),

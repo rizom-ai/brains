@@ -3,9 +3,11 @@ import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import type { LinkedInSnapshotRecord } from "../lib/linkedin-client";
+import {
+  loadLinkedInProfileImport,
+  type LinkedInProfessionalSnapshotSource,
+} from "../lib/load-profile-import";
 import { mergeProfileImport } from "../lib/merge-profile";
-import { mapLinkedInSnapshotDomain } from "../lib/transform/registry";
 
 export type LinkedInImportJobData = Record<string, never>;
 
@@ -20,12 +22,8 @@ export interface LinkedInImportJobResult {
   preservedFields: string[];
 }
 
-export interface LinkedInProfileSource {
-  fetchProfile(): Promise<LinkedInSnapshotRecord[]>;
-}
-
 export interface LinkedInImportHandlerDeps {
-  client: LinkedInProfileSource;
+  client: LinkedInProfessionalSnapshotSource;
   entityService: IEntityService;
 }
 
@@ -51,11 +49,10 @@ export class LinkedInImportJobHandler extends BaseJobHandler<
   ): Promise<LinkedInImportJobResult> {
     await this.reportProgress(progressReporter, {
       progress: 10,
-      message: "Fetching LinkedIn profile snapshot",
+      message: "Fetching LinkedIn professional snapshots",
     });
 
-    const records = await this.deps.client.fetchProfile();
-    const patch = mapLinkedInSnapshotDomain("PROFILE", records);
+    const loaded = await loadLinkedInProfileImport(this.deps.client);
 
     await this.reportProgress(progressReporter, {
       progress: 55,
@@ -70,7 +67,7 @@ export class LinkedInImportJobHandler extends BaseJobHandler<
       throw new Error("Anchor profile not found");
     }
 
-    const merged = mergeProfileImport(profile.content, patch);
+    const merged = mergeProfileImport(profile.content, loaded.patch);
     if (merged.changed) {
       const mutation = await this.deps.entityService.updateEntity({
         entity: { ...profile, content: merged.content },
@@ -93,7 +90,7 @@ export class LinkedInImportJobHandler extends BaseJobHandler<
     });
 
     return {
-      recordsRead: records.length,
+      recordsRead: loaded.recordsRead,
       updated: merged.changed,
       appliedFields: merged.appliedFields,
       preservedFields: merged.preservedFields,

@@ -1,4 +1,7 @@
-import type { LinkedInSnapshotRecord } from "../linkedin-client";
+import type {
+  LinkedInProfessionalSnapshotDomain,
+  LinkedInSnapshotRecord,
+} from "../linkedin-client";
 import {
   mapLinkedInProfile,
   type ProfessionalProfileImportPatch,
@@ -8,12 +11,29 @@ export type LinkedInSnapshotMapper = (
   records: LinkedInSnapshotRecord[],
 ) => ProfessionalProfileImportPatch;
 
-const mappers: ReadonlyMap<string, LinkedInSnapshotMapper> = new Map([
-  ["PROFILE", mapLinkedInProfile],
-]);
+interface LinkedInSnapshotMapperRegistration {
+  domain: LinkedInProfessionalSnapshotDomain;
+  mapper: LinkedInSnapshotMapper;
+}
+
+/** Only fixture-backed domains belong here. Registration enables preview and import. */
+const registrations: readonly LinkedInSnapshotMapperRegistration[] = [
+  { domain: "PROFILE", mapper: mapLinkedInProfile },
+];
+
+const mappers: ReadonlyMap<
+  LinkedInProfessionalSnapshotDomain,
+  LinkedInSnapshotMapper
+> = new Map(
+  registrations.map(({ domain, mapper }) => [domain, mapper] as const),
+);
+
+export function getLinkedInSnapshotImportDomains(): readonly LinkedInProfessionalSnapshotDomain[] {
+  return registrations.map(({ domain }) => domain);
+}
 
 export function mapLinkedInSnapshotDomain(
-  domain: string,
+  domain: LinkedInProfessionalSnapshotDomain,
   records: LinkedInSnapshotRecord[],
 ): ProfessionalProfileImportPatch {
   const mapper = mappers.get(domain);

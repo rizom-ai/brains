@@ -41,7 +41,7 @@ headline: Owner-authored headline
       updateEntity,
     } as unknown as IEntityService;
     const handler = new LinkedInImportJobHandler(createSilentLogger(), {
-      client: { fetchProfile: mock(async () => profileRecords) },
+      client: { fetchDomain: mock(async () => profileRecords) },
       entityService,
     });
 
@@ -79,7 +79,7 @@ headline: Owner-authored headline
       getEntity: mock(async () => null),
     } as unknown as IEntityService;
     const handler = new LinkedInImportJobHandler(createSilentLogger(), {
-      client: { fetchProfile: mock(async () => profileRecords) },
+      client: { fetchDomain: mock(async () => profileRecords) },
       entityService,
     });
 
@@ -103,7 +103,7 @@ headline: Owner-authored headline
       })),
     } as unknown as IEntityService;
     const handler = new LinkedInImportJobHandler(createSilentLogger(), {
-      client: { fetchProfile: mock(async () => profileRecords) },
+      client: { fetchDomain: mock(async () => profileRecords) },
       entityService,
     });
 

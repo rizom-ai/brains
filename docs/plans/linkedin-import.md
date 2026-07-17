@@ -262,7 +262,9 @@ Before enabling those domains for import:
 1. Run schema inspection against representative consenting accounts.
 2. Turn the observed contracts into redacted Snapshot/export fixtures.
 3. Add one deterministic mapper per domain through the transform registry.
-4. Enable each domain only after its mapper passes fixture-backed contract tests.
+4. Enable each domain only after its mapper passes fixture-backed contract tests. The
+   registry is the single enablement point: preview and execution fetch every registered
+   domain automatically, while unregistered domains remain inspection-only.
 
 Provider-neutral fingerprints and append-only array merging are already implemented for
 skills, positions, education, and certifications. Matching owner-authored records are

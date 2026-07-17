@@ -17,6 +17,16 @@ export {
   type ProfessionalProfileImportPatch,
 } from "./lib/transform/profile-mapper";
 export {
+  getLinkedInSnapshotImportDomains,
+  mapLinkedInSnapshotDomain,
+  type LinkedInSnapshotMapper,
+} from "./lib/transform/registry";
+export {
+  loadLinkedInProfileImport,
+  type LinkedInProfessionalSnapshotSource,
+  type LoadedLinkedInProfileImport,
+} from "./lib/load-profile-import";
+export {
   mergeProfileImport,
   type ProfileImportMergeResult,
 } from "./lib/merge-profile";

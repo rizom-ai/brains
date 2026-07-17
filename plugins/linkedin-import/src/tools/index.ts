@@ -11,13 +11,13 @@ import {
   type LinkedInClient,
   type LinkedInProfessionalSnapshotDomain,
 } from "../lib/linkedin-client";
+import { loadLinkedInProfileImport } from "../lib/load-profile-import";
 import { mergeProfileImport } from "../lib/merge-profile";
 import { summarizeLinkedInSnapshotSchema } from "../lib/snapshot-schema";
-import { mapLinkedInSnapshotDomain } from "../lib/transform/registry";
 import type { ProfessionalProfileImportPatch } from "../lib/transform/profile-mapper";
 
 export interface LinkedInImportToolsDeps {
-  client: Pick<LinkedInClient, "fetchDomain" | "fetchProfile">;
+  client: Pick<LinkedInClient, "fetchDomain">;
   entityService: IEntityService;
   jobs: ServicePluginContext["jobs"];
 }
@@ -134,8 +134,8 @@ export function createLinkedInImportTools(
           };
         }
 
-        const [records, profile] = await Promise.all([
-          deps.client.fetchProfile(),
+        const [loaded, profile] = await Promise.all([
+          loadLinkedInProfileImport(deps.client),
           deps.entityService.getEntity({
             entityType: "anchor-profile",
             id: "anchor-profile",
@@ -145,14 +145,13 @@ export function createLinkedInImportTools(
           return { success: false, error: "Anchor profile not found" };
         }
 
-        const patch = mapLinkedInSnapshotDomain("PROFILE", records);
-        const merge = mergeProfileImport(profile.content, patch);
+        const merge = mergeProfileImport(profile.content, loaded.patch);
         if (!merge.changed) {
           return {
             success: true,
             data: {
-              status: records.length === 0 ? "no-data" : "up-to-date",
-              recordsRead: records.length,
+              status: loaded.recordsRead === 0 ? "no-data" : "up-to-date",
+              recordsRead: loaded.recordsRead,
               preservedFields: merge.preservedFields,
             },
           };
@@ -172,7 +171,7 @@ export function createLinkedInImportTools(
           summary: "Import the previewed LinkedIn profile fields?",
           completionSummary: "LinkedIn profile import queued.",
           preview: buildPreview(
-            patch,
+            loaded.patch,
             merge.appliedFields,
             merge.preservedFields,
           ),
