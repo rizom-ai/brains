@@ -8,14 +8,14 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.157` is live on `yeehaa.io`, the full hosted Rover pilot fleet, and the `new.rizom.ai` package-path canary. The production Rizom and docs sites still run on their existing standalone deployment paths until the consolidated-site rollout is ready. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.192` is published, `alpha.189` is live on `yeehaa.io` and the hosted canary cohort, the wider pilot fleet remains on `alpha.172`, and `new.rizom.ai` remains on `alpha.186`. Production Rizom and docs still use their standalone deployments. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
 
 What already exists today:
 
 - an alpha-published Bun-based CLI and runtime via `@rizom/brain`
 - markdown-backed entities with typed frontmatter
 - MCP-native tools and resources
-- built-in webserver, A2A, Discord, and chat REPL interfaces
+- built-in webserver, A2A, Discord/Slack chat, web chat, and chat REPL interfaces
 - static-site generation with reusable site + theme packages
 - the personal-publishing posture as the public reference brain
 - Kamal-based self-hosted deploy scaffolding, including app-local deploy artifacts, env-schema generation, and Cloudflare Origin CA bootstrap support
@@ -38,13 +38,13 @@ Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. 
 
 Priority is explicit; an existing worktree does not automatically outrank release work.
 
-| Priority | Outcome                            | Current execution                                                                                                                                                                                                           |
-| -------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                 |
-| **P1**   | Real runtime identity boundary     | Finish `feature/auth-runtime-db` as one database-backed source of truth with transactional role invariants and deny-by-default identity resolution; multi-user behavior follows on that foundation.                         |
-| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                   |
-| **P1**   | One production Rizom brain/site    | Finish the in-flight consolidated site and content work, stage the consolidated package on `new.rizom.ai`, then cut over production. This may proceed beside bundle work but must not invent a competing model abstraction. |
-| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                   |
+| Priority | Outcome                            | Current execution                                                                                                                                                                                                                |
+| -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                      |
+| **P1**   | Real runtime identity boundary     | Finish final hardening on `feature/auth-runtime-db`; the database cutover, People admin surface, role invariants, and P0 security findings are implemented, while compatibility gates and lower-priority review findings remain. |
+| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                        |
+| **P1**   | One production Rizom brain/site    | Refresh `new.rizom.ai` from `alpha.186` to the published consolidated package, validate state migration and rollback, then cut production over and retire redundant deployments.                                                 |
+| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                        |
 
 Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
 
@@ -137,7 +137,7 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 - [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
@@ -162,7 +162,7 @@ Plans:
 
 ### 5. Interfaces
 
-The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord and the bundled web chat ship today; this section is the consolidation and expansion work.
+The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord, Slack, and the bundled web chat ship today; this section is the consolidation and expansion work.
 
 Plans:
 

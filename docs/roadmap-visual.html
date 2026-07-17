@@ -130,7 +130,7 @@
             <span class="card-name">Auth runtime database</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.</div>
+          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.</div>
           <div class="card-file">auth-runtime-db.md</div>
         </div>
         <div class="card status-proposed">
@@ -170,6 +170,22 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</summary>
         <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Finish the hosted Rizom site rollout</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">hosted package/image/TLS machinery is released and proven by <code>new.rizom.ai</code>; remaining scope is the <code>docs.rizom.ai</code> hosted cutover.</div>
+          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">the consolidated site and composition are merged and published; refresh <code>new.rizom.ai</code> from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.</div>
+          <div class="card-file">rizom-consolidation.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Rover default batch onboarding</span>
@@ -193,22 +209,6 @@
           </div>
           <div class="card-desc">make Discord opt-in in <code>@rizom/ops</code> rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.</div>
           <div class="card-file">discord-opt-in-plan.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Finish the hosted Rizom site rollout</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">hosted package/image/TLS machinery is released and proven by <code>new.rizom.ai</code>; remaining scope is the <code>docs.rizom.ai</code> hosted cutover.</div>
-          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">the consolidated site and composition are merged and published; refresh <code>new.rizom.ai</code> from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.</div>
-          <div class="card-file">rizom-consolidation.md</div>
         </div>
         </div>
       </details>
@@ -252,6 +252,14 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§6</span>Ecosystem</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Opportunity Priority Engine</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
+          <div class="card-file">bd-priority-engine.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
@@ -268,31 +276,15 @@
           <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
           <div class="card-file">npm-package-boundaries.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Opportunity Priority Engine</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
-          <div class="card-file">bd-priority-engine.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Local AI Runtime</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">local AI runtime sidecar direction.</div>
-          <div class="card-file">embedding-service.md</div>
-        </div>
-        <div class="card status-proposed">
+        <div class="card status-active">
           <div class="card-head">
             <span class="card-name">shell lifecycle race hardening</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="badge badge-active">Active</span>
           </div>
           <div class="card-desc">make shell boot/shutdown, daemon transitions, plugin/check teardown, and conversation ownership joinable under concurrent callers without changing Promise/<code>AbortSignal</code> contracts.</div>
           <div class="card-file">shell-lifecycle-race-hardening.md</div>
@@ -336,6 +328,14 @@
           </div>
           <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
           <div class="card-file">turso-database-engine.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Local AI Runtime</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">local AI runtime sidecar direction.</div>
+          <div class="card-file">embedding-service.md</div>
         </div>
         </div>
       </details>

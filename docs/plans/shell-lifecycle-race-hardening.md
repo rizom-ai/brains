@@ -2,9 +2,7 @@
 
 ## Status
 
-**Proposed.** The repo-wide Effect lifecycle adoption is complete. This is a narrower follow-up for concrete shell races found after that work; it does not reopen a mechanical Effect conversion sweep.
-
-Phase 1 is the highest-value core fix and can ship independently. The remaining phases should proceed only after their characterization tests reproduce the race. This work is not a stable `v0.2.0` release gate unless one of those races is observed in production or release-candidate validation.
+Active on `work/shell-lifecycle-race-hardening`. Shell and daemon transition serialization, joinable plugin/recurring-check teardown, terminal conversation disposal, and their characterization coverage are implemented on the branch. Job-worker restart hardening is the current slice. This work remains a narrower follow-up to the completed Effect lifecycle adoption, not a mechanical conversion sweep or stable `v0.2.0` release gate.
 
 ## Goal
 

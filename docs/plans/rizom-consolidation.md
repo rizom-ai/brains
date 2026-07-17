@@ -2,7 +2,7 @@
 
 ## Status
 
-Cutover preparation. The consolidated home, `/work`, `/foundation`, `/writing`, and
+Partial. Cutover preparation is active. The consolidated home, `/work`, `/foundation`, `/writing`, and
 `/network` implementation is merged into `main`, and `@rizom/site-rizom-ai` is published
 at `0.2.0-alpha.192`. The schema-first content model, merged `rizom-content` corpus, and
 Rover composition are complete.

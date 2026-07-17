@@ -2,7 +2,7 @@
 
 ## Status
 
-Rollout tail. The platform work is implemented and released:
+Partial. The shared platform work is implemented and released; the docs cutover remains:
 
 - `@rizom/site` and the Rizom/docs site packages are public;
 - hosted Rover resolves exact site package refs into hash-tagged fleet images;
