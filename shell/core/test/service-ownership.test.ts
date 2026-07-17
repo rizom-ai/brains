@@ -557,9 +557,9 @@ describe("Shell service ownership", () => {
 
     expect(order).toEqual([
       "recurring-runtime",
+      "agent",
       "job-runtime",
       "plugins",
-      "agent",
       "conversation-database",
       "entity-database",
       "recurring-handler",

@@ -90,7 +90,7 @@ describe("ShellLifecycle", () => {
     expect(finalizerCalls).toBe(1);
   });
 
-  it("currently lets a concurrent close return before finalization settles", async () => {
+  it("makes concurrent close callers join finalization", async () => {
     const releaseFinalizer = deferred();
     const finalizerStarted = deferred();
     const lifecycle = new ShellLifecycle();
@@ -107,10 +107,11 @@ describe("ShellLifecycle", () => {
     });
     await Promise.resolve();
 
-    expect(secondSettled).toBe(true);
+    expect(secondSettled).toBe(false);
 
     releaseFinalizer.resolve();
     await Promise.all([firstClose, secondClose]);
+    expect(secondSettled).toBe(true);
   });
 
   it("interrupts scoped background work before finalizing", async () => {

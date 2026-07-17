@@ -272,7 +272,7 @@ describe("Shell shutdown", () => {
     expect(jobDbUsableDuringDaemonStop).toBe(true);
   });
 
-  it("currently shuts plugins down before active agent turns", async () => {
+  it("stops active agent turns before shutting plugins down", async () => {
     const order: string[] = [];
     const plugin: Plugin = {
       id: "active-turn-order",
@@ -300,15 +300,14 @@ describe("Shell shutdown", () => {
 
     await shell.shutdown();
 
-    expect(order).toEqual(["plugin", "agent"]);
+    expect(order).toEqual(["agent", "plugin"]);
   });
 
-  it("currently admits two concurrent shell boots", async () => {
+  it("makes concurrent shell initialization callers join one boot", async () => {
     await runMigrations(testDir.dir);
     const config = createTestConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
-    const firstInitializationStarted = deferred();
-    const secondInitializationStarted = deferred();
+    const initializationStarted = deferred();
     const releaseInitialization = deferred();
     const entityService = shell.getEntityService();
     const initializeEntityService =
@@ -316,25 +315,57 @@ describe("Shell shutdown", () => {
     let initializationCalls = 0;
     entityService.initialize = async (): Promise<void> => {
       initializationCalls++;
-      if (initializationCalls === 1) firstInitializationStarted.resolve();
-      if (initializationCalls === 2) secondInitializationStarted.resolve();
+      initializationStarted.resolve();
       await releaseInitialization.promise;
       await initializeEntityService();
     };
 
     const firstBoot = shell.initialize({ mode: "register-only" });
-    await firstInitializationStarted.promise;
+    await initializationStarted.promise;
     const secondBoot = shell.initialize({ mode: "register-only" });
-    await secondInitializationStarted.promise;
     releaseInitialization.resolve();
 
-    const results = await Promise.allSettled([firstBoot, secondBoot]);
-    expect(initializationCalls).toBe(2);
-    expect(results.some((result) => result.status === "rejected")).toBe(true);
+    await Promise.all([firstBoot, secondBoot]);
+    expect(initializationCalls).toBe(1);
+    expect(shell.isInitialized()).toBe(true);
     await shell.shutdown();
   });
 
-  it("currently lets shutdown settle while shell boot is admitted", async () => {
+  it("rejects a conflicting mode while shell boot is admitted", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shell = Shell.createFresh(config, deps);
+    const initializationStarted = deferred();
+    const releaseInitialization = deferred();
+    const entityService = shell.getEntityService();
+    const initializeEntityService =
+      entityService.initialize.bind(entityService);
+    entityService.initialize = async (): Promise<void> => {
+      initializationStarted.resolve();
+      await releaseInitialization.promise;
+      await initializeEntityService();
+    };
+
+    const booting = shell.initialize({ mode: "register-only" });
+    await initializationStarted.promise;
+    let conflictError: unknown;
+    try {
+      await shell.initialize({ mode: "startup-check" });
+    } catch (error) {
+      conflictError = error;
+    }
+
+    expect(conflictError).toEqual(
+      new Error(
+        "Shell is already initializing in register-only mode; cannot join startup-check mode",
+      ),
+    );
+    releaseInitialization.resolve();
+    await booting;
+    await shell.shutdown();
+  });
+
+  it("waits for admitted shell boot before shutdown", async () => {
     await runMigrations(testDir.dir);
     const config = createTestConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
@@ -351,12 +382,16 @@ describe("Shell shutdown", () => {
 
     const booting = shell.initialize({ mode: "register-only" });
     await entityInitializationPaused.promise;
-    const shuttingDown = shell.shutdown();
-    await shuttingDown;
+    let shutdownSettled = false;
+    const shuttingDown = shell.shutdown().then(() => {
+      shutdownSettled = true;
+    });
+    await Promise.resolve();
+    expect(shutdownSettled).toBe(false);
 
     releaseEntityInitialization.resolve();
-    await booting;
-    expect(shell.isInitialized()).toBe(true);
+    await Promise.all([booting, shuttingDown]);
+    expect(shell.isInitialized()).toBe(false);
   });
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {

@@ -97,6 +97,9 @@ import { Exit } from "@brains/utils/effect";
 
 export type { ShellDependencies };
 
+type ShellLifecycleState =
+  "constructed" | "booting" | "running" | "closing" | "closed" | "failed";
+
 export class Shell implements IShell {
   private config: ShellConfig;
   private static instance: Shell | null = null;
@@ -104,6 +107,10 @@ export class Shell implements IShell {
   private readonly lifecycle: ShellLifecycle;
   private readonly bootloader: ShellBootloader;
   private initialized = false;
+  private lifecycleState: ShellLifecycleState = "constructed";
+  private bootMode: BootMode | undefined;
+  private bootPromise: Promise<void> | null = null;
+  private shutdownPromise: Promise<void> | null = null;
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
@@ -197,16 +204,49 @@ export class Shell implements IShell {
    */
   public async initialize(options?: { mode?: BootMode }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");
-    if (this.initialized) {
+    const requestedMode = options?.mode;
+
+    if (this.lifecycleState === "running") {
       this.services.logger.warn("Shell already initialized");
-      return;
+      return Promise.resolve();
+    }
+    if (this.lifecycleState === "booting") {
+      if (this.bootMode !== requestedMode) {
+        return Promise.reject(
+          new Error(
+            `Shell is already initializing in ${this.bootMode ?? "normal"} mode; cannot join ${requestedMode ?? "normal"} mode`,
+          ),
+        );
+      }
+      return this.bootPromise ?? Promise.resolve();
+    }
+    if (this.lifecycleState === "closing" || this.lifecycleState === "closed") {
+      return Promise.reject(new Error("Cannot initialize a closing shell"));
+    }
+    if (this.lifecycleState === "failed") {
+      return Promise.reject(
+        new Error("Cannot initialize a shell after boot failure"),
+      );
     }
 
+    this.lifecycleState = "booting";
+    this.bootMode = requestedMode;
+    this.bootPromise = this.boot(options);
+    return this.bootPromise;
+  }
+
+  private async boot(options?: { mode?: BootMode }): Promise<void> {
     try {
       await this.bootloader.boot(options);
-      this.initialized = true;
+      if (this.lifecycleState === "booting") {
+        this.lifecycleState = "running";
+        this.initialized = true;
+      }
     } catch (error) {
       this.services.logger.error("Failed to initialize Shell", error);
+      if (this.lifecycleState !== "closing") {
+        this.lifecycleState = "failed";
+      }
       try {
         await this.lifecycle.close(Exit.fail(error));
       } catch (cleanupError) {
@@ -233,10 +273,28 @@ export class Shell implements IShell {
     }
   }
 
-  public async shutdown(): Promise<void> {
+  public shutdown(): Promise<void> {
+    this.shutdownPromise ??= this.shutdownShell();
+    return this.shutdownPromise;
+  }
+
+  private async shutdownShell(): Promise<void> {
     this.services.logger.debug("Shutting down Shell");
-    await this.lifecycle.close();
+    if (this.lifecycleState === "closed") return;
+
+    const admittedBoot = this.bootPromise;
+    this.lifecycleState = "closing";
     this.initialized = false;
+    if (admittedBoot) {
+      try {
+        await admittedBoot;
+      } catch {
+        // Boot reports its original failure and closes the same lifecycle.
+      }
+    }
+
+    await this.lifecycle.close();
+    this.lifecycleState = "closed";
     this.services.logger.debug("Shell shutdown complete");
   }
 

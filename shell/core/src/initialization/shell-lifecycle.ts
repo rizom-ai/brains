@@ -11,6 +11,7 @@ import { runEffectPromise } from "../effect-runtime";
  */
 export class ShellLifecycle {
   private readonly scope: Scope.CloseableScope;
+  private closePromise: Promise<void> | null = null;
   private closed = false;
 
   public constructor() {
@@ -62,12 +63,13 @@ export class ShellLifecycle {
   }
 
   /** Close once. Effect scopes run registered finalizers in reverse order. */
-  public async close(
-    exit: Exit.Exit<unknown, unknown> = Exit.void,
-  ): Promise<void> {
-    if (this.closed) return;
+  public close(exit: Exit.Exit<unknown, unknown> = Exit.void): Promise<void> {
+    if (this.closePromise) return this.closePromise;
+    if (this.closed) return Promise.resolve();
+
     this.closed = true;
-    await runEffectPromise(Scope.close(this.scope, exit));
+    this.closePromise = runEffectPromise(Scope.close(this.scope, exit));
+    return this.closePromise;
   }
 
   /** Roll back synchronous service acquisition from a throwing constructor. */

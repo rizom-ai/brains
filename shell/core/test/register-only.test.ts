@@ -228,6 +228,17 @@ describe("Shell register-only mode", () => {
     expect(receivedError).toBe(startupError);
     expect(shell.isInitialized()).toBe(false);
     expect(daemonStopped).toBe(true);
+
+    let retryError: unknown;
+    try {
+      await shell.initialize();
+    } catch (error) {
+      retryError = error;
+    }
+    expect(retryError).toEqual(
+      new Error("Cannot initialize a shell after boot failure"),
+    );
+
     let queryError: unknown;
     try {
       await shell.getJobQueueService().getStats();
