@@ -1,3 +1,8 @@
+import type {
+  ProfessionalCertification,
+  ProfessionalEducation,
+  ProfessionalPosition,
+} from "@brains/plugins";
 import type { LinkedInSnapshotRecord } from "../linkedin-client";
 
 export interface ProfessionalProfileImportPatch {
@@ -6,6 +11,10 @@ export interface ProfessionalProfileImportPatch {
   industry?: string | undefined;
   location?: string | undefined;
   website?: string | undefined;
+  skills?: string[] | undefined;
+  positions?: ProfessionalPosition[] | undefined;
+  education?: ProfessionalEducation[] | undefined;
+  certifications?: ProfessionalCertification[] | undefined;
   story?: string | undefined;
 }
 

@@ -8,7 +8,8 @@ instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
-exposing member values; rich-domain fixtures/mappers and later phases are not yet started.
+exposing member values, and provider-neutral rich-record fingerprint merging is implemented;
+rich-domain fixtures/mappers and later phases are not yet started.
 
 ## Context
 
@@ -261,8 +262,11 @@ Before enabling those domains for import:
 1. Run schema inspection against representative consenting accounts.
 2. Turn the observed contracts into redacted Snapshot/export fixtures.
 3. Add one deterministic mapper per domain through the transform registry.
-4. Merge arrays by stable provider-neutral fingerprints.
+4. Enable each domain only after its mapper passes fixture-backed contract tests.
 
+Provider-neutral fingerprints and append-only array merging are already implemented for
+skills, positions, education, and certifications. Matching owner-authored records are
+preserved rather than enriched or overwritten, while records with new identities append.
 Do not guess source keys from display labels or third-party export examples.
 
 ## Phase 3 — LLM distillation pass

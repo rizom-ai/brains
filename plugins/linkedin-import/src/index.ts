@@ -21,6 +21,12 @@ export {
   type ProfileImportMergeResult,
 } from "./lib/merge-profile";
 export {
+  certificationFingerprint,
+  educationFingerprint,
+  positionFingerprint,
+  skillFingerprint,
+} from "./lib/professional-fingerprints";
+export {
   summarizeLinkedInSnapshotSchema,
   type LinkedInSnapshotFieldSummary,
   type LinkedInSnapshotSchemaSummary,
