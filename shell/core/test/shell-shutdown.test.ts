@@ -62,6 +62,14 @@ const deps: ShellDependencies = {
   embeddingService: mockEmbeddingService,
 };
 
+function deferred(): { promise: Promise<void>; resolve(): void } {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 describe("Shell shutdown", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };
 
@@ -262,6 +270,93 @@ describe("Shell shutdown", () => {
     expect(workerRunningDuringDaemonStop).toBe(false);
     expect(dbUsableDuringDaemonStop).toBe(true);
     expect(jobDbUsableDuringDaemonStop).toBe(true);
+  });
+
+  it("currently shuts plugins down before active agent turns", async () => {
+    const order: string[] = [];
+    const plugin: Plugin = {
+      id: "active-turn-order",
+      version: "1.0.0",
+      type: "service",
+      description: "Records plugin teardown order",
+      packageName: "@test/active-turn-order",
+      register: async () => ({ tools: [], resources: [] }),
+      shutdown: async (): Promise<void> => {
+        order.push("plugin");
+      },
+    };
+
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [plugin];
+    const shell = Shell.createFresh(config, deps);
+    await shell.initialize({ mode: "register-only" });
+    const agentService = shell.getAgentService();
+    const shutdownAgent = agentService.shutdown?.bind(agentService);
+    agentService.shutdown = async (): Promise<void> => {
+      order.push("agent");
+      await shutdownAgent?.();
+    };
+
+    await shell.shutdown();
+
+    expect(order).toEqual(["plugin", "agent"]);
+  });
+
+  it("currently admits two concurrent shell boots", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shell = Shell.createFresh(config, deps);
+    const firstInitializationStarted = deferred();
+    const secondInitializationStarted = deferred();
+    const releaseInitialization = deferred();
+    const entityService = shell.getEntityService();
+    const initializeEntityService =
+      entityService.initialize.bind(entityService);
+    let initializationCalls = 0;
+    entityService.initialize = async (): Promise<void> => {
+      initializationCalls++;
+      if (initializationCalls === 1) firstInitializationStarted.resolve();
+      if (initializationCalls === 2) secondInitializationStarted.resolve();
+      await releaseInitialization.promise;
+      await initializeEntityService();
+    };
+
+    const firstBoot = shell.initialize({ mode: "register-only" });
+    await firstInitializationStarted.promise;
+    const secondBoot = shell.initialize({ mode: "register-only" });
+    await secondInitializationStarted.promise;
+    releaseInitialization.resolve();
+
+    const results = await Promise.allSettled([firstBoot, secondBoot]);
+    expect(initializationCalls).toBe(2);
+    expect(results.some((result) => result.status === "rejected")).toBe(true);
+    await shell.shutdown();
+  });
+
+  it("currently lets shutdown settle while shell boot is admitted", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shell = Shell.createFresh(config, deps);
+    const entityInitializationPaused = deferred();
+    const releaseEntityInitialization = deferred();
+    const entityService = shell.getEntityService();
+    const initializeEntityService =
+      entityService.initialize.bind(entityService);
+    entityService.initialize = async (): Promise<void> => {
+      await initializeEntityService();
+      entityInitializationPaused.resolve();
+      await releaseEntityInitialization.promise;
+    };
+
+    const booting = shell.initialize({ mode: "register-only" });
+    await entityInitializationPaused.promise;
+    const shuttingDown = shell.shutdown();
+    await shuttingDown;
+
+    releaseEntityInitialization.resolve();
+    await booting;
+    expect(shell.isInitialized()).toBe(true);
   });
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {

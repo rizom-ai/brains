@@ -2,6 +2,14 @@ import { describe, expect, it } from "bun:test";
 import { Context, Effect, Exit, Layer } from "@brains/utils/effect";
 import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
 
+function deferred(): { promise: Promise<void>; resolve(): void } {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 describe("ShellLifecycle", () => {
   it("owns scoped layers for the shell lifetime", () => {
     const ServiceTag = Context.GenericTag<"test/Service", { value: string }>(
@@ -80,6 +88,29 @@ describe("ShellLifecycle", () => {
     await lifecycle.close();
 
     expect(finalizerCalls).toBe(1);
+  });
+
+  it("currently lets a concurrent close return before finalization settles", async () => {
+    const releaseFinalizer = deferred();
+    const finalizerStarted = deferred();
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(async () => {
+      finalizerStarted.resolve();
+      await releaseFinalizer.promise;
+    });
+
+    const firstClose = lifecycle.close();
+    await finalizerStarted.promise;
+    let secondSettled = false;
+    const secondClose = lifecycle.close().then(() => {
+      secondSettled = true;
+    });
+    await Promise.resolve();
+
+    expect(secondSettled).toBe(true);
+
+    releaseFinalizer.resolve();
+    await Promise.all([firstClose, secondClose]);
   });
 
   it("interrupts scoped background work before finalizing", async () => {
