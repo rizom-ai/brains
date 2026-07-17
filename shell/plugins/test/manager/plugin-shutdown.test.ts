@@ -6,6 +6,14 @@ import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
 import { createMockShell } from "../../src/test/mock-shell";
 
+function deferred(): { promise: Promise<void>; resolve(): void } {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 describe("Plugin shutdown lifecycle", () => {
   let pluginManager: PluginManager;
   let mockShell: ReturnType<typeof createMockShell>;
@@ -43,6 +51,42 @@ describe("Plugin shutdown lifecycle", () => {
     await pluginManager.disablePlugin("test-plugin");
 
     expect(shutdownMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("concurrent disable currently returns before teardown settles", async () => {
+    const shutdownStarted = deferred();
+    const releaseShutdown = deferred();
+    const plugin: Plugin = {
+      id: "concurrent-shutdown",
+      version: "1.0.0",
+      type: "service",
+      description: "Test",
+      packageName: "@test/concurrent-shutdown",
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+      shutdown: async (): Promise<void> => {
+        shutdownStarted.resolve();
+        await releaseShutdown.promise;
+      },
+    };
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    const firstDisable = pluginManager.disablePlugin("concurrent-shutdown");
+    await shutdownStarted.promise;
+    let secondSettled = false;
+    const secondDisable = pluginManager
+      .disablePlugin("concurrent-shutdown")
+      .then(() => {
+        secondSettled = true;
+      });
+    await secondDisable;
+
+    expect(secondSettled).toBe(true);
+    releaseShutdown.resolve();
+    await firstDisable;
   });
 
   test("disablePlugin should work when plugin has no shutdown method", async () => {

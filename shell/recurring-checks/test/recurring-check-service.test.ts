@@ -388,6 +388,39 @@ describe("RecurringCheckService", () => {
     expect(await run).toEqual(new Error("Recurring check service stopped"));
   });
 
+  it("currently leaves an active check running after unregister", async () => {
+    const { service } = createService();
+    let observedSignal: AbortSignal | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const unregister = service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async ({ signal }) => {
+        observedSignal = signal;
+        markStarted?.();
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        });
+      },
+    });
+    const run = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await started;
+
+    unregister();
+    await Promise.resolve();
+    expect(observedSignal?.aborted).toBe(false);
+
+    await service.stop();
+    expect(await run).toEqual(new Error("Recurring check service stopped"));
+  });
+
   it("does not overlap runs of the same check", async () => {
     const { service } = createService();
     let release: (() => void) | undefined;
