@@ -254,8 +254,10 @@ confirmation behavior, tool queuing, and inert/configured plugin wiring.
 
 The client supports `POSITIONS`, `EDUCATION`, `SKILLS`, and `CERTIFICATIONS`, and the
 anchor-only `linkedin-import_inspect_schema` tool reports only source field names, value
-types, occurrence counts, and record counts—never member values. This provides a
-privacy-preserving way to capture real sanctioned API shapes.
+types, occurrence counts, record counts, and deduplicated redacted record shapes—never
+member values or nested object keys. Safe placeholders distinguish dates, timestamps,
+URLs, URNs, emails, and primitive/container types. This provides a privacy-preserving way
+to capture real sanctioned API shapes and value-format contracts.
 
 Before enabling those domains for import:
 

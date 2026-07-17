@@ -154,6 +154,18 @@ describe("LinkedIn import tools", () => {
           { name: "Started On", types: ["string"], presentCount: 1 },
           { name: "Title", types: ["string"], presentCount: 2 },
         ],
+        recordShapes: [
+          {
+            "Company Name": "<string>",
+            "Finished On": null,
+            Title: "<string>",
+          },
+          {
+            "Company Name": "<string>",
+            "Started On": "<year-month>",
+            Title: "<string>",
+          },
+        ],
       },
     });
     expect(JSON.stringify(result)).not.toContain("Secret Company");

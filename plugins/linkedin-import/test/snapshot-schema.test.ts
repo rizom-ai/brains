@@ -29,9 +29,63 @@ describe("summarizeLinkedInSnapshotSchema", () => {
         },
         { name: "Tags", types: ["array"], presentCount: 1 },
       ],
+      recordShapes: [
+        {
+          Active: "<boolean>",
+          Details: "<object>",
+          Ended: null,
+          Name: "<string>",
+          Score: "<number>",
+          Tags: ["<string>"],
+        },
+        { Name: "<string>", Score: "<string>" },
+      ],
     });
     const serialized = JSON.stringify(summary);
     expect(serialized).not.toContain("private value");
     expect(serialized).not.toContain("another private value");
+    expect(serialized).not.toContain('"private"');
+  });
+
+  it("preserves safe string format categories without preserving strings", () => {
+    const summary = summarizeLinkedInSnapshotSchema([
+      {
+        Year: "2025",
+        Month: "2025-03",
+        Date: "2025-03-14",
+        Timestamp: "2025-03-14T12:30:00Z",
+        NamedMonth: "March 2025",
+        Url: "https://private.example/member/ada",
+        Email: "ada@private.example",
+        Urn: "urn:li:private:123",
+        Empty: "   ",
+        Values: [null, 1, true, "2025-03", { secret: "value" }, ["secret"]],
+      },
+    ]);
+
+    expect(summary.recordShapes).toEqual([
+      {
+        Date: "<year-month-day>",
+        Email: "<email>",
+        Empty: "<empty-string>",
+        Month: "<year-month>",
+        NamedMonth: "<month-year>",
+        Timestamp: "<timestamp>",
+        Url: "<url>",
+        Urn: "<urn>",
+        Values: [
+          "<array>",
+          "<boolean>",
+          "<null>",
+          "<number>",
+          "<object>",
+          "<year-month>",
+        ],
+        Year: "<year>",
+      },
+    ]);
+    const serialized = JSON.stringify(summary.recordShapes);
+    expect(serialized).not.toContain("private.example");
+    expect(serialized).not.toContain("secret");
   });
 });

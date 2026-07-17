@@ -39,6 +39,9 @@ export {
 export {
   summarizeLinkedInSnapshotSchema,
   type LinkedInSnapshotFieldSummary,
+  type LinkedInSnapshotRedactedRecordShape,
+  type LinkedInSnapshotRedactedScalar,
+  type LinkedInSnapshotRedactedValue,
   type LinkedInSnapshotSchemaSummary,
   type LinkedInSnapshotValueType,
 } from "./lib/snapshot-schema";

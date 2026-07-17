@@ -182,7 +182,7 @@ export function createLinkedInImportTools(
     {
       name: `${pluginId}_inspect_schema`,
       description:
-        "Inspect a sanctioned LinkedIn professional snapshot domain and return only field names, value types, and occurrence counts. Never returns member values. Use this to verify source contracts before implementing or debugging domain mappings.",
+        "Inspect a sanctioned LinkedIn professional snapshot domain and return only field names, value types, occurrence counts, and deduplicated redacted record shapes. Never returns member values or nested object keys. Use this to verify source contracts before implementing or debugging domain mappings.",
       inputSchema: inspectSchemaInputSchema,
       visibility: "anchor",
       sideEffects: "none",
