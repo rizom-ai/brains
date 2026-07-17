@@ -1,5 +1,58 @@
 # @brains/rover
 
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`60502dd`](https://github.com/rizom-ai/brains/commit/60502ddbe80b62d6f732161fafe36d55f9ec3a3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move series out of the default preset (full keeps it). The consolidated
+  rizom.ai brain is the default preset's only consumer and has no series
+  entities or site surface.
+- Updated dependencies [[`645c014`](https://github.com/rizom-ai/brains/commit/645c014bdcd43828d818d88a6ee33be5fe4d6f2d), [`252e8e8`](https://github.com/rizom-ai/brains/commit/252e8e817708601e76e0eded770c40f370678faa)]:
+  - @brains/agent-discovery@0.2.0-alpha.190
+  - @brains/webserver@0.2.0-alpha.190
+  - @brains/blog@0.2.0-alpha.190
+  - @brains/decks@0.2.0-alpha.190
+  - @brains/link@0.2.0-alpha.190
+  - @brains/note@0.2.0-alpha.190
+  - @brains/portfolio@0.2.0-alpha.190
+  - @brains/series@0.2.0-alpha.190
+  - @brains/social-media@0.2.0-alpha.190
+  - @brains/topics@0.2.0-alpha.190
+  - @brains/atproto@0.2.0-alpha.190
+  - @brains/atproto-registry@0.2.0-alpha.190
+  - @brains/site-default@0.2.0-alpha.190
+  - @brains/assessment@0.2.0-alpha.190
+  - @brains/doc@0.2.0-alpha.190
+  - @brains/document-plugin@0.2.0-alpha.190
+  - @brains/image-plugin@0.2.0-alpha.190
+  - @brains/products@0.2.0-alpha.190
+  - @brains/prompt@0.2.0-alpha.190
+  - @brains/rizom-ecosystem@0.2.0-alpha.190
+  - @brains/site-info@0.2.0-alpha.190
+  - @brains/wishlist@0.2.0-alpha.190
+  - @brains/a2a@0.2.0-alpha.190
+  - @brains/chat@0.2.0-alpha.190
+  - @brains/discord@0.2.0-alpha.190
+  - @brains/mcp@0.2.0-alpha.190
+  - @brains/web-chat@0.2.0-alpha.190
+  - @brains/analytics@0.2.0-alpha.190
+  - @brains/cms@0.2.0-alpha.190
+  - @brains/content-pipeline@0.2.0-alpha.190
+  - @brains/dashboard@0.2.0-alpha.190
+  - @brains/directory-sync@0.2.0-alpha.190
+  - @brains/email-resend@0.2.0-alpha.190
+  - @brains/newsletter@0.2.0-alpha.190
+  - @brains/notifications@0.2.0-alpha.190
+  - @brains/obsidian-vault@0.2.0-alpha.190
+  - @brains/playbooks@0.2.0-alpha.190
+  - @brains/rover-onboarding@0.2.0-alpha.190
+  - @brains/site-builder-plugin@0.2.0-alpha.190
+  - @brains/site-content@0.2.0-alpha.190
+  - @brains/stock-photo@0.2.0-alpha.190
+  - @brains/app@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @rizom/theme-default@0.2.0-alpha.190
+
 ## 0.2.0-alpha.189
 
 ### Patch Changes

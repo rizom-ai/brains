@@ -1,5 +1,24 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`645c014`](https://github.com/rizom-ai/brains/commit/645c014bdcd43828d818d88a6ee33be5fe4d6f2d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the invalid height="auto" attribute from the proximity map svg.
+  "auto" is not an SVG length, so browsers rejected it and logged a console
+  error on every page view; both surfaces already size the svg via CSS.
+- Updated dependencies [[`a49c285`](https://github.com/rizom-ai/brains/commit/a49c285cc11b4a8e1c5640e267de8076953b15ba)]:
+  - @brains/atproto-contracts@0.2.0-alpha.190
+  - @brains/dashboard@0.2.0-alpha.190
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/http-signatures@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
 ## 0.2.0-alpha.189
 
 ### Patch Changes

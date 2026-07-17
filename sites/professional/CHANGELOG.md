@@ -1,5 +1,20 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.190
+  - @brains/decks@0.2.0-alpha.190
+  - @brains/site-info@0.2.0-alpha.190
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/site-engine@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
 ## 0.2.0-alpha.189
 
 ### Patch Changes

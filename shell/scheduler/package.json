@@ -1,6 +1,6 @@
 {
   "name": "@brains/scheduler",
-  "version": "0.2.0-alpha.189",
+  "version": "0.2.0-alpha.190",
   "description": "Shared scheduler backend contracts and deterministic test implementation",
   "dependencies": {
     "@brains/utils": "workspace:*",

@@ -1,6 +1,6 @@
 {
   "name": "@brains/mcp",
-  "version": "0.2.0-alpha.189",
+  "version": "0.2.0-alpha.190",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",

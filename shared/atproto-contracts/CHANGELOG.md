@@ -1,5 +1,16 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`a49c285`](https://github.com/rizom-ai/brains/commit/a49c285cc11b4a8e1c5640e267de8076953b15ba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve defs.main.description when parsing canonical lexicons. zod strips
+  undeclared keys, so the registry published all nine ai.rizom.brain.* lexicons
+  shorn of their authored descriptions.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/entity-service@0.2.0-alpha.190
+
 ## 0.2.0-alpha.189
 
 ### Patch Changes

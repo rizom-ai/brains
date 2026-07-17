@@ -1,6 +1,6 @@
 {
   "name": "@brains/content-formatters",
-  "version": "0.2.0-alpha.189",
+  "version": "0.2.0-alpha.190",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/utils": "workspace:*",
