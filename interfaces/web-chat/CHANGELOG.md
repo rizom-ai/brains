@@ -1,5 +1,75 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- [`e885fef`](https://github.com/rizom-ai/brains/commit/e885fef69a5b97823cf41583cebf49fbbb4ceb19) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent stale session-load failures from showing a drift error over a newer successfully loaded conversation.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.194
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/auth-service@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.193
+  - @brains/contracts@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/auth-service@0.2.0-alpha.193
+  - @brains/plugins@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.192
+  - @brains/contracts@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/auth-service@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`5145803`](https://github.com/rizom-ai/brains/commit/5145803b3bfe89f6a533a6175f8e3696a84b39cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow saved web-chat sessions containing tool approval cards to reopen by hydrating all shared structured card variants into AI SDK message parts.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/console-theme@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

@@ -25,14 +25,23 @@ if (!brainDomain) {
   throw new Error(`Missing domain in ${brainYamlPath}`);
 }
 
-const zone =
-  brainDomain.startsWith(`${handle}.`) && brainDomain.length > handle.length + 1
-    ? brainDomain.slice(handle.length + 1)
-    : "";
-if (!zone) {
-  throw new Error(`Could not derive preview domain from ${brainDomain}`);
+const registry = await loadPilotRegistry(process.cwd());
+const user = registry.users.find((entry) => entry.handle === handle);
+if (!user) {
+  throw new Error(`Unknown user handle: ${handle}`);
 }
-const previewDomain = `${handle}-preview.${zone}`;
+const previewDomain = resolvePreviewDomain(
+  handle,
+  brainDomain,
+  registry.pilot.domainSuffix,
+);
+const wwwDomain = isFleetDomain(
+  handle,
+  brainDomain,
+  registry.pilot.domainSuffix,
+)
+  ? ""
+  : `www.${brainDomain}`;
 
 const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
 
@@ -40,9 +49,7 @@ const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
 // `brain-{version}` for a default instance, or its own `brain-{version}-sites-
 // {hash}` when it declares a siteOverride. Resolved through the same helper the
 // build uses so the tag we wait for and run matches exactly what was pushed.
-const registry = await loadPilotRegistry(process.cwd());
-const user = registry.users.find((entry) => entry.handle === handle);
-const sitePackages = sitePackagesFor(user?.siteOverride);
+const sitePackages = sitePackagesFor(user.siteOverride);
 const imageTag = siteImageTag(brainVersion, sitePackages);
 
 const outputs: Record<string, string> = {
@@ -50,6 +57,8 @@ const outputs: Record<string, string> = {
   content_repo: envEntries["CONTENT_REPO"] ?? "",
   brain_domain: brainDomain,
   preview_domain: previewDomain,
+  www_domain: wwwDomain,
+  cloudflare_zone_id: user.cloudflareZoneId ?? process.env["CF_ZONE_ID"] ?? "",
   brain_yaml_path: brainYamlPath,
   instance_name: `rover-${handle}`,
   image_repository: `ghcr.io/${repository}`,
@@ -66,4 +75,29 @@ for (const key of required) {
 
 for (const [key, value] of Object.entries(outputs)) {
   writeGitHubOutput(key, value);
+}
+
+function resolvePreviewDomain(
+  userHandle: string,
+  domain: string,
+  pilotDomainSuffix: string,
+): string {
+  if (!isFleetDomain(userHandle, domain, pilotDomainSuffix)) {
+    return `preview.${domain}`;
+  }
+
+  const fleetZone = pilotDomainSuffix.replace(/^\./, "");
+  if (!fleetZone) {
+    throw new Error(`Could not derive preview domain from ${domain}`);
+  }
+
+  return `${userHandle}-preview.${fleetZone}`;
+}
+
+function isFleetDomain(
+  userHandle: string,
+  domain: string,
+  pilotDomainSuffix: string,
+): boolean {
+  return domain === `${userHandle}${pilotDomainSuffix}`;
 }

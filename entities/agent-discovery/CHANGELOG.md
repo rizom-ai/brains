@@ -1,5 +1,106 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.194
+  - @brains/atproto-contracts@0.2.0-alpha.194
+  - @brains/content-formatters@0.2.0-alpha.194
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/http-signatures@0.2.0-alpha.194
+  - @brains/ui-library@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/auth-service@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.193
+  - @brains/atproto-contracts@0.2.0-alpha.193
+  - @brains/content-formatters@0.2.0-alpha.193
+  - @brains/contracts@0.2.0-alpha.193
+  - @brains/http-signatures@0.2.0-alpha.193
+  - @brains/ui-library@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/auth-service@0.2.0-alpha.193
+  - @brains/plugins@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.192
+  - @brains/atproto-contracts@0.2.0-alpha.192
+  - @brains/content-formatters@0.2.0-alpha.192
+  - @brains/contracts@0.2.0-alpha.192
+  - @brains/http-signatures@0.2.0-alpha.192
+  - @brains/ui-library@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/auth-service@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.191
+  - @brains/atproto-contracts@0.2.0-alpha.191
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/http-signatures@0.2.0-alpha.191
+  - @brains/ui-library@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`645c014`](https://github.com/rizom-ai/brains/commit/645c014bdcd43828d818d88a6ee33be5fe4d6f2d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the invalid height="auto" attribute from the proximity map svg.
+  "auto" is not an SVG length, so browsers rejected it and logged a console
+  error on every page view; both surfaces already size the svg via CSS.
+- Updated dependencies [[`a49c285`](https://github.com/rizom-ai/brains/commit/a49c285cc11b4a8e1c5640e267de8076953b15ba)]:
+  - @brains/atproto-contracts@0.2.0-alpha.190
+  - @brains/dashboard@0.2.0-alpha.190
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/http-signatures@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep edited-upload routing concise while preserving updates, distinguish failed pre-job requests from active jobs, and clarify agent and case-study tool selection.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/dashboard@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/atproto-contracts@0.2.0-alpha.189
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/http-signatures@0.2.0-alpha.189
+  - @brains/ui-library@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

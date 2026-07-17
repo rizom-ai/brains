@@ -2,6 +2,8 @@ import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { IDirectorySync, IGitSync } from "../types";
+import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
+import { requestDirectorySync } from "../lib/request-directory-sync";
 import { createHistoryTool } from "./history";
 
 export function createDirectorySyncTools(
@@ -9,6 +11,7 @@ export function createDirectorySyncTools(
   pluginContext: ServicePluginContext,
   pluginId: string,
   gitSync?: IGitSync,
+  operationStatus?: DirectorySyncOperationStatusService,
 ): Tool[] {
   const tools: Tool[] = [
     createTool(
@@ -22,36 +25,37 @@ export function createDirectorySyncTools(
             ? `${context.interfaceType}:${context.channelId}`
             : `plugin:${pluginId}`;
 
-          const metadata = {
+          const result = await requestDirectorySync({
+            context: pluginContext,
+            directorySync,
+            source,
             interfaceType: context.interfaceType,
             channelId: context.channelId,
-          };
+            toolContext: context,
+            gitSync,
+            operationStatus,
+          });
 
-          if (gitSync) {
-            const jobId = await pluginContext.jobs.enqueue({
-              type: "sync-request",
-              data: {
-                source,
-                interfaceType: metadata.interfaceType,
-                channelId: metadata.channelId,
-              },
-              toolContext: context,
-            });
-
+          if (result.gitPulled) {
             return toolSuccess(
-              { jobId, status: "queued", gitPulled: true },
+              {
+                jobId: result.jobId,
+                status: result.status,
+                gitPulled: true,
+                ...(result.runId ? { runId: result.runId } : {}),
+              },
               "Sync queued: git pull and filesystem scan will run in the background",
             );
           }
 
-          const result = await directorySync.queueSyncBatch(
-            pluginContext,
-            source,
-            metadata,
-          );
-
-          if (!result) {
-            return toolSuccess({ gitPulled: false }, "No files to sync");
+          if (result.status === "settled") {
+            return toolSuccess(
+              {
+                gitPulled: false,
+                ...(result.runId ? { runId: result.runId } : {}),
+              },
+              "No files to sync",
+            );
           }
 
           return toolSuccess(
@@ -60,6 +64,7 @@ export function createDirectorySyncTools(
               importOperations: result.importOperationsCount,
               totalFiles: result.totalFiles,
               gitPulled: false,
+              ...(result.runId ? { runId: result.runId } : {}),
             },
             `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
           );

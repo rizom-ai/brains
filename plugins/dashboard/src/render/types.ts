@@ -52,6 +52,7 @@ export interface DashboardDirectorySyncStatus {
   lastSync?: string | undefined;
   totalFiles?: number | undefined;
   byEntityType?: Record<string, number> | undefined;
+  managementUrl?: string | undefined;
 }
 
 export interface DashboardIndexStatus {

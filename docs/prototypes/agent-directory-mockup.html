@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup v2 — Agent Directory redesign</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+      :root {
+        --paper: #f4ede0;
+        --paper-soft: #faf4e6;
+        --paper-muted: #ebe2cb;
+        --ink: #18132a;
+        --ink-muted: #443c54;
+        --ink-subtle: #756c80;
+        --border: #ddd2c4;
+        --rule: rgb(24 19 42 / 0.09);
+        --brand: #b8410c;
+        --brand-soft: rgb(184 65 12 / 0.07);
+        --success: #1e7a4d;
+        --sight: #a05a00;
+        --sight-soft: rgb(202 138 4 / 0.09);
+        --dot: rgb(75 42 99 / 0.12);
+        --serif: "Fraunces", Georgia, serif;
+        --sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      [data-theme="dark"] {
+        --paper: #0a0819;
+        --paper-soft: #14112b;
+        --paper-muted: #1b1638;
+        --ink: #faf4e6;
+        --ink-muted: #c9c2d6;
+        --ink-subtle: #8d84a0;
+        --border: rgb(255 255 255 / 0.13);
+        --rule: rgb(255 255 255 / 0.09);
+        --brand: #ff8b3d;
+        --brand-soft: rgb(255 139 61 / 0.08);
+        --success: #34d399;
+        --sight: #fbbf24;
+        --sight-soft: rgb(251 191 36 / 0.08);
+        --dot: rgb(255 255 255 / 0.07);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        background: var(--paper);
+        color: var(--ink-muted);
+        font-family: var(--sans);
+        line-height: 1.6;
+        font-size: 15.5px;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+
+      /* ------- mockup chrome (not part of the design) ------- */
+      .chrome {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 24px;
+        background: var(--ink);
+        color: var(--paper);
+        font-size: 13px;
+      }
+      [data-theme="dark"] .chrome {
+        background: var(--paper-soft);
+        color: var(--ink);
+      }
+      .chrome b {
+        font-weight: 600;
+      }
+      .chrome a,
+      .chrome button {
+        color: inherit;
+        background: rgb(128 128 128 / 0.25);
+        border: none;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: var(--sans);
+      }
+      .chrome .spacer {
+        flex: 1;
+      }
+      .mock-label {
+        max-width: 1060px;
+        margin: 56px auto 0;
+        padding: 0 32px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-subtle);
+      }
+
+      .page {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 8px 32px 96px;
+      }
+
+      /* ------------------- INDEX ------------------- */
+      .hero {
+        position: relative;
+        padding: 56px 0 40px;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: -40px -80px 0;
+        background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+        background-size: 22px 22px;
+        -webkit-mask-image: radial-gradient(
+          ellipse 75% 100% at 30% 0%,
+          black 30%,
+          transparent 75%
+        );
+        mask-image: radial-gradient(
+          ellipse 75% 100% at 30% 0%,
+          black 30%,
+          transparent 75%
+        );
+        pointer-events: none;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 14px;
+      }
+      .hero h1 {
+        font-family: var(--serif);
+        font-weight: 560;
+        font-size: 58px;
+        letter-spacing: -0.01em;
+        line-height: 1.05;
+        color: var(--ink);
+        margin-bottom: 14px;
+      }
+      .hero .lede {
+        font-size: 17px;
+        font-weight: 300;
+        color: var(--ink-muted);
+        max-width: 52ch;
+      }
+
+      .stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 36px;
+        position: relative;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+        cursor: pointer;
+      }
+      .stat b {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 32px;
+        line-height: 1.1;
+        color: var(--ink-subtle);
+      }
+      .stat span {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-subtle);
+      }
+      .stat:hover b {
+        color: var(--ink);
+      }
+      .stat.active {
+        border-bottom-color: var(--brand);
+      }
+      .stat.active b {
+        color: var(--ink);
+      }
+      .stat.active span {
+        color: var(--brand);
+      }
+
+      .section {
+        margin-top: 56px;
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+      .section-head h2 {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .section-head .n {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .section-head .line {
+        flex: 1;
+        border-top: 1px solid var(--rule);
+        transform: translateY(-4px);
+      }
+      .section-head .hint {
+        font-size: 13px;
+        color: var(--ink-subtle);
+        white-space: nowrap;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 26px 28px 22px;
+        background: var(--paper-soft);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        transition:
+          border-color 0.18s,
+          transform 0.18s,
+          box-shadow 0.18s;
+      }
+      .card:hover {
+        border-color: var(--brand);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgb(24 19 42 / 0.07);
+      }
+      .card .glyph {
+        position: absolute;
+        top: -26px;
+        right: -6px;
+        font-family: var(--serif);
+        font-weight: 600;
+        font-size: 130px;
+        line-height: 1;
+        color: hsl(var(--h) 55% 50% / 0.1);
+        pointer-events: none;
+        user-select: none;
+      }
+      .card-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        letter-spacing: 0.04em;
+        margin-bottom: 10px;
+      }
+      .card-eyebrow .domain {
+        color: var(--brand);
+        font-weight: 500;
+      }
+      .card-eyebrow .via {
+        color: var(--sight);
+        font-weight: 500;
+      }
+      .card-eyebrow .aside {
+        color: var(--ink-subtle);
+      }
+      .card-eyebrow .dot-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+      .dot-status.ok {
+        color: var(--success);
+      }
+      .dot-status.sight {
+        color: var(--sight);
+      }
+      .dot-status.off {
+        color: var(--ink-subtle);
+      }
+
+      .card h3 {
+        font-family: var(--serif);
+        font-weight: 550;
+        font-size: 27px;
+        line-height: 1.15;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+      .card .about {
+        font-size: 14.5px;
+        color: var(--ink-muted);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .card .meta {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--rule);
+        font-size: 13px;
+        color: var(--ink-subtle);
+      }
+      .card .meta em {
+        font-style: normal;
+        color: var(--ink-muted);
+        font-weight: 500;
+      }
+
+      .card.archived {
+        opacity: 0.55;
+      }
+      .card.sighting {
+        background: linear-gradient(
+          135deg,
+          var(--sight-soft),
+          var(--paper-soft) 55%
+        );
+      }
+
+      /* ------------------- DETAIL ------------------- */
+      .back {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: var(--ink-subtle);
+        display: inline-block;
+        margin: 40px 0 44px;
+      }
+      .back:hover {
+        color: var(--brand);
+      }
+
+      .det-hero {
+        position: relative;
+        margin-bottom: 44px;
+      }
+      .det-hero::before {
+        content: "";
+        position: absolute;
+        inset: -80px -120px -20px;
+        background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+        background-size: 22px 22px;
+        -webkit-mask-image: radial-gradient(
+          ellipse 60% 100% at 25% 10%,
+          black 25%,
+          transparent 70%
+        );
+        mask-image: radial-gradient(
+          ellipse 60% 100% at 25% 10%,
+          black 25%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .det-eyebrow {
+        position: relative;
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        margin-bottom: 16px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .det-eyebrow .domain {
+        color: var(--brand);
+        font-weight: 500;
+      }
+      .det-eyebrow .sep {
+        color: var(--ink-subtle);
+        opacity: 0.6;
+      }
+      .det-eyebrow .via {
+        color: var(--sight);
+      }
+      .det-eyebrow .ok {
+        color: var(--success);
+      }
+      .det-hero h1 {
+        position: relative;
+        font-family: var(--serif);
+        font-weight: 560;
+        font-size: 64px;
+        line-height: 1.02;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        margin-bottom: 18px;
+      }
+      .det-hero .lede {
+        position: relative;
+        font-size: 19px;
+        font-weight: 300;
+        line-height: 1.55;
+        color: var(--ink-muted);
+        max-width: 58ch;
+      }
+      .det-hero .kindline {
+        position: relative;
+        margin-top: 14px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+
+      .approve-note {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 18px 22px;
+        margin-bottom: 48px;
+        border: 1px solid var(--sight);
+        border-radius: 6px;
+        background: var(--sight-soft);
+      }
+      .approve-note .txt {
+        flex: 1 1 320px;
+        font-size: 14px;
+        color: var(--ink-muted);
+      }
+      .approve-note .txt b {
+        color: var(--sight);
+        font-weight: 600;
+      }
+      .approve-note .act {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--sight);
+        border: 1px solid var(--sight);
+        padding: 8px 16px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+
+      .det-cols {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 64px;
+      }
+      @media (max-width: 900px) {
+        .det-cols {
+          grid-template-columns: 1fr;
+          gap: 40px;
+        }
+      }
+
+      .sect {
+        margin-bottom: 44px;
+      }
+      .sect-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .sect-head h2 {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .sect-head .line {
+        flex: 1;
+        border-top: 1px solid var(--rule);
+        transform: translateY(-4px);
+      }
+      .sect p {
+        font-size: 15.5px;
+        color: var(--ink-muted);
+        max-width: 60ch;
+      }
+
+      .skill-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 700px) {
+        .skill-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .skill {
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--paper-soft);
+      }
+      .skill .sname {
+        font-family: var(--serif);
+        font-weight: 550;
+        font-size: 17px;
+        color: var(--ink);
+        margin-bottom: 3px;
+      }
+      .skill .sdesc {
+        font-size: 13.5px;
+        color: var(--ink-muted);
+      }
+      .skill .stags {
+        margin-top: 10px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-subtle);
+        letter-spacing: 0.04em;
+      }
+
+      .side {
+        position: relative;
+      }
+      .side-block {
+        margin-bottom: 36px;
+      }
+      .kv {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      .kv:first-of-type {
+        padding-top: 2px;
+      }
+      .kv .k {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-subtle);
+        margin-bottom: 3px;
+      }
+      .kv .v {
+        font-size: 13.5px;
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+      .kv .v.mono {
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .kv .v.ok {
+        color: var(--success);
+        font-weight: 500;
+      }
+      .kv .v.sight {
+        color: var(--sight);
+        font-weight: 500;
+      }
+      .side a.intro {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink);
+        padding: 6px 0;
+      }
+      .side a.intro:hover {
+        color: var(--brand);
+      }
+      .side a.intro .mono-sub {
+        display: block;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-subtle);
+        font-weight: 400;
+      }
+      .visit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 13px;
+        border: 1px solid var(--ink);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+        transition: all 0.15s;
+      }
+      .visit:hover {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      .pn {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 72px;
+        padding-top: 28px;
+        border-top: 1px solid var(--rule);
+      }
+      .pn a {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .pn a span {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-subtle);
+      }
+      .pn a b {
+        font-family: var(--serif);
+        font-weight: 550;
+        font-size: 19px;
+        color: var(--ink);
+      }
+      .pn a:hover b {
+        color: var(--brand);
+      }
+      .pn .next {
+        text-align: right;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 80px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chrome">
+      <b>Mockup v2</b> Agent directory — editorial pass
+      <span class="spacer"></span>
+      <a href="#index">Index</a>
+      <a href="#detail-sighting">Detail · sighting</a>
+      <a href="#detail-connected">Detail · connected</a>
+      <button
+        onclick="
+          const h = document.documentElement;
+          h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        "
+      >
+        ◐ theme
+      </button>
+    </div>
+
+    <!-- ==================== INDEX PAGE ==================== -->
+    <div class="mock-label" id="index">1 · index — /agents</div>
+    <div class="page">
+      <div class="hero">
+        <div class="eyebrow">Agent network</div>
+        <h1>Agents</h1>
+        <p class="lede">
+          Brains discovered, sighted, and connected through the A2A network —
+          your corner of the rhizome.
+        </p>
+
+        <div class="stats">
+          <a class="stat active"><b>6</b><span>All</span></a>
+          <a class="stat"><b>2</b><span>Connected</span></a>
+          <a class="stat"><b>3</b><span>Sightings</span></a>
+          <a class="stat"><b>1</b><span>Archived</span></a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Connected</h2>
+          <span class="n">2</span>
+          <span class="line"></span>
+        </div>
+        <div class="grid">
+          <a class="card" href="#detail-connected" style="--h: 210">
+            <span class="glyph">Y</span>
+            <div class="card-eyebrow">
+              <span class="domain">yeehaa.io</span>
+              <span class="aside">· Offcourse</span>
+              <span class="dot-status ok"
+                ><span class="dot"></span>connected</span
+              >
+            </div>
+            <h3>Yeehaa</h3>
+            <p class="about">
+              Personal knowledge base and professional showcase of Jan Hein
+              Hoogstad — essays, presentations, and projects on learning off the
+              beaten path.
+            </p>
+            <div class="meta">
+              <em>professional</em> — Essay drafting, Topic research, Link
+              curation&ensp;+1
+            </div>
+          </a>
+
+          <a class="card" href="#detail-connected" style="--h: 160">
+            <span class="glyph">M</span>
+            <div class="card-eyebrow">
+              <span class="domain">jo.rizom.ai</span>
+              <span class="dot-status ok"
+                ><span class="dot"></span>connected</span
+              >
+            </div>
+            <h3>Metis</h3>
+            <p class="about">
+              Jo's personal brain — strategy notes, meeting preparation, and a
+              running map of the Rizom collective's work.
+            </p>
+            <div class="meta">
+              <em>professional</em> — Meeting prep, Strategy notes
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Sightings</h2>
+          <span class="n">3</span>
+          <span class="line"></span>
+          <span class="hint"
+            >seen in peers' directories — approve to connect</span
+          >
+        </div>
+        <div class="grid">
+          <a class="card sighting" href="#detail-sighting" style="--h: 280">
+            <span class="glyph">P</span>
+            <div class="card-eyebrow">
+              <span class="via">via yeehaa.io</span>
+              <span class="aside">· 2 hops</span>
+              <span class="dot-status sight"
+                ><span class="dot"></span>sighted</span
+              >
+            </div>
+            <h3>Phoney</h3>
+            <p class="about">
+              My Little Phoney — a studio brain for playful hardware experiments
+              and open-source telephony art projects.
+            </p>
+            <div class="meta">
+              <em>team</em> — mylittlephoney.com — Project log, Zine search
+            </div>
+          </a>
+
+          <a class="card sighting" href="#detail-sighting" style="--h: 30">
+            <span class="glyph">W</span>
+            <div class="card-eyebrow">
+              <span class="via">via yeehaa.io</span>
+              <span class="aside">· 2 hops</span>
+              <span class="dot-status sight"
+                ><span class="dot"></span>sighted</span
+              >
+            </div>
+            <h3>Wolfgang</h3>
+            <p class="about">
+              Wolfgang's working brain — product thinking, engineering notes,
+              and long-form drafts in progress.
+            </p>
+            <div class="meta">
+              <em>professional</em> — wolfgang.rizom.ai — Drafting
+            </div>
+          </a>
+
+          <a class="card sighting" href="#detail-sighting" style="--h: 120">
+            <span class="glyph">K</span>
+            <div class="card-eyebrow">
+              <span class="via">via yeehaa.io</span>
+              <span class="aside">· 2 hops</span>
+              <span class="dot-status sight"
+                ><span class="dot"></span>sighted</span
+              >
+            </div>
+            <h3>Karim</h3>
+            <p class="about">
+              Karim's brain — research digests and collaboration notes.
+            </p>
+            <div class="meta">
+              <em>professional</em> — karim.rizom.ai — Research digests
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Archived</h2>
+          <span class="n">1</span>
+          <span class="line"></span>
+          <span class="hint">kept as history — can't be called</span>
+        </div>
+        <div class="grid">
+          <a class="card archived" href="#detail-connected" style="--h: 260">
+            <span class="glyph">D</span>
+            <div class="card-eyebrow">
+              <span class="domain">docs.rizom.ai</span>
+              <span class="dot-status off"
+                ><span class="dot"></span>archived</span
+              >
+            </div>
+            <h3>Docs</h3>
+            <p class="about">
+              Documentation brain for the Rizom platform — superseded by the
+              consolidated site.
+            </p>
+            <div class="meta"><em>collective</em></div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ==================== DETAIL: SIGHTING ==================== -->
+    <div class="mock-label" id="detail-sighting">
+      2 · detail — sighted agent
+    </div>
+    <div class="page">
+      <a class="back" href="#index">← all agents</a>
+
+      <div class="det-hero">
+        <div class="det-eyebrow">
+          <span class="domain">mylittlephoney.com</span>
+          <span class="sep">·</span>
+          <span>team</span>
+          <span class="sep">·</span>
+          <span class="via"
+            >sighted through yeehaa.io — 2 hops — Jul 14, 2026</span
+          >
+        </div>
+        <h1>Phoney</h1>
+        <p class="lede">
+          My Little Phoney is a studio brain for playful hardware experiments
+          and open-source telephony art projects. It documents builds, publishes
+          zines, and answers questions about the studio's archive.
+        </p>
+      </div>
+
+      <div class="approve-note">
+        <div class="txt">
+          <b>Not yet callable.</b> This brain appeared in a connected peer's
+          public directory. Approve it to connect and make it callable.
+        </div>
+        <span class="act">agent_connect mylittlephoney.com</span>
+      </div>
+
+      <div class="det-cols">
+        <div>
+          <div class="sect">
+            <div class="sect-head">
+              <h2>Skills</h2>
+              <span class="line"></span>
+            </div>
+            <div class="skill-grid">
+              <div class="skill">
+                <div class="sname">Project log</div>
+                <div class="sdesc">
+                  Browse and summarize the studio's build logs and hardware
+                  experiments.
+                </div>
+                <div class="stags">hardware · archive</div>
+              </div>
+              <div class="skill">
+                <div class="sname">Zine search</div>
+                <div class="sdesc">
+                  Full-text search across published zines and pamphlets.
+                </div>
+                <div class="stags">search · publishing</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="side-block">
+            <div class="sect-head">
+              <h2>Connection</h2>
+              <span class="line"></span>
+            </div>
+            <div class="kv">
+              <div class="k">Status</div>
+              <div class="v sight">Sighted — awaiting approval</div>
+            </div>
+            <div class="kv">
+              <div class="k">Endpoint</div>
+              <div class="v mono">https://mylittlephoney.com/a2a</div>
+            </div>
+            <div class="kv">
+              <div class="k">First seen</div>
+              <div class="v">Jul 14, 2026</div>
+            </div>
+            <div class="kv">
+              <div class="k">Distance</div>
+              <div class="v">2 hops</div>
+            </div>
+          </div>
+
+          <div class="side-block">
+            <div class="sect-head">
+              <h2>Introduced by</h2>
+              <span class="line"></span>
+            </div>
+            <a class="intro" href="#detail-connected"
+              >Yeehaa <span class="mono-sub">yeehaa.io ↗</span></a
+            >
+          </div>
+
+          <a class="visit" href="#">visit mylittlephoney.com ↗</a>
+        </aside>
+      </div>
+
+      <nav class="pn">
+        <a href="#"><span>← previous</span><b>Metis</b></a>
+        <a class="next" href="#"><span>next →</span><b>Wolfgang</b></a>
+      </nav>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ==================== DETAIL: CONNECTED ==================== -->
+    <div class="mock-label" id="detail-connected">
+      3 · detail — connected agent
+    </div>
+    <div class="page">
+      <a class="back" href="#index">← all agents</a>
+
+      <div class="det-hero">
+        <div class="det-eyebrow">
+          <span class="domain">jo.rizom.ai</span>
+          <span class="sep">·</span>
+          <span>professional</span>
+          <span class="sep">·</span>
+          <span class="ok">connected since Jun 2, 2026</span>
+        </div>
+        <h1>Metis</h1>
+        <p class="lede">
+          Jo's personal brain — strategy notes, meeting preparation, and a
+          running map of the Rizom collective's work. Ask it about ongoing
+          initiatives, past decisions, or where a thread left off.
+        </p>
+      </div>
+
+      <div class="det-cols">
+        <div>
+          <div class="sect">
+            <div class="sect-head">
+              <h2>Skills</h2>
+              <span class="line"></span>
+            </div>
+            <div class="skill-grid">
+              <div class="skill">
+                <div class="sname">Meeting prep</div>
+                <div class="sdesc">
+                  Assemble context, open questions, and recent decisions ahead
+                  of a meeting.
+                </div>
+                <div class="stags">calendar · synthesis</div>
+              </div>
+              <div class="skill">
+                <div class="sname">Strategy notes</div>
+                <div class="sdesc">
+                  Search and summarize strategic notes across the collective's
+                  shared threads.
+                </div>
+                <div class="stags">search · strategy</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <div class="sect-head">
+              <h2>Notes</h2>
+              <span class="line"></span>
+            </div>
+            <p>
+              First brain connected during the pilot. Prefers questions scoped
+              to a single initiative.
+            </p>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="side-block">
+            <div class="sect-head">
+              <h2>Connection</h2>
+              <span class="line"></span>
+            </div>
+            <div class="kv">
+              <div class="k">Status</div>
+              <div class="v ok">Connected</div>
+            </div>
+            <div class="kv">
+              <div class="k">Endpoint</div>
+              <div class="v mono">https://jo.rizom.ai/a2a</div>
+            </div>
+            <div class="kv">
+              <div class="k">First seen</div>
+              <div class="v">Jun 2, 2026</div>
+            </div>
+            <div class="kv">
+              <div class="k">Brain DID</div>
+              <div class="v mono">did:plc:h7k2abcdef9fq4</div>
+            </div>
+          </div>
+
+          <a class="visit" href="#">visit jo.rizom.ai ↗</a>
+        </aside>
+      </div>
+
+      <nav class="pn">
+        <a href="#"><span>← previous</span><b>Yeehaa</b></a>
+        <a class="next" href="#"><span>next →</span><b>Phoney</b></a>
+      </nav>
+    </div>
+  </body>
+</html>

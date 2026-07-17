@@ -1,5 +1,77 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/ai-service@0.2.0-alpha.194
+  - @brains/app@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/ai-service@0.2.0-alpha.193
+  - @brains/app@0.2.0-alpha.193
+  - @brains/plugins@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/ai-service@0.2.0-alpha.192
+  - @brains/app@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/ai-service@0.2.0-alpha.191
+  - @brains/app@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/ai-service@0.2.0-alpha.190
+  - @brains/app@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e), [`a98996a`](https://github.com/rizom-ai/brains/commit/a98996a41267461f4cec7e1b40254cc1edd5798d)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/ai-service@0.2.0-alpha.189
+  - @brains/app@0.2.0-alpha.189
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

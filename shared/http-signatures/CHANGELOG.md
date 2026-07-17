@@ -1,5 +1,17 @@
 # @brains/http-signatures
 
+## 0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ## 0.2.0-alpha.187

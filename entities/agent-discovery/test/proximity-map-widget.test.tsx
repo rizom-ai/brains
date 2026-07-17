@@ -107,6 +107,14 @@ describe("ProximityMap", () => {
     expect(html).toContain("proximity-cluster-label");
   });
 
+  test("sizes the svg via CSS only — height is not a valid SVG length keyword", () => {
+    const html = render(<ProximityMap data={data} />);
+    // height="auto" is rejected by browsers ("<svg> attribute height:
+    // Expected length") and logged as a console error on every page view;
+    // both surfaces already size the svg in CSS (height:auto/min-height).
+    expect(html).not.toContain('height="auto"');
+  });
+
   test("charts sightings at half light, routed through their introducers", () => {
     const html = render(<ProximityMap data={data} />);
 

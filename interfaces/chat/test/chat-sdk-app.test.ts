@@ -1,10 +1,13 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
 import type { RuntimeUploadStore, WebRouteDefinition } from "@brains/plugins";
-import { DiscordChatApp, type ChatSdkApp } from "../src/discord-chat-app";
-import type { DiscordChatAdapterConfig } from "../src/config";
+import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "../src/config";
 
-// No module mocks: DiscordChatApp imports no SDK at runtime, and the app it
+// No module mocks: ChatSdkAppHost imports no SDK at runtime, and the app it
 // drives is injected via `buildApp`. The test supplies a plain fake app.
 
 const DISCORD_CONFIG: DiscordChatAdapterConfig = {
@@ -22,10 +25,25 @@ const DISCORD_CONFIG: DiscordChatAdapterConfig = {
   captureUrlEmoji: "🔖",
 };
 
+const SLACK_CONFIG: SlackChatAdapterConfig = {
+  botToken: "slack-token",
+  mode: "webhook",
+  signingSecret: "slack-signing-secret",
+  allowedChannels: [],
+  blockedUrlDomains: [],
+  requireMention: true,
+  allowDMs: true,
+  showTypingIndicator: true,
+  captureUrls: false,
+};
+
 interface FakeApp extends ChatSdkApp {
   initialize: Mock<() => Promise<void>>;
   shutdown: Mock<() => Promise<void>>;
-  webhooks: { discord?: Mock<(request: Request) => Promise<Response>> };
+  webhooks: {
+    discord?: Mock<(request: Request) => Promise<Response>>;
+    slack?: Mock<(request: Request) => Promise<Response>>;
+  };
 }
 
 function createFakeApp(options?: { withWebhook?: boolean }): FakeApp {
@@ -37,6 +55,9 @@ function createFakeApp(options?: { withWebhook?: boolean }): FakeApp {
         ? {}
         : {
             discord: mock(() => Promise.resolve(new Response("webhook ok"))),
+            slack: mock(() =>
+              Promise.resolve(new Response("slack webhook ok")),
+            ),
           },
     onDirectMessage: (): void => {},
     onNewMention: (): void => {},
@@ -66,18 +87,20 @@ function createUploadStore(
 
 function makeApp(options?: {
   discord?: DiscordChatAdapterConfig | undefined;
+  slack?: SlackChatAdapterConfig | undefined;
   uploadStore?: RuntimeUploadStore | undefined;
   app?: FakeApp;
   build?: boolean;
 }): {
-  discordApp: DiscordChatApp;
+  discordApp: ChatSdkAppHost;
   app: FakeApp;
   buildApp: Mock<() => ChatSdkApp>;
 } {
   const app = options?.app ?? createFakeApp();
   const buildApp = mock(() => app);
-  const discordApp = new DiscordChatApp({
+  const discordApp = new ChatSdkAppHost({
     discord: options && "discord" in options ? options.discord : DISCORD_CONFIG,
+    slack: options && "slack" in options ? options.slack : SLACK_CONFIG,
     getUploadStore: (): RuntimeUploadStore | undefined =>
       options && "uploadStore" in options
         ? options.uploadStore
@@ -88,7 +111,7 @@ function makeApp(options?: {
   return { discordApp, app, buildApp };
 }
 
-function uploadRoute(discordApp: DiscordChatApp): WebRouteDefinition {
+function uploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
   const route = discordApp
     .getWebRoutes()
     .find(
@@ -100,7 +123,19 @@ function uploadRoute(discordApp: DiscordChatApp): WebRouteDefinition {
   return route;
 }
 
-function webhookRoute(discordApp: DiscordChatApp): WebRouteDefinition {
+function slackUploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
+  const route = discordApp
+    .getWebRoutes()
+    .find(
+      (candidate) =>
+        candidate.path === "/api/webhooks/chat/slack/uploads" &&
+        candidate.method === "GET",
+    );
+  if (!route) throw new Error("Slack upload route missing");
+  return route;
+}
+
+function webhookRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
   const route = discordApp
     .getWebRoutes()
     .find((candidate) => candidate.path === "/api/webhooks/chat/discord");
@@ -108,7 +143,15 @@ function webhookRoute(discordApp: DiscordChatApp): WebRouteDefinition {
   return route;
 }
 
-describe("DiscordChatApp", () => {
+function slackWebhookRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
+  const route = discordApp
+    .getWebRoutes()
+    .find((candidate) => candidate.path === "/api/webhooks/chat/slack");
+  if (!route) throw new Error("Slack webhook route missing");
+  return route;
+}
+
+describe("ChatSdkAppHost", () => {
   it("builds the app once and exposes it for handler registration", () => {
     const { discordApp, app, buildApp } = makeApp();
     expect(buildApp).toHaveBeenCalledTimes(1);
@@ -133,6 +176,42 @@ describe("DiscordChatApp", () => {
     );
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("Discord chat webhook not configured");
+  });
+
+  it("delegates the Slack webhook to the built app", async () => {
+    const { discordApp } = makeApp();
+    const response = await slackWebhookRoute(discordApp).handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("slack webhook ok");
+  });
+
+  it("returns 404 from the Slack webhook in Socket Mode", async () => {
+    const { discordApp } = makeApp({
+      slack: {
+        ...SLACK_CONFIG,
+        mode: "socket",
+        signingSecret: undefined,
+        appToken: "xapp-test",
+      },
+    });
+    const response = await slackWebhookRoute(discordApp).handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Slack chat webhook not configured");
+  });
+
+  it("returns 404 when the app has no Slack webhook", async () => {
+    const { discordApp } = makeApp({
+      app: createFakeApp({ withWebhook: false }),
+    });
+    const response = await slackWebhookRoute(discordApp).handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Slack chat webhook not configured");
   });
 
   it("serves stored upload refs with inline and download dispositions", async () => {
@@ -164,6 +243,22 @@ describe("DiscordChatApp", () => {
     );
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("Discord chat uploads not configured");
+  });
+
+  it("serves Slack uploads only when Slack is configured", async () => {
+    const configured = makeApp();
+    const response = await slackUploadRoute(configured.discordApp).handler(
+      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+
+    const unconfigured = makeApp({ slack: undefined });
+    const missing = await slackUploadRoute(unconfigured.discordApp).handler(
+      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
+    );
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).toBe("Slack chat uploads not configured");
   });
 
   it("rejects a missing upload id with 400", async () => {

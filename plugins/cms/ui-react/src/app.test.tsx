@@ -11,6 +11,7 @@ import {
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
+  DirectorySyncWorkspace,
   emptyDraft,
   entityPublicationState,
   entityTitle,
@@ -39,6 +40,8 @@ import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
   CmsWorkspaceInfo,
+  DirectorySyncWorkspaceActionResult,
+  DirectorySyncWorkspaceSnapshot,
   EntityTypeInfo,
   FieldDescriptor,
   GitSyncState,
@@ -643,6 +646,95 @@ describe("SiteWorkspace", () => {
     expect(html).toContain("Template failed");
     expect(html).toContain("Registered routes · 1");
     expect(html).toContain("Auto-rebuild");
+  });
+});
+
+describe("DirectorySyncWorkspace", () => {
+  const data: DirectorySyncWorkspaceSnapshot = {
+    health: "attention",
+    directory: {
+      displayPath: "brain-data",
+      exists: true,
+      watching: true,
+      totalFiles: 148,
+      byEntityType: { note: 42, post: 18 },
+      lastSettledAt: "2026-07-16T09:00:00.000Z",
+    },
+    git: {
+      branch: "main",
+      remoteLabel: "rizom-ai/rover-data",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit: "abcdef123456",
+      changedFiles: [],
+      changedFilesTruncated: false,
+    },
+    automation: {
+      autoSync: true,
+      watchIntervalMs: 1000,
+      remoteIntervalMinutes: 2,
+      commitDebounceMs: 5000,
+      deleteOnFileRemoval: true,
+    },
+    recentRuns: [
+      {
+        id: "run-1",
+        source: "manual",
+        outcome: "attention",
+        startedAt: "2026-07-16T08:59:00.000Z",
+        completedAt: "2026-07-16T09:00:00.000Z",
+        imported: 2,
+        skipped: 0,
+        failed: 0,
+        quarantined: 1,
+        exported: 0,
+        summary: "Import completed with attention",
+      },
+    ],
+    issues: [
+      {
+        id: "quarantined:post/broken.md.invalid",
+        kind: "quarantined",
+        path: "post/broken.md.invalid",
+        message: "Invalid status frontmatter",
+        occurredAt: "2026-07-16T09:00:00.000Z",
+      },
+    ],
+  };
+
+  it("renders status, a narrow manual action, history, and safe attention", () => {
+    const onAction = async (): Promise<DirectorySyncWorkspaceActionResult> => ({
+      accepted: true,
+      status: "queued",
+      runId: "run-2",
+    });
+    const html = renderToStaticMarkup(
+      createElement(DirectorySyncWorkspace, { data, onAction }),
+    );
+
+    expect(html).toContain("Content sync");
+    expect(html).toContain("Sync now");
+    expect(html).toContain("brain-data");
+    expect(html).toContain("rizom-ai/rover-data");
+    expect(html).toContain("post/broken.md.invalid");
+    expect(html).toContain("Import completed with attention");
+    expect(html).not.toContain("Force sync");
+  });
+
+  it("renders a local-only flow without an empty Git remote card", () => {
+    const html = renderToStaticMarkup(
+      createElement(DirectorySyncWorkspace, {
+        data: { ...data, health: "healthy", git: null, issues: [] },
+        onAction: async (): Promise<DirectorySyncWorkspaceActionResult> => ({
+          accepted: false,
+          status: "settled",
+        }),
+      }),
+    );
+
+    expect(html).toContain("files only");
+    expect(html).not.toContain("Git remote</strong>");
   });
 });
 

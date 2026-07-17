@@ -1,5 +1,77 @@
 # @brains/app
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/core@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+  - @brains/runtime-state@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/core@0.2.0-alpha.193
+  - @brains/plugins@0.2.0-alpha.193
+  - @brains/runtime-state@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/core@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+  - @brains/runtime-state@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/core@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+  - @brains/runtime-state@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/core@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/runtime-state@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e), [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/core@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

@@ -1,10 +1,10 @@
 # @brains/chat
 
-Discord Chat SDK interface for Brains.
+Multi-platform Chat SDK interface for Brains.
 
 ## Status
 
-Active Discord implementation. Discord is the only enabled adapter in this package today. Rover, Ranger, and Relay still use `@brains/discord` until live Discord validation confirms this package is safe to adopt.
+Active Discord implementation with initial single-workspace Slack support. Discord and Slack can be configured independently or enabled together in one interface instance. Rover, Ranger, and Relay still use `@brains/discord` until live validation confirms this package is safe to adopt.
 
 ## Discord configuration
 
@@ -52,49 +52,124 @@ plugins:
         captureUrls: true
 ```
 
-Permission rules remain platform-scoped:
+## Slack configuration
+
+Slack supports a single workspace in either webhook or Socket Mode. Create the app from [`slack-app-manifest.yaml`](./slack-app-manifest.yaml), which declares the supported events and scopes, including `files:read` for incoming uploads and `files:write` for native generated-artifact delivery.
+
+For local testing, authorize/install the app in the test workspace, then create an app-level `xapp-...` token with `connections:write`. The manifest enables Socket Mode.
+
+The dedicated Rover trial validates credentials and starts with one command:
+
+```bash
+export SLACK_BOT_TOKEN='xoxb-...'
+export SLACK_APP_TOKEN='xapp-...'
+export AI_API_KEY='...'
+export GIT_SYNC_TOKEN='...'
+
+cd brains/rover
+bun start:slack
+```
+
+The preflight calls `auth.test`, validates Socket Mode, and probes file, conversation, and user access without printing tokens or socket URLs. Workspace authorization, app installation, and app-token creation remain one-time Slack-approved steps. Reapply the manifest after updates so Socket Mode interactivity remains enabled for native confirmation cards.
+
+The dedicated test app configuration is:
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: socket
+        botToken: ${SLACK_BOT_TOKEN}
+        appToken: ${SLACK_APP_TOKEN}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+Socket Mode processes events directly and does not require a signing secret, public URL, or webhook tunnel.
+
+For a publicly reachable webhook deployment, configure:
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: webhook
+        botToken: ${SLACK_BOT_TOKEN}
+        signingSecret: ${SLACK_SIGNING_SECRET}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+Point Slack event subscriptions at:
+
+```text
+POST /api/webhooks/chat/slack
+```
+
+Subscribe to `app_mention`, `message.channels`, `message.groups`, `message.im`, and `message.mpim`. Webhook Mode verifies Slack signatures and rejects stale or invalid requests. In Socket Mode, enable the same events but leave their Request URL unset.
+
+Permission rules remain platform-scoped and can coexist:
 
 ```yaml
 permissions:
   rules:
     - pattern: "discord:*"
       level: trusted
+    - pattern: "slack:*"
+      level: trusted
 ```
 
 When a brain model adopts this package, add `"chat"` to `evalDisable` so live chat sockets/webhooks do not start during evaluation runs.
 
-## Discord permission guidance
+## Platform permission guidance
 
-Use `discord:*` permission rules for this interface. Operator-grade deployments should prefer:
+Use `discord:*` and `slack:*` permission rules for their respective adapters. Operator-grade deployments should prefer:
 
 - `requireMention: true` so ordinary channel chatter is not routed as commands.
 - `allowedChannels` for production channels where the bot may respond or capture URLs.
 - `allowDMs: false` unless direct operator DMs are intentionally supported.
 - `trusted` or `anchor` only for users/channels that may upload source files or resolve prior upload context.
 
-Upload handling is permission-gated before download: public users can still chat, but their Discord attachments are not fetched or passed to the agent. Confirmation safety is enforced by the agent permission layer and by Discord-side approval-id selection when multiple approvals are pending.
+Upload handling is permission-gated before download: public users can still chat, but their Discord or Slack attachments are not fetched or passed to the agent. Confirmation safety is enforced by the agent permission layer and explicit approval-id selection when multiple approvals are pending.
 
 ## Stored upload route policy
 
-Discord source uploads use runtime upload storage and unguessable `upload-<uuid>` refs. The download route is public because Discord links cannot carry the browser operator session used by web chat. Current guardrails are:
+Discord and Slack source uploads use separate runtime upload scopes and unguessable `upload-<uuid>` refs. Their download routes are public because platform links cannot carry the browser operator session used by web chat. Current guardrails are:
 
-- only trusted/anchor Discord users can create reusable upload refs;
-- public Discord users cannot cause attachments to be fetched or reused;
+- only trusted/anchor platform users can create reusable upload refs;
+- public users cannot cause attachments to be fetched or reused;
 - refs are random UUIDs and runtime uploads are pruned by the shared upload registry;
-- the route is unavailable unless the Discord adapter is configured;
-- route responses serve only stored Discord source uploads, not arbitrary runtime uploads or content entities;
+- each route is unavailable unless its adapter is configured;
+- each route serves only its own platform's source uploads, not another platform's uploads, arbitrary runtime uploads, or content entities;
 - route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`;
 - route responses include both safe fallback `filename` and encoded `filename*` content-disposition parameters.
 
 Generated image/PDF artifact cards are posted as native Discord files for trusted/anchor users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as the only fallback; this package does not add signed or Discord-authenticated artifact routes. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose protected artifacts. Public users do not receive native protected artifact files or fallback links to shared/restricted generated artifacts.
 
-## Current Discord parity coverage
+## Current test coverage
 
-Covered by tests:
+Slack's initial slice covers:
+
+- Slack-only, Discord-only, combined, and unconfigured adapter wiring;
+- webhook verification/delegation and unconfigured-route rejection;
+- abortable Socket Mode lifecycle, webhook suppression, and coexistence with the Discord gateway;
+- app mentions, DMs, allowed-channel policy, permission attribution, and subscribed-thread follow-ups;
+- isolated durable Discord and Slack subscription namespaces;
+- self/bot filtering through the shared routing policy;
+- trusted/anchor-only authenticated text, image, and PDF ingestion, durable follow-up reuse, and a platform-scoped upload route;
+- Slack's 4000-character response chunking.
+
+Slack Block Kit actions, native artifact delivery, and a live workspace trial remain pending.
+
+Discord parity coverage includes:
 
 - Discord adapter credentials and subscription-state wiring
-- no Discord adapter or daemon registration when Discord is not configured
-- non-Discord Chat SDK threads ignored
+- no chat adapter or daemon registration when none is configured
+- unsupported Chat SDK threads ignored
 - Discord-scoped permission lookup (`discord:*`, not `chat:*`)
 - mentions and subscribed thread routing
 - existing Discord thread safety: a mention inside an arbitrary existing thread gets a one-time response but does not subscribe the thread, and subscribed-message routing is gated by the persisted subscription record
@@ -121,7 +196,7 @@ Covered by tests:
 
 ## Runtime state policy
 
-Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Subscription records also persist mention-required routing policy for bot-owned threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, and other operational state remain memory-backed.
+Discord and Slack thread subscriptions are persisted independently through `chat.discord.subscriptions` and `chat.slack.subscriptions` so subscribed-thread routing can survive restart without cross-platform reads or writes. Source uploads likewise use isolated `discord-chat` and `slack-chat` runtime upload scopes. Subscribed-message routing uses that same subscription record as the ownership gate. Subscription records also persist mention-required routing policy for threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, OAuth installations, and other operational state remain memory-backed.
 
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 

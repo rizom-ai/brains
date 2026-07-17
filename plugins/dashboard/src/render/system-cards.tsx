@@ -164,6 +164,11 @@ export function ContentSyncCard({
           committed
         </span>
       </div>
+      {status.managementUrl && (
+        <a class="pipeline-manage" href={status.managementUrl}>
+          Manage in CMS →
+        </a>
+      )}
     </section>
   );
 }

@@ -30,8 +30,9 @@ describe("resolveStatus", () => {
     ).toBe("partial");
   });
 
-  test("active for an active plan with no remaining-implemented signal", () => {
+  test("active for explicit active or in-progress plans", () => {
     expect(resolveStatus("Active. Relay reference plan.")).toBe("active");
+    expect(resolveStatus("In progress on feat/example.")).toBe("active");
   });
 
   test("proposed is the default", () => {

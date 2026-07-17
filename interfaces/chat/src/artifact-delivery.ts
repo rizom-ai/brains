@@ -10,7 +10,13 @@ import {
 } from "@brains/plugins";
 import type { FileUpload } from "chat";
 
-const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
+  "pending",
+  "generating",
+  "failed",
+  "error",
+]);
 
 interface ArtifactDeliveryDeps {
   getContext: () => InterfacePluginContext | undefined;
@@ -37,10 +43,17 @@ export class ArtifactDeliveryResolver {
   async resolve(
     cards: StructuredChatCard[] | undefined,
     userLevel: UserPermissionLevel,
-  ): Promise<{ files: FileUpload[]; deniedCardIds: Set<string> }> {
+  ): Promise<{
+    files: FileUpload[];
+    deniedCardIds: Set<string>;
+    deliveredCardIds: Set<string>;
+  }> {
     const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
-    if (!cards || !this.deps.getContext()) return { files, deniedCardIds };
+    const deliveredCardIds = new Set<string>();
+    if (!cards || !this.deps.getContext()) {
+      return { files, deniedCardIds, deliveredCardIds };
+    }
 
     for (const card of cards) {
       if (card.kind !== "attachment") continue;
@@ -52,7 +65,7 @@ export class ArtifactDeliveryResolver {
 
       const resolved = await this.resolveCard(card, entityRef, userLevel).catch(
         (error: unknown) => {
-          this.deps.logger.debug("Failed to resolve Discord artifact file", {
+          this.deps.logger.debug("Failed to resolve chat artifact file", {
             error,
             cardId: card.id,
           });
@@ -60,9 +73,12 @@ export class ArtifactDeliveryResolver {
         },
       );
       if (resolved?.denied) deniedCardIds.add(card.id);
-      if (resolved?.file) files.push(resolved.file);
+      if (resolved?.file) {
+        files.push(resolved.file);
+        deliveredCardIds.add(card.id);
+      }
     }
-    return { files, deniedCardIds };
+    return { files, deniedCardIds, deliveredCardIds };
   }
 
   private async resolveCard(
@@ -83,13 +99,20 @@ export class ArtifactDeliveryResolver {
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};
     const entity = access.entity;
+    const entityStatus = entity.metadata["status"];
+    if (
+      typeof entityStatus === "string" &&
+      NON_DELIVERABLE_ARTIFACT_STATUSES.has(entityStatus)
+    ) {
+      return {};
+    }
     if (typeof entity.content !== "string") return {};
     if (!canReceiveNativeArtifactFile(userLevel)) return {};
 
     const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
     if (!parsed) return {};
-    if (parsed.data.byteLength > DISCORD_NATIVE_ARTIFACT_MAX_BYTES) {
-      this.deps.logger.debug("Skipping oversized Discord artifact upload", {
+    if (parsed.data.byteLength > CHAT_NATIVE_ARTIFACT_MAX_BYTES) {
+      this.deps.logger.debug("Skipping oversized chat artifact upload", {
         cardId: card.id,
         sizeBytes: parsed.data.byteLength,
       });

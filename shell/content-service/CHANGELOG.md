@@ -1,5 +1,83 @@
 # @brains/content-service
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.194
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/ai-service@0.2.0-alpha.194
+  - @brains/entity-service@0.2.0-alpha.194
+  - @brains/job-queue@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.193
+  - @brains/contracts@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/ai-service@0.2.0-alpha.193
+  - @brains/entity-service@0.2.0-alpha.193
+  - @brains/job-queue@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.192
+  - @brains/contracts@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/ai-service@0.2.0-alpha.192
+  - @brains/entity-service@0.2.0-alpha.192
+  - @brains/job-queue@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/ai-service@0.2.0-alpha.191
+  - @brains/entity-service@0.2.0-alpha.191
+  - @brains/job-queue@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/ai-service@0.2.0-alpha.190
+  - @brains/entity-service@0.2.0-alpha.190
+  - @brains/job-queue@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`a98996a`](https://github.com/rizom-ai/brains/commit/a98996a41267461f4cec7e1b40254cc1edd5798d)]:
+  - @brains/ai-service@0.2.0-alpha.189
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/entity-service@0.2.0-alpha.189
+  - @brains/job-queue@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

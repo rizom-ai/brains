@@ -1,5 +1,49 @@
 # @brains/media-renderer
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`ed34adb`](https://github.com/rizom-ai/brains/commit/ed34adb3e5e27d86d9820532324893ac68312f21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own browser rendering through scoped Effect acquisition and bounded cleanup, add optional `AbortSignal` cancellation, and kill browser processes whose close operation hangs.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ## 0.2.0-alpha.187

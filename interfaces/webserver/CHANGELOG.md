@@ -1,5 +1,52 @@
 # @brains/webserver
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`252e8e8`](https://github.com/rizom-ai/brains/commit/252e8e817708601e76e0eded770c40f370678faa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop serving js/css with immutable cache headers on production. main.css and
+  boot.js live at stable URLs and are rebuilt in place on every site build, so
+  the year-long immutable header let the CDN edge serve new pages against
+  stale styles (the first /essays detail page rendered unstyled this way).
+  They now revalidate via etag (no-cache); images and fonts stay immutable.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

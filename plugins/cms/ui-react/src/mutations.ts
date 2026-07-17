@@ -4,6 +4,8 @@ import {
   runWorkspaceAction,
   updateEntity,
   uploadFile,
+  type DirectorySyncWorkspaceAction,
+  type DirectorySyncWorkspaceActionResult,
   type PublishingAction,
   type PublishingActionResult,
   type SiteWorkspaceAction,
@@ -41,6 +43,11 @@ export interface SiteWorkspaceActionInput {
   action: SiteWorkspaceAction;
 }
 
+export interface DirectorySyncWorkspaceActionInput {
+  workspaceId: string;
+  action: DirectorySyncWorkspaceAction;
+}
+
 export interface UploadImageResult {
   entityId: string;
   jobId?: string;
@@ -65,6 +72,15 @@ export function runSiteWorkspaceAction(
   input: SiteWorkspaceActionInput,
 ): Promise<SiteWorkspaceActionResult> {
   return runWorkspaceAction<SiteWorkspaceActionResult>(
+    input.workspaceId,
+    input.action,
+  );
+}
+
+export function runDirectorySyncWorkspaceAction(
+  input: DirectorySyncWorkspaceActionInput,
+): Promise<DirectorySyncWorkspaceActionResult> {
+  return runWorkspaceAction<DirectorySyncWorkspaceActionResult>(
     input.workspaceId,
     input.action,
   );

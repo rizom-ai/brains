@@ -3,6 +3,7 @@ import { CHAT_PLATFORMS, type ChatPlatform } from "./types";
 
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
+  slack: 4000,
 };
 
 /** The platform a channel id belongs to (the `<platform>:...` prefix), if known. */
@@ -23,14 +24,13 @@ export function chunkForChannel(
   return limit ? chunkMessage(message, limit) : [message];
 }
 
-/**
- * Whether this interface owns (and should service) events tagged with
- * `interfaceType`. The chat interface fronts Discord, so it owns "discord"
- * only when the Discord adapter is configured.
- */
+/** Whether this interface owns an event for a configured chat adapter. */
 export function ownsChatPlatform(
   interfaceType: string | undefined,
-  discordEnabled: boolean,
+  enabledPlatforms: ReadonlySet<ChatPlatform>,
 ): boolean {
-  return interfaceType === "discord" && discordEnabled;
+  const platform = CHAT_PLATFORMS.find(
+    (candidate) => candidate === interfaceType,
+  );
+  return platform ? enabledPlatforms.has(platform) : false;
 }

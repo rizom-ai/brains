@@ -12,7 +12,11 @@ import type {
   Thread,
 } from "chat";
 import type { ChatWebhookMap } from "./types";
-import type { DiscordChatAdapterConfig } from "./config";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "./config";
+import type { ChatPlatform } from "./types";
 
 /**
  * The slice of the Chat SDK app the interface drives. Handler registration
@@ -21,7 +25,7 @@ import type { DiscordChatAdapterConfig } from "./config";
  *
  * Type-only "chat" imports here — this module pulls in no SDK at runtime, so it
  * (and its unit test) stay free of Chat SDK module mocks. Construction lives in
- * `createDiscordChatSdkApp`, injected via `buildApp`.
+ * `createChatSdkApp`, injected via `buildApp`.
  */
 export interface ChatSdkApp {
   initialize(): Promise<void>;
@@ -57,32 +61,29 @@ export interface ChatSdkApp {
       context?: MessageContext,
     ) => Promise<void>,
   ): void;
+  onAction(handler: (event: ActionEvent) => Promise<void>): void;
   onAction(
     actionIds: string[] | string,
     handler: (event: ActionEvent) => Promise<void>,
   ): void;
 }
 
-interface DiscordChatAppDeps {
-  /** Whether Discord is configured — gates the upload route. */
+interface ChatSdkAppHostDeps {
+  /** Configured adapters gate their corresponding upload routes. */
   discord: DiscordChatAdapterConfig | undefined;
-  /** Lazy: the runtime upload store is only available once the plugin is registered. */
-  getUploadStore: () => RuntimeUploadStore | undefined;
-  /** Construct the Chat SDK app (see createDiscordChatSdkApp); injected so this stays SDK-free. */
+  slack: SlackChatAdapterConfig | undefined;
+  /** Lazy: runtime upload stores are only available once the plugin is registered. */
+  getUploadStore: (platform: ChatPlatform) => RuntimeUploadStore | undefined;
+  /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
   buildApp: (runtimeState: IRuntimeStateNamespace) => ChatSdkApp;
 }
 
-/**
- * Owns the Discord-backed Chat SDK app lifecycle and HTTP surface, keeping the
- * SDK plumbing out of ChatInterface. The interface still registers its turn
- * handlers against the built app (see `instance`) — that binding is interface
- * logic, not SDK lifecycle.
- */
-export class DiscordChatApp {
-  private readonly deps: DiscordChatAppDeps;
+/** Owns the multi-adapter Chat SDK lifecycle and HTTP surface. */
+export class ChatSdkAppHost {
+  private readonly deps: ChatSdkAppHostDeps;
   private app: ChatSdkApp | undefined;
 
-  constructor(deps: DiscordChatAppDeps) {
+  constructor(deps: ChatSdkAppHostDeps) {
     this.deps = deps;
   }
 
@@ -122,18 +123,45 @@ export class DiscordChatApp {
         },
       },
       {
+        path: "/api/webhooks/chat/slack",
+        method: "POST",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          if (
+            this.deps.slack?.mode !== "webhook" ||
+            !this.app?.webhooks?.slack
+          ) {
+            return new Response("Slack chat webhook not configured", {
+              status: 404,
+            });
+          }
+          return this.app.webhooks.slack(request);
+        },
+      },
+      {
         path: "/api/webhooks/chat/discord/uploads",
         method: "GET",
         public: true,
         handler: async (request: Request): Promise<Response> =>
-          this.handleUploadRequest(request),
+          this.handleUploadRequest(request, "discord"),
+      },
+      {
+        path: "/api/webhooks/chat/slack/uploads",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> =>
+          this.handleUploadRequest(request, "slack"),
       },
     ];
   }
 
-  private async handleUploadRequest(request: Request): Promise<Response> {
-    if (!this.deps.discord) {
-      return new Response("Discord chat uploads not configured", {
+  private async handleUploadRequest(
+    request: Request,
+    platform: ChatPlatform,
+  ): Promise<Response> {
+    if (!this.deps[platform]) {
+      const label = platform === "discord" ? "Discord" : "Slack";
+      return new Response(`${label} chat uploads not configured`, {
         status: 404,
       });
     }
@@ -144,7 +172,7 @@ export class DiscordChatApp {
     }
 
     try {
-      const uploadStore = this.deps.getUploadStore();
+      const uploadStore = this.deps.getUploadStore(platform);
       if (!uploadStore) throw new Error("Chat upload store unavailable");
       const { record, content } = await uploadStore.read(uploadId);
       const body = new Uint8Array(content).buffer;

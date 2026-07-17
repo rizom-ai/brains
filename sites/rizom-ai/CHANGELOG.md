@@ -1,5 +1,59 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.194
+  - @rizom/site-sections@0.2.0-alpha.194
+  - @rizom/site-rizom@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.193
+  - @rizom/site-sections@0.2.0-alpha.193
+  - @rizom/site-rizom@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.192
+  - @rizom/site-sections@0.2.0-alpha.192
+  - @rizom/site-rizom@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.191
+  - @rizom/site-sections@0.2.0-alpha.191
+  - @rizom/site-rizom@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.190
+  - @rizom/site@0.2.0-alpha.190
+  - @rizom/site-sections@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.189
+  - @rizom/site@0.2.0-alpha.189
+  - @rizom/site-sections@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

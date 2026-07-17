@@ -396,6 +396,7 @@ describe("renderDashboardPageHtml", () => {
         lastSync: "2026-07-08T09:30:00.000Z",
         totalFiles: 4,
         byEntityType: { note: 3, post: 1 },
+        managementUrl: "/studio#/workspace/sync",
       },
     };
 
@@ -424,6 +425,8 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("entity db");
     expect(html).toContain("exported");
     expect(html).toContain("committed");
+    expect(html).toContain('href="/studio#/workspace/sync"');
+    expect(html).toContain("Manage in CMS →");
   });
 
   it("should render the shared console strip from derived surfaces", () => {

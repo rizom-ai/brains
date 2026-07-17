@@ -1,5 +1,65 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.194
+  - @brains/site-engine@0.2.0-alpha.194
+  - @brains/ui-library@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.193
+  - @brains/site-engine@0.2.0-alpha.193
+  - @brains/ui-library@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.192
+  - @brains/site-engine@0.2.0-alpha.192
+  - @brains/ui-library@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.191
+  - @brains/site-engine@0.2.0-alpha.191
+  - @brains/ui-library@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.190
+  - @brains/site-engine@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`ed34adb`](https://github.com/rizom-ai/brains/commit/ed34adb3e5e27d86d9820532324893ac68312f21)]:
+  - @brains/media-renderer@0.2.0-alpha.189
+  - @brains/site-engine@0.2.0-alpha.189
+  - @brains/ui-library@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

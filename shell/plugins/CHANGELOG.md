@@ -1,5 +1,109 @@
 # @brains/plugins
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.194
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/site-composition@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/conversation-service@0.2.0-alpha.194
+  - @brains/identity-service@0.2.0-alpha.194
+  - @brains/job-queue@0.2.0-alpha.194
+  - @brains/messaging-service@0.2.0-alpha.194
+  - @brains/recurring-checks@0.2.0-alpha.194
+  - @brains/runtime-state@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.193
+  - @brains/contracts@0.2.0-alpha.193
+  - @brains/site-composition@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/conversation-service@0.2.0-alpha.193
+  - @brains/identity-service@0.2.0-alpha.193
+  - @brains/job-queue@0.2.0-alpha.193
+  - @brains/messaging-service@0.2.0-alpha.193
+  - @brains/recurring-checks@0.2.0-alpha.193
+  - @brains/runtime-state@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.192
+  - @brains/contracts@0.2.0-alpha.192
+  - @brains/site-composition@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/conversation-service@0.2.0-alpha.192
+  - @brains/identity-service@0.2.0-alpha.192
+  - @brains/job-queue@0.2.0-alpha.192
+  - @brains/messaging-service@0.2.0-alpha.192
+  - @brains/recurring-checks@0.2.0-alpha.192
+  - @brains/runtime-state@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/site-composition@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/conversation-service@0.2.0-alpha.191
+  - @brains/identity-service@0.2.0-alpha.191
+  - @brains/job-queue@0.2.0-alpha.191
+  - @brains/messaging-service@0.2.0-alpha.191
+  - @brains/recurring-checks@0.2.0-alpha.191
+  - @brains/runtime-state@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/conversation-service@0.2.0-alpha.190
+  - @brains/identity-service@0.2.0-alpha.190
+  - @brains/job-queue@0.2.0-alpha.190
+  - @brains/messaging-service@0.2.0-alpha.190
+  - @brains/recurring-checks@0.2.0-alpha.190
+  - @brains/runtime-state@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS Sync workspace backed by a sanitized directory-sync operational snapshot. Operators can inspect watcher, file, Git, recent-run, and quarantine state and request the existing normal sync flow from CMS, while Dashboard remains read-only and links to the workspace when available.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/conversation-service@0.2.0-alpha.189
+  - @brains/identity-service@0.2.0-alpha.189
+  - @brains/job-queue@0.2.0-alpha.189
+  - @brains/messaging-service@0.2.0-alpha.189
+  - @brains/recurring-checks@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

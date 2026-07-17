@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-07-16 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-07-17 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -130,7 +130,7 @@
             <span class="card-name">Auth runtime database</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.</div>
+          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.</div>
           <div class="card-file">auth-runtime-db.md</div>
         </div>
         <div class="card status-proposed">
@@ -175,7 +175,7 @@
             <span class="card-name">Finish the hosted Rizom site rollout</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">**rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; <code>new.rizom.ai</code> proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.</div>
+          <div class="card-desc">hosted package/image/TLS machinery is released and proven by <code>new.rizom.ai</code>; remaining scope is the <code>docs.rizom.ai</code> hosted cutover.</div>
           <div class="card-file">rizom-sites-on-hosted-rover.md</div>
         </div>
         <div class="card status-partial">
@@ -183,7 +183,7 @@
             <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">**in progress on <code>work/rizom-consolidated-site</code>**: the consolidated routes, Rover composition, merged content repo, and published-site-model port exist in the worktree. Remaining work is copy/schema completion, merge/release, a real consolidated staging deploy, runtime-state migration, production cutover, and retirement.</div>
+          <div class="card-desc">the consolidated site and composition are merged and published; refresh <code>new.rizom.ai</code> from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.</div>
           <div class="card-file">rizom-consolidation.md</div>
         </div>
         <div class="card status-proposed">
@@ -193,14 +193,6 @@
           </div>
           <div class="card-desc">next hosted Rover pilot customization/preflight work.</div>
           <div class="card-file">rover-default-batch-onboarding.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rover onboarding plugin plan</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.</div>
-          <div class="card-file">rover-onboarding-plugin.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -231,14 +223,6 @@
           <div class="card-desc">add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.</div>
           <div class="card-file">operator-console-pwa.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Slack Chat SDK Interface</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, building on the shared <code>MessageInterface</code> helpers already extracted from Discord/web-chat workflows.</div>
-          <div class="card-file">slack-chat-sdk.md</div>
-        </div>
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Brain web Chat SDK adapter strategy</span>
@@ -263,27 +247,19 @@
           <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
           <div class="card-file">message-feedback.md</div>
         </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Optional CMS publishing workspace</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.</div>
-          <div class="card-file">cms-publishing-workspace.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Optional CMS site workspace</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">register an optional Site workspace from site-builder for preview/live status and rebuild actions, proving the CMS workspace boundary with a second independent provider.</div>
-          <div class="card-file">cms-site-workspace.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§6</span>Ecosystem</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Opportunity Priority Engine</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
+          <div class="card-file">bd-priority-engine.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
@@ -300,34 +276,18 @@
           <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
           <div class="card-file">npm-package-boundaries.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Opportunity Priority Engine</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.</div>
-          <div class="card-file">bd-priority-engine.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-partial">
+        <div class="card status-active">
           <div class="card-head">
-            <span class="card-name">Effect lifecycle adoption (content-pipeline, a2a, media-renderer)</span>
-            <span class="badge badge-partial">In progress</span>
+            <span class="card-name">shell lifecycle race hardening</span>
+            <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">content-pipeline, directory-sync, and A2A supervision are complete; remaining work scopes media-renderer browser processes behind Promise-based contracts.</div>
-          <div class="card-file">effect-lifecycle-adoption.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Local AI Runtime</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">local AI runtime sidecar direction.</div>
-          <div class="card-file">embedding-service.md</div>
+          <div class="card-desc">make shell boot/shutdown, daemon transitions, plugin/check teardown, and conversation ownership joinable under concurrent callers without changing Promise/<code>AbortSignal</code> contracts.</div>
+          <div class="card-file">shell-lifecycle-race-hardening.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -347,6 +307,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">HTTP route registry hardening</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
+          <div class="card-file">http-route-registry-hardening.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Template Renderer Contracts</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -360,6 +328,14 @@
           </div>
           <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
           <div class="card-file">turso-database-engine.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Local AI Runtime</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">local AI runtime sidecar direction.</div>
+          <div class="card-file">embedding-service.md</div>
         </div>
         </div>
       </details>

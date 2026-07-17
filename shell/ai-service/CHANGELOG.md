@@ -1,5 +1,91 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/conversation-service@0.2.0-alpha.194
+  - @brains/entity-service@0.2.0-alpha.194
+  - @brains/identity-service@0.2.0-alpha.194
+  - @brains/mcp-service@0.2.0-alpha.194
+  - @brains/messaging-service@0.2.0-alpha.194
+  - @brains/templates@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/conversation-service@0.2.0-alpha.193
+  - @brains/entity-service@0.2.0-alpha.193
+  - @brains/identity-service@0.2.0-alpha.193
+  - @brains/mcp-service@0.2.0-alpha.193
+  - @brains/messaging-service@0.2.0-alpha.193
+  - @brains/templates@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/conversation-service@0.2.0-alpha.192
+  - @brains/entity-service@0.2.0-alpha.192
+  - @brains/identity-service@0.2.0-alpha.192
+  - @brains/mcp-service@0.2.0-alpha.192
+  - @brains/messaging-service@0.2.0-alpha.192
+  - @brains/templates@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/conversation-service@0.2.0-alpha.191
+  - @brains/entity-service@0.2.0-alpha.191
+  - @brains/identity-service@0.2.0-alpha.191
+  - @brains/mcp-service@0.2.0-alpha.191
+  - @brains/messaging-service@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/conversation-service@0.2.0-alpha.190
+  - @brains/entity-service@0.2.0-alpha.190
+  - @brains/identity-service@0.2.0-alpha.190
+  - @brains/mcp-service@0.2.0-alpha.190
+  - @brains/messaging-service@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`a98996a`](https://github.com/rizom-ai/brains/commit/a98996a41267461f4cec7e1b40254cc1edd5798d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent lower-permission callers in shared conversations from receiving higher-permission message history or upload context.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/conversation-service@0.2.0-alpha.189
+  - @brains/entity-service@0.2.0-alpha.189
+  - @brains/identity-service@0.2.0-alpha.189
+  - @brains/mcp-service@0.2.0-alpha.189
+  - @brains/messaging-service@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

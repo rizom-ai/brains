@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,14 +8,14 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.157` is live on `yeehaa.io`, the full hosted Rover pilot fleet, and the `new.rizom.ai` package-path canary. The production Rizom and docs sites still run on their existing standalone deployment paths until the consolidated-site rollout is ready. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.192` is published, `alpha.189` is live on `yeehaa.io` and the hosted canary cohort, the wider pilot fleet remains on `alpha.172`, and `new.rizom.ai` remains on `alpha.186`. Production Rizom and docs still use their standalone deployments. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
 
 What already exists today:
 
 - an alpha-published Bun-based CLI and runtime via `@rizom/brain`
 - markdown-backed entities with typed frontmatter
 - MCP-native tools and resources
-- built-in webserver, A2A, Discord, and chat REPL interfaces
+- built-in webserver, A2A, Discord/Slack chat, web chat, and chat REPL interfaces
 - static-site generation with reusable site + theme packages
 - the personal-publishing posture as the public reference brain
 - Kamal-based self-hosted deploy scaffolding, including app-local deploy artifacts, env-schema generation, and Cloudflare Origin CA bootstrap support
@@ -38,13 +38,13 @@ Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. 
 
 Priority is explicit; an existing worktree does not automatically outrank release work.
 
-| Priority | Outcome                            | Current execution                                                                                                                                                                                                           |
-| -------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                 |
-| **P1**   | Real runtime identity boundary     | Finish `feature/auth-runtime-db` as one database-backed source of truth with transactional role invariants and deny-by-default identity resolution; multi-user behavior follows on that foundation.                         |
-| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                   |
-| **P1**   | One production Rizom brain/site    | Finish the in-flight consolidated site and content work, stage the consolidated package on `new.rizom.ai`, then cut over production. This may proceed beside bundle work but must not invent a competing model abstraction. |
-| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                   |
+| Priority | Outcome                            | Current execution                                                                                                                                                                                                                |
+| -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                      |
+| **P1**   | Real runtime identity boundary     | Finish final hardening on `feature/auth-runtime-db`; the database cutover, People admin surface, role invariants, and P0 security findings are implemented, while compatibility gates and lower-priority review findings remain. |
+| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                        |
+| **P1**   | One production Rizom brain/site    | Refresh `new.rizom.ai` from `alpha.186` to the published consolidated package, validate state migration and rollback, then cut production over and retire redundant deployments.                                                 |
+| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                        |
 
 Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
 
@@ -79,7 +79,7 @@ The personal-publishing posture is the public reference and must stay sharp with
 - give setup/first-run friction disproportionate weight — current users are past the onboarding wall, so it is invisible from inside the project but lethal for anyone new;
 - keep the friction queue durable so the same papercut is not re-reported and re-deferred silently.
 
-The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress, attachments, sources, suggested actions) and the media/OG pipeline (PDF carousels, printable PDFs, OG images, publish assets) both landed and are now maintained through normal bug/release work rather than standing plans.
+The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress, attachments, sources, suggested actions) and the media/OG pipeline (PDF carousels, printable PDFs, OG images, publish assets) both landed and are now maintained through normal bug/release work rather than standing plans. Media rendering now owns each browser through scoped, cancellable acquisition and bounded process cleanup behind its existing Promise API.
 
 Plans:
 
@@ -137,7 +137,7 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 - [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
@@ -155,22 +155,18 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
-- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — **rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; `new.rizom.ai` proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.
-- [rizom-consolidation.md](./plans/rizom-consolidation.md) — **in progress on `work/rizom-consolidated-site`**: the consolidated routes, Rover composition, merged content repo, and published-site-model port exist in the worktree. Remaining work is copy/schema completion, merge/release, a real consolidated staging deploy, runtime-state migration, production cutover, and retirement.
-- [rover-onboarding-plugin.md](./plans/rover-onboarding-plugin.md) — extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.
+- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — hosted package/image/TLS machinery is released and proven by `new.rizom.ai`; remaining scope is the `docs.rizom.ai` hosted cutover.
+- [rizom-consolidation.md](./plans/rizom-consolidation.md) — the consolidated site and composition are merged and published; refresh `new.rizom.ai` from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
 
 ### 5. Interfaces
 
-The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord and the bundled web chat ship today; this section is the consolidation and expansion work.
+The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord, Slack, and the bundled web chat ship today; this section is the consolidation and expansion work.
 
 Plans:
 
-- [cms-publishing-workspace.md](./plans/cms-publishing-workspace.md) — host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.
-- [cms-site-workspace.md](./plans/cms-site-workspace.md) — register an optional Site workspace from site-builder for preview/live status and rebuild actions, proving the CMS workspace boundary with a second independent provider.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
-- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
@@ -189,7 +185,7 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.
+- [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
 
 ### 7. Keep the framework sustainable
 
@@ -197,9 +193,10 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — content-pipeline, directory-sync, and A2A supervision are complete; remaining work scopes media-renderer browser processes behind Promise-based contracts.
+- [shell-lifecycle-race-hardening.md](./plans/shell-lifecycle-race-hardening.md) — make shell boot/shutdown, daemon transitions, plugin/check teardown, and conversation ownership joinable under concurrent callers without changing Promise/`AbortSignal` contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
+- [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
 
 Research probes (parked):
 

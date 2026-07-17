@@ -78,6 +78,7 @@ Split rover's remaining capabilities into `site` and `publishing`; rover compose
 Introduce `team` (conversation-memory `shared` + docs + trusted-collaborator posture scoped to its entity types: note/link/doc/deck/decision/action-item). Express relay as `core + site + team`. **This phase actually exercises posture-carrying bundles**: `team` explicitly loosens the core-owned `deck` (and core capture types) from anchor to trusted — the "explicit bundle posture overrides core default" merge rule. Migrate relay's conversation-memory/team eval fixtures into the suite, tagged by bundle. Retire `@brains/relay`.
 
 - Tests first: permission-merge tests (team loosening core defaults; the override precedence); relay's re-tagged team-memory/attribution/trust evals pass against `core + site + team`.
+- Site migration checkpoint: move Relay's remaining content definitions to `defineSection`. Keep the legacy field-DSL compatibility and `site-content` entity registration until every consumer has migrated and an equivalent sync path is proven.
 
 ### Phase 3 — Dissolve Ranger
 

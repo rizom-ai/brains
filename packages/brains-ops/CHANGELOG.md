@@ -1,5 +1,25 @@
 # @brains/ops
 
+## 0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- [`9374b1e`](https://github.com/rizom-ai/brains/commit/9374b1e040951a3b69b76750fc9c61392c41f7a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Parse decrypted pilot secrets as YAML so real long-form certificate and private-key payloads survive folded YAML serialization.
+
+## 0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`25ae7bb`](https://github.com/rizom-ai/brains/commit/25ae7bb769072598c3e1e320fa8ed004ebda7c50) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore rover-pilot custom-domain deployment support through per-user age-encrypted TLS overrides, safe real-PEM file encryption, custom preview and `www` aliases, and per-user Cloudflare zone selection.
+
+## 0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ## 0.2.0-alpha.187

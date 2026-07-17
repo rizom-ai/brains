@@ -394,7 +394,6 @@ export function ProximityMap({
       <svg
         viewBox={surface === "site" ? SITE_VIEWBOX : `0 0 ${WIDTH} ${HEIGHT}`}
         width="100%"
-        height="auto"
         role="img"
         aria-label="Semantic proximity of saved agents to this brain"
       >

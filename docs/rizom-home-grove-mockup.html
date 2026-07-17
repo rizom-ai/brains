@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rizom.ai — Home: hero framing + the grove · targeted pass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400;1,450&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* Live-site palette (styles/main.css), not the rev-8 brass system */
+  :root {
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+    --pad-x: 64px;
+  }
+  html[data-theme="dark"] {
+    --bg: #0a0819;
+    --surface: #18132a;
+    --ink: #faf4e6;
+    --ink-70: rgba(250,244,230,.68);
+    --ink-45: rgba(250,244,230,.46);
+    --ink-28: rgba(250,244,230,.26);
+    --rule: rgba(250,244,230,.14);
+    --rule-soft: rgba(250,244,230,.07);
+    --amber: #ff8b3d;
+    --amber-deep: #b8410c;
+    --amber-bright: #f3c14f;
+    --purple: #8c82c8;
+    --purple-deep: #4b2a63;
+    --cta-ink: #0a0819;
+    --root-line: rgba(140,130,200,.34);
+    --root-node: rgba(140,130,200,.6);
+    --ghost: rgba(250,244,230,.16);
+    --sky-line: rgba(255,139,61,.28);
+    --glow: rgba(255,139,61,.55);
+  }
+  html[data-theme="light"] {
+    --bg: #f4ede0;
+    --surface: #faf4e6;
+    --ink: #18132a;
+    --ink-70: rgba(24,19,42,.74);
+    --ink-45: rgba(24,19,42,.5);
+    --ink-28: rgba(24,19,42,.32);
+    --rule: rgba(24,19,42,.18);
+    --rule-soft: rgba(24,19,42,.08);
+    --amber: #b8410c;
+    --amber-deep: #8f3209;
+    --amber-bright: #b8410c;
+    --purple: #4b2a63;
+    --purple-deep: #4b2a63;
+    --cta-ink: #faf4e6;
+    --root-line: rgba(75,42,99,.38);
+    --root-node: rgba(75,42,99,.6);
+    --ghost: rgba(24,19,42,.2);
+    --sky-line: rgba(184,65,12,.3);
+    --glow: rgba(184,65,12,.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--ui); background: var(--bg); color: var(--ink); font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .4;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.03'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(255,139,61,.3); }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  .rv { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .rv.in { opacity: 1; transform: none; }
+  .rv.d1 { transition-delay: .08s; } .rv.d2 { transition-delay: .16s; } .rv.d3 { transition-delay: .24s; }
+  @media (prefers-reduced-motion: reduce) {
+    .rv { opacity: 1; transform: none; transition: none; }
+    * { animation: none !important; }
+  }
+
+  /* ============ mockup chrome ============ */
+  .mock-header { max-width: 1280px; margin: 0 auto; padding: 52px 40px 8px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--amber); }
+  .mock-header h1 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 500; font-size: clamp(26px,3.2vw,36px); line-height: 1.14; margin-top: 10px; max-width: 30em; letter-spacing: -.01em; }
+  .mock-header h1 em { font-style: italic; color: var(--amber); font-weight: 450; }
+  .lede { margin-top: 12px; max-width: 74ch; color: var(--ink-70); font-size: 14.5px; }
+  .mock-nav { max-width: 1280px; margin: 22px auto 0; padding: 0 40px; display: flex; border-bottom: 1px solid var(--rule); }
+  .mock-nav a { font-family: var(--mono); font-size: 12px; text-decoration: none; color: var(--ink-45); padding: 10px 16px 12px; }
+  .mock-nav a span { color: var(--amber); margin-right: 6px; }
+  .mock-nav a:hover { color: var(--ink); }
+  .mock-nav button { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-45); background: none; border: 1px solid var(--rule); border-radius: 6px; padding: 5px 12px; cursor: pointer; align-self: center; }
+  .screen { max-width: 1280px; margin: 68px auto 0; padding: 0 40px; }
+  .screen:last-of-type { margin-bottom: 100px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 500; font-size: 20px; }
+  .screen-label .note { font-size: 12.5px; color: var(--ink-28); margin-left: auto; text-align: right; max-width: 52ch; }
+  .frame { position: relative; background: var(--surface); border: 1px solid var(--rule-soft); overflow: hidden; box-shadow: 0 34px 80px -30px rgba(0,0,0,.7); }
+  html[data-theme="light"] .frame { box-shadow: 0 30px 70px -34px rgba(24,19,42,.3); }
+
+  /* ============ screen 01 — hero ============ */
+  .hero { padding: 74px var(--pad-x) 64px; position: relative; }
+  .hero-kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-45); }
+  .hero-kicker b { color: var(--amber); font-weight: 500; }
+  .hero h3 { font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 120; font-weight: 480; font-size: clamp(34px,4.6vw,58px); line-height: 1.06; letter-spacing: -.015em; margin-top: 20px; max-width: 15em; }
+  .hero h3 em { font-style: italic; color: var(--amber); font-weight: 420; }
+  .hero .hero-lede { margin-top: 22px; max-width: 58ch; color: var(--ink-70); font-size: 16.5px; }
+  .hero-cta-row { display: flex; align-items: center; gap: 26px; margin-top: 30px; }
+  .btn { display: inline-block; font-family: var(--ui); font-weight: 500; font-size: 14.5px; text-decoration: none; background: var(--amber); color: var(--cta-ink); padding: 12px 26px; border-radius: 3px; }
+  .link-quiet { font-family: var(--mono); font-size: 13px; color: var(--ink-45); text-decoration: none; border-bottom: 1px dotted var(--rule); padding-bottom: 2px; }
+  .link-quiet:hover { color: var(--ink); }
+
+  .skyfield { position: relative; margin-top: 54px; border: 1px solid var(--rule-soft); background:
+    radial-gradient(ellipse 90% 70% at 60% 20%, rgba(75,42,99,.28), transparent 70%),
+    linear-gradient(180deg, transparent, rgba(0,0,0,.12)); }
+  html[data-theme="light"] .skyfield { background: radial-gradient(ellipse 90% 70% at 60% 20%, rgba(75,42,99,.1), transparent 70%); }
+  .skyfield svg { display: block; width: 100%; height: auto; }
+
+  .star { fill: var(--ink-28); }
+  .agent-light { fill: var(--amber); }
+  .agent-light.pulse { animation: lightpulse 3.6s ease-in-out infinite; }
+  .agent-light.pulse.l2 { animation-delay: 1.7s; }
+  .agent-halo { fill: none; stroke: var(--glow); stroke-width: 1; opacity: .7; animation: halo 3.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  .agent-halo.l2 { animation-delay: 1.7s; }
+  @keyframes lightpulse { 0%,100% { opacity: .82; } 50% { opacity: 1; } }
+  @keyframes halo { 0% { transform: scale(.6); opacity: .7; } 80% { transform: scale(2.2); opacity: 0; } 100% { opacity: 0; } }
+  .you-ring { fill: none; stroke: var(--ink-45); stroke-width: 1; stroke-dasharray: 3 4; }
+  .map-tag { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-45); }
+  .map-tag.lit { fill: var(--amber); }
+  .map-dist { font-family: var(--mono); font-size: 9.5px; fill: var(--ink-28); }
+
+  /* the ledger — replaces the three counters */
+  .ledger { display: flex; align-items: baseline; gap: 0; border-top: 1px solid var(--rule-soft); font-family: var(--mono); }
+  .ledger > div { padding: 18px 26px; border-right: 1px solid var(--rule-soft); }
+  .ledger .l-count { font-size: 15px; color: var(--ink); }
+  .ledger .l-count b { color: var(--amber); font-weight: 500; font-size: 22px; margin-right: 8px; }
+  .ledger .l-live { font-size: 11.5px; color: var(--ink-45); display: flex; align-items: center; gap: 8px; }
+  .ledger .l-live .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); animation: lightpulse 2.4s ease-in-out infinite; }
+  .ledger .l-next { font-size: 11.5px; color: var(--ink-45); font-style: italic; font-family: var(--display); letter-spacing: .01em; }
+  .ledger .l-cta { margin-left: auto; border-right: none; border-left: 1px solid var(--rule-soft); }
+  .ledger .l-cta a { font-size: 12px; color: var(--amber); text-decoration: none; }
+  .ledger .l-cta a:hover { color: var(--amber-bright); }
+
+  .annot { margin-top: 14px; font-size: 12.5px; color: var(--ink-28); max-width: 100ch; }
+  .annot b { color: var(--ink-45); font-weight: 500; }
+
+  /* ============ screen 02 — the grove ============ */
+  .grove { padding: 70px 0 0; }
+  .grove-head { padding: 0 var(--pad-x); display: flex; align-items: baseline; gap: 16px; }
+  .grove-cap { font-family: var(--display); font-variation-settings: "SOFT" 60; font-weight: 500; font-size: clamp(24px,3vw,34px); letter-spacing: -.01em; }
+  .grove-capnote { font-family: var(--mono); font-size: 12px; color: var(--ink-45); }
+  .grove-lede { padding: 14px var(--pad-x) 0; max-width: 66ch; color: var(--ink-70); }
+  .grove-lede em { font-family: var(--display); font-style: italic; color: var(--ink); }
+
+  .axis { position: relative; margin-top: 44px; }
+  .axis svg { display: block; width: 100%; height: auto; }
+
+  .band-tag { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; fill: var(--ink-28); }
+  .band-tag tspan { fill: var(--ink-45); }
+  .band-rule { stroke: var(--rule-soft); stroke-width: 1; }
+  .groundline { stroke: var(--rule); stroke-width: 1.2; }
+
+  .sky-link { stroke: var(--sky-line); stroke-width: 1; fill: none; stroke-dasharray: 2 5; animation: seep 30s linear infinite reverse; }
+  .trunk { stroke: var(--ink-45); stroke-width: 2.6; fill: none; stroke-linecap: round; }
+  .trunk.lit { stroke: var(--ink-70); }
+  .trunk.you-trunk { stroke: var(--amber); }
+  .trunk.ghost-trunk { stroke: var(--ghost); stroke-dasharray: 5 6; }
+  .branch { stroke: var(--ink-45); stroke-width: 1.3; fill: none; stroke-linecap: round; }
+  .branch.ghost-b { stroke: var(--ghost); stroke-dasharray: 3 5; }
+  .branch.you-b { stroke: var(--amber-deep); }
+  .work-light { fill: var(--amber); }
+  .work-light.dim { fill: var(--ink-28); }
+  .trunk-tag { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-45); text-anchor: middle; }
+  .trunk-tag.you-tag { fill: var(--amber); }
+  .trunk-tag.ghost-tag { fill: var(--ink-28); font-style: italic; }
+
+  .root-path { stroke: var(--root-line); stroke-width: 1.3; fill: none; stroke-dasharray: 6 9; animation: seep 26s linear infinite; }
+  .root-node { fill: var(--root-node); }
+  @keyframes seep { to { stroke-dashoffset: -300; } }
+
+  .layer-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--rule-soft); }
+  .layer-card { padding: 30px var(--pad-x) 34px 34px; border-right: 1px solid var(--rule-soft); }
+  .layer-card:last-child { border-right: none; }
+  .layer-card .lc-mark { font-family: var(--mono); font-size: 13px; color: var(--amber); }
+  .layer-card h4 { font-family: var(--display); font-variation-settings: "SOFT" 50; font-weight: 500; font-size: 21px; margin-top: 10px; }
+  .layer-card .lc-status { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; margin-top: 6px; }
+  .lc-status.now { color: var(--amber); }
+  .lc-status.soon { color: var(--purple); }
+  .lc-status.emerging { color: var(--ink-45); }
+  .layer-card p { margin-top: 12px; font-size: 14px; color: var(--ink-70); max-width: 34ch; }
+
+  @media (max-width: 900px) {
+    :root { --pad-x: 28px; }
+    .layer-cards { grid-template-columns: 1fr; }
+    .layer-card { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+    .ledger { flex-wrap: wrap; }
+    .ledger .l-cta { margin-left: 0; border-left: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">rizom.ai · targeted pass — not a full redesign</div>
+  <h1>Two sections, one metaphor: honest <em>smallness</em> in the hero, the <em>grove</em> in the growth section.</h1>
+  <p class="lede">Everything else on the current home page stays. Screen 01 replaces the three stat counters (2 / 0 / 0) with a growing-in-public ledger. Screen 02 replaces the abstract you → team → network list with the brand book's vertical axis: one root system, many trunks, a sky full of lights — the same network drawn below ground and above it.</p>
+</header>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>hero ledger</a>
+  <a href="#s2"><span>02</span>the grove</a>
+  <button id="themeToggle" type="button">☀ light</button>
+</nav>
+
+<!-- ============ 01 · HERO ============ -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Hero — the map stays, the zeros go</h2>
+    <span class="note">No empty categories enumerated. One real number, framed as a beginning; the next milestone is copy, not a zero.</span>
+  </div>
+  <div class="frame">
+    <div class="hero">
+      <div class="hero-kicker rv">the network, live — <b>growing in public</b></div>
+      <h3 class="rv d1">This is what expertise looks like <em>when it's alive</em></h3>
+      <p class="hero-lede rv d2">Independent minds — researchers, builders, operators — each with an agent grown from what they actually know, finding each other by meaning. The network is small and you can see all of it: every light is a working agent you can talk to.</p>
+      <div class="hero-cta-row rv d3">
+        <a class="btn" href="#">Meet the agents</a>
+        <a class="link-quiet" href="#">watch a light come on →</a>
+      </div>
+
+      <div class="skyfield rv d3">
+        <svg viewBox="0 0 1160 330" role="img" aria-label="Live map: two agent lights among faint stars, with a dashed ring marking where yours could be">
+          <!-- faint starfield -->
+          <circle class="star" cx="90" cy="60" r="1"/><circle class="star" cx="210" cy="140" r="1.2"/>
+          <circle class="star" cx="330" cy="52" r="1"/><circle class="star" cx="455" cy="210" r="1.1"/>
+          <circle class="star" cx="585" cy="70" r="1"/><circle class="star" cx="700" cy="180" r="1.3"/>
+          <circle class="star" cx="800" cy="90" r="1"/><circle class="star" cx="915" cy="220" r="1"/>
+          <circle class="star" cx="1010" cy="64" r="1.1"/><circle class="star" cx="1080" cy="170" r="1"/>
+          <circle class="star" cx="160" cy="250" r="1"/><circle class="star" cx="540" cy="280" r="1"/>
+          <circle class="star" cx="880" cy="300" r="1"/><circle class="star" cx="380" cy="300" r="1.1"/>
+
+          <!-- the two real agents -->
+          <circle class="agent-halo" cx="470" cy="130" r="7"/>
+          <circle class="agent-light pulse" cx="470" cy="130" r="4.5"/>
+          <text class="map-tag lit" x="486" y="126">metis</text>
+          <text class="map-dist" x="486" y="140">·51 from you</text>
+
+          <circle class="agent-halo l2" cx="680" cy="230" r="7"/>
+          <circle class="agent-light pulse l2" cx="680" cy="230" r="4.5"/>
+          <text class="map-tag lit" x="696" y="226">paper tiger</text>
+          <text class="map-dist" x="696" y="240">·57 from you</text>
+
+          <!-- where you would be -->
+          <circle class="you-ring" cx="565" cy="176" r="11"/>
+          <text class="map-tag" x="583" y="180">you — unlit</text>
+        </svg>
+        <div class="ledger">
+          <div class="l-count"><b>2</b>lights on</div>
+          <div class="l-live"><span class="dot"></span>both real · both answering now</div>
+          <div class="l-next">the first constellation forms when two lights find each other — yours could be the third</div>
+          <div class="l-cta"><a href="#">talk to one →</a></div>
+        </div>
+      </div>
+      <p class="annot"><b>Why:</b> the old counters listed 0 constellations and 0 archived traces directly under "alive" — inventory of what doesn't exist yet. The ledger keeps the one real number, frames it as growing in public, and turns the empty categories into what happens next. Honesty stays (2 is 2); the framing does the work the zeros couldn't. The dashed "you — unlit" ring makes the CTA spatial: joining is a place on the map.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 · THE GROVE ============ -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>Growth — the vertical axis replaces the abstract layer list</h2>
+    <span class="note">Roots → trunks → branches → constellation, one scene. The root network and the constellation share the same topology: the same network, below ground and in the sky.</span>
+  </div>
+  <div class="frame">
+    <div class="grove">
+      <div class="grove-head">
+        <span class="grove-cap rv">Lights find each other</span>
+        <span class="grove-capnote rv d1">— one root system · many trunks · a sky full of lights</span>
+      </div>
+      <p class="grove-lede rv d2">Rizom grows like an aspen grove: every trunk stands alone — <em>your server, your voice</em> — but underground it's one organism. Your work is the branches. And at night, the grove becomes a constellation: the same network, written in the sky.</p>
+
+      <div class="axis rv d3">
+        <svg viewBox="0 0 1160 560" role="img" aria-label="One vertical scene: a constellation in the sky, a grove of trunks at the surface, and a shared root system underground — the sky links mirror the root links">
+          <!-- band rules + tags -->
+          <text class="band-tag" x="40" y="52">network <tspan>· the constellation · emerging</tspan></text>
+          <line class="band-rule" x1="40" y1="62" x2="1120" y2="62"/>
+          <text class="band-tag" x="40" y="208">team <tspan>· the grove · the team bundle</tspan></text>
+          <line class="band-rule" x1="40" y1="218" x2="1120" y2="218"/>
+          <text class="band-tag" x="40" y="452">the root system <tspan>· open source · one organism</tspan></text>
+
+          <!-- SKY: constellation (same adjacency as the roots below) -->
+          <path class="sky-link" d="M240,118 C330,84 420,72 500,86"/>
+          <path class="sky-link" d="M500,86 C600,110 680,140 770,148"/>
+          <path class="sky-link" d="M770,148 C850,136 930,112 1000,104"/>
+          <circle class="agent-halo" cx="240" cy="118" r="6"/>
+          <circle class="agent-light pulse" cx="240" cy="118" r="4"/>
+          <circle class="agent-halo l2" cx="500" cy="86" r="6"/>
+          <circle class="agent-light pulse l2" cx="500" cy="86" r="4"/>
+          <circle class="agent-light" cx="770" cy="148" r="3.4" opacity=".55"/>
+          <circle class="you-ring" cx="1000" cy="104" r="9"/>
+
+          <!-- GROVE: trunks rising from the groundline at y=430 -->
+          <line class="groundline" x1="40" y1="430" x2="1120" y2="430"/>
+
+          <!-- trunk 1 · lit -->
+          <path class="trunk lit" d="M240,430 C238,380 242,330 240,282"/>
+          <path class="branch" d="M240,330 C262,318 280,312 296,296"/>
+          <path class="branch" d="M240,360 C220,348 206,344 192,330"/>
+          <path class="branch" d="M240,300 C252,286 258,278 262,264"/>
+          <circle class="work-light" cx="296" cy="296" r="2.6"/>
+          <circle class="work-light" cx="192" cy="330" r="2.6"/>
+          <circle class="work-light" cx="262" cy="264" r="2.6"/>
+          <text class="trunk-tag" x="240" y="252">metis</text>
+
+          <!-- trunk 2 · lit -->
+          <path class="trunk lit" d="M500,430 C503,380 497,326 500,278"/>
+          <path class="branch" d="M500,344 C478,332 466,326 452,314"/>
+          <path class="branch" d="M500,312 C520,300 532,294 546,282"/>
+          <path class="branch" d="M500,290 C488,278 482,272 476,260"/>
+          <circle class="work-light" cx="452" cy="314" r="2.6"/>
+          <circle class="work-light" cx="546" cy="282" r="2.6"/>
+          <circle class="work-light" cx="476" cy="260" r="2.6"/>
+          <text class="trunk-tag" x="500" y="248">paper tiger</text>
+
+          <!-- trunk 3 · dimmer, older -->
+          <path class="trunk" d="M770,430 C768,392 772,352 770,318"/>
+          <path class="branch" d="M770,362 C790,352 800,346 812,336"/>
+          <circle class="work-light dim" cx="812" cy="336" r="2.6"/>
+          <text class="trunk-tag" x="770" y="288">joining…</text>
+
+          <!-- trunk 4 · ghost — yours -->
+          <path class="trunk ghost-trunk" d="M1000,430 C998,390 1002,356 1000,326"/>
+          <path class="branch ghost-b" d="M1000,372 C1018,362 1028,356 1040,348"/>
+          <text class="trunk-tag ghost-tag" x="1000" y="296">you?</text>
+
+          <!-- ROOTS: same adjacency as the sky links -->
+          <path class="root-path" d="M240,430 C300,496 430,500 500,432"/>
+          <path class="root-path" d="M500,430 C580,506 690,510 770,434"/>
+          <path class="root-path" d="M770,430 C840,498 930,502 1000,436"/>
+          <path class="root-path" d="M240,432 C360,540 640,548 1000,438" opacity=".5"/>
+          <circle class="root-node" cx="370" cy="483" r="2.4"/>
+          <circle class="root-node" cx="636" cy="489" r="2.4"/>
+          <circle class="root-node" cx="886" cy="486" r="2.4"/>
+          <circle class="root-node" cx="620" cy="527" r="2"/>
+        </svg>
+      </div>
+
+      <div class="layer-cards">
+        <div class="layer-card rv">
+          <div class="lc-mark">●</div>
+          <h4>You — a trunk</h4>
+          <div class="lc-status now">available now</div>
+          <p>A brain turns what you know into an agent that answers and publishes in your voice. Standing alone: your server, your keys, your work on its branches.</p>
+        </div>
+        <div class="layer-card rv d1">
+          <div class="lc-mark">∴</div>
+          <h4>Team — the grove</h4>
+          <div class="lc-status soon">the team bundle</div>
+          <p>Many trunks, one root system. Brains share memory underground, so what the team knows outlasts whoever planted it.</p>
+        </div>
+        <div class="layer-card rv d2">
+          <div class="lc-mark">◌</div>
+          <h4>Network — the constellation</h4>
+          <div class="lc-status emerging">emerging</div>
+          <p>At night the grove reads as a sky: agents matched by meaning, work finding minds by substance, not titles.</p>
+        </div>
+      </div>
+      <p class="annot" style="padding: 0 var(--pad-x) 34px;"><b>Why:</b> the current section says "you → team → network" as an abstract list — the flattest moment on the page. This draws the brand's whole metaphor in one scene, and the topology trick (sky links mirror root links) states the thesis without a word: the constellation <b>is</b> the rhizome, seen from above. The ghost trunk and the unlit ring are the same invitation in both halves.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  const toggle = document.getElementById("themeToggle");
+  toggle.addEventListener("click", () => {
+    const html = document.documentElement;
+    const next = html.dataset.theme === "dark" ? "light" : "dark";
+    html.dataset.theme = next;
+    toggle.textContent = next === "dark" ? "☀ light" : "☾ dark";
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }, { threshold: 0.15 });
+  document.querySelectorAll(".rv").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>

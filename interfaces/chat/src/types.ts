@@ -1,4 +1,4 @@
-import type { Thread } from "chat";
+import type { Adapter, Thread } from "chat";
 
 /**
  * A thread with opaque per-thread state. This package never reads or
@@ -9,9 +9,9 @@ import type { Thread } from "chat";
  */
 export type ChatThread = Thread<unknown>;
 
-export type ChatPlatform = "discord";
+export type ChatPlatform = "discord" | "slack";
 
-export const CHAT_PLATFORMS: readonly ChatPlatform[] = ["discord"];
+export const CHAT_PLATFORMS: readonly ChatPlatform[] = ["discord", "slack"];
 
 export interface GatewayListenerOptions {
   waitUntil: (task: Promise<unknown>) => void;
@@ -26,10 +26,21 @@ export interface DiscordChatAdapter {
   ): Promise<Response>;
 }
 
+export interface SlackChatAdapter extends Adapter {
+  startSocketModeListener(
+    options: GatewayListenerOptions,
+    durationMs?: number,
+    abortSignal?: AbortSignal,
+    webhookUrl?: string,
+  ): Promise<Response>;
+}
+
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;
+  slack?: SlackChatAdapter;
 }
 
 export interface ChatWebhookMap {
   discord?: (request: Request) => Promise<Response>;
+  slack?: (request: Request) => Promise<Response>;
 }
