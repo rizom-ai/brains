@@ -3,7 +3,11 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { LinkedInDistillationJobHandler } from "./handlers/linkedin-distillation-handler";
 import { LinkedInImportJobHandler } from "./handlers/linkedin-import-handler";
-import { LinkedInClient, type LinkedInFetch } from "./lib/linkedin-client";
+import {
+  LinkedInClient,
+  type LinkedInAccessTokenProvider,
+  type LinkedInFetch,
+} from "./lib/linkedin-client";
 import { createLinkedInImportTools } from "./tools";
 import { createLinkedInDistillationTools } from "./tools/distillation";
 import packageJson from "../package.json" with { type: "json" };
@@ -20,12 +24,15 @@ const linkedinImportConfigSchema: z.ZodType<
 > = z.object({
   accessToken: z
     .string()
+    .trim()
+    .min(1)
     .optional()
     .describe("LinkedIn member data portability access token"),
 });
 
 export interface LinkedInImportDeps {
   fetch?: LinkedInFetch | undefined;
+  accessTokenProvider?: LinkedInAccessTokenProvider | undefined;
 }
 
 export class LinkedInImportPlugin extends ServicePlugin<
@@ -45,7 +52,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    if (!this.config.accessToken) return [];
+    if (!this.hasAccessTokenSource()) return [];
     if (this.cachedTools) return this.cachedTools;
 
     const context = this.getContext();
@@ -65,7 +72,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   }
 
   protected override async registerJobHandlers(): Promise<void> {
-    if (!this.config.accessToken) return;
+    if (!this.hasAccessTokenSource()) return;
 
     const context = this.getContext();
     context.jobs.registerHandler(
@@ -87,9 +94,22 @@ export class LinkedInImportPlugin extends ServicePlugin<
     );
   }
 
+  private hasAccessTokenSource(): boolean {
+    return (
+      Boolean(this.config.accessToken) || Boolean(this.deps.accessTokenProvider)
+    );
+  }
+
   private getClient(): LinkedInClient {
+    const accessTokenProvider = this.deps.accessTokenProvider;
+    const staticAccessToken = this.config.accessToken;
     this.cachedClient ??= new LinkedInClient(
-      this.config.accessToken ?? "",
+      accessTokenProvider
+        ? {
+            getAccessToken: async (): Promise<string | undefined> =>
+              (await accessTokenProvider.getAccessToken()) ?? staticAccessToken,
+          }
+        : (staticAccessToken ?? ""),
       this.deps.fetch ?? globalThis.fetch,
     );
     return this.cachedClient;

@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import type { LinkedInFetch } from "./linkedin-client";
+import type {
+  LinkedInAccessTokenProvider,
+  LinkedInFetch,
+} from "./linkedin-client";
 
 export const LINKEDIN_AUTHORIZATION_URL =
   "https://www.linkedin.com/oauth/v2/authorization";
@@ -26,6 +29,11 @@ export interface LinkedInOAuthToken {
   expiresIn: number;
   scope?: string | undefined;
   tokenType?: string | undefined;
+}
+
+export interface LinkedInOAuthTokenStore extends LinkedInAccessTokenProvider {
+  storeToken(token: LinkedInOAuthToken): Promise<void>;
+  clearToken(): Promise<void>;
 }
 
 export interface LinkedInAuthorizationRequest {

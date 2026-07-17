@@ -33,4 +33,29 @@ describe("LinkedInImportPlugin", () => {
       "linkedin-import_distill_profile",
     ]);
   });
+
+  it("registers against a dynamic OAuth token provider before consent", async () => {
+    const harness = createPluginHarness();
+    const plugin = new LinkedInImportPlugin(
+      {},
+      {
+        accessTokenProvider: {
+          getAccessToken: async (): Promise<undefined> => undefined,
+        },
+      },
+    );
+
+    await harness.installPlugin(plugin);
+
+    expect(
+      harness
+        .getCapabilities()
+        .tools.filter((tool) => tool.name.startsWith("linkedin-import"))
+        .map((tool) => tool.name),
+    ).toEqual([
+      "linkedin-import_import",
+      "linkedin-import_inspect_schema",
+      "linkedin-import_distill_profile",
+    ]);
+  });
 });

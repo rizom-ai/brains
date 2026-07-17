@@ -43,6 +43,42 @@ describe("LinkedInClient", () => {
     expect(secondUrl.searchParams.get("start")).toBe("1");
   });
 
+  it("resolves a dynamic access token for each import request", async () => {
+    const authorizations: string[] = [];
+    const tokens = ["oauth-token-1", "oauth-token-2"];
+    const provider = {
+      getAccessToken: mock(async () => tokens.shift()),
+    };
+    const fetchFn = mock(
+      async (_input: string | URL | Request, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        authorizations.push(headers.get("Authorization") ?? "");
+        return Response.json({ elements: [] });
+      },
+    ) as LinkedInFetch;
+    const client = new LinkedInClient(provider, fetchFn);
+
+    await client.fetchProfile();
+    await client.fetchProfile();
+
+    expect(authorizations).toEqual([
+      "Bearer oauth-token-1",
+      "Bearer oauth-token-2",
+    ]);
+    expect(provider.getAccessToken).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails clearly when a dynamic provider is not connected", async () => {
+    const fetchFn = mock(async () => Response.json({ elements: [] }));
+    const client = new LinkedInClient(
+      { getAccessToken: mock(async () => undefined) },
+      fetchFn as LinkedInFetch,
+    );
+
+    expect(client.fetchProfile()).rejects.toThrow("LinkedIn is not connected");
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("fetches supported rich professional domains through the same paging contract", async () => {
     const urls: string[] = [];
     const fetchFn = mock(async (input: string | URL | Request) => {

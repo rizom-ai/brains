@@ -6,6 +6,12 @@ export type LinkedInFetch = (
 ) => Promise<Response>;
 export type LinkedInSnapshotRecord = Record<string, unknown>;
 
+export interface LinkedInAccessTokenProvider {
+  getAccessToken(): Promise<string | undefined>;
+}
+
+export type LinkedInAccessTokenSource = string | LinkedInAccessTokenProvider;
+
 export const linkedinRichProfessionalSnapshotDomains: readonly [
   "POSITIONS",
   "EDUCATION",
@@ -97,11 +103,14 @@ function getNextStart(
 
 /** Client for LinkedIn's DMA Member Snapshot API. */
 export class LinkedInClient {
-  private readonly accessToken: string;
+  private readonly accessTokenSource: LinkedInAccessTokenSource;
   private readonly fetchFn: LinkedInFetch;
 
-  constructor(accessToken: string, fetchFn: LinkedInFetch = globalThis.fetch) {
-    this.accessToken = accessToken;
+  constructor(
+    accessTokenSource: LinkedInAccessTokenSource,
+    fetchFn: LinkedInFetch = globalThis.fetch,
+  ) {
+    this.accessTokenSource = accessTokenSource;
     this.fetchFn = fetchFn;
   }
 
@@ -123,9 +132,10 @@ export class LinkedInClient {
       url.searchParams.set("domain", domain);
       url.searchParams.set("start", String(start));
 
+      const accessToken = await this.getAccessToken();
       const response = await this.fetchFn(url, {
         headers: {
-          Authorization: `Bearer ${this.accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Linkedin-Version": API_VERSION,
           "Content-Type": "application/json",
         },
@@ -155,5 +165,19 @@ export class LinkedInClient {
     throw new Error(
       `LinkedIn snapshot pagination exceeded ${MAX_SNAPSHOT_PAGES} pages`,
     );
+  }
+
+  private async getAccessToken(): Promise<string> {
+    const value =
+      typeof this.accessTokenSource === "string"
+        ? this.accessTokenSource
+        : await this.accessTokenSource.getAccessToken();
+    const accessToken = value?.trim();
+    if (!accessToken) {
+      throw new Error(
+        "LinkedIn is not connected; complete OAuth consent or configure an access token",
+      );
+    }
+    return accessToken;
   }
 }

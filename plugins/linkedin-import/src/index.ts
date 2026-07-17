@@ -9,6 +9,8 @@ export {
   LinkedInClient,
   linkedinProfessionalSnapshotDomainSchema,
   linkedinRichProfessionalSnapshotDomains,
+  type LinkedInAccessTokenProvider,
+  type LinkedInAccessTokenSource,
   type LinkedInFetch,
   type LinkedInProfessionalSnapshotDomain,
   type LinkedInSnapshotRecord,
@@ -30,6 +32,7 @@ export {
   type LinkedInAuthorizationRequest,
   type LinkedInCodeExchangeRequest,
   type LinkedInOAuthToken,
+  type LinkedInOAuthTokenStore,
 } from "./lib/linkedin-oauth-client";
 export {
   loadLinkedInProfileImport,
