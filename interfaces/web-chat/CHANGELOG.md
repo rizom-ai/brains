@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- [`e885fef`](https://github.com/rizom-ai/brains/commit/e885fef69a5b97823cf41583cebf49fbbb4ceb19) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent stale session-load failures from showing a drift error over a newer successfully loaded conversation.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.194
+  - @brains/contracts@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/auth-service@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+
 ## 0.2.0-alpha.193
 
 ### Patch Changes
