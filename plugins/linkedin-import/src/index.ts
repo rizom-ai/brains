@@ -8,6 +8,7 @@ export {
 export {
   LinkedInClient,
   linkedinProfessionalSnapshotDomainSchema,
+  linkedinRichProfessionalSnapshotDomains,
   type LinkedInFetch,
   type LinkedInProfessionalSnapshotDomain,
   type LinkedInSnapshotRecord,

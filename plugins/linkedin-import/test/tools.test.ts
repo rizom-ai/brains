@@ -209,6 +209,47 @@ describe("LinkedIn import tools", () => {
     expect(JSON.stringify(result)).not.toContain("Secret Role");
   });
 
+  it("inspects every rich professional domain in one redacted report", async () => {
+    const { deps } = createDeps({ records: [] });
+    const tool = createLinkedInImportTools("linkedin-import", deps)[1];
+    if (!tool)
+      throw new Error("LinkedIn schema inspection tool not registered");
+
+    const result = await tool.handler({ domain: "ALL_RICH" }, toolContext);
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        domains: [
+          {
+            domain: "POSITIONS",
+            recordsRead: 0,
+            fields: [],
+            recordShapes: [],
+          },
+          {
+            domain: "EDUCATION",
+            recordsRead: 0,
+            fields: [],
+            recordShapes: [],
+          },
+          {
+            domain: "SKILLS",
+            recordsRead: 0,
+            fields: [],
+            recordShapes: [],
+          },
+          {
+            domain: "CERTIFICATIONS",
+            recordsRead: 0,
+            fields: [],
+            recordShapes: [],
+          },
+        ],
+      },
+    });
+  });
+
   it("rejects unexpected import input", async () => {
     const { deps } = createDeps();
     const tool = createLinkedInImportTools("linkedin-import", deps)[0];

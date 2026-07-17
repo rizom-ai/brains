@@ -8,6 +8,7 @@ import {
 import { z } from "@brains/utils/zod";
 import {
   linkedinProfessionalSnapshotDomainSchema,
+  linkedinRichProfessionalSnapshotDomains,
   type LinkedInClient,
   type LinkedInProfessionalSnapshotDomain,
 } from "../lib/linkedin-client";
@@ -47,13 +48,15 @@ const importInputParserSchema: z.ZodType<LinkedInImportToolInput> = z
   .strict();
 
 interface LinkedInInspectSchemaToolInput {
-  domain: LinkedInProfessionalSnapshotDomain;
+  domain: LinkedInProfessionalSnapshotDomain | "ALL_RICH";
 }
 
 const inspectSchemaInputSchema = {
-  domain: linkedinProfessionalSnapshotDomainSchema.describe(
-    "Professional snapshot domain to inspect without returning member values",
-  ),
+  domain: z
+    .union([linkedinProfessionalSnapshotDomainSchema, z.literal("ALL_RICH")])
+    .describe(
+      "Professional snapshot domain to inspect, or ALL_RICH for every rich professional domain",
+    ),
 };
 
 const inspectSchemaInputParserSchema: z.ZodType<LinkedInInspectSchemaToolInput> =
@@ -201,7 +204,7 @@ export function createLinkedInImportTools(
     {
       name: `${pluginId}_inspect_schema`,
       description:
-        "Inspect a sanctioned LinkedIn professional snapshot domain and return only field names, value types, occurrence counts, and deduplicated redacted record shapes. Never returns member values or nested object keys. Use this to verify source contracts before implementing or debugging domain mappings.",
+        "Inspect one sanctioned LinkedIn professional snapshot domain, or ALL_RICH for every rich professional domain. Returns only field names, value types, occurrence counts, and deduplicated redacted record shapes. Never returns member values or nested object keys. Use this to verify source contracts before implementing or debugging domain mappings.",
       inputSchema: inspectSchemaInputSchema,
       visibility: "anchor",
       sideEffects: "none",
@@ -212,6 +215,19 @@ export function createLinkedInImportTools(
             success: false,
             error: `Invalid input: ${parsed.error.message}`,
           };
+        }
+
+        if (parsed.data.domain === "ALL_RICH") {
+          const domains = await Promise.all(
+            linkedinRichProfessionalSnapshotDomains.map(async (domain) => {
+              const records = await deps.client.fetchDomain(domain);
+              return {
+                domain,
+                ...summarizeLinkedInSnapshotSchema(records),
+              };
+            }),
+          );
+          return { success: true, data: { domains } };
         }
 
         const records = await deps.client.fetchDomain(parsed.data.domain);

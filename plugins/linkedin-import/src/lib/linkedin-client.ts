@@ -6,6 +6,13 @@ export type LinkedInFetch = (
 ) => Promise<Response>;
 export type LinkedInSnapshotRecord = Record<string, unknown>;
 
+export const linkedinRichProfessionalSnapshotDomains: readonly [
+  "POSITIONS",
+  "EDUCATION",
+  "SKILLS",
+  "CERTIFICATIONS",
+] = ["POSITIONS", "EDUCATION", "SKILLS", "CERTIFICATIONS"];
+
 export const linkedinProfessionalSnapshotDomainSchema: z.ZodEnum<{
   PROFILE: "PROFILE";
   POSITIONS: "POSITIONS";

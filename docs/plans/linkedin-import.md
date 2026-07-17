@@ -263,7 +263,8 @@ to capture real sanctioned API shapes and value-format contracts.
 
 Before enabling those domains for import:
 
-1. Run schema inspection against representative consenting accounts.
+1. Run schema inspection with `domain: "ALL_RICH"` against representative consenting
+   accounts (or inspect one domain at a time).
 2. Turn the observed contracts into redacted Snapshot/export fixtures.
 3. Add one deterministic mapper per domain through the transform registry.
 4. Enable each domain only after its mapper passes fixture-backed contract tests. The
