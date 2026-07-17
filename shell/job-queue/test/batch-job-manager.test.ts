@@ -576,6 +576,47 @@ describe("BatchJobManager", () => {
       expect(stopped).toBe(true);
     });
 
+    it("currently admits restarted cleanup before the prior stop settles", async () => {
+      let cleanupCalls = 0;
+      let signalFirstCleanup: (() => void) | undefined;
+      const firstCleanupStarted = new Promise<void>((resolve) => {
+        signalFirstCleanup = resolve;
+      });
+      let releaseFirstCleanup: (() => void) | undefined;
+      const firstCleanupGate = new Promise<void>((resolve) => {
+        releaseFirstCleanup = resolve;
+      });
+      batchManager.cleanup = async (): Promise<number> => {
+        cleanupCalls++;
+        if (cleanupCalls === 1) {
+          signalFirstCleanup?.();
+          await firstCleanupGate;
+        }
+        return 0;
+      };
+      await enqueueBatch([
+        { type: "embedding", data: { entityId: "entity-1" } },
+      ]);
+      await firstCleanupStarted;
+
+      let stopSettled = false;
+      const stopping = batchManager.stop().then(() => {
+        stopSettled = true;
+      });
+      batchManager.start(60_000);
+      await enqueueBatch([
+        { type: "embedding", data: { entityId: "entity-2" } },
+      ]);
+      while (cleanupCalls < 2) {
+        await Promise.resolve();
+      }
+
+      expect(stopSettled).toBe(false);
+      expect(cleanupCalls).toBe(2);
+      releaseFirstCleanup?.();
+      await stopping;
+    });
+
     it("should be idempotent for both start and stop", async () => {
       batchManager.start(60_000);
       batchManager.start(60_000);
