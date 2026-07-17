@@ -9,8 +9,10 @@ non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PRO
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
 exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
-Phase 3's optional reviewed narrative distillation is implemented; rich-domain
-fixtures/mappers and Phases 4–5 are not yet started.
+Phase 3's optional reviewed narrative distillation is implemented. Phase 4's sanctioned
+OAuth authorization-code protocol client is implemented, while browser routes, state,
+and secret persistence remain pending. Rich-domain fixtures/mappers and Phase 5 are not
+yet started.
 
 ## Context
 
@@ -290,12 +292,24 @@ is bound to the anchor-profile content digest; a separate job applies only the r
 proposal and rejects stale or concurrent profile edits. The deterministic import path
 never invokes this semantic pass.
 
-## Phase 4 — OAuth consent + token refresh (interface layer)
+## Phase 4 — OAuth consent + token refresh (interface layer, in progress)
 
-Replace the static `brain.yaml` token with the real 3-legged OAuth flow: a web callback
-endpoint captures the `code`, exchanges for access + refresh tokens, stores them in the
-brain's secret store. Refresh keeps the token valid for scheduled Changelog pulls. Confirm
-refresh-token availability for `r_dma_portability_3rd_party` when applying for access.
+The service package now exposes a protocol-only `LinkedInOAuthClient` implementing
+LinkedIn's documented authorization URL and server-side authorization-code exchange with
+the least-privilege `r_dma_portability_3rd_party` scope. It validates token responses,
+bounds provider errors, and does not register routes or persist credentials.
+
+Remaining interface-layer work:
+
+1. Add an operator-authenticated connect route and public callback with expiring,
+   single-use state.
+2. Store the resulting access token in an approved secret store and provide it dynamically
+   to the importer, replacing the static `brain.yaml` token.
+3. Confirm refresh-token availability for `r_dma_portability_3rd_party` in the approved
+   LinkedIn application before implementing refresh. LinkedIn's public authorization-code
+   contract does not currently document refresh fields, so the client deliberately ignores
+   them rather than guessing a refresh contract.
+4. Use refresh, if sanctioned, to support scheduled Changelog pulls.
 
 ## Phase 5 — Export-ZIP fallback source (non-EEA)
 

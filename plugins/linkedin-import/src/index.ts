@@ -23,6 +23,15 @@ export {
   type LinkedInSnapshotMapper,
 } from "./lib/transform/registry";
 export {
+  LINKEDIN_ACCESS_TOKEN_URL,
+  LINKEDIN_AUTHORIZATION_URL,
+  LINKEDIN_PORTABILITY_SCOPE,
+  LinkedInOAuthClient,
+  type LinkedInAuthorizationRequest,
+  type LinkedInCodeExchangeRequest,
+  type LinkedInOAuthToken,
+} from "./lib/linkedin-oauth-client";
+export {
   loadLinkedInProfileImport,
   type LinkedInProfessionalSnapshotSource,
   type LoadedLinkedInProfileImport,
