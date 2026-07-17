@@ -120,28 +120,38 @@ describe("DaemonRegistry", () => {
     await registry.stop("test-daemon");
   });
 
-  it("should preserve stop errors and allow a later retry", async () => {
+  it("shares stop errors across joiners and allows a later retry", async () => {
     const stopError = new Error("stop failed");
+    const stopEntered = deferred();
+    const releaseStop = deferred();
     let stopCalls = 0;
     const mockDaemon: Daemon = {
       start: async () => {},
       stop: async () => {
         stopCalls++;
-        if (stopCalls === 1) throw stopError;
+        if (stopCalls === 1) {
+          stopEntered.resolve();
+          await releaseStop.promise;
+          throw stopError;
+        }
       },
     };
 
     registry.register("test-daemon", mockDaemon, "test-plugin");
     await registry.start("test-daemon");
 
-    let receivedError: unknown;
-    try {
-      await registry.stop("test-daemon");
-    } catch (error) {
-      receivedError = error;
-    }
+    const firstStop = registry.stop("test-daemon");
+    await stopEntered.promise;
+    const secondStop = registry.stop("test-daemon");
+    releaseStop.resolve();
+    const results = await Promise.allSettled([firstStop, secondStop]);
 
-    expect(receivedError).toBe(stopError);
+    expect(
+      results.map((result) =>
+        result.status === "rejected" ? result.reason : undefined,
+      ),
+    ).toEqual([stopError, stopError]);
+    expect(stopCalls).toBe(1);
     expect(registry.get("test-daemon")?.status).toBe("error");
 
     await registry.stop("test-daemon");
@@ -149,14 +159,14 @@ describe("DaemonRegistry", () => {
     expect(registry.get("test-daemon")?.status).toBe("stopped");
   });
 
-  it("currently invokes concurrent starts more than once", async () => {
+  it("joins concurrent daemon starts", async () => {
+    const startEntered = deferred();
     const releaseStart = deferred();
-    const secondStartEntered = deferred();
     let startCalls = 0;
     const daemon: Daemon = {
       start: async (): Promise<void> => {
         startCalls++;
-        if (startCalls === 2) secondStartEntered.resolve();
+        startEntered.resolve();
         await releaseStart.promise;
       },
       stop: async (): Promise<void> => {},
@@ -164,25 +174,25 @@ describe("DaemonRegistry", () => {
     registry.register("test-daemon", daemon, "test-plugin");
 
     const firstStart = registry.start("test-daemon");
-    await Promise.resolve();
+    await startEntered.promise;
     const secondStart = registry.start("test-daemon");
-    await secondStartEntered.promise;
 
-    expect(startCalls).toBe(2);
+    expect(startCalls).toBe(1);
     releaseStart.resolve();
     await Promise.all([firstStart, secondStart]);
+    expect(registry.get("test-daemon")?.status).toBe("running");
     await registry.stop("test-daemon");
   });
 
-  it("currently invokes concurrent stops more than once", async () => {
+  it("joins concurrent daemon stops", async () => {
+    const stopEntered = deferred();
     const releaseStop = deferred();
-    const secondStopEntered = deferred();
     let stopCalls = 0;
     const daemon: Daemon = {
       start: async (): Promise<void> => {},
       stop: async (): Promise<void> => {
         stopCalls++;
-        if (stopCalls === 2) secondStopEntered.resolve();
+        stopEntered.resolve();
         await releaseStop.promise;
       },
     };
@@ -190,16 +200,16 @@ describe("DaemonRegistry", () => {
     await registry.start("test-daemon");
 
     const firstStop = registry.stop("test-daemon");
-    await Promise.resolve();
+    await stopEntered.promise;
     const secondStop = registry.stop("test-daemon");
-    await secondStopEntered.promise;
 
-    expect(stopCalls).toBe(2);
+    expect(stopCalls).toBe(1);
     releaseStop.resolve();
     await Promise.all([firstStop, secondStop]);
+    expect(registry.get("test-daemon")?.status).toBe("stopped");
   });
 
-  it("currently lets stop cross an admitted start", async () => {
+  it("serializes stop after an admitted start", async () => {
     const startEntered = deferred();
     const releaseStart = deferred();
     let stopCalls = 0;
@@ -216,13 +226,117 @@ describe("DaemonRegistry", () => {
 
     const starting = registry.start("test-daemon");
     await startEntered.promise;
-    await registry.stop("test-daemon");
-    expect(stopCalls).toBe(1);
+    let stopSettled = false;
+    const stopping = registry.stop("test-daemon").then(() => {
+      stopSettled = true;
+    });
+    await Promise.resolve();
+    expect(stopCalls).toBe(0);
+    expect(stopSettled).toBe(false);
 
     releaseStart.resolve();
-    await starting;
+    await Promise.all([starting, stopping]);
+    expect(stopCalls).toBe(1);
+    expect(registry.get("test-daemon")?.status).toBe("stopped");
+  });
+
+  it("starts a new generation after an admitted stop", async () => {
+    const stopEntered = deferred();
+    const releaseStop = deferred();
+    let startCalls = 0;
+    let stopCalls = 0;
+    const daemon: Daemon = {
+      start: async (): Promise<void> => {
+        startCalls++;
+      },
+      stop: async (): Promise<void> => {
+        stopCalls++;
+        if (stopCalls === 1) {
+          stopEntered.resolve();
+          await releaseStop.promise;
+        }
+      },
+    };
+    registry.register("test-daemon", daemon, "test-plugin");
+    await registry.start("test-daemon");
+
+    const stopping = registry.stop("test-daemon");
+    await stopEntered.promise;
+    const restarting = registry.start("test-daemon");
+    expect(startCalls).toBe(1);
+
+    releaseStop.resolve();
+    await Promise.all([stopping, restarting]);
+    expect(startCalls).toBe(2);
     expect(registry.get("test-daemon")?.status).toBe("running");
     await registry.stop("test-daemon");
+  });
+
+  it("makes unregister terminal while a start is admitted", async () => {
+    const startEntered = deferred();
+    const releaseStart = deferred();
+    let stopCalls = 0;
+    const daemon: Daemon = {
+      start: async (): Promise<void> => {
+        startEntered.resolve();
+        await releaseStart.promise;
+      },
+      stop: async (): Promise<void> => {
+        stopCalls++;
+      },
+    };
+    registry.register("test-daemon", daemon, "test-plugin");
+
+    const starting = registry.start("test-daemon");
+    await startEntered.promise;
+    const unregistering = registry.unregister("test-daemon");
+    let restartError: unknown;
+    try {
+      await registry.start("test-daemon");
+    } catch (error) {
+      restartError = error;
+    }
+    expect(restartError).toEqual(
+      new Error("Daemon is being unregistered: test-daemon"),
+    );
+
+    releaseStart.resolve();
+    await Promise.all([starting, unregistering]);
+    expect(stopCalls).toBe(1);
+    expect(registry.has("test-daemon")).toBe(false);
+  });
+
+  it("does not block unrelated daemon transitions", async () => {
+    const firstStartEntered = deferred();
+    const releaseFirstStart = deferred();
+    registry.register(
+      "first",
+      {
+        start: async (): Promise<void> => {
+          firstStartEntered.resolve();
+          await releaseFirstStart.promise;
+        },
+        stop: async (): Promise<void> => {},
+      },
+      "test-plugin",
+    );
+    registry.register(
+      "second",
+      {
+        start: async (): Promise<void> => {},
+        stop: async (): Promise<void> => {},
+      },
+      "test-plugin",
+    );
+
+    const firstStart = registry.start("first");
+    await firstStartEntered.promise;
+    await registry.start("second");
+    expect(registry.get("second")?.status).toBe("running");
+
+    releaseFirstStart.resolve();
+    await firstStart;
+    await registry.stopPlugin("test-plugin");
   });
 
   it("should handle daemon health checks", async () => {
