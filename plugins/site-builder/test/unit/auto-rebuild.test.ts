@@ -74,6 +74,40 @@ describe("RebuildManager", () => {
     manager.dispose();
   });
 
+  test("currently returns from dispose while an admitted enqueue is active", async () => {
+    let signalEnqueueStarted: (() => void) | undefined;
+    const enqueueStarted = new Promise<void>((resolve) => {
+      signalEnqueueStarted = resolve;
+    });
+    let releaseEnqueue: (() => void) | undefined;
+    const enqueueGate = new Promise<void>((resolve) => {
+      releaseEnqueue = resolve;
+    });
+    context.jobs.enqueue = mock(async () => {
+      signalEnqueueStarted?.();
+      await enqueueGate;
+      return "job-1";
+    });
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.requestBuild();
+    await enqueueStarted;
+
+    manager.dispose();
+    let enqueueSettled = false;
+    void enqueueGate.then(() => {
+      enqueueSettled = true;
+    });
+    expect(enqueueSettled).toBe(false);
+
+    releaseEnqueue?.();
+    await enqueueGate;
+  });
+
   test("explicit environment overrides the default", async () => {
     const config = createTestConfig();
     const manager = new RebuildManager(
