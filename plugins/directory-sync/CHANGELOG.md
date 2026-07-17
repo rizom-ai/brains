@@ -1,5 +1,20 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS Sync workspace backed by a sanitized directory-sync operational snapshot. Operators can inspect watcher, file, Git, recent-run, and quarantine state and request the existing normal sync flow from CMS, while Dashboard remains read-only and links to the workspace when available.
+
+- [`75cb1cc`](https://github.com/rizom-ai/brains/commit/75cb1cc81e3524d924e4c3696b33b3a26b0c6664) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own watcher, debounce, periodic Git, auto-commit, and import-job polling lifecycle with private Effect scopes and schedules. Start background work from plugin ready, abort periodic Git network operations, await Chokidar callbacks plus active repository mutations during teardown, and atomically reconfigure directory/Git generations behind stable tools, handlers, and subscriptions.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/image@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep edited-upload routing concise while preserving updates, distinguish failed pre-job requests from active jobs, and clarify agent and case-study tool selection.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/image@0.2.0-alpha.189
+  - @brains/notification-contracts@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/recurring-checks@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/scheduler@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

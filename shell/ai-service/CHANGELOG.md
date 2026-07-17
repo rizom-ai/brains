@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`a98996a`](https://github.com/rizom-ai/brains/commit/a98996a41267461f4cec7e1b40254cc1edd5798d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent lower-permission callers in shared conversations from receiving higher-permission message history or upload context.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/conversation-service@0.2.0-alpha.189
+  - @brains/entity-service@0.2.0-alpha.189
+  - @brains/identity-service@0.2.0-alpha.189
+  - @brains/mcp-service@0.2.0-alpha.189
+  - @brains/messaging-service@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

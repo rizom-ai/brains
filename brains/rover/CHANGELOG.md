@@ -1,5 +1,59 @@
 # @brains/rover
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`a98996a`](https://github.com/rizom-ai/brains/commit/a98996a41267461f4cec7e1b40254cc1edd5798d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent lower-permission callers in shared conversations from receiving higher-permission message history or upload context.
+
+- [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep edited-upload routing concise while preserving updates, distinguish failed pre-job requests from active jobs, and clarify agent and case-study tool selection.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e), [`75cb1cc`](https://github.com/rizom-ai/brains/commit/75cb1cc81e3524d924e4c3696b33b3a26b0c6664), [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435)]:
+  - @brains/directory-sync@0.2.0-alpha.189
+  - @brains/cms@0.2.0-alpha.189
+  - @brains/dashboard@0.2.0-alpha.189
+  - @brains/agent-discovery@0.2.0-alpha.189
+  - @brains/portfolio@0.2.0-alpha.189
+  - @brains/assessment@0.2.0-alpha.189
+  - @brains/blog@0.2.0-alpha.189
+  - @brains/decks@0.2.0-alpha.189
+  - @brains/doc@0.2.0-alpha.189
+  - @brains/document-plugin@0.2.0-alpha.189
+  - @brains/image-plugin@0.2.0-alpha.189
+  - @brains/link@0.2.0-alpha.189
+  - @brains/note@0.2.0-alpha.189
+  - @brains/products@0.2.0-alpha.189
+  - @brains/prompt@0.2.0-alpha.189
+  - @brains/rizom-ecosystem@0.2.0-alpha.189
+  - @brains/series@0.2.0-alpha.189
+  - @brains/site-info@0.2.0-alpha.189
+  - @brains/social-media@0.2.0-alpha.189
+  - @brains/topics@0.2.0-alpha.189
+  - @brains/wishlist@0.2.0-alpha.189
+  - @brains/a2a@0.2.0-alpha.189
+  - @brains/chat@0.2.0-alpha.189
+  - @brains/discord@0.2.0-alpha.189
+  - @brains/mcp@0.2.0-alpha.189
+  - @brains/web-chat@0.2.0-alpha.189
+  - @brains/webserver@0.2.0-alpha.189
+  - @brains/analytics@0.2.0-alpha.189
+  - @brains/atproto@0.2.0-alpha.189
+  - @brains/atproto-registry@0.2.0-alpha.189
+  - @brains/content-pipeline@0.2.0-alpha.189
+  - @brains/email-resend@0.2.0-alpha.189
+  - @brains/newsletter@0.2.0-alpha.189
+  - @brains/notifications@0.2.0-alpha.189
+  - @brains/obsidian-vault@0.2.0-alpha.189
+  - @brains/playbooks@0.2.0-alpha.189
+  - @brains/rover-onboarding@0.2.0-alpha.189
+  - @brains/site-builder-plugin@0.2.0-alpha.189
+  - @brains/site-content@0.2.0-alpha.189
+  - @brains/stock-photo@0.2.0-alpha.189
+  - @brains/app@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/site-default@0.2.0-alpha.189
+  - @rizom/theme-default@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

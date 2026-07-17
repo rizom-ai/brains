@@ -1,5 +1,15 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/ui-library@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes

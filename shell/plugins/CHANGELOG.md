@@ -1,5 +1,24 @@
 # @brains/plugins
 
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS Sync workspace backed by a sanitized directory-sync operational snapshot. Operators can inspect watcher, file, Git, recent-run, and quarantine state and request the existing normal sync flow from CMS, while Dashboard remains read-only and links to the workspace when available.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/conversation-service@0.2.0-alpha.189
+  - @brains/identity-service@0.2.0-alpha.189
+  - @brains/job-queue@0.2.0-alpha.189
+  - @brains/messaging-service@0.2.0-alpha.189
+  - @brains/recurring-checks@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
 ## 0.2.0-alpha.188
 
 ### Patch Changes
