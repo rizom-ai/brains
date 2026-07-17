@@ -121,9 +121,10 @@ export class AgentService implements IAgentService {
   /**
    * Reset the singleton instance (for testing)
    */
-  public static resetInstance(): void {
-    void AgentService.instance?.shutdown();
+  public static resetInstance(): Promise<void> {
+    const instance = AgentService.instance;
     AgentService.instance = null;
+    return instance?.shutdown() ?? Promise.resolve();
   }
 
   /**
@@ -250,8 +251,8 @@ export class AgentService implements IAgentService {
 
     return this.conversationActors.enqueue(
       conversationId,
-      async () => {
-        signal?.throwIfAborted();
+      async (operationSignal) => {
+        operationSignal.throwIfAborted();
         const actor = this.conversationActors.acquire(conversationId);
         const currentSnapshot = actor.getSnapshot();
 
@@ -291,7 +292,7 @@ export class AgentService implements IAgentService {
               confirmation,
               parsedConfirmation.confirmed,
               confirmationContext,
-              signal,
+              operationSignal,
             );
           }
 
@@ -303,7 +304,7 @@ export class AgentService implements IAgentService {
                 confirmation,
                 false,
                 confirmationContext,
-                signal,
+                operationSignal,
               );
             }
           } else {
@@ -330,14 +331,14 @@ export class AgentService implements IAgentService {
           actor: context?.actor ?? null,
           source: context?.source ?? null,
           attachments: context?.attachments ?? [],
-          ...(signal ? { signal } : {}),
+          signal: operationSignal,
         });
 
         const snapshot = await waitFor(
           actor,
           (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
         );
-        signal?.throwIfAborted();
+        operationSignal.throwIfAborted();
 
         return (
           snapshot.context.response ?? {
@@ -365,13 +366,13 @@ export class AgentService implements IAgentService {
     // in-flight chat() operation on the same conversation actor.
     return this.conversationActors.enqueue(
       conversationId,
-      () =>
+      (operationSignal) =>
         this.confirmations.run(
           conversationId,
           confirmed,
           approvalId,
           context,
-          signal,
+          operationSignal,
         ),
       signal,
     );
@@ -383,7 +384,14 @@ export class AgentService implements IAgentService {
   }
 
   private async shutdownActiveTurns(): Promise<void> {
-    this.conversationActors.dispose();
-    await this.activeTurns.close();
+    const reason = new Error("Agent service has been shut down");
+    const results = await Promise.allSettled([
+      this.conversationActors.close(reason),
+      this.activeTurns.close(),
+    ]);
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) throw failure.reason;
   }
 }

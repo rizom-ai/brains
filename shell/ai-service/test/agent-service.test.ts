@@ -147,8 +147,8 @@ describe("AgentService", () => {
   let mockProfileService: IAnchorProfileService;
   let mockConversationService: IConversationService;
 
-  beforeEach(() => {
-    AgentService.resetInstance();
+  beforeEach(async () => {
+    await AgentService.resetInstance();
     logger = createSilentLogger();
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
@@ -177,8 +177,8 @@ describe("AgentService", () => {
     mockAgentFactory.mockClear();
   });
 
-  afterEach(() => {
-    AgentService.resetInstance();
+  afterEach(async () => {
+    await AgentService.resetInstance();
   });
 
   describe("Component Interface Standardization", () => {
@@ -203,7 +203,7 @@ describe("AgentService", () => {
       expect(instance1).toBe(instance2);
     });
 
-    it("should reset instance", () => {
+    it("should reset instance", async () => {
       const instance1 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -213,7 +213,7 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
 
-      AgentService.resetInstance();
+      await AgentService.resetInstance();
 
       const instance2 = AgentService.getInstance(
         mockMCPService,
@@ -424,6 +424,61 @@ describe("AgentService", () => {
       await delay(1);
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       await service.shutdown();
+    });
+
+    it("terminally cancels active and queued turns during shutdown", async () => {
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+          abortSignal?: AbortSignal;
+        }) => {
+          modelSignal = params.abortSignal;
+          return new Promise<BrainAgentResult>((_resolve, reject) => {
+            params.abortSignal?.addEventListener(
+              "abort",
+              () => reject(params.abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const active = service
+        .chat("first", "test-conversation")
+        .catch((error: unknown) => error);
+      while (!modelSignal) {
+        await delay(1);
+      }
+      const queued = service
+        .chat("second", "test-conversation")
+        .catch((error: unknown) => error);
+
+      const shuttingDown = service.shutdown();
+      expect(service.shutdown()).toBe(shuttingDown);
+      const activeError = await active;
+      const queuedError = await queued;
+      await shuttingDown;
+
+      expect(activeError).toBe(queuedError);
+      expect(activeError).toEqual(
+        new Error("Agent service has been shut down"),
+      );
+      expect(modelSignal.aborted).toBe(true);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(
+        await service
+          .chat("after", "test-conversation")
+          .catch((error: unknown) => error),
+      ).toBe(activeError);
     });
 
     it("rejects messages beyond the bounded per-conversation queue", async () => {
