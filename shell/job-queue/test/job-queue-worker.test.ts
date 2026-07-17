@@ -186,7 +186,7 @@ describe("JobQueueWorker", () => {
       expect(worker.isWorkerRunning()).toBe(false);
     });
 
-    it("currently loses a restart requested while stop is draining", async () => {
+    it("serializes a restart requested while stop is draining", async () => {
       const handler = createMockHandler();
       let signalStarted: (() => void) | undefined;
       const started = new Promise<void>((resolve) => {
@@ -207,11 +207,14 @@ describe("JobQueueWorker", () => {
       await started;
 
       const stopping = worker.stop();
-      await worker.start();
+      const joinedStop = worker.stop();
+      const restarting = worker.start();
+      expect(joinedStop).toBe(stopping);
       releaseJob?.();
-      await stopping;
+      await Promise.all([stopping, restarting]);
 
-      expect(worker.isWorkerRunning()).toBe(false);
+      expect(worker.isWorkerRunning()).toBe(true);
+      await worker.stop();
     });
 
     it("should create a fresh fiber scope when restarted", async () => {
