@@ -815,13 +815,17 @@ describe("AuthService", () => {
     const database = createClient({ url: `file:${storeFile}` });
     try {
       const rows = await database.execute(
-        "SELECT token_hash, delivery_key_hash FROM setup_tokens WHERE consumed_at IS NULL",
+        `SELECT setup_tokens.token_hash, setup_token_deliveries.recipient_hash
+          FROM setup_tokens
+          INNER JOIN setup_token_deliveries
+            ON setup_token_deliveries.token_hash = setup_tokens.token_hash
+          WHERE setup_tokens.consumed_at IS NULL`,
       );
       expect(rows.rows).toHaveLength(1);
       expect(rows.rows[0]?.["token_hash"]).toMatch(/^[0-9a-f]{64}$/);
       expect(rows.rows[0]?.["token_hash"]).not.toBe(rawToken);
-      expect(rows.rows[0]?.["delivery_key_hash"]).toMatch(/^[0-9a-f]{64}$/);
-      expect(rows.rows[0]?.["delivery_key_hash"]).not.toBe("user@example.com");
+      expect(rows.rows[0]?.["recipient_hash"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(rows.rows[0]?.["recipient_hash"]).not.toBe("user@example.com");
     } finally {
       database.close();
     }

@@ -18,6 +18,7 @@ import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
   LEGACY_AUTH_FILES_IMPORT,
+  LEGACY_SETUP_DELIVERIES_IMPORT,
   LegacyAuthImportStore,
 } from "./legacy-import-store";
 import {
@@ -326,6 +327,8 @@ export class AuthService {
     const legacyImportComplete = await this.legacyImportStore.isComplete(
       LEGACY_AUTH_FILES_IMPORT,
     );
+    const legacySetupDeliveriesImportComplete =
+      await this.legacyImportStore.isComplete(LEGACY_SETUP_DELIVERIES_IMPORT);
     if (!legacyImportComplete) {
       await this.migrateLegacyPasskeys();
       await this.migrateLegacySessions();
@@ -341,6 +344,12 @@ export class AuthService {
     ]);
     if (!legacyImportComplete) {
       await this.legacyImportStore.markComplete(LEGACY_AUTH_FILES_IMPORT);
+    }
+    if (!legacySetupDeliveriesImportComplete) {
+      if (legacyImportComplete) {
+        await this.migrateLegacySetupState();
+      }
+      await this.legacyImportStore.markComplete(LEGACY_SETUP_DELIVERIES_IMPORT);
     }
     this.logger?.debug("Auth service signing keys loaded");
 

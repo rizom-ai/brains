@@ -3,6 +3,7 @@ import type { AuthRuntimeDatabase } from "./runtime-db";
 import { authLegacyImports } from "./runtime-schema";
 
 export const LEGACY_AUTH_FILES_IMPORT = "legacy-auth-files-v1";
+export const LEGACY_SETUP_DELIVERIES_IMPORT = "legacy-setup-deliveries-v1";
 
 export class LegacyAuthImportStore {
   private readonly database: AuthRuntimeDatabase;

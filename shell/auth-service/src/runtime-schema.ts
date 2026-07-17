@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -698,6 +699,44 @@ export const setupTokens: SetupTokensTable = sqliteTable(
   }),
 );
 
+type SetupTokenDeliveriesTable = AuthTable<
+  "setup_token_deliveries",
+  {
+    tokenHash: AuthTextColumn<"setup_token_deliveries", "token_hash", true>;
+    recipientHash: AuthTextColumn<
+      "setup_token_deliveries",
+      "recipient_hash",
+      true
+    >;
+    deliveredAt: AuthIntegerColumn<
+      "setup_token_deliveries",
+      "delivered_at",
+      true
+    >;
+    deliveryId: AuthTextColumn<"setup_token_deliveries", "delivery_id", false>;
+  }
+>;
+
+export const setupTokenDeliveries: SetupTokenDeliveriesTable = sqliteTable(
+  "setup_token_deliveries",
+  {
+    tokenHash: text("token_hash")
+      .notNull()
+      .references(() => setupTokens.tokenHash, { onDelete: "cascade" }),
+    recipientHash: text("recipient_hash").notNull(),
+    deliveredAt: integer("delivered_at").notNull(),
+    deliveryId: text("delivery_id"),
+  },
+  (table) => ({
+    primaryKey: primaryKey({
+      columns: [table.tokenHash, table.recipientHash],
+    }),
+    tokenHashIdx: index("idx_setup_token_deliveries_token_hash").on(
+      table.tokenHash,
+    ),
+  }),
+);
+
 type AuthAuditEventsTable = AuthTable<
   "auth_audit_events",
   {
@@ -799,6 +838,7 @@ export const authRuntimeSchema: {
   oauthSigningKeys: OauthSigningKeysTable;
   authSessions: AuthSessionsTable;
   passkeyCredentials: PasskeyCredentialsTable;
+  setupTokenDeliveries: SetupTokenDeliveriesTable;
   setupTokens: SetupTokensTable;
   webauthnChallenges: WebauthnChallengesTable;
 } = {
@@ -816,6 +856,7 @@ export const authRuntimeSchema: {
   oauthSigningKeys,
   authSessions,
   passkeyCredentials,
+  setupTokenDeliveries,
   setupTokens,
   webauthnChallenges,
 };

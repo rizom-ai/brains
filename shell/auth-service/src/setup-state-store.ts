@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { JsonFileStore } from "./json-file-store";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
-import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
-import { setupTokens } from "./runtime-schema";
+import { setupTokenDeliveries, setupTokens } from "./runtime-schema";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
 
@@ -129,30 +129,50 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
   }
 
   async importState(state: SetupStateFile): Promise<boolean> {
-    if (!state.setupToken) return false;
-    const inserted = await this.database.db
-      .insert(setupTokens)
-      .values({
-        tokenHash: setupTokenId(state.setupToken.token),
-        purpose: PASSKEY_SETUP_PURPOSE,
-        targetUserId: null,
-        expiresAt: state.setupToken.expiresAt,
-        consumedAt: null,
-        deliveryKeyHash:
-          state.deliveries.find(
-            (delivery) =>
-              delivery.setupTokenId ===
-              setupTokenId(state.setupToken?.token ?? ""),
-          )?.recipientHash ?? null,
-        createdAt: Math.floor(Date.now() / 1000),
-      })
-      .onConflictDoNothing()
-      .returning({ tokenHash: setupTokens.tokenHash });
-    if (inserted.length > 0) {
-      this.revealableToken = state.setupToken;
-      return true;
+    const setupToken = state.setupToken;
+    if (!setupToken) return false;
+    const tokenHash = setupTokenId(setupToken.token);
+    const imported = await this.database.db.transaction(async (tx) => {
+      const insertedTokens = await tx
+        .insert(setupTokens)
+        .values({
+          tokenHash,
+          purpose: PASSKEY_SETUP_PURPOSE,
+          targetUserId: null,
+          expiresAt: setupToken.expiresAt,
+          consumedAt: null,
+          deliveryKeyHash: null,
+          createdAt: Math.floor(Date.now() / 1000),
+        })
+        .onConflictDoNothing()
+        .returning({ tokenHash: setupTokens.tokenHash });
+      const deliveries = state.deliveries.filter(
+        (delivery) => delivery.setupTokenId === tokenHash,
+      );
+      const insertedDeliveries =
+        deliveries.length > 0
+          ? await tx
+              .insert(setupTokenDeliveries)
+              .values(
+                deliveries.map((delivery) => ({
+                  tokenHash,
+                  recipientHash: delivery.recipientHash,
+                  deliveredAt: delivery.deliveredAt,
+                  deliveryId: delivery.deliveryId ?? null,
+                })),
+              )
+              .onConflictDoNothing()
+              .returning({ tokenHash: setupTokenDeliveries.tokenHash })
+          : [];
+      return {
+        tokenInserted: insertedTokens.length > 0,
+        deliveriesInserted: insertedDeliveries.length > 0,
+      };
+    });
+    if (imported.tokenInserted) {
+      this.revealableToken = setupToken;
     }
-    return false;
+    return imported.tokenInserted || imported.deliveriesInserted;
   }
 
   async getValidSetupToken(
@@ -190,13 +210,16 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
     const [row] = await this.database.db
       .select({ tokenHash: setupTokens.tokenHash })
       .from(setupTokens)
+      .innerJoin(
+        setupTokenDeliveries,
+        eq(setupTokenDeliveries.tokenHash, setupTokens.tokenHash),
+      )
       .where(
         and(
           eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
           isNull(setupTokens.targetUserId),
           isNull(setupTokens.consumedAt),
           gt(setupTokens.expiresAt, nowSecondsValue),
-          isNotNull(setupTokens.deliveryKeyHash),
         ),
       )
       .limit(1);
@@ -318,12 +341,12 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
     recipient: string,
   ): Promise<boolean> {
     const [row] = await this.database.db
-      .select({ tokenHash: setupTokens.tokenHash })
-      .from(setupTokens)
+      .select({ tokenHash: setupTokenDeliveries.tokenHash })
+      .from(setupTokenDeliveries)
       .where(
         and(
-          eq(setupTokens.tokenHash, setupTokenIdValue),
-          eq(setupTokens.deliveryKeyHash, recipientHash(recipient)),
+          eq(setupTokenDeliveries.tokenHash, setupTokenIdValue),
+          eq(setupTokenDeliveries.recipientHash, recipientHash(recipient)),
         ),
       )
       .limit(1);
@@ -333,11 +356,17 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
   async recordDelivery(
     setupTokenIdValue: string,
     recipient: string,
+    options: RecordSetupDeliveryOptions = {},
   ): Promise<void> {
     await this.database.db
-      .update(setupTokens)
-      .set({ deliveryKeyHash: recipientHash(recipient) })
-      .where(eq(setupTokens.tokenHash, setupTokenIdValue));
+      .insert(setupTokenDeliveries)
+      .values({
+        tokenHash: setupTokenIdValue,
+        recipientHash: recipientHash(recipient),
+        deliveredAt: Math.floor(Date.now() / 1000),
+        deliveryId: options.deliveryId ?? null,
+      })
+      .onConflictDoNothing();
   }
 }
 

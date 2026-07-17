@@ -31,6 +31,7 @@ const currentAuthTableNames = [
   "oauth_signing_keys",
   "passkey_credentials",
   "person_identity_claims",
+  "setup_token_deliveries",
   "setup_tokens",
   "webauthn_challenges",
 ];
@@ -182,6 +183,11 @@ describe("AuthRuntimeDatabase", () => {
         `INSERT INTO operator_sessions
           (token_hash, user_id, expires_at, revoked_at, created_at)
           VALUES ('legacy-token-hash', 'usr_anchor', 9999999999, NULL, 1)`,
+        `INSERT INTO setup_tokens
+          (token_hash, purpose, target_user_id, expires_at, consumed_at,
+           delivery_key_hash, created_at)
+          VALUES ('legacy-setup-hash', 'passkey_setup', NULL, 9999999999,
+                  NULL, 'legacy-recipient-hash', 2)`,
       ],
       "write",
     );
@@ -199,6 +205,23 @@ describe("AuthRuntimeDatabase", () => {
           userId: row["user_id"],
         })),
       ).toEqual([{ tokenHash: "legacy-token-hash", userId: "usr_anchor" }]);
+      const deliveries = await migrated.client.execute(
+        `SELECT token_hash, recipient_hash, delivered_at
+          FROM setup_token_deliveries`,
+      );
+      expect(
+        deliveries.rows.map((row) => ({
+          tokenHash: row["token_hash"],
+          recipientHash: row["recipient_hash"],
+          deliveredAt: row["delivered_at"],
+        })),
+      ).toEqual([
+        {
+          tokenHash: "legacy-setup-hash",
+          recipientHash: "legacy-recipient-hash",
+          deliveredAt: 2,
+        },
+      ]);
       expect(await tableNames(migrated)).toEqual(currentAuthTableNames);
     } finally {
       await migrated.stop();
@@ -378,8 +401,12 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(1);
-      expect(Number(migrations.rows[0]?.["created_at"])).toBeGreaterThan(0);
+      expect(migrations.rows).toHaveLength(2);
+      expect(
+        migrations.rows.every(
+          (migration) => Number(migration["created_at"]) > 0,
+        ),
+      ).toBe(true);
       expect(await tableNames(second)).toContain("auth_users");
       expect(await tableNames(second)).not.toContain("auth_schema_migrations");
       expect(await tableNames(second)).not.toContain("operator_sessions");

@@ -80,7 +80,7 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 - [x] **Conversation-memory recall loss for legacy participants** [fixed] — legacy summary/decision/action actor references now retain deduplicated opaque `ActorRef` aliases derived from historical actor/source ids, and retrieval matches those aliases without restoring raw provider subjects.
 - [x] **Action-item / decision attribution was lost for label-less actors** [fixed] — attribution matching now consistently falls back to the stable `actorRefKey`, matching the prompt speaker label without exposing or depending on raw legacy ids.
 - [x] **Already-delivered setup link was invalidated on restart** [fixed] — hidden setup URL retrieval now refuses to rotate while an active delivered token exists. Restart coverage keeps the delivered link valid and hash-only.
-- [ ] **Per-recipient setup-delivery dedupe collapsed** [PLAUSIBLE, narrow] — `setup-state-store.ts:337` overwrites a single `delivery_key_hash` column instead of the legacy append-only per-recipient list, so a recipient change loses the earlier dedupe record and `importState` migrates only one legacy delivery. Worst case is one duplicate setup email around legacy import, not a recurring loop. **Fix (low priority):** keep per-recipient delivery rows.
+- [x] **Per-recipient setup-delivery dedupe collapsed** [fixed] — `setup_token_deliveries` now retains one hash-only dedupe row per token and recipient, including provider delivery ids when available. The generated migration backfills the pre-normalized hash, while a one-shot compatibility import recovers every recipient still present in the immutable legacy setup-state backup.
 
 ### P2 — Efficiency
 
@@ -221,7 +221,8 @@ Delivery model: the auth DB does not store user emails on `auth_users`. When a p
 - `oauth_auth_codes`: code hash, client id, user id, redirect URI, PKCE challenge, scope, expiry, consumed timestamp.
 - `oauth_refresh_tokens`: token hash, client id, user id, scope, expiry, revoked/replaced metadata.
 - `oauth_signing_keys`: key id, purpose (`oauth` or `a2a`), private JWK, active/retired status, timestamps. At most one active key per purpose.
-- `setup_tokens`: token hash/id, purpose, target user id, expiry, consumed timestamp, delivery dedupe metadata.
+- `setup_tokens`: token hash/id, purpose, target user id, expiry, consumed timestamp, and the bounded pre-normalization delivery-hash compatibility column.
+- `setup_token_deliveries`: setup-token hash, recipient hash, delivery timestamp, and optional provider delivery id, uniquely keyed per token and recipient.
 
 ### A2A peer trust
 
