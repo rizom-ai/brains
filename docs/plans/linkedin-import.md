@@ -6,8 +6,9 @@ In progress on `work/professional-profile-v2`. Phase 1A's additive profile schem
 site fallbacks are implemented. Phase 1B's communication-preferences contract,
 instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
-snapshot client, deterministic mapper, merge-not-clobber job, tool, and Rover wiring are
-implemented. Rich professional-history domains and later phases are not yet started.
+snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
+tool, and Rover wiring are implemented. Rich professional-history domains and later
+phases are not yet started.
 
 ## Context
 
@@ -238,14 +239,15 @@ LinkedIn import must neither read nor write communication preferences.
   untouched seed placeholders, preserves owner-authored values, uses optimistic
   concurrency, and relies on the normal
   `entity:updated` cache-invalidation path. Re-running unchanged data performs no write.
-- `tools/index.ts` exposes the anchor-only, write-marked `linkedin-import_import` tool,
-  which queues the import job.
+- `tools/index.ts` exposes the anchor-only, write-marked `linkedin-import_import` tool. Its
+  initial call fetches and displays the deterministic merge preview; only the host's typed,
+  token-bound confirmation call can queue the import job.
 - Rover includes the inert capability in each preset and supplies the access token from
   its declared environment schema.
 
 Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
-mapping and merging, idempotent handler behavior, conflict handling, tool queuing, and
-inert/configured plugin wiring.
+mapping and merging, idempotent handler behavior, conflict handling, preview and forged
+confirmation behavior, tool queuing, and inert/configured plugin wiring.
 
 ## Phase 2B — Rich professional domains
 

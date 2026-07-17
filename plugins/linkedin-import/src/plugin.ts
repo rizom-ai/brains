@@ -31,6 +31,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   LinkedInImportConfigInput
 > {
   private readonly deps: LinkedInImportDeps;
+  private cachedClient: LinkedInClient | null = null;
   private cachedTools: Tool[] | null = null;
 
   constructor(
@@ -45,8 +46,11 @@ export class LinkedInImportPlugin extends ServicePlugin<
     if (!this.config.accessToken) return [];
     if (this.cachedTools) return this.cachedTools;
 
+    const context = this.getContext();
     this.cachedTools = createLinkedInImportTools(this.id, {
-      jobs: this.getContext().jobs,
+      client: this.getClient(),
+      entityService: context.entityService,
+      jobs: context.jobs,
     });
     return this.cachedTools;
   }
@@ -60,14 +64,19 @@ export class LinkedInImportPlugin extends ServicePlugin<
       new LinkedInImportJobHandler(
         this.logger.child("LinkedInImportJobHandler"),
         {
-          client: new LinkedInClient(
-            this.config.accessToken,
-            this.deps.fetch ?? globalThis.fetch,
-          ),
+          client: this.getClient(),
           entityService: context.entityService,
         },
       ),
     );
+  }
+
+  private getClient(): LinkedInClient {
+    this.cachedClient ??= new LinkedInClient(
+      this.config.accessToken ?? "",
+      this.deps.fetch ?? globalThis.fetch,
+    );
+    return this.cachedClient;
   }
 }
 

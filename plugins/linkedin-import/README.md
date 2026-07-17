@@ -2,7 +2,7 @@
 
 Imports the anchor owner's professional profile through LinkedIn's sanctioned DMA Member Data Portability API.
 
-The plugin is inert unless `accessToken` is configured. Its anchor-only `linkedin-import_import` tool queues a deterministic import job that fills absent `anchor-profile` fields and preserves owner-authored values.
+The plugin is inert unless `accessToken` is configured. Its anchor-only `linkedin-import_import` tool fetches a read-only preview and enters the host's typed confirmation flow before queuing a deterministic import job. The job fills absent `anchor-profile` fields and preserves owner-authored values.
 
 The current walking skeleton imports LinkedIn's documented `PROFILE` snapshot domain. Position, education, skill, and certification domains remain disabled until representative sanctioned API/export fixtures confirm their source keys.
 

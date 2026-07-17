@@ -505,6 +505,7 @@ export {
 export {
   createTool,
   createResource,
+  ConfirmationArgsStore,
   toolSuccess,
   toolError,
   toolResultSchema,
