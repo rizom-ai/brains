@@ -93,9 +93,35 @@ export interface AuthAdminUserSummary extends AuthAdminPrincipal {
 export interface AgentPersonClaimInput {
   type: "discord" | "mcp" | "oauth" | "email" | "did";
   subject: string;
-  issuer?: string;
+  issuer?: string | undefined;
+  label?: string | undefined;
+  visibility?: AuthIdentityVisibility | undefined;
+}
+
+export interface AuthAgentPersonReconciliationOwner {
+  personId: string;
+  userId?: string;
+  displayName?: string;
+  status?: AuthAdminStatus;
+}
+
+export interface AuthAgentPersonClaimReconciliation {
+  index: number;
+  type: AgentPersonClaimInput["type"];
   label?: string;
-  visibility?: AuthIdentityVisibility;
+  state: "unbound" | "asserted_match" | "verified_match";
+  owner?: AuthAgentPersonReconciliationOwner;
+}
+
+export interface AuthAgentPersonReconciliationRequest {
+  claims: AgentPersonClaimInput[];
+}
+
+export interface AuthAgentPersonReconciliationResponse {
+  state:
+    "unique_verified_match" | "cross_person_conflict" | "no_verified_match";
+  suggestedUserId?: string;
+  claims: AuthAgentPersonClaimReconciliation[];
 }
 
 export type AuthAdminMutation =

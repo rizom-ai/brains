@@ -1,7 +1,10 @@
 import {
   AUTH_REPRESENTATION_MUTATION_ACTIONS,
+  type AgentPersonClaimInput,
   type AuthAdminMutation,
   type AuthAdminUsersResponse,
+  type AuthAgentPersonReconciliationRequest,
+  type AuthAgentPersonReconciliationResponse,
   type AuthRepresentationMutation,
   type AuthRepresentationsResponse,
 } from "@brains/auth-service/admin-contracts";
@@ -52,6 +55,21 @@ export async function mutateAdmin<T>(mutation: AuthAdminMutation): Promise<T> {
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mutation),
+    }),
+  );
+}
+
+export async function reconcileAgentPersonClaims(
+  claims: AgentPersonClaimInput[],
+): Promise<AuthAgentPersonReconciliationResponse> {
+  return parseResponse(
+    await fetch("/auth/admin/reconciliation", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        claims,
+      } satisfies AuthAgentPersonReconciliationRequest),
     }),
   );
 }

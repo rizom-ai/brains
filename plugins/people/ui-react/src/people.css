@@ -581,6 +581,54 @@
 .people-dialog form {
   display: contents;
 }
+.people-reconciliation {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--console-rule-strong);
+  border-left: 3px solid var(--console-text-muted);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-text-muted) 5%, transparent);
+}
+.people-reconciliation--match {
+  border-left-color: var(--console-ok);
+  background: color-mix(in srgb, var(--console-ok) 7%, transparent);
+}
+.people-reconciliation--conflict {
+  border-left-color: var(--console-err);
+  background: color-mix(in srgb, var(--console-err) 7%, transparent);
+}
+.people-reconciliation strong {
+  color: var(--console-text);
+  font-size: 12px;
+}
+.people-reconciliation p {
+  margin: 0;
+  color: var(--console-text-dim);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.people-reconciliation ul {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.people-reconciliation li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 5px;
+  border-top: 1px solid var(--console-rule);
+  color: var(--console-text-muted);
+  font: 10px var(--console-mono);
+}
+.people-reconciliation li b {
+  color: var(--console-text);
+  font-weight: 500;
+}
 .people-note {
   margin: 0;
   color: var(--console-text-muted);

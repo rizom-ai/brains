@@ -7,6 +7,7 @@ import {
   type AuthAdminMutation,
   type AuthAdminRole,
   type AuthAdminUserSummary,
+  type AuthAgentPersonReconciliationResponse,
   type AuthAgentPersonSummary,
   type AuthIdentitySummary,
 } from "@brains/auth-service/admin-contracts";
@@ -24,6 +25,7 @@ import {
   fetchRepresentations,
   fetchUsers,
   mutateAdmin,
+  reconcileAgentPersonClaims,
 } from "./api";
 import styles from "./people.css" with { type: "text" };
 
@@ -93,6 +95,87 @@ export function assuranceLabel(identity: AuthIdentitySummary): string {
   )
     ? "Verified"
     : "Asserted — cannot authenticate";
+}
+
+export function promotionReconciliationDefaults(
+  reconciliation: AuthAgentPersonReconciliationResponse | undefined,
+  fallbackUserId: string | undefined,
+): {
+  accessPath: "invite" | "link";
+  userId: string | undefined;
+  blocked: boolean;
+} {
+  if (
+    reconciliation?.state === "unique_verified_match" &&
+    reconciliation.suggestedUserId
+  ) {
+    return {
+      accessPath: "link",
+      userId: reconciliation.suggestedUserId,
+      blocked: false,
+    };
+  }
+  return {
+    accessPath: "invite",
+    userId: fallbackUserId,
+    blocked: reconciliation?.state === "cross_person_conflict",
+  };
+}
+
+export function PromotionReconciliationSummary(props: {
+  reconciliation: AuthAgentPersonReconciliationResponse;
+}): ReactElement {
+  const { reconciliation } = props;
+  if (reconciliation.state === "unique_verified_match") {
+    const owner = reconciliation.claims.find(
+      (claim) => claim.owner?.userId === reconciliation.suggestedUserId,
+    )?.owner;
+    return (
+      <div className="people-reconciliation people-reconciliation--match">
+        <strong>Verified person found</strong>
+        <p>
+          An exact independently verified claim belongs to{" "}
+          {owner?.displayName ?? "an existing person"}. That person is
+          preselected; continuing creates a representation request rather than a
+          duplicate access record.
+        </p>
+      </div>
+    );
+  }
+
+  if (reconciliation.state === "cross_person_conflict") {
+    const conflicts = reconciliation.claims.filter((claim) => claim.owner);
+    return (
+      <div
+        className="people-reconciliation people-reconciliation--conflict"
+        role="alert"
+      >
+        <strong>Identity reconciliation required</strong>
+        <p>
+          Exact claims resolve to different People records. Review and correct
+          ownership before granting access; no link has been changed.
+        </p>
+        <ul>
+          {conflicts.map((claim) => (
+            <li key={`${claim.index}:${claim.type}`}>
+              <span>{claim.label ?? roleLabel(claim.type)}</span>
+              <b>{claim.owner?.displayName ?? claim.owner?.personId}</b>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <div className="people-reconciliation">
+      <strong>No verified person match</strong>
+      <p>
+        Agent assertions cannot select a person automatically. Choose whether to
+        invite a new person or link an existing record.
+      </p>
+    </div>
+  );
 }
 
 function formatDate(value: number): string {
@@ -752,7 +835,68 @@ function PromotionDialog(props: {
     userId?: string;
   }) => Promise<void>;
 }): ReactElement {
+  const fallbackUserId = props.selectedUserId ?? props.users[0]?.userId;
   const [accessPath, setAccessPath] = useState<"invite" | "link">("invite");
+  const [linkUserId, setLinkUserId] = useState<string | undefined>(
+    fallbackUserId,
+  );
+  const [reconciliation, setReconciliation] =
+    useState<AuthAgentPersonReconciliationResponse>();
+  const [reconciliationLoading, setReconciliationLoading] = useState(
+    (props.draft.claims?.length ?? 0) > 0,
+  );
+  const [reconciliationError, setReconciliationError] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const claims = props.draft.claims ?? [];
+    if (claims.length === 0) {
+      setReconciliationLoading(false);
+      return;
+    }
+
+    let active = true;
+    setReconciliationLoading(true);
+    setReconciliationError(null);
+    void reconcileAgentPersonClaims(claims)
+      .then((response) => {
+        if (!active) return;
+        setReconciliation(response);
+        const defaults = promotionReconciliationDefaults(
+          response,
+          fallbackUserId,
+        );
+        if (
+          defaults.accessPath === "link" &&
+          defaults.userId &&
+          props.users.some((user) => user.userId === defaults.userId)
+        ) {
+          setAccessPath("link");
+          setLinkUserId(defaults.userId);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setReconciliationError(
+          error instanceof Error
+            ? error.message
+            : "Identity comparison unavailable",
+        );
+      })
+      .finally(() => {
+        if (active) setReconciliationLoading(false);
+      });
+    return (): void => {
+      active = false;
+    };
+  }, [fallbackUserId, props.draft.claims, props.users]);
+
+  const blocked =
+    reconciliationLoading ||
+    reconciliationError !== null ||
+    reconciliation?.state === "cross_person_conflict";
+
   return (
     <ModalFrame
       eyebrow="Agent → user promotion"
@@ -761,13 +905,14 @@ function PromotionDialog(props: {
       onClose={props.onClose}
       onSubmit={(event) => {
         event.preventDefault();
+        if (blocked) return;
         const data = new FormData(event.currentTarget);
         void props.onPromote({
           accessPath,
           displayName: String(data.get("displayName") ?? ""),
           role: String(data.get("role") ?? "trusted") as AuthAdminRole,
-          ...(accessPath === "link"
-            ? { userId: String(data.get("userId") ?? "") }
+          ...(accessPath === "link" && linkUserId
+            ? { userId: linkUserId }
             : {}),
         });
       }}
@@ -776,8 +921,8 @@ function PromotionDialog(props: {
           <Button type="button" onClick={props.onClose}>
             Cancel
           </Button>
-          <Button type="submit" tone="primary">
-            Continue
+          <Button type="submit" tone="primary" disabled={blocked}>
+            {reconciliationLoading ? "Comparing…" : "Continue"}
           </Button>
         </>
       }
@@ -789,6 +934,15 @@ function PromotionDialog(props: {
           readOnly
         />
       </label>
+      {reconciliationLoading && (
+        <p className="people-note">Comparing exact private identity claims…</p>
+      )}
+      {reconciliation && (
+        <PromotionReconciliationSummary reconciliation={reconciliation} />
+      )}
+      {reconciliationError && (
+        <p className="people-error-banner">{reconciliationError}</p>
+      )}
       <label>
         <span>Access path</span>
         <select
@@ -796,6 +950,7 @@ function PromotionDialog(props: {
           onChange={(event) =>
             setAccessPath(event.currentTarget.value as "invite" | "link")
           }
+          disabled={reconciliation?.state === "cross_person_conflict"}
         >
           <option value="invite">Invite a new person</option>
           <option value="link">Link an existing person</option>
@@ -826,7 +981,12 @@ function PromotionDialog(props: {
       ) : (
         <label>
           <span>Existing person</span>
-          <select name="userId" defaultValue={props.selectedUserId} required>
+          <select
+            name="userId"
+            value={linkUserId ?? ""}
+            onChange={(event) => setLinkUserId(event.currentTarget.value)}
+            required
+          >
             {props.users.map((user) => (
               <option key={user.userId} value={user.userId}>
                 {user.displayName} · {roleLabel(user.role)} ·{" "}

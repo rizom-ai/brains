@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils/logger";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
+  AuthAgentPersonReconciliationResponse,
   AuthIdentitySummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
@@ -43,6 +44,8 @@ import {
   type AuthIdentityRecord,
   type AuthUserRole,
   type AuthUserStatus,
+  hashIdentityKey,
+  normalizeIdentityKey,
   type CreateAuthUserInput,
   type ResolveAuthIdentityInput,
 } from "./user-store";
@@ -889,6 +892,88 @@ export class AuthService {
     }));
   }
 
+  async reconcileAgentPersonClaims(
+    claims: AgentPersonIdentityClaimInput[],
+  ): Promise<AuthAgentPersonReconciliationResponse> {
+    await this.ensureUserStoreStarted();
+    const [identities, users] = await Promise.all([
+      this.getUserStore().listAllIdentities(),
+      this.getUserStore().listUsers(),
+    ]);
+    const activeIdentityByHash = new Map(
+      identities
+        .filter((identity) => identity.revokedAt === null)
+        .map((identity) => [identity.identityKeyHash, identity]),
+    );
+    const userByPersonId = new Map(users.map((user) => [user.personId, user]));
+
+    const reconciledClaims: AuthAgentPersonReconciliationResponse["claims"] =
+      claims.map((claim, index) => {
+        const identityKeyHash = hashIdentityKey(
+          normalizeIdentityKey({
+            type: claim.type,
+            subject: claim.subject,
+            ...(claim.issuer ? { issuer: claim.issuer } : {}),
+          }),
+        );
+        const identity = activeIdentityByHash.get(identityKeyHash);
+        if (!identity) {
+          return {
+            index,
+            type: claim.type,
+            ...(claim.label ? { label: claim.label } : {}),
+            state: "unbound" as const,
+          };
+        }
+
+        const user = userByPersonId.get(identity.personId);
+        const verified = identity.evidence.some(
+          (evidence) =>
+            evidence.assurance === "verified" && evidence.verifiedAt !== null,
+        );
+        return {
+          index,
+          type: claim.type,
+          ...(claim.label ? { label: claim.label } : {}),
+          state: verified
+            ? ("verified_match" as const)
+            : ("asserted_match" as const),
+          owner: {
+            personId: identity.personId,
+            ...(user
+              ? {
+                  userId: user.id,
+                  displayName: user.displayName,
+                  status: user.status,
+                }
+              : {}),
+          },
+        };
+      });
+
+    const matchedPersonIds = new Set(
+      reconciledClaims.flatMap((claim) =>
+        claim.owner ? [claim.owner.personId] : [],
+      ),
+    );
+    if (matchedPersonIds.size > 1) {
+      return { state: "cross_person_conflict", claims: reconciledClaims };
+    }
+
+    const verifiedMatch = reconciledClaims.find(
+      (claim) => claim.state === "verified_match" && claim.owner?.userId,
+    );
+    if (matchedPersonIds.size === 1 && verifiedMatch?.owner?.userId) {
+      return {
+        state: "unique_verified_match",
+        suggestedUserId: verifiedMatch.owner.userId,
+        claims: reconciledClaims,
+      };
+    }
+
+    return { state: "no_verified_match", claims: reconciledClaims };
+  }
+
   async listPersonAgents(personId: string): Promise<AgentPersonLink[]> {
     await this.ensureUserStoreStarted();
     return this.getPersonAgentStore().listByPersonId(personId);
@@ -1252,7 +1337,11 @@ export class AuthService {
     }
     const path = new URL(request.url).pathname;
 
-    if (path === "/auth/admin/users" || path === "/auth/admin/mutations") {
+    if (
+      path === "/auth/admin/users" ||
+      path === "/auth/admin/mutations" ||
+      path === "/auth/admin/reconciliation"
+    ) {
       return this.handleAdminRequest(request);
     }
     if (path === "/auth/representations") {
@@ -1360,6 +1449,8 @@ export class AuthService {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
       listAdminUsers: () => this.listAdminUsers(),
+      reconcileAgentPersonClaims: (claims) =>
+        this.reconcileAgentPersonClaims(claims),
       listPersonAgents: (personId) => this.listPersonAgents(personId),
       listUserIdentities: (userId) => this.listUserIdentities(userId),
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),

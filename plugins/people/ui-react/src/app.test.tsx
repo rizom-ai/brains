@@ -3,12 +3,17 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   PeopleApp,
+  PromotionReconciliationSummary,
   assuranceLabel,
   initials,
+  promotionReconciliationDefaults,
   roleLabel,
   type PeopleBootstrap,
 } from "./App";
-import type { AuthAdminUserSummary } from "@brains/auth-service/admin-contracts";
+import type {
+  AuthAdminUserSummary,
+  AuthAgentPersonReconciliationResponse,
+} from "@brains/auth-service/admin-contracts";
 
 const anchor: PeopleBootstrap = {
   displayName: "Yeehaa",
@@ -87,6 +92,89 @@ describe("People surface", () => {
     expect(html).toContain("My agents");
     expect(html).not.toContain("Access roster");
     expect(html).not.toContain("Add person");
+  });
+
+  it("preselects the only exact independently verified person", () => {
+    const reconciliation: AuthAgentPersonReconciliationResponse = {
+      state: "unique_verified_match",
+      suggestedUserId: user.userId,
+      claims: [
+        {
+          index: 0,
+          type: "did",
+          label: "Mira DID",
+          state: "verified_match",
+          owner: {
+            personId: user.personId,
+            userId: user.userId,
+            displayName: user.displayName,
+            status: user.status,
+          },
+        },
+      ],
+    };
+
+    expect(
+      promotionReconciliationDefaults(reconciliation, "usr_other"),
+    ).toEqual({
+      accessPath: "link",
+      userId: user.userId,
+      blocked: false,
+    });
+    const html = renderToStaticMarkup(
+      createElement(PromotionReconciliationSummary, { reconciliation }),
+    );
+    expect(html).toContain("Verified person found");
+    expect(html).toContain("Mira Reyes");
+    expect(html).not.toContain("did:example:mira");
+  });
+
+  it("blocks cross-person claims and names the records requiring review", () => {
+    const reconciliation: AuthAgentPersonReconciliationResponse = {
+      state: "cross_person_conflict",
+      claims: [
+        {
+          index: 0,
+          type: "did",
+          label: "Profile DID",
+          state: "verified_match",
+          owner: {
+            personId: "prsn_mira",
+            userId: "usr_mira",
+            displayName: "Mira Reyes",
+            status: "active",
+          },
+        },
+        {
+          index: 1,
+          type: "email",
+          label: "Contact email",
+          state: "verified_match",
+          owner: {
+            personId: "prsn_jules",
+            userId: "usr_jules",
+            displayName: "Jules Chen",
+            status: "active",
+          },
+        },
+      ],
+    };
+
+    expect(
+      promotionReconciliationDefaults(reconciliation, user.userId),
+    ).toEqual({
+      accessPath: "invite",
+      userId: user.userId,
+      blocked: true,
+    });
+    const html = renderToStaticMarkup(
+      createElement(PromotionReconciliationSummary, { reconciliation }),
+    );
+    expect(html).toContain("Identity reconciliation required");
+    expect(html).toContain("Mira Reyes");
+    expect(html).toContain("Jules Chen");
+    expect(html).toContain("Profile DID");
+    expect(html).toContain("Contact email");
   });
 
   it("uses canonical auth vocabulary and evidence labels", () => {

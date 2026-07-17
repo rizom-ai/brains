@@ -9,8 +9,10 @@ import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
+  type AgentPersonClaimInput,
   type AuthAdminPrincipal,
   type AuthAdminUserSummary,
+  type AuthAgentPersonReconciliationResponse,
   type AuthIdentitySummary,
   type AuthPasskeySummary,
 } from "./admin-contracts";
@@ -24,6 +26,9 @@ export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
   listUsers(): Promise<AuthAdminPrincipal[]>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
+  reconcileAgentPersonClaims(
+    claims: AgentPersonClaimInput[],
+  ): Promise<AuthAgentPersonReconciliationResponse>;
   listPersonAgents(personId: string): Promise<
     Array<{
       agentId: string;
@@ -228,6 +233,42 @@ export async function handleAuthAdminRequest(
       ? await operations.listAdminUsers()
       : await listAdminUsersCompat(operations);
     return privateJsonResponse({ users });
+  }
+
+  if (request.method === "POST" && path === "/auth/admin/reconciliation") {
+    if (!isSameOriginRequest(request)) {
+      return privateJsonResponse(
+        { error: "Same-origin request required" },
+        403,
+      );
+    }
+    if (!request.headers.get("content-type")?.startsWith("application/json")) {
+      return privateJsonResponse({ error: "JSON request required" }, 415);
+    }
+
+    const parsed = z
+      .strictObject({ claims: z.array(agentPersonClaimSchema).min(1).max(10) })
+      .safeParse(await readJsonRequest(request));
+    if (!parsed.success) {
+      return privateJsonResponse(
+        { error: "Invalid identity reconciliation request" },
+        400,
+      );
+    }
+
+    try {
+      return privateJsonResponse(
+        await operations.reconcileAgentPersonClaims(parsed.data.claims),
+      );
+    } catch (error) {
+      return privateJsonResponse(
+        {
+          error:
+            error instanceof Error ? error.message : "Reconciliation failed",
+        },
+        400,
+      );
+    }
   }
 
   if (request.method === "POST" && path === "/auth/admin/mutations") {

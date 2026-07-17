@@ -68,6 +68,10 @@ describe("auth admin API", () => {
           method: "POST",
         }),
         expect.objectContaining({
+          path: "/auth/admin/reconciliation",
+          method: "POST",
+        }),
+        expect.objectContaining({
           path: "/auth/representations",
           method: "GET",
         }),
@@ -134,8 +138,17 @@ describe("auth admin API", () => {
         confirmation: "",
       }),
     );
+    const crossOriginReconciliation = await service.handleRequest(
+      adminRequest(
+        "/auth/admin/reconciliation",
+        session.cookie,
+        { claims: [{ type: "did", subject: "did:example:mira" }] },
+        "https://evil.example",
+      ),
+    );
 
     expect(crossOrigin.status).toBe(403);
+    expect(crossOriginReconciliation.status).toBe(403);
     expect(unconfirmed.status).toBe(400);
     expect(await service.listUsers()).toHaveLength(1);
   });
@@ -180,6 +193,151 @@ describe("auth admin API", () => {
       ((await response.json()) as { users: unknown[] }).users,
     ).toHaveLength(2);
     expect(perUserQueryCount).toBe(0);
+  });
+
+  it("previews exact verified matches without exposing canonical subjects", async () => {
+    const service = await createService();
+    const anchor = await service.createUser({
+      displayName: "Anchor",
+      role: "anchor",
+    });
+    const mira = await service.createUser({
+      displayName: "Mira Reyes",
+      role: "trusted",
+    });
+    const jules = await service.createUser({
+      displayName: "Jules Chen",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: mira.userId,
+      type: "did",
+      subject: "did:example:mira",
+      label: "Mira DID",
+      verifiedAt: Date.now(),
+    });
+    await service.attachIdentity({
+      userId: jules.userId,
+      type: "email",
+      subject: "jules@example.com",
+      label: "Jules email",
+      verifiedAt: Date.now(),
+    });
+    const session = await service.createAuthSession(anchor.userId);
+
+    const unique = await service.handleRequest(
+      adminRequest("/auth/admin/reconciliation", session.cookie, {
+        claims: [
+          {
+            type: "did",
+            subject: "did:example:mira",
+            label: "Agent-carried DID",
+          },
+        ],
+      }),
+    );
+    const uniqueText = await unique.text();
+
+    expect(unique.status).toBe(200);
+    expect(JSON.parse(uniqueText)).toEqual({
+      state: "unique_verified_match",
+      suggestedUserId: mira.userId,
+      claims: [
+        {
+          index: 0,
+          type: "did",
+          label: "Agent-carried DID",
+          state: "verified_match",
+          owner: {
+            personId: mira.personId,
+            userId: mira.userId,
+            displayName: "Mira Reyes",
+            status: "active",
+          },
+        },
+      ],
+    });
+    expect(uniqueText).not.toContain("did:example:mira");
+    expect(uniqueText).not.toContain("identityKeyHash");
+
+    const conflict = await service.handleRequest(
+      adminRequest("/auth/admin/reconciliation", session.cookie, {
+        claims: [
+          { type: "did", subject: "did:example:mira", label: "DID" },
+          {
+            type: "email",
+            subject: "jules@example.com",
+            label: "Email",
+          },
+        ],
+      }),
+    );
+
+    expect(conflict.status).toBe(200);
+    expect(await conflict.json()).toMatchObject({
+      state: "cross_person_conflict",
+      claims: [
+        {
+          state: "verified_match",
+          owner: { userId: mira.userId, displayName: "Mira Reyes" },
+        },
+        {
+          state: "verified_match",
+          owner: { userId: jules.userId, displayName: "Jules Chen" },
+        },
+      ],
+    });
+  });
+
+  it("does not preselect asserted-only identity ownership", async () => {
+    const service = await createService();
+    const anchor = await service.createUser({
+      displayName: "Anchor",
+      role: "anchor",
+    });
+    const mira = await service.createUser({
+      displayName: "Mira Reyes",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: mira.userId,
+      type: "did",
+      subject: "did:example:asserted",
+      label: "Asserted DID",
+      source: { kind: "agent", id: "agent.example" },
+    });
+    const session = await service.createAuthSession(anchor.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/reconciliation", session.cookie, {
+        claims: [
+          {
+            type: "did",
+            subject: "did:example:asserted",
+            label: "Asserted DID",
+          },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      state: "no_verified_match",
+      claims: [
+        {
+          index: 0,
+          type: "did",
+          label: "Asserted DID",
+          state: "asserted_match",
+          owner: {
+            personId: mira.personId,
+            userId: mira.userId,
+            displayName: "Mira Reyes",
+            status: "active",
+          },
+        },
+      ],
+    });
   });
 
   it("promotes an agent's represented person into an invited user facet", async () => {
