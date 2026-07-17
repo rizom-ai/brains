@@ -3,6 +3,14 @@ import { Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../src/daemon-registry";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 
+function deferred(): { promise: Promise<void>; resolve(): void } {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 describe("DaemonRegistry", () => {
   let registry: DaemonRegistry;
   let logger: Logger;
@@ -139,6 +147,82 @@ describe("DaemonRegistry", () => {
     await registry.stop("test-daemon");
     expect(stopCalls).toBe(2);
     expect(registry.get("test-daemon")?.status).toBe("stopped");
+  });
+
+  it("currently invokes concurrent starts more than once", async () => {
+    const releaseStart = deferred();
+    const secondStartEntered = deferred();
+    let startCalls = 0;
+    const daemon: Daemon = {
+      start: async (): Promise<void> => {
+        startCalls++;
+        if (startCalls === 2) secondStartEntered.resolve();
+        await releaseStart.promise;
+      },
+      stop: async (): Promise<void> => {},
+    };
+    registry.register("test-daemon", daemon, "test-plugin");
+
+    const firstStart = registry.start("test-daemon");
+    await Promise.resolve();
+    const secondStart = registry.start("test-daemon");
+    await secondStartEntered.promise;
+
+    expect(startCalls).toBe(2);
+    releaseStart.resolve();
+    await Promise.all([firstStart, secondStart]);
+    await registry.stop("test-daemon");
+  });
+
+  it("currently invokes concurrent stops more than once", async () => {
+    const releaseStop = deferred();
+    const secondStopEntered = deferred();
+    let stopCalls = 0;
+    const daemon: Daemon = {
+      start: async (): Promise<void> => {},
+      stop: async (): Promise<void> => {
+        stopCalls++;
+        if (stopCalls === 2) secondStopEntered.resolve();
+        await releaseStop.promise;
+      },
+    };
+    registry.register("test-daemon", daemon, "test-plugin");
+    await registry.start("test-daemon");
+
+    const firstStop = registry.stop("test-daemon");
+    await Promise.resolve();
+    const secondStop = registry.stop("test-daemon");
+    await secondStopEntered.promise;
+
+    expect(stopCalls).toBe(2);
+    releaseStop.resolve();
+    await Promise.all([firstStop, secondStop]);
+  });
+
+  it("currently lets stop cross an admitted start", async () => {
+    const startEntered = deferred();
+    const releaseStart = deferred();
+    let stopCalls = 0;
+    const daemon: Daemon = {
+      start: async (): Promise<void> => {
+        startEntered.resolve();
+        await releaseStart.promise;
+      },
+      stop: async (): Promise<void> => {
+        stopCalls++;
+      },
+    };
+    registry.register("test-daemon", daemon, "test-plugin");
+
+    const starting = registry.start("test-daemon");
+    await startEntered.promise;
+    await registry.stop("test-daemon");
+    expect(stopCalls).toBe(1);
+
+    releaseStart.resolve();
+    await starting;
+    expect(registry.get("test-daemon")?.status).toBe("running");
+    await registry.stop("test-daemon");
   });
 
   it("should handle daemon health checks", async () => {
