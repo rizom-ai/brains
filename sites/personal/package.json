@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-personal",
-  "version": "0.2.0-alpha.191",
+  "version": "0.2.0-alpha.192",
   "description": "Personal site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",

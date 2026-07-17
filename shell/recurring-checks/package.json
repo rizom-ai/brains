@@ -1,6 +1,6 @@
 {
   "name": "@brains/recurring-checks",
-  "version": "0.2.0-alpha.191",
+  "version": "0.2.0-alpha.192",
   "description": "Shell-owned recurring checks, deduplication, and delivery orchestration",
   "dependencies": {
     "@brains/job-queue": "workspace:*",

@@ -1,5 +1,57 @@
 # @brains/rover
 
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Add Slack as a first-class Chat SDK transport with webhook and Socket Mode delivery, direct messages, permission-aware uploads, native approvals and suggested actions, generated artifact delivery, and a validated local trial harness while preserving existing Discord behavior.
+
+- Updated dependencies []:
+  - @brains/chat@0.2.0-alpha.192
+  - @brains/agent-discovery@0.2.0-alpha.192
+  - @brains/assessment@0.2.0-alpha.192
+  - @brains/blog@0.2.0-alpha.192
+  - @brains/decks@0.2.0-alpha.192
+  - @brains/doc@0.2.0-alpha.192
+  - @brains/document-plugin@0.2.0-alpha.192
+  - @brains/image-plugin@0.2.0-alpha.192
+  - @brains/link@0.2.0-alpha.192
+  - @brains/note@0.2.0-alpha.192
+  - @brains/portfolio@0.2.0-alpha.192
+  - @brains/products@0.2.0-alpha.192
+  - @brains/prompt@0.2.0-alpha.192
+  - @brains/rizom-ecosystem@0.2.0-alpha.192
+  - @brains/series@0.2.0-alpha.192
+  - @brains/site-info@0.2.0-alpha.192
+  - @brains/social-media@0.2.0-alpha.192
+  - @brains/topics@0.2.0-alpha.192
+  - @brains/wishlist@0.2.0-alpha.192
+  - @brains/a2a@0.2.0-alpha.192
+  - @brains/discord@0.2.0-alpha.192
+  - @brains/mcp@0.2.0-alpha.192
+  - @brains/web-chat@0.2.0-alpha.192
+  - @brains/webserver@0.2.0-alpha.192
+  - @brains/analytics@0.2.0-alpha.192
+  - @brains/atproto@0.2.0-alpha.192
+  - @brains/atproto-registry@0.2.0-alpha.192
+  - @brains/cms@0.2.0-alpha.192
+  - @brains/content-pipeline@0.2.0-alpha.192
+  - @brains/dashboard@0.2.0-alpha.192
+  - @brains/directory-sync@0.2.0-alpha.192
+  - @brains/email-resend@0.2.0-alpha.192
+  - @brains/newsletter@0.2.0-alpha.192
+  - @brains/notifications@0.2.0-alpha.192
+  - @brains/obsidian-vault@0.2.0-alpha.192
+  - @brains/playbooks@0.2.0-alpha.192
+  - @brains/rover-onboarding@0.2.0-alpha.192
+  - @brains/site-builder-plugin@0.2.0-alpha.192
+  - @brains/site-content@0.2.0-alpha.192
+  - @brains/stock-photo@0.2.0-alpha.192
+  - @brains/app@0.2.0-alpha.192
+  - @brains/auth-service@0.2.0-alpha.192
+  - @brains/site-default@0.2.0-alpha.192
+  - @rizom/theme-default@0.2.0-alpha.192
+
 ## 0.2.0-alpha.191
 
 ### Patch Changes

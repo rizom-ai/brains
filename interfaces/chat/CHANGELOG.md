@@ -1,5 +1,17 @@
 # @brains/chat
 
+## 0.2.0-alpha.192
+
+### Minor Changes
+
+- Add Slack as a first-class Chat SDK transport with webhook and Socket Mode delivery, direct messages, permission-aware uploads, native approvals and suggested actions, generated artifact delivery, and a validated local trial harness while preserving existing Discord behavior.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+
 ## 0.2.0-alpha.191
 
 ### Patch Changes
