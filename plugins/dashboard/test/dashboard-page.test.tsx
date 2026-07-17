@@ -75,6 +75,42 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
+  it("should reference external client assets in deterministic cascade order", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      themeCSS: ":root { --private-theme: lime; }",
+      widgetStyles: [".private-widget { display: grid; }"],
+      widgetScripts: ["window.privateWidget = true;"],
+      assetUrls: {
+        themeStyles: "/dashboard/assets/theme.hash.css",
+        dashboardStyles: "/dashboard/assets/dashboard.hash.css",
+        widgetStyles: ["/dashboard/assets/widget.hash.css"],
+        dashboardScript: "/dashboard/assets/dashboard.hash.js",
+        widgetScripts: ["/dashboard/assets/widget.hash.js"],
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+    const themeIndex = html.indexOf("/dashboard/assets/theme.hash.css");
+    const dashboardIndex = html.indexOf("/dashboard/assets/dashboard.hash.css");
+    const widgetIndex = html.indexOf("/dashboard/assets/widget.hash.css");
+
+    expect(themeIndex).toBeGreaterThan(-1);
+    expect(themeIndex).toBeLessThan(dashboardIndex);
+    expect(dashboardIndex).toBeLessThan(widgetIndex);
+    expect(html.indexOf("/dashboard/assets/dashboard.hash.js")).toBeLessThan(
+      html.indexOf("/dashboard/assets/widget.hash.js"),
+    );
+    expect(html).not.toContain("--private-theme");
+    expect(html).not.toContain(".private-widget");
+    expect(html).not.toContain("window.privateWidget");
+  });
+
   it("should derive tabs from non-empty widget groups", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",

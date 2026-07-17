@@ -204,6 +204,7 @@ export function WidgetFilter({
   defaultValue,
   options,
   children,
+  emptyState,
   className,
   allValue = "all",
 }: {
@@ -211,6 +212,7 @@ export function WidgetFilter({
   defaultValue: string;
   options: WidgetFilterOption[];
   children: ComponentChildren;
+  emptyState?: ComponentChildren;
   className?: string;
   allValue?: string;
 }): JSX.Element {
@@ -249,6 +251,11 @@ export function WidgetFilter({
         })}
       </div>
       {children}
+      {emptyState !== undefined && (
+        <div data-ui-filter-empty hidden>
+          {emptyState}
+        </div>
+      )}
     </div>
   );
 }

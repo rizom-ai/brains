@@ -17,6 +17,7 @@ import type {
   WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
+import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
 import {
   renderDashboardPageHtml,
@@ -176,6 +177,7 @@ export class DashboardPlugin extends ServicePlugin<
   DashboardConfig,
   DashboardConfigInput
 > {
+  private readonly assetRegistry: DashboardAssetRegistry;
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
@@ -185,6 +187,7 @@ export class DashboardPlugin extends ServicePlugin<
 
   constructor(config: DashboardConfigInput = {}) {
     super("dashboard", packageJson, config, dashboardConfigSchema);
+    this.assetRegistry = new DashboardAssetRegistry(this.config.routePath);
   }
 
   private recordActivity(
@@ -454,6 +457,11 @@ export class DashboardPlugin extends ServicePlugin<
             dashboardData.widgets,
             this.widgetRegistry,
           );
+          const assetUrls = this.assetRegistry.createRenderUrls({
+            themeCSS: this.config.themeCSS,
+            widgetStyles: resolvedWidgets.widgetStyles,
+            widgetScripts: resolvedWidgets.widgetScripts,
+          });
 
           const input: DashboardRenderInput = {
             title,
@@ -461,6 +469,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgets: resolvedWidgets.widgets,
             widgetStyles: resolvedWidgets.widgetStyles,
             widgetScripts: resolvedWidgets.widgetScripts,
+            assetUrls,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
@@ -485,7 +494,10 @@ export class DashboardPlugin extends ServicePlugin<
           };
 
           return new Response(renderDashboardPageHtml(input), {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
+            headers: {
+              "Cache-Control": "private, no-store",
+              "Content-Type": "text/html; charset=utf-8",
+            },
           });
         },
       },
@@ -547,6 +559,7 @@ export class DashboardPlugin extends ServicePlugin<
           });
         },
       },
+      ...this.assetRegistry.getRoutes(),
     ];
   }
 

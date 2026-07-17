@@ -34,6 +34,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
         var active = tab.getAttribute("data-ui-tab") === value;
         tab.classList.toggle("is-active", active);
         tab.setAttribute("aria-selected", active ? "true" : "false");
+        tab.setAttribute("tabindex", active ? "0" : "-1");
         if (tab.hasAttribute("aria-pressed")) {
           tab.setAttribute("aria-pressed", active ? "true" : "false");
         }
@@ -60,6 +61,34 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
       activate(value, true);
     });
 
+    root.addEventListener("keydown", function (event) {
+      var target = event.target;
+      var tab = target && target.closest ? target.closest("[data-ui-tab]") : null;
+      if (!tab || tab.closest("[data-ui-tabs]") !== root) return;
+
+      var tabList = tab.closest('[role="tablist"]');
+      var vertical = tabList && tabList.getAttribute("aria-orientation") === "vertical";
+      var currentIndex = tabs.indexOf(tab);
+      var nextIndex = currentIndex;
+
+      if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = tabs.length - 1;
+      else if ((!vertical && event.key === "ArrowRight") || (vertical && event.key === "ArrowDown")) {
+        nextIndex = (currentIndex + 1) % tabs.length;
+      } else if ((!vertical && event.key === "ArrowLeft") || (vertical && event.key === "ArrowUp")) {
+        nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      } else {
+        return;
+      }
+
+      var nextTab = tabs[nextIndex];
+      var nextValue = nextTab && nextTab.getAttribute("data-ui-tab");
+      if (!nextTab || !nextValue || !panelExists(nextValue)) return;
+      event.preventDefault();
+      nextTab.focus();
+      activate(nextValue, true);
+    });
+
     root.classList.add("ui-tabs-ready");
     activate(resolveValue(), false);
 
@@ -84,6 +113,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
   function setupFilter(root) {
     var controls = ownedBy(root, "[data-ui-filter-value]", "[data-ui-filter]");
     var items = ownedBy(root, "[data-ui-filter-values]", "[data-ui-filter]");
+    var emptyStates = ownedBy(root, "[data-ui-filter-empty]", "[data-ui-filter]");
     var allValue = root.getAttribute("data-ui-filter-all") || "all";
     var fallback = root.getAttribute("data-ui-filter-default") || allValue;
     if (!controls.length) return;
@@ -95,10 +125,15 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
         control.classList.toggle("is-active", active);
         control.setAttribute("aria-pressed", active ? "true" : "false");
       });
+      var visibleCount = 0;
       items.forEach(function (item) {
         var values = parseFilterValues(item);
         var visible = value === allValue || values.indexOf(value) !== -1;
         item.toggleAttribute("hidden", !visible);
+        if (visible) visibleCount += 1;
+      });
+      emptyStates.forEach(function (emptyState) {
+        emptyState.toggleAttribute("hidden", visibleCount > 0);
       });
     }
 

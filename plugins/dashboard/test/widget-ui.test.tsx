@@ -46,6 +46,7 @@ describe("widget UI primitives", () => {
           { value: "all", label: "All", count: 1 },
           { value: "research", label: "Research", count: 1 },
         ]}
+        emptyState="No matching examples."
       >
         <WidgetList>
           <WidgetListItem
@@ -62,5 +63,7 @@ describe("widget UI primitives", () => {
     expect(html).toContain(
       'data-ui-filter-values="[&quot;research&quot;,&quot;writing&quot;]"',
     );
+    expect(html).toContain('data-ui-filter-empty="true" hidden');
+    expect(html).toContain("No matching examples.");
   });
 });

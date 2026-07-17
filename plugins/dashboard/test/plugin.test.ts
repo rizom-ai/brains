@@ -65,7 +65,7 @@ describe("DashboardPlugin", () => {
   describe("Web routes", () => {
     it("should expose the dashboard page and console jump routes", async () => {
       const routes = plugin.getWebRoutes();
-      expect(routes).toHaveLength(2);
+      expect(routes).toHaveLength(4);
       const pageRoute = routes.find((route) => route.path === "/dashboard");
       expect(pageRoute).toMatchObject({
         path: "/dashboard",
@@ -81,14 +81,30 @@ describe("DashboardPlugin", () => {
       );
       expect(response?.status).toBe(200);
       expect(response?.headers.get("content-type")).toContain("text/html");
+      expect(response?.headers.get("cache-control")).toBe("private, no-store");
       const html = await response?.text();
       expect(html).toContain("Test Owner");
       expect(html).toContain("Entities");
       expect(html).toContain("Identity");
       expect(html).toContain("dashboard:dashboard");
       expect(html).not.toContain("data-cms-frame");
-      // The jump palette ships with the page, wired to the strip's ⌘K.
-      expect(html).toContain("/api/console/jump");
+      expect(html).toMatch(
+        /<link[^>]*data-dashboard-styles[^>]*href="\/dashboard\/assets\/dashboard\.[a-f0-9]{64}\.css"/,
+      );
+      expect(html).toMatch(
+        /<script[^>]*data-dashboard-script[^>]*src="\/dashboard\/assets\/dashboard\.[a-f0-9]{64}\.js"/,
+      );
+      expect(html).not.toContain("<style data-dashboard-styles");
+
+      // The external client bundle still ships the jump palette wired to ⌘K.
+      const scriptPath = html?.match(
+        /data-dashboard-script[^>]*src="([^"]+)"/,
+      )?.[1];
+      const scriptResponse = await plugin
+        .getWebRoutes()
+        .find((route) => route.path === scriptPath)
+        ?.handler(new Request(`http://brain${scriptPath}`));
+      expect(await scriptResponse?.text()).toContain("/api/console/jump");
     });
 
     it("should require an operator session for the console jump", async () => {
@@ -609,11 +625,39 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("data-swot-widget");
       expect(html).toContain("Strengths");
       expect(html).toContain("Research &amp; writing");
-      expect(html).toContain("[data-swot-widget] { display: grid; }");
+      expect(html).not.toContain("[data-swot-widget] { display: grid; }");
       expect(html?.indexOf("data-dashboard-styles")).toBeLessThan(
         html?.indexOf("data-dashboard-widget-styles") ?? -1,
       );
-      expect(html).toContain("window.__swotBoot = true;");
+      expect(html).not.toContain("window.__swotBoot = true;");
+
+      const stylePath = html?.match(
+        /data-dashboard-widget-styles[^>]*href="([^"]+)"/,
+      )?.[1];
+      const scriptPath = html?.match(
+        /data-dashboard-widget-script[^>]*src="([^"]+)"/,
+      )?.[1];
+      expect(stylePath).toMatch(
+        /^\/dashboard\/assets\/widget\.[a-f0-9]{64}\.css$/,
+      );
+      expect(scriptPath).toMatch(
+        /^\/dashboard\/assets\/widget\.[a-f0-9]{64}\.js$/,
+      );
+
+      const assetRoutes = plugin.getWebRoutes();
+      const styleResponse = await assetRoutes
+        .find((route) => route.path === stylePath)
+        ?.handler(new Request(`http://brain${stylePath}`));
+      const scriptResponse = await assetRoutes
+        .find((route) => route.path === scriptPath)
+        ?.handler(new Request(`http://brain${scriptPath}`));
+      expect(await styleResponse?.text()).toBe(
+        "[data-swot-widget] { display: grid; }",
+      );
+      expect(await scriptResponse?.text()).toBe("window.__swotBoot = true;");
+      expect(styleResponse?.headers.get("cache-control")).toContain(
+        "immutable",
+      );
     });
   });
 });

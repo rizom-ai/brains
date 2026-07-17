@@ -2,11 +2,9 @@
 
 ## Status
 
-**In progress.** Commit `3d564e70b` established shared SSR primitives, a generic
-tab controller, generic tab/filter classes, and removed stale identity-card code. That
-commit is the foundation, not the finish line.
-
-The remaining phases below are required before this cleanup is considered complete.
+**Complete.** Widgets own their assets, shared controls are typed and generic, the
+dashboard implementation is decomposed, client assets are content-addressed, and the
+behavior/runtime/accessibility validation below is complete.
 
 ## Goal
 
@@ -32,7 +30,7 @@ and backward compatibility for registered widgets.
 
 ## Current findings
 
-After Phase 1:
+After Phase 4:
 
 - `plugins/dashboard/src/dashboard-page.tsx` is now a 10-line render entry; document,
   tabs, overview, system cards, console strip, and widget panels have focused modules.
@@ -47,13 +45,15 @@ After Phase 1:
   list, status, metadata, and empty-state primitives.
 - Generic owner-scoped filtering removed the agent-network script; proximity-map
   inspection is now the only custom widget script.
-- The base dashboard CSS and console scripts still add about 58 KB of repeated inline
-  source to every rendered page and cannot be cached independently.
-- The committed tab test verifies script contents; the nested/hash behavior is not yet
-  exercised by a checked-in DOM test.
-- Lint is currently blocked on `main` by the ESLint/TypeScript parser error involving
-  `typescript-estree` and `Extension.Cjs`. This is not caused by the dashboard changes,
-  but final validation must not silently omit it.
+- Base CSS, generic console behavior, configured theme CSS, and visible widget assets use
+  deterministic same-origin content-hashed routes with immutable caching; dashboard HTML
+  no longer repeats those sources inline.
+- Checked-in `happy-dom` tests execute the real generic controller across hashes, history,
+  nested ownership, hidden and ARIA state, roving keyboard focus, multi-value filters, and
+  empty results.
+- Lint passes through the repository lint entry point, which preloads the existing
+  TypeScript 6 compatibility module for `@typescript-eslint` while project typechecks
+  continue to use TypeScript 7.
 
 ## Architecture decisions
 
@@ -184,6 +184,8 @@ and changing a built-in card does not require navigating a thousand-line module.
 
 ### Phase 4 — Cacheable client assets
 
+**Status: complete.**
+
 1. Serve the static dashboard stylesheet and generic dashboard behavior from versioned or
    content-hashed same-origin routes.
 2. Emit `<link rel="stylesheet">` and `<script src>` references instead of repeating the
@@ -204,6 +206,8 @@ and changing a built-in card does not require navigating a thousand-line module.
 brain-specific theme and installed-widget output remain correct.
 
 ### Phase 5 — Behavior, accessibility, and runtime verification
+
+**Status: complete.**
 
 1. Add `happy-dom` as an explicit dashboard test dependency or expose a shared DOM-test
    helper through an approved test package.
@@ -233,6 +237,16 @@ brain-specific theme and installed-widget output remain correct.
 
 **Gate:** Checked-in DOM tests and a running full dashboard verify the same behavior; all
 available checks pass without bypasses.
+
+Runtime verification used Rover's prescribed `bun start:full` app at the shared
+`localhost:8080` host. Visitor and passkey-backed operator compositions, both climates,
+360/640/900/1440 px layouts, reduced motion, top-level and nested controls, agent kind and
+skill filtering, synthetic non-empty proximity pointer/focus/touch behavior, cache headers,
+and the no-JS document were exercised in Chromium. The full preset does not install
+`@brains/conversation-memory`, so recent-memory rendering remains covered by its package
+SSR test and the same checked-in generic nested-tab behavior suite. Initial sync triggered
+successful preview rebuilds on the running app; placeholder AI credentials caused expected
+embedding failures but did not affect dashboard verification.
 
 ## Validation matrix
 

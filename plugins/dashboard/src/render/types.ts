@@ -65,12 +65,21 @@ export interface DashboardIndexStatus {
   embeddedEntities?: number | undefined;
 }
 
+export interface DashboardAssetUrls {
+  dashboardStyles: string;
+  dashboardScript: string;
+  themeStyles?: string;
+  widgetStyles: string[];
+  widgetScripts: string[];
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
   widgets: Record<string, RenderableWidgetData>;
   widgetStyles?: string[];
   widgetScripts: string[];
+  assetUrls?: DashboardAssetUrls;
   dashboardPath?: string;
   surfaces?: ConsoleSurface[];
   character: CharacterInput;

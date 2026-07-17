@@ -44,24 +44,50 @@ export function DashboardDocument({
           crossOrigin="anonymous"
         />
         <link href={CONSOLE_FONTS_URL} rel="stylesheet" />
-        {input.themeCSS !== undefined && (
-          <style
+        {input.assetUrls?.themeStyles ? (
+          <link
             data-dashboard-theme
-            dangerouslySetInnerHTML={{ __html: input.themeCSS }}
+            rel="stylesheet"
+            href={input.assetUrls.themeStyles}
           />
+        ) : (
+          input.themeCSS !== undefined && (
+            <style
+              data-dashboard-theme
+              dangerouslySetInnerHTML={{ __html: input.themeCSS }}
+            />
+          )
         )}
-        <style
-          data-dashboard-styles
-          dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
-        />
-        {input.widgetStyles && input.widgetStyles.length > 0 && (
+        {input.assetUrls ? (
+          <link
+            data-dashboard-styles
+            rel="stylesheet"
+            href={input.assetUrls.dashboardStyles}
+          />
+        ) : (
           <style
-            data-dashboard-widget-styles
-            dangerouslySetInnerHTML={{
-              __html: input.widgetStyles.join("\n\n"),
-            }}
+            data-dashboard-styles
+            dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
           />
         )}
+        {input.assetUrls
+          ? input.assetUrls.widgetStyles.map((href) => (
+              <link
+                key={href}
+                data-dashboard-widget-styles
+                rel="stylesheet"
+                href={href}
+              />
+            ))
+          : input.widgetStyles &&
+            input.widgetStyles.length > 0 && (
+              <style
+                data-dashboard-widget-styles
+                dangerouslySetInnerHTML={{
+                  __html: input.widgetStyles.join("\n\n"),
+                }}
+              />
+            )}
       </head>
       <body>
         <ConsoleStrip
@@ -114,15 +140,29 @@ export function DashboardDocument({
           />
         </main>
 
-        <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: DASHBOARD_UI_SCRIPT }} />
-        {input.widgetScripts.map((script, index) => (
-          <script
-            key={`widget-script:${index}`}
-            dangerouslySetInnerHTML={{ __html: script }}
-          />
-        ))}
+        {input.assetUrls ? (
+          <script data-dashboard-script src={input.assetUrls.dashboardScript} />
+        ) : (
+          <>
+            <script
+              dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }}
+            />
+            <script
+              dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }}
+            />
+            <script dangerouslySetInnerHTML={{ __html: DASHBOARD_UI_SCRIPT }} />
+          </>
+        )}
+        {input.assetUrls
+          ? input.assetUrls.widgetScripts.map((src) => (
+              <script key={src} data-dashboard-widget-script src={src} />
+            ))
+          : input.widgetScripts.map((script, index) => (
+              <script
+                key={`widget-script:${index}`}
+                dangerouslySetInnerHTML={{ __html: script }}
+              />
+            ))}
       </body>
     </html>
   );
