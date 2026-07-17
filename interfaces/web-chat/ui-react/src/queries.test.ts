@@ -80,6 +80,57 @@ describe("web-chat session-history query", () => {
     client.clear();
   });
 
+  it("reopens history containing a stored tool approval card", async () => {
+    mockFetch(async () =>
+      Response.json({
+        messages: [
+          {
+            id: "message-with-card",
+            role: "assistant",
+            content: "Saved the note.",
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:save-note",
+                toolCallId: "call:save-note",
+                toolName: "system_update",
+                input: { entityType: "note", id: "field-notes" },
+                summary: "Save field notes?",
+                state: "output-available",
+                output: { success: true },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const client = createWebChatQueryClient();
+
+    const messages = await client.fetchQuery(
+      sessionHistoryQueryOptions("session-with-card"),
+    );
+
+    expect(messages).toEqual([
+      {
+        id: "message-with-card",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Saved the note." },
+          {
+            type: "dynamic-tool",
+            toolCallId: "call:save-note",
+            toolName: "system_update",
+            state: "output-available",
+            title: "Save field notes?",
+            input: { entityType: "note", id: "field-notes" },
+            output: { success: true },
+          },
+        ],
+      },
+    ]);
+    client.clear();
+  });
+
   it("surfaces malformed history without retrying", async () => {
     let requests = 0;
     mockFetch(async () => {
