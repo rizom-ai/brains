@@ -28,9 +28,19 @@ writeSecretGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"]);
 // Per-user AT Protocol publishing credential (optional; from the user's
 // encrypted secrets file). The scaffold wires this so a pilot can publish its
 // brain's agent card to its PDS; a deployment that doesn't publish simply
-// leaves it unset. TLS material (CERTIFICATE_PEM/PRIVATE_KEY_PEM) is handled by
-// the kamal proxy block via shared env, not here.
+// leaves it unset.
 writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);
+// Per-user custom-domain TLS overrides the shared fleet certificate when a
+// complete certificate/key pair is present in the encrypted user secrets.
+const certificatePem = decodeEscapedSecret(secrets["certificatePem"]);
+const privateKeyPem = decodeEscapedSecret(secrets["privateKeyPem"]);
+if (Boolean(certificatePem) !== Boolean(privateKeyPem)) {
+  throw new Error(
+    "Custom-domain TLS secrets require both certificatePem and privateKeyPem",
+  );
+}
+writeSecretGitHubEnv("CERTIFICATE_PEM", certificatePem);
+writeSecretGitHubEnv("PRIVATE_KEY_PEM", privateKeyPem);
 
 writeGitHubOutput(
   "shared_ai_api_key_secret_name",
@@ -96,6 +106,10 @@ function parseFlatYaml(contents: string): Record<string, string> {
   }
 
   return result;
+}
+
+function decodeEscapedSecret(value: string | undefined): string | undefined {
+  return value?.replace(/\\n/g, "\n");
 }
 
 function requireFlatValue(

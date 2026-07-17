@@ -308,6 +308,16 @@ describe("initPilotRepo", () => {
       "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
     );
     expect(deployWorkflow).toContain(
+      "WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}",
+    );
+    expect(deployWorkflow).toContain(
+      "CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
+    );
+    expect(deployWorkflow).toContain('if [ -n "$WWW_DOMAIN" ]; then');
+    expect(deployWorkflow).toContain(
+      'BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts',
+    );
+    expect(deployWorkflow).toContain(
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
     expect(deployWorkflow).toContain("https://$PREVIEW_DOMAIN/");
@@ -369,8 +379,8 @@ describe("initPilotRepo", () => {
     );
     // Secrets are emitted through writeSecretGitHubEnv, which masks the value
     // and skips empties. CMS_CONTENT_REPO_PAT falls back to the git-sync token.
-    // The scaffold still wires the per-user ATProto publishing credential; TLS
-    // material is handled by the kamal proxy block via shared env, not here.
+    // Optional per-user ATProto and custom-domain TLS values override shared
+    // deploy env only when they are present in the encrypted user payload.
     expect(decryptUserSecretsScript).toContain(
       'writeSecretGitHubEnv("AI_API_KEY"',
     );
@@ -379,6 +389,9 @@ describe("initPilotRepo", () => {
     expect(decryptUserSecretsScript).toContain(
       'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
+    expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
+    expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
+    expect(decryptUserSecretsScript).toContain("decodeEscapedSecret");
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
@@ -400,12 +413,16 @@ describe("initPilotRepo", () => {
     );
     expect(resolveScript).toContain("brain_yaml_path");
     expect(resolveScript).toContain("preview_domain");
+    expect(resolveScript).toContain("www_domain");
+    expect(resolveScript).toContain("cloudflare_zone_id");
     expect(resolveScript).toContain("image_tag");
     // Tag derivation goes through the shared @rizom/ops helpers so the build
     // and the deploy can never disagree about a tag.
     expect(resolveScript).toContain("siteImageTag");
     expect(resolveScript).toContain("sitePackagesFor");
+    expect(resolveScript).toContain("resolvePreviewDomain");
     expect(resolveScript).toContain("-preview.");
+    expect(resolveScript).toContain("`preview.${domain}`");
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
@@ -492,6 +509,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("app_port: 8080");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
+    expect(deployConfig).toContain("- <%= ENV['WWW_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain-state:/data");
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");

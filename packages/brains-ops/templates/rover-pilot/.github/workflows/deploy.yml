@@ -211,11 +211,16 @@ jobs:
 
       - name: Update Cloudflare DNS
         env:
+          CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
         run: |
           bun deploy/scripts/update-dns.ts
+          if [ -n "$WWW_DOMAIN" ]; then
+            BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts
+          fi
           BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Validate SSH key
@@ -243,6 +248,7 @@ jobs:
           IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}
           REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
         run: kamal setup --skip-push -c deploy/kamal/deploy.yml
@@ -251,9 +257,13 @@ jobs:
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
         run: |
           curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health"
+          if [ -n "$WWW_DOMAIN" ]; then
+            curl -I -k --max-time 20 --resolve "$WWW_DOMAIN:443:$SERVER_IP" "https://$WWW_DOMAIN/"
+          fi
           curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN/"
 
       - name: Upload generated config

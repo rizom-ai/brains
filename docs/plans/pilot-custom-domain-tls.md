@@ -2,8 +2,10 @@
 
 ## Status
 
-Not started. Enabler for the rizom.ai cutover ([rizom-consolidation.md](./rizom-consolidation.md))
-and for hosting brains at foreign zones (yeehaa.io) from the pilot.
+Implemented, including the reviewed encrypt-side `_FILE` fix and its real-PEM
+round-trip coverage; release and production cutover remain. This enables the rizom.ai cutover
+([rizom-consolidation.md](./rizom-consolidation.md)) and hosting brains at foreign
+zones (yeehaa.io) from the pilot.
 
 ## Context
 
@@ -31,21 +33,58 @@ cert. An apex-covering replacement cert is already issued and sits in
 `rover-pilot/.brains-ops/certs/shared/` — it will be re-issued per user via
 `cert:bootstrap --handle` instead of updating the shared store.
 
-## Gaps (all small, test-first, template + pilot in lockstep)
+## Implementation
 
-1. **Decrypt-side export** — `decrypt-user-secrets.ts` explicitly skips TLS
-   material today. Export `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` when present in
-   the user's decrypted secrets (~4 lines). Syncing the pilot copy also picks
-   up the `ATPROTO_APP_PASSWORD` export it is missing (open task #38).
-2. **Preview-domain fallback** — `resolve-user-config.ts` throws on domains
-   that are not `<handle>.<zone>`-shaped. Add `resolvePreviewDomain`: keep
-   `<handle>-preview.<zone>` for fleet domains, fall back to
-   `preview.<domain>` for custom/apex domains (wildcard-SAN covered; the
-   webserver's preview-host regex already accepts it). Test written.
-3. **Per-user DNS zone** — `update-dns.ts` always writes to the shared
-   `CF_ZONE_ID`. Use the user's `cloudflareZoneId` (already in the registry
-   schema) when set. Only needed for foreign zones; requires the shared
-   `CF_API_TOKEN` to be authorized on those zones (dashboard change).
+1. **Decrypt-side export** — `decrypt-user-secrets.ts` exports a complete
+   `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` pair when present in the user's decrypted
+   secrets and rejects a partial pair. Users without overrides leave the shared
+   varlock-loaded certificate untouched. The pilot copy also exports the
+   per-user `ATPROTO_APP_PASSWORD`.
+2. **Custom-domain aliases** — `resolve-user-config.ts` keeps
+   `<handle>-preview.<zone>` for exact fleet domains and falls back to
+   `preview.<domain>` for custom/apex domains. Custom domains also resolve
+   `www.<domain>`; deploy routes it through Kamal, migrates its DNS record, and
+   verifies origin TLS. Fleet subdomains do not get a `www` alias.
+3. **Per-user DNS zone** — deploy resolution selects the user's
+   `cloudflareZoneId` when configured and otherwise preserves the shared
+   `CF_ZONE_ID`. The shared `CF_API_TOKEN` must be authorized on foreign zones
+   before those domains are deployed (dashboard change).
+
+## Review findings
+
+The implementation was reviewed end-to-end (both repos, template + pilot in
+lockstep, all tests green). One real bug was found on the rollout path and fixed:
+
+- **Resolved: `secrets:encrypt` corrupted real multi-line PEMs.** The `_FILE`
+  fallback (and a `CERTIFICATE_PEM` env var holding real newlines) read the PEM
+  raw; `toYaml` then serialized any multi-line string as a YAML block scalar
+  (`certificatePem: |`). The decrypt script's line-based `parseFlatYaml` reads
+  the value as the literal string `"|"` — for **both** keys, so the
+  pair-completeness check passes and the deploy exports `CERTIFICATE_PEM=|` to
+  kamal-proxy. TLS would break at cutover with no error anywhere upstream
+  (verified empirically against the real `toYaml`/parser pair). Before the fix,
+  the only working input path was a staging file with `\n`-escaped one-liners —
+  the format `cert:bootstrap`'s `secrets.yaml` snippet emitted.
+- **Fix:** `secrets-encrypt.ts` now normalizes resolved cert/key values by
+  escaping real newlines to `\n`, so every input path converges on the escaped
+  one-liner form the flat parsers and the decrypt side's `decodeEscapedSecret`
+  already agree on. The round-trip test feeds real multi-line PEM files through
+  `CERTIFICATE_PEM_FILE` / `PRIVATE_KEY_PEM_FILE` → encrypt → decrypt script →
+  `GITHUB_ENV` heredocs and asserts the original PEM contents.
+
+A second rollout regression was found during follow-up: the earlier custom-domain
+implementation's `WWW_DOMAIN` wiring had been lost during a broad pilot tooling
+rollback. `www.rizom.ai` currently serves production traffic, so the cutover must
+keep it routed. The resolver, DNS step, Kamal proxy env, origin verification, and
+live pilot config now restore that optional alias with coverage.
+
+Everything else held up under review: the preview-domain derivation matches
+exactly against `<handle> + pilot.domainSuffix` from the registry (correctly
+handling the handle-matches-zone-name trap), the decrypt export rejects partial
+pairs and masks multi-line values with `%0A` escaping, the `CF_ZONE_ID`
+fallback resolves after the varlock env load so the shared zone is always
+populated, and the pilot copy picked up the missing `ATPROTO_APP_PASSWORD`
+export (task #38's deploy-side half).
 
 ## Non-goals
 
@@ -56,7 +95,8 @@ cert. An apex-covering replacement cert is already issued and sits in
 
 ## Rollout
 
-1. Land gaps 1–2 (release train), sync pilot scripts, bump pilot `@rizom/ops`.
+1. Release the updated `@rizom/ops` package and bump the pilot dependency; the
+   matching live pilot deploy scripts are already synced.
 2. rizom.ai cutover: `cert:bootstrap . --handle <prod-user>` (already done in
    effect — the issued apex cert can be encrypted directly),
    `secrets:encrypt . <prod-user>` with the `_FILE` fallbacks, commit,
@@ -65,9 +105,14 @@ cert. An apex-covering replacement cert is already issued and sits in
 
 ## Verification
 
-- Unit: preview-domain cases (fleet, apex, foreign, handle-matches-TLD trap);
-  decrypt export present/absent; secrets:encrypt round-trip already covered.
+- Unit: preview/`www` alias cases (fleet, apex, foreign,
+  handle-matches-TLD trap); decrypt export present/absent/partial-pair
+  rejection; and a real multi-line
+  PEM `_FILE` encrypt/decrypt round trip through `GITHUB_ENV`.
 - Fleet regression: a member without cert overrides deploys with the shared
   wildcard cert unchanged.
-- Cutover: `openssl s_client` against the server with SNI `rizom.ai` shows the
-  apex SAN; `new.rizom.ai` and `<h>-preview` hosts still serve.
+- Cutover: `openssl s_client` against the server with SNI `rizom.ai` and
+  `www.rizom.ai` shows the expected SAN coverage; apex, `www`, preview,
+  `new.rizom.ai`, and ordinary `<h>-preview` fleet hosts still serve during the
+  rollback window. After the production soak, remove the `new` pilot entry and
+  its DNS record.
