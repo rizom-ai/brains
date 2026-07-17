@@ -10,8 +10,9 @@ snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
 exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
 Phase 3's optional reviewed narrative distillation is implemented. Phase 4's sanctioned
-OAuth authorization-code protocol client and dynamic importer token-provider seam are
-implemented, while browser routes, state, and secret persistence remain pending. Rich-domain fixtures/mappers and Phase 5 are not
+OAuth authorization-code protocol client, dynamic importer token-provider seam, and a
+private-file token store are implemented, while browser routes/state and Rover wiring
+remain pending. Rich-domain fixtures/mappers and Phase 5 are not
 yet started.
 
 ## Context
@@ -301,13 +302,17 @@ bounds provider errors, and does not register routes or persist credentials. The
 accepts a dynamic `LinkedInAccessTokenProvider`, resolves it for each API request, and can
 fall back to the existing static token during migration. A future interface can implement
 `LinkedInOAuthTokenStore` to both persist exchanged tokens and supply them to the importer.
+`FileLinkedInOAuthTokenStore` now implements that contract using the auth-service pattern:
+atomic local writes, `0700` storage directory, `0600` token file, strict persisted-shape
+validation, explicit disconnect, and expiry-aware reads.
 
 Remaining interface-layer work:
 
 1. Add an operator-authenticated connect route and public callback with expiring,
    single-use state.
-2. Implement `LinkedInOAuthTokenStore` over an approved secret store and inject it into
-   the importer, replacing the static `brain.yaml` token.
+2. Instantiate the private-file `LinkedInOAuthTokenStore` from the route layer and inject
+   it into the importer, replacing the static `brain.yaml` token. Hosted deployments may
+   substitute another approved store through the same contract.
 3. Confirm refresh-token availability for `r_dma_portability_3rd_party` in the approved
    LinkedIn application before implementing refresh. LinkedIn's public authorization-code
    contract does not currently document refresh fields, so the client deliberately ignores

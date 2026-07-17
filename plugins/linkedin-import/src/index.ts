@@ -35,6 +35,11 @@ export {
   type LinkedInOAuthTokenStore,
 } from "./lib/linkedin-oauth-client";
 export {
+  FileLinkedInOAuthTokenStore,
+  type FileLinkedInOAuthTokenStoreOptions,
+  type LinkedInOAuthConnectionStatus,
+} from "./lib/linkedin-oauth-token-store";
+export {
   loadLinkedInProfileImport,
   type LinkedInProfessionalSnapshotSource,
   type LoadedLinkedInProfileImport,
