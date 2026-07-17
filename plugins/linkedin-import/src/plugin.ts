@@ -1,9 +1,11 @@
 import type { Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { LinkedInDistillationJobHandler } from "./handlers/linkedin-distillation-handler";
 import { LinkedInImportJobHandler } from "./handlers/linkedin-import-handler";
 import { LinkedInClient, type LinkedInFetch } from "./lib/linkedin-client";
 import { createLinkedInImportTools } from "./tools";
+import { createLinkedInDistillationTools } from "./tools/distillation";
 import packageJson from "../package.json" with { type: "json" };
 
 export interface LinkedInImportConfig {
@@ -47,11 +49,18 @@ export class LinkedInImportPlugin extends ServicePlugin<
     if (this.cachedTools) return this.cachedTools;
 
     const context = this.getContext();
-    this.cachedTools = createLinkedInImportTools(this.id, {
-      client: this.getClient(),
-      entityService: context.entityService,
-      jobs: context.jobs,
-    });
+    this.cachedTools = [
+      ...createLinkedInImportTools(this.id, {
+        client: this.getClient(),
+        entityService: context.entityService,
+        jobs: context.jobs,
+      }),
+      ...createLinkedInDistillationTools(this.id, {
+        ai: context.ai,
+        entityService: context.entityService,
+        jobs: context.jobs,
+      }),
+    ];
     return this.cachedTools;
   }
 
@@ -67,6 +76,13 @@ export class LinkedInImportPlugin extends ServicePlugin<
           client: this.getClient(),
           entityService: context.entityService,
         },
+      ),
+    );
+    context.jobs.registerHandler(
+      "linkedin-profile-distill",
+      new LinkedInDistillationJobHandler(
+        this.logger.child("LinkedInDistillationJobHandler"),
+        context.entityService,
       ),
     );
   }

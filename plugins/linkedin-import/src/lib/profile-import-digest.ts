@@ -27,6 +27,11 @@ export function profileImportDigest(
   return digest(patch);
 }
 
+/** Stable digest for optimistic review workflows over profile content. */
+export function profileContentDigest(currentProfileContent: string): string {
+  return digest({ currentProfileContent });
+}
+
 /** Bind approval to both imported values and the profile used to compute the merge. */
 export function profileImportPreviewDigest(
   patch: ProfessionalProfileImportPatch,

@@ -16,7 +16,7 @@ describe("LinkedInImportPlugin", () => {
     ).toEqual([]);
   });
 
-  it("registers import and schema inspection tools when configured", async () => {
+  it("registers deterministic import, inspection, and optional distillation tools", async () => {
     const harness = createPluginHarness();
     const plugin = new LinkedInImportPlugin({ accessToken: "test-token" });
 
@@ -27,6 +27,10 @@ describe("LinkedInImportPlugin", () => {
         .getCapabilities()
         .tools.filter((tool) => tool.name.startsWith("linkedin-import"))
         .map((tool) => tool.name),
-    ).toEqual(["linkedin-import_import", "linkedin-import_inspect_schema"]);
+    ).toEqual([
+      "linkedin-import_import",
+      "linkedin-import_inspect_schema",
+      "linkedin-import_distill_profile",
+    ]);
   });
 });

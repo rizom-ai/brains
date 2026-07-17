@@ -8,8 +8,9 @@ instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
-exposing member values, and provider-neutral rich-record fingerprint merging is implemented;
-rich-domain fixtures/mappers and later phases are not yet started.
+exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
+Phase 3's optional reviewed narrative distillation is implemented; rich-domain
+fixtures/mappers and Phases 4–5 are not yet started.
 
 ## Context
 
@@ -276,12 +277,18 @@ skills, positions, education, and certifications. Matching owner-authored record
 preserved rather than enriched or overwritten, while records with new identities append.
 Do not guess source keys from display labels or third-party export examples.
 
-## Phase 3 — LLM distillation pass
+## Phase 3 — LLM distillation pass (implemented)
 
-Optional second pass that distills presentation fields (`tagline`/`intro`/`story`) from
-the structured record + LI `Summary`. A LinkedIn-provided `headline` stays deterministic
-and is not silently rewritten by the LLM. The pass is gated behind review, re-runnable,
-and never inline on the deterministic path.
+The anchor-only `linkedin-import_distill_profile` tool is an optional, re-runnable second
+pass over the current structured profile and imported summary/story. It uses structured AI
+generation to propose bounded `tagline`, `intro`, and `story` values, explicitly excludes
+`headline` from its output contract, and warns the model to treat profile content as data
+rather than instructions.
+
+The proposal is shown in full before the host's typed, token-bound confirmation. Approval
+is bound to the anchor-profile content digest; a separate job applies only the reviewed
+proposal and rejects stale or concurrent profile edits. The deterministic import path
+never invokes this semantic pass.
 
 ## Phase 4 — OAuth consent + token refresh (interface layer)
 
