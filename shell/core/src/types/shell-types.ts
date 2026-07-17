@@ -4,8 +4,6 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { DaemonRegistry } from "../daemon-registry";
 import type {
   DataSourceRegistry,
-  EntityRegistry,
-  EntityService,
   IEmbeddingService,
   IEntityRegistry,
   IEntityService,
@@ -32,14 +30,19 @@ import type {
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
+import type { RecurringCheckService } from "@brains/recurring-checks";
 import type { RuntimeStateService } from "@brains/runtime-state";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 
+export interface JobServicesLifecycle {
+  closeRuntime(): Promise<void>;
+}
+
 export interface ShellServices {
   logger: Logger;
   disposables: Array<() => void>;
-  entityRegistry: EntityRegistry;
+  entityRegistry: IEntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;
   daemonRegistry: DaemonRegistry;
@@ -48,7 +51,7 @@ export interface ShellServices {
   dataSourceRegistry: DataSourceRegistry;
   mcpService: IMCPService;
   embeddingService: IEmbeddingService;
-  entityService: EntityService;
+  entityService: IEntityService;
   aiService: IAIService;
   conversationService: IConversationService;
   contentService: ContentService;
@@ -56,6 +59,7 @@ export interface ShellServices {
   jobQueueWorker: IJobQueueWorker;
   batchJobManager: IBatchJobManager;
   jobProgressMonitor: IJobProgressMonitor;
+  jobServicesLifecycle: JobServicesLifecycle;
   permissionService: PermissionService;
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
@@ -64,6 +68,7 @@ export interface ShellServices {
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   runtimeStateService: RuntimeStateService;
+  recurringCheckService: RecurringCheckService;
 }
 
 export interface ShellDependencies {
@@ -89,4 +94,5 @@ export interface ShellDependencies {
   attachmentRegistry?: AttachmentRegistry;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
   runtimeStateService?: RuntimeStateService;
+  recurringCheckService?: RecurringCheckService;
 }

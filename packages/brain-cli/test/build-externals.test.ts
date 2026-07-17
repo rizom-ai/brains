@@ -71,4 +71,12 @@ describe("brain-cli build config", () => {
   it("externalizes preact-render-to-string", () => {
     expect(externalsBlock).toMatch(/["']preact-render-to-string["']/);
   });
+
+  it("builds public library entries together with shared chunks", () => {
+    expect(buildScript).toContain(
+      "entrypoints: libraryEntries.map((entry) => entry.source)",
+    );
+    expect(buildScript).toContain("splitting: true");
+    expect(buildScript).toContain('chunk: "chunks/[name]-[hash].js"');
+  });
 });

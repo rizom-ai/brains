@@ -2,6 +2,7 @@ export const proximityMapScript = `(function () {
   document.querySelectorAll("[data-proximity-map]").forEach(function (map) {
     var nodes = map.querySelectorAll("[data-proximity-node]");
     var clusters = map.querySelectorAll("[data-proximity-cluster-id]");
+    var sightings = map.querySelectorAll("[data-proximity-sighting]");
     var tooltip = map.querySelector("[data-proximity-tooltip]");
 
     function reset() {
@@ -11,10 +12,19 @@ export const proximityMapScript = `(function () {
       clusters.forEach(function (cluster) {
         cluster.style.opacity = "";
       });
+      sightings.forEach(function (sighting) {
+        sighting.style.opacity = "";
+      });
       if (tooltip) {
         tooltip.hidden = true;
         tooltip.textContent = "";
       }
+    }
+
+    function dimSightings() {
+      sightings.forEach(function (sighting) {
+        sighting.style.opacity = "0.16";
+      });
     }
 
     // Structured tooltip built exclusively through textContent — agent names
@@ -48,8 +58,8 @@ export const proximityMapScript = `(function () {
       var anchorRect = anchor.getBoundingClientRect();
       var left = anchorRect.right - mapRect.left + 12;
       var top = anchorRect.top - mapRect.top - 8;
-      tooltip.style.left = Math.min(left, mapRect.width - tooltip.offsetWidth - 12) + "px";
-      tooltip.style.top = Math.max(12, top) + "px";
+      tooltip.style.left = Math.max(12, Math.min(left, mapRect.width - tooltip.offsetWidth - 12)) + "px";
+      tooltip.style.top = Math.max(12, Math.min(top, mapRect.height - tooltip.offsetHeight - 12)) + "px";
     }
 
     function focusCluster(clusterId) {
@@ -75,6 +85,7 @@ export const proximityMapScript = `(function () {
           cluster.style.opacity = "0.14";
         });
       }
+      dimSightings();
 
       var name = node.getAttribute("data-proximity-name") || "Agent";
       var kind = node.getAttribute("data-proximity-kind") || "agent";
@@ -91,6 +102,7 @@ export const proximityMapScript = `(function () {
 
     function activateCluster(cluster, clusterId) {
       focusCluster(clusterId);
+      dimSightings();
       var label = cluster.getAttribute("data-proximity-cluster-label") || "Constellation";
       var members = cluster.getAttribute("data-proximity-cluster-members") || "0";
       showTooltip(cluster, {
@@ -99,12 +111,56 @@ export const proximityMapScript = `(function () {
       });
     }
 
+    // Hovering a sighting keeps its introducers lit — you see whose roots
+    // reach it, and that you cannot reach it directly yet.
+    function activateSighting(sighting) {
+      var viaIds = (sighting.getAttribute("data-proximity-via-ids") || "").split(" ");
+      nodes.forEach(function (candidate) {
+        var isIntroducer = viaIds.indexOf(candidate.getAttribute("data-proximity-node")) !== -1;
+        candidate.style.opacity = isIntroducer ? "1" : "0.2";
+      });
+      clusters.forEach(function (cluster) {
+        cluster.style.opacity = "0.14";
+      });
+      sightings.forEach(function (candidate) {
+        candidate.style.opacity = candidate === sighting ? "1" : "0.16";
+      });
+
+      var name = sighting.getAttribute("data-proximity-name") || "Sighting";
+      var via = sighting.getAttribute("data-proximity-via") || "";
+      var distance = sighting.getAttribute("data-proximity-distance") || "";
+      var tags = sighting.getAttribute("data-proximity-tags") || "";
+      showTooltip(sighting, {
+        name: name,
+        meta: "second order · via " + via + " · distance " + distance,
+        tags: tags ? tags.split(", ") : [],
+      });
+    }
+
     function bind(element, activate) {
       element.addEventListener("mouseenter", activate);
       element.addEventListener("mouseleave", reset);
       element.addEventListener("focus", activate);
       element.addEventListener("blur", reset);
+      // Touch fires neither mouseenter nor (reliably) focus on SVG
+      // elements — a tap activates directly.
+      element.addEventListener("click", function (event) {
+        event.stopPropagation();
+        activate();
+      });
     }
+
+    // A tap on the map ground dismisses whatever a previous tap lit up
+    // (touch has no mouseleave, and blur never fires if focus never did).
+    map.addEventListener("click", function (event) {
+      if (
+        !event.target.closest(
+          "[data-proximity-node], [data-proximity-cluster-id], [data-proximity-sighting]"
+        )
+      ) {
+        reset();
+      }
+    });
 
     nodes.forEach(function (node) {
       bind(node, function () { activateNode(node); });
@@ -114,6 +170,10 @@ export const proximityMapScript = `(function () {
       var clusterId = cluster.getAttribute("data-proximity-cluster-id");
       if (!clusterId) return;
       bind(cluster, function () { activateCluster(cluster, clusterId); });
+    });
+
+    sightings.forEach(function (sighting) {
+      bind(sighting, function () { activateSighting(sighting); });
     });
   });
 })();`;

@@ -1,4 +1,19 @@
-import type { UIMessage } from "ai";
+import {
+  ActionsCardSchema,
+  AttachmentCardSchema,
+  SourcesCardSchema,
+  StructuredChatCardSchema,
+  type ActionsCard,
+  type AttachmentCard,
+  type AttachmentCardData,
+  type AttachmentCardSource,
+  type ChatAction,
+  type SourceCitation,
+  type SourcesCard,
+  type StructuredChatCard,
+  type ToolApprovalCard,
+} from "@brains/contracts";
+import type { DynamicToolUIPart, UIMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import { stripInternalEntityMemoryNote } from "../../src/display-content";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
@@ -19,85 +34,14 @@ export interface WebChatHistoryAttachment {
   source?: WebChatHistoryAttachmentSource | undefined;
 }
 
-export interface WebChatHistoryAttachmentCardSource {
-  [key: string]: unknown;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  attachmentType?: string | undefined;
-}
-
-export interface WebChatHistoryAttachmentCardAttachment {
-  [key: string]: unknown;
-  mediaType: string;
-  url: string;
-  downloadUrl?: string | undefined;
-  previewUrl?: string | undefined;
-  filename?: string | undefined;
-  sizeBytes?: number | undefined;
-  source?: WebChatHistoryAttachmentCardSource | undefined;
-}
-
-export interface WebChatHistoryAttachmentCard {
-  [key: string]: unknown;
-  kind: "attachment";
-  id: string;
-  jobId?: string | undefined;
-  title: string;
-  description?: string | undefined;
-  attachment: WebChatHistoryAttachmentCardAttachment;
-}
-
-export interface WebChatHistorySourceEntry {
-  [key: string]: unknown;
-  id: string;
-  title?: string | undefined;
-  source: string;
-  url?: string | undefined;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  excerpt?: string | undefined;
-  provenance?: Record<string, unknown> | undefined;
-}
-
-export interface WebChatHistorySourcesCard {
-  [key: string]: unknown;
-  kind: "sources";
-  id: string;
-  title?: string | undefined;
-  sources: WebChatHistorySourceEntry[];
-}
-
-export type WebChatHistoryAction =
-  | {
-      [key: string]: unknown;
-      type: "prompt";
-      id: string;
-      label: string;
-      prompt: string;
-      description?: string | undefined;
-    }
-  | {
-      [key: string]: unknown;
-      type: "event";
-      id: string;
-      label: string;
-      event: string;
-      description?: string | undefined;
-    };
-
-export interface WebChatHistoryActionsCard {
-  [key: string]: unknown;
-  kind: "actions";
-  id: string;
-  title?: string | undefined;
-  defaultOpen?: boolean | undefined;
-  actions: WebChatHistoryAction[];
-}
-
-export type WebChatHistoryCard =
-  | WebChatHistoryAttachmentCard
-  | WebChatHistorySourcesCard
-  | WebChatHistoryActionsCard;
+export type WebChatHistoryAttachmentCardSource = AttachmentCardSource;
+export type WebChatHistoryAttachmentCardAttachment = AttachmentCardData;
+export type WebChatHistoryAttachmentCard = AttachmentCard;
+export type WebChatHistorySourceEntry = SourceCitation;
+export type WebChatHistorySourcesCard = SourcesCard;
+export type WebChatHistoryAction = ChatAction;
+export type WebChatHistoryActionsCard = ActionsCard;
+export type WebChatHistoryCard = StructuredChatCard;
 
 export interface WebChatHistoryMessage {
   [key: string]: unknown;
@@ -130,80 +74,13 @@ export const webChatHistoryAttachmentSchema: z.ZodType<WebChatHistoryAttachment>
   });
 
 export const webChatHistoryAttachmentCardSchema: z.ZodType<WebChatHistoryAttachmentCard> =
-  z.looseObject({
-    kind: z.literal("attachment"),
-    id: z.string(),
-    jobId: z.string().optional(),
-    title: z.string(),
-    description: z.string().optional(),
-    attachment: z.looseObject({
-      mediaType: z.string(),
-      url: z.string(),
-      downloadUrl: z.string().optional(),
-      previewUrl: z.string().optional(),
-      filename: z.string().optional(),
-      sizeBytes: z.number().optional(),
-      source: z
-        .looseObject({
-          entityType: z.string().optional(),
-          entityId: z.string().optional(),
-          attachmentType: z.string().optional(),
-        })
-        .optional(),
-    }),
-  });
-
+  AttachmentCardSchema;
 export const webChatHistorySourcesCardSchema: z.ZodType<WebChatHistorySourcesCard> =
-  z.looseObject({
-    kind: z.literal("sources"),
-    id: z.string(),
-    title: z.string().optional(),
-    sources: z.array(
-      z.looseObject({
-        id: z.string(),
-        title: z.string().optional(),
-        source: z.string(),
-        url: z.string().optional(),
-        entityType: z.string().optional(),
-        entityId: z.string().optional(),
-        excerpt: z.string().optional(),
-        provenance: z.record(z.string(), z.unknown()).optional(),
-      }),
-    ),
-  });
-
-const webChatHistoryActionSchema: z.ZodType<WebChatHistoryAction> =
-  z.discriminatedUnion("type", [
-    z.looseObject({
-      type: z.literal("prompt"),
-      id: z.string(),
-      label: z.string(),
-      prompt: z.string(),
-      description: z.string().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("event"),
-      id: z.string(),
-      label: z.string(),
-      event: z.string(),
-      description: z.string().optional(),
-    }),
-  ]);
-
+  SourcesCardSchema;
 export const webChatHistoryActionsCardSchema: z.ZodType<WebChatHistoryActionsCard> =
-  z.looseObject({
-    kind: z.literal("actions"),
-    id: z.string(),
-    title: z.string().optional(),
-    defaultOpen: z.boolean().optional(),
-    actions: z.array(webChatHistoryActionSchema),
-  });
-
-export const webChatHistoryCardSchema: z.ZodType<WebChatHistoryCard> = z.union([
-  webChatHistoryAttachmentCardSchema,
-  webChatHistorySourcesCardSchema,
-  webChatHistoryActionsCardSchema,
-]);
+  ActionsCardSchema;
+export const webChatHistoryCardSchema: z.ZodType<WebChatHistoryCard> =
+  StructuredChatCardSchema;
 
 export const webChatHistoryMessageSchema: z.ZodType<WebChatHistoryMessage> =
   z.looseObject({
@@ -219,6 +96,54 @@ export const webChatMessagesResponseSchema: z.ZodType<WebChatMessagesResponse> =
     messages: z.array(webChatHistoryMessageSchema),
   });
 
+/**
+ * The query cache owns an immutable history snapshot. AI SDK receives a
+ * detached seed and exclusively owns all active and streaming mutations.
+ */
+export function createActiveMessageSeed(messages: UIMessage[]): UIMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    parts: [...message.parts],
+  }));
+}
+
+function toToolApprovalPart(card: ToolApprovalCard): DynamicToolUIPart {
+  const common = {
+    type: "dynamic-tool" as const,
+    toolCallId: card.toolCallId ?? card.id,
+    toolName: card.toolName,
+    title: card.preview ? `${card.summary}\n\n${card.preview}` : card.summary,
+    input: card.input ?? {},
+  };
+
+  switch (card.state) {
+    case "approval-requested":
+      return {
+        ...common,
+        state: "approval-requested",
+        approval: { id: card.id },
+      };
+    case "approval-responded":
+      // Stored cards do not retain the approval decision, so render this
+      // transient state without offering the action again.
+      return { ...common, state: "input-available" };
+    case "output-available":
+      return { ...common, state: "output-available", output: card.output };
+    case "output-error":
+      return {
+        ...common,
+        state: "output-error",
+        errorText: card.error ?? "Tool failed",
+      };
+    case "output-denied":
+      return {
+        ...common,
+        state: "output-denied",
+        approval: { id: card.id, approved: false },
+      };
+  }
+}
+
 export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   const parts: UIMessage["parts"] = [];
   const displayContent = stripInternalEntityMemoryNote(message.content);
@@ -230,6 +155,10 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
     if (upload) parts.push(createUploadPart(upload));
   }
   for (const card of message.cards ?? []) {
+    if (card.kind === "tool-approval") {
+      parts.push(toToolApprovalPart(card));
+      continue;
+    }
     parts.push({
       type:
         card.kind === "sources"

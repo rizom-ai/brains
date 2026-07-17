@@ -21,6 +21,9 @@ describe("system_job_status tool", () => {
     const tool = findTool("system_job_status");
 
     expect(tool.description).toContain("ready checks");
+    expect(tool.description).toContain(
+      "only when the prior operation created a job",
+    );
     expect(tool.description).toContain("status disputes");
     expect(tool.description).toContain("runtime job status");
     expect(tool.description).toContain(

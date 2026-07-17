@@ -15,7 +15,16 @@ import themeCSSOnly from "./theme.css" with { type: "text" };
  * attributes that the site layout sets per route — replacing the
  * per-site `data-theme-profile` machinery in @brains/theme-rizom.
  */
-const themeCSS: string = `${defaultThemeCSS}\n\n${themeCSSOnly}`;
+/**
+ * The base theme's Google-font imports (Barlow, JetBrains Mono, a partial
+ * Fraunces slice) are its own register — dead requests here. Stripped at
+ * composition; theme.css imports the full rev-5 set itself. scripts/build.ts
+ * serializes this same regex into the dist module.
+ */
+export const FONT_IMPORT_RE: RegExp =
+  /^@import url\("https:\/\/fonts\.googleapis\.com[^"]*"\);\r?\n?/gm;
+
+const themeCSS: string = `${defaultThemeCSS.replace(FONT_IMPORT_RE, "")}\n\n${themeCSSOnly}`;
 
 export default themeCSS;
 export { themeCSS, themeCSSOnly };

@@ -1,5 +1,215 @@
 # @brains/templates
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an opt-in content overlay so a datasource-backed section can also carry
+  content-authored fields. A template may declare an `overlayFormatter`; when it
+  does, its section's saved site-content is parsed and merged over the datasource
+  output (authored fields win, then the merge is validated against the template
+  schema), instead of datasource and saved content being mutually exclusive.
+  Site-builder now offers every section its own saved content alongside any
+  dataQuery. Templates without an overlayFormatter are unchanged — the datasource
+  still wins outright and the saved entity is never read. This lets a live
+  section (e.g. the agent proximity map) keep real-time data while its hero copy
+  is edited like any other markdown section.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

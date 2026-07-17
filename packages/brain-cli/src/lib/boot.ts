@@ -20,6 +20,7 @@ export interface BootedBrain {
       getCliTools(): Array<{ pluginId: string; tool: Tool }>;
     };
   };
+  stop?(): Promise<void>;
 }
 
 type BootFn = (

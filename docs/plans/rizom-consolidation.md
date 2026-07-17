@@ -78,9 +78,53 @@ approved mockups and real merged content.
 - Back up all three existing deployments.
 - Copy the foundation runtime databases to the consolidated deployment and verify a known
   conversation-memory read before DNS changes.
-- Confirm `rizom.ai/.well-known/*` and `/atproto/lexicons/*.json` are identical in behavior
-  on staging.
-- Prepare rollback instructions and the two edge redirect rules.
+- ✅ Confirm `rizom.ai/.well-known/*` and `/atproto/lexicons/*.json` are identical in
+  behavior on staging (2026-07-16, against alpha.186 on `new`):
+  - All nine `/atproto/lexicons/ai.rizom.brain.*.json` return 200 on both; eight are
+    byte-identical. The card lexicon differs only because staging serves the current
+    canonical shape while the old Ranger prod serves a pre-`2c00f3afb` copy — staging is
+    correct. (Separately found and fixed: the parse schema stripped
+    `defs.main.description` from all nine served lexicons; fix on
+    `work/rizom-site-visual-pass`, rides the next release.)
+  - `/.well-known/did.json`, `jwks.json`, and `oauth-authorization-server` return 200 on
+    staging and 404 on the old prod (Ranger runs neither atproto nor auth-service) —
+    cutover only adds surface, nothing regresses.
+  - The DID document derives from the request hostname (atproto plugin builds it
+    per-request), so `did:web:rizom.ai` appears automatically at cutover. Note the brain's
+    identity changes from `did:web:new.rizom.ai`; anything that captured the staging DID
+    re-registers after cutover.
+  - Unauthenticated `POST /mcp` returns 401 on both staging and old prod.
+  - `GET /health`: staging reports `rover 0.2.0-alpha.186`; old prod reports
+    `ranger 0.1.0` (the deployment being retired).
+- ✅ Prepared rollback instructions and the two edge redirect rules (below).
+
+#### Edge redirect rules (Cloudflare, one per zone)
+
+Single-redirect rules at the zone level, applied at cutover (plan settled on room-level
+redirects, not per-path maps):
+
+- Zone `rizom.work`: dynamic redirect, expression `true` →
+  `concat("https://rizom.ai/work")`, status 301, preserve query string off.
+- Zone `rizom.foundation`: dynamic redirect, expression `true` →
+  `concat("https://rizom.ai/foundation")`, status 301, preserve query string off.
+
+Both zones keep DNS records proxied (orange-cloud) so the rules fire without an origin.
+
+#### Rollback instructions
+
+Cutover is a rover-pilot desired-state change plus DNS; rollback is the inverse, in order:
+
+1. Point `rizom.ai` DNS back at the old Ranger origin (record values captured in the
+   pre-cutover backup step). TTL is Cloudflare-proxied, so propagation is immediate.
+2. Disable the two zone redirect rules so rizom.work / rizom.foundation serve their old
+   origins again (origins stay up until the rollback window closes — do not retire early).
+3. Revert the rover-pilot production-user commit (`git revert`, push; Build/Reconcile/
+   Deploy runs restore the previous desired state).
+4. The consolidated brain's runtime state stays on the `new` deployment throughout the
+   window — no data moves during rollback; the migrated foundation-memory copy is a copy,
+   originals remain on the foundation brain until retirement.
+5. Verify: old prod `/health` reports `ranger`, site serves the pre-cutover pages,
+   `rizom.work`/`rizom.foundation` 200 from their own origins.
 
 ### 4. Cut over and retire
 

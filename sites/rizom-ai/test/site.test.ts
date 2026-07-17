@@ -6,6 +6,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
       "home",
+      "brain",
       "writing",
       "network",
       "work",
@@ -20,8 +21,36 @@ describe("@rizom/site-rizom-ai", () => {
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
       "home",
+      "brain",
       "work",
       "foundation",
+    ]);
+  });
+
+  test("exposes the /brain room — the product's four-chapter page", () => {
+    const brain = site.routes.find((route) => route.id === "brain");
+    expect(brain?.path).toBe("/brain");
+    // The brain's life with its owner: capture → ask → see it run → connect,
+    // then the data principles, the quickstart, and the closing band.
+    expect(brain?.sections?.map((s) => s.id)).toEqual([
+      "hero",
+      "capture",
+      "ask",
+      "run",
+      "connect",
+      "your-data",
+      "quickstart",
+      "close",
+    ]);
+    expect(brain?.sections?.map((s) => s.template)).toEqual([
+      "brain:hero",
+      "brain:capture",
+      "brain:ask",
+      "brain:run",
+      "brain:connect",
+      "brain:your-data",
+      "brain:quickstart",
+      "brain:close",
     ]);
   });
 
@@ -67,10 +96,13 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.entityDisplay["agent"]?.label).toBe("Agent");
   });
 
-  test("ships boot.js but no theme-profile canvas", () => {
+  test("ships boot.js exactly once, no theme-profile canvas", () => {
     const head = site.headScripts?.join("\n") ?? "";
-    // boot.js drives the reveal/growth animations and must load.
+    // boot.js drives the reveal/growth animations and must load — once.
+    // A second copy double-binds #themeToggle and the theme toggle becomes
+    // a per-click no-op (each click flips dark→light→dark).
     expect(head).toContain("/boot.js");
+    expect(head.split("/boot.js").length - 1).toBe(1);
     // The rev-5 design draws its own motifs (mycelium rail, growth diagram);
     // the profile-driven background canvas and data-theme-profile attribute
     // are products-era machinery and must not ship.
@@ -78,36 +110,54 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).not.toContain("canvas");
   });
 
-  test("exposes the home route sections in rev-5 order", () => {
+  test("opens the home page on the live agent proximity map", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
+    // The map is the hero; the text hero is gone. Order follows the redesign:
+    // map → the dark (problem) → it starts with one light (the product) →
+    // lights find each other (growth) → mission → faces → colophon.
     expect(sectionIds).toEqual([
-      "hero",
-      "growth",
+      "network",
       "problem",
-      "your-data",
-      "quickstart",
+      "one-light",
+      "growth",
       "mission",
       "faces",
       "alive",
     ]);
+
+    // The opener is the agent-discovery datasource section; a dataQuery routes
+    // it through the datasource (live map data) while its authored copy is
+    // merged over via the content overlay.
+    const network = route?.sections?.[0];
+    expect(network?.template).toBe("agent-discovery:proximity-map");
+    expect(network?.dataQuery).toBeDefined();
   });
 
-  test("home sections reference the home content namespace by string", () => {
+  test("home body sections reference the home content namespace by string", () => {
     const templates = site.routes[0]?.sections?.map(
       (section) => section.template,
     );
 
     expect(templates).toEqual([
-      "home:hero",
-      "home:growth",
+      "agent-discovery:proximity-map",
       "home:problem",
-      "home:your-data",
-      "home:quickstart",
+      "home:one-light",
+      "home:growth",
       "home:mission",
       "home:faces",
       "home:alive",
     ]);
+  });
+
+  test("home section group carries the one-light product hook", () => {
+    const groups = Array.isArray(site.sections)
+      ? site.sections
+      : site.sections
+        ? [site.sections]
+        : [];
+    const home = groups.find((group) => group.namespace === "home");
+    expect(home && Object.keys(home.sections)).toContain("one-light");
   });
 });

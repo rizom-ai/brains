@@ -1,7 +1,9 @@
+import type { Message } from "@brains/conversation-service";
 import { describe, expect, it } from "bun:test";
 import {
   buildMessageWithAttachments,
   collectUploadRefsFromMessages,
+  filterConversationHistoryForPermission,
   resolveConversationUploadContinuity,
   toModelMessages,
 } from "../src/conversation-messages";
@@ -75,6 +77,54 @@ describe("toModelMessages", () => {
     expect(JSON.stringify(messages)).not.toContain(
       "Internal conversation content ref",
     );
+  });
+});
+
+describe("filterConversationHistoryForPermission", () => {
+  const message = (
+    id: string,
+    userPermissionLevel?: "public" | "trusted" | "anchor",
+  ): Message => ({
+    id,
+    conversationId: "conversation-1",
+    role: "assistant",
+    content: id,
+    metadata:
+      userPermissionLevel === undefined
+        ? null
+        : JSON.stringify({ userPermissionLevel }),
+    timestamp: new Date().toISOString(),
+  });
+
+  const history = [
+    message("legacy"),
+    message("public", "public"),
+    message("trusted", "trusted"),
+    message("anchor", "anchor"),
+  ];
+
+  it("removes higher-permission and unclassified history for public callers", () => {
+    expect(
+      filterConversationHistoryForPermission(history, "public").map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["public"]);
+  });
+
+  it("lets trusted callers see public and trusted history", () => {
+    expect(
+      filterConversationHistoryForPermission(history, "trusted").map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["public", "trusted"]);
+  });
+
+  it("lets anchors see all history, including legacy unclassified messages", () => {
+    expect(
+      filterConversationHistoryForPermission(history, "anchor").map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["legacy", "public", "trusted", "anchor"]);
   });
 });
 

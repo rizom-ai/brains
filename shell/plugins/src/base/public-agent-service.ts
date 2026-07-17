@@ -39,33 +39,45 @@ export function createPublicAgentNamespace(
       message,
       conversationId,
       context?: ChatContext,
+      signal?: AbortSignal,
     ): Promise<AgentResponse> => {
-      return toPublicAgentResponse(
-        await agentService.chat(
-          message,
-          conversationId,
-          toRuntimeChatContext(context),
-        ),
-      );
+      const runtimeContext = toRuntimeChatContext(context);
+      const response = signal
+        ? await agentService.chat(
+            message,
+            conversationId,
+            runtimeContext,
+            signal,
+          )
+        : await agentService.chat(message, conversationId, runtimeContext);
+      return toPublicAgentResponse(response);
     },
     confirmPendingAction: async (
       conversationId,
       confirmed,
       approvalId,
       context,
+      signal?: AbortSignal,
     ): Promise<AgentResponse> => {
       const runtimeContext = toRuntimeChatContext(context);
       if (!runtimeContext) {
         throw new Error("Confirmation requires caller context.");
       }
-      return toPublicAgentResponse(
-        await agentService.confirmPendingAction(
-          conversationId,
-          confirmed,
-          approvalId,
-          runtimeContext,
-        ),
-      );
+      const response = signal
+        ? await agentService.confirmPendingAction(
+            conversationId,
+            confirmed,
+            approvalId,
+            runtimeContext,
+            signal,
+          )
+        : await agentService.confirmPendingAction(
+            conversationId,
+            confirmed,
+            approvalId,
+            runtimeContext,
+          );
+      return toPublicAgentResponse(response);
     },
     invalidate: (): void => {
       agentService.invalidateAgent();

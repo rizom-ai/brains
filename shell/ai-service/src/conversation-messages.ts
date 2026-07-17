@@ -1,5 +1,6 @@
 import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 import {
@@ -75,6 +76,36 @@ function parseMessageMetadata(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const PERMISSION_RANK: Record<UserPermissionLevel, number> = {
+  public: 0,
+  trusted: 1,
+  anchor: 2,
+};
+
+/**
+ * Keep model history within the current caller's permission scope.
+ * Legacy messages have no provenance, so only anchors may receive them.
+ */
+export function filterConversationHistoryForPermission(
+  messages: Message[],
+  currentLevel: UserPermissionLevel,
+): Message[] {
+  if (currentLevel === "anchor") return messages;
+
+  return messages.filter((message) => {
+    const metadata = parseMessageMetadata(message.metadata);
+    const storedLevel = metadata?.["userPermissionLevel"];
+    if (
+      storedLevel !== "public" &&
+      storedLevel !== "trusted" &&
+      storedLevel !== "anchor"
+    ) {
+      return false;
+    }
+    return PERMISSION_RANK[storedLevel] <= PERMISSION_RANK[currentLevel];
+  });
 }
 
 export function buildModelMessages(

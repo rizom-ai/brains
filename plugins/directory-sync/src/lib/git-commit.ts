@@ -40,22 +40,28 @@ export async function pushGitChanges(
   logger: Logger,
   branch: string,
   net: GitNetwork,
+  signal?: AbortSignal,
 ): Promise<void> {
+  signal?.throwIfAborted();
   logger.debug("Pushing to origin", { branch });
   // The network push runs on a throwaway, stall-guarded instance so an
   // unresponsive remote can't hang the caller and wedge the git lock.
   try {
-    await runGitWithStallTimeout(net, (g) =>
-      g.push("origin", branch, ["--set-upstream"]),
+    await runGitWithStallTimeout(
+      net,
+      (g) => g.push("origin", branch, ["--set-upstream"]),
+      signal,
     );
   } catch (error) {
-    // A stall is terminal — don't retry it. The fallback exists only for the
+    // Cancellation and stalls are terminal. The fallback exists only for the
     // "no upstream configured" case.
+    if (signal?.aborted) throw signal.reason;
     if (error instanceof GitStallError) {
       throw error;
     }
-    await runGitWithStallTimeout(net, (g) => g.push("origin", branch));
+    await runGitWithStallTimeout(net, (g) => g.push("origin", branch), signal);
   }
+  signal?.throwIfAborted();
   logger.info("Pushed changes to remote");
 }
 

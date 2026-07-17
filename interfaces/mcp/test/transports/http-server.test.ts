@@ -1,6 +1,15 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
 import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { TransportLogger } from "../../src/transports/types";
 
 // Test helper types
@@ -132,12 +141,25 @@ describe("StreamableHTTPServer", () => {
   });
 
   afterEach(async () => {
-    if (server?.isRunning()) {
-      await server.stop();
-    }
+    await server?.stop();
   });
 
   describe("Server Lifecycle", () => {
+    test("validates before starting session eviction", () => {
+      const intervalSpy = spyOn(globalThis, "setInterval");
+      const timeoutSpy = spyOn(globalThis, "setTimeout");
+      try {
+        expect(() => new StreamableHTTPServer()).toThrow(
+          /requires an auth token/,
+        );
+        expect(intervalSpy).not.toHaveBeenCalled();
+        expect(timeoutSpy).not.toHaveBeenCalled();
+      } finally {
+        intervalSpy.mockRestore();
+        timeoutSpy.mockRestore();
+      }
+    });
+
     test("should create server with default config", () => {
       server = new StreamableHTTPServer({ auth: { disabled: true } });
       expect(server).toBeDefined();
@@ -519,6 +541,69 @@ describe("StreamableHTTPServer", () => {
   });
 
   describe("Session idle eviction", () => {
+    test("waits for an admitted eviction close before stopping", async () => {
+      let releaseClose: (() => void) | undefined;
+      const closePending = new Promise<void>((resolve) => {
+        releaseClose = resolve;
+      });
+      const closeSpy = spyOn(
+        WebStandardStreamableHTTPServerTransport.prototype,
+        "close",
+      ).mockImplementation(() => closePending);
+
+      try {
+        server = new StreamableHTTPServer({
+          logger: mockLogger,
+          auth: { disabled: true },
+          sessionIdleTtlMs: 5,
+        });
+        server.connectMCPServer(
+          new McpServer({ name: "test-server", version: "1.0.0" }),
+        );
+        await server.handleRequest(
+          new Request("http://localhost/mcp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json, text/event-stream",
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "initialize",
+              params: {
+                protocolVersion: "2024-11-05",
+                capabilities: {},
+                clientInfo: { name: "test-client", version: "1.0.0" },
+              },
+              id: 1,
+            }),
+          }),
+        );
+
+        for (
+          let attempt = 0;
+          attempt < 20 && closeSpy.mock.calls.length === 0;
+          attempt++
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+
+        let stopped = false;
+        const stopping = server.stop().then(() => {
+          stopped = true;
+        });
+        await Promise.resolve();
+        expect(stopped).toBe(false);
+
+        releaseClose?.();
+        await stopping;
+      } finally {
+        releaseClose?.();
+        closeSpy.mockRestore();
+      }
+    });
+
     test("should close and evict sessions idle past the TTL", async () => {
       server = new StreamableHTTPServer({
         logger: mockLogger,

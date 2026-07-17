@@ -1,22 +1,20 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+
 import { loadPilotRegistry } from "@rizom/ops";
 
-import { parseEnvFile, requireEnv, writeGitHubOutput } from "./helpers";
+import {
+  parseEnvFile,
+  requireEnv,
+  sitePackagesFor,
+  siteImageTag,
+  writeGitHubOutput,
+} from "./helpers";
 
 const handle = requireEnv("HANDLE");
 const envPath = `users/${handle}/.env`;
 const brainYamlPath = `users/${handle}/brain.yaml`;
 
 const envEntries = parseEnvFile(envPath);
-const registry = await loadPilotRegistry(process.cwd());
-const user = registry.users.find((candidate) => candidate.handle === handle);
-if (!user) {
-  throw new Error(`Unknown user handle: ${handle}`);
-}
-
-const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
-const imageTag = resolveImageTag(registry, brainVersion);
 const repository = process.env["GITHUB_REPOSITORY"] ?? "";
 const repositoryOwner = repository.split("/")[0] ?? "";
 
@@ -27,16 +25,32 @@ if (!brainDomain) {
   throw new Error(`Missing domain in ${brainYamlPath}`);
 }
 
-const pilotSubdomainPrefix = `${handle}.`;
-const pilotZone =
-  brainDomain.startsWith(pilotSubdomainPrefix) &&
-  brainDomain.length > pilotSubdomainPrefix.length
-    ? brainDomain.slice(pilotSubdomainPrefix.length)
-    : "";
-const previewDomain = pilotZone
-  ? `${handle}-preview.${pilotZone}`
-  : `preview.${brainDomain}`;
-const wwwDomain = pilotZone ? "" : `www.${brainDomain}`;
+const registry = await loadPilotRegistry(process.cwd());
+const user = registry.users.find((entry) => entry.handle === handle);
+if (!user) {
+  throw new Error(`Unknown user handle: ${handle}`);
+}
+const previewDomain = resolvePreviewDomain(
+  handle,
+  brainDomain,
+  registry.pilot.domainSuffix,
+);
+const wwwDomain = isFleetDomain(
+  handle,
+  brainDomain,
+  registry.pilot.domainSuffix,
+)
+  ? ""
+  : `www.${brainDomain}`;
+
+const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
+
+// The image tag is a pure function of this instance's own config: plain
+// `brain-{version}` for a default instance, or its own `brain-{version}-sites-
+// {hash}` when it declares a siteOverride. Resolved through the same helper the
+// build uses so the tag we wait for and run matches exactly what was pushed.
+const sitePackages = sitePackagesFor(user.siteOverride);
+const imageTag = siteImageTag(brainVersion, sitePackages);
 
 const outputs: Record<string, string> = {
   brain_version: brainVersion,
@@ -44,7 +58,7 @@ const outputs: Record<string, string> = {
   brain_domain: brainDomain,
   preview_domain: previewDomain,
   www_domain: wwwDomain,
-  cloudflare_zone_id: user.cloudflareZoneId ?? "",
+  cloudflare_zone_id: user.cloudflareZoneId ?? process.env["CF_ZONE_ID"] ?? "",
   brain_yaml_path: brainYamlPath,
   instance_name: `rover-${handle}`,
   image_repository: `ghcr.io/${repository}`,
@@ -63,34 +77,27 @@ for (const [key, value] of Object.entries(outputs)) {
   writeGitHubOutput(key, value);
 }
 
-function resolveImageTag(
-  registry: Awaited<ReturnType<typeof loadPilotRegistry>>,
-  brainVersion: string,
+function resolvePreviewDomain(
+  userHandle: string,
+  domain: string,
+  pilotDomainSuffix: string,
 ): string {
-  if (!brainVersion) {
-    return "";
+  if (!isFleetDomain(userHandle, domain, pilotDomainSuffix)) {
+    return `preview.${domain}`;
   }
 
-  const sitePackages = [
-    ...new Set(
-      registry.users
-        .filter((user) => user.brainVersion === brainVersion)
-        .flatMap((user) =>
-          user.siteOverride
-            ? [`${user.siteOverride.package}@${user.siteOverride.version}`]
-            : [],
-        ),
-    ),
-  ].sort();
-
-  if (sitePackages.length === 0) {
-    return `brain-${brainVersion}`;
+  const fleetZone = pilotDomainSuffix.replace(/^\./, "");
+  if (!fleetZone) {
+    throw new Error(`Could not derive preview domain from ${domain}`);
   }
 
-  const siteHash = createHash("sha256")
-    .update(sitePackages.join("\n"))
-    .digest("hex")
-    .slice(0, 12);
+  return `${userHandle}-preview.${fleetZone}`;
+}
 
-  return `brain-${brainVersion}-sites-${siteHash}`;
+function isFleetDomain(
+  userHandle: string,
+  domain: string,
+  pilotDomainSuffix: string,
+): boolean {
+  return domain === `${userHandle}${pilotDomainSuffix}`;
 }

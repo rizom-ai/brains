@@ -5,6 +5,7 @@ import { z } from "@brains/utils/zod";
 import type { DirectorySync } from "./directory-sync";
 import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";
+import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 
 const jobDataSchema = z.record(z.string(), z.unknown());
 
@@ -14,9 +15,10 @@ const jobDataSchema = z.record(z.string(), z.unknown());
  */
 export function setupAutoSync(
   context: ServicePluginContext,
-  directorySync: DirectorySync,
+  getDirectorySync: () => DirectorySync,
   logger: Logger,
   entityTypes: DirectorySyncConfig["entityTypes"],
+  operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   const { subscribe } = context.messaging;
   const { entityService } = context;
@@ -27,17 +29,24 @@ export function setupAutoSync(
       const { entity } = message.payload;
 
       try {
-        await directorySync.fileOps.writeEntity(entity);
+        await getDirectorySync().fileOps.writeEntity(entity);
         logger.debug("Auto-exported created entity", {
           id: entity.id,
           entityType: entity.entityType,
         });
+        await operationStatus?.clearIssues(["export"]);
       } catch (error) {
         logger.error("Auto-export FAILED for created entity", {
           id: entity.id,
           entityType: entity.entityType,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
+        });
+        await operationStatus?.recordIssue({
+          kind: "export",
+          path: `${entity.entityType}/${entity.id}.md`,
+          message:
+            error instanceof Error ? error.message : "Entity export failed",
         });
       }
       return { success: true };
@@ -63,17 +72,24 @@ export function setupAutoSync(
           return { success: false };
         }
 
-        await directorySync.fileOps.writeEntity(currentEntity);
+        await getDirectorySync().fileOps.writeEntity(currentEntity);
         logger.debug("Auto-exported updated entity", {
           id: currentEntity.id,
           entityType: currentEntity.entityType,
         });
+        await operationStatus?.clearIssues(["export"]);
       } catch (error) {
         logger.error("Auto-export FAILED for updated entity", {
           entityType,
           entityId,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
+        });
+        await operationStatus?.recordIssue({
+          kind: "export",
+          path: `${entityType}/${entityId}.md`,
+          message:
+            error instanceof Error ? error.message : "Entity export failed",
         });
       }
       return { success: true };
@@ -85,7 +101,10 @@ export function setupAutoSync(
     async (message) => {
       const { entityId, entityType } = message.payload;
 
-      const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
+      const filePath = getDirectorySync().fileOps.getFilePath(
+        entityId,
+        entityType,
+      );
       const exists = await access(filePath).then(
         () => true,
         () => false,
@@ -113,8 +132,10 @@ export function setupFileWatcher(
   context: ServicePluginContext,
   directorySync: DirectorySync,
   syncPath: string,
+  operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   directorySync.setJobQueueCallback(async (job: JobRequest) => {
+    const runId = await operationStatus?.startRun("watcher", "importing");
     const operations = [
       {
         type: job.type,
@@ -122,15 +143,28 @@ export function setupFileWatcher(
       },
     ];
 
-    return context.jobs.enqueueBatch(operations, {
-      priority: 5,
-      source: "directory-sync-watcher",
-      rootJobId: createId(),
-      metadata: {
-        operationType: "file_operations",
-        operationTarget: syncPath,
-        pluginId: "directory-sync",
-      },
-    });
+    try {
+      const batchId = await context.jobs.enqueueBatch(operations, {
+        priority: 5,
+        source: "directory-sync-watcher",
+        rootJobId: createId(),
+        metadata: {
+          operationType: "file_operations",
+          operationTarget: syncPath,
+          pluginId: "directory-sync",
+        },
+      });
+      if (runId) await operationStatus?.attachBatch(runId, batchId);
+      return batchId;
+    } catch (error) {
+      if (runId) {
+        await operationStatus?.failRun(
+          runId,
+          error instanceof Error ? error.message : "Watcher import failed",
+          "import",
+        );
+      }
+      throw error;
+    }
   });
 }

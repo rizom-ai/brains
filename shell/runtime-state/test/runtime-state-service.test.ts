@@ -34,6 +34,16 @@ describe("RuntimeStateService", () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
+  it("initializes WAL mode once", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    const first = service.initialize();
+    const second = service.initialize();
+
+    expect(second).toBe(first);
+    await first;
+    service.close();
+  });
+
   it("persists records across service recreation", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const subscriptions = service.scoped({

@@ -31,11 +31,38 @@ export async function buildEvalDatabase(
   });
   const shell = app.getShell();
   const entityService = shell.getEntityService();
+  let buildFailure: unknown;
+  let buildFailed = false;
 
-  await waitForJobsToDrain(shell.getJobQueueService());
-  await waitForIndexReadiness(entityService);
-  await verifyDatabaseContents(entityService);
-  await shell.shutdown();
+  try {
+    await waitForJobsToDrain(shell.getJobQueueService());
+    await waitForIndexReadiness(entityService);
+    await verifyDatabaseContents(entityService);
+  } catch (error) {
+    buildFailed = true;
+    buildFailure = error;
+  }
+
+  let shutdownFailure: unknown;
+  let shutdownFailed = false;
+  try {
+    await app.stop();
+  } catch (error) {
+    shutdownFailed = true;
+    shutdownFailure = error;
+  }
+
+  if (buildFailed) {
+    if (shutdownFailed) {
+      console.error(
+        "Failed to stop eval app after build failure:",
+        shutdownFailure,
+      );
+    }
+    throw buildFailure;
+  }
+  if (shutdownFailed) throw shutdownFailure;
+
   await checkpointDatabases(evalDbBase);
   copyBuiltDatabases(evalDbBase);
 }
@@ -85,8 +112,7 @@ async function waitForIndexReadiness(entityService: {
   const status = await entityService.awaitIndexReady({ timeoutMs: 120_000 });
 
   if (!status.ready) {
-    console.error("Semantic index was not ready:", status);
-    process.exit(1);
+    throw new Error(`Semantic index was not ready: ${JSON.stringify(status)}`);
   }
 
   if (status.degraded) {
@@ -108,8 +134,7 @@ async function verifyDatabaseContents(entityService: {
 
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
   if (total === 0) {
-    console.error("No entities found — sync failed.");
-    process.exit(1);
+    throw new Error("No entities found — sync failed.");
   }
 }
 
@@ -117,16 +142,18 @@ async function checkpointDatabases(evalDbBase: string): Promise<void> {
   const { Database } = await import("bun:sqlite");
   for (const dbPath of [`${evalDbBase}.db`, `${evalDbBase}-embeddings.db`]) {
     const db = new Database(dbPath);
-    db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-    db.close();
+    try {
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+    } finally {
+      db.close();
+    }
   }
 }
 
 function copyBuiltDatabases(evalDbBase: string): void {
   const evalContentDir = resolvePath(process.cwd(), "eval-content");
   if (!existsSync(evalContentDir)) {
-    console.error("No eval-content directory found");
-    process.exit(1);
+    throw new Error("No eval-content directory found");
   }
 
   const databasePairs = [

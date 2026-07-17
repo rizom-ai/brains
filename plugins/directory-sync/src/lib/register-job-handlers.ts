@@ -1,6 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IDirectorySync } from "../types";
+import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 import {
   DirectoryExportJobHandler,
   DirectoryImportJobHandler,
@@ -18,6 +19,8 @@ export function registerDirectorySyncJobHandlers(
   context: ServicePluginContext,
   directorySync: IDirectorySync,
   logger: Logger,
+  getDirectorySync: () => IDirectorySync = () => directorySync,
+  operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   const childLogger = (name: string): Logger => logger.child(name);
 
@@ -26,7 +29,7 @@ export function registerDirectorySyncJobHandlers(
     new DirectorySyncJobHandler(
       childLogger("DirectorySyncJobHandler"),
       context,
-      directorySync,
+      getDirectorySync,
     ),
   );
   context.jobs.registerHandler(
@@ -35,6 +38,7 @@ export function registerDirectorySyncJobHandlers(
       childLogger("DirectoryExportJobHandler"),
       context,
       directorySync,
+      operationStatus,
     ),
   );
   context.jobs.registerHandler(
@@ -43,6 +47,7 @@ export function registerDirectorySyncJobHandlers(
       childLogger("DirectoryImportJobHandler"),
       context,
       directorySync,
+      operationStatus,
     ),
   );
   context.jobs.registerHandler(

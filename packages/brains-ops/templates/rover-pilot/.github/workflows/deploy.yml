@@ -10,7 +10,6 @@ on:
   push:
     branches: ["main"]
     paths:
-      - users/*.yaml
       - users/*/.env
       - users/*/brain.yaml
       - users/*/content/**
@@ -83,72 +82,99 @@ jobs:
       - name: Install operator tooling
         run: bun install
 
+      - name: Load shared env via varlock
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            if bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              exit 1
+            fi
+            echo "Varlock load failed (attempt $attempt/3); retrying in 5s..."
+            sleep 5
+          done
+          node <<'NODE'
+          import { appendFileSync, readFileSync } from "node:fs";
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
+          const githubEnvPath = process.env.GITHUB_ENV;
+          if (!githubEnvPath) {
+            throw new Error('Missing GITHUB_ENV');
+          }
+
+          const newline = String.fromCharCode(10);
+          const carriageReturn = String.fromCharCode(13);
+          const chunks = [];
+          for (const [key, value] of Object.entries(env)) {
+            if (key === 'BWS_ACCESS_TOKEN' || value === null || value === undefined) {
+              continue;
+            }
+
+            const text = String(value)
+              .split(carriageReturn + newline)
+              .join(newline);
+            const escapedMask = text
+              .replace(/%/g, '%25')
+              .replace(/\r/g, '%0D')
+              .replace(/\n/g, '%0A');
+            if (escapedMask.length > 0) {
+              process.stdout.write('::add-mask::' + escapedMask + newline);
+            }
+
+            if (text.includes(newline)) {
+              let delimiter = `VARLOCK_${key}_EOF`;
+              while (text.includes(delimiter)) {
+                delimiter += '_X';
+              }
+              chunks.push(`${key}<<${delimiter}${newline}${text}${newline}${delimiter}`);
+            } else {
+              chunks.push(`${key}=${text}`);
+            }
+          }
+
+          appendFileSync(githubEnvPath, chunks.join(newline) + newline);
+          NODE
+
       - name: Decrypt user secrets
         id: user_secrets
-        env:
-          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
         run: bun deploy/scripts/decrypt-user-secrets.ts "$HANDLE"
 
       - name: Reconcile selected user config
-        env:
-          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-        run: |
-          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
+        run: bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
 
       - name: Resolve generated user config
         id: user_config
         run: bun deploy/scripts/resolve-user-config.ts
 
       - name: Validate selected secrets
-        env:
-          SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
-          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-          SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
-          SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-          HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
-          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
-          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
-          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
-          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}
-          SHARED_CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
-          SHARED_CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
-          SHARED_PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
-        run: |
-          export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
-          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"
-          export CERTIFICATE_PEM="${CERTIFICATE_PEM:-$SHARED_CERTIFICATE_PEM}"
-          export PRIVATE_KEY_PEM="${PRIVATE_KEY_PEM:-$SHARED_PRIVATE_KEY_PEM}"
-          bun deploy/scripts/validate-secrets.ts
+        run: bun deploy/scripts/validate-secrets.ts
 
       - name: Seed content repo
         env:
           CONTENT_REPO: ${{ steps.user_config.outputs.content_repo }}
-          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-        run: |
-          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          bun deploy/scripts/sync-content-repo.ts
+        run: bun deploy/scripts/sync-content-repo.ts
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Wait for shared image tag
+      - name: Wait for image tag
         run: |
+          # The Build workflow fires off the same config push (it derives the
+          # declared image set from the registry), so this wait must cover a
+          # full image build, not just registry propagation.
           IMAGE_TAG="${{ steps.user_config.outputs.image_repository }}:${{ steps.user_config.outputs.image_tag }}"
-          for attempt in $(seq 1 24); do
+          for attempt in $(seq 1 60); do
             if docker manifest inspect "$IMAGE_TAG" >/dev/null 2>&1; then
               exit 0
             fi
-            echo "Shared image tag not ready yet ($attempt/24): $IMAGE_TAG"
-            sleep 10
+            echo "Image tag not ready yet ($attempt/60): $IMAGE_TAG"
+            sleep 20
           done
           echo "Timed out waiting for $IMAGE_TAG" >&2
           exit 1
@@ -159,8 +185,6 @@ jobs:
           ruby -r rubygems -e 'puts Gem.user_dir + "/bin"' >> "$GITHUB_PATH"
 
       - name: Write Kamal SSH key
-        env:
-          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
         run: bun deploy/scripts/write-ssh-key.ts
 
       - name: Configure SSH client
@@ -177,42 +201,22 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Write .kamal/secrets
-        env:
-          SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
-          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-          SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
-          SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
-          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SHARED_CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
-          SHARED_PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
-        run: |
-          export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
-          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          export CERTIFICATE_PEM="${CERTIFICATE_PEM:-$SHARED_CERTIFICATE_PEM}"
-          export PRIVATE_KEY_PEM="${PRIVATE_KEY_PEM:-$SHARED_PRIVATE_KEY_PEM}"
-          bun deploy/scripts/write-kamal-secrets.ts
+        run: bun deploy/scripts/write-kamal-secrets.ts
 
       - name: Provision server
         id: provision
         env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-          HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
-          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
-          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
           INSTANCE_NAME: ${{ steps.user_config.outputs.instance_name }}
         run: bun deploy/scripts/provision-server.ts
 
       - name: Update Cloudflare DNS
         env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}
-          SHARED_CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
           WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
         run: |
-          export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"
           bun deploy/scripts/update-dns.ts
           if [ -n "$WWW_DOMAIN" ]; then
             BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts

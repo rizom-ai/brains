@@ -121,6 +121,50 @@ describe("SiteBuilder dataQuery handling", () => {
       );
     });
 
+    it("passes savedContent alongside dataQuery so overlay templates get both", async () => {
+      // A datasource-backed section now also offers its own saved content, so
+      // a template that declares an overlayFormatter can merge authored copy
+      // over the live data. Non-overlay templates ignore it (datasource wins).
+      const route: RouteDefinitionInput = {
+        id: "home",
+        path: "/",
+        title: "Home",
+        description: "Home",
+        layout: "default",
+        sections: [
+          {
+            id: "network",
+            template: "agent-discovery:proximity-map",
+            dataQuery: {},
+          },
+        ],
+      };
+
+      mockRouteRegistry.list = mock().mockReturnValue([route]);
+      mockContext.templates.resolve = mock().mockResolvedValue({ nodes: [] });
+
+      await siteBuilder.build({
+        outputDir: "/tmp/test-build",
+        environment: "preview",
+        enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
+        cleanBeforeBuild: false,
+        siteConfig: { title: "Test Site", description: "Test Description" },
+        layouts: { default: TestLayout },
+      });
+
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
+        "agent-discovery:proximity-map",
+        expect.objectContaining({
+          dataParams: {},
+          savedContent: {
+            entityType: "site-content",
+            entityId: "home:network",
+          },
+        }),
+      );
+    });
+
     it("should detect detail format when query.id is present", async () => {
       const route: RouteDefinitionInput = {
         id: "topic-detail",

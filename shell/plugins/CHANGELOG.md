@@ -1,5 +1,433 @@
 # @brains/plugins
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/site-composition@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/conversation-service@0.2.0-alpha.191
+  - @brains/identity-service@0.2.0-alpha.191
+  - @brains/job-queue@0.2.0-alpha.191
+  - @brains/messaging-service@0.2.0-alpha.191
+  - @brains/recurring-checks@0.2.0-alpha.191
+  - @brains/runtime-state@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/conversation-service@0.2.0-alpha.190
+  - @brains/identity-service@0.2.0-alpha.190
+  - @brains/job-queue@0.2.0-alpha.190
+  - @brains/messaging-service@0.2.0-alpha.190
+  - @brains/recurring-checks@0.2.0-alpha.190
+  - @brains/runtime-state@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS Sync workspace backed by a sanitized directory-sync operational snapshot. Operators can inspect watcher, file, Git, recent-run, and quarantine state and request the existing normal sync flow from CMS, while Dashboard remains read-only and links to the workspace when available.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/conversation-service@0.2.0-alpha.189
+  - @brains/identity-service@0.2.0-alpha.189
+  - @brains/job-queue@0.2.0-alpha.189
+  - @brains/messaging-service@0.2.0-alpha.189
+  - @brains/recurring-checks@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.188
+  - @brains/contracts@0.2.0-alpha.188
+  - @brains/site-composition@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/conversation-service@0.2.0-alpha.188
+  - @brains/identity-service@0.2.0-alpha.188
+  - @brains/job-queue@0.2.0-alpha.188
+  - @brains/messaging-service@0.2.0-alpha.188
+  - @brains/recurring-checks@0.2.0-alpha.188
+  - @brains/runtime-state@0.2.0-alpha.188
+  - @brains/templates@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.187
+  - @brains/contracts@0.2.0-alpha.187
+  - @brains/site-composition@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/conversation-service@0.2.0-alpha.187
+  - @brains/identity-service@0.2.0-alpha.187
+  - @brains/job-queue@0.2.0-alpha.187
+  - @brains/messaging-service@0.2.0-alpha.187
+  - @brains/recurring-checks@0.2.0-alpha.187
+  - @brains/runtime-state@0.2.0-alpha.187
+  - @brains/templates@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a multi-provider CMS workspace contract and register site-builder as the second provider. The CMS gains preview/live build controls and status, while Dashboard gets a read-only Site health tab backed by the same runtime-state projection.
+
+- [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve user edits made while markdown uploads are still importing, and guide Rover to update the imported note instead of creating duplicate copies.
+
+- Updated dependencies []:
+  - @brains/identity-service@0.2.0-alpha.186
+  - @brains/content-formatters@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/site-composition@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+  - @brains/conversation-service@0.2.0-alpha.186
+  - @brains/job-queue@0.2.0-alpha.186
+  - @brains/messaging-service@0.2.0-alpha.186
+  - @brains/recurring-checks@0.2.0-alpha.186
+  - @brains/runtime-state@0.2.0-alpha.186
+  - @brains/templates@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.185
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/site-composition@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/conversation-service@0.2.0-alpha.185
+  - @brains/identity-service@0.2.0-alpha.185
+  - @brains/job-queue@0.2.0-alpha.185
+  - @brains/messaging-service@0.2.0-alpha.185
+  - @brains/recurring-checks@0.2.0-alpha.185
+  - @brains/runtime-state@0.2.0-alpha.185
+  - @brains/templates@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies [[`14cab1b`](https://github.com/rizom-ai/brains/commit/14cab1b4de0e2498129d0e00a6fe2df1d5bdfc5e)]:
+  - @brains/site-composition@0.2.0-alpha.184
+  - @brains/content-formatters@0.2.0-alpha.184
+  - @brains/contracts@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+  - @brains/conversation-service@0.2.0-alpha.184
+  - @brains/identity-service@0.2.0-alpha.184
+  - @brains/job-queue@0.2.0-alpha.184
+  - @brains/messaging-service@0.2.0-alpha.184
+  - @brains/recurring-checks@0.2.0-alpha.184
+  - @brains/runtime-state@0.2.0-alpha.184
+  - @brains/templates@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies [[`0383fc3`](https://github.com/rizom-ai/brains/commit/0383fc3f425465eb148a2c87dbff7c18ff777aa5), [`197cc09`](https://github.com/rizom-ai/brains/commit/197cc0988a47f80e3e21b5f4adf034003ea3527e)]:
+  - @brains/recurring-checks@0.2.0-alpha.183
+  - @brains/identity-service@0.2.0-alpha.183
+  - @brains/content-formatters@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/site-composition@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+  - @brains/conversation-service@0.2.0-alpha.183
+  - @brains/job-queue@0.2.0-alpha.183
+  - @brains/messaging-service@0.2.0-alpha.183
+  - @brains/runtime-state@0.2.0-alpha.183
+  - @brains/templates@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/site-composition@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/conversation-service@0.2.0-alpha.182
+  - @brains/identity-service@0.2.0-alpha.182
+  - @brains/job-queue@0.2.0-alpha.182
+  - @brains/messaging-service@0.2.0-alpha.182
+  - @brains/recurring-checks@0.2.0-alpha.182
+  - @brains/runtime-state@0.2.0-alpha.182
+  - @brains/templates@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.181
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/site-composition@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/conversation-service@0.2.0-alpha.181
+  - @brains/identity-service@0.2.0-alpha.181
+  - @brains/job-queue@0.2.0-alpha.181
+  - @brains/messaging-service@0.2.0-alpha.181
+  - @brains/recurring-checks@0.2.0-alpha.181
+  - @brains/runtime-state@0.2.0-alpha.181
+  - @brains/templates@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies [[`2499c50`](https://github.com/rizom-ai/brains/commit/2499c5055fa73b7bce87207a7e9db6fe4c52c4c3)]:
+  - @brains/conversation-service@0.2.0-alpha.180
+  - @brains/identity-service@0.2.0-alpha.180
+  - @brains/content-formatters@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/site-composition@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/job-queue@0.2.0-alpha.180
+  - @brains/messaging-service@0.2.0-alpha.180
+  - @brains/recurring-checks@0.2.0-alpha.180
+  - @brains/runtime-state@0.2.0-alpha.180
+  - @brains/templates@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies [[`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970), [`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9)]:
+  - @brains/conversation-service@0.2.0-alpha.179
+  - @brains/runtime-state@0.2.0-alpha.179
+  - @brains/identity-service@0.2.0-alpha.179
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/site-composition@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/job-queue@0.2.0-alpha.179
+  - @brains/messaging-service@0.2.0-alpha.179
+  - @brains/templates@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.178
+  - @brains/contracts@0.2.0-alpha.178
+  - @brains/effect-runtime@0.2.0-alpha.178
+  - @brains/site-composition@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/conversation-service@0.2.0-alpha.178
+  - @brains/identity-service@0.2.0-alpha.178
+  - @brains/job-queue@0.2.0-alpha.178
+  - @brains/messaging-service@0.2.0-alpha.178
+  - @brains/runtime-state@0.2.0-alpha.178
+  - @brains/templates@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.177
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/effect-runtime@0.2.0-alpha.177
+  - @brains/site-composition@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/conversation-service@0.2.0-alpha.177
+  - @brains/identity-service@0.2.0-alpha.177
+  - @brains/job-queue@0.2.0-alpha.177
+  - @brains/messaging-service@0.2.0-alpha.177
+  - @brains/runtime-state@0.2.0-alpha.177
+  - @brains/templates@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- [`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS publishing workspace with durable queue operations, confirmed direct publishing, and a compact read-only Dashboard digest.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/effect-runtime@0.2.0-alpha.176
+  - @brains/site-composition@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+  - @brains/conversation-service@0.2.0-alpha.176
+  - @brains/identity-service@0.2.0-alpha.176
+  - @brains/job-queue@0.2.0-alpha.176
+  - @brains/messaging-service@0.2.0-alpha.176
+  - @brains/runtime-state@0.2.0-alpha.176
+  - @brains/templates@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies [[`b148151`](https://github.com/rizom-ai/brains/commit/b148151a76a1e7cab2030f0a9916375de40b74d1)]:
+  - @brains/job-queue@0.2.0-alpha.175
+  - @brains/identity-service@0.2.0-alpha.175
+  - @brains/content-formatters@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/effect-runtime@0.2.0-alpha.175
+  - @brains/site-composition@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+  - @brains/conversation-service@0.2.0-alpha.175
+  - @brains/messaging-service@0.2.0-alpha.175
+  - @brains/runtime-state@0.2.0-alpha.175
+  - @brains/templates@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/identity-service@0.2.0-alpha.174
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/effect-runtime@0.2.0-alpha.174
+  - @brains/site-composition@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/conversation-service@0.2.0-alpha.174
+  - @brains/job-queue@0.2.0-alpha.174
+  - @brains/messaging-service@0.2.0-alpha.174
+  - @brains/runtime-state@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- [#56](https://github.com/rizom-ai/brains/pull/56) [`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell lifecycle ownership with a centralized Effect boundary, scoped job-service layers, supervised fibers, deterministic schedules, transactional startup rollback, terminal plugin teardown, graceful job draining, daemon rollback, and end-to-end `AbortSignal` cancellation for AI requests and agent turns. Build public package subpaths with shared chunks to avoid duplicating their runtime code.
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/effect-runtime@0.2.0-alpha.173
+  - @brains/job-queue@0.2.0-alpha.173
+  - @brains/runtime-state@0.2.0-alpha.173
+  - @brains/identity-service@0.2.0-alpha.173
+  - @brains/content-formatters@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/site-composition@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+  - @brains/conversation-service@0.2.0-alpha.173
+  - @brains/messaging-service@0.2.0-alpha.173
+  - @brains/templates@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/site-composition@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/conversation-service@0.2.0-alpha.172
+  - @brains/identity-service@0.2.0-alpha.172
+  - @brains/job-queue@0.2.0-alpha.172
+  - @brains/messaging-service@0.2.0-alpha.172
+  - @brains/runtime-state@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/site-composition@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/conversation-service@0.2.0-alpha.171
+  - @brains/identity-service@0.2.0-alpha.171
+  - @brains/job-queue@0.2.0-alpha.171
+  - @brains/messaging-service@0.2.0-alpha.171
+  - @brains/runtime-state@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/site-composition@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/conversation-service@0.2.0-alpha.170
+  - @brains/identity-service@0.2.0-alpha.170
+  - @brains/job-queue@0.2.0-alpha.170
+  - @brains/messaging-service@0.2.0-alpha.170
+  - @brains/runtime-state@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/site-composition@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/conversation-service@0.2.0-alpha.169
+  - @brains/identity-service@0.2.0-alpha.169
+  - @brains/job-queue@0.2.0-alpha.169
+  - @brains/messaging-service@0.2.0-alpha.169
+  - @brains/runtime-state@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/site-composition@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/conversation-service@0.2.0-alpha.168
+  - @brains/identity-service@0.2.0-alpha.168
+  - @brains/job-queue@0.2.0-alpha.168
+  - @brains/messaging-service@0.2.0-alpha.168
+  - @brains/runtime-state@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/site-composition@0.2.0-alpha.167
+  - @brains/messaging-service@0.2.0-alpha.167
+  - @brains/job-queue@0.2.0-alpha.167
+  - @brains/conversation-service@0.2.0-alpha.167
+  - @brains/identity-service@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+  - @brains/runtime-state@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

@@ -1,0 +1,2002 @@
+<!doctype html>
+<html lang="en" data-climate="paper" data-scenario="healthy">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMS Directory Sync Workspace — Interaction Mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --review-bg: #080711;
+        --review-text: #f1eadd;
+        --review-dim: rgba(241, 234, 221, 0.62);
+        --review-faint: rgba(241, 234, 221, 0.38);
+        --review-line: rgba(241, 234, 221, 0.12);
+        --review-accent: #ff8b3d;
+        --display: "Fraunces", Georgia, serif;
+        --ui: "IBM Plex Sans", sans-serif;
+        --mono: "IBM Plex Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 7% 0,
+            rgba(255, 139, 61, 0.11),
+            transparent 27rem
+          ),
+          radial-gradient(
+            circle at 96% 28%,
+            rgba(104, 204, 139, 0.07),
+            transparent 29rem
+          ),
+          var(--review-bg);
+        color: var(--review-text);
+        font: 14px/1.5 var(--ui);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before {
+        position: fixed;
+        z-index: 100;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        content: "";
+        opacity: 0.42;
+        pointer-events: none;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--review-accent);
+        outline-offset: 3px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 44%, transparent);
+        }
+        55% {
+          box-shadow: 0 0 0 7px transparent;
+        }
+      }
+
+      @keyframes travel {
+        from {
+          transform: translateX(-120%);
+        }
+        to {
+          transform: translateX(380%);
+        }
+      }
+
+      .review-head,
+      .review-nav,
+      .specimen,
+      .decisions,
+      .review-foot {
+        width: min(100% - 40px, 1460px);
+        margin-inline: auto;
+      }
+
+      .review-head {
+        padding: 72px 0 31px;
+      }
+
+      .eyebrow,
+      .spec-num,
+      .screen-label,
+      .decision small {
+        font-family: var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--review-accent);
+        font-size: 10px;
+      }
+
+      .review-head h1 {
+        max-width: 12ch;
+        margin: 14px 0 0;
+        animation: rise 0.55s ease-out both;
+        font: 480 clamp(44px, 7vw, 86px) / 0.93 var(--display);
+        font-variation-settings:
+          "SOFT" 58,
+          "opsz" 120;
+        letter-spacing: -0.04em;
+      }
+
+      .review-head h1 em {
+        color: var(--review-accent);
+        font-weight: 390;
+      }
+
+      .review-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 64ch) auto;
+        gap: 30px;
+        align-items: end;
+        margin-top: 27px;
+        animation: rise 0.55s 0.1s ease-out both;
+      }
+
+      .review-intro p {
+        margin: 0;
+        color: var(--review-dim);
+        font-size: 16px;
+      }
+
+      .review-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
+      .review-control {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--review-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.025);
+        color: var(--review-dim);
+        cursor: pointer;
+        font: 500 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .review-control:hover,
+      .review-control.is-active {
+        border-color: rgba(255, 139, 61, 0.55);
+        background: rgba(255, 139, 61, 0.09);
+        color: var(--review-text);
+      }
+
+      .review-nav {
+        position: sticky;
+        z-index: 80;
+        top: 0;
+        display: flex;
+        overflow-x: auto;
+        border-block: 1px solid var(--review-line);
+        background: rgba(8, 7, 17, 0.86);
+        backdrop-filter: blur(18px);
+        scrollbar-width: none;
+      }
+
+      .review-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .review-nav a {
+        flex: 0 0 auto;
+        padding: 11px 14px;
+        color: var(--review-faint);
+        font: 10px var(--mono);
+        text-decoration: none;
+      }
+
+      .review-nav a:hover {
+        color: var(--review-text);
+      }
+
+      .review-nav span {
+        margin-right: 7px;
+        color: var(--review-accent);
+      }
+
+      .specimen {
+        padding-top: 84px;
+      }
+
+      .specimen-head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) minmax(260px, 42ch);
+        gap: 18px;
+        align-items: baseline;
+        margin-bottom: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--review-line);
+      }
+
+      .spec-num {
+        color: var(--review-accent);
+        font-size: 10px;
+      }
+
+      .specimen h2 {
+        margin: 0;
+        font: 520 clamp(28px, 3vw, 42px) / 1 var(--display);
+        font-variation-settings:
+          "SOFT" 52,
+          "opsz" 80;
+        letter-spacing: -0.025em;
+      }
+
+      .specimen-note {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 13px;
+        text-align: right;
+      }
+
+      .screen-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+        color: var(--review-faint);
+        font-size: 9px;
+      }
+
+      /* CMS console climate ------------------------------------------ */
+      .console {
+        --c-bg: #ece5d6;
+        --c-frame: #f4efe6;
+        --c-card: #faf7f0;
+        --c-soft: #ece5d6;
+        --c-deep: #211d18;
+        --c-text: #211d18;
+        --c-66: rgba(33, 29, 24, 0.66);
+        --c-44: rgba(33, 29, 24, 0.44);
+        --c-24: rgba(33, 29, 24, 0.24);
+        --c-line: rgba(33, 29, 24, 0.16);
+        --c-line-soft: rgba(33, 29, 24, 0.08);
+        --c-accent: #c44a1d;
+        --c-accent-soft: rgba(196, 74, 29, 0.1);
+        --c-secondary: #6b2fa0;
+        --c-secondary-soft: rgba(107, 47, 160, 0.09);
+        --c-ok: #3d6b5c;
+        --c-ok-soft: rgba(61, 107, 92, 0.14);
+        --c-warn: #a97613;
+        --c-warn-soft: rgba(169, 118, 19, 0.12);
+        --c-err: #932f2f;
+        --c-err-soft: rgba(147, 47, 47, 0.09);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(241, 234, 221, 0.15);
+        border-radius: 12px;
+        background: var(--c-bg);
+        box-shadow: 0 36px 90px -38px rgba(0, 0, 0, 0.92);
+        color: var(--c-text);
+        color-scheme: light;
+        font-family: var(--ui);
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
+      }
+
+      [data-climate="instrument"] .console {
+        --c-bg: #0a0819;
+        --c-frame: #0f0d22;
+        --c-card: #14112b;
+        --c-soft: #1b1638;
+        --c-deep: #05040f;
+        --c-text: #f1eadd;
+        --c-66: rgba(241, 234, 221, 0.66);
+        --c-44: rgba(241, 234, 221, 0.44);
+        --c-24: rgba(241, 234, 221, 0.24);
+        --c-line: rgba(241, 234, 221, 0.14);
+        --c-line-soft: rgba(241, 234, 221, 0.07);
+        --c-accent: #ff8b3d;
+        --c-accent-soft: rgba(255, 139, 61, 0.12);
+        --c-secondary: #9998ff;
+        --c-secondary-soft: rgba(153, 152, 255, 0.12);
+        --c-ok: #68cc8b;
+        --c-ok-soft: rgba(104, 204, 139, 0.13);
+        --c-warn: #f5c158;
+        --c-warn-soft: rgba(245, 193, 88, 0.12);
+        --c-err: #e26d6d;
+        --c-err-soft: rgba(226, 109, 109, 0.1);
+        color-scheme: dark;
+      }
+
+      .console::before {
+        position: absolute;
+        z-index: 30;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--c-accent), transparent 62%);
+        content: "";
+        pointer-events: none;
+      }
+
+      .console-strip {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        gap: 22px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, white 18%, transparent),
+            transparent
+          ),
+          var(--c-frame);
+      }
+
+      .console-mark,
+      .session {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      .console-mark {
+        color: var(--c-66);
+        font: 10px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .console-mark b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .brand-dot,
+      .session-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-accent);
+      }
+
+      .surface-nav {
+        display: flex;
+        gap: 2px;
+      }
+
+      .surface-nav span {
+        padding: 5px 12px;
+        border-radius: 6px;
+        color: var(--c-44);
+        font-size: 13px;
+      }
+
+      .surface-nav .active {
+        background: var(--c-line-soft);
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .spacer {
+        flex: 1;
+      }
+
+      .command {
+        padding: 5px 10px;
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        color: var(--c-44);
+        font-size: 12px;
+      }
+
+      .command kbd {
+        margin-right: 5px;
+        font: 9px var(--mono);
+      }
+
+      .session {
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--c-ok-soft);
+        color: var(--c-ok);
+        font: 10px var(--mono);
+      }
+
+      .session-dot {
+        width: 6px;
+        height: 6px;
+        background: currentColor;
+      }
+
+      .crumbbar {
+        display: flex;
+        min-height: 40px;
+        align-items: center;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-frame);
+        color: var(--c-44);
+        font-size: 12px;
+      }
+
+      .crumbbar b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .capability {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+        color: var(--c-ok);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .capability::before {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .cms-layout {
+        display: grid;
+        grid-template-columns: 226px minmax(0, 1fr);
+        min-height: 760px;
+      }
+
+      .rail {
+        padding: 20px 0 26px;
+        border-right: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to right,
+            transparent 62%,
+            color-mix(in srgb, var(--c-text) 2.5%, transparent)
+          ),
+          var(--c-soft);
+      }
+
+      .rail-group + .rail-group {
+        margin-top: 13px;
+        padding-top: 17px;
+        border-top: 1px solid var(--c-line-soft);
+      }
+
+      .rail-label {
+        padding: 0 20px 7px;
+        color: var(--c-44);
+        font: 8px var(--mono);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .rail-item {
+        display: flex;
+        width: 100%;
+        min-height: 32px;
+        align-items: center;
+        gap: 9px;
+        padding: 5px 20px 5px 18px;
+        border: 0;
+        border-left: 2px solid transparent;
+        background: transparent;
+        color: var(--c-66);
+        text-align: left;
+      }
+
+      .rail-item.active {
+        border-left-color: var(--c-accent);
+        background: var(--c-card);
+        color: var(--c-text);
+      }
+
+      .rail-item .glyph {
+        width: 16px;
+        color: var(--c-44);
+        font: 11px var(--mono);
+        text-align: center;
+      }
+
+      .rail-item.active .glyph {
+        color: var(--c-accent);
+      }
+
+      .rail-count {
+        margin-left: auto;
+        color: var(--c-44);
+        font: 9px var(--mono);
+      }
+
+      .attention-count {
+        display: none;
+        width: 18px;
+        height: 18px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--c-err);
+        color: var(--c-card);
+        font: 8px var(--mono);
+      }
+
+      [data-scenario="attention"] .attention-count {
+        display: grid;
+      }
+
+      /* Scenario visibility ------------------------------------------ */
+      [data-scenario="healthy"] .state-syncing,
+      [data-scenario="healthy"] .state-attention,
+      [data-scenario="syncing"] .state-healthy,
+      [data-scenario="syncing"] .state-attention,
+      [data-scenario="syncing"] .not-syncing,
+      [data-scenario="attention"] .state-healthy,
+      [data-scenario="attention"] .state-syncing,
+      [data-scenario="attention"] .state-not-attention {
+        display: none !important;
+      }
+
+      /* Workspace ---------------------------------------------------- */
+      .workspace {
+        min-width: 0;
+        padding: 28px 30px 34px;
+        background: var(--c-frame);
+      }
+
+      .workspace-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        padding-bottom: 21px;
+        border-bottom: 2px solid var(--c-text);
+      }
+
+      .kicker,
+      .section-head span,
+      .card-head,
+      .vital span {
+        font-family: var(--mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .kicker {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--c-accent);
+        font-size: 8px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+      }
+
+      .workspace-head h3 {
+        margin: 0;
+        font: 520 clamp(34px, 4vw, 49px) / 0.95 var(--display);
+        font-variation-settings:
+          "SOFT" 62,
+          "opsz" 82;
+        letter-spacing: -0.035em;
+      }
+
+      .workspace-head p {
+        max-width: 55ch;
+        margin: 8px 0 0;
+        color: var(--c-66);
+        font-size: 13px;
+      }
+
+      .workspace-state {
+        padding-bottom: 3px;
+        color: var(--c-44);
+        font: 9px var(--mono);
+        text-align: right;
+      }
+
+      .workspace-state strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--c-ok);
+        font-size: 9px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .workspace-state strong::before {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      [data-scenario="syncing"] .workspace-state strong {
+        color: var(--c-accent);
+      }
+
+      [data-scenario="syncing"] .workspace-state strong::before {
+        animation: pulse 1.35s ease-in-out infinite;
+      }
+
+      [data-scenario="attention"] .workspace-state strong {
+        color: var(--c-err);
+      }
+
+      .vitals {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .vital {
+        min-width: 0;
+        padding: 17px 16px 16px;
+        border-right: 1px solid var(--c-line);
+      }
+
+      .vital:first-child {
+        padding-left: 0;
+      }
+
+      .vital:last-child {
+        border-right: 0;
+      }
+
+      .vital span {
+        display: block;
+        color: var(--c-44);
+        font-size: 8px;
+      }
+
+      .vital b {
+        display: block;
+        overflow: hidden;
+        margin-top: 5px;
+        color: var(--c-text);
+        font: 520 28px/1 var(--display);
+        font-variation-settings: "SOFT" 35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .vital b.word {
+        padding-top: 3px;
+        font: 500 13px var(--mono);
+      }
+
+      .vital small {
+        color: var(--c-44);
+        font-size: 9px;
+      }
+
+      .sync-flow {
+        display: grid;
+        grid-template-columns:
+          minmax(130px, 1fr) 54px minmax(160px, 1fr)
+          54px minmax(150px, 1fr) auto;
+        gap: 0;
+        align-items: center;
+        padding: 19px 0;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .flow-node {
+        min-width: 0;
+        padding: 12px 14px;
+        border: 1px solid var(--c-line);
+        background: var(--c-card);
+      }
+
+      .flow-node strong,
+      .flow-node small {
+        display: block;
+      }
+
+      .flow-node strong {
+        font: 540 16px var(--display);
+      }
+
+      .flow-node small {
+        overflow: hidden;
+        margin-top: 2px;
+        color: var(--c-44);
+        font: 8px var(--mono);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .flow-link {
+        position: relative;
+        height: 1px;
+        overflow: hidden;
+        background: var(--c-line);
+      }
+
+      .flow-link::after {
+        position: absolute;
+        top: -2px;
+        right: 0;
+        width: 5px;
+        height: 5px;
+        border-top: 1px solid var(--c-44);
+        border-right: 1px solid var(--c-44);
+        content: "";
+        transform: rotate(45deg);
+      }
+
+      [data-scenario="syncing"] .flow-link::before {
+        position: absolute;
+        top: -1px;
+        width: 32%;
+        height: 3px;
+        background: var(--c-accent);
+        content: "";
+        animation: travel 1s linear infinite;
+      }
+
+      .sync-action {
+        min-height: 40px;
+        margin-left: 18px;
+        padding: 0 15px;
+        border: 1px solid var(--c-text);
+        border-radius: 6px;
+        background: var(--c-text);
+        color: var(--c-card);
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .sync-action:hover {
+        border-color: var(--c-accent);
+        background: var(--c-accent);
+        color: white;
+      }
+
+      [data-scenario="syncing"] .sync-action {
+        border-color: var(--c-line);
+        background: var(--c-soft);
+        color: var(--c-44);
+        cursor: wait;
+      }
+
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.48fr) minmax(270px, 0.62fr);
+        gap: 28px;
+        padding-top: 24px;
+      }
+
+      .section-head {
+        display: flex;
+        min-height: 30px;
+        align-items: baseline;
+        gap: 9px;
+      }
+
+      .section-head h4 {
+        margin: 0;
+        font: 540 19px var(--display);
+      }
+
+      .section-head span {
+        color: var(--c-44);
+        font-size: 8px;
+      }
+
+      .run-list,
+      .change-list {
+        margin: 5px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--c-text);
+        list-style: none;
+      }
+
+      .run-row {
+        display: grid;
+        grid-template-columns: 25px 88px minmax(0, 1fr) auto;
+        gap: 11px;
+        align-items: center;
+        padding: 13px 2px;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .run-mark {
+        display: grid;
+        width: 19px;
+        height: 19px;
+        place-items: center;
+        border: 1px solid var(--c-line);
+        border-radius: 50%;
+        color: var(--c-ok);
+        font: 8px var(--mono);
+      }
+
+      .run-mark.warn {
+        color: var(--c-warn);
+      }
+
+      .run-mark.fail {
+        color: var(--c-err);
+      }
+
+      .run-source,
+      .run-row time {
+        color: var(--c-44);
+        font: 8px var(--mono);
+      }
+
+      .run-source {
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .run-copy strong,
+      .run-copy small {
+        display: block;
+      }
+
+      .run-copy strong {
+        color: var(--c-66);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .run-copy small {
+        margin-top: 2px;
+        color: var(--c-44);
+        font-size: 10px;
+      }
+
+      .active-run {
+        display: none;
+        margin: 5px 0 18px;
+        padding: 14px 15px;
+        border: 1px solid var(--c-accent);
+        background: var(--c-accent-soft);
+      }
+
+      [data-scenario="syncing"] .active-run {
+        display: block;
+      }
+
+      .active-run header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .active-run header i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-accent);
+        color: var(--c-accent);
+        animation: pulse 1.35s ease-in-out infinite;
+      }
+
+      .active-run strong {
+        font: 540 16px var(--display);
+      }
+
+      .active-run time {
+        margin-left: auto;
+        color: var(--c-44);
+        font: 8px var(--mono);
+      }
+
+      .active-run p {
+        margin: 7px 0 10px 15px;
+        color: var(--c-66);
+        font-size: 10px;
+      }
+
+      .run-track {
+        height: 3px;
+        overflow: hidden;
+        background: var(--c-line);
+      }
+
+      .run-track i {
+        display: block;
+        width: 34%;
+        height: 100%;
+        background: var(--c-accent);
+        animation: travel 1s linear infinite;
+      }
+
+      .workspace-aside {
+        display: grid;
+        align-content: start;
+        gap: 15px;
+      }
+
+      .aside-card {
+        padding: 15px 16px;
+        border: 1px solid var(--c-line);
+        background: var(--c-card);
+      }
+
+      .aside-card.attention {
+        display: none;
+        border-color: color-mix(in srgb, var(--c-err) 40%, var(--c-line));
+        background:
+          linear-gradient(135deg, var(--c-err-soft), transparent 65%),
+          var(--c-card);
+      }
+
+      [data-scenario="attention"] .aside-card.attention {
+        display: block;
+      }
+
+      .aside-card.clear {
+        border-left: 3px solid var(--c-ok);
+      }
+
+      [data-scenario="attention"] .aside-card.clear {
+        display: none;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 11px;
+        color: var(--c-44);
+        font-size: 8px;
+      }
+
+      .card-head i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--c-secondary);
+      }
+
+      .attention .card-head i {
+        background: var(--c-err);
+      }
+
+      .clear .card-head i {
+        background: var(--c-ok);
+      }
+
+      .fact-list {
+        margin: 0;
+      }
+
+      .fact-list div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--c-line-soft);
+        font-size: 10px;
+      }
+
+      .fact-list div:last-child {
+        border-bottom: 0;
+      }
+
+      .fact-list dt {
+        color: var(--c-44);
+      }
+
+      .fact-list dd {
+        overflow: hidden;
+        margin: 0;
+        color: var(--c-66);
+        font-family: var(--mono);
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .attention h5 {
+        margin: 0;
+        font: 540 17px var(--display);
+      }
+
+      .attention p,
+      .clear p {
+        margin: 7px 0 0;
+        color: var(--c-66);
+        font-size: 10px;
+      }
+
+      .issue-file {
+        display: block;
+        margin-top: 10px;
+        padding: 8px 9px;
+        border-left: 2px solid var(--c-err);
+        background: var(--c-err-soft);
+        color: var(--c-err);
+        font: 9px/1.55 var(--mono);
+      }
+
+      .coverage-row {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr) 26px;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 0;
+        color: var(--c-44);
+        font-size: 9px;
+      }
+
+      .coverage-track {
+        height: 3px;
+        background: var(--c-line);
+      }
+
+      .coverage-track i {
+        display: block;
+        height: 100%;
+        background: var(--c-secondary);
+      }
+
+      .coverage-row b {
+        color: var(--c-66);
+        font: 8px var(--mono);
+        text-align: right;
+      }
+
+      /* Optionality -------------------------------------------------- */
+      .absent-main,
+      .absent-note {
+        display: none;
+      }
+
+      [data-scenario="absent"] .sync-present {
+        display: none !important;
+      }
+
+      [data-scenario="absent"] .absent-main {
+        display: block;
+      }
+
+      .absent-main {
+        padding: 30px;
+        background: var(--c-frame);
+      }
+
+      .absent-main header {
+        padding-bottom: 19px;
+        border-bottom: 2px solid var(--c-text);
+      }
+
+      .absent-main h3 {
+        margin: 0;
+        font: 520 42px var(--display);
+        font-variation-settings: "SOFT" 62;
+      }
+
+      .absent-main p {
+        max-width: 56ch;
+        color: var(--c-44);
+      }
+
+      .absence-card {
+        max-width: 610px;
+        margin-top: 24px;
+        padding: 18px;
+        border: 1px solid var(--c-line);
+        background: var(--c-card);
+      }
+
+      .absence-card strong {
+        display: block;
+        color: var(--c-ok);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* Phone -------------------------------------------------------- */
+      .phone-wrap {
+        display: grid;
+        place-items: center;
+      }
+
+      .phone {
+        width: min(100%, 410px);
+        min-height: 780px;
+        border-radius: 24px;
+      }
+
+      .phone .console-strip {
+        min-height: 47px;
+        gap: 10px;
+        padding: 0 12px;
+      }
+
+      .phone .console-mark {
+        font-size: 9px;
+      }
+
+      .phone .surface-nav,
+      .phone .command,
+      .phone .session span:not(.session-dot) {
+        display: none;
+      }
+
+      .phone .session {
+        width: 31px;
+        height: 31px;
+        justify-content: center;
+        margin-left: auto;
+        padding: 0;
+      }
+
+      .phone .crumbbar {
+        min-height: 42px;
+        padding: 0 12px;
+        font-size: 10px;
+      }
+
+      .mobile-switcher {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-soft);
+        scrollbar-width: none;
+      }
+
+      .mobile-pill {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 0 11px;
+        border: 1px solid var(--c-line);
+        border-radius: 999px;
+        background: var(--c-card);
+        color: var(--c-66);
+        font-size: 10px;
+      }
+
+      .mobile-pill.active {
+        border-color: var(--c-accent);
+        background: var(--c-accent-soft);
+        color: var(--c-text);
+      }
+
+      .mobile-workspace {
+        padding: 20px 16px 28px;
+        background: var(--c-frame);
+      }
+
+      .mobile-workspace h3 {
+        margin: 0;
+        font: 520 31px var(--display);
+        font-variation-settings: "SOFT" 65;
+        letter-spacing: -0.03em;
+      }
+
+      .mobile-workspace > p {
+        margin: 5px 0 15px;
+        color: var(--c-44);
+        font-size: 11px;
+      }
+
+      .mobile-health {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 11px 12px;
+        border-left: 3px solid var(--c-ok);
+        background: var(--c-card);
+        color: var(--c-66);
+        font-size: 10px;
+      }
+
+      [data-scenario="attention"] .mobile-health {
+        border-left-color: var(--c-err);
+      }
+
+      [data-scenario="syncing"] .mobile-health {
+        border-left-color: var(--c-accent);
+      }
+
+      .mobile-health i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-ok);
+      }
+
+      [data-scenario="attention"] .mobile-health i {
+        background: var(--c-err);
+      }
+
+      [data-scenario="syncing"] .mobile-health i {
+        background: var(--c-accent);
+        color: var(--c-accent);
+        animation: pulse 1.35s ease-in-out infinite;
+      }
+
+      .mobile-health b {
+        margin-left: auto;
+        color: var(--c-text);
+        font: 9px var(--mono);
+      }
+
+      .mobile-flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        align-items: center;
+        padding: 13px 0;
+        border-block: 1px solid var(--c-line);
+      }
+
+      .mobile-flow span {
+        color: var(--c-66);
+        font: 8px var(--mono);
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .mobile-flow i {
+        color: var(--c-24);
+        font-style: normal;
+      }
+
+      .mobile-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .mobile-stats div {
+        padding: 11px 5px;
+        border-right: 1px solid var(--c-line);
+      }
+
+      .mobile-stats div:last-child {
+        border: 0;
+      }
+
+      .mobile-stats b,
+      .mobile-stats span {
+        display: block;
+      }
+
+      .mobile-stats b {
+        font: 520 22px var(--display);
+      }
+
+      .mobile-stats span {
+        color: var(--c-44);
+        font: 7px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .mobile-sync {
+        width: 100%;
+        min-height: 44px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--c-text);
+        color: var(--c-card);
+      }
+
+      .mobile-run {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--c-line);
+        color: var(--c-66);
+        font-size: 10px;
+      }
+
+      .mobile-run i,
+      .mobile-run time {
+        color: var(--c-44);
+        font: 8px var(--mono);
+        font-style: normal;
+      }
+
+      /* Decisions ---------------------------------------------------- */
+      .decisions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        padding-top: 84px;
+      }
+
+      .decision {
+        min-height: 174px;
+        padding: 18px;
+        border: 1px solid var(--review-line);
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      .decision small {
+        color: var(--review-accent);
+        font-size: 8px;
+      }
+
+      .decision h3 {
+        margin: 14px 0 8px;
+        font: 520 20px var(--display);
+      }
+
+      .decision p {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 12px;
+      }
+
+      .review-foot {
+        padding: 62px 0 46px;
+        color: var(--review-faint);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .toast {
+        position: absolute;
+        z-index: 50;
+        right: 24px;
+        bottom: 24px;
+        padding: 10px 13px;
+        border-radius: 7px;
+        background: var(--c-text);
+        color: var(--c-card);
+        font: 9px var(--mono);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: 0.18s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 1080px) {
+        .sync-flow {
+          grid-template-columns: 1fr 35px 1fr 35px 1fr;
+        }
+        .sync-action {
+          grid-column: 1 / -1;
+          width: 100%;
+          margin: 12px 0 0;
+        }
+        .workspace-grid {
+          grid-template-columns: 1fr;
+        }
+        .workspace-aside {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .decisions {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .review-head {
+          padding-top: 48px;
+        }
+        .review-intro,
+        .specimen-head {
+          grid-template-columns: 1fr;
+        }
+        .review-controls {
+          justify-content: flex-start;
+        }
+        .specimen-note {
+          text-align: left;
+        }
+        .desktop-specimen {
+          display: none;
+        }
+        .decisions {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-head">
+      <span class="eyebrow">Operator console · interaction proposal</span>
+      <h1>Make content durability <em>legible.</em></h1>
+      <div class="review-intro">
+        <p>
+          A focused CMS workspace for directory-sync: current file and Git
+          health, one manual sync action, bounded run history, and actionable
+          failures. Configuration remains read-only; authored content stays in
+          the normal editor.
+        </p>
+        <div class="review-controls" aria-label="Mockup controls">
+          <button class="review-control is-active" data-climate-choice="paper">
+            Paper
+          </button>
+          <button class="review-control" data-climate-choice="instrument">
+            Instrument
+          </button>
+          <button
+            class="review-control is-active"
+            data-scenario-choice="healthy"
+          >
+            Healthy
+          </button>
+          <button class="review-control" data-scenario-choice="syncing">
+            Syncing
+          </button>
+          <button class="review-control" data-scenario-choice="attention">
+            Attention
+          </button>
+          <button class="review-control" data-scenario-choice="absent">
+            Plugin absent
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="review-nav" aria-label="Mockup sections">
+      <a href="#desktop"><span>01</span>Desktop workspace</a>
+      <a href="#mobile"><span>02</span>Mobile composition</a>
+      <a href="#decisions"><span>03</span>Decisions</a>
+    </nav>
+
+    <section class="specimen desktop-specimen" id="desktop">
+      <header class="specimen-head">
+        <span class="spec-num">01</span>
+        <h2>Content sync, as an operations desk</h2>
+        <p class="specimen-note">
+          Status first, one narrow action, no file browser and no editable
+          infrastructure config.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Desktop · CMS</span><span>1440 × 900 reference</span>
+      </div>
+
+      <div class="console">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="brand-dot"></i><b>Rover</b> <span>Console</span></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <span>Dashboard</span><span class="active">CMS</span
+            ><span>Agents</span>
+          </nav>
+          <span class="spacer"></span>
+          <span class="command"><kbd>⌘K</kbd> Jump</span>
+          <span class="session"
+            ><i class="session-dot"></i><span>Operator</span></span
+          >
+        </header>
+        <div class="crumbbar">
+          Operations / <b>&nbsp;Sync</b>
+          <span class="capability sync-present">directory-sync connected</span>
+        </div>
+
+        <div class="cms-layout">
+          <aside class="rail">
+            <section class="rail-group">
+              <div class="rail-label">Content</div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Notes<span class="rail-count"
+                  >42</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Posts<span class="rail-count"
+                  >18</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Images<span class="rail-count"
+                  >31</span
+                >
+              </div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Operations</div>
+              <div class="rail-item">
+                <span class="glyph">⇥</span>Publishing
+              </div>
+              <div class="rail-item"><span class="glyph">⇥</span>Site</div>
+              <div class="rail-item active sync-present">
+                <span class="glyph">⇄</span>Sync
+                <span class="rail-count attention-count">1</span>
+              </div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Site</div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Site info<span class="rail-count"
+                  >solo</span
+                >
+              </div>
+            </section>
+          </aside>
+
+          <main class="workspace sync-present">
+            <header class="workspace-head">
+              <div>
+                <span class="kicker">Durability operations</span>
+                <h3>Content sync</h3>
+                <p>
+                  Keep the entity database, brain-data files, and configured Git
+                  remote converged.
+                </p>
+              </div>
+              <div class="workspace-state">
+                <strong class="state-healthy">Watching</strong>
+                <strong class="state-syncing">Sync in progress</strong>
+                <strong class="state-attention">Needs attention</strong>
+                <span class="state-healthy">last settled 2 minutes ago</span>
+                <span class="state-syncing">started 18 seconds ago</span>
+                <span class="state-attention">1 quarantined file</span>
+              </div>
+            </header>
+
+            <section class="vitals" aria-label="Sync summary">
+              <div class="vital">
+                <span>Files</span><b>148</b><small>markdown + images</small>
+              </div>
+              <div class="vital">
+                <span>Entity types</span><b>12</b
+                ><small>within sync scope</small>
+              </div>
+              <div class="vital">
+                <span>Branch</span><b class="word">main</b
+                ><small>origin connected</small>
+              </div>
+              <div class="vital">
+                <span>Remote state</span><b class="state-healthy">0</b
+                ><b class="state-syncing">3</b><b class="state-attention">1</b
+                ><small class="state-healthy">ahead · behind</small
+                ><small class="state-syncing">files pulled</small
+                ><small class="state-attention">issue</small>
+              </div>
+            </section>
+
+            <section class="sync-flow" aria-label="Content durability flow">
+              <div class="flow-node">
+                <strong>Entity DB</strong
+                ><small>authoritative runtime records</small>
+              </div>
+              <span class="flow-link"></span>
+              <div class="flow-node">
+                <strong>brain-data</strong
+                ><small>148 tracked files · watching</small>
+              </div>
+              <span class="flow-link"></span>
+              <div class="flow-node">
+                <strong>Git remote</strong
+                ><small>origin / main · reachable</small>
+              </div>
+              <button class="sync-action" data-sync-now>
+                <span class="state-syncing">Syncing…</span
+                ><span class="not-syncing">Sync now</span>
+              </button>
+            </section>
+
+            <div class="workspace-grid">
+              <section>
+                <div class="active-run">
+                  <header>
+                    <i></i><strong>Pulling and importing remote changes</strong
+                    ><time>00:18</time>
+                  </header>
+                  <p>
+                    Three changed files found. Import batch 2 of 3 is
+                    processing.
+                  </p>
+                  <div class="run-track"><i></i></div>
+                </div>
+                <header class="section-head">
+                  <h4>Recent syncs</h4>
+                  <span>latest five · runtime history</span>
+                </header>
+                <ol class="run-list">
+                  <li class="run-row state-attention">
+                    <span class="run-mark fail">!</span
+                    ><span class="run-source">periodic</span>
+                    <span class="run-copy"
+                      ><strong>Completed with attention</strong
+                      ><small
+                        >2 imported · 1 quarantined · remote changes won</small
+                      ></span
+                    >
+                    <time>2m ago</time>
+                  </li>
+                  <li class="run-row state-not-attention">
+                    <span class="run-mark">✓</span
+                    ><span class="run-source">periodic</span>
+                    <span class="run-copy"
+                      ><strong>Remote and local content settled</strong
+                      ><small
+                        >3 imported · 0 failed · 0 quarantined</small
+                      ></span
+                    >
+                    <time>2m ago</time>
+                  </li>
+                  <li class="run-row">
+                    <span class="run-mark">✓</span
+                    ><span class="run-source">watcher</span>
+                    <span class="run-copy"
+                      ><strong>File edit imported</strong
+                      ><small>post/field-notes.md · entity updated</small></span
+                    >
+                    <time>19m ago</time>
+                  </li>
+                  <li class="run-row">
+                    <span class="run-mark">✓</span
+                    ><span class="run-source">manual</span>
+                    <span class="run-copy"
+                      ><strong>No remote changes</strong
+                      ><small>scan complete · working tree clean</small></span
+                    >
+                    <time>1h ago</time>
+                  </li>
+                  <li class="run-row">
+                    <span class="run-mark warn">↥</span
+                    ><span class="run-source">save</span>
+                    <span class="run-copy"
+                      ><strong>Local content committed</strong
+                      ><small>4 files · commit 8d14c2a</small></span
+                    >
+                    <time>3h ago</time>
+                  </li>
+                </ol>
+              </section>
+
+              <aside class="workspace-aside">
+                <section class="aside-card attention">
+                  <header class="card-head"><i></i>Needs attention</header>
+                  <h5>One file was quarantined</h5>
+                  <p>
+                    The valid files completed. Fix the invalid frontmatter, then
+                    move the file back before syncing again.
+                  </p>
+                  <code class="issue-file"
+                    >quarantine/post/launch-notes.md<br />status: expected draft
+                    | published</code
+                  >
+                </section>
+                <section class="aside-card clear">
+                  <header class="card-head"><i></i>No blockers</header>
+                  <p>
+                    Directory exists, watcher is active, and Git has no
+                    unresolved work.
+                  </p>
+                </section>
+                <section class="aside-card">
+                  <header class="card-head"><i></i>Automation</header>
+                  <dl class="fact-list">
+                    <div>
+                      <dt>File watcher</dt>
+                      <dd>On</dd>
+                    </div>
+                    <div>
+                      <dt>Remote pull</dt>
+                      <dd>Every 2m</dd>
+                    </div>
+                    <div>
+                      <dt>Auto-commit</dt>
+                      <dd>5s debounce</dd>
+                    </div>
+                    <div>
+                      <dt>File removal</dt>
+                      <dd>Deletes entity</dd>
+                    </div>
+                  </dl>
+                </section>
+                <section class="aside-card">
+                  <header class="card-head"><i></i>Source</header>
+                  <dl class="fact-list">
+                    <div>
+                      <dt>Directory</dt>
+                      <dd>brain-data/</dd>
+                    </div>
+                    <div>
+                      <dt>Remote</dt>
+                      <dd>rizom-ai/rover-data</dd>
+                    </div>
+                    <div>
+                      <dt>Last commit</dt>
+                      <dd>8d14c2a</dd>
+                    </div>
+                    <div>
+                      <dt>Working tree</dt>
+                      <dd class="state-healthy">Clean</dd>
+                      <dd class="state-syncing">Updating</dd>
+                      <dd class="state-attention">1 issue</dd>
+                    </div>
+                  </dl>
+                </section>
+                <section class="aside-card">
+                  <header class="card-head"><i></i>Largest collections</header>
+                  <div class="coverage-row">
+                    <span>note</span
+                    ><span class="coverage-track"
+                      ><i style="width: 100%"></i></span
+                    ><b>42</b>
+                  </div>
+                  <div class="coverage-row">
+                    <span>image</span
+                    ><span class="coverage-track"
+                      ><i style="width: 74%"></i></span
+                    ><b>31</b>
+                  </div>
+                  <div class="coverage-row">
+                    <span>post</span
+                    ><span class="coverage-track"
+                      ><i style="width: 43%"></i></span
+                    ><b>18</b>
+                  </div>
+                  <div class="coverage-row">
+                    <span>site-content</span
+                    ><span class="coverage-track"
+                      ><i style="width: 29%"></i></span
+                    ><b>12</b>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </main>
+
+          <main class="absent-main">
+            <header>
+              <span class="kicker">Publication operations</span>
+              <h3>Publishing desk</h3>
+              <p>
+                Publishing remains available because its provider is installed.
+              </p>
+            </header>
+            <section class="absence-card">
+              <strong>Optionality preserved</strong>
+              <p>
+                With directory-sync absent, Sync disappears from Operations. The
+                CMS does not render a disabled destination, probe a hard-coded
+                route, or show an error panel.
+              </p>
+            </section>
+          </main>
+        </div>
+        <div class="toast" role="status">
+          Sync requested · status will update here
+        </div>
+      </div>
+    </section>
+
+    <section class="specimen" id="mobile">
+      <header class="specimen-head">
+        <span class="spec-num">02</span>
+        <h2>Same hierarchy, less inventory</h2>
+        <p class="specimen-note">
+          On phones, health and the manual action lead. Automation facts and
+          bounded history follow.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Phone · CMS</span><span>390 × 844 reference</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="console phone">
+          <header class="console-strip">
+            <span class="console-mark"
+              ><i class="brand-dot"></i><b>Rover</b></span
+            >
+            <span class="spacer"></span>
+            <span class="session"
+              ><i class="session-dot"></i><span>Operator</span></span
+            >
+          </header>
+          <div class="crumbbar">Operations / <b>&nbsp;Sync</b></div>
+          <nav
+            class="mobile-switcher sync-present"
+            aria-label="CMS destinations"
+          >
+            <button class="mobile-pill">Posts</button
+            ><button class="mobile-pill">Publishing</button
+            ><button class="mobile-pill">Site</button
+            ><button class="mobile-pill active">Sync</button>
+          </nav>
+          <main class="mobile-workspace sync-present">
+            <span class="kicker">Durability operations</span>
+            <h3>Content sync</h3>
+            <p>Database, files, and remote state in one operator view.</p>
+            <div class="mobile-health">
+              <i></i
+              ><span class="state-healthy">Watching · last settled 2m ago</span
+              ><span class="state-syncing">Importing batch 2 of 3</span
+              ><span class="state-attention">1 quarantined file</span
+              ><b class="state-healthy">Healthy</b
+              ><b class="state-syncing">Active</b
+              ><b class="state-attention">Attention</b>
+            </div>
+            <div class="mobile-flow">
+              <span>DB</span><i>→</i><span>Files</span><i>→</i><span>Git</span>
+            </div>
+            <div class="mobile-stats">
+              <div><b>148</b><span>files</span></div>
+              <div><b>12</b><span>types</span></div>
+              <div><b>main</b><span>branch</span></div>
+            </div>
+            <button class="mobile-sync" data-sync-now>
+              <span class="state-syncing">Syncing…</span
+              ><span class="not-syncing">Sync now</span>
+            </button>
+            <header class="section-head" style="margin-top: 21px">
+              <h4>Recent syncs</h4>
+              <span>latest</span>
+            </header>
+            <div class="mobile-run state-attention">
+              <i>!</i><span>2 imported · 1 quarantined</span><time>2m</time>
+            </div>
+            <div class="mobile-run state-not-attention">
+              <i>✓</i><span>3 imported · remote settled</span><time>2m</time>
+            </div>
+            <div class="mobile-run">
+              <i>✓</i><span>File edit imported</span><time>19m</time>
+            </div>
+            <div class="mobile-run">
+              <i>✓</i><span>No remote changes</span><time>1h</time>
+            </div>
+          </main>
+          <main class="absent-main">
+            <header>
+              <h3>Publishing</h3>
+              <p>
+                Sync is absent from the destination switcher when directory-sync
+                is not installed.
+              </p>
+            </header>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <section class="decisions" id="decisions">
+      <article class="decision">
+        <small>01 · Ownership</small>
+        <h3>Provider owns truth</h3>
+        <p>
+          directory-sync shapes the browser-safe snapshot, validates actions,
+          and records bounded operational history. CMS only transports and
+          renders it.
+        </p>
+      </article>
+      <article class="decision">
+        <small>02 · Action scope</small>
+        <h3>One manual action</h3>
+        <p>
+          “Sync now” uses the same orchestration as the existing tool. No force
+          push, reset, config editing, or implied rollback.
+        </p>
+      </article>
+      <article class="decision">
+        <small>03 · Attention</small>
+        <h3>Only actionable failures</h3>
+        <p>
+          Quarantined files and failed runs earn a badge. Ordinary watcher
+          activity and a brief dirty working tree do not.
+        </p>
+      </article>
+      <article class="decision">
+        <small>04 · Safety</small>
+        <h3>Sanitized operator data</h3>
+        <p>
+          Show relative paths and a safe remote label—never auth tokens, stack
+          traces, or secret-bearing Git URLs.
+        </p>
+      </article>
+    </section>
+
+    <footer class="review-foot">
+      Proposed · CMS Directory Sync Workspace · July 2026
+    </footer>
+
+    <script>
+      const root = document.documentElement;
+      const climateButtons = [
+        ...document.querySelectorAll("[data-climate-choice]"),
+      ];
+      const scenarioButtons = [
+        ...document.querySelectorAll("[data-scenario-choice]"),
+      ];
+      const toast = document.querySelector(".toast");
+      let settleTimer;
+
+      function setClimate(climate) {
+        root.dataset.climate = climate;
+        climateButtons.forEach((button) =>
+          button.classList.toggle(
+            "is-active",
+            button.dataset.climateChoice === climate,
+          ),
+        );
+      }
+
+      function setScenario(scenario) {
+        root.dataset.scenario = scenario;
+        scenarioButtons.forEach((button) =>
+          button.classList.toggle(
+            "is-active",
+            button.dataset.scenarioChoice === scenario,
+          ),
+        );
+      }
+
+      climateButtons.forEach((button) =>
+        button.addEventListener("click", () =>
+          setClimate(button.dataset.climateChoice),
+        ),
+      );
+      scenarioButtons.forEach((button) =>
+        button.addEventListener("click", () => {
+          clearTimeout(settleTimer);
+          setScenario(button.dataset.scenarioChoice);
+        }),
+      );
+
+      document.querySelectorAll("[data-sync-now]").forEach((button) =>
+        button.addEventListener("click", () => {
+          if (
+            root.dataset.scenario === "syncing" ||
+            root.dataset.scenario === "absent"
+          )
+            return;
+          setScenario("syncing");
+          toast.classList.add("show");
+          window.setTimeout(() => toast.classList.remove("show"), 1800);
+          clearTimeout(settleTimer);
+          settleTimer = window.setTimeout(() => setScenario("healthy"), 3200);
+        }),
+      );
+    </script>
+  </body>
+</html>

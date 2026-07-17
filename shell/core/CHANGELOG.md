@@ -1,5 +1,390 @@
 # @brains/core
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/image@0.2.0-alpha.191
+  - @brains/notification-contracts@0.2.0-alpha.191
+  - @brains/site-composition@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+  - @brains/recurring-checks@0.2.0-alpha.191
+  - @brains/runtime-state@0.2.0-alpha.191
+  - @brains/scheduler@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/image@0.2.0-alpha.190
+  - @brains/notification-contracts@0.2.0-alpha.190
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/recurring-checks@0.2.0-alpha.190
+  - @brains/runtime-state@0.2.0-alpha.190
+  - @brains/scheduler@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep edited-upload routing concise while preserving updates, distinguish failed pre-job requests from active jobs, and clarify agent and case-study tool selection.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/image@0.2.0-alpha.189
+  - @brains/notification-contracts@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/recurring-checks@0.2.0-alpha.189
+  - @brains/runtime-state@0.2.0-alpha.189
+  - @brains/scheduler@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.188
+  - @brains/image@0.2.0-alpha.188
+  - @brains/notification-contracts@0.2.0-alpha.188
+  - @brains/site-composition@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+  - @brains/recurring-checks@0.2.0-alpha.188
+  - @brains/runtime-state@0.2.0-alpha.188
+  - @brains/scheduler@0.2.0-alpha.188
+  - @brains/templates@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.187
+  - @brains/image@0.2.0-alpha.187
+  - @brains/notification-contracts@0.2.0-alpha.187
+  - @brains/site-composition@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+  - @brains/recurring-checks@0.2.0-alpha.187
+  - @brains/runtime-state@0.2.0-alpha.187
+  - @brains/scheduler@0.2.0-alpha.187
+  - @brains/templates@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve user edits made while markdown uploads are still importing, and guide Rover to update the imported note instead of creating duplicate copies.
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/image@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/notification-contracts@0.2.0-alpha.186
+  - @brains/site-composition@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+  - @brains/recurring-checks@0.2.0-alpha.186
+  - @brains/runtime-state@0.2.0-alpha.186
+  - @brains/scheduler@0.2.0-alpha.186
+  - @brains/templates@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/image@0.2.0-alpha.185
+  - @brains/notification-contracts@0.2.0-alpha.185
+  - @brains/site-composition@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+  - @brains/recurring-checks@0.2.0-alpha.185
+  - @brains/runtime-state@0.2.0-alpha.185
+  - @brains/scheduler@0.2.0-alpha.185
+  - @brains/templates@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies [[`14cab1b`](https://github.com/rizom-ai/brains/commit/14cab1b4de0e2498129d0e00a6fe2df1d5bdfc5e)]:
+  - @brains/site-composition@0.2.0-alpha.184
+  - @brains/plugins@0.2.0-alpha.184
+  - @brains/contracts@0.2.0-alpha.184
+  - @brains/image@0.2.0-alpha.184
+  - @brains/notification-contracts@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+  - @brains/recurring-checks@0.2.0-alpha.184
+  - @brains/runtime-state@0.2.0-alpha.184
+  - @brains/scheduler@0.2.0-alpha.184
+  - @brains/templates@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- [`197cc09`](https://github.com/rizom-ai/brains/commit/197cc0988a47f80e3e21b5f4adf034003ea3527e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Roll back recurring-check daemon/job registrations and entity embedding handlers when shell construction fails, while preserving normal shutdown order and exact-once cleanup.
+
+- Updated dependencies [[`0383fc3`](https://github.com/rizom-ai/brains/commit/0383fc3f425465eb148a2c87dbff7c18ff777aa5), [`197cc09`](https://github.com/rizom-ai/brains/commit/197cc0988a47f80e3e21b5f4adf034003ea3527e)]:
+  - @brains/recurring-checks@0.2.0-alpha.183
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/image@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/notification-contracts@0.2.0-alpha.183
+  - @brains/site-composition@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+  - @brains/runtime-state@0.2.0-alpha.183
+  - @brains/scheduler@0.2.0-alpha.183
+  - @brains/templates@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/image@0.2.0-alpha.182
+  - @brains/notification-contracts@0.2.0-alpha.182
+  - @brains/site-composition@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+  - @brains/recurring-checks@0.2.0-alpha.182
+  - @brains/runtime-state@0.2.0-alpha.182
+  - @brains/scheduler@0.2.0-alpha.182
+  - @brains/templates@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/image@0.2.0-alpha.181
+  - @brains/notification-contracts@0.2.0-alpha.181
+  - @brains/site-composition@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+  - @brains/recurring-checks@0.2.0-alpha.181
+  - @brains/runtime-state@0.2.0-alpha.181
+  - @brains/scheduler@0.2.0-alpha.181
+  - @brains/templates@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`2499c50`](https://github.com/rizom-ai/brains/commit/2499c5055fa73b7bce87207a7e9db6fe4c52c4c3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own conversation-service database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- [`3a7bb4a`](https://github.com/rizom-ai/brains/commit/3a7bb4a6bce7789d4bf82e151aee1e35c66ac184) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own entity-service acquisition and both entity databases through a private package Effect Layer, with transactional construction cleanup and original shell acquisition errors preserved.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/image@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/notification-contracts@0.2.0-alpha.180
+  - @brains/site-composition@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/recurring-checks@0.2.0-alpha.180
+  - @brains/runtime-state@0.2.0-alpha.180
+  - @brains/scheduler@0.2.0-alpha.180
+  - @brains/templates@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Construct each shell from fresh service and initializer instances without resetting process-global singletons, honor entity service/registry overrides, and keep site-builder profile access bound to its owning shell.
+
+- [`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own runtime-state database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- Updated dependencies [[`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9)]:
+  - @brains/runtime-state@0.2.0-alpha.179
+  - @brains/image@0.2.0-alpha.179
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/site-composition@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/templates@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.178
+  - @brains/effect-runtime@0.2.0-alpha.178
+  - @brains/image@0.2.0-alpha.178
+  - @brains/site-composition@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/plugins@0.2.0-alpha.178
+  - @brains/runtime-state@0.2.0-alpha.178
+  - @brains/templates@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/effect-runtime@0.2.0-alpha.177
+  - @brains/image@0.2.0-alpha.177
+  - @brains/site-composition@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+  - @brains/runtime-state@0.2.0-alpha.177
+  - @brains/templates@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/effect-runtime@0.2.0-alpha.176
+  - @brains/image@0.2.0-alpha.176
+  - @brains/site-composition@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+  - @brains/runtime-state@0.2.0-alpha.176
+  - @brains/templates@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- [#57](https://github.com/rizom-ai/brains/pull/57) [`b148151`](https://github.com/rizom-ai/brains/commit/b148151a76a1e7cab2030f0a9916375de40b74d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the internal job-service tags and scoped Layers into an `@brains/job-queue/effect` surface so shell packages can compose queue and runtime ownership across package boundaries without exposing Effect through public runtime APIs.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/image@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/effect-runtime@0.2.0-alpha.175
+  - @brains/site-composition@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+  - @brains/runtime-state@0.2.0-alpha.175
+  - @brains/templates@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/effect-runtime@0.2.0-alpha.174
+  - @brains/site-composition@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/runtime-state@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- [#56](https://github.com/rizom-ai/brains/pull/56) [`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell lifecycle ownership with a centralized Effect boundary, scoped job-service layers, supervised fibers, deterministic schedules, transactional startup rollback, terminal plugin teardown, graceful job draining, daemon rollback, and end-to-end `AbortSignal` cancellation for AI requests and agent turns. Build public package subpaths with shared chunks to avoid duplicating their runtime code.
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/effect-runtime@0.2.0-alpha.173
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/runtime-state@0.2.0-alpha.173
+  - @brains/image@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/site-composition@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+  - @brains/templates@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/image@0.2.0-alpha.172
+  - @brains/site-composition@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+  - @brains/runtime-state@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/image@0.2.0-alpha.171
+  - @brains/site-composition@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+  - @brains/runtime-state@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/image@0.2.0-alpha.170
+  - @brains/site-composition@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+  - @brains/runtime-state@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/image@0.2.0-alpha.169
+  - @brains/site-composition@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+  - @brains/runtime-state@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/image@0.2.0-alpha.168
+  - @brains/site-composition@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+  - @brains/runtime-state@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/site-composition@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/image@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+  - @brains/runtime-state@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

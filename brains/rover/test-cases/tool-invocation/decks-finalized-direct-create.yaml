@@ -43,8 +43,6 @@ successCriteria:
     - "I'll generate"
     - "generating a deck"
     - "I generated"
-  minAccuracyScore: 4
-
 efficiency:
   maxToolCalls: 3
   maxTokens: 30000

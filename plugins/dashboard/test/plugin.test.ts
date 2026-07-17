@@ -332,9 +332,10 @@ describe("DashboardPlugin", () => {
           syncPath: "/brain/content",
           isInitialized: true,
           watchEnabled: true,
-          lastSync: "2026-07-08T09:30:00.000Z",
+          lastSync: null,
           totalFiles: 2,
           byEntityType: { note: 2 },
+          managementUrl: "/studio#/workspace/sync",
         },
       }));
       (
@@ -389,6 +390,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("2 files");
       expect(html).toContain("note 2");
       expect(html).toContain("Content sync");
+      expect(html).toContain('href="/studio#/workspace/sync"');
       expect(html).toContain("Semantic index · ready · 0 active");
     });
 

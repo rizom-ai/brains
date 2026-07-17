@@ -110,7 +110,9 @@ export class ConfirmationCoordinator {
     confirmed: boolean,
     approvalId: string,
     context: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     const actor = this.actors.peek(conversationId);
     if (!actor) {
       return {
@@ -165,6 +167,7 @@ export class ConfirmationCoordinator {
       pendingConfirmation,
       confirmed,
       confirmationContext,
+      signal,
     );
   }
 
@@ -178,10 +181,11 @@ export class ConfirmationCoordinator {
     pendingConfirmation: RuntimePendingConfirmation,
     confirmed: boolean,
     confirmationContext: ConfirmationContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     try {
-      actor.send({
-        type: confirmed ? "CONFIRM" : "CANCEL",
+      const event = {
         approvalId: pendingConfirmation.id,
         interfaceType: confirmationContext.interfaceType,
         channelId: confirmationContext.channelId,
@@ -189,7 +193,13 @@ export class ConfirmationCoordinator {
         userPermissionLevel: confirmationContext.userPermissionLevel,
         actor: confirmationContext.actor,
         source: confirmationContext.source,
-      });
+        ...(signal ? { signal } : {}),
+      };
+      if (confirmed) {
+        actor.send({ type: "CONFIRM", ...event });
+      } else {
+        actor.send({ type: "CANCEL", ...event });
+      }
 
       const snapshot = await waitFor(
         actor,
@@ -199,6 +209,7 @@ export class ConfirmationCoordinator {
             (confirmation) => confirmation.id === pendingConfirmation.id,
           ),
       );
+      signal?.throwIfAborted();
 
       return (
         snapshot.context.response ?? {

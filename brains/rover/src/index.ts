@@ -97,7 +97,6 @@ const web = [
   ...core.filter((id) => id !== "dashboard-root"),
   "dashboard",
   "blog",
-  "series",
   "decks",
   "analytics",
   "obsidian-vault",
@@ -107,6 +106,9 @@ const web = [
 
 const full = [
   ...web,
+  // series lives only here: the default preset's sole consumer (the
+  // consolidated rizom.ai brain) has no series content or surface.
+  "series",
   "portfolio",
   "topics",
   "content-pipeline",

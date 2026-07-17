@@ -24,18 +24,25 @@ export async function resolveSiteSectionContent(
   }
 
   const templateName = section.template;
+  // Every section offers its own saved content at `${route}:${section}`.
+  // A datasource-backed section carries it too, so a template that opts into
+  // an overlay (contentOverlaySchema/overlayFormatter) can merge authored
+  // copy over live data. Templates without an overlay ignore it — the
+  // datasource still wins and the entity is never read.
+  const savedContent = {
+    entityType: "site-content",
+    entityId: `${route.id}:${section.id}`,
+  } as const;
   const resolutionOptions: SiteContentResolutionOptions = section.dataQuery
     ? {
         dataParams: section.dataQuery,
+        savedContent,
         fallback: section.content,
         publishedOnly,
         visibilityScope,
       }
     : {
-        savedContent: {
-          entityType: "site-content",
-          entityId: `${route.id}:${section.id}`,
-        },
+        savedContent,
         fallback: section.content,
         visibilityScope,
       };

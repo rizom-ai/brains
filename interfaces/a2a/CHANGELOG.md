@@ -1,5 +1,259 @@
 # @brains/a2a
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/http-signatures@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/auth-service@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- [`e6bdf07`](https://github.com/rizom-ai/brains/commit/e6bdf07284aad8ed017577db2322bd4a5479c77c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise A2A polling and streaming turns with scoped cancellation, and replace SSE heartbeat timers with Effect schedules.
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/auth-service@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/auth-service@0.2.0-alpha.186
+  - @brains/http-signatures@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/auth-service@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.184
+  - @brains/auth-service@0.2.0-alpha.184
+  - @brains/http-signatures@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/auth-service@0.2.0-alpha.183
+  - @brains/http-signatures@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/auth-service@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/auth-service@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/auth-service@0.2.0-alpha.180
+  - @brains/http-signatures@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/auth-service@0.2.0-alpha.179
+  - @brains/http-signatures@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/auth-service@0.2.0-alpha.178
+  - @brains/plugins@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/auth-service@0.2.0-alpha.176
+  - @brains/http-signatures@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/auth-service@0.2.0-alpha.175
+  - @brains/http-signatures@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/auth-service@0.2.0-alpha.174
+  - @brains/http-signatures@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/auth-service@0.2.0-alpha.173
+  - @brains/http-signatures@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- [`0ce1257`](https://github.com/rizom-ai/brains/commit/0ce1257934837f984c3e418eab4dc6edac6dab51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Second-order agent discovery. Brains serve their approved public agents as minimal name/url pointers at /.well-known/agent-directory.json, and the trusted agent_scan_directories tool walks each approved peer's directory, verifies each pointee's own Agent Card, and saves sightings as discovered agents carrying provenance (introducedBy, hops) — skipping self and known agents, merging introducers on repeat sightings. Sighted agents chart on the proximity map at half light, threads growing from their introducers, germinating only within semantic reach with an active introducer; approving one (agent_connect) promotes it to a full first-order contact.
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/http-signatures@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

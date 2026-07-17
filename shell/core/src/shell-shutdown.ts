@@ -1,28 +1,24 @@
+import type { ShellLifecycle } from "./initialization/shell-lifecycle";
 import type { ShellServices } from "./types/shell-types";
 
-export async function shutdownShellServices(
+/**
+ * Register runtime resources after transactional service acquisition. Effect
+ * closes them before the database and subscription finalizers owned by the
+ * service factory.
+ */
+export function registerShellRuntimeFinalizers(
+  lifecycle: ShellLifecycle,
   services: ShellServices,
-): Promise<void> {
-  // Stop background services in reverse order of initialization
-  services.batchJobManager.stop();
-  services.jobProgressMonitor.stop();
-  await services.jobQueueWorker.stop();
+): void {
+  lifecycle.addFinalizer(() => services.agentService.shutdown?.());
 
-  for (const [pluginId] of services.pluginManager.getAllPlugins()) {
-    await services.pluginManager.disablePlugin(pluginId);
-  }
+  lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
-  for (const dispose of services.disposables.splice(0)) {
-    try {
-      dispose();
-    } catch (error) {
-      services.logger.warn("Failed to dispose shell subscription", error);
-    }
-  }
+  lifecycle.addFinalizer(() => services.jobServicesLifecycle.closeRuntime());
 
-  // Close all database connections
-  services.entityService.close();
-  services.jobQueueService.close();
-  services.conversationService.close();
-  services.runtimeStateService.close();
+  // Abort cancellation-aware checks before the job worker drains. Their jobs
+  // remain retryable instead of holding shutdown on remote I/O.
+  lifecycle.addFinalizer(() =>
+    services.daemonRegistry.unregister("shell:recurring-checks"),
+  );
 }

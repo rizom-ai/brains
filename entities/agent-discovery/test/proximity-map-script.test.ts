@@ -15,6 +15,12 @@ describe("proximityMapScript", () => {
     expect(proximityMapScript).not.toContain("data-proximity-freeagents");
   });
 
+  test("hovering a sighting keeps its introducers lit", () => {
+    expect(proximityMapScript).toContain("data-proximity-sighting");
+    expect(proximityMapScript).toContain("data-proximity-via-ids");
+    expect(proximityMapScript).toContain("second order");
+  });
+
   test("builds the structured tooltip with textContent, never markup injection", () => {
     expect(proximityMapScript).toContain("proximity-tooltip-name");
     expect(proximityMapScript).toContain("proximity-tooltip-meta");

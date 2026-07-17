@@ -1,6 +1,7 @@
 import { describe, it, expect, mock, afterEach } from "bun:test";
 import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
+import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import {
   createSilentLogger,
   createMockServicePluginContext,
@@ -45,11 +46,11 @@ function createTestMessaging(): {
 }
 
 describe("git operation serialization", () => {
-  const cleanups: Array<() => void> = [];
+  let runtime: DirectorySyncRuntime | undefined;
 
-  afterEach(() => {
-    for (const c of cleanups) c();
-    cleanups.length = 0;
+  afterEach(async () => {
+    await runtime?.close();
+    runtime = undefined;
   });
 
   it("should not run auto-commit and periodic-sync git ops concurrently", async () => {
@@ -97,16 +98,16 @@ describe("git operation serialization", () => {
     });
 
     const { messaging } = createTestMessaging();
+    runtime = new DirectorySyncRuntime();
 
-    cleanups.push(setupGitAutoCommit(messaging, git, 10, createSilentLogger()));
-    cleanups.push(
-      setupPeriodicGitSync(
-        git,
-        createMockDirectorySync(),
-        createMockServicePluginContext(),
-        0.001,
-        createSilentLogger(),
-      ),
+    setupGitAutoCommit(messaging, git, 10, createSilentLogger(), runtime);
+    setupPeriodicGitSync(
+      git,
+      createMockDirectorySync(),
+      createMockServicePluginContext(),
+      0.001,
+      createSilentLogger(),
+      runtime,
     );
 
     // Trigger auto-commit

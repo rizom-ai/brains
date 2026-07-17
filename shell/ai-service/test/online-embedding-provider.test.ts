@@ -123,5 +123,19 @@ describe("OnlineEmbeddingProvider", () => {
       expect(result.embeddings).toEqual([]);
       expect(result.usage.tokens).toBe(0);
     });
+
+    test("preserves cancellation before a provider request", () => {
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        logger: createSilentLogger(),
+      });
+      const controller = new AbortController();
+      const reason = new Error("embedding cancelled");
+      controller.abort(reason);
+
+      void expect(
+        provider.generateEmbeddings(["text"], controller.signal),
+      ).rejects.toBe(reason);
+    });
   });
 });

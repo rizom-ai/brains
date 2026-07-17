@@ -206,23 +206,27 @@ function buildEncryptedUserSecrets(
     "atprotoAppPassword",
     "ATPROTO_APP_PASSWORD",
   );
-  const certificatePem = resolveOptionalSecretValue(
-    rootDir,
-    env,
-    localEnvValues,
-    plaintextSecrets,
-    existingSecrets,
-    "certificatePem",
-    "CERTIFICATE_PEM",
+  const certificatePem = normalizePemSecret(
+    resolveOptionalSecretValue(
+      rootDir,
+      env,
+      localEnvValues,
+      plaintextSecrets,
+      existingSecrets,
+      "certificatePem",
+      "CERTIFICATE_PEM",
+    ),
   );
-  const privateKeyPem = resolveOptionalSecretValue(
-    rootDir,
-    env,
-    localEnvValues,
-    plaintextSecrets,
-    existingSecrets,
-    "privateKeyPem",
-    "PRIVATE_KEY_PEM",
+  const privateKeyPem = normalizePemSecret(
+    resolveOptionalSecretValue(
+      rootDir,
+      env,
+      localEnvValues,
+      plaintextSecrets,
+      existingSecrets,
+      "privateKeyPem",
+      "PRIVATE_KEY_PEM",
+    ),
   );
 
   return encryptedUserSecretsSchema.parse({
@@ -285,6 +289,10 @@ function resolveRequiredSecretValue(
   }
 
   return value;
+}
+
+function normalizePemSecret(value: string | undefined): string | undefined {
+  return value?.replace(/\r\n?|\n/g, "\\n");
 }
 
 function resolveOptionalSecretValue(

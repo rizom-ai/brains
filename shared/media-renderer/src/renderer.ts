@@ -1,3 +1,5 @@
+import { withBrowser } from "./browser-lifecycle";
+
 export type WaitUntilState = "load" | "domcontentloaded" | "networkidle";
 
 export interface ViewportOptions {
@@ -54,6 +56,7 @@ export interface BrowserLaunchOptions {
 
 export interface ScreenshotPngOptions {
   timeoutMs?: number;
+  signal?: AbortSignal;
   waitUntil?: WaitUntilState;
   fullPage?: boolean;
   omitBackground?: boolean;
@@ -62,6 +65,7 @@ export interface ScreenshotPngOptions {
 
 export interface PdfRenderOptions {
   timeoutMs?: number;
+  signal?: AbortSignal;
   waitUntil?: WaitUntilState;
   width?: string | number;
   height?: string | number;
@@ -169,6 +173,12 @@ export async function screenshotPng(
         await closePage(page);
       }
     },
+    () =>
+      new MediaRenderError(
+        `Media render timed out after ${options.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`,
+        "render-timeout",
+      ),
+    { ...(options.signal && { signal: options.signal }) },
   );
 }
 
@@ -211,75 +221,13 @@ export async function renderPdf(
         await closePage(page);
       }
     },
+    () =>
+      new MediaRenderError(
+        `Media render timed out after ${options.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`,
+        "render-timeout",
+      ),
+    { ...(options.signal && { signal: options.signal }) },
   );
-}
-
-async function withBrowser<T>(
-  browserFactory: BrowserFactory,
-  timeoutMs: number,
-  operation: (browser: MediaBrowser) => Promise<T>,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  // Ref object so the timeout handler can see late-arriving browsers and
-  // the operation cleanup can see timeout state without TS narrowing the
-  // closed-over values incorrectly.
-  const slot: { browser: MediaBrowser | null; aborted: boolean } = {
-    browser: null,
-    aborted: false,
-  };
-
-  const killBrowser = (b: MediaBrowser): void => {
-    void b.close().catch(() => {
-      try {
-        b.process?.()?.kill("SIGKILL");
-      } catch {
-        // Process may already be dead; nothing more we can do.
-      }
-    });
-  };
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => {
-      slot.aborted = true;
-      if (slot.browser) killBrowser(slot.browser);
-      reject(
-        new MediaRenderError(
-          `Media render timed out after ${timeoutMs}ms`,
-          "render-timeout",
-        ),
-      );
-    }, timeoutMs);
-  });
-
-  // Cover the launch with the same timeout. If launch resolves after the
-  // timeout already fired (slow Chromium spawn), the .then() still records
-  // the browser so we can kill the latecomer instead of leaking it.
-  const launchPromise = browserFactory.launch().then((b) => {
-    slot.browser = b;
-    if (slot.aborted) killBrowser(b);
-    return b;
-  });
-
-  try {
-    const browser = await Promise.race([launchPromise, timeoutPromise]);
-    try {
-      return await Promise.race([operation(browser), timeoutPromise]);
-    } finally {
-      if (!slot.aborted) {
-        try {
-          await browser.close();
-        } catch {
-          try {
-            browser.process?.()?.kill("SIGKILL");
-          } catch {
-            // Process may already be dead; nothing more we can do.
-          }
-        }
-      }
-    }
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
 }
 
 async function closePage(page: MediaPage): Promise<void> {

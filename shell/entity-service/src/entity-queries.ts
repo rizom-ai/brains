@@ -143,6 +143,7 @@ export class EntityQueries {
   public async listEntities<T extends BaseEntity>(
     entityType: string,
     options: ListOptions = {},
+    publishedStatuses?: string[],
   ): Promise<T[]> {
     const validatedOptions = listOptionsSchema.parse(options);
     const { limit, offset, sortFields, filter, publishedOnly } =
@@ -157,6 +158,7 @@ export class EntityQueries {
       publishedOnly,
       filter?.metadata,
       filter?.visibilityScope,
+      publishedStatuses,
     );
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
@@ -191,13 +193,27 @@ export class EntityQueries {
     publishedOnly?: boolean,
     metadataFilter?: Record<string, unknown>,
     visibilityScope?: ContentVisibility,
+    publishedStatuses?: string[],
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
-      conditions.push(
-        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') = 'active' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
-      );
+      const statusExpr = sql`json_extract(${entities.metadata}, '$.status')`;
+      if (publishedStatuses && publishedStatuses.length > 0) {
+        // The adapter declared its own publish gate; the list is exact —
+        // entities without a status are not published.
+        conditions.push(
+          sql`${statusExpr} IN (${sql.join(
+            publishedStatuses.map((status) => sql`${status}`),
+            sql`, `,
+          )})`,
+        );
+      } else {
+        // Default lifecycle semantics for types with no declaration.
+        conditions.push(
+          sql`(${statusExpr} = 'published' OR ${statusExpr} = 'active' OR ${statusExpr} IS NULL)`,
+        );
+      }
     }
 
     // Fail closed: undefined scope filters to public-only.
@@ -280,12 +296,14 @@ export class EntityQueries {
         visibilityScope?: ContentVisibility;
       };
     } = {},
+    publishedStatuses?: string[],
   ): Promise<number> {
     const whereConditions = this.buildWhereConditions(
       entityType,
       options.publishedOnly,
       options.filter?.metadata,
       options.filter?.visibilityScope,
+      publishedStatuses,
     );
 
     const result = await this.db

@@ -161,10 +161,57 @@ describe("Shell shutdown", () => {
     expect(threw).toBe(true);
   });
 
+  it("should close databases when an earlier finalizer fails", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shutdownError = new Error("worker failed to stop");
+    const shell = Shell.createFresh(config, {
+      ...deps,
+      jobQueueWorker: {
+        start: async (): Promise<void> => {},
+        stop: async (): Promise<void> => {
+          throw shutdownError;
+        },
+        getStats: () => ({
+          processedJobs: 0,
+          failedJobs: 0,
+          activeJobs: 0,
+          uptime: 0,
+          isRunning: true,
+        }),
+        isWorkerRunning: () => true,
+      },
+    });
+    await shell.initialize();
+
+    let receivedError: unknown;
+    try {
+      await shell.shutdown();
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBe(shutdownError);
+
+    let queryError: unknown;
+    try {
+      await shell.getJobQueueService().getStats();
+    } catch (error) {
+      queryError = error;
+    }
+    const fullQueryError =
+      String(queryError) +
+      (queryError instanceof Error && queryError.cause
+        ? String(queryError.cause)
+        : "");
+    expect(fullQueryError).toContain("CLIENT_CLOSED");
+  });
+
   it("should stop background workers, then plugin daemons, before closing databases", async () => {
     const order: string[] = [];
     let workerRunningDuringDaemonStop: boolean | undefined;
     let dbUsableDuringDaemonStop = false;
+    let jobDbUsableDuringDaemonStop = false;
 
     const daemonPlugin: Plugin = {
       id: "shutdown-order-plugin",
@@ -193,6 +240,8 @@ describe("Shell shutdown", () => {
                 .getEntityService()
                 .listEntities({ entityType: "note" });
               dbUsableDuringDaemonStop = true;
+              await shellInstance.getJobQueueService().getStats();
+              jobDbUsableDuringDaemonStop = true;
             },
           },
           "shutdown-order-plugin",
@@ -212,6 +261,7 @@ describe("Shell shutdown", () => {
     expect(order).toEqual(["daemon-started", "daemon-stopped"]);
     expect(workerRunningDuringDaemonStop).toBe(false);
     expect(dbUsableDuringDaemonStop).toBe(true);
+    expect(jobDbUsableDuringDaemonStop).toBe(true);
   });
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {
@@ -226,8 +276,8 @@ describe("Shell shutdown", () => {
 
     await shell1.shutdown();
 
-    // Second shell with fresh DB paths — no resetAllSingletons() needed,
-    // Shell.createFresh() handles singleton cleanup internally.
+    // Second shell with fresh DB paths — no singleton reset is needed because
+    // each Shell.createFresh() owns an independent service graph.
     const testDir2 = await createTestDirectory();
     await runMigrations(testDir2.dir);
     const config2 = createTestConfig(testDir2.dir);

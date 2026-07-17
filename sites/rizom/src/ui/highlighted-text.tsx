@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import { Fragment, type JSX } from "preact";
 
 const EMPHASIS_PATTERN = /(\*[^*]+\*)/;

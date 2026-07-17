@@ -41,6 +41,7 @@ import type {
   UpdateEntityRequest,
   UpsertEntityRequest,
   EntityTypeConfig,
+  EntityRegistry as IEntityRegistry,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -54,13 +55,15 @@ import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { Cause, Effect, Exit } from "@brains/utils/effect";
+import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
 /**
  * Options for creating an EntityService instance
  */
 export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
-  entityRegistry?: EntityRegistry;
+  entityRegistry?: IEntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
@@ -87,7 +90,7 @@ export class EntityService implements IEntityService {
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
   private dbInitPromise!: Promise<void>;
-  private entityRegistry: EntityRegistry;
+  private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
 
@@ -96,6 +99,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private contentResolver: ContentResolver;
+  private embeddingHandlerRegistered = false;
   private indexReady = false;
 
   public static getInstance(options: EntityServiceOptions): EntityService {
@@ -114,8 +118,30 @@ export class EntityService implements IEntityService {
    * Close the underlying database connections.
    */
   public close(): void {
-    this.embeddingDbClient.close();
-    this.dbClient.close();
+    let firstError: unknown;
+    let failed = false;
+    try {
+      if (this.embeddingHandlerRegistered) {
+        this.jobQueueService.unregisterHandler("shell:embedding");
+        this.embeddingHandlerRegistered = false;
+      }
+    } catch (error) {
+      firstError = error;
+      failed = true;
+    }
+    try {
+      this.embeddingDbClient.close();
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    try {
+      this.dbClient.close();
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    if (failed) throw firstError;
   }
 
   public static createFresh(options: EntityServiceOptions): EntityService {
@@ -128,70 +154,95 @@ export class EntityService implements IEntityService {
     this.dbClient = client;
     this.dbUrl = url;
 
-    // Set up separate embedding database
-    const emb = createEmbeddingDatabase(options.embeddingDbConfig);
-    this.embeddingDb = emb.db;
-    this.embeddingDbClient = emb.client;
+    let embeddingDbClient: Client | undefined;
+    try {
+      // Set up separate embedding database
+      const emb = createEmbeddingDatabase(options.embeddingDbConfig);
+      embeddingDbClient = emb.client;
+      this.embeddingDb = emb.db;
+      this.embeddingDbClient = emb.client;
 
-    this.entityRegistry =
-      options.entityRegistry ??
-      EntityRegistry.getInstance(Logger.getInstance());
-    this.logger = (options.logger ?? Logger.getInstance()).child(
-      "EntityService",
-    );
-    if (!options.jobQueueService) {
-      throw new Error(
-        "JobQueueService is required for EntityService initialization",
+      this.entityRegistry =
+        options.entityRegistry ??
+        EntityRegistry.getInstance(Logger.getInstance());
+      this.logger = (options.logger ?? Logger.getInstance()).child(
+        "EntityService",
       );
+      if (!options.jobQueueService) {
+        throw new Error(
+          "JobQueueService is required for EntityService initialization",
+        );
+      }
+      this.jobQueueService = options.jobQueueService;
+
+      this.entitySerializer = new EntitySerializer(
+        this.entityRegistry,
+        this.logger,
+      );
+      this.entityQueries = new EntityQueries({
+        db: this.db,
+        serializer: this.entitySerializer,
+        logger: this.logger,
+        embeddingDb: this.embeddingDb,
+      });
+      this.entitySearch = new EntitySearch(
+        this.db,
+        options.embeddingService,
+        this.entitySerializer,
+        this.logger,
+      );
+      this.entityMutations = new EntityMutations({
+        db: this.db,
+        entityRegistry: this.entityRegistry,
+        entitySerializer: this.entitySerializer,
+        entityQueries: this.entityQueries,
+        jobQueueService: this.jobQueueService,
+        logger: this.logger,
+        ...(options.messageBus && { messageBus: options.messageBus }),
+        embeddingDb: this.embeddingDb,
+      });
+      this.contentResolver = new ContentResolver(this.logger);
+
+      const embeddingJobHandler = EmbeddingJobHandler.createFresh(
+        this,
+        options.embeddingService,
+        options.messageBus,
+      );
+      this.jobQueueService.registerHandler(
+        "shell:embedding",
+        embeddingJobHandler,
+      );
+      this.embeddingHandlerRegistered = true;
+
+      // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
+      this.dbInitPromise = this.initializeDatabase(
+        options.embeddingDbConfig,
+        options.embeddingService.dimensions,
+      );
+      // Failures surface in initialize(); this no-op handler only prevents an
+      // unhandled rejection in the window before initialize() awaits.
+      this.dbInitPromise.catch(() => {});
+    } catch (error) {
+      try {
+        if (this.embeddingHandlerRegistered) {
+          options.jobQueueService?.unregisterHandler("shell:embedding");
+          this.embeddingHandlerRegistered = false;
+        }
+      } catch {
+        // Preserve the construction failure after attempting all cleanup.
+      }
+      try {
+        embeddingDbClient?.close();
+      } catch {
+        // Preserve the construction failure after attempting all cleanup.
+      }
+      try {
+        client.close();
+      } catch {
+        // Preserve the construction failure after attempting all cleanup.
+      }
+      throw error;
     }
-    this.jobQueueService = options.jobQueueService;
-
-    this.entitySerializer = new EntitySerializer(
-      this.entityRegistry,
-      this.logger,
-    );
-    this.entityQueries = new EntityQueries({
-      db: this.db,
-      serializer: this.entitySerializer,
-      logger: this.logger,
-      embeddingDb: this.embeddingDb,
-    });
-    this.entitySearch = new EntitySearch(
-      this.db,
-      options.embeddingService,
-      this.entitySerializer,
-      this.logger,
-    );
-    this.entityMutations = new EntityMutations({
-      db: this.db,
-      entityRegistry: this.entityRegistry,
-      entitySerializer: this.entitySerializer,
-      entityQueries: this.entityQueries,
-      jobQueueService: this.jobQueueService,
-      logger: this.logger,
-      ...(options.messageBus && { messageBus: options.messageBus }),
-      embeddingDb: this.embeddingDb,
-    });
-    this.contentResolver = new ContentResolver(this.logger);
-
-    const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-      this,
-      options.embeddingService,
-      options.messageBus,
-    );
-    this.jobQueueService.registerHandler(
-      "shell:embedding",
-      embeddingJobHandler,
-    );
-
-    // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
-    this.dbInitPromise = this.initializeDatabase(
-      options.embeddingDbConfig,
-      options.embeddingService.dimensions,
-    );
-    // Failures surface in initialize(); this no-op handler only prevents an
-    // unhandled rejection in the window before initialize() awaits.
-    this.dbInitPromise.catch(() => {});
   }
 
   /**
@@ -299,22 +350,47 @@ export class EntityService implements IEntityService {
   public async awaitIndexReady(
     options: IndexReadinessOptions,
   ): Promise<IndexReadinessStatus> {
-    const intervalMs = options.intervalMs ?? 250;
-    const deadline = Date.now() + options.timeoutMs;
+    let probeFailed = false;
+    const probe = Effect.tryPromise({
+      try: () => this.getIndexReadinessStatus(),
+      catch: (error) => error,
+    }).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() => {
+          if (!probeFailed) {
+            this.logger.warn(
+              "Semantic index readiness check failed; retrying",
+              {
+                error,
+              },
+            );
+            probeFailed = true;
+          }
+        }),
+      ),
+      Effect.tap(() =>
+        Effect.sync(() => {
+          probeFailed = false;
+        }),
+      ),
+    );
+    const polling = makeIndexReadinessPollingEffect(probe, {
+      intervalMs: options.intervalMs ?? 250,
+      ...(options.timeoutMs !== undefined && {
+        timeoutMs: options.timeoutMs,
+      }),
+    });
+    const exit = await Effect.runPromiseExit(polling, {
+      ...(options.signal && { signal: options.signal }),
+    });
 
-    for (;;) {
-      const status = await this.getIndexReadinessStatus();
-      if (status.ready) {
-        this.indexReady = true;
-        return status;
-      }
-
-      if (Date.now() >= deadline) {
-        return status;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    if (Exit.isFailure(exit)) {
+      if (options.signal?.aborted) throw options.signal.reason;
+      throw Cause.squash(exit.cause);
     }
+
+    if (exit.value.ready) this.indexReady = true;
+    return exit.value;
   }
 
   private async getIndexReadinessStatus(): Promise<IndexReadinessStatus> {
@@ -390,12 +466,32 @@ export class EntityService implements IEntityService {
     request: ListEntitiesRequest,
   ): Promise<T[]> {
     const { entityType, options } = request;
-    return this.entityQueries.listEntities<T>(entityType, options);
+    return this.entityQueries.listEntities<T>(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
     const { entityType, options } = request;
-    return this.entityQueries.countEntities(entityType, options);
+    return this.entityQueries.countEntities(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
+  }
+
+  /**
+   * The adapter-declared publish-gate statuses for a type, if any. What
+   * "published" means belongs to the entity type — queries consult this
+   * instead of the shell hardcoding every plugin's lifecycle vocabulary.
+   */
+  private publishedStatusesFor(entityType: string): string[] | undefined {
+    if (!this.entityRegistry.hasEntityType(entityType)) {
+      return undefined;
+    }
+    return this.entityRegistry.getAdapter(entityType).publishedStatuses;
   }
 
   public async getEntityCounts(

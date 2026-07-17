@@ -1,7 +1,7 @@
 import {
   NOTIFICATIONS_SEND,
   sendNotificationResultSchema,
-} from "@brains/notifications";
+} from "@brains/notification-contracts";
 import type {
   ServicePluginContext,
   Tool,

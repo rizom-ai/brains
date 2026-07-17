@@ -61,6 +61,19 @@ function listTypedPublicExports(): TypedPublicExport[] {
   });
 }
 
+function findEffectDeclarationImports(source: string): string[] {
+  const importSpecifiers = [
+    ...source.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+  ].map((match) => match[1] ?? "");
+
+  return importSpecifiers.filter(
+    (specifier) =>
+      specifier === "effect" ||
+      specifier.startsWith("effect/") ||
+      /\/effect(?:\/|$)/.test(specifier),
+  );
+}
+
 describe("@rizom/brain public plugin API surface", () => {
   it("declares root and plugin-author subpath exports", () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));
@@ -110,6 +123,13 @@ describe("@rizom/brain public plugin API surface", () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       expect(types).not.toContain("@brains/");
+    }
+  });
+
+  it("keeps Effect and private /effect imports out of public declarations", () => {
+    for (const publicExport of listTypedPublicExports()) {
+      const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
+      expect(findEffectDeclarationImports(types)).toEqual([]);
     }
   });
 

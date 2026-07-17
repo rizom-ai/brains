@@ -1,5 +1,273 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/job-queue@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/job-queue@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/job-queue@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.188
+  - @brains/contracts@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/job-queue@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.187
+  - @brains/contracts@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/job-queue@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve user edits made while markdown uploads are still importing, and guide Rover to update the imported note instead of creating duplicate copies.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+  - @brains/job-queue@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.185
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/job-queue@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.184
+  - @brains/contracts@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+  - @brains/job-queue@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- [`197cc09`](https://github.com/rizom-ai/brains/commit/197cc0988a47f80e3e21b5f4adf034003ea3527e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Roll back recurring-check daemon/job registrations and entity embedding handlers when shell construction fails, while preserving normal shutdown order and exact-once cleanup.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+  - @brains/job-queue@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/job-queue@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.181
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/job-queue@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`3a7bb4a`](https://github.com/rizom-ai/brains/commit/3a7bb4a6bce7789d4bf82e151aee1e35c66ac184) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own entity-service acquisition and both entity databases through a private package Effect Layer, with transactional construction cleanup and original shell acquisition errors preserved.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/job-queue@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Construct each shell from fresh service and initializer instances without resetting process-global singletons, honor entity service/registry overrides, and keep site-builder profile access bound to its owning shell.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/job-queue@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.178
+  - @brains/contracts@0.2.0-alpha.178
+  - @brains/effect-runtime@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/job-queue@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.177
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/effect-runtime@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/job-queue@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/effect-runtime@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+  - @brains/job-queue@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies [[`b148151`](https://github.com/rizom-ai/brains/commit/b148151a76a1e7cab2030f0a9916375de40b74d1)]:
+  - @brains/job-queue@0.2.0-alpha.175
+  - @brains/content-formatters@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/effect-runtime@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- [`eaf9f49`](https://github.com/rizom-ai/brains/commit/eaf9f490ca36f74535fd56b0f549f49de899defe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity adapters declare their own publish gate for `publishedOnly` queries. What "published" means belongs to the entity type: an adapter may declare `publishedStatuses` (exact — no status means not published), and query building consults it instead of the shell hardcoding every plugin's lifecycle vocabulary. The agent adapter declares `["approved"]` — approval is the directory's publish gate — fixing the production-only 404 where an approved agent appeared in the directory list but its detail route was never emitted (production builds only whitelisted `published`/`active`/no-status). Non-declaring types keep the default semantics unchanged.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/effect-runtime@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/job-queue@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- [#56](https://github.com/rizom-ai/brains/pull/56) [`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell lifecycle ownership with a centralized Effect boundary, scoped job-service layers, supervised fibers, deterministic schedules, transactional startup rollback, terminal plugin teardown, graceful job draining, daemon rollback, and end-to-end `AbortSignal` cancellation for AI requests and agent turns. Build public package subpaths with shared chunks to avoid duplicating their runtime code.
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/effect-runtime@0.2.0-alpha.173
+  - @brains/job-queue@0.2.0-alpha.173
+  - @brains/content-formatters@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/job-queue@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/job-queue@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/job-queue@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/job-queue@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/job-queue@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

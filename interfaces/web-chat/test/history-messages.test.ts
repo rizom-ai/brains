@@ -1,9 +1,41 @@
 import { describe, expect, it } from "bun:test";
-import { toUiMessage } from "../ui-react/src/history-messages";
+import {
+  createActiveMessageSeed,
+  toUiMessage,
+} from "../ui-react/src/history-messages";
 
 const createdAt = "2026-05-24T00:00:30.000Z";
 
 describe("web chat history messages", () => {
+  it("detaches the AI SDK seed from the cached history snapshot", () => {
+    const cached = [
+      {
+        id: "message-1",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Cached" }],
+      },
+    ];
+
+    const seed = createActiveMessageSeed(cached);
+    seed.push({
+      id: "message-2",
+      role: "assistant",
+      parts: [{ type: "text", text: "Streaming" }],
+    });
+    seed[0]?.parts.push({ type: "text", text: "Changed active copy" });
+
+    expect(seed).not.toBe(cached);
+    expect(seed[0]).not.toBe(cached[0]);
+    expect(seed[0]?.parts).not.toBe(cached[0]?.parts);
+    expect(cached).toEqual([
+      {
+        id: "message-1",
+        role: "user",
+        parts: [{ type: "text", text: "Cached" }],
+      },
+    ]);
+  });
+
   it("rehydrates stored upload refs as AI SDK data-upload parts", () => {
     expect(
       toUiMessage({

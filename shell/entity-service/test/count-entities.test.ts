@@ -1,5 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { postSchema, postAdapter } from "./helpers/test-schemas";
+import {
+  postSchema,
+  postAdapter,
+  peerSchema,
+  peerAdapter,
+} from "./helpers/test-schemas";
 import {
   setupEntityService,
   type EntityServiceTestContext,
@@ -105,5 +110,130 @@ describe("countEntities", () => {
       },
     });
     expect(count).toBe(1);
+  });
+
+  // What "published" means belongs to the entity type: an adapter may declare
+  // its own publish-gate statuses (agents: approval is the directory's publish
+  // gate) instead of the shell hardcoding every plugin's lifecycle vocabulary.
+  test("publishedOnly uses the adapter's declared publishedStatuses", async () => {
+    const declaringCtx = await setupEntityService([
+      { name: "post", schema: postSchema, adapter: postAdapter },
+      {
+        name: "peer",
+        schema: peerSchema,
+        adapter: peerAdapter, // declares publishedStatuses: ["approved"]
+      },
+    ]);
+    try {
+      const rows = [
+        { id: "peer-approved", status: "approved" },
+        { id: "peer-discovered", status: "discovered" },
+        { id: "peer-archived", status: "archived" },
+      ];
+      for (const row of rows) {
+        await insertTestEntity(
+          declaringCtx.dbConfig,
+          {
+            id: row.id,
+            entityType: "peer",
+            content: row.id,
+            metadata: { status: row.status },
+            created: Date.now(),
+            updated: Date.now(),
+            embedding: mockEmbedding,
+          },
+          declaringCtx.embeddingDbConfig,
+        );
+      }
+      // An entity with no lifecycle status at all: for a type that DECLARES
+      // its publish gate, absence of status is not published.
+      await insertTestEntity(
+        declaringCtx.dbConfig,
+        {
+          id: "peer-statusless",
+          entityType: "peer",
+          content: "no status",
+          metadata: {},
+          created: Date.now(),
+          updated: Date.now(),
+          embedding: mockEmbedding,
+        },
+        declaringCtx.embeddingDbConfig,
+      );
+
+      const count = await declaringCtx.entityService.countEntities({
+        entityType: "peer",
+        options: { publishedOnly: true },
+      });
+      expect(count).toBe(1);
+
+      // Specifically the approved one — not the statusless one that the
+      // default NULL-counts-as-published rule would have let through.
+      const published = await declaringCtx.entityService.listEntities({
+        entityType: "peer",
+        options: { publishedOnly: true },
+      });
+      expect(published.map((entity) => entity.id)).toEqual(["peer-approved"]);
+
+      // A non-declaring type keeps the default lifecycle semantics: an
+      // "approved" status is unknown vocabulary there, not published.
+      await insertTestEntity(
+        declaringCtx.dbConfig,
+        {
+          id: "post-approved",
+          entityType: "post",
+          content: "Approved post",
+          metadata: { status: "approved" },
+          created: Date.now(),
+          updated: Date.now(),
+          embedding: mockEmbedding,
+        },
+        declaringCtx.embeddingDbConfig,
+      );
+      const postCount = await declaringCtx.entityService.countEntities({
+        entityType: "post",
+        options: { publishedOnly: true },
+      });
+      expect(postCount).toBe(0);
+    } finally {
+      await declaringCtx.cleanup();
+    }
+  });
+
+  // Regression: the production site build's detail-route enumeration
+  // (DynamicRouteGenerator) lists with publishedOnly AND a public visibility
+  // scope together. An approved agent must survive both filters — this is the
+  // exact query shape behind the /agents/<slug> 404 on production builds.
+  test("production route enumeration finds approved entities (publishedOnly + public scope)", async () => {
+    const routeCtx = await setupEntityService([
+      { name: "peer", schema: peerSchema, adapter: peerAdapter },
+    ]);
+    try {
+      await insertTestEntity(
+        routeCtx.dbConfig,
+        {
+          id: "yeehaa-io",
+          entityType: "peer",
+          content: "approved agent",
+          metadata: { status: "approved" },
+          created: Date.now(),
+          updated: Date.now(),
+          embedding: mockEmbedding,
+        },
+        routeCtx.embeddingDbConfig,
+      );
+
+      const entities = await routeCtx.entityService.listEntities({
+        entityType: "peer",
+        options: {
+          limit: 1000,
+          publishedOnly: true,
+          filter: { visibilityScope: "public" },
+        },
+      });
+      expect(entities.map((entity) => entity.id)).toEqual(["yeehaa-io"]);
+    } finally {
+      await routeCtx.cleanup();
+    }
   });
 });

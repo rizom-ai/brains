@@ -17,6 +17,16 @@ describe("buildMessageMetadata", () => {
     expect(buildMessageMetadata({ actor: null, source: null })).toEqual({});
   });
 
+  test("records the permission level that governed a message", () => {
+    expect(
+      buildMessageMetadata({
+        actor,
+        source: null,
+        userPermissionLevel: "trusted",
+      }),
+    ).toMatchObject({ userPermissionLevel: "trusted" });
+  });
+
   test("enriches the actor through the canonical identity resolver", () => {
     const metadata = buildMessageMetadata({
       actor,

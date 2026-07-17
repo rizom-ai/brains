@@ -13,6 +13,27 @@ import { PluginError } from "../errors";
 import { PluginLifecycle } from "./plugin-lifecycle";
 import { DependencyResolver } from "./dependency-resolver";
 import { CapabilityRegistrar } from "./capability-registrar";
+import { Effect, Either } from "@brains/utils/effect";
+
+async function runConcurrentPhase(
+  operations: Array<() => Promise<void>>,
+): Promise<void> {
+  const results = await Effect.runPromise(
+    Effect.all(
+      operations.map((operation) =>
+        Effect.either(
+          Effect.tryPromise({
+            try: operation,
+            catch: (error) => error,
+          }),
+        ),
+      ),
+      { concurrency: "unbounded" },
+    ),
+  );
+  const firstFailure = results.find(Either.isLeft);
+  if (firstFailure) throw firstFailure.left;
+}
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "./types";
@@ -172,21 +193,24 @@ export class PluginManager implements IPluginManager {
     }
     const shell = this.shell;
 
-    // Use plugin lifecycle to initialize
-    const capabilities = await this.pluginLifecycle.initializePlugin(
-      pluginId,
-      shell,
-      registrationContext,
-    );
+    try {
+      const capabilities = await this.pluginLifecycle.initializePlugin(
+        pluginId,
+        shell,
+        registrationContext,
+      );
 
-    // Register capabilities
-    await this.capabilityRegistrar.registerCapabilities(
-      shell,
-      pluginId,
-      capabilities,
-    );
+      await this.capabilityRegistrar.registerCapabilities(
+        shell,
+        pluginId,
+        capabilities,
+      );
 
-    this.initializedPluginIds.push(pluginId);
+      this.initializedPluginIds.push(pluginId);
+    } catch (error) {
+      await this.pluginLifecycle.failPluginInitialization(pluginId, error);
+      throw error;
+    }
   }
 
   /**
@@ -199,11 +223,24 @@ export class PluginManager implements IPluginManager {
   public async readyPlugins(): Promise<void> {
     this.logger.debug("Dispatching plugin ready hooks...");
 
-    await Promise.all(
-      this.initializedPluginIds.map((id) =>
-        this.pluginLifecycle.readyPlugin(id),
-      ),
-    );
+    try {
+      await runConcurrentPhase(
+        this.initializedPluginIds.map(
+          (id) => (): Promise<void> => this.pluginLifecycle.readyPlugin(id),
+        ),
+      );
+    } catch (error) {
+      for (const id of this.initializedPluginIds) {
+        const pluginInfo = this.plugins.get(id);
+        if (pluginInfo?.status === PluginStatus.ERROR) {
+          await this.pluginLifecycle.failPluginInitialization(
+            id,
+            pluginInfo.error ?? error,
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -212,9 +249,10 @@ export class PluginManager implements IPluginManager {
   public async startPluginDaemons(): Promise<void> {
     this.logger.debug("Starting plugin daemons...");
 
-    await Promise.all(
-      this.initializedPluginIds.map((id) =>
-        this.pluginLifecycle.startPluginDaemons(id),
+    await runConcurrentPhase(
+      this.initializedPluginIds.map(
+        (id) => (): Promise<void> =>
+          this.pluginLifecycle.startPluginDaemons(id),
       ),
     );
   }
@@ -285,19 +323,21 @@ export class PluginManager implements IPluginManager {
     return pluginInfo?.plugin.packageName;
   }
 
-  /**
-   * Disable a plugin
-   * This only marks the plugin as disabled but doesn't unregister it
-   */
+  /** Terminally release a plugin and its runtime resources. */
   public async disablePlugin(id: string): Promise<void> {
     await this.pluginLifecycle.disablePlugin(id);
   }
 
-  /**
-   * Enable a disabled plugin
-   */
-  public async enablePlugin(id: string): Promise<void> {
-    await this.pluginLifecycle.enablePlugin(id);
+  /** Release plugins in reverse initialization order. */
+  public async shutdownPlugins(): Promise<void> {
+    const released = new Set<string>();
+    for (const id of [...this.initializedPluginIds].reverse()) {
+      await this.disablePlugin(id);
+      released.add(id);
+    }
+    for (const id of [...this.plugins.keys()].reverse()) {
+      if (!released.has(id)) await this.disablePlugin(id);
+    }
   }
 
   /**

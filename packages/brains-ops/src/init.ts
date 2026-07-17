@@ -32,7 +32,7 @@ const starterFilePaths = [
   "deploy/scripts/validate-secrets.ts",
   "deploy/scripts/write-kamal-secrets.ts",
   "deploy/scripts/resolve-user-config.ts",
-  "deploy/scripts/resolve-build-config.ts",
+  "deploy/scripts/resolve-missing-images.ts",
   "deploy/scripts/resolve-deploy-handles.ts",
   "deploy/scripts/sync-content-repo.ts",
   ".kamal/hooks/pre-deploy",
@@ -138,7 +138,7 @@ function isStaleDecryptUserSecretsScript(
   if (current.includes("ATPROTO_APP_PASSWORD")) return false;
 
   const legacyTemplate = template.replace(
-    'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+    'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
     "",
   );
 

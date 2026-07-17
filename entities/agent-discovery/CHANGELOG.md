@@ -1,5 +1,439 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.191
+  - @brains/atproto-contracts@0.2.0-alpha.191
+  - @brains/content-formatters@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/http-signatures@0.2.0-alpha.191
+  - @brains/ui-library@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+  - @brains/templates@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- [`645c014`](https://github.com/rizom-ai/brains/commit/645c014bdcd43828d818d88a6ee33be5fe4d6f2d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the invalid height="auto" attribute from the proximity map svg.
+  "auto" is not an SVG length, so browsers rejected it and logged a console
+  error on every page view; both surfaces already size the svg via CSS.
+- Updated dependencies [[`a49c285`](https://github.com/rizom-ai/brains/commit/a49c285cc11b4a8e1c5640e267de8076953b15ba)]:
+  - @brains/atproto-contracts@0.2.0-alpha.190
+  - @brains/dashboard@0.2.0-alpha.190
+  - @brains/content-formatters@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/http-signatures@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+  - @brains/templates@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`903c814`](https://github.com/rizom-ai/brains/commit/903c81480367046ac4a41fb64dc9a84f72e13435) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep edited-upload routing concise while preserving updates, distinguish failed pre-job requests from active jobs, and clarify agent and case-study tool selection.
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/dashboard@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/atproto-contracts@0.2.0-alpha.189
+  - @brains/content-formatters@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/http-signatures@0.2.0-alpha.189
+  - @brains/ui-library@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+  - @brains/templates@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.188
+  - @brains/atproto-contracts@0.2.0-alpha.188
+  - @brains/content-formatters@0.2.0-alpha.188
+  - @brains/contracts@0.2.0-alpha.188
+  - @brains/http-signatures@0.2.0-alpha.188
+  - @brains/ui-library@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/auth-service@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+  - @brains/templates@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.187
+  - @brains/atproto-contracts@0.2.0-alpha.187
+  - @brains/content-formatters@0.2.0-alpha.187
+  - @brains/contracts@0.2.0-alpha.187
+  - @brains/http-signatures@0.2.0-alpha.187
+  - @brains/ui-library@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/auth-service@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+  - @brains/templates@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/dashboard@0.2.0-alpha.186
+  - @brains/auth-service@0.2.0-alpha.186
+  - @brains/atproto-contracts@0.2.0-alpha.186
+  - @brains/content-formatters@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/http-signatures@0.2.0-alpha.186
+  - @brains/ui-library@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+  - @brains/templates@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.185
+  - @brains/atproto-contracts@0.2.0-alpha.185
+  - @brains/content-formatters@0.2.0-alpha.185
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/http-signatures@0.2.0-alpha.185
+  - @brains/ui-library@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/auth-service@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+  - @brains/templates@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.184
+  - @brains/dashboard@0.2.0-alpha.184
+  - @brains/auth-service@0.2.0-alpha.184
+  - @brains/atproto-contracts@0.2.0-alpha.184
+  - @brains/content-formatters@0.2.0-alpha.184
+  - @brains/contracts@0.2.0-alpha.184
+  - @brains/http-signatures@0.2.0-alpha.184
+  - @brains/ui-library@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+  - @brains/templates@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- [`0383fc3`](https://github.com/rizom-ai/brains/commit/0383fc3f425465eb148a2c87dbff7c18ff777aa5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Respect disabled recurring-alert delivery by discarding pending alerts, and apply the agent-directory notification opt-in to persisted retries.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/atproto-contracts@0.2.0-alpha.183
+  - @brains/dashboard@0.2.0-alpha.183
+  - @brains/auth-service@0.2.0-alpha.183
+  - @brains/content-formatters@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/http-signatures@0.2.0-alpha.183
+  - @brains/ui-library@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+  - @brains/templates@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- [`4643d93`](https://github.com/rizom-ai/brains/commit/4643d932b67391778b2a27deb6c028a5edf191a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redesign the agent directory index and detail pages as an editorial pass on
+  the brand: display-serif agent names and masthead, mono eyebrows and section
+  rules, stat-tab filters (count numerals double as the filter row), and a
+  two-column card grid grouped as Connected / Sightings / Archived. Sighting
+  provenance is surfaced instead of dimming discovered agents — cards lead with
+  "via <introducer> · N hops", and the detail hero carries a sighted-through
+  status line with an approve note phrased as a chat ask ("connect to
+  <domain>") rather than a tool command. The
+  detail sidebar becomes hairline key-value rows (endpoint, first seen, hop
+  distance, DID) plus an "Introduced by" list.
+
+- [`a9bb766`](https://github.com/rizom-ai/brains/commit/a9bb7662ed1edab11a79bbb17dc48cbbf5b26fe9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep daily agent-directory scans enabled while making new-agent notifications opt-in through `notifyOnNewAgents`.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.182
+  - @brains/atproto-contracts@0.2.0-alpha.182
+  - @brains/content-formatters@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/http-signatures@0.2.0-alpha.182
+  - @brains/ui-library@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/auth-service@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+  - @brains/templates@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The proximity map works under touch: taps activate nodes, clusters, and sightings (hover/focus never fire on mobile SVG), a tap on the map ground dismisses the highlight, and the tooltip clamps inside the card on every edge instead of clipping under `overflow: hidden`. The directory surfaces stack properly on phones: agent-card meta drops below the copy as a full-width line instead of pinching the name column, the detail header stacks its avatar, skill-tag rows wrap, the endpoint URL breaks instead of overflowing, and the stacked sidebar gains a hairline separator. Pagination targets grow to a comfortable tap size.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.181
+  - @brains/atproto-contracts@0.2.0-alpha.181
+  - @brains/content-formatters@0.2.0-alpha.181
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/http-signatures@0.2.0-alpha.181
+  - @brains/ui-library@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/auth-service@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+  - @brains/templates@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/atproto-contracts@0.2.0-alpha.180
+  - @brains/dashboard@0.2.0-alpha.180
+  - @brains/auth-service@0.2.0-alpha.180
+  - @brains/content-formatters@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/http-signatures@0.2.0-alpha.180
+  - @brains/ui-library@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/templates@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.179
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/dashboard@0.2.0-alpha.179
+  - @brains/auth-service@0.2.0-alpha.179
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/http-signatures@0.2.0-alpha.179
+  - @brains/ui-library@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/templates@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.178
+  - @brains/atproto-contracts@0.2.0-alpha.178
+  - @brains/content-formatters@0.2.0-alpha.178
+  - @brains/contracts@0.2.0-alpha.178
+  - @brains/http-signatures@0.2.0-alpha.178
+  - @brains/ui-library@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/auth-service@0.2.0-alpha.178
+  - @brains/plugins@0.2.0-alpha.178
+  - @brains/templates@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.177
+  - @brains/atproto-contracts@0.2.0-alpha.177
+  - @brains/content-formatters@0.2.0-alpha.177
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/http-signatures@0.2.0-alpha.177
+  - @brains/ui-library@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+  - @brains/templates@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/dashboard@0.2.0-alpha.176
+  - @brains/auth-service@0.2.0-alpha.176
+  - @brains/atproto-contracts@0.2.0-alpha.176
+  - @brains/content-formatters@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/http-signatures@0.2.0-alpha.176
+  - @brains/ui-library@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+  - @brains/templates@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/atproto-contracts@0.2.0-alpha.175
+  - @brains/dashboard@0.2.0-alpha.175
+  - @brains/auth-service@0.2.0-alpha.175
+  - @brains/content-formatters@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/http-signatures@0.2.0-alpha.175
+  - @brains/ui-library@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+  - @brains/templates@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- [`eaf9f49`](https://github.com/rizom-ai/brains/commit/eaf9f490ca36f74535fd56b0f549f49de899defe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity adapters declare their own publish gate for `publishedOnly` queries. What "published" means belongs to the entity type: an adapter may declare `publishedStatuses` (exact — no status means not published), and query building consults it instead of the shell hardcoding every plugin's lifecycle vocabulary. The agent adapter declares `["approved"]` — approval is the directory's publish gate — fixing the production-only 404 where an approved agent appeared in the directory list but its detail route was never emitted (production builds only whitelisted `published`/`active`/no-status). Non-declaring types keep the default semantics unchanged.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/dashboard@0.2.0-alpha.174
+  - @brains/auth-service@0.2.0-alpha.174
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/http-signatures@0.2.0-alpha.174
+  - @brains/ui-library@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/atproto-contracts@0.2.0-alpha.173
+  - @brains/dashboard@0.2.0-alpha.173
+  - @brains/auth-service@0.2.0-alpha.173
+  - @brains/content-formatters@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/http-signatures@0.2.0-alpha.173
+  - @brains/ui-library@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+  - @brains/templates@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- [`0ce1257`](https://github.com/rizom-ai/brains/commit/0ce1257934837f984c3e418eab4dc6edac6dab51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Second-order agent discovery. Brains serve their approved public agents as minimal name/url pointers at /.well-known/agent-directory.json, and the trusted agent_scan_directories tool walks each approved peer's directory, verifies each pointee's own Agent Card, and saves sightings as discovered agents carrying provenance (introducedBy, hops) — skipping self and known agents, merging introducers on repeat sightings. Sighted agents chart on the proximity map at half light, threads growing from their introducers, germinating only within semantic reach with an active introducer; approving one (agent_connect) promotes it to a full first-order contact.
+
+- Updated dependencies [[`0ce1257`](https://github.com/rizom-ai/brains/commit/0ce1257934837f984c3e418eab4dc6edac6dab51)]:
+  - @brains/dashboard@0.2.0-alpha.172
+  - @brains/atproto-contracts@0.2.0-alpha.172
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/http-signatures@0.2.0-alpha.172
+  - @brains/ui-library@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.171
+  - @brains/atproto-contracts@0.2.0-alpha.171
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/http-signatures@0.2.0-alpha.171
+  - @brains/ui-library@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.170
+  - @brains/atproto-contracts@0.2.0-alpha.170
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/http-signatures@0.2.0-alpha.170
+  - @brains/ui-library@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.169
+  - @brains/atproto-contracts@0.2.0-alpha.169
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/http-signatures@0.2.0-alpha.169
+  - @brains/ui-library@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the proximity-map site template registering under the wrong scoped name. The template key was `agent-proximity-map`, so the plugin registered it as `agent-discovery:agent-proximity-map` while site routes reference `agent-discovery:proximity-map` — the registry lookup missed and the section silently dropped from built pages (the map hero never rendered). The key is now `proximity-map`, and a plugin test pins the scoped template names routes rely on.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.168
+  - @brains/atproto-contracts@0.2.0-alpha.168
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/http-signatures@0.2.0-alpha.168
+  - @brains/ui-library@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`2fa8809`](https://github.com/rizom-ai/brains/commit/2fa8809b8218120230ce3094b65cc6286a9651a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The proximity map's site hero copy (kicker, heading, lede, CTA) is now
+  content-authored. The template renders optional copy fields with the previous
+  strings as defaults, and the section registers an overlayFormatter so a site
+  edits the copy as an ordinary markdown section while the map data stays live
+  (via the content-overlay merge). Brains that author nothing render exactly as
+  before.
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/dashboard@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/atproto-contracts@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/http-signatures@0.2.0-alpha.167
+  - @brains/ui-library@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

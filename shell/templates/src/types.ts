@@ -38,6 +38,7 @@ export interface TemplateInput {
   useKnowledgeContext?: boolean | undefined;
   requiredPermission: "anchor" | "trusted" | "public";
   formatter?: unknown;
+  overlayFormatter?: unknown;
   layout?:
     | {
         component?: unknown;
@@ -85,6 +86,16 @@ export interface Template extends Omit<
 
   // Data sourcing capability (optional)
   formatter?: ContentFormatter<unknown>; // For parsing stored content
+
+  /**
+   * Opt-in content overlay. When set alongside a `dataSourceId`, the section's
+   * saved content is parsed with this formatter and merged over the datasource
+   * output (authored fields win), rather than the two being mutually exclusive.
+   * Lets a live datasource-backed section carry content-authored fields — e.g.
+   * a map whose data is live but whose hero copy is editable. Absent → the
+   * classic datasource-or-saved precedence is unchanged.
+   */
+  overlayFormatter?: ContentFormatter<unknown>;
 
   /**
    * Whether to retrieve relevant entities from the knowledge base
@@ -160,6 +171,7 @@ export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   useKnowledgeContext: z.boolean().optional(),
   requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
+  overlayFormatter: z.any().optional(), // ContentFormatter for authored overlay
   layout: z
     .object({
       component: z.any().optional(), // ComponentType or string

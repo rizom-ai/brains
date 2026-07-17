@@ -11,6 +11,21 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 
+function addDraftQueueEntities(
+  harness: PluginTestHarness<ContentPipelinePlugin>,
+  entityType: string,
+  ids: string[],
+): void {
+  harness.addEntities(
+    ids.map((id) => ({
+      id,
+      entityType,
+      content: `---\ntitle: ${id}\nstatus: draft\n---\n\nBody`,
+      metadata: { title: id, status: "draft" },
+    })),
+  );
+}
+
 const createMockJobQueueService = (
   enqueue: (job: unknown) => Promise<string>,
 ): never =>
@@ -75,10 +90,32 @@ describe("ContentPipelinePlugin", () => {
 
       expect(plugin.getScheduler().isRunning()).toBe(true);
     });
+
+    it("passes the resolved CMS workspace URL to the dashboard digest", async () => {
+      let dashboardDataProvider: (() => Promise<unknown>) | undefined;
+      harness.subscribe("cms:register-workspace", async () => ({
+        success: true,
+        data: { workspaceUrl: "/studio#/workspace/publishing" },
+      }));
+      harness.subscribe<{ dataProvider: () => Promise<unknown> }>(
+        "dashboard:register-widget",
+        async (message) => {
+          dashboardDataProvider = message.payload.dataProvider;
+          return { success: true };
+        },
+      );
+
+      await plugin.ready();
+
+      expect(await dashboardDataProvider?.()).toMatchObject({
+        managementUrl: "/studio#/workspace/publishing",
+      });
+    });
   });
 
   describe("queue operations via message bus", () => {
     it("should add entity to queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
@@ -118,6 +155,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("stores queue add authorization context", async () => {
+      addDraftQueueEntities(harness, "social-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "social-post",
         entityId: "post-1",
@@ -139,6 +177,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("should remove entity from queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
@@ -154,6 +193,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("should reorder entities in queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1", "post-2"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
@@ -405,6 +445,13 @@ Post body`,
           metadata: { status: "draft", title: "Post 3" },
         },
       ]);
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "social-post",
+        provider: {
+          name: "linkedin",
+          publish: async () => ({ id: "remote-post" }),
+        },
+      });
 
       await plugin.ready();
 
@@ -413,6 +460,39 @@ Post body`,
       const queuedIds = queue.map((e) => e.entityId);
       expect(queuedIds).toContain("post-1");
       expect(queuedIds).toContain("post-2");
+    });
+
+    it("ignores queued status on types without a publish provider", async () => {
+      harness.addEntities([
+        {
+          id: "social-post",
+          entityType: "social-post",
+          content: "queued social post",
+          metadata: { status: "queued", title: "Social post" },
+        },
+        {
+          id: "workflow-card",
+          entityType: "workflow-card",
+          content: "queued workflow card",
+          metadata: { status: "queued", title: "Workflow card" },
+        },
+      ]);
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "social-post",
+        provider: {
+          name: "linkedin",
+          publish: async () => ({ id: "remote-post" }),
+        },
+      });
+
+      await plugin.ready();
+
+      expect(await plugin.getQueueManager().list("social-post")).toHaveLength(
+        1,
+      );
+      expect(await plugin.getQueueManager().list("workflow-card")).toHaveLength(
+        0,
+      );
     });
 
     it("should not add non-queued entities to queue", async () => {

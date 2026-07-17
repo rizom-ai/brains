@@ -20,6 +20,7 @@ describe("ConversationService", () => {
   let config: ConversationServiceConfig;
   let messageBus: MessageBus;
   let cleanup: () => Promise<void>;
+  let dbPath: string;
 
   // Default test metadata
   const testMetadata: ConversationMetadata = {
@@ -34,6 +35,7 @@ describe("ConversationService", () => {
     db = testDb.db;
     client = testDb.client;
     cleanup = testDb.cleanup;
+    dbPath = testDb.dbPath;
 
     // Create silent logger for tests
     logger = createSilentLogger();
@@ -51,6 +53,37 @@ describe("ConversationService", () => {
   afterEach(async () => {
     // Clean up
     await cleanup();
+  });
+
+  describe("fresh owned instances", () => {
+    it("opens and closes its database from config independently", async () => {
+      const owned = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+
+      await owned.startConversation({
+        sessionId: "owned-instance",
+        interfaceType: "test",
+        channelId: "owned-instance",
+        metadata: testMetadata,
+      });
+      owned.close();
+
+      let closeError: unknown;
+      try {
+        await owned.getConversation("owned-instance");
+      } catch (error) {
+        closeError = error;
+      }
+      const errorText =
+        String(closeError) +
+        (closeError instanceof Error && closeError.cause
+          ? String(closeError.cause)
+          : "");
+      expect(errorText).toContain("CLIENT_CLOSED");
+    });
   });
 
   describe("startConversation", () => {

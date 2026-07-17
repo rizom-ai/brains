@@ -1,5 +1,288 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`5145803`](https://github.com/rizom-ai/brains/commit/5145803b3bfe89f6a533a6175f8e3696a84b39cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow saved web-chat sessions containing tool approval cards to reopen by hydrating all shared structured card variants into AI SDK message parts.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.190
+  - @brains/contracts@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/auth-service@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/auth-service@0.2.0-alpha.189
+  - @brains/console-theme@0.2.0-alpha.189
+  - @brains/contracts@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.188
+  - @brains/contracts@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/auth-service@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.187
+  - @brains/contracts@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/auth-service@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/auth-service@0.2.0-alpha.186
+  - @brains/console-theme@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- [`7140e69`](https://github.com/rizom-ai/brains/commit/7140e69388dc3b1ebefc37c5dd1f2e76226fce16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore the persisted active conversation and its message history when web chat reloads, including after a new application release.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.185
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/auth-service@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.184
+  - @brains/auth-service@0.2.0-alpha.184
+  - @brains/console-theme@0.2.0-alpha.184
+  - @brains/contracts@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/auth-service@0.2.0-alpha.183
+  - @brains/console-theme@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/auth-service@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.181
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/auth-service@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/auth-service@0.2.0-alpha.180
+  - @brains/console-theme@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/auth-service@0.2.0-alpha.179
+  - @brains/console-theme@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.178
+  - @brains/contracts@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/auth-service@0.2.0-alpha.178
+  - @brains/plugins@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- [#58](https://github.com/rizom-ai/brains/pull/58) [`0d1a2e8`](https://github.com/rizom-ai/brains/commit/0d1a2e888d41026c358c10b7229ef72adacad784) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move saved-session metadata, conversation-history loading, and session mutations into package-local TanStack Query ownership with typed keys and exact request-count coverage. Reopened history is copied into the AI SDK, which remains the exclusive owner of active and streamed messages.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.177
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/auth-service@0.2.0-alpha.176
+  - @brains/console-theme@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/auth-service@0.2.0-alpha.175
+  - @brains/console-theme@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/auth-service@0.2.0-alpha.174
+  - @brains/console-theme@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- [#56](https://github.com/rizom-ai/brains/pull/56) [`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell lifecycle ownership with a centralized Effect boundary, scoped job-service layers, supervised fibers, deterministic schedules, transactional startup rollback, terminal plugin teardown, graceful job draining, daemon rollback, and end-to-end `AbortSignal` cancellation for AI requests and agent turns. Build public package subpaths with shared chunks to avoid duplicating their runtime code.
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/auth-service@0.2.0-alpha.173
+  - @brains/console-theme@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/console-theme@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

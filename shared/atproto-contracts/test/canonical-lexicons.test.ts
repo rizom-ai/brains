@@ -56,6 +56,16 @@ describe("canonical ATProto lexicons", () => {
     }
   });
 
+  it("preserves each lexicon's main description through parsing", () => {
+    // The registry serves the parsed lexicons verbatim; zod strips keys the
+    // schema doesn't declare, so a missing field here means every deployment
+    // publishes the lexicon without its authored description.
+    for (const lexicon of listCanonicalAtprotoLexicons()) {
+      expect(lexicon.defs.main.description).toBeString();
+      expect(lexicon.defs.main.description?.length).toBeGreaterThan(0);
+    }
+  });
+
   it("exports governance metadata for every canonical Rizom brain lexicon", () => {
     const metadata = listCanonicalAtprotoLexiconMetadata();
 

@@ -37,8 +37,8 @@ describe("DirectorySyncRequestJobHandler", () => {
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),
       context,
-      createMockDirectorySync({ queueSyncBatch }),
-      createMockGitSync({ withLock, pull }),
+      () => createMockDirectorySync({ queueSyncBatch }),
+      () => createMockGitSync({ withLock, pull }),
     );
 
     const result = await handler.process(
@@ -70,8 +70,8 @@ describe("DirectorySyncRequestJobHandler", () => {
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),
       createMockServicePluginContext(),
-      createMockDirectorySync({ queueSyncBatch: mock(async () => null) }),
-      createMockGitSync({ pull: mock(async () => ({ files: [] })) }),
+      () => createMockDirectorySync({ queueSyncBatch: mock(async () => null) }),
+      () => createMockGitSync({ pull: mock(async () => ({ files: [] })) }),
     );
 
     const result = await handler.process(

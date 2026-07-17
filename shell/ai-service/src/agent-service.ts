@@ -26,12 +26,20 @@ import {
   canConfirmPendingAction,
 } from "./confirmation-coordinator";
 import { TurnProcessor } from "./turn-processor";
+import { ActiveTurnSupervisor } from "./active-turn-supervisor";
 
 /**
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
 const DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS = 30 * 60 * 1000;
+
+function combineAbortSignals(
+  first: AbortSignal,
+  second: AbortSignal | undefined,
+): AbortSignal {
+  return second ? AbortSignal.any([first, second]) : first;
+}
 
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
@@ -54,14 +62,26 @@ export class AgentService implements IAgentService {
   private agentInstructions: AgentConfig["agentInstructions"];
   private indexReadiness: AgentConfig["indexReadiness"];
 
+  private readonly activeTurns = new ActiveTurnSupervisor();
+  private shutdownPromise: Promise<void> | null = null;
+
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
     actors: {
       processMessage: fromPromise<AgentResponse, ProcessMessageInput>(
-        async ({ input }) => this.turns.processMessage(input),
+        async ({ input, signal }) =>
+          this.activeTurns.run(
+            (turnSignal) => this.turns.processMessage(input, turnSignal),
+            combineAbortSignals(signal, input.signal),
+          ),
       ),
       executeConfirmedAction: fromPromise<AgentResponse, ExecuteActionInput>(
-        async ({ input }) => this.turns.executeConfirmedAction(input),
+        async ({ input, signal }) =>
+          this.activeTurns.run(
+            (turnSignal) =>
+              this.turns.executeConfirmedAction(input, turnSignal),
+            combineAbortSignals(signal, input.signal),
+          ),
       ),
     },
   });
@@ -102,7 +122,7 @@ export class AgentService implements IAgentService {
    * Reset the singleton instance (for testing)
    */
   public static resetInstance(): void {
-    AgentService.instance?.conversationActors.dispose();
+    void AgentService.instance?.shutdown();
     AgentService.instance = null;
   }
 
@@ -207,7 +227,9 @@ export class AgentService implements IAgentService {
     message: string,
     conversationId: string,
     context?: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     if (this.indexReadiness && !this.indexReadiness.isIndexReady()) {
       return {
         text: "I'm still getting the knowledge base ready. Please try again in a moment.",
@@ -226,97 +248,106 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    return this.conversationActors.enqueue(conversationId, async () => {
-      const actor = this.conversationActors.acquire(conversationId);
-      const currentSnapshot = actor.getSnapshot();
+    return this.conversationActors.enqueue(
+      conversationId,
+      async () => {
+        signal?.throwIfAborted();
+        const actor = this.conversationActors.acquire(conversationId);
+        const currentSnapshot = actor.getSnapshot();
 
-      if (currentSnapshot.matches("awaitingConfirmation")) {
-        const confirmationContext = {
+        if (currentSnapshot.matches("awaitingConfirmation")) {
+          const confirmationContext = {
+            interfaceType,
+            channelId,
+            channelName,
+            userPermissionLevel,
+            actor: context?.actor ?? null,
+            source: context?.source ?? null,
+          };
+          const pendingConfirmations =
+            currentSnapshot.context.pendingConfirmations;
+          const parsedConfirmation = parseConfirmationResponse(message);
+          const authorizedConfirmations = pendingConfirmations.filter(
+            (confirmation) =>
+              canConfirmPendingAction(confirmation, confirmationContext),
+          );
+
+          if (parsedConfirmation) {
+            const [confirmation] = authorizedConfirmations;
+            if (authorizedConfirmations.length !== 1 || !confirmation) {
+              return {
+                text:
+                  authorizedConfirmations.length === 0
+                    ? "You are not authorized to confirm this pending action."
+                    : "Multiple approvals are pending; include one approval id with yes or no/cancel.",
+                pendingConfirmations,
+                usage: emptyUsage,
+              };
+            }
+
+            return this.confirmations.resolve(
+              conversationId,
+              actor,
+              confirmation,
+              parsedConfirmation.confirmed,
+              confirmationContext,
+              signal,
+            );
+          }
+
+          if (authorizedConfirmations.length > 0) {
+            for (const confirmation of authorizedConfirmations) {
+              await this.confirmations.resolve(
+                conversationId,
+                actor,
+                confirmation,
+                false,
+                confirmationContext,
+                signal,
+              );
+            }
+          } else {
+            // A caller who is not authorized for any pending confirmation cannot
+            // resolve it and must not implicitly decline someone else's action.
+            // Return promptly so the serialized queue stays free for the actor
+            // who can confirm; the pending action is left intact.
+            return {
+              text: "A pending action is awaiting confirmation. Please try again once it has been resolved.",
+              pendingConfirmations,
+              usage: emptyUsage,
+            };
+          }
+        }
+
+        actor.send({
+          type: "RECEIVE_MESSAGE",
+          message,
+          conversationId,
           interfaceType,
           channelId,
           channelName,
           userPermissionLevel,
           actor: context?.actor ?? null,
           source: context?.source ?? null,
-        };
-        const pendingConfirmations =
-          currentSnapshot.context.pendingConfirmations;
-        const parsedConfirmation = parseConfirmationResponse(message);
-        const authorizedConfirmations = pendingConfirmations.filter(
-          (confirmation) =>
-            canConfirmPendingAction(confirmation, confirmationContext),
+          attachments: context?.attachments ?? [],
+          ...(signal ? { signal } : {}),
+        });
+
+        const snapshot = await waitFor(
+          actor,
+          (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
         );
+        signal?.throwIfAborted();
 
-        if (parsedConfirmation) {
-          const [confirmation] = authorizedConfirmations;
-          if (authorizedConfirmations.length !== 1 || !confirmation) {
-            return {
-              text:
-                authorizedConfirmations.length === 0
-                  ? "You are not authorized to confirm this pending action."
-                  : "Multiple approvals are pending; include one approval id with yes or no/cancel.",
-              pendingConfirmations,
-              usage: emptyUsage,
-            };
-          }
-
-          return this.confirmations.resolve(
-            conversationId,
-            actor,
-            confirmation,
-            parsedConfirmation.confirmed,
-            confirmationContext,
-          );
-        }
-
-        if (authorizedConfirmations.length > 0) {
-          for (const confirmation of authorizedConfirmations) {
-            await this.confirmations.resolve(
-              conversationId,
-              actor,
-              confirmation,
-              false,
-              confirmationContext,
-            );
-          }
-        } else {
-          // A caller who is not authorized for any pending confirmation cannot
-          // resolve it and must not implicitly decline someone else's action.
-          // Return promptly so the serialized queue stays free for the actor
-          // who can confirm; the pending action is left intact.
-          return {
-            text: "A pending action is awaiting confirmation. Please try again once it has been resolved.",
-            pendingConfirmations,
+        return (
+          snapshot.context.response ?? {
+            text: "No response generated.",
             usage: emptyUsage,
-          };
-        }
-      }
-
-      actor.send({
-        type: "RECEIVE_MESSAGE",
-        message,
-        conversationId,
-        interfaceType,
-        channelId,
-        channelName,
-        userPermissionLevel,
-        actor: context?.actor ?? null,
-        source: context?.source ?? null,
-        attachments: context?.attachments ?? [],
-      });
-
-      const snapshot = await waitFor(
-        actor,
-        (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
-      );
-
-      return (
-        snapshot.context.response ?? {
-          text: "No response generated.",
-          usage: emptyUsage,
-        }
-      );
-    });
+          }
+        );
+      },
+      signal,
+    );
   }
 
   /**
@@ -327,11 +358,32 @@ export class AgentService implements IAgentService {
     confirmed: boolean,
     approvalId: string,
     context: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     // Route through the serialized queue so confirmations cannot race an
     // in-flight chat() operation on the same conversation actor.
-    return this.conversationActors.enqueue(conversationId, () =>
-      this.confirmations.run(conversationId, confirmed, approvalId, context),
+    return this.conversationActors.enqueue(
+      conversationId,
+      () =>
+        this.confirmations.run(
+          conversationId,
+          confirmed,
+          approvalId,
+          context,
+          signal,
+        ),
+      signal,
     );
+  }
+
+  public shutdown(): Promise<void> {
+    this.shutdownPromise ??= this.shutdownActiveTurns();
+    return this.shutdownPromise;
+  }
+
+  private async shutdownActiveTurns(): Promise<void> {
+    this.conversationActors.dispose();
+    await this.activeTurns.close();
   }
 }

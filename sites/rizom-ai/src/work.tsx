@@ -216,7 +216,7 @@ function WorkWorkshopSection({
   return (
     <Section id="workshop" className="py-14">
       <Statement {...statement} />
-      <div className="mt-7 max-w-[880px]">
+      <div className="mt-7">
         {steps.map((step, i) => (
           <div
             key={step.title}
@@ -228,7 +228,8 @@ function WorkWorkshopSection({
             <b className="font-display text-[21px] font-[520] text-theme [font-variation-settings:'SOFT'_60]">
               {step.title}
             </b>
-            <div>
+            {/* The row spans the column; the copy keeps a reading measure. */}
+            <div className="max-w-[60ch]">
               <p className="mb-[3px] font-body text-[16.5px] text-theme-muted">
                 {step.lead}
               </p>
@@ -263,7 +264,7 @@ function WorkPersonasSection({
   return (
     <Section id="personas" className="py-14">
       <SectCap lead={cap} />
-      <div className="mt-7 grid max-w-[980px] gap-11 md:grid-cols-2">
+      <div className="mt-7 grid gap-11 md:grid-cols-2">
         {personas.map((persona, i) => (
           <div key={persona.role} className={`reveal ${delayClass(i + 1)}`}>
             <span className="font-label text-label-xs uppercase tracking-[0.16em] text-accent">
@@ -272,7 +273,7 @@ function WorkPersonasSection({
             <blockquote className="mt-2.5 font-display text-[24px] font-[450] italic leading-[1.3] tracking-[-0.008em] text-theme [font-variation-settings:'SOFT'_85]">
               {persona.quote}
             </blockquote>
-            <p className="mt-2.5 font-body text-[16px] text-theme-light">
+            <p className="mt-2.5 max-w-[52ch] font-body text-[16px] text-theme-light">
               {persona.text}
             </p>
           </div>
@@ -303,7 +304,7 @@ function WorkQuotesSection({
   return (
     <Section id="proof" className="py-14">
       <SectCap lead={cap} trail={capNote} />
-      <div className="mt-7 max-w-[980px]">
+      <div className="mt-7">
         {quotes.map((quote, i) => (
           <div
             key={quote.by}
@@ -352,7 +353,7 @@ function WorkRosterSection({
   return (
     <Section id="people" className="py-14">
       <SectCap lead={cap} trail={capNote} />
-      <div className="reveal reveal-delay-1 mt-6 flex max-w-[900px] flex-wrap gap-x-[34px] gap-y-2.5">
+      <div className="reveal reveal-delay-1 mt-6 flex flex-wrap gap-x-[34px] gap-y-2.5">
         {people.map((person) => (
           <span
             key={person.name}

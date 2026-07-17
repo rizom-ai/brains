@@ -9,8 +9,12 @@ import {
   AgentDetailTemplate,
   type AgentDetailProps,
 } from "../templates/agent-detail";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { AgentProximityMapTemplate } from "../templates/proximity-map-template";
-import { proximityMapDataSchema } from "./proximity-map-schema";
+import {
+  proximityMapCopySchema,
+  proximityMapDataSchema,
+} from "./proximity-map-schema";
 import { proximityMapScript } from "../widgets/proximity-map-script";
 import {
   AGENT_DATASOURCE_ID,
@@ -113,6 +117,25 @@ const agentListSchema = z.object({
 // data: URI — data: script srcs are blocked by any script-src CSP.
 const PROXIMITY_SCRIPT_SRC = "/scripts/agent-proximity-map.js";
 
+// Overlay formatter for the map's authored hero copy. The map data comes from
+// the datasource; this lets a site edit the surrounding copy as an ordinary
+// markdown section (flat ## headings), which the content-overlay merge splices
+// over the live payload. Absent fields fall back to the template defaults.
+const proximityCopyFormatter = new StructuredContentFormatter(
+  proximityMapCopySchema,
+  {
+    title: "Network",
+    mappings: [
+      { key: "kicker", label: "Kicker", type: "string" },
+      { key: "headingLead", label: "Heading Lead", type: "string" },
+      { key: "headingAccent", label: "Heading Accent", type: "string" },
+      { key: "lede", label: "Lede", type: "string" },
+      { key: "ctaLabel", label: "Cta Label", type: "string" },
+      { key: "ctaHref", label: "Cta Href", type: "string" },
+    ],
+  },
+);
+
 export function getTemplates(): Record<string, Template> {
   return {
     [AGENT_PROXIMITY_TEMPLATE_NAME]: createTemplate({
@@ -120,6 +143,8 @@ export function getTemplates(): Record<string, Template> {
       description: "Semantic agent proximity map site section",
       schema: proximityMapDataSchema,
       dataSourceId: AGENT_PROXIMITY_DATASOURCE_ID,
+      // Authored hero copy is merged over the live map data (content overlay).
+      overlayFormatter: proximityCopyFormatter,
       requiredPermission: "public",
       runtimeScripts: [{ src: PROXIMITY_SCRIPT_SRC, defer: true }],
       staticAssets: { [PROXIMITY_SCRIPT_SRC]: proximityMapScript },

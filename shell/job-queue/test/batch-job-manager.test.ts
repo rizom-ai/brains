@@ -8,6 +8,8 @@ import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
+import { Effect } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 const defaultBatchOptions: JobOptions = {
   source: "test:batch-manager",
@@ -60,6 +62,7 @@ describe("BatchJobManager", () => {
   });
 
   afterEach(async () => {
+    await batchManager.stop();
     JobQueueService.resetInstance();
     BatchJobManager.resetInstance();
     await cleanup();
@@ -499,40 +502,85 @@ describe("BatchJobManager", () => {
   });
 
   describe("lifecycle", () => {
-    it("should run cleanup on the configured interval and stop when stopped", async () => {
-      let cleanupCalls = 0;
-      const originalCleanup = batchManager.cleanup.bind(batchManager);
-      batchManager.cleanup = async (olderThanMs: number): Promise<number> => {
-        cleanupCalls++;
-        return originalCleanup(olderThanMs);
-      };
+    it("should run cleanup on schedule and stop when stopped", async () => {
+      const program = Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        // Keep the clock seam out of the package's public Promise API.
+        const createWithClock = BatchJobManager.createFresh as unknown as (
+          queue: JobQueueService,
+          logger: ReturnType<typeof createSilentLogger>,
+          options: { clock: typeof clock },
+        ) => BatchJobManager;
+        const testManager = createWithClock(
+          jobQueueService,
+          createSilentLogger(),
+          { clock },
+        );
+        let cleanupCalls = 0;
+        testManager.cleanup = async (): Promise<number> => {
+          cleanupCalls++;
+          return 0;
+        };
 
-      const waitForCalls = async (target: number): Promise<void> => {
-        const deadline = Date.now() + 1000;
-        while (cleanupCalls < target && Date.now() < deadline) {
-          await new Promise((resolve) => setTimeout(resolve, 5));
+        try {
+          testManager.start(1_000);
+          yield* Effect.yieldNow();
+          yield* TestClock.adjust(999);
+          expect(cleanupCalls).toBe(0);
+
+          yield* TestClock.adjust(1);
+          yield* Effect.yieldNow();
+          expect(cleanupCalls).toBe(1);
+
+          yield* Effect.promise(() => testManager.stop());
+          yield* TestClock.adjust(5_000);
+          yield* Effect.yieldNow();
+          expect(cleanupCalls).toBe(1);
+        } finally {
+          yield* Effect.promise(() => testManager.stop());
         }
-      };
+      }).pipe(Effect.provide(TestContext.TestContext));
 
-      try {
-        batchManager.start(5);
-        await waitForCalls(1);
-        expect(cleanupCalls).toBeGreaterThan(0);
-
-        batchManager.stop();
-        const callsAtStop = cleanupCalls;
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        expect(cleanupCalls).toBe(callsAtStop);
-      } finally {
-        batchManager.stop();
-      }
+      await Effect.runPromise(program);
     });
 
-    it("should be idempotent for both start and stop", () => {
+    it("should drain enqueue-triggered cleanup before stopping", async () => {
+      let signalCleanupStarted: () => void = () => {};
+      const cleanupStarted = new Promise<void>((resolve) => {
+        signalCleanupStarted = resolve;
+      });
+      let releaseCleanup: () => void = () => {};
+      const cleanupGate = new Promise<void>((resolve) => {
+        releaseCleanup = resolve;
+      });
+      batchManager.cleanup = async (): Promise<number> => {
+        signalCleanupStarted();
+        await cleanupGate;
+        return 0;
+      };
+
+      await enqueueBatch([
+        { type: "embedding", data: { entityId: "entity-1" } },
+      ]);
+      await cleanupStarted;
+
+      let stopped = false;
+      const stopPromise = batchManager.stop().then(() => {
+        stopped = true;
+      });
+      await Promise.resolve();
+      expect(stopped).toBe(false);
+
+      releaseCleanup();
+      await stopPromise;
+      expect(stopped).toBe(true);
+    });
+
+    it("should be idempotent for both start and stop", async () => {
       batchManager.start(60_000);
       batchManager.start(60_000);
-      batchManager.stop();
-      batchManager.stop();
+      await batchManager.stop();
+      await batchManager.stop();
     });
   });
 });

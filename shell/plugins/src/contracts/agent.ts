@@ -135,12 +135,14 @@ export interface AgentNamespace {
     message: string,
     conversationId: string,
     context?: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse>;
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
     context: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse>;
   invalidate(): void;
 }

@@ -17,6 +17,7 @@ export interface AtprotoLexiconProperty {
 export interface AtprotoLexiconRecordDef {
   type: "record";
   key: string;
+  description?: string | undefined;
   record: {
     type: "object";
     required?: string[] | undefined;
@@ -43,6 +44,9 @@ const atprotoLexiconSchema = z.object({
     main: z.object({
       type: z.literal("record"),
       key: z.string().min(1),
+      // zod strips undeclared keys: without this the registry publishes
+      // every lexicon shorn of its authored description.
+      description: z.string().optional(),
       record: z.object({
         type: z.literal("object"),
         required: z.array(z.string()).optional(),

@@ -1,12 +1,12 @@
 {
   "name": "@brains/content-pipeline",
-  "version": "0.2.0-alpha.166",
+  "version": "0.2.0-alpha.191",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "croner": "^10.0.1"
+    "@brains/scheduler": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

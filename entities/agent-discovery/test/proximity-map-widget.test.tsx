@@ -5,6 +5,7 @@ import {
   AgentProximityWidget,
   ProximityMap,
 } from "../src/widgets/proximity-map";
+import { proximityMapScript } from "../src/widgets/proximity-map-script";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 
 const data: ProximityMapData = {
@@ -54,6 +55,16 @@ const data: ProximityMapData = {
       links: [{ sourceId: "alpha", targetId: "beta" }],
     },
   ],
+  sightings: [
+    {
+      id: "vale",
+      name: "Vale",
+      viaIds: ["alpha", "gamma"],
+      tags: ["research", "methods"],
+      distance: 0.44,
+      bearing: 120,
+    },
+  ],
   distanceRange: { min: 0.25, max: 0.5 },
   pendingCount: 1,
 };
@@ -88,6 +99,45 @@ describe("ProximityMap", () => {
     // constellations stay legible on the map itself
     expect(html).toContain('data-proximity-cluster="research · 2"');
     expect(html).toContain("proximity-cluster-label");
+  });
+
+  test("sizes the svg via CSS only — height is not a valid SVG length keyword", () => {
+    const html = render(<ProximityMap data={data} />);
+    // height="auto" is rejected by browsers ("<svg> attribute height:
+    // Expected length") and logged as a console error on every page view;
+    // both surfaces already size the svg in CSS (height:auto/min-height).
+    expect(html).not.toContain('height="auto"');
+  });
+
+  test("charts sightings at half light, routed through their introducers", () => {
+    const html = render(<ProximityMap data={data} />);
+
+    expect(html).toContain('data-proximity-sighting="vale"');
+    // threads grow from BOTH introducers, never from the center
+    const threads = html.split("proximity-sighting-thread").length - 1;
+    expect(threads).toBe(2);
+    // hover metadata: readable names and matchable ids
+    expect(html).toContain('data-proximity-via="Alpha · Gamma"');
+    expect(html).toContain('data-proximity-via-ids="alpha gamma"');
+  });
+
+  test("skips sightings whose introducers are not on the map", () => {
+    const orphaned: ProximityMapData = {
+      ...data,
+      sightings: [
+        {
+          id: "ghost",
+          name: "Ghost",
+          viaIds: ["nobody"],
+          tags: [],
+          distance: 0.3,
+          bearing: 200,
+        },
+      ],
+    };
+
+    const html = render(<ProximityMap data={orphaned} />);
+    expect(html).not.toContain('data-proximity-sighting="ghost"');
   });
 
   test("breathes a ripple whose arrival order is the proximity order", () => {
@@ -163,6 +213,7 @@ describe("ProximityMap", () => {
           center: { kind: "centroid" },
           nodes: [],
           clusters: [],
+          sightings: [],
           distanceRange: { min: 0, max: 0 },
           pendingCount: 2,
         }}
@@ -179,5 +230,19 @@ describe("ProximityMap", () => {
     );
 
     expect(html).toContain("Nothing to show yet");
+  });
+});
+
+describe("proximityMapScript", () => {
+  test("activates on tap, not just hover/focus — touch fires neither", () => {
+    expect(proximityMapScript).toContain('addEventListener("click"');
+    // A tap on the map ground dismisses whatever a previous tap lit up.
+    expect(proximityMapScript).toContain("closest(");
+  });
+
+  test("clamps the tooltip inside the map on every edge", () => {
+    // The horizontal clamp existed; without a bottom clamp a low node's
+    // tooltip is clipped by the card's overflow:hidden.
+    expect(proximityMapScript).toContain("offsetHeight");
   });
 });

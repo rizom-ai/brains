@@ -1,5 +1,72 @@
 # @brains/media-renderer
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- [`ed34adb`](https://github.com/rizom-ai/brains/commit/ed34adb3e5e27d86d9820532324893ac68312f21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own browser rendering through scoped Effect acquisition and bounded cleanup, add optional `AbortSignal` cancellation, and kill browser processes whose close operation hangs.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ## 0.2.0-alpha.165
