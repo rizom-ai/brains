@@ -306,6 +306,22 @@ describe("ConversationActorRegistry", () => {
       expect(fresh.stopped).toBe(false);
     });
 
+    it("currently lets a queued operation start after disposal", async () => {
+      const { registry } = createRegistry();
+      const gate = deferred<void>();
+      let queuedOperationStarted = false;
+      const active = registry.enqueue("conv-a", () => gate.promise);
+      const queued = registry.enqueue("conv-a", async () => {
+        queuedOperationStarted = true;
+      });
+
+      registry.dispose();
+      gate.resolve();
+      await Promise.all([active, queued]);
+
+      expect(queuedOperationStarted).toBe(true);
+    });
+
     it("does not let pre-dispose operations evict replacement actors", async () => {
       await withRegistryTestClock(5, (registry) =>
         Effect.gen(function* () {
