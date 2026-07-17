@@ -158,6 +158,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     const outputPath = join(root, "github-output.txt");
     const certificatePath = join(root, "origin.pem");
     const privateKeyPath = join(root, "origin.key");
+    const certificatePem = `-----BEGIN CERTIFICATE-----\n${"A".repeat(256)}\n-----END CERTIFICATE-----\n`;
+    const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${"B".repeat(256)}\n-----END PRIVATE KEY-----\n`;
     const identity = await generateIdentity();
     const recipient = await identityToRecipient(identity);
 
@@ -175,14 +177,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
       "handle: alice\ndiscord:\n  enabled: false\n",
     );
     await Promise.all([
-      writeFile(
-        certificatePath,
-        "-----BEGIN CERTIFICATE-----\nCUSTOM CERT\n-----END CERTIFICATE-----\n",
-      ),
-      writeFile(
-        privateKeyPath,
-        "-----BEGIN PRIVATE KEY-----\nCUSTOM KEY\n-----END PRIVATE KEY-----\n",
-      ),
+      writeFile(certificatePath, certificatePem),
+      writeFile(privateKeyPath, privateKeyPem),
     ]);
 
     const runDecrypt = async (): Promise<string> => {
@@ -221,13 +217,9 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     const customTlsEnv = await runDecrypt();
 
     expect(customTlsEnv).toContain("CERTIFICATE_PEM<<EOF_CERTIFICATE_PEM_");
-    expect(customTlsEnv).toContain(
-      "-----BEGIN CERTIFICATE-----\nCUSTOM CERT\n-----END CERTIFICATE-----",
-    );
+    expect(customTlsEnv).toContain(certificatePem.trim());
     expect(customTlsEnv).toContain("PRIVATE_KEY_PEM<<EOF_PRIVATE_KEY_PEM_");
-    expect(customTlsEnv).toContain(
-      "-----BEGIN PRIVATE KEY-----\nCUSTOM KEY\n-----END PRIVATE KEY-----",
-    );
+    expect(customTlsEnv).toContain(privateKeyPem.trim());
 
     await writeFile(
       join(repo, "users", "alice.secrets.yaml.age"),

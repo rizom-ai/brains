@@ -15,8 +15,8 @@ const decrypter = new Decrypter();
 decrypter.addIdentity(ageSecretKey);
 
 const plaintext = await decrypter.decrypt(decoded, "text");
-const secrets = parseFlatYaml(plaintext);
-const pilot = parseFlatYaml(readFileSync("pilot.yaml", "utf8"));
+const secrets = parseStringYamlMapping(plaintext);
+const pilot = parseStringYamlMapping(readFileSync("pilot.yaml", "utf8"));
 
 writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);
 writeSecretGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"]);
@@ -87,24 +87,18 @@ function extractAgeIdentity(contents: string): string {
   return line;
 }
 
-function parseFlatYaml(contents: string): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  for (const rawLine of contents.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
-    }
-
-    const match = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!match) {
-      continue;
-    }
-
-    const [, key, rawValue] = match;
-    result[key] = rawValue.replace(/^['"]|['"]$/g, "");
+function parseStringYamlMapping(contents: string): Record<string, string> {
+  const parsed: unknown = Bun.YAML.parse(contents);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Expected a YAML mapping");
   }
 
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === "string") {
+      result[key] = value;
+    }
+  }
   return result;
 }
 

@@ -392,6 +392,7 @@ describe("initPilotRepo", () => {
     expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
     expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
     expect(decryptUserSecretsScript).toContain("decodeEscapedSecret");
+    expect(decryptUserSecretsScript).toContain("Bun.YAML.parse");
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );

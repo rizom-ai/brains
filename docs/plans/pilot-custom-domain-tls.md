@@ -2,8 +2,8 @@
 
 ## Status
 
-Implemented, including the reviewed encrypt-side `_FILE` fix and its real-PEM
-round-trip coverage; release and production cutover remain. This enables the rizom.ai cutover
+Implemented, with the long-PEM YAML parser follow-up pending release; production
+cutover remains. This enables the rizom.ai cutover
 ([rizom-consolidation.md](./rizom-consolidation.md)) and hosting brains at foreign
 zones (yeehaa.io) from the pilot.
 
@@ -65,10 +65,12 @@ lockstep, all tests green). One real bug was found on the rollout path and fixed
   (verified empirically against the real `toYaml`/parser pair). Before the fix,
   the only working input path was a staging file with `\n`-escaped one-liners —
   the format `cert:bootstrap`'s `secrets.yaml` snippet emitted.
-- **Fix:** `secrets-encrypt.ts` now normalizes resolved cert/key values by
-  escaping real newlines to `\n`, so every input path converges on the escaped
-  one-liner form the flat parsers and the decrypt side's `decodeEscapedSecret`
-  already agree on. The round-trip test feeds real multi-line PEM files through
+- **Fix:** `secrets-encrypt.ts` normalizes resolved cert/key values by escaping
+  real newlines to `\n`. Follow-up validation with the issued production cert
+  found that js-yaml still folds a long normalized scalar as `>-`; the original
+  line parser then exported `>-` instead of the PEM. The deploy script now uses
+  Bun's YAML parser, so quoted, literal, and folded scalars all decode correctly.
+  The round-trip test uses realistic long PEM lines through
   `CERTIFICATE_PEM_FILE` / `PRIVATE_KEY_PEM_FILE` → encrypt → decrypt script →
   `GITHUB_ENV` heredocs and asserts the original PEM contents.
 
@@ -95,8 +97,8 @@ export (task #38's deploy-side half).
 
 ## Rollout
 
-1. Release the updated `@rizom/ops` package and bump the pilot dependency; the
-   matching live pilot deploy scripts are already synced.
+1. Release the long-PEM parser follow-up in `@rizom/ops`, bump the pilot
+   dependency, and regenerate the encrypted production payload.
 2. rizom.ai cutover: `cert:bootstrap . --handle <prod-user>` (already done in
    effect — the issued apex cert can be encrypted directly),
    `secrets:encrypt . <prod-user>` with the `_FILE` fallbacks, commit,
