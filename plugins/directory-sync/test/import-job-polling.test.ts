@@ -134,6 +134,7 @@ describe("waitForImportJobs", () => {
           reporter: createReporter([]),
           logger: createSilentLogger(),
           clock,
+          pollIntervalMs: 100_000,
         });
         let settled = false;
         void waiting.then(() => {
@@ -145,11 +146,11 @@ describe("waitForImportJobs", () => {
         yield* yieldToFibers();
         expect(settled).toBe(false);
 
-        yield* TestClock.adjust(500);
+        yield* TestClock.adjust(100_000);
         yield* Effect.promise(() => waiting);
         expect(settled).toBe(true);
-        // Immediate attempt + 600 fixed 500ms ticks + the timeout check.
-        expect(status).toHaveBeenCalledTimes(602);
+        // Immediate attempt + three ticks through five minutes + timeout check.
+        expect(status).toHaveBeenCalledTimes(5);
       }).pipe(Effect.provide(TestContext.TestContext)),
     );
   });
