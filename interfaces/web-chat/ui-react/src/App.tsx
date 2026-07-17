@@ -66,6 +66,7 @@ import {
   sessionListQueryOptions,
   webChatKeys,
 } from "./queries";
+import { runSessionSwitch } from "./session-switch";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -346,6 +347,7 @@ export function App(): React.ReactElement {
   const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
   const startupRestoreAttemptedRef = useRef(false);
+  const switchRequestIdRef = useRef(0);
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
   >(null);
@@ -543,34 +545,40 @@ export function App(): React.ReactElement {
   async function switchConversation(nextConversationId: string): Promise<void> {
     if (isBusyStatus(status) || loadingConversationId) return;
 
+    const switchRequestId = ++switchRequestIdRef.current;
     setHistoryError(null);
     setLoadingConversationId(nextConversationId);
-    try {
-      const cachedHistory = await queryClient.fetchQuery({
-        ...sessionHistoryQueryOptions(nextConversationId),
-        staleTime: 0,
-      });
-      const nextMessages = createActiveMessageSeed(cachedHistory);
-      try {
-        localStorage.setItem(conversationStorageKey, nextConversationId);
-      } catch {
-        /* localStorage unavailable — switching still works in memory */
-      }
-      setMessages(nextMessages);
-      setInitialMessages(nextMessages);
-      setConversationId(nextConversationId);
-      setInput("");
-      closeDrawer();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not reopen that session.",
-      );
-    } finally {
-      setLoadingConversationId(null);
-    }
+    await runSessionSwitch({
+      load: async () => {
+        const cachedHistory = await queryClient.fetchQuery({
+          ...sessionHistoryQueryOptions(nextConversationId),
+          staleTime: 0,
+        });
+        return createActiveMessageSeed(cachedHistory);
+      },
+      isCurrent: () => switchRequestId === switchRequestIdRef.current,
+      onSuccess: (nextMessages) => {
+        try {
+          localStorage.setItem(conversationStorageKey, nextConversationId);
+        } catch {
+          /* localStorage unavailable — switching still works in memory */
+        }
+        setMessages(nextMessages);
+        setInitialMessages(nextMessages);
+        setConversationId(nextConversationId);
+        setInput("");
+        closeDrawer();
+        focusPromptTextarea(promptInputRef.current);
+      },
+      onError: (error) => {
+        setHistoryError(
+          error instanceof Error
+            ? error.message
+            : "Could not reopen that session.",
+        );
+      },
+      onSettled: () => setLoadingConversationId(null),
+    });
   }
 
   useEffect(() => {
@@ -700,6 +708,8 @@ export function App(): React.ReactElement {
   }
 
   function resetToNewConversation(): void {
+    switchRequestIdRef.current += 1;
+    setLoadingConversationId(null);
     const next = createConversationId();
     try {
       localStorage.setItem(conversationStorageKey, next);
