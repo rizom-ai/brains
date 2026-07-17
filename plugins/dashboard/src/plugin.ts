@@ -77,6 +77,7 @@ const registerWidgetPayloadSchema = z
       .max(4)
       .optional(),
     component: z.custom<WidgetComponent>().optional(),
+    clientStyles: z.string().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.custom<() => Promise<unknown>>(
       (value) => typeof value === "function",
@@ -162,6 +163,7 @@ function createRegisteredWidget(
     }),
     ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),
+    ...(payload.clientStyles ? { clientStyles: payload.clientStyles } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
     ...(payload.digestProvider
@@ -457,6 +459,7 @@ export class DashboardPlugin extends ServicePlugin<
             title,
             baseUrl,
             widgets: resolvedWidgets.widgets,
+            widgetStyles: resolvedWidgets.widgetStyles,
             widgetScripts: resolvedWidgets.widgetScripts,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {

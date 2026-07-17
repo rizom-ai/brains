@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import type { WidgetComponentProps } from "@brains/dashboard";
 import type { JSX } from "preact";
+import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
   proximityMapDataSchema,
   type ProximityMapCluster,
@@ -8,6 +9,7 @@ import {
   type ProximityMapNode,
 } from "../lib/proximity-map-schema";
 export { proximityMapScript } from "./proximity-map-script";
+export { proximityMapWidgetStyles };
 
 const WIDTH = 1000;
 const HEIGHT = 520;

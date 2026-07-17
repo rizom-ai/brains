@@ -30,6 +30,8 @@ Widgets are registered with the widget registry and rendered in the tabbed dashb
 - `section` - Placement within the tab (`primary`, `secondary`, or `sidebar`)
 - `rendererName` - Built-in renderer name or custom renderer key
 - `component` - Preact component for custom renderers
+- `clientStyles` - Optional package-owned CSS for the widget
+- `clientScript` - Optional package-owned behavior beyond generic controls
 - `dataProvider` - Async widget data function
 - `digest` - Optional Overview digest lines for the widget's group card
 - `needsOperator` - Optional count of items awaiting an operator decision; group tabs sum these into badges
@@ -47,8 +49,10 @@ Use the generic `widget-tabs` / `widget-tab` classes for view tabs and
 `widget-filter-tabs` / `widget-filter-tab` for pill-style filters. Legacy
 widget-specific tab classes remain styled for compatibility.
 
-`clientScript` is still available for behavior beyond tab selection, such as
-filtering rows or inspecting a visualization.
+Use `clientStyles` for widget-specific CSS composed from the shared
+`--console-*` tokens. Identical style strings are emitted once and only when a visible
+widget needs them. `clientScript` remains available for behavior beyond generic controls,
+such as filtering rows or inspecting a visualization.
 
 ## Templates
 

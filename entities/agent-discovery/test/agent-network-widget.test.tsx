@@ -1,9 +1,17 @@
 /** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
-import { AgentNetworkWidget } from "../src/widgets/agent-network-widget";
+import {
+  AgentNetworkWidget,
+  agentNetworkWidgetStyles,
+} from "../src/widgets/agent-network-widget";
 
 describe("AgentNetworkWidget", () => {
+  it("owns its dashboard styles", () => {
+    expect(agentNetworkWidgetStyles).toContain(".agent-network-list");
+    expect(agentNetworkWidgetStyles).toContain("prefers-reduced-motion");
+  });
+
   it("renders agents and skills tabs in one widget", () => {
     const html = render(
       <AgentNetworkWidget

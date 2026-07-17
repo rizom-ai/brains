@@ -32,20 +32,20 @@ and backward compatibility for registered widgets.
 
 ## Current findings
 
-After the foundation commit:
+After Phase 1:
 
-- `plugins/dashboard/src/dashboard-page.tsx` is still 983 lines.
-- Dashboard-local CSS is still about 1,747 lines / 47 KB; combined with the shared
-  console theme, the emitted dashboard stylesheet is about 61 KB before response
-  compression.
-- Dashboard CSS still owns SWOT, agent-network, and proximity-map selectors for widgets
-  implemented in entity packages.
-- The widget contract supports `clientScript` but no package-owned style asset.
+- `plugins/dashboard/src/dashboard-page.tsx` is still about 1,000 lines.
+- Dashboard-local CSS is about 1,357 lines / 35 KB; combined with the shared console
+  theme, the emitted base stylesheet is about 49 KB before response compression.
+- SWOT, agent-network, and proximity-map styles now live in their owning entity packages
+  and are emitted only for visible widgets.
+- The widget contract carries deduplicated package-owned `clientStyles` and
+  `clientScript` assets.
 - Recent-memory and agent-network still hand-author similar tab, panel, list, and ARIA
   markup instead of using typed components.
 - Agent-network still ships a 42-line script for generic row filtering.
-- The shared dashboard CSS and console scripts add about 68 KB of repeated inline source
-  to every rendered page and cannot be cached independently.
+- The base dashboard CSS and console scripts still add about 56 KB of repeated inline
+  source to every rendered page and cannot be cached independently.
 - The committed tab test verifies script contents; the nested/hash behavior is not yet
   exercised by a checked-in DOM test.
 - Lint is currently blocked on `main` by the ESLint/TypeScript parser error involving
@@ -105,6 +105,8 @@ IDs, roles, ARIA relationships, initial active state, and data attributes.
 ## Remaining implementation phases
 
 ### Phase 1 — Widget asset ownership
+
+**Status: complete.**
 
 1. Extend the widget registration contract with package-owned styles. Start with
    `clientStyles?: string` for backward compatibility with `clientScript`.

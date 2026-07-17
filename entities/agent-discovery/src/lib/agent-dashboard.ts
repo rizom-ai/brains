@@ -10,10 +10,12 @@ const networkDigestSourceSchema = z.object({
 import {
   AgentNetworkWidget,
   agentNetworkWidgetScript,
+  agentNetworkWidgetStyles,
 } from "../widgets/agent-network-widget";
 import {
   AgentProximityWidget,
   proximityMapScript,
+  proximityMapWidgetStyles,
 } from "../widgets/proximity-map";
 import {
   AGENT_NETWORK_WIDGET_ID,
@@ -40,6 +42,7 @@ export function registerAgentNetworkDashboardWidget(
           priority: 15,
           rendererName: AGENT_NETWORK_WIDGET_RENDERER,
           component: AgentNetworkWidget,
+          clientStyles: agentNetworkWidgetStyles,
           clientScript: agentNetworkWidgetScript,
           dataProvider: async () => buildAgentNetworkWidgetData(context),
           digestProvider: (data: unknown) => {
@@ -65,6 +68,7 @@ export function registerAgentNetworkDashboardWidget(
           priority: 35,
           rendererName: AGENT_PROXIMITY_WIDGET_RENDERER,
           component: AgentProximityWidget,
+          clientStyles: proximityMapWidgetStyles,
           clientScript: proximityMapScript,
           dataProvider: async () => buildProximityMapData(context),
           digestProvider: (data: unknown) => {

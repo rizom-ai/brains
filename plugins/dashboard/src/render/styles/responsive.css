@@ -11,19 +11,16 @@
   .dashboard-tabs::-webkit-scrollbar { display: none; }
   .dashboard-tab { flex: 0 0 auto; }
   .widget-tabs,
-  .view-tabs,
-  .agent-network-view-tabs {
+  .view-tabs {
     gap: 20px;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
   }
   .widget-tabs::-webkit-scrollbar,
-  .view-tabs::-webkit-scrollbar,
-  .agent-network-view-tabs::-webkit-scrollbar { display: none; }
+  .view-tabs::-webkit-scrollbar { display: none; }
   .widget-tab,
-  .view-tab,
-  .agent-network-view-tab { flex: 0 0 auto; }
+  .view-tab { flex: 0 0 auto; }
 }
 
 @media (max-width: 640px) {
@@ -189,10 +186,7 @@
 
   .widget-tab,
   .view-tab,
-  .agent-network-view-tab,
-  .widget-filter-tab,
-  .agent-network-kind-tab,
-  .agent-network-filter {
+  .widget-filter-tab {
     min-height: 40px;
   }
   .colophon {

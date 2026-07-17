@@ -944,79 +944,10 @@ table.jobs {
   .pipeline-failure { grid-template-columns: minmax(0, 1fr); gap: 3px; }
 }
 
-.swot {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-}
-.swot-cell {
-  padding: 14px 18px 16px;
-}
-.swot-cell:nth-child(1) { padding-left: 0; padding-top: 2px; border-right: 1px solid var(--console-rule); border-bottom: 1px solid var(--console-rule); }
-.swot-cell:nth-child(2) { padding-right: 0; padding-top: 2px; border-bottom: 1px solid var(--console-rule); }
-.swot-cell:nth-child(3) { padding-left: 0; padding-bottom: 2px; border-right: 1px solid var(--console-rule); }
-.swot-cell:nth-child(4) { padding-right: 0; padding-bottom: 2px; }
-@media (max-width: 540px) {
-  .swot { grid-template-columns: 1fr; }
-  .swot-cell { padding: 14px 0; border-right: none !important; border-bottom: 1px solid var(--console-rule); }
-  .swot-cell:last-child { border-bottom: none; }
-}
-@container dashboard-card (max-width: 520px) {
-  .swot { grid-template-columns: 1fr; }
-  .swot-cell { padding: 14px 0; border-right: none !important; border-bottom: 1px solid var(--console-rule); }
-  .swot-cell:last-child { border-bottom: none; }
-}
-.swot-head {
-  font-family: var(--console-display);
-  font-variation-settings: "opsz" 72, "SOFT" 50, "wght" 380;
-  font-style: italic;
-  font-size: 17px;
-  letter-spacing: -0.005em;
-  color: var(--console-text);
-  margin-bottom: 12px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-.swot-head::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.swot-cell.is-s .swot-head::before { background: var(--console-ok); }
-.swot-cell.is-w .swot-head::before { background: var(--console-warn); }
-.swot-cell.is-o .swot-head::before { background: var(--console-accent); }
-.swot-cell.is-t .swot-head::before { background: var(--console-err); }
-.swot-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.swot-item {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--console-text-dim);
-}
-.swot-item b {
-  color: var(--console-text);
-  font-weight: 500;
-}
-.swot-empty {
-  color: var(--console-text-muted);
-  font-size: 12.5px;
-}
-
-/* Generic widget controls. Legacy view/agent selectors remain aliases for
-   custom widgets authored against the original dashboard class contract. */
+/* Generic widget controls. Legacy .view-* aliases remain for custom widgets
+   authored against the original dashboard class contract. */
 .widget-tabs,
-.view-tabs,
-.agent-network-view-tabs {
+.view-tabs {
   display: flex;
   gap: 24px;
   margin-bottom: 20px;
@@ -1024,8 +955,7 @@ table.jobs {
   padding-bottom: 2px;
 }
 .widget-tab,
-.view-tab,
-.agent-network-view-tab {
+.view-tab {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
@@ -1044,40 +974,29 @@ table.jobs {
   transition: color 0.2s ease, border-color 0.2s ease;
 }
 .widget-tab:hover,
-.view-tab:hover,
-.agent-network-view-tab:hover { color: var(--console-text-dim); }
+.view-tab:hover { color: var(--console-text-dim); }
 .widget-tab.is-active,
-.view-tab.is-active,
-.agent-network-view-tab.is-active {
+.view-tab.is-active {
   color: var(--console-text);
   border-bottom-color: var(--console-accent);
 }
 .widget-tab-count,
-.view-tab-count,
-.agent-network-view-count {
+.view-tab-count {
   color: var(--console-text-muted);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
 .widget-tab.is-active .widget-tab-count,
-.view-tab.is-active .view-tab-count,
-.agent-network-view-tab.is-active .agent-network-view-count {
-  color: var(--console-text-dim);
-}
-.widget-filter-tabs,
-.agent-network-kind-tabs,
-.agent-network-filter-row {
+.view-tab.is-active .view-tab-count { color: var(--console-text-dim); }
+.widget-filter-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
-.widget-filter-tabs--compact,
-.agent-network-filter-row { margin-bottom: 12px; }
-.widget-filter-tab,
-.agent-network-kind-tab,
-.agent-network-filter {
+.widget-filter-tabs--compact { margin-bottom: 12px; }
+.widget-filter-tab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1093,330 +1012,27 @@ table.jobs {
   text-transform: uppercase;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.widget-filter-tabs--compact .widget-filter-tab,
-.agent-network-filter { padding-inline: 8px; }
-.widget-filter-tab:hover,
-.agent-network-kind-tab:hover,
-.agent-network-filter:hover {
+.widget-filter-tabs--compact .widget-filter-tab { padding-inline: 8px; }
+.widget-filter-tab:hover {
   background: var(--console-accent-soft);
   border-color: var(--console-rule-accent);
   color: var(--console-text);
 }
-.widget-filter-tab.is-active,
-.agent-network-kind-tab.is-active,
-.agent-network-filter.is-active {
+.widget-filter-tab.is-active {
   background: color-mix(in srgb, var(--console-card-soft) 55%, transparent);
   border-color: var(--console-rule-accent);
   color: var(--console-text);
 }
-.widget-filter-count,
-.agent-network-kind-count,
-.agent-network-filter .count {
+.widget-filter-count {
   color: var(--console-text);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-.widget-filter-label,
-.agent-network-kind-label,
-.agent-network-filter .label { color: var(--console-text-muted); }
-.widget-filter-tab.is-active .widget-filter-label,
-.agent-network-kind-tab.is-active .agent-network-kind-label,
-.agent-network-filter.is-active .label { color: var(--console-text-dim); }
-.widget-filter-tab.is-gap .widget-filter-count,
-.agent-network-filter.is-gap .count { color: var(--console-warn); }
-.agent-network-panel { display: none; }
-.agent-network-panel.is-active { display: block; }
-.agent-network-empty {
-  padding: 18px 4px;
-  font-size: 12.5px;
-  color: var(--console-text-muted);
-  font-style: italic;
-}
-.agent-network-list {
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--console-rule-strong) transparent;
-}
-.agent-network-list::-webkit-scrollbar { width: 6px; }
-.agent-network-list::-webkit-scrollbar-thumb {
-  background: var(--console-rule-strong);
-  border-radius: 3px;
-}
-.agent-network-list::-webkit-scrollbar-track { background: transparent; }
-.agent-network-source {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--console-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
-  padding: 2px 7px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 100px;
-  color: var(--console-text-muted);
-}
-.agent-network-source.is-brain {
-  color: var(--console-accent);
-  border-color: var(--console-rule-accent);
-  background: var(--console-accent-soft);
-}
-.agent-network-skill-row[data-hidden] { display: none; }
-[data-agent-network-view="overview"] .agent-network-kind-tabs,
-[data-agent-network-view="skills"] .agent-network-kind-tabs { display: none; }
-@media (prefers-reduced-motion: no-preference) {
-  [data-agent-network-view="overview"] .agent-network-panel.is-active,
-  [data-agent-network-view="skills"] .agent-network-panel.is-active {
-    animation: panelRise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
-  }
-  @keyframes panelRise {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-}
-
-/* Agent semantic proximity — bioluminescent cartography.
-   The soil is a soft pool: dense at the disc, dissolving into the card with
-   no geometric boundary. Mask center tracks the map center (CENTER_X 520 of
-   1000 → 52%). */
-.proximity-field {
-  position: relative;
-  min-height: 420px;
-  overflow: hidden;
-  isolation: isolate;
-}
-.proximity-field::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 36% 50%, color-mix(in srgb, var(--console-accent) 5%, transparent), transparent 32%),
-    radial-gradient(circle at 54% 44%, color-mix(in srgb, var(--console-secondary) 5%, transparent), transparent 34%),
-    var(--console-bg-deep);
-  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-}
-.proximity-field::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  /* grain lives only in the soil */
-  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-}
-.proximity-field > svg {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 420px;
-  /* content dissolves with the soil — outer labels and spores sit in the
-     penumbra rather than floating crisp on the card */
-  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
-}
-.proximity-hud { position: absolute; z-index: 3; }
-.proximity-hud-count {
-  top: 8%;
-  left: 4%;
-  pointer-events: none;
-}
-.proximity-count-number {
-  color: var(--console-text);
-  font-family: var(--console-display);
-  font-size: clamp(52px, 8cqw, 88px);
-  font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 330;
-  font-variant-numeric: tabular-nums;
-  line-height: 0.82;
-  letter-spacing: -0.045em;
-  text-shadow: 0 0 34px color-mix(in srgb, var(--console-accent) 25%, transparent);
-}
-.proximity-count-label {
-  margin-top: 12px;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-.proximity-hud-foot {
-  right: 3.5%;
-  bottom: 5%;
-  left: 4%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  pointer-events: none;
-}
-.proximity-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px 18px;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 8.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.proximity-legend span::first-letter { color: var(--console-accent); }
-.proximity-pending-note {
-  max-width: 28ch;
-  margin: 0;
-  color: var(--console-text-muted);
-  font-size: 10.5px;
-  font-style: italic;
-  text-align: right;
-}
-.proximity-pending-note b {
-  color: var(--console-warn);
-  font-style: normal;
-  font-weight: 500;
-}
-.proximity-node-label {
-  fill: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.07em;
-}
-.proximity-agent[data-proximity-status="archived"] .proximity-node-label {
-  opacity: 0.22;
-}
-.proximity-agent[data-proximity-status="archived"] > path {
-  opacity: 0.16;
-}
-.proximity-you-label {
-  fill: var(--console-text-dim);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.26em;
-  text-anchor: middle;
-  text-transform: uppercase;
-}
-.proximity-strata-label {
-  fill: var(--console-text-faint);
-  font-family: var(--console-mono);
-  font-size: 8px;
-  letter-spacing: 0.08em;
-}
-.proximity-cluster-label {
-  fill: var(--console-secondary);
-  stroke: var(--console-bg-deep);
-  stroke-width: 4px;
-  paint-order: stroke;
-  font-family: var(--console-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.proximity-agent,
-.proximity-sighting,
-.proximity-cluster-weave,
-.proximity-cluster-mist {
-  cursor: pointer;
-  transition: opacity 180ms ease;
-}
-.proximity-center-halo {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: proximityBreathe 5.2s ease-in-out infinite;
-}
-.proximity-bulb-glow { animation: proximityFlicker 4.6s ease-in-out infinite; }
-.proximity-spore { animation: proximitySpore 11s linear infinite; }
-.proximity-tooltip {
-  position: absolute;
-  z-index: 6;
-  max-width: 260px;
-  padding: 9px 12px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 8px;
-  background: var(--console-card);
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.72);
+.widget-filter-label { color: var(--console-text-muted); }
+.widget-filter-tab.is-active .widget-filter-label {
   color: var(--console-text-dim);
-  font-family: var(--console-mono);
-  font-size: 9.5px;
-  line-height: 1.55;
-  letter-spacing: 0.04em;
-  pointer-events: none;
 }
-.proximity-tooltip-name {
-  font-family: var(--console-ui);
-  font-size: 13px;
-  color: var(--console-text);
-}
-.proximity-tooltip-meta { color: var(--console-text-muted); }
-.proximity-tooltip-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 5px;
-}
-.proximity-tooltip-tag {
-  padding: 1px 7px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 100px;
-  color: var(--console-text-dim);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: lowercase;
-}
-/* Past the label budget the field switches to dense mode: labels and their
-   leader lines surface only for the hovered or focused agent. */
-.proximity-field--dense .proximity-node-label,
-.proximity-field--dense .proximity-label-leader {
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-.proximity-field--dense .proximity-agent:hover .proximity-node-label,
-.proximity-field--dense .proximity-agent:focus .proximity-node-label,
-.proximity-field--dense .proximity-agent:hover .proximity-label-leader,
-.proximity-field--dense .proximity-agent:focus .proximity-label-leader {
-  opacity: 1;
-}
-.proximity-empty { min-height: 180px; padding: 28px 4px; }
-@keyframes proximityBreathe {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50% { opacity: 0.95; transform: scale(1.18); }
-}
-@keyframes proximityFlicker {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
-@keyframes proximitySpore {
-  0% { opacity: 0; transform: translateY(14px); }
-  18% { opacity: 0.42; }
-  82% { opacity: 0.3; }
-  100% { opacity: 0; transform: translateY(-26px); }
-}
-@keyframes proximityRippleShimmer {
-  0%, 100% { filter: none; }
-  2.5% { filter: brightness(2) drop-shadow(0 0 7px color-mix(in srgb, var(--console-accent) 85%, transparent)); }
-  9% { filter: none; }
-}
-@container dashboard-card (max-width: 700px) {
-  .proximity-field > svg { width: 126%; transform: translateX(-13%); }
-  .proximity-legend { max-width: 70%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .proximity-center-halo,
-  .proximity-bulb-glow,
-  .proximity-spore { animation: none; }
-  /* SMIL motion can't be paused from CSS — hide the animated dots/rings. */
-  .proximity-pulse,
-  .proximity-ripple { display: none; }
-  /* the shimmer delay is inlined per node, so the override needs force */
-  .proximity-agent { animation: none !important; }
-}
-
+.widget-filter-tab.is-gap .widget-filter-count { color: var(--console-warn); }
 .colophon {
   margin-top: 56px;
   padding-top: 18px;

@@ -4,9 +4,15 @@ import { render } from "preact-render-to-string";
 import {
   AgentProximityWidget,
   ProximityMap,
+  proximityMapWidgetStyles,
 } from "../src/widgets/proximity-map";
 import { proximityMapScript } from "../src/widgets/proximity-map-script";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
+
+test("proximity map owns its dashboard styles", () => {
+  expect(proximityMapWidgetStyles).toContain(".proximity-field");
+  expect(proximityMapWidgetStyles).toContain("prefers-reduced-motion");
+});
 
 const data: ProximityMapData = {
   center: { kind: "identity" },

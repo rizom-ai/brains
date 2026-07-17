@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import type { WidgetComponentProps } from "@brains/dashboard";
 import type { JSX } from "preact";
+import agentNetworkWidgetStyles from "./agent-network-widget.css" with { type: "text" };
 import {
   AGENT_NETWORK_KINDS,
   agentNetworkWidgetDataSchema,
@@ -10,6 +11,7 @@ import {
   type AgentNetworkTagFilter,
 } from "../lib/agent-network-widget";
 export { agentNetworkWidgetScript } from "./agent-network-widget-script";
+export { agentNetworkWidgetStyles };
 
 function AgentListItem({ item }: { item: AgentNetworkAgentRow }): JSX.Element {
   return (

@@ -4,6 +4,7 @@ import type { DashboardRenderInput, RenderableWidgetData } from "./types";
 
 export interface ResolvedWidgets {
   widgets: Record<string, RenderableWidgetData>;
+  widgetStyles: NonNullable<DashboardRenderInput["widgetStyles"]>;
   widgetScripts: DashboardRenderInput["widgetScripts"];
 }
 
@@ -12,6 +13,7 @@ export function resolveWidgetsForRender(
   registry: DashboardWidgetRegistry | null,
 ): ResolvedWidgets {
   const resolvedWidgets: Record<string, RenderableWidgetData> = {};
+  const widgetStyles = new Set<string>();
   const widgetScripts = new Set<string>();
 
   for (const [key, widget] of Object.entries(widgets)) {
@@ -27,6 +29,10 @@ export function resolveWidgetsForRender(
         : {}),
     };
 
+    if (registeredWidget?.clientStyles) {
+      widgetStyles.add(registeredWidget.clientStyles);
+    }
+
     if (registeredWidget?.clientScript) {
       widgetScripts.add(registeredWidget.clientScript);
     }
@@ -34,6 +40,7 @@ export function resolveWidgetsForRender(
 
   return {
     widgets: resolvedWidgets,
+    widgetStyles: Array.from(widgetStyles),
     widgetScripts: Array.from(widgetScripts),
   };
 }

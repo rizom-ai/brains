@@ -912,6 +912,14 @@ function DashboardDocument({
           data-dashboard-styles
           dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
         />
+        {input.widgetStyles && input.widgetStyles.length > 0 && (
+          <style
+            data-dashboard-widget-styles
+            dangerouslySetInnerHTML={{
+              __html: input.widgetStyles.join("\n\n"),
+            }}
+          />
+        )}
       </head>
       <body>
         <ConsoleStrip

@@ -593,6 +593,7 @@ describe("DashboardPlugin", () => {
             h("p", {}, input.strengths[0]?.title ?? "—"),
           );
         },
+        clientStyles: "[data-swot-widget] { display: grid; }",
         clientScript: "window.__swotBoot = true;",
         dataProvider: async () => ({
           strengths: [{ title: "Research & writing" }],
@@ -608,6 +609,10 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("data-swot-widget");
       expect(html).toContain("Strengths");
       expect(html).toContain("Research &amp; writing");
+      expect(html).toContain("[data-swot-widget] { display: grid; }");
+      expect(html?.indexOf("data-dashboard-styles")).toBeLessThan(
+        html?.indexOf("data-dashboard-widget-styles") ?? -1,
+      );
       expect(html).toContain("window.__swotBoot = true;");
     });
   });

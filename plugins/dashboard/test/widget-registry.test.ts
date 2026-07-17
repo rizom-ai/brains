@@ -30,6 +30,26 @@ describe("DashboardWidgetRegistry", () => {
       expect(registry.size).toBe(1);
     });
 
+    it("should store package-owned client assets", () => {
+      registry.register({
+        id: "styled-widget",
+        pluginId: "test-plugin",
+        group: "knowledge",
+        title: "Styled Widget",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        clientStyles: ".styled-widget { display: grid; }",
+        clientScript: "window.__styledWidget = true;",
+        dataProvider: async () => ({}),
+      });
+
+      expect(registry.get("test-plugin", "styled-widget")).toMatchObject({
+        clientStyles: ".styled-widget { display: grid; }",
+        clientScript: "window.__styledWidget = true;",
+      });
+    });
+
     it("should store the widget rendererName and group", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",

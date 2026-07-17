@@ -9,7 +9,7 @@ const swotDigestSourceSchema = z.object({
 import type { SwotDerivationJobData } from "./schemas/swot-generation";
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
-import { SwotWidget } from "./widgets/swot-widget";
+import { SwotWidget, swotWidgetStyles } from "./widgets/swot-widget";
 import { ProgressReporter } from "@brains/utils/progress";
 import packageJson from "../package.json";
 
@@ -127,6 +127,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
               };
             },
             component: SwotWidget,
+            clientStyles: swotWidgetStyles,
             dataProvider: async () => {
               const swot = await context.entityService.getEntity<SwotEntity>({
                 entityType: "swot",

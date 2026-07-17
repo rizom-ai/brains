@@ -675,6 +675,7 @@ describe("AgentDiscoveryPlugin", () => {
       group: string;
       rendererName: string;
       hasComponent: boolean;
+      hasClientStyles: boolean;
       hasClientScript: boolean;
     }> = [];
 
@@ -684,6 +685,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: string;
         rendererName: string;
         component?: unknown;
+        clientStyles?: unknown;
         clientScript?: unknown;
       };
       registrations.push({
@@ -691,6 +693,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: payload.group,
         rendererName: payload.rendererName,
         hasComponent: typeof payload.component === "function",
+        hasClientStyles: typeof payload.clientStyles === "string",
         hasClientScript: typeof payload.clientScript === "string",
       });
       return { success: true };
@@ -705,6 +708,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: "network",
         rendererName: "AgentNetworkWidget",
         hasComponent: true,
+        hasClientStyles: true,
         hasClientScript: true,
       },
       {
@@ -712,6 +716,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: "network",
         rendererName: "AgentProximityWidget",
         hasComponent: true,
+        hasClientStyles: true,
         hasClientScript: true,
       },
     ]);

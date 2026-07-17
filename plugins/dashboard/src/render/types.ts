@@ -69,6 +69,7 @@ export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
   widgets: Record<string, RenderableWidgetData>;
+  widgetStyles?: string[];
   widgetScripts: string[];
   dashboardPath?: string;
   surfaces?: ConsoleSurface[];

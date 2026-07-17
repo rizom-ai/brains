@@ -1,0 +1,201 @@
+/* Compatibility aliases for agent-network widgets authored before the generic
+   widget control classes. Current markup uses .widget-* primitives. */
+.agent-network-view-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--console-rule);
+  padding-bottom: 2px;
+}
+.agent-network-view-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 2px 0 10px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.agent-network-view-tab:hover {
+  color: var(--console-text-dim);
+}
+.agent-network-view-tab.is-active {
+  color: var(--console-text);
+  border-bottom-color: var(--console-accent);
+}
+.agent-network-view-count {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.agent-network-view-tab.is-active .agent-network-view-count {
+  color: var(--console-text-dim);
+}
+.agent-network-kind-tabs,
+.agent-network-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.agent-network-filter-row {
+  margin-bottom: 12px;
+}
+.agent-network-kind-tab,
+.agent-network-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.agent-network-filter {
+  padding-inline: 8px;
+}
+.agent-network-kind-tab:hover,
+.agent-network-filter:hover {
+  background: var(--console-accent-soft);
+  border-color: var(--console-rule-accent);
+  color: var(--console-text);
+}
+.agent-network-kind-tab.is-active,
+.agent-network-filter.is-active {
+  background: color-mix(in srgb, var(--console-card-soft) 55%, transparent);
+  border-color: var(--console-rule-accent);
+  color: var(--console-text);
+}
+.agent-network-kind-count,
+.agent-network-filter .count {
+  color: var(--console-text);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.agent-network-kind-label,
+.agent-network-filter .label {
+  color: var(--console-text-muted);
+}
+.agent-network-kind-tab.is-active .agent-network-kind-label,
+.agent-network-filter.is-active .label {
+  color: var(--console-text-dim);
+}
+.agent-network-filter.is-gap .count {
+  color: var(--console-warn);
+}
+
+.agent-network-panel {
+  display: none;
+}
+.agent-network-panel.is-active {
+  display: block;
+}
+.agent-network-empty {
+  padding: 18px 4px;
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+  font-style: italic;
+}
+.agent-network-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-color: var(--console-rule-strong) transparent;
+  scrollbar-width: thin;
+}
+.agent-network-list::-webkit-scrollbar {
+  width: 6px;
+}
+.agent-network-list::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: var(--console-rule-strong);
+}
+.agent-network-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.agent-network-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+}
+.agent-network-source.is-brain {
+  border-color: var(--console-rule-accent);
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+}
+.agent-network-skill-row[data-hidden] {
+  display: none;
+}
+[data-agent-network-view="overview"] .agent-network-kind-tabs,
+[data-agent-network-view="skills"] .agent-network-kind-tabs {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .agent-network-view-tabs {
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .agent-network-view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .agent-network-view-tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .agent-network-view-tab,
+  .agent-network-kind-tab,
+  .agent-network-filter {
+    min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-agent-network-view="overview"] .agent-network-panel.is-active,
+  [data-agent-network-view="skills"] .agent-network-panel.is-active {
+    animation: panelRise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes panelRise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
