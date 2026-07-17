@@ -1,6 +1,6 @@
 {
   "name": "@brains/atproto-registry",
-  "version": "0.2.0-alpha.192",
+  "version": "0.2.0-alpha.193",
   "description": "Canonical Rizom AT Protocol lexicon registry",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

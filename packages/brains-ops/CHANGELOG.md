@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- [`9374b1e`](https://github.com/rizom-ai/brains/commit/9374b1e040951a3b69b76750fc9c61392c41f7a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Parse decrypted pilot secrets as YAML so real long-form certificate and private-key payloads survive folded YAML serialization.
+
 ## 0.2.0-alpha.192
 
 ## 0.2.0-alpha.191
