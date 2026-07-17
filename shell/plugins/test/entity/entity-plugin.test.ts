@@ -178,7 +178,10 @@ describe("EntityPlugin", () => {
 
       const result = await interceptor?.(
         { entityType: "intercepting-item", title: "original-title" },
-        { interfaceType: "test", userId: "test-user" },
+        {
+          interfaceType: "test",
+          actor: { kind: "user", userId: "test-user" },
+        },
       );
       expect(result).toEqual({
         kind: "continue",

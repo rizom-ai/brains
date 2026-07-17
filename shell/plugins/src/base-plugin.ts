@@ -15,6 +15,7 @@ import {
   ProgressReporter,
 } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
+import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { type PluginConfigSchema, PluginConfigValidationError } from "./config";
 
@@ -25,8 +26,7 @@ const toolExecuteRequestSchema = z.object({
   progressToken: z.union([z.string(), z.number()]).optional(),
   hasProgress: z.boolean().optional(),
   interfaceType: z.string(),
-  userId: z.string(),
-  canonicalId: z.string().optional(),
+  actor: actorRefSchema,
   displayName: z.string().optional(),
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
@@ -134,8 +134,7 @@ export abstract class BasePlugin<
             progressToken,
             hasProgress,
             interfaceType,
-            userId,
-            canonicalId,
+            actor,
             displayName,
             conversationId,
             channelId,
@@ -158,8 +157,7 @@ export abstract class BasePlugin<
           // Create context with routing metadata and optional progress callback
           const toolContext: ToolContext = {
             interfaceType,
-            userId,
-            ...(canonicalId && { canonicalId }),
+            actor,
             ...(displayName && { displayName }),
             ...(conversationId && { conversationId }),
             ...(channelId && { channelId }),

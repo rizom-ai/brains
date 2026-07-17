@@ -295,7 +295,10 @@ ${sourceEntity.content}`,
           targetEntityType: "social-post",
           targetEntityId: entityId,
         },
-        toolContext: { interfaceType: "job", userId: "system" },
+        toolContext: {
+          interfaceType: "job",
+          actor: { kind: "service", serviceId: "social-media-generation" },
+        },
       });
     }
 

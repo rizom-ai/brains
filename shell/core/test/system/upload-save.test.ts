@@ -101,7 +101,7 @@ function getCreateTool(tools: Tool[]): Tool {
 function context(): ToolContext {
   return {
     interfaceType: "test",
-    userId: "user-1",
+    actor: { kind: "user", userId: "user-1" },
     conversationId: "conv-1",
     channelId: "conv-1",
     userPermissionLevel: "trusted",

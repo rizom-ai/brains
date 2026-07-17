@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.156",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",

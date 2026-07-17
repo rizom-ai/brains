@@ -97,7 +97,7 @@ async function operateBuiltin(
 
     const result = await match.tool.handler(toolInput, {
       interfaceType: "cli",
-      userId: "cli-anchor",
+      actor: { kind: "service", serviceId: "brain-cli" },
       userPermissionLevel: "anchor",
     });
 

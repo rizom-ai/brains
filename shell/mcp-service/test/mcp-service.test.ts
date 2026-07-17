@@ -252,7 +252,10 @@ describe("MCPService", () => {
           progressToken: "progress-1",
           hasProgress: true,
           interfaceType: "matrix",
-          userId: "mcp-user",
+          actor: {
+            kind: "external",
+            externalActorId: expect.stringMatching(/^ext_/),
+          },
           channelId: "room-1",
           channelName: "Room One",
           userPermissionLevel: "anchor",
@@ -286,7 +289,11 @@ describe("MCPService", () => {
             scopes: ["mcp"],
             extra: {
               subject: "verified-operator",
-              canonicalId: "user:verified-operator",
+              actor: {
+                kind: "user",
+                userId: "verified-operator",
+                canonicalId: "user:verified-operator",
+              },
               displayName: "Mira",
             },
           },
@@ -296,8 +303,11 @@ describe("MCPService", () => {
       expect(mockMessageBus.send).toHaveBeenCalledWith(
         expect.objectContaining({
           payload: expect.objectContaining({
-            userId: "verified-operator",
-            canonicalId: "user:verified-operator",
+            actor: {
+              kind: "user",
+              userId: "verified-operator",
+              canonicalId: "user:verified-operator",
+            },
             displayName: "Mira",
           }),
         }),
@@ -305,7 +315,10 @@ describe("MCPService", () => {
     });
 
     it("should pass compliant registered tool responses through unchanged", async () => {
-      const context = { interfaceType: "test", userId: "user-1" };
+      const context = {
+        interfaceType: "test",
+        actor: { kind: "user" as const, userId: "user-1" },
+      };
       const responses = [
         { success: true as const, data: { value: "ok" }, message: "Done" },
         { success: false as const, error: "Nope", code: "NOPE" },
@@ -362,7 +375,10 @@ describe("MCPService", () => {
         expect(
           await registeredTool.handler(
             {},
-            { interfaceType: "test", userId: "user-1" },
+            {
+              interfaceType: "test",
+              actor: { kind: "user", userId: "user-1" },
+            },
           ),
         ).toEqual({
           success: false,

@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
+import { actorRefSchema, type ActorRef } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 
 /**
@@ -21,8 +22,7 @@ export interface ToolContext {
 
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
-  userId: string; // User who invoked the tool
-  canonicalId?: string; // Canonical runtime identity when resolved
+  actor: ActorRef; // Verified user, external, agent, or service actor
   displayName?: string; // Authenticated user's display name when resolved
   conversationId?: string; // Durable conversation/session id for conversation-scoped tools when available
   channelId?: string; // Transport channel/room context (for Matrix, etc.)
@@ -36,8 +36,7 @@ export interface ToolContext {
 
 export interface ToolContextRouting {
   interfaceType: string;
-  userId: string;
-  canonicalId?: string | undefined;
+  actor: ActorRef;
   displayName?: string | undefined;
   conversationId?: string | undefined;
   channelId?: string | undefined;
@@ -49,8 +48,7 @@ export interface ToolContextRouting {
 
 interface ToolContextRoutingSchemaShape extends ZodRawShape {
   interfaceType: z.ZodString;
-  userId: z.ZodString;
-  canonicalId: z.ZodOptional<z.ZodString>;
+  actor: typeof actorRefSchema;
   displayName: z.ZodOptional<z.ZodString>;
   conversationId: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
@@ -73,8 +71,7 @@ interface ToolContextRoutingSchemaShape extends ZodRawShape {
 export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape> =
   z.object({
     interfaceType: z.string(),
-    userId: z.string(),
-    canonicalId: z.string().optional(),
+    actor: actorRefSchema,
     displayName: z.string().optional(),
     conversationId: z.string().optional(),
     channelId: z.string().optional(),

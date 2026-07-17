@@ -1,6 +1,7 @@
 import { Hono, type Context } from "hono";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils/logger";
+import { createExternalActorId } from "@brains/contracts";
 import { toolResultSchema } from "@brains/plugins";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 
@@ -37,7 +38,10 @@ export function createApiRouteHandler(
         toolName,
         args,
         interfaceType: "webserver",
-        userId: "anonymous",
+        actor: {
+          kind: "external",
+          externalActorId: createExternalActorId("webserver", "anonymous"),
+        },
       },
       sender: "webserver",
     });

@@ -1,3 +1,4 @@
+import type { ActorRef } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 /**
  * Tool Events - Event emission for tool invocations
@@ -16,8 +17,7 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
-  userId?: string | undefined;
-  canonicalId?: string | undefined;
+  actor?: ActorRef | undefined;
   displayName?: string | undefined;
 }
 
@@ -25,8 +25,9 @@ export interface ToolContextInfo {
  * Tool invocation event payload
  * Emitted when a tool starts executing
  */
-export interface ToolInvocationEvent extends ToolContextInfo {
+export interface ToolInvocationEvent extends Omit<ToolContextInfo, "actor"> {
   toolName: string;
+  actor: ActorRef;
   args?: unknown;
   toolCallId?: string | undefined;
 }
@@ -35,8 +36,9 @@ export interface ToolInvocationEvent extends ToolContextInfo {
  * Tool completion event payload
  * Emitted when a tool finishes (success or failure)
  */
-export interface ToolCompletionEvent extends ToolContextInfo {
+export interface ToolCompletionEvent extends Omit<ToolContextInfo, "actor"> {
   toolName: string;
+  actor: ActorRef;
   error?: string | undefined;
   toolCallId?: string | undefined;
 }
@@ -76,6 +78,10 @@ export function createToolExecuteWrapper(
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter | undefined,
 ): ToolHandler {
+  const actor: ActorRef = contextInfo.actor ?? {
+    kind: "agent",
+    agentId: "brain-agent",
+  };
   return async (
     args: unknown,
     options?: ToolExecutionOptionsLike,
@@ -87,10 +93,7 @@ export function createToolExecuteWrapper(
         args,
         conversationId: contextInfo.conversationId,
         interfaceType: contextInfo.interfaceType,
-        ...(contextInfo.userId !== undefined && { userId: contextInfo.userId }),
-        ...(contextInfo.canonicalId !== undefined && {
-          canonicalId: contextInfo.canonicalId,
-        }),
+        actor,
         ...(contextInfo.displayName !== undefined && {
           displayName: contextInfo.displayName,
         }),
@@ -119,12 +122,7 @@ export function createToolExecuteWrapper(
           toolName,
           conversationId: contextInfo.conversationId,
           interfaceType: contextInfo.interfaceType,
-          ...(contextInfo.userId !== undefined && {
-            userId: contextInfo.userId,
-          }),
-          ...(contextInfo.canonicalId !== undefined && {
-            canonicalId: contextInfo.canonicalId,
-          }),
+          actor,
           ...(contextInfo.displayName !== undefined && {
             displayName: contextInfo.displayName,
           }),
@@ -150,12 +148,7 @@ export function createToolExecuteWrapper(
           error: getErrorMessage(error),
           conversationId: contextInfo.conversationId,
           interfaceType: contextInfo.interfaceType,
-          ...(contextInfo.userId !== undefined && {
-            userId: contextInfo.userId,
-          }),
-          ...(contextInfo.canonicalId !== undefined && {
-            canonicalId: contextInfo.canonicalId,
-          }),
+          actor,
           ...(contextInfo.displayName !== undefined && {
             displayName: contextInfo.displayName,
           }),

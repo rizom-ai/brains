@@ -474,7 +474,10 @@ export abstract class BaseGenerationJobHandler<
         entityTitle: title,
         entityContent: generated.content,
       },
-      toolContext: { interfaceType: "job", userId: "system" },
+      toolContext: {
+        interfaceType: "job",
+        actor: { kind: "service", serviceId: "generation-job-handler" },
+      },
     });
   }
 

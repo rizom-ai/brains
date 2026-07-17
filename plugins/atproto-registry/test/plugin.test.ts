@@ -103,7 +103,10 @@ describe("atproto registry plugin", () => {
 
     const response = await tool.handler(
       {},
-      { interfaceType: "test", userId: "test" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test" },
+      },
     );
     expect("success" in response && response.success).toBe(true);
     if (!("success" in response) || !response.success) {

@@ -70,7 +70,7 @@ describe("PortfolioPlugin", () => {
           },
           {
             interfaceType: "test",
-            userId: "test-user",
+            actor: { kind: "user", userId: "test-user" },
           },
         );
 
@@ -110,7 +110,7 @@ describe("PortfolioPlugin", () => {
       };
       const result = await interceptor(input, {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       });
 
       expect(result).toEqual({ kind: "continue", input });

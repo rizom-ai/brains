@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Hono } from "hono";
+import { createExternalActorId } from "@brains/contracts";
 import type { RegisteredApiRoute } from "@brains/plugins";
 import { createApiRouteHandler } from "../src/api-server";
 import { createSilentLogger } from "@brains/test-utils";
@@ -106,7 +107,10 @@ describe("createApiRouteHandler", () => {
         payload: expect.objectContaining({
           toolName: "newsletter_subscribe",
           interfaceType: "webserver",
-          userId: "anonymous",
+          actor: {
+            kind: "external",
+            externalActorId: createExternalActorId("webserver", "anonymous"),
+          },
         }),
         sender: "webserver",
       });

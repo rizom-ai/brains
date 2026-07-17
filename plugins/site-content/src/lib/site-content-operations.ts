@@ -49,6 +49,7 @@ export class SiteContentOperations {
         interfaceType: metadata.interfaceType,
         conversationId: metadata.conversationId,
         channelId: metadata.channelId,
+        requestedByActor: metadata.requestedByActor,
         requestedByUserId: metadata.requestedByUserId,
         requestedByInterface: metadata.requestedByInterface,
       },

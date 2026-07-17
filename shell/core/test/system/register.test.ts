@@ -65,7 +65,7 @@ describe("registerSystemCapabilities message bus wiring", () => {
         toolName: "system_list",
         args: { entityType: "doc" },
         interfaceType: "test",
-        userId: "test",
+        actor: { kind: "user", userId: "test" },
         ...(userPermissionLevel && { userPermissionLevel }),
       },
       sender: "test",

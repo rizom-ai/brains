@@ -90,7 +90,10 @@ function createMockEntityService(
   } as unknown as ICoreEntityService;
 }
 
-const toolContext = { interfaceType: "mcp" as const, userId: "test" };
+const toolContext = {
+  interfaceType: "mcp" as const,
+  actor: { kind: "user" as const, userId: "test" },
+};
 
 describe("agent_call agent resolution", () => {
   it("should describe saved-agent questions as A2A calls", () => {

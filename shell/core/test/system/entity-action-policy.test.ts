@@ -15,7 +15,7 @@ const baseContext = (
   userPermissionLevel: ToolContext["userPermissionLevel"],
 ): ToolContext => ({
   interfaceType: "test",
-  userId: "user-1",
+  actor: { kind: "user", userId: "user-1" },
   ...(userPermissionLevel && { userPermissionLevel }),
 });
 

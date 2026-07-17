@@ -1,3 +1,4 @@
+import type { ActorRef } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   contentVisibilitySchema,
@@ -259,7 +260,7 @@ export interface CreateInput {
  */
 export interface CreateExecutionContext {
   interfaceType: string;
-  userId: string;
+  actor: ActorRef;
   channelId?: string;
   channelName?: string;
 }

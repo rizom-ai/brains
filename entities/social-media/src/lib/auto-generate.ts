@@ -101,7 +101,10 @@ export function subscribeToAutoGenerate(
           platform,
           addToQueue: false,
         },
-        toolContext: { interfaceType: "job", userId: "system" },
+        toolContext: {
+          interfaceType: "job",
+          actor: { kind: "service", serviceId: "social-media-auto-generate" },
+        },
       });
 
       logger.info(
@@ -203,7 +206,13 @@ export function subscribeToGenerateExecute(
             platform: "linkedin",
             addToQueue: false,
           },
-          toolContext: { interfaceType: "job", userId: "system" },
+          toolContext: {
+            interfaceType: "job",
+            actor: {
+              kind: "service",
+              serviceId: "social-media-auto-generate",
+            },
+          },
         });
 
         logger.info("Social post generation job queued", {

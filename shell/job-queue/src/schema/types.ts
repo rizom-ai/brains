@@ -1,3 +1,4 @@
+import { actorRefSchema, type ActorRef } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 export type OperationType =
@@ -15,6 +16,7 @@ export interface JobContextInput {
   interfaceType?: string | undefined;
   conversationId?: string | undefined;
   channelId?: string | undefined;
+  requestedByActor?: ActorRef | undefined;
   requestedByUserId?: string | undefined;
   requestedByInterface?: string | undefined;
   silent?: boolean | undefined;
@@ -55,6 +57,7 @@ export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
     interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
     conversationId: z.string().optional(), // Durable conversation/session to route progress messages to
     channelId: z.string().optional(), // Transport channel/room to route progress messages to
+    requestedByActor: actorRefSchema.optional(),
     requestedByUserId: z.string().optional(),
     requestedByInterface: z.string().optional(),
     // Suppress all progress/completion events for this job (e.g. background
@@ -74,6 +77,7 @@ export const JobContextSchema: z.ZodType<JobContext, unknown> = z.object({
   interfaceType: z.string().optional(),
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
+  requestedByActor: actorRefSchema.optional(),
   requestedByUserId: z.string().optional(),
   requestedByInterface: z.string().optional(),
   silent: z.boolean().optional(),

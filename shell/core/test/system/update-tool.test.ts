@@ -147,7 +147,7 @@ describe("system_update tool", () => {
     if (!tool) throw new Error("system_update not found");
     return tool.handler(input, {
       interfaceType: "test",
-      userId: "test",
+      actor: { kind: "user", userId: "test" },
       userPermissionLevel,
     });
   }
@@ -160,7 +160,7 @@ describe("system_update tool", () => {
     if (!tool) throw new Error("system_delete not found");
     return tool.handler(input, {
       interfaceType: "test",
-      userId: "test",
+      actor: { kind: "user", userId: "test" },
       userPermissionLevel,
     });
   }
@@ -179,7 +179,7 @@ describe("system_update tool", () => {
       },
       {
         interfaceType: "test",
-        userId: "test",
+        actor: { kind: "user", userId: "test" },
         conversationId: "conversation-1",
         channelId: "channel-1",
         runId: "run-1",

@@ -462,7 +462,7 @@ describe("convertToSDKTools", () => {
       { value: "x" },
       expect.objectContaining({
         interfaceType: "agent",
-        userId: "agent-user",
+        actor: { kind: "agent", agentId: "brain-agent" },
         conversationId: "conversation-1",
         toolCallId: "call-1",
         userPermissionLevel: "public",
@@ -484,8 +484,11 @@ describe("convertToSDKTools", () => {
       {
         conversationId: "conversation-1",
         interfaceType: "discord",
-        userId: "usr_mira",
-        canonicalId: "user:mira",
+        actor: {
+          kind: "user",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        },
         displayName: "Mira",
         userPermissionLevel: "trusted",
       },
@@ -500,8 +503,11 @@ describe("convertToSDKTools", () => {
       {},
       expect.objectContaining({
         interfaceType: "discord",
-        userId: "usr_mira",
-        canonicalId: "user:mira",
+        actor: {
+          kind: "user",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        },
         displayName: "Mira",
         userPermissionLevel: "trusted",
       }),

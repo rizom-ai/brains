@@ -275,7 +275,10 @@ This note has frontmatter metadata.`;
 
     const result = await retrieved?.(
       { entityType: "note", title: "original" },
-      { interfaceType: "test", userId: "test-user" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test-user" },
+      },
     );
     expect(result).toEqual({
       kind: "continue",

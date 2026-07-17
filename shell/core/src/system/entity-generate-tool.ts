@@ -206,7 +206,7 @@ async function runGenerateInterceptor(
 ): Promise<InterceptorOutcome> {
   const executionContext: CreateExecutionContext = {
     interfaceType: toolContext.interfaceType,
-    userId: toolContext.userId,
+    actor: toolContext.actor,
     ...(toolContext.channelId && { channelId: toolContext.channelId }),
     ...(toolContext.channelName && { channelName: toolContext.channelName }),
   };

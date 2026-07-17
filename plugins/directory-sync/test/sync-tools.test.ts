@@ -111,7 +111,10 @@ function parseToolResult(raw: unknown): {
   return { success: false, error: parsed.error };
 }
 
-const toolContext = { interfaceType: "mcp" as const, userId: "test" };
+const toolContext = {
+  interfaceType: "mcp" as const,
+  actor: { kind: "user" as const, userId: "test" },
+};
 
 function findTool(tools: Tool[], name: string): Tool {
   const tool = tools.find((t) => t.name === name);
@@ -318,7 +321,11 @@ describe("sync tool", () => {
     const syncTool = findTool(tools, "directory-sync_sync");
     await syncTool.handler(
       {},
-      { interfaceType: "discord", userId: "u1", channelId: "room-456" },
+      {
+        interfaceType: "discord",
+        actor: { kind: "user", userId: "u1" },
+        channelId: "room-456",
+      },
     );
 
     expect(queueSyncBatchMock).toHaveBeenCalledWith(
@@ -340,7 +347,10 @@ describe("sync tool", () => {
       "directory-sync",
     );
     const syncTool = findTool(tools, "directory-sync_sync");
-    await syncTool.handler({}, { interfaceType: "mcp", userId: "u1" });
+    await syncTool.handler(
+      {},
+      { interfaceType: "mcp", actor: { kind: "user", userId: "u1" } },
+    );
 
     expect(queueSyncBatchMock).toHaveBeenCalledWith(
       expect.anything(),

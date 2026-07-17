@@ -46,7 +46,11 @@ describe("system_extract tool enforces caller visibility scope", () => {
   it("lets a trusted caller extract from a shared source", async () => {
     const result = await exec(
       { entityType: "topic", source: "post-shared" },
-      { interfaceType: "mcp", userId: "u", userPermissionLevel: "trusted" },
+      {
+        interfaceType: "mcp",
+        actor: { kind: "user", userId: "u" },
+        userPermissionLevel: "trusted",
+      },
     );
 
     expect(result).toHaveProperty("success", true);
@@ -61,7 +65,11 @@ describe("system_extract tool enforces caller visibility scope", () => {
   it("refuses to extract from a shared source for a public caller", async () => {
     const result = await exec(
       { entityType: "topic", source: "post-shared" },
-      { interfaceType: "mcp", userId: "u", userPermissionLevel: "public" },
+      {
+        interfaceType: "mcp",
+        actor: { kind: "user", userId: "u" },
+        userPermissionLevel: "public",
+      },
     );
 
     expect(result).toMatchObject({

@@ -6,6 +6,7 @@ import type {
   JobInfo,
 } from "./types";
 import type { Batch, BatchJobStatus } from "./batch-schemas";
+import { authenticatedUserId } from "@brains/contracts";
 import { createId } from "@brains/utils/id";
 import type { ToolContext } from "@brains/mcp-service";
 
@@ -76,29 +77,36 @@ export function createEnqueueJobFn(
 ): EnqueueJobFn {
   return async (request): Promise<string> => {
     const { type, data, toolContext = null, options } = request;
+    const requestedByUserId = toolContext
+      ? authenticatedUserId(toolContext)
+      : undefined;
     // Destructure to avoid spreading metadata twice
     const { metadata: optionsMetadata, ...restOptions } = options ?? {};
+    const metadata: JobOptions["metadata"] = {
+      operationType: "data_processing",
+      pluginId,
+      ...optionsMetadata,
+      // Verified tool routing and attribution override caller-supplied options.
+      ...(toolContext && {
+        interfaceType: toolContext.interfaceType,
+        conversationId: toolContext.conversationId,
+        channelId: toolContext.channelId,
+        requestedByActor: toolContext.actor,
+        ...(requestedByUserId ? { requestedByUserId } : {}),
+        requestedByInterface: toolContext.interfaceType,
+      }),
+    };
+    if (toolContext && !requestedByUserId) {
+      delete metadata.requestedByUserId;
+    }
 
     const jobOptions: JobOptions = {
+      ...restOptions,
       source: pluginId,
       // Only set rootJobId if explicitly provided (for batch children)
       // For standalone jobs, let JobQueueService default to the job's own ID
       ...(options?.rootJobId && { rootJobId: options.rootJobId }),
-      ...restOptions,
-      // Build metadata last to ensure routing context is preserved
-      metadata: {
-        operationType: "data_processing" as const,
-        pluginId,
-        // Merge routing context from ToolContext when provided
-        ...(toolContext && {
-          interfaceType: toolContext.interfaceType,
-          conversationId: toolContext.conversationId,
-          channelId: toolContext.channelId,
-          requestedByUserId: toolContext.userId,
-          requestedByInterface: toolContext.interfaceType,
-        }),
-        ...optionsMetadata,
-      },
+      metadata,
     };
 
     // Add plugin scope unless already scoped (service plugins) or not scoping (interface plugins)

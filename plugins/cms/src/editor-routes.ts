@@ -852,7 +852,10 @@ async function handleUpload(
 
   const result = await registration.handler(
     { upload: { kind: "upload", id: record.id } },
-    { interfaceType: "cms", userId: "authenticated-user" },
+    {
+      interfaceType: "cms",
+      actor: { kind: "service", serviceId: "cms-upload" },
+    },
   );
 
   if (!result.success) {

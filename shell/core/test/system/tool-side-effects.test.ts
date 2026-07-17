@@ -10,7 +10,7 @@ import { createMockSystemServices } from "./mock-services";
 const now = "2026-06-24T00:00:00.000Z";
 const toolContext: ToolContext = {
   interfaceType: "web-chat",
-  userId: "agent-user",
+  actor: { kind: "agent", agentId: "brain-agent" },
   conversationId: "conversation-1",
   userPermissionLevel: "anchor",
 };

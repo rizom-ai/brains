@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
 import type { AppConfig } from "./types";
 import type { App as AppClass } from "./app";
+import type { ActorRef } from "@brains/contracts";
 import type { ToolResponse } from "@brains/mcp-service";
 
 interface AppFactory {
@@ -98,7 +99,7 @@ function printToolResult(result: ToolResponse): void {
 async function invokeCliTool(
   handler: (
     input: unknown,
-    context: { interfaceType: string; userId: string },
+    context: { interfaceType: string; actor: ActorRef },
   ) => Promise<ToolResponse>,
   input: unknown,
   failureLabel: string,
@@ -106,7 +107,7 @@ async function invokeCliTool(
   try {
     const result = await handler(input, {
       interfaceType: "cli",
-      userId: "cli-anchor",
+      actor: { kind: "service", serviceId: "shell-cli" },
     });
     printToolResult(result);
   } catch (error) {

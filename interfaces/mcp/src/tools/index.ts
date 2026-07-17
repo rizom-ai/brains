@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createExternalActorId } from "@brains/contracts";
+import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
 import type {
@@ -38,7 +38,7 @@ interface MCPConversationRef {
 
 function getConversationRef(
   input: { conversationId?: string },
-  userId: string,
+  actorKey: string,
   contextConversationId?: string,
   channelId?: string,
 ): MCPConversationRef {
@@ -48,7 +48,7 @@ function getConversationRef(
     channelId ??
     `conversation-${randomUUID()}`;
   const subjectScope = createHash("sha256")
-    .update(userId)
+    .update(actorKey)
     .digest("hex")
     .slice(0, 16);
   return {
@@ -68,19 +68,7 @@ function getChatContext(
       ? { channelName: toolContext.channelName }
       : {}),
     actor: {
-      identity:
-        toolContext.canonicalId || toolContext.userId.startsWith("usr_")
-          ? {
-              kind: "user",
-              userId: toolContext.userId,
-              ...(toolContext.canonicalId
-                ? { canonicalId: toolContext.canonicalId }
-                : {}),
-            }
-          : {
-              kind: "external",
-              externalActorId: createExternalActorId("mcp", toolContext.userId),
-            },
+      identity: toolContext.actor,
       interfaceType: "mcp",
       role: "user",
       ...(toolContext.displayName
@@ -121,7 +109,7 @@ export function createMCPTools(
 
         const conversation = getConversationRef(
           input,
-          toolContext.userId,
+          actorRefKey(toolContext.actor),
           toolContext.conversationId,
           toolContext.channelId,
         );
@@ -157,7 +145,7 @@ export function createMCPTools(
 
         const conversation = getConversationRef(
           input,
-          toolContext.userId,
+          actorRefKey(toolContext.actor),
           toolContext.conversationId,
           toolContext.channelId,
         );

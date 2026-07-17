@@ -197,7 +197,13 @@ export class NewsletterPlugin extends EntityPlugin<
               sourceEntityType: "post",
               addToQueue: false,
             },
-            toolContext: { interfaceType: "job", userId: "system" },
+            toolContext: {
+              interfaceType: "job",
+              actor: {
+                kind: "service",
+                serviceId: "newsletter-generation",
+              },
+            },
           });
 
           return { success: true };

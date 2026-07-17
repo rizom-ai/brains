@@ -1,3 +1,8 @@
+import {
+  actorRefSchema,
+  createExternalActorId,
+  type ActorRef,
+} from "@brains/contracts";
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { type Logger } from "@brains/utils/logger";
@@ -178,16 +183,11 @@ export function registerToolOnServer(
     async (params, extra) => {
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const verifiedSubject = extra.authInfo?.extra?.["subject"];
-      const userId =
+      const subject =
         typeof verifiedSubject === "string" && verifiedSubject.length > 0
           ? verifiedSubject
-          : "mcp-user";
-      const verifiedCanonicalId = extra.authInfo?.extra?.["canonicalId"];
-      const canonicalId =
-        typeof verifiedCanonicalId === "string" &&
-        verifiedCanonicalId.length > 0
-          ? verifiedCanonicalId
           : undefined;
+      const actor = resolveMcpActor(extra.authInfo?.extra?.["actor"], subject);
       const verifiedDisplayName = extra.authInfo?.extra?.["displayName"];
       const displayName =
         typeof verifiedDisplayName === "string" &&
@@ -203,7 +203,7 @@ export function registerToolOnServer(
         tool: tool.name,
         pluginId,
         interfaceType,
-        userId,
+        actor,
         conversationId,
         channelId,
         channelName,
@@ -220,8 +220,7 @@ export function registerToolOnServer(
             progressToken,
             hasProgress: progressToken !== undefined,
             interfaceType,
-            userId,
-            ...(canonicalId ? { canonicalId } : {}),
+            actor,
             ...(displayName ? { displayName } : {}),
             conversationId,
             channelId,
@@ -253,6 +252,18 @@ export function registerToolOnServer(
       }
     },
   );
+}
+
+function resolveMcpActor(
+  value: unknown,
+  subject: string | undefined,
+): ActorRef {
+  const parsed = actorRefSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  return {
+    kind: "external",
+    externalActorId: createExternalActorId("mcp", subject ?? "anonymous"),
+  };
 }
 
 export function registerResourceOnServer(

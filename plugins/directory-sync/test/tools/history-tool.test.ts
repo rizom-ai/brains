@@ -21,7 +21,10 @@ function parseToolResult(raw: unknown): {
   return { success: false, error: parsed.error };
 }
 
-const toolContext = { interfaceType: "mcp" as const, userId: "test" };
+const toolContext = {
+  interfaceType: "mcp" as const,
+  actor: { kind: "user" as const, userId: "test" },
+};
 
 const sampleLog: GitLogEntry[] = [
   { sha: "abc123", date: "2026-03-28T14:30:00+00:00", message: "Update post" },

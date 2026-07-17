@@ -4,6 +4,7 @@ import type {
   PluginType,
   ToolResponse,
   ToolConfirmation,
+  ToolContext,
 } from "../interfaces";
 import { type z } from "@brains/utils/zod";
 import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
@@ -320,7 +321,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     input: Record<string, unknown> = {},
     context?: {
       interfaceType?: string;
-      userId?: string;
+      actor?: ToolContext["actor"];
       conversationId?: string;
       channelId?: string;
       userPermissionLevel?: "anchor" | "trusted" | "public";
@@ -340,15 +341,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
 
     // Default test context to anchor so existing plugin tests can see
     // entities across all visibility levels unless they opt into a lower scope.
-    const toolContext: {
-      interfaceType: string;
-      userId: string;
-      conversationId?: string;
-      channelId?: string;
-      userPermissionLevel: "anchor" | "trusted" | "public";
-    } = {
+    const toolContext: ToolContext = {
       interfaceType: context?.interfaceType ?? "test",
-      userId: context?.userId ?? "test-user",
+      actor: context?.actor ?? {
+        kind: "service",
+        serviceId: "plugin-test-harness",
+      },
       userPermissionLevel: context?.userPermissionLevel ?? "anchor",
     };
     if (context?.conversationId) {

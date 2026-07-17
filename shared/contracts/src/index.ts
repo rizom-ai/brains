@@ -53,6 +53,7 @@ export {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
+  authenticatedUserId,
   createExternalActorId,
   type ActorRef,
   type LegacyActorIdentity,

@@ -1,3 +1,4 @@
+import { authenticatedUserId } from "@brains/contracts";
 import type { Tool, JobContext } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type { SiteContentService } from "../lib/site-content-service";
@@ -29,6 +30,7 @@ export function createSiteContentTools(
           };
         }
 
+        const userId = authenticatedUserId(context);
         const metadata: JobContext = {
           rootJobId: `generate-${Date.now()}`,
           progressToken: context.progressToken,
@@ -36,7 +38,8 @@ export function createSiteContentTools(
           operationType: "content_operations",
           interfaceType: context.interfaceType,
           channelId: context.channelId,
-          requestedByUserId: context.userId,
+          requestedByActor: context.actor,
+          ...(userId ? { requestedByUserId: userId } : {}),
           requestedByInterface: context.interfaceType,
         };
 

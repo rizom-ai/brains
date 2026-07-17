@@ -10,7 +10,7 @@ import type {
 
 const mockContext: ToolContext = {
   interfaceType: "test",
-  userId: "test-user",
+  actor: { kind: "user", userId: "test-user" },
 };
 
 // -- Mock provider --

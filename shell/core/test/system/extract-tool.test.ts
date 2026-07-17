@@ -50,7 +50,7 @@ describe("system_extract tool", () => {
     if (!tool) throw new Error("system_extract not found");
     return tool.handler(input, {
       interfaceType: "test",
-      userId: "test",
+      actor: { kind: "user", userId: "test" },
       ...context,
     });
   }

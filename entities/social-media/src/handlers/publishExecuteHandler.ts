@@ -21,7 +21,7 @@ export interface PublishExecutePayload {
   entityId: string;
   authContext?: {
     interfaceType?: ToolContext["interfaceType"];
-    userId?: ToolContext["userId"];
+    actor?: ToolContext["actor"];
     userPermissionLevel?: ToolContext["userPermissionLevel"];
     authorization?: "user" | "system";
   };

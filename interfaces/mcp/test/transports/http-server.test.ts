@@ -850,14 +850,18 @@ describe("StreamableHTTPServer", () => {
       let port: number;
       let verifyBearerToken: ReturnType<typeof mock>;
       let capturedSubject: unknown;
-      let capturedCanonicalId: unknown;
+      let capturedActor: unknown;
       let capturedDisplayName: unknown;
 
       beforeEach(async () => {
         verifyBearerToken = mock(async (_request: Request) => ({
           subject: "single-operator",
           scope: ["openid", "mcp"],
-          canonicalId: "user:operator",
+          actor: {
+            kind: "user" as const,
+            userId: "single-operator",
+            canonicalId: "user:operator",
+          },
           displayName: "Mira",
         }));
         server = new StreamableHTTPServer({
@@ -877,7 +881,7 @@ describe("StreamableHTTPServer", () => {
         });
         mcpServer.tool("capture_subject", {}, async (_params, extra) => {
           capturedSubject = extra.authInfo?.extra?.["subject"];
-          capturedCanonicalId = extra.authInfo?.extra?.["canonicalId"];
+          capturedActor = extra.authInfo?.extra?.["actor"];
           capturedDisplayName = extra.authInfo?.extra?.["displayName"];
           return { content: [{ type: "text", text: "ok" }] };
         });
@@ -917,7 +921,11 @@ describe("StreamableHTTPServer", () => {
 
         expect(response.status).toBe(200);
         expect(capturedSubject).toBe("single-operator");
-        expect(capturedCanonicalId).toBe("user:operator");
+        expect(capturedActor).toEqual({
+          kind: "user",
+          userId: "single-operator",
+          canonicalId: "user:operator",
+        });
         expect(capturedDisplayName).toBe("Mira");
       });
 

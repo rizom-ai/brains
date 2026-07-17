@@ -229,7 +229,10 @@ describe("A2A HTTP routes", () => {
 
     const result = await tool.handler(
       { agent: "remote.example.com", message: "hello" },
-      { interfaceType: "test", userId: "test" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test" },
+      },
     );
 
     expect(result).toHaveProperty("success", true);
@@ -294,7 +297,10 @@ describe("A2A HTTP routes", () => {
 
     const result = await tool.handler(
       { agent: "remote.example.com", message: "hello" },
-      { interfaceType: "test", userId: "test" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test" },
+      },
     );
 
     expect(result).toHaveProperty("success", true);

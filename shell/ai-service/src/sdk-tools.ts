@@ -1,4 +1,5 @@
 import { dynamicTool, type ToolSet } from "ai";
+import type { ActorRef } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -9,8 +10,7 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
-  userId?: string | undefined;
-  canonicalId?: string | undefined;
+  actor?: ActorRef | undefined;
   displayName?: string | undefined;
   userPermissionLevel?: UserPermissionLevel;
   enableCreateUpload?: boolean | undefined;
@@ -170,10 +170,10 @@ export function convertToSDKTools(
       async (args: unknown, options?: { toolCallId?: string | undefined }) => {
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
-          userId: contextInfo.userId ?? "agent-user",
-          ...(contextInfo.canonicalId
-            ? { canonicalId: contextInfo.canonicalId }
-            : {}),
+          actor: contextInfo.actor ?? {
+            kind: "agent",
+            agentId: "brain-agent",
+          },
           ...(contextInfo.displayName
             ? { displayName: contextInfo.displayName }
             : {}),

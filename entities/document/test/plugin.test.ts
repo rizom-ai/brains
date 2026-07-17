@@ -66,7 +66,10 @@ describe("DocumentPlugin", () => {
         targetEntityType: "social-post",
         targetEntityId: "post-1",
       },
-      { interfaceType: "test", userId: "test-user" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test-user" },
+      },
     );
 
     if (result.kind !== "handled" || !result.result.success) {
@@ -139,7 +142,10 @@ describe("DocumentPlugin", () => {
         title: "Brief",
         from: { kind: "upload", id: record.ref.id },
       },
-      { interfaceType: "web-chat", userId: "operator" },
+      {
+        interfaceType: "web-chat",
+        actor: { kind: "user", userId: "operator" },
+      },
     );
 
     expect(result).toEqual({
@@ -207,7 +213,10 @@ describe("DocumentPlugin", () => {
         entityType: "document",
         from: { kind: "upload", id: record.ref.id },
       },
-      { interfaceType: "web-chat", userId: "operator" },
+      {
+        interfaceType: "web-chat",
+        actor: { kind: "user", userId: "operator" },
+      },
     );
 
     expect(result).toEqual({
@@ -256,7 +265,10 @@ describe("DocumentPlugin", () => {
           attachmentType: "printable",
         },
       },
-      { interfaceType: "test", userId: "test-user" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test-user" },
+      },
     );
 
     expect(result).toMatchObject({

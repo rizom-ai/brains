@@ -214,14 +214,22 @@ describe("LinkPlugin with Harness", () => {
     });
 
     it("should enqueue link-capture from the registered interceptor", async () => {
-      const enqueued: Array<{ type: string; data: unknown }> = [];
+      const enqueued: Array<{
+        type: string;
+        data: unknown;
+        options: unknown;
+      }> = [];
       const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
       const origJobQueue = mockShell.getJobQueueService();
       const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
         {
           ...origJobQueue,
           enqueue: async (request): Promise<string> => {
-            enqueued.push({ type: request.type, data: request.data });
+            enqueued.push({
+              type: request.type,
+              data: request.data,
+              options: request.options,
+            });
             return "job-123";
           },
         };
@@ -241,7 +249,7 @@ describe("LinkPlugin with Harness", () => {
         },
         {
           interfaceType: "test",
-          userId: "test-user",
+          actor: { kind: "user", userId: "test-user" },
           channelId: "!room:test",
           channelName: "#test",
         },
@@ -281,6 +289,14 @@ describe("LinkPlugin with Harness", () => {
           timestamp: expect.any(String),
         }),
       });
+      expect(enqueued[0]?.options).toEqual(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            requestedByActor: { kind: "user", userId: "test-user" },
+            requestedByUserId: "test-user",
+          }),
+        }),
+      );
     });
 
     it("should prefer top-level url from the registered interceptor", async () => {
@@ -312,7 +328,7 @@ describe("LinkPlugin with Harness", () => {
         },
         {
           interfaceType: "test",
-          userId: "test-user",
+          actor: { kind: "user", userId: "test-user" },
         },
       );
 
@@ -366,7 +382,7 @@ A saved research link.`;
         },
         {
           interfaceType: "test",
-          userId: "test-user",
+          actor: { kind: "user", userId: "test-user" },
         },
       );
 

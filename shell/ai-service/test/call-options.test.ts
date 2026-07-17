@@ -65,10 +65,32 @@ describe("buildBrainCallOptions", () => {
     });
 
     expect(options).toMatchObject({
-      userId: "usr_mira",
-      canonicalId: "user:mira",
+      actor: {
+        kind: "user",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+      },
       displayName: "Mira",
     });
+    expect(options).not.toHaveProperty("userId");
+    expect(options).not.toHaveProperty("canonicalId");
+  });
+
+  test("does not flatten external actors into user ids", () => {
+    const options = buildBrainCallOptions({
+      ...base,
+      hasAccessibleUploads: false,
+      actor: {
+        identity: { kind: "external", externalActorId: "ext_mira" },
+        interfaceType: "discord",
+        role: "user",
+      },
+    });
+
+    expect(options).toMatchObject({
+      actor: { kind: "external", externalActorId: "ext_mira" },
+    });
+    expect(options).not.toHaveProperty("userId");
   });
 
   test("passes agent context instructions through when present", () => {

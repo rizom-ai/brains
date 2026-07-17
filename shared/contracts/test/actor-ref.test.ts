@@ -3,6 +3,7 @@ import {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
+  authenticatedUserId,
   createExternalActorId,
 } from "../src/actor-ref";
 import { authPrincipalResolveRequestSchema } from "../src/auth-principal";
@@ -44,6 +45,20 @@ describe("ActorRef", () => {
     expect(actorRefKey({ kind: "service", serviceId: "job-queue" })).toBe(
       "service:job-queue",
     );
+  });
+
+  it("extracts authenticated user ids only from user actors", () => {
+    expect(
+      authenticatedUserId({
+        actor: { kind: "user", userId: "usr_mira" },
+      }),
+    ).toBe("usr_mira");
+    expect(
+      authenticatedUserId({
+        actor: { kind: "external", externalActorId: "ext_abc" },
+      }),
+    ).toBeUndefined();
+    expect(authenticatedUserId({})).toBeUndefined();
   });
 
   it("normalizes legacy identities at compatibility boundaries", () => {

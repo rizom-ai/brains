@@ -32,6 +32,11 @@ function createSavedAgentEntityService(agentId = "remote.example.com"): {
   };
 }
 
+const testToolContext = {
+  interfaceType: "test",
+  actor: { kind: "user" as const, userId: "test" },
+};
+
 describe("A2A Client", () => {
   describe("parseAgentCard", () => {
     it("should parse a valid agent card", () => {
@@ -279,7 +284,7 @@ describe("A2A Client", () => {
 
       await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(capturedHeaders).toHaveLength(1);
@@ -301,7 +306,7 @@ describe("A2A Client", () => {
 
       await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(signedUrls).toEqual(["https://remote.example.com/a2a"]);
@@ -384,7 +389,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(result).toHaveProperty("success", true);
@@ -403,7 +408,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(result).toHaveProperty("success", true);
@@ -421,7 +426,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(result).toHaveProperty("success", false);
@@ -460,7 +465,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(postAttempts).toBe(1);
@@ -520,7 +525,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(postAttempts).toBe(1);
@@ -576,7 +581,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(postAttempts).toBe(1);
@@ -629,7 +634,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(postAttempts).toBe(2);
@@ -691,7 +696,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(result).toHaveProperty("success", true);
@@ -726,7 +731,7 @@ describe("A2A Client", () => {
 
       const result = await tool.handler(
         { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
+        testToolContext,
       );
 
       expect(postAttempts).toBe(1);

@@ -65,7 +65,7 @@ describe("ensure-assets tool", () => {
       { entityType: "post", status: "published", assetType: "og-image" },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
         userPermissionLevel: "anchor",
       },
     );

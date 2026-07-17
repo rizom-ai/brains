@@ -205,7 +205,7 @@ async function runCreateInterceptor(
 ): Promise<InterceptorOutcome> {
   const executionContext: CreateExecutionContext = {
     interfaceType: toolContext.interfaceType,
-    userId: toolContext.userId,
+    actor: toolContext.actor,
     ...(toolContext.channelId && { channelId: toolContext.channelId }),
     ...(toolContext.channelName && { channelName: toolContext.channelName }),
   };
@@ -245,7 +245,7 @@ async function executeUploadPreserve(
 ): Promise<ToolResponse> {
   const executionContext: CreateExecutionContext = {
     interfaceType: toolContext.interfaceType,
-    userId: toolContext.userId,
+    actor: toolContext.actor,
     ...(toolContext.channelId && { channelId: toolContext.channelId }),
     ...(toolContext.channelName && {
       channelName: toolContext.channelName,

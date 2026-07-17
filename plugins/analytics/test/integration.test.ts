@@ -47,7 +47,7 @@ const nullToolContext = {
   sessionId: "test-session",
   conversationId: "test-conversation",
   interfaceType: "test" as const,
-  userId: "test-user",
+  actor: { kind: "user" as const, userId: "test-user" },
   permissionContext: { interfaceId: "test", sessionId: "test" },
 };
 

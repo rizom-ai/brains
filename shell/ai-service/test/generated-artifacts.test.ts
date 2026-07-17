@@ -140,7 +140,7 @@ describe("generated artifact tool loop", () => {
       },
       {
         interfaceType: "agent",
-        userId: "agent-user",
+        actor: { kind: "agent", agentId: "brain-agent" },
         conversationId: "conv-1",
         channelId: "conv-1",
       },

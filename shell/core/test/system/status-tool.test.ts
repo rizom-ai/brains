@@ -3,6 +3,11 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool } from "@brains/mcp-service";
 
+const toolContext = {
+  interfaceType: "test",
+  actor: { kind: "user" as const, userId: "test" },
+};
+
 describe("system_status tool", () => {
   let tools: Tool[];
 
@@ -23,10 +28,7 @@ describe("system_status tool", () => {
 
   it("should return app info on success", async () => {
     const tool = findTool("system_status");
-    const result = await tool.handler(
-      {},
-      { interfaceType: "test", userId: "test" },
-    );
+    const result = await tool.handler({}, toolContext);
 
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;
@@ -43,7 +45,7 @@ describe("system_status tool", () => {
     const tool = findTool("system_status");
     const result = await tool.handler(
       {},
-      { interfaceType: "test", userId: "test", userPermissionLevel: "public" },
+      { ...toolContext, userPermissionLevel: "public" },
     );
 
     expect("success" in result && result.success).toBe(true);
@@ -58,10 +60,7 @@ describe("system_status tool", () => {
 
   it("should not include plugin or tool lists", async () => {
     const tool = findTool("system_status");
-    const result = await tool.handler(
-      {},
-      { interfaceType: "test", userId: "test" },
-    );
+    const result = await tool.handler({}, toolContext);
 
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;

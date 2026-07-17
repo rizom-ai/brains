@@ -1,4 +1,5 @@
 import { getActiveAuthService } from "@brains/auth-service";
+import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   EntityPluginContext,
@@ -118,6 +119,7 @@ export function createAgentSetTrustLevelTool(
       }
 
       const authService = getActiveAuthService();
+      const actorUserId = authenticatedUserId(toolContext);
       if (!authService) {
         return {
           success: false,
@@ -169,9 +171,7 @@ export function createAgentSetTrustLevelTool(
               keyFingerprint: input.keyFingerprint,
               grantedLevel: "trusted",
             },
-            toolContext.userId.startsWith("usr_")
-              ? { actorUserId: toolContext.userId }
-              : {},
+            actorUserId ? { actorUserId } : {},
           );
           return {
             success: true,
@@ -185,9 +185,7 @@ export function createAgentSetTrustLevelTool(
 
         await authService.revokeA2APeerTrust(
           resolved.domain,
-          toolContext.userId.startsWith("usr_")
-            ? { actorUserId: toolContext.userId }
-            : {},
+          actorUserId ? { actorUserId } : {},
         );
         return {
           success: true,

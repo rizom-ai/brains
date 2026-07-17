@@ -5,14 +5,14 @@ import type { PublishAssetDefinition } from "../publish-assets";
 
 export interface PublishAuthContext {
   interfaceType?: ToolContext["interfaceType"];
-  userId?: ToolContext["userId"];
+  actor?: ToolContext["actor"];
   userPermissionLevel?: ToolContext["userPermissionLevel"];
   authorization?: "user" | "system";
 }
 
 export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
   interfaceType: "system",
-  userId: "system",
+  actor: { kind: "service", serviceId: "content-pipeline" },
   userPermissionLevel: "anchor",
   authorization: "system",
 };

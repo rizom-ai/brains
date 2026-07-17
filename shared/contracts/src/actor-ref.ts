@@ -64,6 +64,12 @@ export function actorRefFromLegacy(input: LegacyActorIdentity): ActorRef {
   };
 }
 
+export function authenticatedUserId(context: {
+  actor?: ActorRef | undefined;
+}): string | undefined {
+  return context.actor?.kind === "user" ? context.actor.userId : undefined;
+}
+
 export function actorRefKey(actor: ActorRef): string {
   switch (actor.kind) {
     case "user":

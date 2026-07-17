@@ -1449,8 +1449,11 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenLastCalledWith(
         expect.objectContaining({
           options: expect.objectContaining({
-            userId: "usr_mira",
-            canonicalId: "person:mira",
+            actor: {
+              kind: "user",
+              userId: "usr_mira",
+              canonicalId: "person:mira",
+            },
             displayName: "Mira Ops",
           }),
         }),
@@ -3668,8 +3671,11 @@ describe("AgentService", () => {
           interfaceType: "matrix",
           channelId: "!room:example.org",
           channelName: "Ops",
-          userId: "usr_mira",
-          canonicalId: "user:mira",
+          actor: {
+            kind: "user",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+          },
           displayName: "Mira",
           userPermissionLevel: "trusted",
         }),

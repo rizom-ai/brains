@@ -8,7 +8,7 @@
  * and stays a thin orchestration façade.
  */
 
-import { actorRefKey, type AgentContextItem } from "@brains/contracts";
+import type { AgentContextItem } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
@@ -330,15 +330,7 @@ export class TurnProcessor {
 
     const context: ToolContext = {
       interfaceType,
-      userId: attributedActor
-        ? attributedActor.identity.kind === "user"
-          ? attributedActor.identity.userId
-          : actorRefKey(attributedActor.identity)
-        : "agent-user",
-      ...(attributedActor?.identity.kind === "user" &&
-      attributedActor.identity.canonicalId
-        ? { canonicalId: attributedActor.identity.canonicalId }
-        : {}),
+      actor: attributedActor?.identity ?? this.getAssistantActor().identity,
       ...(attributedActor?.displayName
         ? { displayName: attributedActor.displayName }
         : {}),

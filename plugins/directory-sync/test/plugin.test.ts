@@ -90,7 +90,7 @@ describe("DirectorySyncPlugin", () => {
         {},
         {
           interfaceType: "test",
-          userId: "test-user",
+          actor: { kind: "user", userId: "test-user" },
         },
       );
 

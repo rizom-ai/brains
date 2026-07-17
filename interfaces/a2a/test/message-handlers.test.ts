@@ -99,7 +99,10 @@ describe("A2A call message handlers", () => {
     if (!tool) throw new Error("Expected agent_call tool");
     const toolResult = await tool.handler(
       { agent: "approved.example", message: "Compare shape" },
-      { interfaceType: "test", userId: "test" },
+      {
+        interfaceType: "test",
+        actor: { kind: "user", userId: "test" },
+      },
     );
 
     expect("success" in response && response.success).toBe(true);

@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { ActorRef } from "@brains/contracts";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
@@ -13,7 +14,7 @@ export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
   permissionLevel?: ToolVisibility;
-  canonicalId?: string;
+  actor?: ActorRef;
   displayName?: string;
 }
 
@@ -264,6 +265,7 @@ export class StreamableHTTPServer {
         extra: {
           subject: "static-token-operator",
           permissionLevel: "anchor",
+          actor: { kind: "service", serviceId: "mcp-static-token" },
         },
       };
     }
@@ -305,7 +307,7 @@ export class StreamableHTTPServer {
         extra: {
           subject: verified.subject,
           permissionLevel: verified.permissionLevel,
-          canonicalId: verified.canonicalId,
+          actor: verified.actor,
           displayName: verified.displayName,
         },
       };

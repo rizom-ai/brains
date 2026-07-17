@@ -10,6 +10,19 @@ import { createMCPTools } from "../src/tools";
 
 type AgentService = NonNullable<MockShellOptions["agentService"]>;
 
+function externalToolContext(userId: string): {
+  interfaceType: "mcp";
+  actor: { kind: "external"; externalActorId: string };
+} {
+  return {
+    interfaceType: "mcp",
+    actor: {
+      kind: "external",
+      externalActorId: createExternalActorId("mcp", userId),
+    },
+  };
+}
+
 function createAgentService(conversationIds?: string[]): AgentService {
   return {
     chat: mock(async (_message, conversationId) => {
@@ -55,8 +68,11 @@ describe("MCP tools", () => {
       { message: "Save this note", conversationId: "client-conversation" },
       {
         interfaceType: "mcp",
-        userId: "operator-1",
-        canonicalId: "user:operator-1",
+        actor: {
+          kind: "user",
+          userId: "operator-1",
+          canonicalId: "user:operator-1",
+        },
         displayName: "Mira",
         conversationId: "session-conversation",
         channelId: "session-1",
@@ -110,8 +126,7 @@ describe("MCP tools", () => {
     await chatTool.handler(
       { message: "Continue" },
       {
-        interfaceType: "mcp",
-        userId: "operator-1",
+        ...externalToolContext("operator-1"),
         conversationId: "session-conversation",
         userPermissionLevel: "trusted",
       },
@@ -137,11 +152,11 @@ describe("MCP tools", () => {
 
     const first = await chatTool.handler(
       { message: "First" },
-      { interfaceType: "mcp", userId: "operator-1" },
+      externalToolContext("operator-1"),
     );
     const second = await chatTool.handler(
       { message: "Second" },
-      { interfaceType: "mcp", userId: "operator-1" },
+      externalToolContext("operator-1"),
     );
 
     const firstConversation = (first as { data: { conversationId: string } })
@@ -168,7 +183,7 @@ describe("MCP tools", () => {
     for (const userId of ["operator-1", "operator-2"]) {
       await chatTool.handler(
         { message: "Continue", conversationId: "shared-handle" },
-        { interfaceType: "mcp", userId },
+        externalToolContext(userId),
       );
     }
 
@@ -210,7 +225,7 @@ describe("MCP tools", () => {
 
     const response = await chatTool.handler(
       { message: "Save note" },
-      { interfaceType: "mcp", userId: "operator-1" },
+      externalToolContext("operator-1"),
     );
 
     expect(response).toEqual({
@@ -267,7 +282,7 @@ describe("MCP tools", () => {
 
     const response = await chatTool.handler(
       { message: "Save note" },
-      { interfaceType: "mcp", userId: "operator-1" },
+      externalToolContext("operator-1"),
     );
 
     expect(response).toEqual({
@@ -303,8 +318,7 @@ describe("MCP tools", () => {
         conversationId: "client-conversation",
       },
       {
-        interfaceType: "mcp",
-        userId: "operator-1",
+        ...externalToolContext("operator-1"),
         conversationId: "session-conversation",
         channelId: "session-1",
         channelName: "MCP Session",

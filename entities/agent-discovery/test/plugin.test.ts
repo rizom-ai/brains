@@ -304,7 +304,7 @@ describe("AgentDiscoveryPlugin", () => {
     const result = await harness.executeTool(
       "agent_set_trust_level",
       confirmation.args as Record<string, unknown>,
-      { userId: owner.userId },
+      { actor: { kind: "user", userId: owner.userId } },
     );
 
     expectSuccess(result);

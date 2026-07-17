@@ -110,7 +110,10 @@ describe("WishCreateHandler", () => {
         title: "Make lasagna",
         content: "User wants the assistant to physically make lasagna.",
       },
-      { interfaceType: "discord", userId: "yeehaa" },
+      {
+        interfaceType: "discord",
+        actor: { kind: "user", userId: "yeehaa" },
+      },
     );
 
     expect(result).toEqual({

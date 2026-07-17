@@ -109,7 +109,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "web-chat",
-        userId: "operator",
+        actor: { kind: "user", userId: "operator" },
       },
     );
 
@@ -206,7 +206,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "web-chat",
-        userId: "operator",
+        actor: { kind: "user", userId: "operator" },
       },
     );
     await rm(join(store.getUploadDir(record.ref.id), "content"));
@@ -262,7 +262,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "web-chat",
-        userId: "operator",
+        actor: { kind: "user", userId: "operator" },
       },
     );
 
@@ -290,7 +290,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -344,7 +344,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -383,7 +383,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -430,7 +430,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -478,7 +478,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -538,7 +538,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -580,7 +580,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -643,7 +643,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 
@@ -670,7 +670,7 @@ describe("ImagePlugin", () => {
       },
       {
         interfaceType: "test",
-        userId: "test-user",
+        actor: { kind: "user", userId: "test-user" },
       },
     );
 

@@ -1,3 +1,4 @@
+import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,
   CountEntitiesRequest,
@@ -72,9 +73,8 @@ export interface ToolContext {
     total?: number;
     message?: string;
   }) => Promise<void>;
-  interfaceType?: string;
-  userId?: string;
-  canonicalId?: string;
+  interfaceType: string;
+  actor: ActorRef;
   displayName?: string;
   conversationId?: string;
   channelId?: string;

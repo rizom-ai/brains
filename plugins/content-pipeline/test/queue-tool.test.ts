@@ -26,7 +26,7 @@ const permissionChecks: Array<{
 
 const mockToolContext: ToolContext = {
   interfaceType: "test",
-  userId: "test-user",
+  actor: { kind: "user", userId: "test-user" },
 };
 
 describe("publish_queue tool", () => {

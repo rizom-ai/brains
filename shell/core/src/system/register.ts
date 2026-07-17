@@ -75,7 +75,7 @@ export function registerSystemCapabilities(
         toolName,
         args,
         interfaceType,
-        userId,
+        actor,
         conversationId,
         channelId,
         userPermissionLevel,
@@ -91,7 +91,7 @@ export function registerSystemCapabilities(
 
       const toolContext: ToolContext = {
         interfaceType: interfaceType ?? "system",
-        userId: userId ?? "system",
+        actor: actor ?? { kind: "service", serviceId: "system" },
       };
       if (conversationId) toolContext.conversationId = conversationId;
       if (channelId) toolContext.channelId = channelId;

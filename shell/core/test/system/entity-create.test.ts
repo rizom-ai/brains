@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "bun:test";
+import { authenticatedUserId } from "@brains/contracts";
 import { createSystemTools } from "../../src/system/tools";
 import {
   createInputSchema,
@@ -183,7 +184,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
             url,
             metadata: {
               interfaceId: executionContext.interfaceType,
-              userId: executionContext.userId,
+              userId: authenticatedUserId(executionContext) ?? "unknown",
               ...(executionContext.channelId
                 ? { channelId: executionContext.channelId }
                 : {}),
@@ -361,7 +362,10 @@ describe("system_create tool", () => {
   function buildContext(context?: CreateToolTestContext): ToolContext {
     return {
       interfaceType: context?.interfaceType ?? "test",
-      userId: context?.userId ?? "test",
+      actor: {
+        kind: "user",
+        userId: context?.userId ?? "test",
+      },
       ...(context?.conversationId
         ? { conversationId: context.conversationId }
         : {}),
@@ -919,7 +923,7 @@ status: draft
     });
     expect(capturedContext).toEqual({
       interfaceType: "matrix",
-      userId: "alice",
+      actor: { kind: "user", userId: "alice" },
       channelId: "!room:test",
       channelName: "#general",
     });

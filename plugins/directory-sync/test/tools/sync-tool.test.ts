@@ -27,7 +27,7 @@ describe("directory-sync_sync tool", () => {
     const result = await syncTool.handler({}, {
       interfaceType: "web-chat",
       channelId: "channel-1",
-      userId: "user-1",
+      actor: { kind: "user", userId: "user-1" },
     } as ToolContext);
 
     expect(result).toEqual({
@@ -46,7 +46,7 @@ describe("directory-sync_sync tool", () => {
       toolContext: {
         interfaceType: "web-chat",
         channelId: "channel-1",
-        userId: "user-1",
+        actor: { kind: "user", userId: "user-1" },
       },
     });
     expect(gitSync.pull).not.toHaveBeenCalled();

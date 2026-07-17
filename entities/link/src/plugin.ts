@@ -10,6 +10,7 @@ import type {
   CreateExecutionContext,
   CreateInterceptionResult,
 } from "@brains/plugins";
+import { authenticatedUserId } from "@brains/contracts";
 import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
@@ -155,6 +156,7 @@ export class LinkPlugin extends EntityPlugin<
       }
 
       try {
+        const userId = authenticatedUserId(executionContext);
         const entityId = await this.createPendingLink(
           url,
           input.title,
@@ -168,7 +170,7 @@ export class LinkPlugin extends EntityPlugin<
             url,
             metadata: {
               interfaceId: executionContext.interfaceType,
-              userId: executionContext.userId,
+              ...(userId ? { userId } : {}),
               ...(executionContext.channelId
                 ? { channelId: executionContext.channelId }
                 : {}),
@@ -184,6 +186,8 @@ export class LinkPlugin extends EntityPlugin<
               operationType: "data_processing",
               pluginId: this.id,
               interfaceType: executionContext.interfaceType,
+              requestedByActor: executionContext.actor,
+              ...(userId ? { requestedByUserId: userId } : {}),
               ...(executionContext.channelId
                 ? { channelId: executionContext.channelId }
                 : {}),

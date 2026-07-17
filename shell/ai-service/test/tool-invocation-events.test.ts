@@ -90,6 +90,7 @@ describe("tool invocation events", () => {
           conversationId: string;
           channelId: string;
           interfaceType: string;
+          actor: { kind: "agent"; agentId: string };
         };
 
         expect(payload.toolName).toBe("search_notes");
@@ -97,6 +98,10 @@ describe("tool invocation events", () => {
         expect(payload.conversationId).toBe("test-conv");
         expect(payload.channelId).toBe("test-channel");
         expect(payload.interfaceType).toBe("test");
+        expect(payload.actor).toEqual({
+          kind: "agent",
+          agentId: "brain-agent",
+        });
       }
     });
 
@@ -114,8 +119,11 @@ describe("tool invocation events", () => {
         channelId: "!abc:matrix.org",
         channelName: "General Chat",
         interfaceType: "matrix",
-        userId: "usr_mira",
-        canonicalId: "user:mira",
+        actor: {
+          kind: "user" as const,
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        },
         displayName: "Mira",
       };
 
@@ -135,8 +143,11 @@ describe("tool invocation events", () => {
           channelId: string;
           channelName: string;
           interfaceType: string;
-          userId: string;
-          canonicalId: string;
+          actor: {
+            kind: "user";
+            userId: string;
+            canonicalId: string;
+          };
           displayName: string;
         };
 
@@ -144,8 +155,11 @@ describe("tool invocation events", () => {
         expect(payload.channelId).toBe("!abc:matrix.org");
         expect(payload.channelName).toBe("General Chat");
         expect(payload.interfaceType).toBe("matrix");
-        expect(payload.userId).toBe("usr_mira");
-        expect(payload.canonicalId).toBe("user:mira");
+        expect(payload.actor).toEqual({
+          kind: "user",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        });
         expect(payload.displayName).toBe("Mira");
       }
     });

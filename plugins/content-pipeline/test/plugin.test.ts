@@ -123,7 +123,7 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
         authContext: {
           interfaceType: "test",
-          userId: "anchor-user",
+          actor: { kind: "user", userId: "anchor-user" },
           userPermissionLevel: "anchor",
           authorization: "user",
         },
@@ -132,7 +132,7 @@ describe("ContentPipelinePlugin", () => {
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue[0]?.authContext).toEqual({
         interfaceType: "test",
-        userId: "anchor-user",
+        actor: { kind: "user", userId: "anchor-user" },
         userPermissionLevel: "anchor",
         authorization: "user",
       });
@@ -185,7 +185,7 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
         authContext: {
           interfaceType: "test",
-          userId: "anchor-user",
+          actor: { kind: "user", userId: "anchor-user" },
           userPermissionLevel: "anchor",
           authorization: "user",
         },

@@ -1,7 +1,9 @@
-import type {
-  AgentContextItem,
-  AgentContextRequest,
-  AgentResponse,
+import {
+  actorRefSchema,
+  type ActorRef,
+  type AgentContextItem,
+  type AgentContextRequest,
+  type AgentResponse,
 } from "@brains/contracts";
 export type {
   ActionsCard,
@@ -48,8 +50,7 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
-  userId: z.ZodOptional<z.ZodString>;
-  canonicalId: z.ZodOptional<z.ZodString>;
+  actor: z.ZodOptional<z.ZodType<ActorRef, ActorRef>>;
   displayName: z.ZodOptional<z.ZodString>;
   agentContextInstructions: z.ZodOptional<z.ZodString>;
   disableTools: z.ZodOptional<z.ZodBoolean>;
@@ -62,8 +63,7 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
-  userId: z.string().optional(),
-  canonicalId: z.string().optional(),
+  actor: actorRefSchema.optional(),
   displayName: z.string().optional(),
   agentContextInstructions: z.string().optional(),
   disableTools: z.boolean().optional(),

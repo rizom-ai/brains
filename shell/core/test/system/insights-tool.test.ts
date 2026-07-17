@@ -5,7 +5,10 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 
-const toolContext: ToolContext = { interfaceType: "mcp", userId: "test" };
+const toolContext: ToolContext = {
+  interfaceType: "mcp",
+  actor: { kind: "user", userId: "test" },
+};
 
 function findTool(tools: Tool[], name: string): Tool {
   const tool = tools.find((t) => t.name === name);

@@ -104,6 +104,36 @@ describe("SiteContentOperations", () => {
       });
     });
 
+    test("should preserve non-user actor attribution in queued jobs", async () => {
+      spyOn(context.templates, "getCapabilities").mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+      spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+      const enqueueBatchSpy = spyOn(
+        context.jobs,
+        "enqueueBatch",
+      ).mockResolvedValue("batch-attribution");
+      const actor = { kind: "external", externalActorId: "ext_test" } as const;
+
+      await operations.generate({ routeId: "about" }, undefined, {
+        operationType: "content_operations",
+        interfaceType: "mcp",
+        requestedByActor: actor,
+        requestedByInterface: "mcp",
+      });
+
+      expect(enqueueBatchSpy.mock.calls[0]?.[1]?.metadata).toMatchObject({
+        requestedByActor: actor,
+        requestedByInterface: "mcp",
+      });
+      expect(
+        enqueueBatchSpy.mock.calls[0]?.[1]?.metadata.requestedByUserId,
+      ).toBeUndefined();
+    });
+
     test("should filter by routeId when specified", async () => {
       const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
       getCapabilitiesSpy.mockReturnValue({

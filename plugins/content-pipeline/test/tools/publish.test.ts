@@ -18,7 +18,7 @@ import type { ToolContext } from "@brains/plugins";
 function createMockToolContext(): ToolContext {
   return {
     interfaceType: "test",
-    userId: "test-user",
+    actor: { kind: "user", userId: "test-user" },
   };
 }
 
