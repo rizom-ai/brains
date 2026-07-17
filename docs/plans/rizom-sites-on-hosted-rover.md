@@ -9,33 +9,27 @@ Rollout tail. The platform work is implemented and released:
 - generated user config carries `siteOverride` and optional capabilities;
 - custom-domain TLS/DNS support is available;
 - packed boot/render smokes cover the published-package path;
-- `new.rizom.ai` is live on Rover with `@rizom/site-rizom-ai@0.2.0-alpha.157`
-  and the AT Protocol registry capability.
+- `new.rizom.ai` is live on Rover with runtime and `@rizom/site-rizom-ai` pinned to
+  `0.2.0-alpha.186`, plus the AT Protocol registry capability.
 
-This plan now owns only production cutover validation. Architecture and package history are
-in git and changelogs, not here. Delete this file when the production sites are cut over or
-when [`rizom-consolidation.md`](./rizom-consolidation.md) replaces the remaining rollout.
+[`rizom-consolidation.md`](./rizom-consolidation.md) now owns the `rizom.ai`,
+`rizom.work`, and `rizom.foundation` cutover. This plan retains only the hosted
+`docs.rizom.ai` migration and its shared package-path validation. Architecture and package
+history remain in git and changelogs; delete this file after the docs cutover and soak.
 
 ## Goal
 
-Move the production Rizom and docs domains onto the proven hosted Rover package path
-without losing content, canonical URLs, registry routes, TLS, or rollback capability.
+Move `docs.rizom.ai` onto the proven hosted Rover package path without losing content,
+canonical URLs, TLS, or rollback capability.
 
 ## Remaining rollout
 
-Use this order unless the consolidation plan intentionally removes a target:
+Remaining target: `docs.rizom.ai`.
 
-1. `rizom.ai`
-2. `rizom.work`
-3. `rizom.foundation`
-4. `docs.rizom.ai`
-
-For each target:
+For the cutover:
 
 1. Pin the released runtime and site package in rover-pilot desired state.
-2. Preserve required capabilities:
-   - `rizom.ai`: `atproto-registry`
-   - `docs.rizom.ai`: `docs`
+2. Preserve the `docs` capability.
 3. Build the exact hash-tagged image before deployment.
 4. Reconcile generated config and inspect the effective `brain.yaml`.
 5. Deploy preview first and trigger a preview site rebuild through the running app's remote
@@ -72,18 +66,6 @@ image must install the same package set represented by desired state.
 - A remote preview rebuild writes `dist/site-preview` on the running app.
 - Canonical URLs, navigation, theme assets, and representative content survive cutover.
 
-### `rizom.ai`
-
-- `/.well-known/*` behavior is preserved.
-- `/atproto/lexicons/*.json` serves the canonical registry documents.
-- The installed package is `@rizom/site-rizom-ai` at the desired version.
-
-### `rizom.work` and `rizom.foundation`
-
-- Representative legacy deep links resolve correctly.
-- Their distinct route content and visual profile survive unless consolidation has already
-  replaced them with redirects.
-
 ### `docs.rizom.ai`
 
 - The docs manifest/content sync remains current.
@@ -95,8 +77,8 @@ After a successful soak:
 
 - remove the superseded standalone deploy workflow;
 - archive the old app repo only when it no longer owns runtime or site behavior;
-- keep content repos active until the consolidation plan explicitly merges them;
-- remove obsolete Ranger/Relay site-only deployment paths;
+- keep the docs content repo active;
+- remove the superseded docs deployment path;
 - delete this plan.
 
 ## Related

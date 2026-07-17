@@ -170,22 +170,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Finish the hosted Rizom site rollout</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; <code>new.rizom.ai</code> proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.</div>
-          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**in progress on <code>work/rizom-consolidated-site</code>**: the consolidated routes, Rover composition, merged content repo, and published-site-model port exist in the worktree. Remaining work is copy/schema completion, merge/release, a real consolidated staging deploy, runtime-state migration, production cutover, and retirement.</div>
-          <div class="card-file">rizom-consolidation.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Rover default batch onboarding</span>
@@ -193,14 +177,6 @@
           </div>
           <div class="card-desc">next hosted Rover pilot customization/preflight work.</div>
           <div class="card-file">rover-default-batch-onboarding.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rover onboarding plugin plan</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.</div>
-          <div class="card-file">rover-onboarding-plugin.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -217,6 +193,22 @@
           </div>
           <div class="card-desc">make Discord opt-in in <code>@rizom/ops</code> rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.</div>
           <div class="card-file">discord-opt-in-plan.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Finish the hosted Rizom site rollout</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">hosted package/image/TLS machinery is released and proven by <code>new.rizom.ai</code>; remaining scope is the <code>docs.rizom.ai</code> hosted cutover.</div>
+          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">the consolidated site and composition are merged and published; refresh <code>new.rizom.ai</code> from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.</div>
+          <div class="card-file">rizom-consolidation.md</div>
         </div>
         </div>
       </details>
@@ -255,22 +247,6 @@
           <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
           <div class="card-file">message-feedback.md</div>
         </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Optional CMS publishing workspace</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.</div>
-          <div class="card-file">cms-publishing-workspace.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Optional CMS site workspace</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">register an optional Site workspace from site-builder for preview/live status and rebuild actions, proving the CMS workspace boundary with a second independent provider.</div>
-          <div class="card-file">cms-site-workspace.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
@@ -297,7 +273,7 @@
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.</div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
         </div>

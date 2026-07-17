@@ -2,20 +2,15 @@
 
 ## Status
 
-In progress on `work/rizom-consolidated-site`.
+Cutover preparation. The consolidated home, `/work`, `/foundation`, `/writing`, and
+`/network` implementation is merged into `main`, and `@rizom/site-rizom-ai` is published
+at `0.2.0-alpha.192`. The schema-first content model, merged `rizom-content` corpus, and
+Rover composition are complete.
 
-The branch carries the finished site work (2026-07-13): the consolidated home, `/work`,
-`/foundation`, `/writing`, and `/network` authored **schema-first** via the new
-`@rizom/site-sections` package (one zod schema per section; no field DSL); the final
-copy authored into `rizom-ai/rizom-content` as `site-content/<page>/<section>.md`
-through the schema-derived formatter; the composition verified against a local render
-(all 21 sections render — which surfaced that `site-content` is a required capability);
-the products-era theme-profile canvas dropped; and changesets staged for the whole
-release train. That code is not on `main` and the currently deployed `new.rizom.ai`
-canary proves only the hosted package path, not this consolidated result.
-
-This plan tracks only the remaining merge, staging, cutover, and retirement work. Delete
-it when one production Rizom deployment remains.
+`new.rizom.ai` still runs runtime and site package `0.2.0-alpha.186`; production
+`rizom.ai` still runs Ranger `0.1.0`. This plan now tracks the staging refresh, runtime
+state migration, production cutover, redirects, soak, and retirement. Delete it when one
+production Rizom deployment remains.
 
 ## Goal
 
@@ -53,20 +48,16 @@ Protocol registry and collective memory, then retire the redundant deployments.
 - ✅ Run package tests, rendered-site checks, typecheck, lint, and the full commit hooks
   (local render verified: all sections on all faces, `/writing` + `/network` lists, only
   `boot.js` in the head).
-- Merge and publish the resulting `@rizom/site-rizom-ai` release (changesets staged on
-  the branch; the release train also carries `@rizom/site-sections`, `@rizom/site`,
-  `@rizom/site-rizom`, and `@rizom/brain` — the deployed runtime needs the section
-  registration).
+- ✅ Merge and publish the resulting site release. `@rizom/site-rizom-ai`,
+  `@rizom/site-sections`, `@rizom/site`, `@rizom/site-rizom`, and `@rizom/brain` are
+  published at `0.2.0-alpha.192`.
 
 ### 2. Stage the actual consolidated brain
 
-Update rover-pilot `new` desired state to use:
-
-- the newly published consolidated site package;
-- `rizom-ai/rizom-content`;
-- `@rizom/theme-rizom-ai`;
-- `web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`, and
-  `site-content`.
+The rover-pilot `new` desired state already selects the consolidated site package,
+`rizom-ai/rizom-content`, `@rizom/theme-rizom-ai`, `web-chat`, `atproto-registry`,
+`rizom-ecosystem`, `newsletter`, and `site-content`. Update its runtime and exact site
+package pins from `0.2.0-alpha.186` to the chosen release.
 
 Build the exact hash-tagged image, deploy to `new.rizom.ai`, trigger the preview rebuild
 through the running app, and review the consolidated home/rooms/indexes against the
