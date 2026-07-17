@@ -7,8 +7,8 @@ site fallbacks are implemented. Phase 1B's communication-preferences contract,
 instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
-tool, and Rover wiring are implemented. Rich professional-history domains and later
-phases are not yet started.
+tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
+exposing member values; rich-domain fixtures/mappers and later phases are not yet started.
 
 ## Context
 
@@ -251,11 +251,19 @@ confirmation behavior, tool queuing, and inert/configured plugin wiring.
 
 ## Phase 2B — Rich professional domains
 
-Capture representative sanctioned Snapshot/export fixtures before enabling
-`POSITIONS`, `EDUCATION`, `SKILLS`, or `CERTIFICATIONS`. Add one deterministic mapper per
-domain, register it through the existing transform registry, and merge arrays by stable
-provider-neutral fingerprints. Do not guess source keys from display labels or third-party
-export examples.
+The client supports `POSITIONS`, `EDUCATION`, `SKILLS`, and `CERTIFICATIONS`, and the
+anchor-only `linkedin-import_inspect_schema` tool reports only source field names, value
+types, occurrence counts, and record counts—never member values. This provides a
+privacy-preserving way to capture real sanctioned API shapes.
+
+Before enabling those domains for import:
+
+1. Run schema inspection against representative consenting accounts.
+2. Turn the observed contracts into redacted Snapshot/export fixtures.
+3. Add one deterministic mapper per domain through the transform registry.
+4. Merge arrays by stable provider-neutral fingerprints.
+
+Do not guess source keys from display labels or third-party export examples.
 
 ## Phase 3 — LLM distillation pass
 

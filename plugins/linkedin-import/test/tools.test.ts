@@ -46,6 +46,7 @@ function createDeps(overrides?: {
               { "First Name": "Ada", "Last Name": "Morgan" },
             ],
         ),
+        fetchDomain: mock(async () => overrides?.records ?? []),
       },
       entityService: {
         getEntity: mock(async () => profile),
@@ -122,7 +123,45 @@ describe("LinkedIn import tools", () => {
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  it("rejects unexpected input", async () => {
+  it("inspects rich-domain keys without returning member values", async () => {
+    const { deps } = createDeps({
+      records: [
+        {
+          "Company Name": "Secret Company",
+          Title: "Secret Role",
+          "Started On": "2025-01",
+        },
+        {
+          "Company Name": "Another Company",
+          Title: "Another Role",
+          "Finished On": null,
+        },
+      ],
+    });
+    const tool = createLinkedInImportTools("linkedin-import", deps)[1];
+    if (!tool)
+      throw new Error("LinkedIn schema inspection tool not registered");
+
+    const result = await tool.handler({ domain: "POSITIONS" }, toolContext);
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        domain: "POSITIONS",
+        recordsRead: 2,
+        fields: [
+          { name: "Company Name", types: ["string"], presentCount: 2 },
+          { name: "Finished On", types: ["null"], presentCount: 1 },
+          { name: "Started On", types: ["string"], presentCount: 1 },
+          { name: "Title", types: ["string"], presentCount: 2 },
+        ],
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("Secret Company");
+    expect(JSON.stringify(result)).not.toContain("Secret Role");
+  });
+
+  it("rejects unexpected import input", async () => {
     const { deps } = createDeps();
     const tool = createLinkedInImportTools("linkedin-import", deps)[0];
     if (!tool) throw new Error("LinkedIn import tool not registered");

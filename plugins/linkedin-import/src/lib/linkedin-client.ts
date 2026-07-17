@@ -6,6 +6,18 @@ export type LinkedInFetch = (
 ) => Promise<Response>;
 export type LinkedInSnapshotRecord = Record<string, unknown>;
 
+export const linkedinProfessionalSnapshotDomainSchema: z.ZodEnum<{
+  PROFILE: "PROFILE";
+  POSITIONS: "POSITIONS";
+  EDUCATION: "EDUCATION";
+  SKILLS: "SKILLS";
+  CERTIFICATIONS: "CERTIFICATIONS";
+}> = z.enum(["PROFILE", "POSITIONS", "EDUCATION", "SKILLS", "CERTIFICATIONS"]);
+
+export type LinkedInProfessionalSnapshotDomain = z.output<
+  typeof linkedinProfessionalSnapshotDomainSchema
+>;
+
 interface LinkedInSnapshotPage {
   elements: Array<{
     snapshotDomain: string;
@@ -88,13 +100,20 @@ export class LinkedInClient {
 
   /** Fetch all PROFILE snapshot pages for the consenting member. */
   async fetchProfile(): Promise<LinkedInSnapshotRecord[]> {
+    return this.fetchDomain("PROFILE");
+  }
+
+  /** Fetch every page for one supported professional snapshot domain. */
+  async fetchDomain(
+    domain: LinkedInProfessionalSnapshotDomain,
+  ): Promise<LinkedInSnapshotRecord[]> {
     const records: LinkedInSnapshotRecord[] = [];
     let start = 0;
 
     for (let pageCount = 0; pageCount < MAX_SNAPSHOT_PAGES; pageCount += 1) {
       const url = new URL(`${API_BASE_URL}/memberSnapshotData`);
       url.searchParams.set("q", "criteria");
-      url.searchParams.set("domain", "PROFILE");
+      url.searchParams.set("domain", domain);
       url.searchParams.set("start", String(start));
 
       const response = await this.fetchFn(url, {
@@ -114,10 +133,10 @@ export class LinkedInClient {
       }
 
       const page = snapshotPageSchema.parse(await response.json());
-      const profileElements = page.elements.filter(
-        (element) => element.snapshotDomain === "PROFILE",
+      const domainElements = page.elements.filter(
+        (element) => element.snapshotDomain === domain,
       );
-      const pageRecords = profileElements.flatMap(
+      const pageRecords = domainElements.flatMap(
         (element) => element.snapshotData,
       );
       records.push(...pageRecords);

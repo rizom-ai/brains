@@ -6,13 +6,18 @@ import {
   type ToolResponse,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { LinkedInClient } from "../lib/linkedin-client";
+import {
+  linkedinProfessionalSnapshotDomainSchema,
+  type LinkedInClient,
+  type LinkedInProfessionalSnapshotDomain,
+} from "../lib/linkedin-client";
 import { mergeProfileImport } from "../lib/merge-profile";
+import { summarizeLinkedInSnapshotSchema } from "../lib/snapshot-schema";
 import { mapLinkedInSnapshotDomain } from "../lib/transform/registry";
 import type { ProfessionalProfileImportPatch } from "../lib/transform/profile-mapper";
 
 export interface LinkedInImportToolsDeps {
-  client: Pick<LinkedInClient, "fetchProfile">;
+  client: Pick<LinkedInClient, "fetchDomain" | "fetchProfile">;
   entityService: IEntityService;
   jobs: ServicePluginContext["jobs"];
 }
@@ -33,6 +38,19 @@ const importInputSchema = {
 const importInputParserSchema: z.ZodType<LinkedInImportToolInput> = z
   .object(importInputSchema)
   .strict();
+
+interface LinkedInInspectSchemaToolInput {
+  domain: LinkedInProfessionalSnapshotDomain;
+}
+
+const inspectSchemaInputSchema = {
+  domain: linkedinProfessionalSnapshotDomainSchema.describe(
+    "Professional snapshot domain to inspect without returning member values",
+  ),
+};
+
+const inspectSchemaInputParserSchema: z.ZodType<LinkedInInspectSchemaToolInput> =
+  z.object(inspectSchemaInputSchema).strict();
 
 function previewValue(value: unknown): unknown {
   if (typeof value === "string" && value.length > 300) {
@@ -159,6 +177,32 @@ export function createLinkedInImportTools(
             merge.preservedFields,
           ),
           args: confirmationArgs,
+        };
+      },
+    },
+    {
+      name: `${pluginId}_inspect_schema`,
+      description:
+        "Inspect a sanctioned LinkedIn professional snapshot domain and return only field names, value types, and occurrence counts. Never returns member values. Use this to verify source contracts before implementing or debugging domain mappings.",
+      inputSchema: inspectSchemaInputSchema,
+      visibility: "anchor",
+      sideEffects: "none",
+      handler: async (rawInput): Promise<ToolResponse> => {
+        const parsed = inspectSchemaInputParserSchema.safeParse(rawInput);
+        if (!parsed.success) {
+          return {
+            success: false,
+            error: `Invalid input: ${parsed.error.message}`,
+          };
+        }
+
+        const records = await deps.client.fetchDomain(parsed.data.domain);
+        return {
+          success: true,
+          data: {
+            domain: parsed.data.domain,
+            ...summarizeLinkedInSnapshotSchema(records),
+          },
         };
       },
     },

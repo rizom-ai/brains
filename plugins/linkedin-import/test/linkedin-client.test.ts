@@ -43,6 +43,32 @@ describe("LinkedInClient", () => {
     expect(secondUrl.searchParams.get("start")).toBe("1");
   });
 
+  it("fetches supported rich professional domains through the same paging contract", async () => {
+    const urls: string[] = [];
+    const fetchFn = mock(async (input: string | URL | Request) => {
+      urls.push(String(input));
+      if (urls.length === 1) {
+        return Response.json({
+          paging: { start: 0 },
+          elements: [
+            {
+              snapshotDomain: "POSITIONS",
+              snapshotData: [{ "Company Name": "Example" }],
+            },
+          ],
+        });
+      }
+      return new Response("No data found for this memberId", { status: 404 });
+    }) as LinkedInFetch;
+
+    const records = await new LinkedInClient("token", fetchFn).fetchDomain(
+      "POSITIONS",
+    );
+
+    expect(records).toEqual([{ "Company Name": "Example" }]);
+    expect(new URL(urls[0] ?? "").searchParams.get("domain")).toBe("POSITIONS");
+  });
+
   it("returns an empty snapshot when LinkedIn reports no member data", async () => {
     const fetchFn = mock(
       async () =>

@@ -7,7 +7,9 @@ export {
 } from "./plugin";
 export {
   LinkedInClient,
+  linkedinProfessionalSnapshotDomainSchema,
   type LinkedInFetch,
+  type LinkedInProfessionalSnapshotDomain,
   type LinkedInSnapshotRecord,
 } from "./lib/linkedin-client";
 export {
@@ -18,3 +20,9 @@ export {
   mergeProfileImport,
   type ProfileImportMergeResult,
 } from "./lib/merge-profile";
+export {
+  summarizeLinkedInSnapshotSchema,
+  type LinkedInSnapshotFieldSummary,
+  type LinkedInSnapshotSchemaSummary,
+  type LinkedInSnapshotValueType,
+} from "./lib/snapshot-schema";
