@@ -1,6 +1,6 @@
 {
   "name": "@brains/runtime-state",
-  "version": "0.2.0-alpha.190",
+  "version": "0.2.0-alpha.191",
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",

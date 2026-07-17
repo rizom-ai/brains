@@ -1,6 +1,6 @@
 {
   "name": "@brains/decks",
-  "version": "0.2.0-alpha.190",
+  "version": "0.2.0-alpha.191",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

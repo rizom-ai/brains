@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`5145803`](https://github.com/rizom-ai/brains/commit/5145803b3bfe89f6a533a6175f8e3696a84b39cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow saved web-chat sessions containing tool approval cards to reopen by hydrating all shared structured card variants into AI SDK message parts.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.191
+  - @brains/contracts@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/auth-service@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+
 ## 0.2.0-alpha.190
 
 ### Patch Changes

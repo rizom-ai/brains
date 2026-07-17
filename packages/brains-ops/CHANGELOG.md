@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`25ae7bb`](https://github.com/rizom-ai/brains/commit/25ae7bb769072598c3e1e320fa8ed004ebda7c50) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore rover-pilot custom-domain deployment support through per-user age-encrypted TLS overrides, safe real-PEM file encryption, custom preview and `www` aliases, and per-user Cloudflare zone selection.
+
 ## 0.2.0-alpha.190
 
 ## 0.2.0-alpha.189
