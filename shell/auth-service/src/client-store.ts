@@ -1,11 +1,15 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, notExists } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
 import type { AuthRuntimeDatabase } from "./runtime-db";
-import { oauthClients } from "./runtime-schema";
+import {
+  oauthAuthCodes,
+  oauthClients,
+  oauthRefreshTokens,
+} from "./runtime-schema";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
@@ -119,6 +123,7 @@ export interface OAuthClientPersistence {
     clientId: string,
     clientSecret?: string,
   ): Promise<string | undefined>;
+  pruneStaleUnconsentedClients?(createdBefore: number): Promise<number>;
 }
 
 function createClientSecret(): string {
@@ -192,6 +197,30 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
     }
     return undefined;
   }
+
+  async pruneStaleUnconsentedClients(createdBefore: number): Promise<number> {
+    const deleted = await this.database.db
+      .delete(oauthClients)
+      .where(
+        and(
+          lt(oauthClients.createdAt, createdBefore),
+          notExists(
+            this.database.db
+              .select({ clientId: oauthAuthCodes.clientId })
+              .from(oauthAuthCodes)
+              .where(eq(oauthAuthCodes.clientId, oauthClients.clientId)),
+          ),
+          notExists(
+            this.database.db
+              .select({ clientId: oauthRefreshTokens.clientId })
+              .from(oauthRefreshTokens)
+              .where(eq(oauthRefreshTokens.clientId, oauthClients.clientId)),
+          ),
+        ),
+      )
+      .returning({ clientId: oauthClients.clientId });
+    return deleted.length;
+  }
 }
 
 export class OAuthClientStore implements OAuthClientPersistence {
@@ -241,6 +270,12 @@ export class OAuthClientStore implements OAuthClientPersistence {
       return "Invalid client secret";
     }
     return undefined;
+  }
+
+  async pruneStaleUnconsentedClients(_createdBefore: number): Promise<number> {
+    // The legacy standalone store has no authorization-code or refresh-token
+    // relationship to distinguish consented clients, so pruning it is unsafe.
+    return 0;
   }
 }
 

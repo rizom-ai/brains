@@ -506,6 +506,49 @@ describe("token endpoint", () => {
 });
 
 describe("revoke endpoint", () => {
+  it("requires a client_id", async () => {
+    const service = await makeService();
+
+    const response = await service.handleRequest(
+      new Request(`${ISSUER}/revoke`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: "ort_unknown" }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "invalid_request",
+      error_description: "client_id is required",
+    });
+  });
+
+  it("requires confidential clients to authenticate", async () => {
+    const service = await makeService();
+    const client = await service.registerClient({
+      redirect_uris: [REDIRECT_URI],
+      token_endpoint_auth_method: "client_secret_post",
+    });
+
+    const response = await service.handleRequest(
+      new Request(`${ISSUER}/revoke`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: client.client_id,
+          token: "ort_unknown",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "invalid_client",
+      error_description: "Invalid client secret",
+    });
+  });
+
   it("requires a token", async () => {
     const service = await makeService();
     const client = await registerTestClient(service);
@@ -561,6 +604,41 @@ describe("revoke endpoint", () => {
     expect(await response.json()).toMatchObject({
       error: "invalid_client",
       error_description: "Unknown client_id",
+    });
+  });
+});
+
+describe("dynamic client registration", () => {
+  it("rate-limits registration bursts without closing public registration", async () => {
+    const service = await makeService();
+
+    for (let index = 0; index < 30; index += 1) {
+      const response = await service.handleRequest(
+        new Request(`${ISSUER}/register`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            redirect_uris: [`https://client-${index}.example/callback`],
+          }),
+        }),
+      );
+      expect(response.status).toBe(201);
+    }
+
+    const limited = await service.handleRequest(
+      new Request(`${ISSUER}/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          redirect_uris: ["https://one-too-many.example/callback"],
+        }),
+      }),
+    );
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("60");
+    expect(await limited.json()).toMatchObject({
+      error: "temporarily_unavailable",
     });
   });
 });

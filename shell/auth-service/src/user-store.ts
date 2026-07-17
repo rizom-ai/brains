@@ -381,6 +381,25 @@ export class AuthUserStore {
     return Promise.all(claims.map((claim) => this.identityRecord(claim)));
   }
 
+  async listAllIdentities(): Promise<AuthIdentityRecord[]> {
+    const [claims, evidence] = await Promise.all([
+      this.db.select().from(authIdentities).orderBy(authIdentities.createdAt),
+      this.db
+        .select()
+        .from(authIdentityEvidence)
+        .orderBy(authIdentityEvidence.createdAt),
+    ]);
+    const evidenceByClaimId = new Map<string, AuthIdentityEvidence[]>();
+    for (const item of evidence) {
+      const claimEvidence = evidenceByClaimId.get(item.claimId) ?? [];
+      claimEvidence.push(item);
+      evidenceByClaimId.set(item.claimId, claimEvidence);
+    }
+    return claims.map((claim) =>
+      identityRecordFromEvidence(claim, evidenceByClaimId.get(claim.id) ?? []),
+    );
+  }
+
   async detachIdentityBySubject(
     input: ResolveAuthIdentityInput & { userId: string },
   ): Promise<AuthIdentityRecord | undefined> {
@@ -466,15 +485,7 @@ export class AuthUserStore {
       .from(authIdentityEvidence)
       .where(eq(authIdentityEvidence.claimId, claim.id))
       .orderBy(authIdentityEvidence.createdAt);
-    const verifiedAt = evidence.reduce<number | null>((latest, item) => {
-      if (item.assurance !== "verified" || item.verifiedAt === null) {
-        return latest;
-      }
-      return latest === null
-        ? item.verifiedAt
-        : Math.max(latest, item.verifiedAt);
-    }, null);
-    return { ...claim, evidence, verifiedAt };
+    return identityRecordFromEvidence(claim, evidence);
   }
 
   private async requireIdentityRecord(
@@ -494,6 +505,21 @@ export class AuthUserStore {
     if (!user) throw new Error(`Auth user not found: ${userId}`);
     return user;
   }
+}
+
+function identityRecordFromEvidence(
+  claim: AuthIdentity,
+  evidence: AuthIdentityEvidence[],
+): AuthIdentityRecord {
+  const verifiedAt = evidence.reduce<number | null>((latest, item) => {
+    if (item.assurance !== "verified" || item.verifiedAt === null) {
+      return latest;
+    }
+    return latest === null
+      ? item.verifiedAt
+      : Math.max(latest, item.verifiedAt);
+  }, null);
+  return { ...claim, evidence, verifiedAt };
 }
 
 export function normalizeIdentityKey(input: ResolveAuthIdentityInput): string {

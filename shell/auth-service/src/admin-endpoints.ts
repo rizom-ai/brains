@@ -10,6 +10,7 @@ import {
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
   type AuthAdminPrincipal,
+  type AuthAdminUserSummary,
   type AuthIdentitySummary,
   type AuthPasskeySummary,
 } from "./admin-contracts";
@@ -22,6 +23,7 @@ import type {
 export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
   listUsers(): Promise<AuthAdminPrincipal[]>;
+  listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   listPersonAgents(personId: string): Promise<
     Array<{
       agentId: string;
@@ -222,17 +224,10 @@ export async function handleAuthAdminRequest(
 
   const path = new URL(request.url).pathname;
   if (request.method === "GET" && path === "/auth/admin/users") {
-    const users = await operations.listUsers();
-    return privateJsonResponse({
-      users: await Promise.all(
-        users.map(async (user) => ({
-          ...user,
-          identities: await operations.listUserIdentities(user.userId),
-          passkeys: await operations.listUserPasskeys(user.userId),
-          agents: await operations.listPersonAgents(user.personId),
-        })),
-      ),
-    });
+    const users = operations.listAdminUsers
+      ? await operations.listAdminUsers()
+      : await listAdminUsersCompat(operations);
+    return privateJsonResponse({ users });
   }
 
   if (request.method === "POST" && path === "/auth/admin/mutations") {
@@ -269,6 +264,20 @@ export async function handleAuthAdminRequest(
   }
 
   return privateJsonResponse({ error: "Not Found" }, 404);
+}
+
+async function listAdminUsersCompat(
+  operations: AuthAdminOperations,
+): Promise<AuthAdminUserSummary[]> {
+  const users = await operations.listUsers();
+  return Promise.all(
+    users.map(async (user) => ({
+      ...user,
+      identities: await operations.listUserIdentities(user.userId),
+      passkeys: await operations.listUserPasskeys(user.userId),
+      agents: await operations.listPersonAgents(user.personId),
+    })),
+  );
 }
 
 async function executeMutation(

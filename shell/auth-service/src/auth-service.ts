@@ -3,6 +3,7 @@ import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
+  AuthAdminUserSummary,
   AuthIdentitySummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
@@ -866,6 +867,28 @@ export class AuthService {
     return (await this.getUserStore().listUsers()).map(principalFromUser);
   }
 
+  async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
+    await this.ensureUserStoreStarted();
+    const [users, identities, passkeys, agents] = await Promise.all([
+      this.getUserStore().listUsers(),
+      this.getUserStore().listAllIdentities(),
+      this.getCredentialStore().listPasskeys(),
+      this.getPersonAgentStore().listAll(),
+    ]);
+    const identitiesByPersonId = groupBy(identities, (item) => item.personId);
+    const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
+    const agentsByPersonId = groupBy(agents, (item) => item.personId);
+
+    return users.map((user) => ({
+      ...principalFromUser(user),
+      identities: (identitiesByPersonId.get(user.personId) ?? []).map(
+        (identity) => identitySummary(identity, user.id),
+      ),
+      passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
+      agents: agentsByPersonId.get(user.personId) ?? [],
+    }));
+  }
+
   async listPersonAgents(personId: string): Promise<AgentPersonLink[]> {
     await this.ensureUserStoreStarted();
     return this.getPersonAgentStore().listByPersonId(personId);
@@ -1027,6 +1050,13 @@ export class AuthService {
       : undefined;
   }
 
+  /**
+   * Compatibility-only projection for identity enrichment.
+   *
+   * @deprecated Use `resolveIdentityAccess()` for every authorization decision.
+   * This helper intentionally returns `undefined` for both denied and unbound
+   * identities, so callers must never use it before a permission-rule fallback.
+   */
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthPrincipal | undefined> {
@@ -1329,6 +1359,7 @@ export class AuthService {
     return handleAuthAdminRequest(request, {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
+      listAdminUsers: () => this.listAdminUsers(),
       listPersonAgents: (personId) => this.listPersonAgents(personId),
       listUserIdentities: (userId) => this.listUserIdentities(userId),
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),
@@ -1399,6 +1430,20 @@ export class AuthService {
     }
     return new Response(null, { status: 302, headers });
   }
+}
+
+function groupBy<T>(
+  values: T[],
+  keyFor: (value: T) => string,
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const value of values) {
+    const key = keyFor(value);
+    const group = grouped.get(key) ?? [];
+    group.push(value);
+    grouped.set(key, group);
+  }
+  return grouped;
 }
 
 function auditActor(context: AuthMutationContext): {

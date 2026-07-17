@@ -27,6 +27,10 @@ import { renderAuthorizePage, unauthorizedHtmlResponse } from "./pages";
 import type { ValidAuthorizationRequest } from "./types";
 
 const AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS = 10 * 60;
+const CLIENT_REGISTRATION_RATE_LIMIT = 30;
+const CLIENT_REGISTRATION_RATE_WINDOW_SECONDS = 60;
+const UNCONSENTED_CLIENT_RETENTION_SECONDS = 7 * 24 * 60 * 60;
+const CLIENT_PRUNE_INTERVAL_SECONDS = 60 * 60;
 
 interface AuthorizationApprovalTokenState {
   token: string;
@@ -64,6 +68,8 @@ export class OAuthEndpoints {
     string,
     AuthorizationApprovalTokenState
   >();
+  private clientRegistrationAttempts: number[] = [];
+  private lastClientPruneAt: number | undefined;
 
   constructor(options: OAuthEndpointsOptions) {
     this.clientStore = options.clientStore;
@@ -245,6 +251,17 @@ export class OAuthEndpoints {
   }
 
   async handleClientRegistration(request: Request): Promise<Response> {
+    if (!this.consumeClientRegistrationAttempt()) {
+      return jsonResponse(
+        {
+          error: "temporarily_unavailable",
+          error_description: "Client registration rate limit exceeded",
+        },
+        429,
+        { "Retry-After": String(CLIENT_REGISTRATION_RATE_WINDOW_SECONDS) },
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();
@@ -255,6 +272,7 @@ export class OAuthEndpoints {
       );
     }
 
+    await this.pruneStaleUnconsentedClients();
     try {
       const client = await this.clientStore.registerClient(body);
       return jsonResponse(client, 201);
@@ -264,6 +282,35 @@ export class OAuthEndpoints {
       }
       throw error;
     }
+  }
+
+  private consumeClientRegistrationAttempt(): boolean {
+    const now = Math.floor(Date.now() / 1000);
+    const windowStart = now - CLIENT_REGISTRATION_RATE_WINDOW_SECONDS;
+    this.clientRegistrationAttempts = this.clientRegistrationAttempts.filter(
+      (attemptedAt) => attemptedAt > windowStart,
+    );
+    if (
+      this.clientRegistrationAttempts.length >= CLIENT_REGISTRATION_RATE_LIMIT
+    ) {
+      return false;
+    }
+    this.clientRegistrationAttempts.push(now);
+    return true;
+  }
+
+  private async pruneStaleUnconsentedClients(): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    if (
+      this.lastClientPruneAt !== undefined &&
+      now - this.lastClientPruneAt < CLIENT_PRUNE_INTERVAL_SECONDS
+    ) {
+      return;
+    }
+    this.lastClientPruneAt = now;
+    await this.clientStore.pruneStaleUnconsentedClients?.(
+      now - UNCONSENTED_CLIENT_RETENTION_SECONDS,
+    );
   }
 
   async handleTokenRequest(
@@ -424,15 +471,16 @@ export class OAuthEndpoints {
     if (!token) {
       return oauthErrorResponse("invalid_request", "token is required");
     }
+    if (!clientId) {
+      return oauthErrorResponse("invalid_request", "client_id is required");
+    }
 
-    if (clientId) {
-      const clientError = await this.clientStore.validateClientCredentials(
-        clientId,
-        clientAuth.clientSecret,
-      );
-      if (clientError) {
-        return oauthErrorResponse("invalid_client", clientError);
-      }
+    const clientError = await this.clientStore.validateClientCredentials(
+      clientId,
+      clientAuth.clientSecret,
+    );
+    if (clientError) {
+      return oauthErrorResponse("invalid_client", clientError);
     }
 
     await this.refreshTokenStore.revokeToken(token, clientId);

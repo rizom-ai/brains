@@ -146,6 +146,13 @@ export class PersonAgentStore {
       .orderBy(agentPersonLinks.createdAt);
   }
 
+  async listAll(): Promise<AgentPersonLink[]> {
+    return this.db
+      .select()
+      .from(agentPersonLinks)
+      .orderBy(agentPersonLinks.createdAt);
+  }
+
   async linkAgent(input: LinkAgentToPersonInput): Promise<AgentPersonLink> {
     const agentId = normalizeAgentId(input.agentId);
     return this.db.transaction(async (tx) => {

@@ -140,6 +140,48 @@ describe("auth admin API", () => {
     expect(await service.listUsers()).toHaveLength(1);
   });
 
+  it("loads the admin roster without per-user query fan-out", async () => {
+    const service = await createService();
+    const anchor = await service.createUser({
+      displayName: "Anchor",
+      role: "anchor",
+    });
+    await service.createUser({ displayName: "Mira", role: "trusted" });
+    const session = await service.createAuthSession(anchor.userId);
+    const listUserIdentities = service.listUserIdentities.bind(service);
+    const listUserPasskeys = service.listUserPasskeys.bind(service);
+    const listPersonAgents = service.listPersonAgents.bind(service);
+    let perUserQueryCount = 0;
+    service.listUserIdentities = async (
+      userId,
+    ): ReturnType<typeof listUserIdentities> => {
+      perUserQueryCount += 1;
+      return listUserIdentities(userId);
+    };
+    service.listUserPasskeys = async (
+      userId,
+    ): ReturnType<typeof listUserPasskeys> => {
+      perUserQueryCount += 1;
+      return listUserPasskeys(userId);
+    };
+    service.listPersonAgents = async (
+      personId,
+    ): ReturnType<typeof listPersonAgents> => {
+      perUserQueryCount += 1;
+      return listPersonAgents(personId);
+    };
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/users", session.cookie),
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      ((await response.json()) as { users: unknown[] }).users,
+    ).toHaveLength(2);
+    expect(perUserQueryCount).toBe(0);
+  });
+
   it("promotes an agent's represented person into an invited user facet", async () => {
     const service = await createService();
     const anchor = await service.createUser({

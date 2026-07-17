@@ -552,6 +552,31 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toBe("Forbidden");
   });
 
+  it("resolves the default browser principal once per request", async () => {
+    let resolutionCount = 0;
+    const plugin = new WebChatInterface(
+      {},
+      {
+        resolveAuthPrincipal: async (): Promise<undefined> => {
+          resolutionCount += 1;
+          return undefined;
+        },
+      },
+    );
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+    expect(resolutionCount).toBe(1);
+  });
+
   it("returns 400 for malformed JSON on the chat endpoint", async () => {
     const plugin = anchorPlugin();
     await harness.installPlugin(plugin);

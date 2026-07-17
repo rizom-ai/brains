@@ -113,6 +113,11 @@ type PermissionLevelResolver = (
   request: Request,
 ) => Promise<UserPermissionLevel>;
 
+interface BrowserAccess {
+  principal?: AuthPrincipal;
+  hasAnchorAccess: boolean;
+}
+
 export interface WebChatDeps {
   /** Override how an auth session is detected (used in tests). */
   resolveAuthSession?: AuthSessionResolver;
@@ -132,6 +137,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveAuthSession: AuthSessionResolver;
+  private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
   private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
   private readonly resolveCallerPermissionLevel:
     PermissionLevelResolver | undefined;
@@ -140,11 +146,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveAuthPrincipal =
       deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+    this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
       (async (request): Promise<boolean> =>
-        (await this.resolveAuthPrincipal(request))?.permissionLevel ===
-        "anchor");
+        (await this.resolveBrowserAccess(request)).hasAnchorAccess);
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
@@ -438,10 +444,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    const principal = await this.resolveAuthPrincipal(request);
-    const hasAnchorAccess = principal
-      ? principal.permissionLevel === "anchor"
-      : await this.resolveAuthSession(request);
+    const { principal, hasAnchorAccess } =
+      await this.resolveBrowserAccess(request);
     if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
@@ -470,10 +474,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    const principal = await this.resolveAuthPrincipal(request);
-    const hasAnchorAccess = principal
-      ? principal.permissionLevel === "anchor"
-      : await this.resolveAuthSession(request);
+    const { principal, hasAnchorAccess } =
+      await this.resolveBrowserAccess(request);
     if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
@@ -535,10 +537,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const principal = await this.resolveAuthPrincipal(request);
-    const hasAnchorAccess = principal
-      ? principal.permissionLevel === "anchor"
-      : await this.resolveAuthSession(request);
+    const { principal, hasAnchorAccess } =
+      await this.resolveBrowserAccess(request);
     if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
@@ -728,14 +728,27 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return this.activeStreams.get(channelId);
   }
 
+  private async resolveBrowserAccess(request: Request): Promise<BrowserAccess> {
+    const principal = await this.resolveAuthPrincipal(request);
+    if (principal) {
+      return {
+        principal,
+        hasAnchorAccess: principal.permissionLevel === "anchor",
+      };
+    }
+    return {
+      hasAnchorAccess: this.resolveAuthSessionOverride
+        ? await this.resolveAuthSessionOverride(request)
+        : false,
+    };
+  }
+
   private async resolvePermissionLevel(
     request: Request,
   ): Promise<"anchor" | "public"> {
-    const principal = await this.resolveAuthPrincipal(request);
-    if (principal) {
-      return principal.permissionLevel === "anchor" ? "anchor" : "public";
-    }
-    return (await this.resolveAuthSession(request)) ? "anchor" : "public";
+    return (await this.resolveBrowserAccess(request)).hasAnchorAccess
+      ? "anchor"
+      : "public";
   }
 
   private async resolveAttachmentPermissionLevel(
