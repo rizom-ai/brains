@@ -6,11 +6,20 @@
  * component and layout rules, which style themselves from --console-*.
  */
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
-import componentStyles from "./styles/components.css" with { type: "text" };
-import responsiveStyles from "./styles/responsive.css" with { type: "text" };
+import compatibilityStyles from "./styles/compatibility.css" with { type: "text" };
+import foundationStyles from "./styles/foundation.css" with { type: "text" };
+import overviewStyles from "./styles/overview.css" with { type: "text" };
+import systemStyles from "./styles/system.css" with { type: "text" };
+import widgetPrimitiveStyles from "./styles/widget-primitives.css" with { type: "text" };
 
 export const DASHBOARD_STYLES: string = `${CONSOLE_THEME_CSS}
 
-${componentStyles}
+${foundationStyles}
 
-${responsiveStyles}`;
+${overviewStyles}
+
+${systemStyles}
+
+${widgetPrimitiveStyles}
+
+${compatibilityStyles}`;

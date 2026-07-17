@@ -55,8 +55,8 @@ describe("DASHBOARD_STYLES", () => {
   it("ships a phone composition for tabs, vitals, and job rows", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");
-    expect(DASHBOARD_STYLES).toContain(
-      '.jobs td:nth-child(1)::before { content: "Job"; }',
+    expect(DASHBOARD_STYLES).toMatch(
+      /\.jobs td:nth-child\(1\)::before\s*{\s*content: "Job";/,
     );
   });
 });

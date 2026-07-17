@@ -34,9 +34,11 @@ and backward compatibility for registered widgets.
 
 After Phase 1:
 
-- `plugins/dashboard/src/dashboard-page.tsx` is still about 1,000 lines.
-- Dashboard-local CSS is about 1,357 lines / 35 KB; combined with the shared console
-  theme, the emitted base stylesheet is about 49 KB before response compression.
+- `plugins/dashboard/src/dashboard-page.tsx` is now a 10-line render entry; document,
+  tabs, overview, system cards, console strip, and widget panels have focused modules.
+- Dashboard-local CSS is split by ownership into foundation, overview, system, widget
+  primitives, and compatibility sheets (about 37 KB total); combined with the shared
+  console theme, the emitted base stylesheet is about 51 KB before response compression.
 - SWOT, agent-network, and proximity-map styles now live in their owning entity packages
   and are emitted only for visible widgets.
 - The widget contract carries deduplicated package-owned `clientStyles` and
@@ -45,7 +47,7 @@ After Phase 1:
   list, status, metadata, and empty-state primitives.
 - Generic owner-scoped filtering removed the agent-network script; proximity-map
   inspection is now the only custom widget script.
-- The base dashboard CSS and console scripts still add about 56 KB of repeated inline
+- The base dashboard CSS and console scripts still add about 58 KB of repeated inline
   source to every rendered page and cannot be cached independently.
 - The committed tab test verifies script contents; the nested/hash behavior is not yet
   exercised by a checked-in DOM test.
@@ -155,6 +157,8 @@ editing `@brains/dashboard`.
 not hand-assemble ARIA relationships.
 
 ### Phase 3 — Dashboard source decomposition
+
+**Status: complete.**
 
 1. Reduce `dashboard-page.tsx` to the document render entry point.
 2. Move tab grouping, digest construction, and tab-bar rendering into a dashboard-tabs
