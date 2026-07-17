@@ -40,19 +40,20 @@ The `group` field is required. A group tab exists only when at least one visible
 
 ## Custom widget controls
 
-The dashboard progressively enhances tab sets declared by custom widgets. A
-tab root uses `data-ui-tabs` and `data-ui-tabs-default`, triggers use
-`data-ui-tab`, and matching panels use `data-ui-panel`. Tab sets can be nested;
-the controller only changes triggers and panels owned by the nearest root.
+Custom components receive `pluginId`, `widgetId`, and a DOM-safe `instanceId` through
+`WidgetComponentProps`. Use the exported `WidgetTabs`, `WidgetFilter`, `WidgetList`,
+`WidgetListItem`, `WidgetStatusPill`, and `WidgetEmptyState` primitives so IDs, ARIA
+relationships, classes, and behavior attributes stay consistent.
 
-Use the generic `widget-tabs` / `widget-tab` classes for view tabs and
-`widget-filter-tabs` / `widget-filter-tab` for pill-style filters. Legacy
-widget-specific tab classes remain styled for compatibility.
+`WidgetTabs` supports nested line or pill variants. `WidgetFilter` filters descendant
+`WidgetListItem` rows by their `filterValues`; neither control requires a widget-specific
+script. The underlying `data-ui-*` contract remains available for genuinely custom markup,
+and each controller changes only elements owned by its nearest root.
 
-Use `clientStyles` for widget-specific CSS composed from the shared
-`--console-*` tokens. Identical style strings are emitted once and only when a visible
-widget needs them. `clientScript` remains available for behavior beyond generic controls,
-such as filtering rows or inspecting a visualization.
+Use `clientStyles` for widget-specific CSS composed from the shared `--console-*` tokens.
+Identical style strings are emitted once and only when a visible widget needs them.
+`clientScript` remains available for specialized behavior such as visualization pointer
+and keyboard inspection.
 
 ## Templates
 

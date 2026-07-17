@@ -709,7 +709,7 @@ describe("AgentDiscoveryPlugin", () => {
         rendererName: "AgentNetworkWidget",
         hasComponent: true,
         hasClientStyles: true,
-        hasClientScript: true,
+        hasClientScript: false,
       },
       {
         id: "agent-proximity",

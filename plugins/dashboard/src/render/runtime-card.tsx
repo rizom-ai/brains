@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 import type { AppInfo } from "@brains/plugins";
 import type { JSX } from "preact";
-import { CardHeader, KeyValueList } from "./ui";
+import { CardHeader, KeyValueList } from "../widget-ui";
 
 function formatUptime(seconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(seconds));

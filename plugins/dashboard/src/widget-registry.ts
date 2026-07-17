@@ -7,6 +7,9 @@ export interface WidgetComponentProps {
   title: string;
   description?: string;
   data: unknown;
+  pluginId?: string;
+  widgetId?: string;
+  instanceId?: string;
 }
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;

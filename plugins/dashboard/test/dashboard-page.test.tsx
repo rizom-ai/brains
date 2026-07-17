@@ -6,13 +6,28 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "../src/dashboard-page";
+import type { WidgetComponentProps } from "../src/widget-registry";
 
-function TestCustomWidget({ data }: { data: unknown }): JSX.Element {
+function TestCustomWidget({
+  data,
+  pluginId,
+  widgetId,
+  instanceId,
+}: WidgetComponentProps): JSX.Element {
   const value =
     typeof data === "object" && data !== null && "message" in data
       ? String((data as { message: unknown }).message)
       : "missing";
-  return <div data-test-custom-widget>{value}</div>;
+  return (
+    <div
+      data-test-custom-widget
+      data-plugin-id={pluginId}
+      data-widget-id={widgetId}
+      data-instance-id={instanceId}
+    >
+      {value}
+    </div>
+  );
 }
 
 describe("renderDashboardPageHtml", () => {
@@ -824,6 +839,9 @@ describe("renderDashboardPageHtml", () => {
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain("data-test-custom-widget");
+    expect(html).toContain('data-plugin-id="custom"');
+    expect(html).toContain('data-widget-id="test-widget"');
+    expect(html).toContain('data-instance-id="widget-custom-test-widget"');
     expect(html).toContain("hello from plugin");
     expect(html).toContain("window.__customWidgetBoot = 'ready';");
   });

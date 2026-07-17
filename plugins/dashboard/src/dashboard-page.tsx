@@ -9,8 +9,8 @@ import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
-import { CardHeader, EmptyState, KeyValueList } from "./render/ui";
-import { DASHBOARD_TABS_SCRIPT } from "./render/tabs-script";
+import { CardHeader, EmptyState, KeyValueList } from "./widget-ui";
+import { DASHBOARD_UI_SCRIPT } from "./render/ui-script";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import {
   CONSOLE_CLIMATE_SCRIPT,
@@ -974,7 +974,7 @@ function DashboardDocument({
 
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: DASHBOARD_UI_SCRIPT }} />
         {input.widgetScripts.map((script, index) => (
           <script
             key={`widget-script:${index}`}

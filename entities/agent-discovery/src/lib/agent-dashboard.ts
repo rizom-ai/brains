@@ -9,7 +9,6 @@ const networkDigestSourceSchema = z.object({
 });
 import {
   AgentNetworkWidget,
-  agentNetworkWidgetScript,
   agentNetworkWidgetStyles,
 } from "../widgets/agent-network-widget";
 import {
@@ -43,7 +42,6 @@ export function registerAgentNetworkDashboardWidget(
           rendererName: AGENT_NETWORK_WIDGET_RENDERER,
           component: AgentNetworkWidget,
           clientStyles: agentNetworkWidgetStyles,
-          clientScript: agentNetworkWidgetScript,
           dataProvider: async () => buildAgentNetworkWidgetData(context),
           digestProvider: (data: unknown) => {
             const { counts } = networkDigestSourceSchema.parse(data);

@@ -2,7 +2,7 @@
 import type { AppInfo } from "@brains/plugins";
 import { displayLinkLabel, resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
-import { CardHeader } from "./ui";
+import { CardHeader } from "../widget-ui";
 
 function endpointHost(url: string): string {
   try {

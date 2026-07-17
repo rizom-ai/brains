@@ -41,9 +41,10 @@ After Phase 1:
   and are emitted only for visible widgets.
 - The widget contract carries deduplicated package-owned `clientStyles` and
   `clientScript` assets.
-- Recent-memory and agent-network still hand-author similar tab, panel, list, and ARIA
-  markup instead of using typed components.
-- Agent-network still ships a 42-line script for generic row filtering.
+- Recent-memory, agent-network, and built-in list widgets now share typed tab, filter,
+  list, status, metadata, and empty-state primitives.
+- Generic owner-scoped filtering removed the agent-network script; proximity-map
+  inspection is now the only custom widget script.
 - The base dashboard CSS and console scripts still add about 56 KB of repeated inline
   source to every rendered page and cannot be cached independently.
 - The committed tab test verifies script contents; the nested/hash behavior is not yet
@@ -130,6 +131,8 @@ IDs, roles, ARIA relationships, initial active state, and data attributes.
 editing `@brains/dashboard`.
 
 ### Phase 2 — Typed widget UI and generic filters
+
+**Status: complete.**
 
 1. Promote the useful primitives from internal `render/ui.tsx` into a documented widget UI
    surface exported by `@brains/dashboard`.

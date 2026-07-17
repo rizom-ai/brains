@@ -3,7 +3,15 @@ import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
-import { CardHeader, EmptyState, KeyValueList } from "./ui";
+import {
+  CardHeader,
+  createWidgetInstanceId,
+  EmptyState,
+  KeyValueList,
+  WidgetList,
+  WidgetListItem,
+  WidgetStatusPill,
+} from "../widget-ui";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
 const COMPACT_WIDGET_RENDERERS = new Set([
@@ -57,13 +65,13 @@ interface RendererProps {
   widget: RenderableWidgetData;
 }
 
-const PRIO_CLASS: Record<string, string> = {
-  crit: "pill--err",
-  critical: "pill--err",
-  high: "pill--warn",
-  med: "",
-  medium: "",
-  low: "pill--mute",
+const PRIO_TONE: Record<string, "plain" | "warn" | "error" | "muted"> = {
+  crit: "error",
+  critical: "error",
+  high: "warn",
+  med: "plain",
+  medium: "plain",
+  low: "muted",
 };
 
 function isEmptyValue(value: unknown): boolean {
@@ -131,45 +139,36 @@ function KeyValueBody({ widget }: RendererProps): JSX.Element {
 }
 
 function ListRow({ item }: { item: ListItem }): JSX.Element {
-  const priorityClass = item.priority
-    ? (PRIO_CLASS[item.priority.toLowerCase()] ?? "")
-    : "";
+  const priorityTone = item.priority
+    ? (PRIO_TONE[item.priority.toLowerCase()] ?? "plain")
+    : "plain";
+  const hasTrailing =
+    typeof item.count === "number" || Boolean(item.priority ?? item.status);
 
   return (
-    <li class="list-item">
-      <div class="list-main">
-        <span class="list-name">{item.name}</span>
-        {item.description && <span class="list-desc">{item.description}</span>}
-        {item.meta && item.meta.length > 0 && (
-          <span class="list-meta-text">
-            {item.meta.map((segment, index) => (
-              <span key={`${item.id}-meta-${index}`}>
-                {index > 0 && <span class="sep">·</span>}
-                {segment}
-              </span>
-            ))}
-          </span>
-        )}
-        {item.tags && item.tags.length > 0 && (
-          <div class="list-tags">
-            {item.tags.map((tag) => (
-              <span key={tag} class="tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      <div class="list-meta">
-        {typeof item.count === "number" && (
-          <span class="list-count">{item.count}</span>
-        )}
-        {item.priority && (
-          <span class={`pill ${priorityClass}`.trim()}>{item.priority}</span>
-        )}
-        {item.status && <span class="pill pill--ok">{item.status}</span>}
-      </div>
-    </li>
+    <WidgetListItem
+      title={item.name}
+      description={item.description}
+      meta={item.meta}
+      tags={item.tags}
+      trailing={
+        hasTrailing ? (
+          <>
+            {typeof item.count === "number" && (
+              <span class="list-count">{item.count}</span>
+            )}
+            {item.priority && (
+              <WidgetStatusPill tone={priorityTone}>
+                {item.priority}
+              </WidgetStatusPill>
+            )}
+            {item.status && (
+              <WidgetStatusPill tone="ok">{item.status}</WidgetStatusPill>
+            )}
+          </>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -180,11 +179,11 @@ function ListBody({ widget }: RendererProps): JSX.Element {
   }
 
   return (
-    <ul class="list">
+    <WidgetList>
       {items.map((item) => (
         <ListRow key={item.id} item={item} />
       ))}
-    </ul>
+    </WidgetList>
   );
 }
 
@@ -257,6 +256,12 @@ function WidgetBody({ widget }: RendererProps): JSX.Element {
           ? { description: widget.widget.description }
           : {})}
         data={widget.data}
+        pluginId={widget.widget.pluginId}
+        widgetId={widget.widget.id}
+        instanceId={createWidgetInstanceId(
+          widget.widget.pluginId,
+          widget.widget.id,
+        )}
       />
     );
   }

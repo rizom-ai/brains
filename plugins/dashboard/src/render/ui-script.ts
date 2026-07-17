@@ -1,16 +1,13 @@
-export const DASHBOARD_TABS_SCRIPT = `(function () {
-  var roots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
-  if (!roots.length) return;
-
-  function ownedBy(root, selector) {
+export const DASHBOARD_UI_SCRIPT = `(function () {
+  function ownedBy(root, selector, rootSelector) {
     return Array.prototype.slice.call(root.querySelectorAll(selector)).filter(function (node) {
-      return node.closest("[data-ui-tabs]") === root;
+      return node.closest(rootSelector) === root;
     });
   }
 
-  function setup(root) {
-    var tabs = ownedBy(root, "[data-ui-tab]");
-    var panels = ownedBy(root, "[data-ui-panel]");
+  function setupTabs(root) {
+    var tabs = ownedBy(root, "[data-ui-tab]", "[data-ui-tabs]");
+    var panels = ownedBy(root, "[data-ui-panel]", "[data-ui-tabs]");
     var useHash = root.hasAttribute("data-ui-tabs-hash");
     var stateAttribute = root.getAttribute("data-ui-tabs-state-attribute");
     var fallback = root.getAttribute("data-ui-tabs-default") || "";
@@ -73,6 +70,57 @@ export const DASHBOARD_TABS_SCRIPT = `(function () {
     }
   }
 
-  document.documentElement.classList.add("dashboard-tabs-ready");
-  roots.forEach(setup);
+  function parseFilterValues(item) {
+    var raw = item.getAttribute("data-ui-filter-values");
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setupFilter(root) {
+    var controls = ownedBy(root, "[data-ui-filter-value]", "[data-ui-filter]");
+    var items = ownedBy(root, "[data-ui-filter-values]", "[data-ui-filter]");
+    var allValue = root.getAttribute("data-ui-filter-all") || "all";
+    var fallback = root.getAttribute("data-ui-filter-default") || allValue;
+    if (!controls.length) return;
+
+    function activate(value) {
+      root.setAttribute("data-ui-filter-active", value);
+      controls.forEach(function (control) {
+        var active = control.getAttribute("data-ui-filter-value") === value;
+        control.classList.toggle("is-active", active);
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      items.forEach(function (item) {
+        var values = parseFilterValues(item);
+        var visible = value === allValue || values.indexOf(value) !== -1;
+        item.toggleAttribute("hidden", !visible);
+      });
+    }
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var control = target && target.closest
+        ? target.closest("[data-ui-filter-value]")
+        : null;
+      if (!control || control.closest("[data-ui-filter]") !== root) return;
+      var value = control.getAttribute("data-ui-filter-value");
+      if (value) activate(value);
+    });
+
+    activate(fallback);
+  }
+
+  var tabRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
+  if (tabRoots.length) {
+    document.documentElement.classList.add("dashboard-tabs-ready");
+    tabRoots.forEach(setupTabs);
+  }
+
+  var filterRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-filter]"));
+  filterRoots.forEach(setupFilter);
 })();`;

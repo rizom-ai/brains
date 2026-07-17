@@ -66,10 +66,7 @@ export { AgentAdapter } from "./adapters/agent-adapter";
 export { AgentDataSource } from "./datasources/agent-datasource";
 export { ProximityMapDataSource } from "./datasources/proximity-map-datasource";
 export { AgentProximityMapTemplate } from "./templates/proximity-map-template";
-export {
-  AgentNetworkWidget,
-  agentNetworkWidgetScript,
-} from "./widgets/agent-network-widget";
+export { AgentNetworkWidget } from "./widgets/agent-network-widget";
 export {
   AgentProximityWidget,
   ProximityMap,
