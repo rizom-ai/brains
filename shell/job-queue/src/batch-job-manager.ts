@@ -25,6 +25,16 @@ interface CleanupSupervisor {
   fibers: FiberSet.FiberSet<void, never>;
 }
 
+type BatchManagerTransitionKind = "start" | "stop";
+
+interface BatchManagerTransition {
+  kind: BatchManagerTransitionKind;
+  intervalMs: number;
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (error: unknown) => void;
+}
+
 /**
  * Batch job manager for tracking groups of related jobs
  *
@@ -60,8 +70,9 @@ export class BatchJobManager {
   private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
   private cleanupSupervisor: CleanupSupervisor | null = null;
   private readonly inFlightCleanups = new Set<Promise<number>>();
-  private stopPromise: Promise<void> | null = null;
-  private stopped = false;
+  private activeTransition: BatchManagerTransition | null = null;
+  private readonly transitionQueue: BatchManagerTransition[] = [];
+  private acceptingCleanup = true;
   private readonly clock: Clock.Clock | undefined;
 
   public static getInstance(
@@ -99,18 +110,18 @@ export class BatchJobManager {
   }
 
   /** Start the periodic cleanup fiber. Idempotent across repeated calls. */
-  public start(intervalMs: number = CLEANUP_INTERVAL_MS): void {
-    if (this.cleanupFiber) return;
-    if (this.stopped) {
-      this.stopPromise = null;
-      this.stopped = false;
-    }
-    this.cleanupFiber = Effect.runFork(this.runCleanupLoop(intervalMs));
+  public start(intervalMs: number = CLEANUP_INTERVAL_MS): Promise<void> {
+    return this.requestTransition("start", intervalMs);
   }
 
   public stop(): Promise<void> {
-    this.stopPromise ??= this.stopCleanup();
-    return this.stopPromise;
+    return this.requestTransition("stop", CLEANUP_INTERVAL_MS);
+  }
+
+  private async startCleanup(intervalMs: number): Promise<void> {
+    this.acceptingCleanup = true;
+    if (this.cleanupFiber) return;
+    this.cleanupFiber = Effect.runFork(this.runCleanupLoop(intervalMs));
   }
 
   private runCleanupLoop(intervalMs: number): Effect.Effect<void> {
@@ -124,14 +135,14 @@ export class BatchJobManager {
   }
 
   private scheduleTerminalBatchCleanup(): void {
-    if (this.stopped || this.stopPromise) return;
+    if (!this.acceptingCleanup) return;
     this.cleanupSupervisor ??= this.createCleanupSupervisor();
     const fiber = Effect.runFork(this.cleanupTerminalBatchMetadata());
     FiberSet.unsafeAdd(this.cleanupSupervisor.fibers, fiber);
   }
 
   private async stopCleanup(): Promise<void> {
-    this.stopped = true;
+    this.acceptingCleanup = false;
     const cleanupFiber = this.cleanupFiber;
     this.cleanupFiber = null;
     if (cleanupFiber) {
@@ -149,6 +160,62 @@ export class BatchJobManager {
       await Effect.runPromise(Scope.close(cleanupSupervisor.scope, Exit.void));
       this.cleanupSupervisor = null;
     }
+  }
+
+  private requestTransition(
+    kind: BatchManagerTransitionKind,
+    intervalMs: number,
+  ): Promise<void> {
+    const tail = this.transitionQueue.at(-1) ?? this.activeTransition;
+    if (tail?.kind === kind) return tail.promise;
+
+    let resolveTransition: () => void = () => undefined;
+    let rejectTransition: (error: unknown) => void = () => undefined;
+    const promise = new Promise<void>((resolve, reject) => {
+      resolveTransition = resolve;
+      rejectTransition = reject;
+    });
+    const transition: BatchManagerTransition = {
+      kind,
+      intervalMs,
+      promise,
+      resolve: resolveTransition,
+      reject: rejectTransition,
+    };
+    this.transitionQueue.push(transition);
+    this.runNextTransition();
+    return promise;
+  }
+
+  private runNextTransition(): void {
+    if (this.activeTransition) return;
+    const transition = this.transitionQueue.shift();
+    if (!transition) return;
+    this.activeTransition = transition;
+
+    const operation =
+      transition.kind === "start"
+        ? this.startCleanup(transition.intervalMs)
+        : this.stopCleanup();
+    void operation.then(
+      () => this.completeTransition(transition, true),
+      (error: unknown) => this.completeTransition(transition, false, error),
+    );
+  }
+
+  private completeTransition(
+    transition: BatchManagerTransition,
+    succeeded: boolean,
+    error?: unknown,
+  ): void {
+    if (this.activeTransition !== transition) return;
+    this.activeTransition = null;
+    if (succeeded) {
+      transition.resolve();
+    } else {
+      transition.reject(error);
+    }
+    queueMicrotask(() => this.runNextTransition());
   }
 
   private createCleanupSupervisor(): CleanupSupervisor {

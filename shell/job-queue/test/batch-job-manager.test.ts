@@ -523,7 +523,7 @@ describe("BatchJobManager", () => {
         };
 
         try {
-          testManager.start(1_000);
+          yield* Effect.promise(() => testManager.start(1_000));
           yield* Effect.yieldNow();
           yield* TestClock.adjust(999);
           expect(cleanupCalls).toBe(0);
@@ -576,7 +576,7 @@ describe("BatchJobManager", () => {
       expect(stopped).toBe(true);
     });
 
-    it("currently admits restarted cleanup before the prior stop settles", async () => {
+    it("serializes restarted cleanup after the prior stop settles", async () => {
       let cleanupCalls = 0;
       let signalFirstCleanup: (() => void) | undefined;
       const firstCleanupStarted = new Promise<void>((resolve) => {
@@ -603,25 +603,36 @@ describe("BatchJobManager", () => {
       const stopping = batchManager.stop().then(() => {
         stopSettled = true;
       });
-      batchManager.start(60_000);
+      const restarting = batchManager.start(60_000);
       await enqueueBatch([
         { type: "embedding", data: { entityId: "entity-2" } },
+      ]);
+      await Promise.resolve();
+
+      expect(stopSettled).toBe(false);
+      expect(cleanupCalls).toBe(1);
+      releaseFirstCleanup?.();
+      await Promise.all([stopping, restarting]);
+
+      await enqueueBatch([
+        { type: "embedding", data: { entityId: "entity-3" } },
       ]);
       while (cleanupCalls < 2) {
         await Promise.resolve();
       }
-
-      expect(stopSettled).toBe(false);
       expect(cleanupCalls).toBe(2);
-      releaseFirstCleanup?.();
-      await stopping;
     });
 
     it("should be idempotent for both start and stop", async () => {
-      batchManager.start(60_000);
-      batchManager.start(60_000);
-      await batchManager.stop();
-      await batchManager.stop();
+      const firstStart = batchManager.start(60_000);
+      const secondStart = batchManager.start(60_000);
+      expect(secondStart).toBe(firstStart);
+      await Promise.all([firstStart, secondStart]);
+
+      const firstStop = batchManager.stop();
+      const secondStop = batchManager.stop();
+      expect(secondStop).toBe(firstStop);
+      await Promise.all([firstStop, secondStop]);
     });
   });
 });

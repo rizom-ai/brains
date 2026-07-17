@@ -272,7 +272,7 @@ export interface IJobQueueWorker {
  */
 export interface IBatchJobManager {
   /** Start periodic cleanup of terminal batch metadata. Idempotent. */
-  start(intervalMs?: number): void;
+  start(intervalMs?: number): void | Promise<void>;
 
   /** Stop periodic cleanup and drain in-flight metadata cleanup. */
   stop(): void | Promise<void>;

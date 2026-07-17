@@ -177,7 +177,7 @@ export class ShellBootloader {
     await this.services.pluginManager.startPluginDaemons();
     await this.services.jobQueueWorker.start();
     this.services.jobProgressMonitor.start();
-    this.services.batchJobManager.start();
+    await this.services.batchJobManager.start();
   }
 
   private async startIndexReadinessMonitor(): Promise<void> {
