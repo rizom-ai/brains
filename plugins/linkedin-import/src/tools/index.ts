@@ -13,6 +13,7 @@ import {
 } from "../lib/linkedin-client";
 import { loadLinkedInProfileImport } from "../lib/load-profile-import";
 import { mergeProfileImport } from "../lib/merge-profile";
+import { profileImportPreviewDigest } from "../lib/profile-import-digest";
 import { summarizeLinkedInSnapshotSchema } from "../lib/snapshot-schema";
 import type { ProfessionalProfileImportPatch } from "../lib/transform/profile-mapper";
 
@@ -25,6 +26,7 @@ export interface LinkedInImportToolsDeps {
 interface LinkedInImportToolInput {
   confirmed?: boolean | undefined;
   confirmationToken?: string | undefined;
+  previewDigest?: string | undefined;
 }
 
 const importInputSchema = {
@@ -33,6 +35,11 @@ const importInputSchema = {
     .string()
     .optional()
     .describe("Internal token returned by the confirmation flow"),
+  previewDigest: z
+    .string()
+    .length(64)
+    .optional()
+    .describe("Internal digest binding confirmation to the previewed data"),
 };
 
 const importInputParserSchema: z.ZodType<LinkedInImportToolInput> = z
@@ -121,9 +128,17 @@ export function createLinkedInImportTools(
             };
           }
 
+          if (!input.previewDigest) {
+            return {
+              success: false,
+              error:
+                "LinkedIn import confirmation is missing its preview digest.",
+            };
+          }
+
           const jobId = await deps.jobs.enqueue({
             type: "linkedin-import",
-            data: {},
+            data: { expectedPreviewDigest: input.previewDigest },
           });
           return {
             success: true,
@@ -162,6 +177,10 @@ export function createLinkedInImportTools(
             (confirmationToken) => ({
               confirmed: true,
               confirmationToken,
+              previewDigest: profileImportPreviewDigest(
+                loaded.patch,
+                profile.content,
+              ),
             }),
           );
 

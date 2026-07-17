@@ -242,13 +242,15 @@ LinkedIn import must neither read nor write communication preferences.
   `entity:updated` cache-invalidation path. Re-running unchanged data performs no write.
 - `tools/index.ts` exposes the anchor-only, write-marked `linkedin-import_import` tool. Its
   initial call fetches and displays the deterministic merge preview; only the host's typed,
-  token-bound confirmation call can queue the import job.
+  token-bound confirmation call can queue the import job. The confirmation carries a
+  canonical SHA-256 digest of the previewed patch and anchor-profile baseline. Execution
+  refetches both and rejects stale approval when either input changed.
 - Rover includes the inert capability in each preset and supplies the access token from
   its declared environment schema.
 
 Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
-mapping and merging, idempotent handler behavior, conflict handling, preview and forged
-confirmation behavior, tool queuing, and inert/configured plugin wiring.
+mapping and merging, idempotent handler behavior, conflict handling, preview and forged or
+stale confirmation behavior, tool queuing, and inert/configured plugin wiring.
 
 ## Phase 2B — Rich professional domains
 

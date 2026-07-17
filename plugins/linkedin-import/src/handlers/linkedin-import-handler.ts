@@ -8,11 +8,16 @@ import {
   type LinkedInProfessionalSnapshotSource,
 } from "../lib/load-profile-import";
 import { mergeProfileImport } from "../lib/merge-profile";
+import { profileImportPreviewDigest } from "../lib/profile-import-digest";
 
-export type LinkedInImportJobData = Record<string, never>;
+export interface LinkedInImportJobData {
+  expectedPreviewDigest?: string | undefined;
+}
 
 export const linkedinImportJobSchema: z.ZodType<LinkedInImportJobData> = z
-  .object({})
+  .object({
+    expectedPreviewDigest: z.string().length(64).optional(),
+  })
   .strict();
 
 export interface LinkedInImportJobResult {
@@ -43,7 +48,7 @@ export class LinkedInImportJobHandler extends BaseJobHandler<
   }
 
   async process(
-    _data: LinkedInImportJobData,
+    data: LinkedInImportJobData,
     _jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<LinkedInImportJobResult> {
@@ -65,6 +70,15 @@ export class LinkedInImportJobHandler extends BaseJobHandler<
     });
     if (!profile) {
       throw new Error("Anchor profile not found");
+    }
+    if (
+      data.expectedPreviewDigest &&
+      profileImportPreviewDigest(loaded.patch, profile.content) !==
+        data.expectedPreviewDigest
+    ) {
+      throw new Error(
+        "LinkedIn data or the anchor profile changed since the import preview; preview and confirm the import again",
+      );
     }
 
     const merged = mergeProfileImport(profile.content, loaded.patch);

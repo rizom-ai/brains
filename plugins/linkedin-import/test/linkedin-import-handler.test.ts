@@ -6,6 +6,8 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import { LinkedInImportJobHandler } from "../src/handlers/linkedin-import-handler";
+import { profileImportPreviewDigest } from "../src/lib/profile-import-digest";
+import { mapLinkedInProfile } from "../src/lib/transform/profile-mapper";
 
 const profileRecords = [
   {
@@ -45,13 +47,24 @@ headline: Owner-authored headline
       entityService,
     });
 
+    const patch = mapLinkedInProfile(profileRecords);
     const first = await handler.process(
-      {},
+      {
+        expectedPreviewDigest: profileImportPreviewDigest(
+          patch,
+          profile.content,
+        ),
+      },
       "job-1",
       createMockProgressReporter(),
     );
     const second = await handler.process(
-      {},
+      {
+        expectedPreviewDigest: profileImportPreviewDigest(
+          patch,
+          profile.content,
+        ),
+      },
       "job-2",
       createMockProgressReporter(),
     );
@@ -86,6 +99,41 @@ headline: Owner-authored headline
     expect(
       handler.process({}, "job-1", createMockProgressReporter()),
     ).rejects.toThrow("Anchor profile not found");
+  });
+
+  it("rejects execution when source data or the profile changed after preview", async () => {
+    const updateEntity = mock(async () => ({
+      entityId: "anchor-profile",
+      jobId: "embedding-job",
+      skipped: false,
+    }));
+    const entityService = {
+      getEntity: mock(async () =>
+        createTestEntity("anchor-profile", {
+          id: "anchor-profile",
+          content: "---\nname: Unknown\nkind: professional\n---\n",
+        }),
+      ),
+      updateEntity,
+    } as unknown as IEntityService;
+    const handler = new LinkedInImportJobHandler(createSilentLogger(), {
+      client: { fetchDomain: mock(async () => profileRecords) },
+      entityService,
+    });
+
+    expect(
+      handler.process(
+        {
+          expectedPreviewDigest: profileImportPreviewDigest(
+            mapLinkedInProfile(profileRecords),
+            "---\nname: Preview Baseline\nkind: professional\n---\n",
+          ),
+        },
+        "job-1",
+        createMockProgressReporter(),
+      ),
+    ).rejects.toThrow("changed since the import preview");
+    expect(updateEntity).not.toHaveBeenCalled();
   });
 
   it("retries rather than clobbering a concurrent profile edit", async () => {

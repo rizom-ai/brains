@@ -23,6 +23,16 @@ function expectConfirmation(
   return result;
 }
 
+function getConfirmationArgs(
+  confirmation: Extract<ToolResponse, { needsConfirmation: true }>,
+): Record<string, unknown> {
+  const { args } = confirmation;
+  if (!args || typeof args !== "object" || Array.isArray(args)) {
+    throw new Error("Expected object confirmation arguments");
+  }
+  return args as Record<string, unknown>;
+}
+
 function createDeps(overrides?: {
   records?: Array<Record<string, unknown>>;
   content?: string;
@@ -75,11 +85,18 @@ describe("LinkedIn import tools", () => {
     expect(confirmation.preview).toContain("Fields to add: name");
     expect(enqueue).not.toHaveBeenCalled();
 
-    const result = await tool.handler(confirmation.args, toolContext);
+    const confirmationArgs = getConfirmationArgs(confirmation);
+    const previewDigest = confirmationArgs["previewDigest"];
+    if (typeof previewDigest !== "string") {
+      throw new Error("Expected preview digest in confirmation arguments");
+    }
+    expect(previewDigest).toMatch(/^[a-f0-9]{64}$/);
+
+    const result = await tool.handler(confirmationArgs, toolContext);
 
     expect(enqueue).toHaveBeenCalledWith({
       type: "linkedin-import",
-      data: {},
+      data: { expectedPreviewDigest: previewDigest },
     });
     expect(result).toEqual({
       success: true,
@@ -94,6 +111,26 @@ describe("LinkedIn import tools", () => {
 
     const result = await tool.handler(
       { confirmed: true, confirmationToken: "forged" },
+      toolContext,
+    );
+
+    expect(result).toMatchObject({ success: false });
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("refuses a confirmation with a tampered preview digest", async () => {
+    const { enqueue, deps } = createDeps();
+    const tool = createLinkedInImportTools("linkedin-import", deps)[0];
+    if (!tool) throw new Error("LinkedIn import tool not registered");
+    const confirmation = expectConfirmation(
+      await tool.handler({}, toolContext),
+    );
+
+    const result = await tool.handler(
+      {
+        ...getConfirmationArgs(confirmation),
+        previewDigest: "0".repeat(64),
+      },
       toolContext,
     );
 

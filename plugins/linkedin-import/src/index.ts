@@ -31,6 +31,10 @@ export {
   type ProfileImportMergeResult,
 } from "./lib/merge-profile";
 export {
+  profileImportDigest,
+  profileImportPreviewDigest,
+} from "./lib/profile-import-digest";
+export {
   certificationFingerprint,
   educationFingerprint,
   positionFingerprint,
