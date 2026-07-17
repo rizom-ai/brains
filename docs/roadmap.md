@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -197,6 +197,7 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [shell-lifecycle-race-hardening.md](./plans/shell-lifecycle-race-hardening.md) — make shell boot/shutdown, daemon transitions, plugin/check teardown, and conversation ownership joinable under concurrent callers without changing Promise/`AbortSignal` contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
