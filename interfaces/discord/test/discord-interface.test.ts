@@ -280,7 +280,7 @@ describe("DiscordInterface", () => {
   }
 
   describe("Daemon lifecycle", () => {
-    it("currently returns from stop while an admitted message handler is active", async () => {
+    it("waits for an admitted message handler before stop settles", async () => {
       let signalChatStarted: (() => void) | undefined;
       const chatStarted = new Promise<void>((resolve) => {
         signalChatStarted = resolve;
@@ -313,12 +313,18 @@ describe("DiscordInterface", () => {
 
       messageCreateHandler?.(createDiscordMessage());
       await chatStarted;
-      await daemonRegistry.stop("discord:discord");
+      let stopSettled = false;
+      const stopping = daemonRegistry.stop("discord:discord").then(() => {
+        stopSettled = true;
+      });
+      await Promise.resolve();
 
+      expect(stopSettled).toBe(false);
       expect(chatSettled).toBe(false);
       releaseChat?.();
       await chatFinished;
-      await Bun.sleep(0);
+      await stopping;
+      expect(stopSettled).toBe(true);
     });
   });
 
@@ -346,6 +352,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "public",
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -376,6 +383,7 @@ describe("DiscordInterface", () => {
             }),
           }),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -640,6 +648,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "trusted",
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -821,6 +830,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -864,6 +874,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith("Fresh topic answer.");
     });
@@ -1003,6 +1014,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1069,6 +1081,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1275,6 +1288,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1346,6 +1360,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1389,6 +1404,7 @@ describe("DiscordInterface", () => {
         expect.stringContaining("notes.md"),
         expect.any(String),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
 
@@ -1414,6 +1430,7 @@ describe("DiscordInterface", () => {
         "save this",
         expect.any(String),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
 
