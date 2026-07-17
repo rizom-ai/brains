@@ -279,6 +279,49 @@ describe("DiscordInterface", () => {
     await harness.installPlugin(spacedDiscord);
   }
 
+  describe("Daemon lifecycle", () => {
+    it("currently returns from stop while an admitted message handler is active", async () => {
+      let signalChatStarted: (() => void) | undefined;
+      const chatStarted = new Promise<void>((resolve) => {
+        signalChatStarted = resolve;
+      });
+      let releaseChat: (() => void) | undefined;
+      const chatGate = new Promise<void>((resolve) => {
+        releaseChat = resolve;
+      });
+      let chatSettled = false;
+      let signalChatSettled: (() => void) | undefined;
+      const chatFinished = new Promise<void>((resolve) => {
+        signalChatSettled = resolve;
+      });
+      mockAgentService.chat.mockImplementation(async () => {
+        signalChatStarted?.();
+        await chatGate;
+        chatSettled = true;
+        signalChatSettled?.();
+        return {
+          text: "Agent response text.",
+          usage: {
+            promptTokens: 50,
+            completionTokens: 100,
+            totalTokens: 150,
+          },
+        };
+      });
+      const daemonRegistry = harness.getMockShell().getDaemonRegistry();
+      await daemonRegistry.start("discord:discord");
+
+      messageCreateHandler?.(createDiscordMessage());
+      await chatStarted;
+      await daemonRegistry.stop("discord:discord");
+
+      expect(chatSettled).toBe(false);
+      releaseChat?.();
+      await chatFinished;
+      await Bun.sleep(0);
+    });
+  });
+
   describe("Initialization", () => {
     it("should create interface with valid config", () => {
       expect(discord).toBeDefined();
