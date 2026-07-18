@@ -18,25 +18,22 @@ const SITE_STYLES = `
   --console-warn: var(--color-status-warning-text, var(--color-accent, #b45309));
   --console-display: var(--font-display, var(--font-heading, Georgia, serif));
   --console-mono: var(--font-mono, ui-monospace, monospace);
+  /* Full-bleed on the page background — no card fill, so left-edge page
+     motifs (the mycelium rail) stay visible beside the hero. Horizontal
+     padding tracks the standard section gutter (px-6 / md:px-10 / xl:px-20). */
   position: relative;
   isolation: isolate;
   overflow: hidden;
   width: 100%;
-  padding: clamp(2.5rem, 6vw, 4.25rem) clamp(1.5rem, 5vw, 5rem) clamp(1.75rem, 4vw, 2.5rem);
-  background:
-    radial-gradient(circle at 76% 44%, color-mix(in srgb, var(--console-secondary) 8%, transparent), transparent 34%),
-    var(--console-card);
+  padding: clamp(2.5rem, 6vw, 4.25rem) 1.5rem clamp(1.75rem, 4vw, 2.5rem);
+  background: radial-gradient(circle at 76% 44%, color-mix(in srgb, var(--console-secondary) 8%, transparent), transparent 34%);
   color: var(--console-text);
 }
-.agent-proximity-site::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.04;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+@media (min-width: 768px) {
+  .agent-proximity-site { padding-left: 2.5rem; padding-right: 2.5rem; }
+}
+@media (min-width: 1280px) {
+  .agent-proximity-site { padding-left: 5rem; padding-right: 5rem; }
 }
 .agent-proximity-site__grid {
   display: grid;
