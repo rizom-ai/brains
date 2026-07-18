@@ -332,11 +332,12 @@ local writes, a `0700` storage directory, a `0600` token file, strict persisted-
 validation, explicit disconnect, and expiry-aware reads.
 
 Direct mode is appropriate for self-hosted owners with their own approved LinkedIn
-application and for a small pilot with a fixed callback allowlist. It requires
-`LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and an exact
-`LINKEDIN_REDIRECT_URI` ending in `/linkedin/callback`. It is not the managed rollout
-model because distributing the shared LinkedIn application secret and registering every
-dynamic brain callback would not scale safely.
+application and for a small pilot with a fixed callback allowlist. It requires explicit
+`LINKEDIN_DIRECT_CLIENT_ID`, `LINKEDIN_DIRECT_CLIENT_SECRET`, and
+`LINKEDIN_DIRECT_REDIRECT_URI` configuration, with the redirect ending at
+`/linkedin/oauth/direct/callback`. It is not the managed rollout model because
+distributing the shared LinkedIn application secret and registering every dynamic brain
+callback would not scale safely.
 
 ### `/admin` Integrations workflow (next)
 
@@ -364,25 +365,52 @@ The deterministic import wizard is:
    queued/completed/failed status and a concise list of applied versus preserved fields.
    Re-import follows the same preview and confirmation path.
 
-The admin SPA consumes `GET /linkedin/status` and native POST actions at
-`/linkedin/connect` and `/linkedin/disconnect`; preview/import routes follow the same
-provider-owned namespace. These backend routes are marked `public: true` only to pass
-through the current webserver route contract; each non-callback handler performs its own
-auth-service Anchor check.
-POST actions rely on the operator cookie's `SameSite=Lax` protection and must additionally
-reject an explicitly cross-origin `Origin`. Responses containing profile data use
+Endpoint ownership and security follow the HTTP route-registry hardening plan already on
+`main`: Admin is only the UI, each service owns its admin API, protocol callbacks remain
+protocol routes, and the shared webserver remains the sole listener.
+
+| Owner             | Method and path                       | Target route security                           |
+| ----------------- | ------------------------------------- | ----------------------------------------------- |
+| `linkedin-import` | `GET /linkedin/admin/status`          | `operator`, minimum `anchor`, CSRF not required |
+| `linkedin-import` | `POST /linkedin/admin/connect`        | `operator`, minimum `anchor`, CSRF required     |
+| `linkedin-import` | `POST /linkedin/admin/disconnect`     | `operator`, minimum `anchor`, CSRF required     |
+| `linkedin-import` | `POST /linkedin/admin/preview`        | `operator`, minimum `anchor`, CSRF required     |
+| `linkedin-import` | `POST /linkedin/admin/import`         | `operator`, minimum `anchor`, CSRF required     |
+| `linkedin-import` | `GET /linkedin/oauth/broker/return`   | `protocol`                                      |
+| `linkedin-import` | `GET /linkedin/oauth/direct/callback` | `protocol`; direct mode only                    |
+
+Until the normalized route registry and tagged `security` contract land on this branch,
+legacy `getWebRoutes()` declarations retain `public: true` and duplicate the intended
+Anchor/same-origin checks inside handlers. After rebasing, migrate them to
+`context.http.register()`, let the shared host enforce `operator` authorization and CSRF,
+and retain handler checks only until the central authorization matrix is proven. Callback
+and broker-return handlers stay `protocol`: they validate expiring single-use state/grants
+rather than requiring an Admin session.
+
+Admin POST bodies use browser-safe exported action constants and action-matching
+`confirmation` values, following `/auth/admin/mutations`; disconnect and import also
+require explicit UI review. Responses containing profile data use
 `Cache-Control: no-store`, and neither access tokens nor raw provider responses reach the
-browser.
+browser. Backend routes are not separately advertised as console endpoints; only the
+Admin surface is advertised.
 
 ## Phase 4B — Managed OAuth callback broker (planned)
 
-Deploy one central `oauth-broker` `ServicePlugin`, for example at `connect.rizom.ai`, and
-register one LinkedIn callback:
-`https://connect.rizom.ai/oauth/callback/linkedin`. Managed Rover instances do not receive
-the LinkedIn application secret. Each receives only a revocable, instance-scoped broker
+Deploy one central `oauth-broker` `ServicePlugin`, for example at `connect.rizom.ai`, on
+the normal shared webserver. Register exactly one LinkedIn callback:
+`https://connect.rizom.ai/oauth-broker/callback/linkedin`. Managed Rover instances do not
+receive the LinkedIn application secret. Each receives only a revocable, instance-scoped broker
 credential and keeps the reusable LinkedIn member token after redemption.
 
-The broker mechanics are provider-neutral:
+The broker mechanics are provider-neutral. Its exact first-provider route table is:
+
+| Method and path                       | Target route security                                  |
+| ------------------------------------- | ------------------------------------------------------ |
+| `POST /oauth-broker/authorizations`   | `protocol`; instance authentication                    |
+| `GET /oauth-broker/callback/linkedin` | `protocol`; provider state validation                  |
+| `POST /oauth-broker/grants/redeem`    | `protocol`; instance authentication and one-time grant |
+
+The broker must:
 
 - register and authenticate brain instances;
 - allowlist each instance's exact return URI rather than accepting a browser-supplied URI;
@@ -400,18 +428,21 @@ credentials as opaque and must not infer refresh support, scope syntax, or token
 
 Managed connection sequence:
 
-1. The operator POSTs `/linkedin/connect` on their own brain.
-2. The LinkedIn import plugin creates local single-use state and asks the broker to start
-   `provider: "linkedin"` for its registered instance.
-3. The broker authenticates the brain, resolves the exact allowlisted return URI, stores
-   broker state, and returns LinkedIn's authorization URL.
-4. LinkedIn redirects only to the central broker callback. The LinkedIn adapter validates
-   and exchanges the provider code server-side.
+1. The Anchor POSTs `/linkedin/admin/connect` on their own brain.
+2. The LinkedIn import plugin creates local single-use state and calls
+   `POST /oauth-broker/authorizations` with `provider: "linkedin"` for its registered
+   instance.
+3. The broker authenticates the brain, resolves its exact allowlisted
+   `/linkedin/oauth/broker/return` URI, stores broker state, and returns LinkedIn's
+   authorization URL.
+4. LinkedIn redirects only to `GET /oauth-broker/callback/linkedin` on the central host.
+   The LinkedIn adapter validates and exchanges the provider code server-side.
 5. The broker creates a short-lived opaque grant, then redirects the browser to the bound
-   brain callback with the grant and the brain's original state—never the access token.
-6. The brain consumes its local state and redeems the grant server-to-server using its
-   instance credential. The broker atomically consumes the grant and returns the
-   provider-specific credential once.
+   brain return route with the grant and the brain's original state—never the access
+   token.
+6. The brain consumes its local state and redeems the grant through authenticated
+   `POST /oauth-broker/grants/redeem` using its instance credential. The broker atomically
+   consumes the grant and returns the provider-specific credential once.
 7. The brain validates and stores the LinkedIn credential through
    `LinkedInOAuthTokenStore`; imports continue to call LinkedIn directly from that brain.
 

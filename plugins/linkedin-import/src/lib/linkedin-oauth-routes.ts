@@ -1,4 +1,5 @@
 import type { WebRouteDefinition } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   LINKEDIN_PORTABILITY_SCOPE,
   type LinkedInOAuthTokenStore,
@@ -6,14 +7,19 @@ import {
 } from "./linkedin-oauth-client";
 import { LinkedInOAuthStateStore } from "./linkedin-oauth-state-store";
 
-export const LINKEDIN_OAUTH_STATUS_PATH = "/linkedin/status";
-export const LINKEDIN_OAUTH_CONNECT_PATH = "/linkedin/connect";
-export const LINKEDIN_OAUTH_CALLBACK_PATH = "/linkedin/callback";
-export const LINKEDIN_OAUTH_DISCONNECT_PATH = "/linkedin/disconnect";
+export const LINKEDIN_ADMIN_STATUS_PATH = "/linkedin/admin/status";
+export const LINKEDIN_ADMIN_CONNECT_PATH = "/linkedin/admin/connect";
+export const LINKEDIN_ADMIN_DISCONNECT_PATH = "/linkedin/admin/disconnect";
+export const LINKEDIN_DIRECT_CALLBACK_PATH = "/linkedin/oauth/direct/callback";
 export const LINKEDIN_ADMIN_INTEGRATIONS_URL =
   "/admin?section=integrations&provider=linkedin";
 
-export type LinkedInOperatorSessionResolver = (
+export const LINKEDIN_ADMIN_MUTATION_ACTIONS = {
+  connectLinkedIn: "connectLinkedIn",
+  disconnectLinkedIn: "disconnectLinkedIn",
+} as const;
+
+export type LinkedInAnchorSessionResolver = (
   request: Request,
 ) => Promise<boolean>;
 
@@ -25,12 +31,20 @@ export interface LinkedInOAuthStatusResponse {
   scope?: string | undefined;
 }
 
+export interface LinkedInAdminConnectResponse {
+  authorizationUrl: string;
+}
+
+export interface LinkedInAdminDisconnectResponse {
+  disconnected: true;
+}
+
 export interface LinkedInOAuthRoutesOptions {
   client: LinkedInOAuthClient;
   tokenStore: LinkedInOAuthTokenStore;
   stateStore?: LinkedInOAuthStateStore | undefined;
   redirectUri: string;
-  resolveOperatorSession: LinkedInOperatorSessionResolver;
+  resolveAnchorSession: LinkedInAnchorSessionResolver;
   staticAccessTokenConfigured?: boolean | undefined;
   reportError?: ((message: string, error: unknown) => void) | undefined;
 }
@@ -48,9 +62,9 @@ const errorPageHeaders = {
   "Content-Type": "text/html; charset=utf-8",
 };
 
-function redirect(location: string, status: 303): Response {
+function redirect(location: string): Response {
   return new Response(null, {
-    status,
+    status: 303,
     headers: {
       ...privateHeaders,
       Location: location,
@@ -58,13 +72,13 @@ function redirect(location: string, status: 303): Response {
   });
 }
 
-function adminReturnUrl(status: "connected" | "disconnected"): string {
+function adminReturnUrl(status: "connected"): string {
   return `${LINKEDIN_ADMIN_INTEGRATIONS_URL}&status=${status}`;
 }
 
-function isExplicitlyCrossOrigin(request: Request): boolean {
+function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return origin !== null && origin !== new URL(request.url).origin;
+  return origin !== null && origin === new URL(request.url).origin;
 }
 
 function escapeHtml(value: string): string {
@@ -85,7 +99,38 @@ function privateJson(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: privateHeaders });
 }
 
-/** Backend routes consumed by the Admin console and LinkedIn's public callback. */
+async function validateConfirmedAction(
+  request: Request,
+  action: (typeof LINKEDIN_ADMIN_MUTATION_ACTIONS)[keyof typeof LINKEDIN_ADMIN_MUTATION_ACTIONS],
+): Promise<Response | undefined> {
+  if (!isSameOriginRequest(request)) {
+    return privateJson({ error: "Same-origin request required" }, 403);
+  }
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return privateJson({ error: "JSON request required" }, 415);
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    body = undefined;
+  }
+  const parsed = z
+    .strictObject({
+      action: z.literal(action),
+      confirmation: z.literal(action),
+    })
+    .safeParse(body);
+  return parsed.success
+    ? undefined
+    : privateJson(
+        { error: "Invalid or unconfirmed LinkedIn admin action" },
+        400,
+      );
+}
+
+/** Legacy route declarations pending the normalized HTTP route registry. */
 export function createLinkedInOAuthRoutes(
   options: LinkedInOAuthRoutesOptions,
 ): WebRouteDefinition[] {
@@ -94,12 +139,12 @@ export function createLinkedInOAuthRoutes(
     throw new Error("LinkedIn OAuth redirect URI must use HTTP or HTTPS");
   }
   if (
-    redirectUri.pathname !== LINKEDIN_OAUTH_CALLBACK_PATH ||
+    redirectUri.pathname !== LINKEDIN_DIRECT_CALLBACK_PATH ||
     redirectUri.search ||
     redirectUri.hash
   ) {
     throw new Error(
-      `LinkedIn OAuth redirect URI must end at ${LINKEDIN_OAUTH_CALLBACK_PATH}`,
+      `Direct LinkedIn OAuth redirect URI must end at ${LINKEDIN_DIRECT_CALLBACK_PATH}`,
     );
   }
   const normalizedRedirectUri = redirectUri.toString();
@@ -110,12 +155,12 @@ export function createLinkedInOAuthRoutes(
 
   return [
     {
-      path: LINKEDIN_OAUTH_STATUS_PATH,
+      path: LINKEDIN_ADMIN_STATUS_PATH,
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (!(await options.resolveOperatorSession(request))) {
-          return privateJson({ error: "Anchor session required" }, 401);
+        if (!(await options.resolveAnchorSession(request))) {
+          return privateJson({ error: "Anchor session required" }, 403);
         }
         try {
           const status = await options.tokenStore.getStatus();
@@ -135,35 +180,36 @@ export function createLinkedInOAuthRoutes(
       },
     },
     {
-      path: LINKEDIN_OAUTH_CONNECT_PATH,
+      path: LINKEDIN_ADMIN_CONNECT_PATH,
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (
-          isExplicitlyCrossOrigin(request) ||
-          !(await options.resolveOperatorSession(request))
-        ) {
-          return new Response("Forbidden", { status: 403 });
+        if (!(await options.resolveAnchorSession(request))) {
+          return privateJson({ error: "Anchor session required" }, 403);
         }
+        const invalidAction = await validateConfirmedAction(
+          request,
+          LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
+        );
+        if (invalidAction) return invalidAction;
+
         try {
           const state = stateStore.issue(normalizedRedirectUri);
           const authorizationUrl = options.client.createAuthorizationUrl({
             redirectUri: normalizedRedirectUri,
             state,
           });
-          return redirect(authorizationUrl.toString(), 303);
+          return privateJson({
+            authorizationUrl: authorizationUrl.toString(),
+          } satisfies LinkedInAdminConnectResponse);
         } catch (error) {
           reportError("Failed to start LinkedIn OAuth", error);
-          return errorPage(
-            "Connection unavailable",
-            "Rover could not start LinkedIn authorization. Check the server configuration and try again.",
-            500,
-          );
+          return privateJson({ error: "LinkedIn connection unavailable" }, 500);
         }
       },
     },
     {
-      path: LINKEDIN_OAUTH_CALLBACK_PATH,
+      path: LINKEDIN_DIRECT_CALLBACK_PATH,
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
@@ -201,9 +247,9 @@ export function createLinkedInOAuthRoutes(
             redirectUri: pending.redirectUri,
           });
           await options.tokenStore.storeToken(token);
-          return redirect(adminReturnUrl("connected"), 303);
+          return redirect(adminReturnUrl("connected"));
         } catch (error) {
-          reportError("LinkedIn OAuth callback failed", error);
+          reportError("Direct LinkedIn OAuth callback failed", error);
           return errorPage(
             "Connection failed",
             "Rover could not complete the credential exchange. No usable connection was established.",
@@ -213,26 +259,27 @@ export function createLinkedInOAuthRoutes(
       },
     },
     {
-      path: LINKEDIN_OAUTH_DISCONNECT_PATH,
+      path: LINKEDIN_ADMIN_DISCONNECT_PATH,
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (
-          isExplicitlyCrossOrigin(request) ||
-          !(await options.resolveOperatorSession(request))
-        ) {
-          return new Response("Forbidden", { status: 403 });
+        if (!(await options.resolveAnchorSession(request))) {
+          return privateJson({ error: "Anchor session required" }, 403);
         }
+        const invalidAction = await validateConfirmedAction(
+          request,
+          LINKEDIN_ADMIN_MUTATION_ACTIONS.disconnectLinkedIn,
+        );
+        if (invalidAction) return invalidAction;
+
         try {
           await options.tokenStore.clearToken();
-          return redirect(adminReturnUrl("disconnected"), 303);
+          return privateJson({
+            disconnected: true,
+          } satisfies LinkedInAdminDisconnectResponse);
         } catch (error) {
           reportError("Failed to disconnect LinkedIn OAuth", error);
-          return errorPage(
-            "Disconnect failed",
-            "Rover could not remove the stored credential. Check the server logs before trying again.",
-            500,
-          );
+          return privateJson({ error: "LinkedIn disconnect failed" }, 500);
         }
       },
     },

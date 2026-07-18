@@ -13,7 +13,7 @@ import {
 } from "./lib/linkedin-oauth-client";
 import {
   createLinkedInOAuthRoutes,
-  type LinkedInOperatorSessionResolver,
+  type LinkedInAnchorSessionResolver,
 } from "./lib/linkedin-oauth-routes";
 import type { LinkedInOAuthStateStore } from "./lib/linkedin-oauth-state-store";
 import packageJson from "../package.json" with { type: "json" };
@@ -54,7 +54,7 @@ const linkedinImportConfigSchema: z.ZodType<
       .url()
       .optional()
       .describe(
-        "Registered LinkedIn callback URL ending in /linkedin/callback",
+        "Direct LinkedIn callback URL ending in /linkedin/oauth/direct/callback",
       ),
   })
   .superRefine((config, context) => {
@@ -68,7 +68,7 @@ const linkedinImportConfigSchema: z.ZodType<
       context.addIssue({
         code: "custom",
         message:
-          "LinkedIn OAuth requires oauthClientId, oauthClientSecret, and oauthRedirectUri together",
+          "Direct LinkedIn OAuth requires oauthClientId, oauthClientSecret, and oauthRedirectUri together",
       });
     }
   });
@@ -78,7 +78,7 @@ export interface LinkedInImportDeps {
   accessTokenProvider?: LinkedInAccessTokenProvider | undefined;
   oauthTokenStore?: LinkedInOAuthTokenStore | undefined;
   oauthStateStore?: LinkedInOAuthStateStore | undefined;
-  resolveOperatorSession?: LinkedInOperatorSessionResolver | undefined;
+  resolveAnchorSession?: LinkedInAnchorSessionResolver | undefined;
 }
 
 export class LinkedInImportPlugin extends ServicePlugin<
@@ -113,7 +113,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
         ? { stateStore: this.deps.oauthStateStore }
         : {}),
       redirectUri: routeConfig.oauthRedirectUri,
-      resolveOperatorSession: routeConfig.resolveOperatorSession,
+      resolveAnchorSession: routeConfig.resolveAnchorSession,
       staticAccessTokenConfigured: Boolean(this.config.accessToken),
       reportError: (message, error): void => this.logger.error(message, error),
     });
@@ -150,17 +150,17 @@ export class LinkedInImportPlugin extends ServicePlugin<
         oauthClientSecret: string;
         oauthRedirectUri: string;
         tokenStore: LinkedInOAuthTokenStore;
-        resolveOperatorSession: LinkedInOperatorSessionResolver;
+        resolveAnchorSession: LinkedInAnchorSessionResolver;
       }
     | undefined {
     const { oauthClientId, oauthClientSecret, oauthRedirectUri } = this.config;
-    const { oauthTokenStore, resolveOperatorSession } = this.deps;
+    const { oauthTokenStore, resolveAnchorSession } = this.deps;
     if (
       !oauthClientId ||
       !oauthClientSecret ||
       !oauthRedirectUri ||
       !oauthTokenStore ||
-      !resolveOperatorSession
+      !resolveAnchorSession
     ) {
       return undefined;
     }
@@ -169,7 +169,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
       oauthClientSecret,
       oauthRedirectUri,
       tokenStore: oauthTokenStore,
-      resolveOperatorSession,
+      resolveAnchorSession,
     };
   }
 

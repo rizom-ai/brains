@@ -41,14 +41,17 @@ export {
 } from "./lib/linkedin-oauth-token-store";
 export {
   createLinkedInOAuthRoutes,
+  LINKEDIN_ADMIN_CONNECT_PATH,
+  LINKEDIN_ADMIN_DISCONNECT_PATH,
   LINKEDIN_ADMIN_INTEGRATIONS_URL,
-  LINKEDIN_OAUTH_CALLBACK_PATH,
-  LINKEDIN_OAUTH_CONNECT_PATH,
-  LINKEDIN_OAUTH_DISCONNECT_PATH,
-  LINKEDIN_OAUTH_STATUS_PATH,
+  LINKEDIN_ADMIN_MUTATION_ACTIONS,
+  LINKEDIN_ADMIN_STATUS_PATH,
+  LINKEDIN_DIRECT_CALLBACK_PATH,
+  type LinkedInAdminConnectResponse,
+  type LinkedInAdminDisconnectResponse,
+  type LinkedInAnchorSessionResolver,
   type LinkedInOAuthRoutesOptions,
   type LinkedInOAuthStatusResponse,
-  type LinkedInOperatorSessionResolver,
 } from "./lib/linkedin-oauth-routes";
 export {
   LinkedInOAuthStateStore,

@@ -61,13 +61,14 @@ describe("rover presets", () => {
     });
   });
 
-  it("wires operator-gated LinkedIn OAuth routes from declared credentials", () => {
+  it("wires explicit direct LinkedIn OAuth routes from declared credentials", () => {
     const config = resolve(
       rover,
       {
-        LINKEDIN_CLIENT_ID: "client-id",
-        LINKEDIN_CLIENT_SECRET: "client-secret",
-        LINKEDIN_REDIRECT_URI: "https://brain.example/linkedin/callback",
+        LINKEDIN_DIRECT_CLIENT_ID: "client-id",
+        LINKEDIN_DIRECT_CLIENT_SECRET: "client-secret",
+        LINKEDIN_DIRECT_REDIRECT_URI:
+          "https://brain.example/linkedin/oauth/direct/callback",
       },
       { preset: "core" },
     );
@@ -79,13 +80,13 @@ describe("rover presets", () => {
     expect(linkedinImport?.config).toMatchObject({
       oauthClientId: "client-id",
       oauthClientSecret: "client-secret",
-      oauthRedirectUri: "https://brain.example/linkedin/callback",
+      oauthRedirectUri: "https://brain.example/linkedin/oauth/direct/callback",
     });
     expect(routeProvider?.getWebRoutes().map((route) => route.path)).toEqual([
-      "/linkedin/status",
-      "/linkedin/connect",
-      "/linkedin/callback",
-      "/linkedin/disconnect",
+      "/linkedin/admin/status",
+      "/linkedin/admin/connect",
+      "/linkedin/oauth/direct/callback",
+      "/linkedin/admin/disconnect",
     ]);
   });
 

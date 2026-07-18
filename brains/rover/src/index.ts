@@ -77,7 +77,7 @@ const roverLinkedInImportPlugin: PluginFactory = (config) => {
   });
   return linkedinImportPlugin(config as LinkedInImportConfigInput, {
     oauthTokenStore,
-    resolveOperatorSession: async (request): Promise<boolean> => {
+    resolveAnchorSession: async (request): Promise<boolean> => {
       const authService = getActiveAuthService();
       return authService
         ? (await authService.getOperatorSession(request)) !== undefined
@@ -189,14 +189,14 @@ const roverBrain: BrainDefinition = defineBrain({
         ...(env["LINKEDIN_ACCESS_TOKEN"]
           ? { accessToken: env["LINKEDIN_ACCESS_TOKEN"] }
           : {}),
-        ...(env["LINKEDIN_CLIENT_ID"]
-          ? { oauthClientId: env["LINKEDIN_CLIENT_ID"] }
+        ...(env["LINKEDIN_DIRECT_CLIENT_ID"]
+          ? { oauthClientId: env["LINKEDIN_DIRECT_CLIENT_ID"] }
           : {}),
-        ...(env["LINKEDIN_CLIENT_SECRET"]
-          ? { oauthClientSecret: env["LINKEDIN_CLIENT_SECRET"] }
+        ...(env["LINKEDIN_DIRECT_CLIENT_SECRET"]
+          ? { oauthClientSecret: env["LINKEDIN_DIRECT_CLIENT_SECRET"] }
           : {}),
-        ...(env["LINKEDIN_REDIRECT_URI"]
-          ? { oauthRedirectUri: env["LINKEDIN_REDIRECT_URI"] }
+        ...(env["LINKEDIN_DIRECT_REDIRECT_URI"]
+          ? { oauthRedirectUri: env["LINKEDIN_DIRECT_REDIRECT_URI"] }
           : {}),
       }),
     ],

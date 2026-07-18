@@ -331,20 +331,20 @@ Interfaces can be enabled or removed independently from the content bundles wher
 
 ## Integrations and bundle ownership
 
-| Integration               | Owning bundle or scope | What it enables                                      | Common secret                                                       |
-| ------------------------- | ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
-| AI provider               | Core                   | Chat, generation, extraction, and embeddings         | `AI_API_KEY`                                                        |
-| Image provider            | Core                   | AI image generation                                  | `AI_IMAGE_KEY`                                                      |
-| Git host                  | Core                   | Private content-repository synchronization           | `GIT_SYNC_TOKEN`                                                    |
-| Resend                    | Core                   | Setup and transactional email delivery               | `SETUP_EMAIL_API_KEY`                                               |
-| Cloudflare Web Analytics  | Site                   | Website analytics                                    | Cloudflare API token and site tag                                   |
-| LinkedIn publishing       | Publishing             | Text, image, and native document publishing          | `LINKEDIN_ACCESS_TOKEN`                                             |
-| LinkedIn portability      | Core (Rover)           | OAuth connection and consenting owner PROFILE import | `LINKEDIN_CLIENT_SECRET`; static `LINKEDIN_ACCESS_TOKEN` fallback   |
-| Buttondown                | Publishing             | Newsletter subscribers and delivery                  | `BUTTONDOWN_API_KEY`                                                |
-| Unsplash                  | Publishing             | Stock-photo search and selection                     | `UNSPLASH_ACCESS_KEY`                                               |
-| AT Protocol / Bluesky PDS | Publishing             | Brain-card and entity publishing                     | `ATPROTO_APP_PASSWORD`                                              |
-| Chat: Discord adapter     | Core (`chat`)          | Discord mentions, DMs, threads, files, and cards     | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` |
-| Chat: Slack adapter       | Core (`chat`)          | Slack mentions, DMs, threads, files, and cards       | `SLACK_BOT_TOKEN` plus `SLACK_APP_TOKEN` or `SLACK_SIGNING_SECRET`  |
+| Integration               | Owning bundle or scope | What it enables                                      | Common secret                                                           |
+| ------------------------- | ---------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------- |
+| AI provider               | Core                   | Chat, generation, extraction, and embeddings         | `AI_API_KEY`                                                            |
+| Image provider            | Core                   | AI image generation                                  | `AI_IMAGE_KEY`                                                          |
+| Git host                  | Core                   | Private content-repository synchronization           | `GIT_SYNC_TOKEN`                                                        |
+| Resend                    | Core                   | Setup and transactional email delivery               | `SETUP_EMAIL_API_KEY`                                                   |
+| Cloudflare Web Analytics  | Site                   | Website analytics                                    | Cloudflare API token and site tag                                       |
+| LinkedIn publishing       | Publishing             | Text, image, and native document publishing          | `LINKEDIN_ACCESS_TOKEN`                                                 |
+| LinkedIn portability      | Core (Rover)           | OAuth connection and consenting owner PROFILE import | Broker instance credential; `LINKEDIN_DIRECT_CLIENT_SECRET` self-hosted |
+| Buttondown                | Publishing             | Newsletter subscribers and delivery                  | `BUTTONDOWN_API_KEY`                                                    |
+| Unsplash                  | Publishing             | Stock-photo search and selection                     | `UNSPLASH_ACCESS_KEY`                                                   |
+| AT Protocol / Bluesky PDS | Publishing             | Brain-card and entity publishing                     | `ATPROTO_APP_PASSWORD`                                                  |
+| Chat: Discord adapter     | Core (`chat`)          | Discord mentions, DMs, threads, files, and cards     | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID`     |
+| Chat: Slack adapter       | Core (`chat`)          | Slack mentions, DMs, threads, files, and cards       | `SLACK_BOT_TOKEN` plus `SLACK_APP_TOKEN` or `SLACK_SIGNING_SECRET`      |
 
 Included integrations remain inactive until their required credentials are configured. Keep non-secret settings in `brain.yaml` and secrets in environment-backed configuration.
 

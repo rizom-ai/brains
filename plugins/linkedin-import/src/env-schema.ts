@@ -1,20 +1,20 @@
 import type { EnvVarDecl } from "@brains/utils/env-schema";
 
-/** Browser OAuth configuration for LinkedIn member-data portability. */
-export const linkedinOAuthEnvSchema: EnvVarDecl[] = [
+/** Explicit self-hosted/direct LinkedIn OAuth configuration. */
+export const linkedinDirectOAuthEnvSchema: EnvVarDecl[] = [
   {
-    name: "LINKEDIN_CLIENT_ID",
-    description: "LinkedIn portability OAuth application client ID",
+    name: "LINKEDIN_DIRECT_CLIENT_ID",
+    description: "Direct LinkedIn portability OAuth application client ID",
   },
   {
-    name: "LINKEDIN_CLIENT_SECRET",
+    name: "LINKEDIN_DIRECT_CLIENT_SECRET",
     sensitive: true,
-    description: "LinkedIn portability OAuth application client secret",
+    description: "Direct LinkedIn portability OAuth application client secret",
   },
   {
-    name: "LINKEDIN_REDIRECT_URI",
+    name: "LINKEDIN_DIRECT_REDIRECT_URI",
     description:
-      "Registered LinkedIn callback URL ending in /linkedin/callback",
+      "Direct callback URL ending in /linkedin/oauth/direct/callback",
   },
 ];
 
@@ -25,5 +25,5 @@ export const linkedinImportEnvSchema: EnvVarDecl[] = [
     sensitive: true,
     description: "LinkedIn member data portability",
   },
-  ...linkedinOAuthEnvSchema,
+  ...linkedinDirectOAuthEnvSchema,
 ];

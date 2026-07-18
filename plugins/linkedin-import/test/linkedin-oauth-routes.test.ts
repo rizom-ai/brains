@@ -8,14 +8,16 @@ import {
 } from "../src/lib/linkedin-oauth-client";
 import {
   createLinkedInOAuthRoutes,
-  LINKEDIN_OAUTH_CALLBACK_PATH,
-  LINKEDIN_OAUTH_CONNECT_PATH,
-  LINKEDIN_OAUTH_DISCONNECT_PATH,
-  LINKEDIN_OAUTH_STATUS_PATH,
+  LINKEDIN_ADMIN_CONNECT_PATH,
+  LINKEDIN_ADMIN_DISCONNECT_PATH,
+  LINKEDIN_ADMIN_MUTATION_ACTIONS,
+  LINKEDIN_ADMIN_STATUS_PATH,
+  LINKEDIN_DIRECT_CALLBACK_PATH,
 } from "../src/lib/linkedin-oauth-routes";
 import { LinkedInOAuthStateStore } from "../src/lib/linkedin-oauth-state-store";
 
-const redirectUri = "https://brain.example/linkedin/callback";
+const origin = "https://brain.example";
+const redirectUri = `${origin}${LINKEDIN_DIRECT_CALLBACK_PATH}`;
 
 class MemoryTokenStore implements LinkedInOAuthTokenStore {
   token: LinkedInOAuthToken | undefined;
@@ -45,10 +47,32 @@ class MemoryTokenStore implements LinkedInOAuthTokenStore {
   }
 }
 
-function operatorRequest(url: string, method = "GET"): Request {
+function anchorRequest(url: string): Request {
   return new Request(url, {
-    method,
-    headers: { "x-test-operator": "true" },
+    headers: { "x-test-anchor": "true" },
+  });
+}
+
+function adminActionRequest(
+  path: string,
+  action: (typeof LINKEDIN_ADMIN_MUTATION_ACTIONS)[keyof typeof LINKEDIN_ADMIN_MUTATION_ACTIONS],
+  options: {
+    anchor?: boolean | undefined;
+    requestOrigin?: string | undefined;
+    confirmation?: string | undefined;
+  } = {},
+): Request {
+  return new Request(`${origin}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: options.requestOrigin ?? origin,
+      ...(options.anchor === false ? {} : { "x-test-anchor": "true" }),
+    },
+    body: JSON.stringify({
+      action,
+      confirmation: options.confirmation ?? action,
+    }),
   });
 }
 
@@ -61,41 +85,47 @@ function findRoute(
   return route;
 }
 
-describe("LinkedIn OAuth browser routes", () => {
-  it("gates status and connect on the operator session", async () => {
-    const store = new MemoryTokenStore();
+describe("LinkedIn OAuth routes", () => {
+  it("gates admin routes on Anchor, same-origin, and confirmed actions", async () => {
     const routes = createLinkedInOAuthRoutes({
       client: new LinkedInOAuthClient("client-id", "client-secret"),
-      tokenStore: store,
+      tokenStore: new MemoryTokenStore(),
       redirectUri,
-      resolveOperatorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-operator") === "true",
+      resolveAnchorSession: async (request): Promise<boolean> =>
+        request.headers.get("x-test-anchor") === "true",
     });
+    const status = findRoute(routes, LINKEDIN_ADMIN_STATUS_PATH);
+    const connect = findRoute(routes, LINKEDIN_ADMIN_CONNECT_PATH);
 
-    const statusResponse = await findRoute(
-      routes,
-      LINKEDIN_OAUTH_STATUS_PATH,
-    ).handler(new Request("https://brain.example/linkedin/status"));
-    const connectRoute = findRoute(routes, LINKEDIN_OAUTH_CONNECT_PATH);
-    const connectResponse = await connectRoute.handler(
-      new Request("https://brain.example/linkedin/connect", { method: "POST" }),
+    const statusResponse = await status.handler(
+      new Request(`${origin}${LINKEDIN_ADMIN_STATUS_PATH}`),
     );
-    const crossOriginConnect = await connectRoute.handler(
-      new Request("https://brain.example/linkedin/connect", {
-        method: "POST",
-        headers: {
-          Origin: "https://attacker.example",
-          "x-test-operator": "true",
-        },
-      }),
+    const unauthenticated = await connect.handler(
+      adminActionRequest(
+        LINKEDIN_ADMIN_CONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
+        { anchor: false },
+      ),
+    );
+    const crossOrigin = await connect.handler(
+      adminActionRequest(
+        LINKEDIN_ADMIN_CONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
+        { requestOrigin: "https://attacker.example" },
+      ),
+    );
+    const unconfirmed = await connect.handler(
+      adminActionRequest(
+        LINKEDIN_ADMIN_CONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
+        { confirmation: "no" },
+      ),
     );
 
-    expect(statusResponse.status).toBe(401);
-    expect(await statusResponse.json()).toEqual({
-      error: "Anchor session required",
-    });
-    expect(connectResponse.status).toBe(403);
-    expect(crossOriginConnect.status).toBe(403);
+    expect(statusResponse.status).toBe(403);
+    expect(unauthenticated.status).toBe(403);
+    expect(crossOrigin.status).toBe(403);
+    expect(unconfirmed.status).toBe(400);
   });
 
   it("starts least-privilege authorization with expiring server-side state", async () => {
@@ -106,18 +136,22 @@ describe("LinkedIn OAuth browser routes", () => {
         generateState: (): string => "single-use-state",
       }),
       redirectUri,
-      resolveOperatorSession: async (): Promise<boolean> => true,
+      resolveAnchorSession: async (): Promise<boolean> => true,
     });
 
     const response = await findRoute(
       routes,
-      LINKEDIN_OAUTH_CONNECT_PATH,
+      LINKEDIN_ADMIN_CONNECT_PATH,
     ).handler(
-      operatorRequest("https://brain.example/linkedin/connect", "POST"),
+      adminActionRequest(
+        LINKEDIN_ADMIN_CONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
+      ),
     );
-    const location = new URL(response.headers.get("location") ?? "");
+    const body = (await response.json()) as { authorizationUrl: string };
+    const location = new URL(body.authorizationUrl);
 
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(200);
     expect(location.origin + location.pathname).toBe(
       "https://www.linkedin.com/oauth/v2/authorization",
     );
@@ -126,7 +160,7 @@ describe("LinkedIn OAuth browser routes", () => {
     expect(location.searchParams.get("scope")).toBe(LINKEDIN_PORTABILITY_SCOPE);
   });
 
-  it("exchanges a valid public callback once and never exposes the token", async () => {
+  it("exchanges a valid direct callback once and never exposes the token", async () => {
     const store = new MemoryTokenStore();
     let exchanges = 0;
     const client = new LinkedInOAuthClient(
@@ -149,28 +183,24 @@ describe("LinkedIn OAuth browser routes", () => {
         generateState: (): string => "callback-state",
       }),
       redirectUri,
-      resolveOperatorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-operator") === "true",
+      resolveAnchorSession: async (request): Promise<boolean> =>
+        request.headers.get("x-test-anchor") === "true",
     });
 
-    await findRoute(routes, LINKEDIN_OAUTH_CONNECT_PATH).handler(
-      operatorRequest("https://brain.example/linkedin/connect", "POST"),
-    );
-    const callback = findRoute(routes, LINKEDIN_OAUTH_CALLBACK_PATH);
-    const response = await callback.handler(
-      new Request(
-        "https://brain.example/linkedin/callback?code=authorization-code&state=callback-state",
+    await findRoute(routes, LINKEDIN_ADMIN_CONNECT_PATH).handler(
+      adminActionRequest(
+        LINKEDIN_ADMIN_CONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.connectLinkedIn,
       ),
     );
-    const replay = await callback.handler(
-      new Request(
-        "https://brain.example/linkedin/callback?code=authorization-code&state=callback-state",
-      ),
-    );
+    const callback = findRoute(routes, LINKEDIN_DIRECT_CALLBACK_PATH);
+    const callbackUrl = `${redirectUri}?code=authorization-code&state=callback-state`;
+    const response = await callback.handler(new Request(callbackUrl));
+    const replay = await callback.handler(new Request(callbackUrl));
     const statusResponse = await findRoute(
       routes,
-      LINKEDIN_OAUTH_STATUS_PATH,
-    ).handler(operatorRequest("https://brain.example/linkedin/status"));
+      LINKEDIN_ADMIN_STATUS_PATH,
+    ).handler(anchorRequest(`${origin}${LINKEDIN_ADMIN_STATUS_PATH}`));
     const statusBody = await statusResponse.text();
 
     expect(response.status).toBe(303);
@@ -188,7 +218,7 @@ describe("LinkedIn OAuth browser routes", () => {
     expect(statusBody).not.toContain("secret-access-token");
   });
 
-  it("rejects invalid callback state before exchanging a code", async () => {
+  it("rejects invalid direct callback state before exchanging a code", async () => {
     let exchanges = 0;
     const routes = createLinkedInOAuthRoutes({
       client: new LinkedInOAuthClient(
@@ -201,48 +231,47 @@ describe("LinkedIn OAuth browser routes", () => {
       ),
       tokenStore: new MemoryTokenStore(),
       redirectUri,
-      resolveOperatorSession: async (): Promise<boolean> => true,
+      resolveAnchorSession: async (): Promise<boolean> => true,
     });
 
     const response = await findRoute(
       routes,
-      LINKEDIN_OAUTH_CALLBACK_PATH,
-    ).handler(
-      new Request(
-        "https://brain.example/linkedin/callback?code=code&state=forged",
-      ),
-    );
+      LINKEDIN_DIRECT_CALLBACK_PATH,
+    ).handler(new Request(`${redirectUri}?code=code&state=forged`));
 
     expect(response.status).toBe(400);
     expect(exchanges).toBe(0);
   });
 
-  it("disconnects only for an operator and clears the reusable credential", async () => {
+  it("disconnects only after an Anchor confirms the action", async () => {
     const store = new MemoryTokenStore();
     store.token = { accessToken: "secret", expiresIn: 3600 };
     const routes = createLinkedInOAuthRoutes({
       client: new LinkedInOAuthClient("client-id", "client-secret"),
       tokenStore: store,
       redirectUri,
-      resolveOperatorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-operator") === "true",
+      resolveAnchorSession: async (request): Promise<boolean> =>
+        request.headers.get("x-test-anchor") === "true",
     });
-    const disconnect = findRoute(routes, LINKEDIN_OAUTH_DISCONNECT_PATH);
+    const disconnect = findRoute(routes, LINKEDIN_ADMIN_DISCONNECT_PATH);
 
     const denied = await disconnect.handler(
-      new Request("https://brain.example/linkedin/disconnect", {
-        method: "POST",
-      }),
+      adminActionRequest(
+        LINKEDIN_ADMIN_DISCONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.disconnectLinkedIn,
+        { anchor: false },
+      ),
     );
     const response = await disconnect.handler(
-      operatorRequest("https://brain.example/linkedin/disconnect", "POST"),
+      adminActionRequest(
+        LINKEDIN_ADMIN_DISCONNECT_PATH,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.disconnectLinkedIn,
+      ),
     );
 
     expect(denied.status).toBe(403);
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe(
-      "/admin?section=integrations&provider=linkedin&status=disconnected",
-    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ disconnected: true });
     expect(store.clearCount).toBe(1);
     expect(await store.getAccessToken()).toBeUndefined();
   });

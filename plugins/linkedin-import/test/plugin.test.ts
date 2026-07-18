@@ -40,12 +40,13 @@ describe("LinkedInImportPlugin", () => {
     }
   });
 
-  it("exposes browser OAuth routes only with complete config and injected boundaries", () => {
+  it("exposes direct OAuth routes only with complete config and injected boundaries", () => {
     const plugin = new LinkedInImportPlugin(
       {
         oauthClientId: "client-id",
         oauthClientSecret: "client-secret",
-        oauthRedirectUri: "https://brain.example/linkedin/callback",
+        oauthRedirectUri:
+          "https://brain.example/linkedin/oauth/direct/callback",
       },
       {
         oauthTokenStore: {
@@ -56,17 +57,17 @@ describe("LinkedInImportPlugin", () => {
           storeToken: async (): Promise<void> => undefined,
           clearToken: async (): Promise<void> => undefined,
         },
-        resolveOperatorSession: async (): Promise<boolean> => true,
+        resolveAnchorSession: async (): Promise<boolean> => true,
       },
     );
 
     expect(
       plugin.getWebRoutes().map((route) => [route.method, route.path]),
     ).toEqual([
-      ["GET", "/linkedin/status"],
-      ["POST", "/linkedin/connect"],
-      ["GET", "/linkedin/callback"],
-      ["POST", "/linkedin/disconnect"],
+      ["GET", "/linkedin/admin/status"],
+      ["POST", "/linkedin/admin/connect"],
+      ["GET", "/linkedin/oauth/direct/callback"],
+      ["POST", "/linkedin/admin/disconnect"],
     ]);
     expect(new LinkedInImportPlugin().getWebRoutes()).toEqual([]);
   });
