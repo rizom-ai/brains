@@ -1,3 +1,4 @@
+import { RestartingListenerSupervisor } from "./restarting-listener-supervisor";
 import type { DiscordChatAdapter } from "./types";
 
 interface DiscordGatewayLoopDeps {
@@ -13,21 +14,28 @@ interface DiscordGatewayLoopDeps {
 
 /**
  * Runs the Discord gateway listener as a resilient background loop: poll the
- * adapter for a window, settle deferred tasks, and on failure log and restart
- * after a delay — until aborted. Owns its own abort/promise lifecycle. App
- * initialize/shutdown stays with the interface daemon; this only owns the poll.
- *
- * One-off for the chat interface — not a shared abstraction. If a second
- * gateway-driven adapter ever appears, promote it then.
+ * adapter for a window, drain deferred tasks, and on failure log and restart
+ * after a delay — until stopped. App initialize/shutdown stays with the
+ * interface daemon; this only owns the poll.
  */
 export class DiscordGatewayLoop {
-  private readonly deps: DiscordGatewayLoopDeps;
   private adapter: DiscordChatAdapter | undefined;
-  private abortController: AbortController | undefined;
-  private loopPromise: Promise<void> | undefined;
+  private readonly supervisor: RestartingListenerSupervisor;
 
   constructor(deps: DiscordGatewayLoopDeps) {
-    this.deps = deps;
+    this.supervisor = new RestartingListenerSupervisor({
+      restartDelayMs: deps.gatewayRestartDelayMs,
+      failureMessage: "Discord gateway listener failed",
+      logger: deps.logger,
+      runListener: (options, signal): Promise<Response> | undefined => {
+        if (!deps.getApp()) return undefined;
+        return this.adapter?.startGatewayListener(
+          options,
+          deps.gatewayRunMs,
+          signal,
+        );
+      },
+    });
   }
 
   setAdapter(adapter: DiscordChatAdapter): void {
@@ -35,62 +43,14 @@ export class DiscordGatewayLoop {
   }
 
   isRunning(): boolean {
-    return this.loopPromise !== undefined;
+    return this.supervisor.isRunning();
   }
 
   start(): void {
-    if (this.loopPromise) return;
-    this.abortController = new AbortController();
-    this.loopPromise = this.run(this.abortController.signal);
+    this.supervisor.start();
   }
 
-  async stop(): Promise<void> {
-    this.abortController?.abort();
-    await this.loopPromise?.catch((error: unknown) =>
-      this.deps.logger.debug("Chat gateway loop stopped with error", { error }),
-    );
-    this.loopPromise = undefined;
-    this.abortController = undefined;
-  }
-
-  private async run(signal: AbortSignal): Promise<void> {
-    if (!this.deps.getApp()) return;
-    const adapter = this.adapter;
-    if (!adapter) return;
-    while (!this.isAborted(signal)) {
-      const tasks: Promise<unknown>[] = [];
-      try {
-        await adapter.startGatewayListener(
-          { waitUntil: (task): void => void tasks.push(task) },
-          this.deps.gatewayRunMs,
-          signal,
-        );
-        await Promise.allSettled(tasks);
-      } catch (error: unknown) {
-        if (this.isAborted(signal)) return;
-        this.deps.logger.error("Discord gateway listener failed", { error });
-      }
-
-      if (this.isAborted(signal)) return;
-      await this.delay(this.deps.gatewayRestartDelayMs, signal);
-    }
-  }
-
-  private isAborted(signal: AbortSignal): boolean {
-    return signal.aborted;
-  }
-
-  private delay(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve) => {
-      const timeout = setTimeout(resolve, ms);
-      signal.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(timeout);
-          resolve();
-        },
-        { once: true },
-      );
-    });
+  stop(): Promise<void> {
+    return this.supervisor.stop();
   }
 }

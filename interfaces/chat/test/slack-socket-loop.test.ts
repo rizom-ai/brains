@@ -67,4 +67,44 @@ describe("SlackSocketLoop", () => {
     expect(startSocketModeListener).toHaveBeenCalledTimes(1);
     await loop.stop();
   });
+
+  it("drains tasks admitted before a listener failure during stop", async () => {
+    const { adapter, startSocketModeListener } = createAdapter();
+    let releaseTask: () => void = () => {};
+    const admittedTask = new Promise<void>((resolve) => {
+      releaseTask = resolve;
+    });
+    startSocketModeListener.mockImplementation(
+      (options: GatewayListenerOptions): Promise<Response> => {
+        options.waitUntil(admittedTask);
+        return Promise.reject(new Error("listener failed"));
+      },
+    );
+    const loop = new SlackSocketLoop({
+      listenerRunMs: 50,
+      restartDelayMs: 1000,
+      logger: { debug: mock(() => {}), error: mock(() => {}) },
+    });
+    loop.setAdapter(adapter);
+
+    loop.start();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const firstStop = loop.stop();
+    const secondStop = loop.stop();
+    expect(secondStop).toBe(firstStop);
+
+    let stopSettled = false;
+    const stopping = firstStop.then(() => {
+      stopSettled = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      expect(stopSettled).toBe(false);
+    } finally {
+      releaseTask();
+      await stopping;
+    }
+  });
 });
