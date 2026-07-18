@@ -32,11 +32,13 @@ describe("DASHBOARD_STYLES", () => {
     expect(localStyles).not.toContain(".session-chip");
   });
 
-  it("provides generic widget tab and filter primitives", () => {
+  it("provides generic widget action, tab, and filter primitives", () => {
     expect(DASHBOARD_STYLES).toMatch(/\.widget-tabs[,\s{]/);
     expect(DASHBOARD_STYLES).toMatch(/\.widget-tab[,\s{]/);
     expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tabs[,\s{]/);
     expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tab[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-actions[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-action[,\s{]/);
   });
 
   it("contains no styles for the removed identity card", () => {

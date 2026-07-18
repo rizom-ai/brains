@@ -3,6 +3,8 @@ import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
 import {
   createWidgetInstanceId,
+  WidgetActionLink,
+  WidgetActions,
   WidgetFilter,
   WidgetList,
   WidgetListItem,
@@ -14,6 +16,26 @@ describe("widget UI primitives", () => {
     expect(createWidgetInstanceId("Agent Discovery", "Network/Main")).toBe(
       "widget-agent-discovery-network-main",
     );
+  });
+
+  it("renders consistent primary and external widget actions", () => {
+    const html = render(
+      <WidgetActions label="Publishing actions">
+        <WidgetActionLink href="/cms" emphasis="primary">
+          Open in CMS
+        </WidgetActionLink>
+        <WidgetActionLink href="https://preview.example" external>
+          Open preview
+        </WidgetActionLink>
+      </WidgetActions>,
+    );
+
+    expect(html).toContain('class="widget-actions"');
+    expect(html).toContain('class="widget-action widget-action--primary"');
+    expect(html).toContain('href="/cms"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noreferrer"');
+    expect(html).toContain("↗");
   });
 
   it("renders linked tab and panel semantics from one definition", () => {

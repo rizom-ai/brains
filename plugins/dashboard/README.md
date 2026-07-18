@@ -42,13 +42,15 @@ The `group` field is required. A group tab exists only when at least one visible
 
 Custom components receive `pluginId`, `widgetId`, and a DOM-safe `instanceId` through
 `WidgetComponentProps`. Use the exported `WidgetTabs`, `WidgetFilter`, `WidgetList`,
-`WidgetListItem`, `WidgetStatusPill`, and `WidgetEmptyState` primitives so IDs, ARIA
+`WidgetListItem`, `WidgetActions`, `WidgetActionLink`, `WidgetStatusPill`, and
+`WidgetEmptyState` primitives so IDs, ARIA
 relationships, classes, and behavior attributes stay consistent.
 
 `WidgetTabs` supports nested line or pill variants, hash activation, and ARIA
 Arrow/Home/End keyboard navigation. `WidgetFilter` filters descendant `WidgetListItem`
 rows by their `filterValues` and can reveal its optional `emptyState`; neither control
-requires a widget-specific script. The underlying `data-ui-*` contract remains available
+requires a widget-specific script. `WidgetActions` keeps management and external links
+visually consistent across cards. The underlying `data-ui-*` contract remains available
 for genuinely custom markup, and each controller changes only elements owned by its
 nearest root.
 

@@ -426,7 +426,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("exported");
     expect(html).toContain("committed");
     expect(html).toContain('href="/studio#/workspace/sync"');
-    expect(html).toContain("Manage in CMS →");
+    expect(html).toContain("Open in CMS");
   });
 
   it("should render the shared console strip from derived surfaces", () => {
@@ -783,7 +783,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Broken send");
     expect(html).toContain("Provider rejected sender");
     expect(html).toContain('href="/cms#/workspace/publishing"');
-    expect(html).toContain("Manage in CMS");
+    expect(html).toContain("Open in CMS");
     expect(html).not.toContain('class="board"');
     expect(html).not.toContain("Domain as identity");
     expect(html).not.toContain("post/domain-as-identity");
@@ -829,7 +829,7 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
     expect(html).toContain('class="pipeline-digest"');
-    expect(html).not.toContain("Manage in CMS");
+    expect(html).not.toContain("Open in CMS");
     expect(html).not.toContain('href="undefined"');
   });
 

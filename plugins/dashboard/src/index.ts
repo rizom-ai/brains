@@ -34,6 +34,8 @@ export {
   createWidgetInstanceId,
   EmptyState,
   KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
   WidgetEmptyState,
   WidgetFilter,
   WidgetList,

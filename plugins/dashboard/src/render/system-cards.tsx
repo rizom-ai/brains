@@ -1,6 +1,12 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import { CardHeader, EmptyState, KeyValueList } from "../widget-ui";
+import {
+  CardHeader,
+  EmptyState,
+  KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
+} from "../widget-ui";
 import { formatClock, formatTimestamp } from "./format";
 import type { DashboardJobProgressItem, DashboardRenderInput } from "./types";
 
@@ -165,9 +171,11 @@ export function ContentSyncCard({
         </span>
       </div>
       {status.managementUrl && (
-        <a class="pipeline-manage" href={status.managementUrl}>
-          Manage in CMS →
-        </a>
+        <WidgetActions label="Content sync actions">
+          <WidgetActionLink href={status.managementUrl} emphasis="primary">
+            Open in CMS
+          </WidgetActionLink>
+        </WidgetActions>
       )}
     </section>
   );

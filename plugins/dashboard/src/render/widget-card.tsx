@@ -8,6 +8,8 @@ import {
   createWidgetInstanceId,
   EmptyState,
   KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
   WidgetList,
   WidgetListItem,
   WidgetStatusPill,
@@ -234,9 +236,11 @@ function PipelineBody({ widget }: RendererProps): JSX.Element {
         </section>
       )}
       {managementUrl && (
-        <a class="pipeline-manage" href={managementUrl}>
-          Manage in CMS →
-        </a>
+        <WidgetActions label="Publication actions">
+          <WidgetActionLink href={managementUrl} emphasis="primary">
+            Open in CMS
+          </WidgetActionLink>
+        </WidgetActions>
       )}
     </div>
   );

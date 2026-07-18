@@ -103,6 +103,51 @@
   color: var(--console-text-faint);
 }
 
+/* Generic widget actions. */
+.widget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.widget-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.widget-action--primary {
+  border-color: var(--console-rule-accent);
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+}
+.widget-action-arrow {
+  color: var(--console-accent);
+  transition: transform 0.15s ease;
+}
+.widget-action:hover {
+  border-color: var(--console-rule-accent);
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+}
+.widget-action:hover .widget-action-arrow {
+  transform: translate(2px, -1px);
+}
+
 /* Generic widget controls. */
 .widget-tabs {
   display: flex;
@@ -215,6 +260,13 @@
   }
   .widget-tab {
     flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-action,
+  .widget-action-arrow {
+    transition: none;
   }
 }
 

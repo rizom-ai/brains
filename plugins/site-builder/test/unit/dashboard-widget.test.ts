@@ -36,14 +36,14 @@ describe("SiteHealthWidget", () => {
     );
 
     expect(html).toContain('class="pipeline-digest site-health-widget"');
-    expect(html).toContain('aria-label="Site links"');
+    expect(html).toContain('aria-label="Site actions"');
     expect(html).toContain("Preview");
     expect(html).toContain("18 routes");
     expect(html).toContain("Template failed");
     expect(html).toContain("Open preview");
     expect(html).toContain("Open live");
-    expect(html).toContain("Manage in CMS");
-    expect(html).toContain("site-health-action--manage");
+    expect(html).toContain("Open in CMS");
+    expect(html).toContain("widget-action--primary");
     expect(html).not.toContain("Build preview");
     expect(html).not.toContain("Update live site");
   });

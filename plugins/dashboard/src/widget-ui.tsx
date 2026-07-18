@@ -84,6 +84,47 @@ export function WidgetEmptyState({
 
 export const EmptyState: typeof WidgetEmptyState = WidgetEmptyState;
 
+export function WidgetActions({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ComponentChildren;
+  className?: string;
+}): JSX.Element {
+  return (
+    <nav class={classes("widget-actions", className)} aria-label={label}>
+      {children}
+    </nav>
+  );
+}
+
+export function WidgetActionLink({
+  href,
+  children,
+  external = false,
+  emphasis = "secondary",
+}: {
+  href: string;
+  children: ComponentChildren;
+  external?: boolean;
+  emphasis?: "primary" | "secondary";
+}): JSX.Element {
+  return (
+    <a
+      class={classes("widget-action", `widget-action--${emphasis}`)}
+      href={href}
+      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+    >
+      <span>{children}</span>
+      <span class="widget-action-arrow" aria-hidden="true">
+        {external ? "↗" : "→"}
+      </span>
+    </a>
+  );
+}
+
 export interface WidgetTabDefinition {
   value: string;
   label: ComponentChildren;

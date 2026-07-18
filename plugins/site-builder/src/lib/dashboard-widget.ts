@@ -96,11 +96,18 @@ function actionLink(
   return h(
     "a",
     {
-      class: `site-health-action site-health-action--${kind}`,
+      class: `widget-action widget-action--${kind === "manage" ? "primary" : "secondary"}`,
       href,
       ...(kind === "external" ? { target: "_blank", rel: "noreferrer" } : {}),
     },
-    label,
+    [
+      h("span", {}, label),
+      h(
+        "span",
+        { class: "widget-action-arrow", "aria-hidden": "true" },
+        kind === "external" ? "↗" : "→",
+      ),
+    ],
   );
 }
 
@@ -128,7 +135,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
     links.push(actionLink(data.site.liveUrl, "Open live"));
   }
   if (data.managementUrl) {
-    links.push(actionLink(data.managementUrl, "Manage in CMS", "manage"));
+    links.push(actionLink(data.managementUrl, "Open in CMS", "manage"));
   }
 
   return h("div", { class: "pipeline-digest site-health-widget" }, [
@@ -157,7 +164,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
     links.length > 0
       ? h(
           "nav",
-          { class: "site-health-actions", "aria-label": "Site links" },
+          { class: "widget-actions", "aria-label": "Site actions" },
           links,
         )
       : null,

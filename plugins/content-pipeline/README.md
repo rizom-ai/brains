@@ -43,7 +43,7 @@ version after an explicit confirmation. CMS remains unchanged when the pipeline
 is absent.
 
 The Dashboard widget is read-only. It shows queued, generating, awaiting-review,
-and published totals, plus current failures. A **Manage in CMS →** link appears
+and published totals, plus current failures. An **Open in CMS** action appears
 only when CMS registration succeeded.
 
 Queue membership is durable entity lifecycle state. Recoverable queue ordering
