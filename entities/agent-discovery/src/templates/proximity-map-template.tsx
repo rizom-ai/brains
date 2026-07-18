@@ -89,28 +89,23 @@ const SITE_STYLES = `
   font-size: 0.95rem;
   line-height: 1.7;
 }
-.agent-proximity-site__stats {
+.agent-proximity-site__foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem 2rem;
-  margin-top: 1.75rem;
-}
-.agent-proximity-site__stat-number {
-  color: var(--console-text);
-  font-family: var(--console-display);
-  font-size: 2.15rem;
-  font-variant-numeric: tabular-nums;
-  font-variation-settings: "opsz" 144, "SOFT" 30, "wght" 420;
-  line-height: 1;
-}
-.agent-proximity-site__stat-label {
-  margin-top: 0.35rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.4rem;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--console-rule);
   color: var(--console-text-muted);
   font-family: var(--console-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.15em;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
+.agent-proximity-site__foot b { color: var(--console-accent); font-weight: 600; }
+.agent-proximity-site__live { opacity: 0.65; }
 .agent-proximity-site__cta {
   display: inline-flex;
   align-items: center;
@@ -249,20 +244,6 @@ const SITE_STYLES = `
   color: var(--console-text-muted);
   text-align: center;
 }
-.agent-proximity-site__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem 1.6rem;
-  margin-top: 1.6rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--console-rule);
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.agent-proximity-site__legend b { color: var(--console-accent); font-weight: 500; }
 @keyframes agentProximityBreathe {
   0%, 100% { opacity: 0.55; transform: scale(1); }
   50% { opacity: 0.95; transform: scale(1.18); }
@@ -291,8 +272,6 @@ const SITE_STYLES = `
 }
 @media (max-width: 560px) {
   .agent-proximity-site { padding: 2rem 1rem; border-radius: 0.5rem; }
-  .agent-proximity-site__stats { gap: 1rem 1.4rem; }
-  .agent-proximity-site__stat-number { font-size: 1.8rem; }
   .agent-proximity-site .proximity-field { min-height: 18rem; }
   .agent-proximity-site .proximity-field > svg { min-height: 17rem; }
 }
@@ -324,7 +303,6 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
   const activeCount = data.nodes.filter(
     (node) => node.status !== "archived",
   ).length;
-  const archivedCount = data.nodes.length - activeCount;
 
   const kicker = data.kicker ?? DEFAULT_COPY.kicker;
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
@@ -344,27 +322,6 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
           </h2>
           <p class="agent-proximity-site__lede">{lede}</p>
 
-          <div class="agent-proximity-site__stats" aria-label="Network summary">
-            <div>
-              <div class="agent-proximity-site__stat-number">{activeCount}</div>
-              <div class="agent-proximity-site__stat-label">agents</div>
-            </div>
-            <div>
-              <div class="agent-proximity-site__stat-number">
-                {data.clusters.length}
-              </div>
-              <div class="agent-proximity-site__stat-label">constellations</div>
-            </div>
-            <div>
-              <div class="agent-proximity-site__stat-number">
-                {archivedCount}
-              </div>
-              <div class="agent-proximity-site__stat-label">
-                archived traces
-              </div>
-            </div>
-          </div>
-
           <a class="agent-proximity-site__cta" href={ctaHref}>
             {ctaLabel}
           </a>
@@ -382,22 +339,16 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
 
         <div class="agent-proximity-site__map">
           <ProximityMap data={data} surface="site" />
+          {/* Rev 10: a quiet caption attached to the map — honest counts,
+              nothing more. The big-number ledger and kind legend are gone. */}
+          <div class="agent-proximity-site__foot" aria-label="Network summary">
+            <span class="agent-proximity-site__count">
+              <b>{activeCount}</b> agents · <b>{data.clusters.length}</b>{" "}
+              constellations discovered
+            </span>
+            <span class="agent-proximity-site__live">the map is live</span>
+          </div>
         </div>
-      </div>
-
-      <div class="agent-proximity-site__legend" aria-label="Agent kinds">
-        <span>
-          <b>●</b> professional
-        </span>
-        <span>
-          <b>∴</b> team
-        </span>
-        <span>
-          <b>◌</b> collective
-        </span>
-        <span>
-          <b>·</b> archived trace
-        </span>
       </div>
     </section>
   );
