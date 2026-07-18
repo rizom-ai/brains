@@ -1,5 +1,19 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.195
+
+### Patch Changes
+
+- [`1ece871`](https://github.com/rizom-ai/brains/commit/1ece871c78c950ff91033cb62e34fe89987cfd2c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make shell, daemon, worker, plugin, recurring-check, Discord-handler, site-rebuild, and conversation teardown transitions joinable and terminal; stop active agent work before plugin teardown; and prevent queued work from entering after shutdown.
+
+- Updated dependencies [[`1ece871`](https://github.com/rizom-ai/brains/commit/1ece871c78c950ff91033cb62e34fe89987cfd2c)]:
+  - @brains/plugins@0.2.0-alpha.195
+  - @brains/image@0.2.0-alpha.195
+  - @brains/site-engine@0.2.0-alpha.195
+  - @brains/site-composition@0.2.0-alpha.195
+  - @brains/ui-library@0.2.0-alpha.195
+  - @brains/utils@0.2.0-alpha.195
+
 ## 0.2.0-alpha.194
 
 ### Patch Changes

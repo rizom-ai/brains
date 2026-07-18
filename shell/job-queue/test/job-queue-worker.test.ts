@@ -186,6 +186,37 @@ describe("JobQueueWorker", () => {
       expect(worker.isWorkerRunning()).toBe(false);
     });
 
+    it("serializes a restart requested while stop is draining", async () => {
+      const handler = createMockHandler();
+      let signalStarted: (() => void) | undefined;
+      const started = new Promise<void>((resolve) => {
+        signalStarted = resolve;
+      });
+      let releaseJob: (() => void) | undefined;
+      const blocked = new Promise<void>((resolve) => {
+        releaseJob = resolve;
+      });
+      handler.process.mockImplementation(async () => {
+        signalStarted?.();
+        await blocked;
+        return { success: true };
+      });
+      const result = createWorkerWithSingleJob(handler);
+      worker = result.worker;
+      await worker.start();
+      await started;
+
+      const stopping = worker.stop();
+      const joinedStop = worker.stop();
+      const restarting = worker.start();
+      expect(joinedStop).toBe(stopping);
+      releaseJob?.();
+      await Promise.all([stopping, restarting]);
+
+      expect(worker.isWorkerRunning()).toBe(true);
+      await worker.stop();
+    });
+
     it("should create a fresh fiber scope when restarted", async () => {
       await worker.start();
       await worker.stop();

@@ -50,7 +50,7 @@ describe("RebuildManager", () => {
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
-    manager.dispose();
+    await manager.dispose();
   });
 
   test("requestBuild defaults to production when previewOutputDir is empty", async () => {
@@ -71,7 +71,57 @@ describe("RebuildManager", () => {
     const data = enqueue.mock.calls[0]?.[0]?.data;
     expect(data.environment).toBe("production");
 
-    manager.dispose();
+    await manager.dispose();
+  });
+
+  test("waits for an admitted enqueue during dispose", async () => {
+    let signalEnqueueStarted: (() => void) | undefined;
+    const enqueueStarted = new Promise<void>((resolve) => {
+      signalEnqueueStarted = resolve;
+    });
+    let releaseEnqueue: (() => void) | undefined;
+    const enqueueGate = new Promise<void>((resolve) => {
+      releaseEnqueue = resolve;
+    });
+    context.jobs.enqueue = mock(async () => {
+      signalEnqueueStarted?.();
+      await enqueueGate;
+      return "job-1";
+    });
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.requestBuild();
+    await enqueueStarted;
+
+    let disposeSettled = false;
+    const disposing = manager.dispose().then(() => {
+      disposeSettled = true;
+    });
+    await Promise.resolve();
+    expect(disposeSettled).toBe(false);
+
+    releaseEnqueue?.();
+    await disposing;
+    expect(disposeSettled).toBe(true);
+  });
+
+  test("does not admit builds after disposal", async () => {
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    await manager.dispose();
+
+    manager.requestBuild();
+    await Promise.resolve();
+
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
 
   test("explicit environment overrides the default", async () => {
@@ -93,6 +143,6 @@ describe("RebuildManager", () => {
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 
-    manager.dispose();
+    await manager.dispose();
   });
 });

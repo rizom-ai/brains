@@ -15,6 +15,16 @@ import {
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import { runEffectPromise } from "./effect-runtime";
 
+type DaemonTransitionKind = "start" | "stop" | "unregister";
+
+interface DaemonTransitionQueue {
+  tail: Promise<void>;
+  lastKind: DaemonTransitionKind | undefined;
+  lastPromise: Promise<void> | undefined;
+  pending: number;
+  terminal: boolean;
+}
+
 /**
  * Daemon registry for managing long-running interface processes
  * Implements Component Interface Standardization pattern
@@ -24,6 +34,7 @@ export class DaemonRegistry {
 
   private daemons: Map<string, DaemonInfo> = new Map();
   private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
+  private daemonTransitions = new Map<string, DaemonTransitionQueue>();
   private logger: Logger;
 
   /**
@@ -64,6 +75,9 @@ export class DaemonRegistry {
     if (this.daemonScopes.has(name)) {
       throw new Error(`Cannot overwrite running daemon: ${name}`);
     }
+    if ((this.daemonTransitions.get(name)?.pending ?? 0) > 0) {
+      throw new Error(`Cannot overwrite transitioning daemon: ${name}`);
+    }
     if (this.daemons.has(name)) {
       this.logger.warn(`Daemon already registered: ${name}, overwriting`);
     }
@@ -96,12 +110,15 @@ export class DaemonRegistry {
   /**
    * Start a daemon
    */
-  public async start(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
-      throw new Error(`Daemon not registered: ${name}`);
+  public start(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
+      return Promise.reject(new Error(`Daemon not registered: ${name}`));
     }
+    return this.enqueueTransition(name, "start", () => this.startDaemon(name));
+  }
 
+  private async startDaemon(name: string): Promise<void> {
+    const daemonInfo = this.requireDaemon(name);
     if (this.daemonScopes.has(name)) {
       await startDaemonInfo(daemonInfo, this.logger);
       return;
@@ -125,12 +142,15 @@ export class DaemonRegistry {
   /**
    * Stop a daemon
    */
-  public async stop(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
-      throw new Error(`Daemon not registered: ${name}`);
+  public stop(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
+      return Promise.reject(new Error(`Daemon not registered: ${name}`));
     }
+    return this.enqueueTransition(name, "stop", () => this.stopDaemon(name));
+  }
 
+  private async stopDaemon(name: string): Promise<void> {
+    const daemonInfo = this.requireDaemon(name);
     const scope = this.daemonScopes.get(name);
     if (!scope) {
       await stopDaemonInfo(daemonInfo, this.logger);
@@ -196,20 +216,24 @@ export class DaemonRegistry {
   /**
    * Unregister a daemon (stops it first if running)
    */
-  public async unregister(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
+  public unregister(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
       this.logger.warn(`Daemon not registered: ${name}`);
-      return;
+      return Promise.resolve();
     }
-
-    // Stop the daemon if it's running
-    if (daemonInfo.status === "running") {
-      await this.stop(name);
-    }
-
-    this.daemons.delete(name);
-    this.logger.debug(`Unregistered daemon: ${name}`);
+    return this.enqueueTransition(
+      name,
+      "unregister",
+      async () => {
+        const daemonInfo = this.requireDaemon(name);
+        if (this.daemonScopes.has(name) || daemonInfo.status !== "stopped") {
+          await this.stopDaemon(name);
+        }
+        this.daemons.delete(name);
+        this.logger.debug(`Unregistered daemon: ${name}`);
+      },
+      true,
+    );
   }
 
   /**
@@ -219,7 +243,11 @@ export class DaemonRegistry {
   public abandon(name: string): void {
     const daemonInfo = this.daemons.get(name);
     if (!daemonInfo) return;
-    if (daemonInfo.status !== "stopped" || this.daemonScopes.has(name)) {
+    if (
+      daemonInfo.status !== "stopped" ||
+      this.daemonScopes.has(name) ||
+      (this.daemonTransitions.get(name)?.pending ?? 0) > 0
+    ) {
       throw new Error(`Cannot abandon active daemon: ${name}`);
     }
     this.daemons.delete(name);
@@ -289,22 +317,64 @@ export class DaemonRegistry {
   public async clear(): Promise<void> {
     this.logger.debug("Clearing all daemons");
 
-    const runningDaemons = Array.from(this.daemons.values()).filter(
-      (info) => info.status === "running",
-    );
-
-    for (const daemonInfo of runningDaemons) {
+    for (const name of [...this.daemons.keys()]) {
       try {
-        await this.stop(daemonInfo.name);
+        await this.unregister(name);
       } catch (error) {
         this.logger.error(
-          `Failed to stop daemon during clear: ${daemonInfo.name}`,
+          `Failed to unregister daemon during clear: ${name}`,
           error,
         );
       }
     }
 
-    this.daemons.clear();
     this.logger.debug("All daemons cleared");
+  }
+
+  private requireDaemon(name: string): DaemonInfo {
+    const daemonInfo = this.daemons.get(name);
+    if (!daemonInfo) throw new Error(`Daemon not registered: ${name}`);
+    return daemonInfo;
+  }
+
+  private enqueueTransition(
+    name: string,
+    kind: DaemonTransitionKind,
+    operation: () => Promise<void>,
+    terminal = false,
+  ): Promise<void> {
+    let queue = this.daemonTransitions.get(name);
+    if (!queue) {
+      queue = {
+        tail: Promise.resolve(),
+        lastKind: undefined,
+        lastPromise: undefined,
+        pending: 0,
+        terminal: false,
+      };
+      this.daemonTransitions.set(name, queue);
+    }
+
+    if (kind === "start" && queue.terminal) {
+      return Promise.reject(new Error(`Daemon is being unregistered: ${name}`));
+    }
+    if (queue.lastKind === kind && queue.lastPromise) {
+      return queue.lastPromise;
+    }
+    if (terminal) queue.terminal = true;
+
+    queue.pending++;
+    const transition = queue.tail.then(operation);
+    const transitionSettled = (): void => {
+      queue.pending--;
+      if (queue.pending === 0) {
+        this.daemonTransitions.delete(name);
+      }
+    };
+    const settled = transition.then(transitionSettled, transitionSettled);
+    queue.tail = settled;
+    queue.lastKind = kind;
+    queue.lastPromise = transition;
+    return transition;
   }
 }

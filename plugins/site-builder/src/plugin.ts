@@ -385,7 +385,8 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
-    this.rebuildManager?.dispose();
+    await this.rebuildManager?.dispose();
+    delete this.rebuildManager;
     delete this.siteBuilder;
     this.logger.debug("Cleaned up all event subscriptions");
   }

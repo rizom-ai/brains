@@ -11,6 +11,7 @@ interface FakeActor {
   id: number;
   idle: boolean;
   stopped: boolean;
+  stopCalls: number;
   stop(): void;
 }
 
@@ -29,8 +30,10 @@ function createRegistry(options?: {
         id: created.length,
         idle: true,
         stopped: false,
+        stopCalls: 0,
         stop() {
           this.stopped = true;
+          this.stopCalls++;
         },
       };
       created.push(actor);
@@ -84,7 +87,7 @@ function withRegistryTestClock(
       yield* Effect.acquireUseRelease(
         Effect.succeed(registry),
         run,
-        (ownedRegistry) => Effect.sync(() => ownedRegistry.dispose()),
+        (ownedRegistry) => Effect.promise(() => ownedRegistry.close()),
       );
     }).pipe(Effect.provide(TestContext.TestContext)),
   );
@@ -287,43 +290,88 @@ describe("ConversationActorRegistry", () => {
     });
   });
 
-  describe("dispose", () => {
-    it("stops every actor and clears all state", async () => {
+  describe("close", () => {
+    it("is terminal and stops every actor exactly once", async () => {
       const { registry, created } = createRegistry({ idleTtlMs: 5 });
 
       registry.acquire("conv-a");
       registry.acquire("conv-b");
       await registry.enqueue("conv-a", async () => "done");
 
-      registry.dispose();
+      await Promise.all([registry.close(), registry.close()]);
 
       expect(created.every((actor) => actor.stopped)).toBe(true);
+      expect(created.map((actor) => actor.stopCalls)).toEqual([1, 1]);
       expect(registry.peek("conv-a")).toBeUndefined();
       expect(registry.peek("conv-b")).toBeUndefined();
 
-      // A disposed registry is still usable for new conversations.
-      const fresh = registry.acquire("conv-a");
-      expect(fresh.stopped).toBe(false);
+      expect(() => registry.acquire("conv-a")).toThrow(
+        "Conversation actor registry closed",
+      );
+      expect(
+        await registry
+          .enqueue("conv-a", async () => "never")
+          .catch((error: unknown) => error),
+      ).toEqual(new Error("Conversation actor registry closed"));
     });
 
-    it("does not let pre-dispose operations evict replacement actors", async () => {
-      await withRegistryTestClock(5, (registry) =>
-        Effect.gen(function* () {
-          const gate = deferred<void>();
-          registry.acquire("conv-a");
-          const pending = registry.enqueue("conv-a", () => gate.promise);
-          registry.dispose();
+    it("prevents queued operations from starting and drains active work", async () => {
+      const { registry } = createRegistry();
+      const actor = registry.acquire("conv-a");
+      const gate = deferred<void>();
+      const closeReason = new Error("registry test close");
+      let queuedOperationStarted = false;
+      const active = registry
+        .enqueue("conv-a", () => gate.promise)
+        .catch((error: unknown) => error);
+      const queued = registry
+        .enqueue("conv-a", async () => {
+          queuedOperationStarted = true;
+        })
+        .catch((error: unknown) => error);
+      await Promise.resolve();
 
-          const replacement = registry.acquire("conv-a");
-          gate.resolve();
-          yield* Effect.promise(() => pending);
-          yield* Effect.yieldNow();
-          yield* TestClock.adjust(5);
+      let closeSettled = false;
+      const closing = registry.close(closeReason).then(() => {
+        closeSettled = true;
+      });
+      await Promise.resolve();
 
-          expect(replacement.stopped).toBe(false);
-          expect(registry.peek("conv-a")).toBe(replacement);
-        }),
-      );
+      expect(queuedOperationStarted).toBe(false);
+      expect(closeSettled).toBe(false);
+      expect(actor.stopped).toBe(false);
+      expect(await active).toBe(closeReason);
+      expect(await queued).toBe(closeReason);
+
+      gate.resolve();
+      await closing;
+      expect(queuedOperationStarted).toBe(false);
+      expect(actor.stopped).toBe(true);
+    });
+
+    it("links active operations to the registry close signal", async () => {
+      const { registry } = createRegistry();
+      const started = deferred<void>();
+      const closeReason = new Error("registry test close");
+      let observedSignal: AbortSignal | undefined;
+      const active = registry
+        .enqueue("conv-a", async (signal) => {
+          observedSignal = signal;
+          started.resolve();
+          await new Promise<void>((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        })
+        .catch((error: unknown) => error);
+      await started.promise;
+
+      const closing = registry.close(closeReason);
+
+      expect(observedSignal?.aborted).toBe(true);
+      expect(await active).toBe(closeReason);
+      await closing;
     });
   });
 });

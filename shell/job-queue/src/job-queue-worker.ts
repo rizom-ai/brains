@@ -24,6 +24,16 @@ interface JobQueueWorkerRuntimeOptions {
   clock?: Clock.Clock;
 }
 
+type WorkerTransitionKind = "start" | "stop";
+
+interface WorkerTransition {
+  kind: WorkerTransitionKind;
+  awaitInFlightPoll: boolean;
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (error: unknown) => void;
+}
+
 /**
  * Generic job queue worker that processes jobs from the queue
  * Supports configurable concurrency and polling intervals
@@ -44,6 +54,8 @@ export class JobQueueWorker {
   private currentPoll: Promise<void> | null = null;
   private workerScope: Scope.CloseableScope | null = null;
   private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
+  private activeTransition: WorkerTransition | null = null;
+  private readonly transitionQueue: WorkerTransition[] = [];
   private readonly clock: Clock.Clock | undefined;
 
   /**
@@ -133,14 +145,20 @@ export class JobQueueWorker {
     });
 
     if (this.config.autoStart) {
-      void this.start();
+      void this.start().catch((error: unknown) => {
+        this.logger.error("Failed to auto-start JobQueueWorker", { error });
+      });
     }
   }
 
   /**
    * Start the worker
    */
-  public async start(): Promise<void> {
+  public start(): Promise<void> {
+    return this.requestTransition("start", true);
+  }
+
+  private async startWorker(): Promise<void> {
     if (this.isRunning) {
       this.logger.warn("Worker is already running");
       return;
@@ -164,8 +182,8 @@ export class JobQueueWorker {
   /**
    * Stop the worker gracefully
    */
-  public async stop(): Promise<void> {
-    return this.stopWorker({ awaitInFlightPoll: true });
+  public stop(): Promise<void> {
+    return this.requestTransition("stop", true);
   }
 
   private async stopWorker(options: {
@@ -267,7 +285,7 @@ export class JobQueueWorker {
             processedJobs: this.stats.processedJobs,
             failedJobs: this.stats.failedJobs,
           });
-          await this.stopWorker({ awaitInFlightPoll: false });
+          await this.requestTransition("stop", false);
           return;
         }
 
@@ -398,6 +416,64 @@ export class JobQueueWorker {
         }),
       ),
     );
+  }
+
+  private requestTransition(
+    kind: WorkerTransitionKind,
+    awaitInFlightPoll: boolean,
+  ): Promise<void> {
+    const tail = this.transitionQueue.at(-1) ?? this.activeTransition;
+    if (tail?.kind === kind) return tail.promise;
+
+    let resolveTransition: () => void = () => undefined;
+    let rejectTransition: (error: unknown) => void = () => undefined;
+    const promise = new Promise<void>((resolve, reject) => {
+      resolveTransition = resolve;
+      rejectTransition = reject;
+    });
+    const transition: WorkerTransition = {
+      kind,
+      awaitInFlightPoll,
+      promise,
+      resolve: resolveTransition,
+      reject: rejectTransition,
+    };
+    this.transitionQueue.push(transition);
+    this.runNextTransition();
+    return promise;
+  }
+
+  private runNextTransition(): void {
+    if (this.activeTransition) return;
+    const transition = this.transitionQueue.shift();
+    if (!transition) return;
+    this.activeTransition = transition;
+
+    const operation =
+      transition.kind === "start"
+        ? this.startWorker()
+        : this.stopWorker({
+            awaitInFlightPoll: transition.awaitInFlightPoll,
+          });
+    void operation.then(
+      () => this.completeTransition(transition, true),
+      (error: unknown) => this.completeTransition(transition, false, error),
+    );
+  }
+
+  private completeTransition(
+    transition: WorkerTransition,
+    succeeded: boolean,
+    error?: unknown,
+  ): void {
+    if (this.activeTransition !== transition) return;
+    this.activeTransition = null;
+    if (succeeded) {
+      transition.resolve();
+    } else {
+      transition.reject(error);
+    }
+    queueMicrotask(() => this.runNextTransition());
   }
 
   private async closeWorkerScope(): Promise<void> {

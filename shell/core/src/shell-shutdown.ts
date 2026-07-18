@@ -10,14 +10,17 @@ export function registerShellRuntimeFinalizers(
   lifecycle: ShellLifecycle,
   services: ShellServices,
 ): void {
-  lifecycle.addFinalizer(() => services.agentService.shutdown?.());
-
+  // Scope finalizers run in reverse registration order. Dependents are added
+  // after their dependencies so shutdown runs recurring checks, agent turns,
+  // job runtime, then plugins before package/database scopes close.
   lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
   lifecycle.addFinalizer(() => services.jobServicesLifecycle.closeRuntime());
 
-  // Abort cancellation-aware checks before the job worker drains. Their jobs
-  // remain retryable instead of holding shutdown on remote I/O.
+  lifecycle.addFinalizer(() => services.agentService.shutdown?.());
+
+  // Abort cancellation-aware checks before active turns and the worker drain.
+  // Their durable jobs remain retryable instead of holding remote I/O open.
   lifecycle.addFinalizer(() =>
     services.daemonRegistry.unregister("shell:recurring-checks"),
   );

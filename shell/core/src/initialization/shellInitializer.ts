@@ -159,7 +159,7 @@ export class ShellInitializer {
  * Does NOT touch Shell.instance — call Shell.resetInstance() or
  * shell.shutdown() separately when you need to stop background services.
  */
-export function resetServiceSingletons(): void {
+export async function resetServiceSingletons(): Promise<void> {
   ShellInitializer.resetInstance();
-  resetCoreServiceSingletons();
+  await resetCoreServiceSingletons();
 }

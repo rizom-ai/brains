@@ -21,7 +21,7 @@ import { RenderService, TemplateRegistry } from "@brains/templates";
 
 import { DaemonRegistry } from "../daemon-registry";
 
-export function resetCoreServiceSingletons(): void {
+export async function resetCoreServiceSingletons(): Promise<void> {
   EntityService.resetInstance();
   EntityRegistry.resetInstance();
   DataSourceRegistry.resetInstance();
@@ -34,9 +34,10 @@ export function resetCoreServiceSingletons(): void {
   RenderService.resetInstance();
   DaemonRegistry.resetInstance();
   AIService.resetInstance();
-  AgentService.resetInstance();
+  const agentReset = AgentService.resetInstance();
   BrainCharacterService.resetInstance();
   AnchorProfileService.resetInstance();
   AttachmentRegistry.resetInstance();
   RuntimeStateService.resetInstance();
+  await agentReset;
 }

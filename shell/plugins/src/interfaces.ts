@@ -363,7 +363,7 @@ export interface IShell {
   registerPrompt(pluginId: string, prompt: Prompt): void;
   registerInstructions(pluginId: string, instructions: string): void;
   /** @internal Release capabilities owned by a terminally stopped plugin. */
-  unregisterPluginCapabilities?(pluginId: string): void;
+  unregisterPluginCapabilities?(pluginId: string): void | Promise<void>;
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;

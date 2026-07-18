@@ -79,7 +79,11 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private readonly operationCounts = new Map<string, number>();
   private readonly evictionRevisions = new Map<string, number>();
   private evictionGeneration = 0;
-  private evictionSupervisor: EvictionSupervisor;
+  private readonly evictionSupervisor: EvictionSupervisor;
+  private readonly lifecycleController = new AbortController();
+  private closePromise: Promise<void> | null = null;
+  private closeReason: unknown;
+  private closed = false;
   private readonly clock: Clock.Clock | undefined;
 
   constructor(options: ConversationActorRegistryOptions<TActor>);
@@ -99,6 +103,7 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
 
   /** Get the conversation's actor, creating it if needed. */
   public acquire(conversationId: string): TActor {
+    this.assertOpen();
     this.cancelEviction(conversationId);
 
     let actor = this.actors.get(conversationId);
@@ -120,9 +125,17 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
    */
   public enqueue<T>(
     conversationId: string,
-    operation: () => Promise<T>,
+    operation: (signal: AbortSignal) => Promise<T>,
     signal?: AbortSignal,
   ): Promise<T> {
+    if (this.closed) return Promise.reject(this.closeReason);
+    const operationSignal = signal
+      ? AbortSignal.any([this.lifecycleController.signal, signal])
+      : this.lifecycleController.signal;
+    if (operationSignal.aborted) {
+      return Promise.reject(operationSignal.reason);
+    }
+
     const count = this.operationCounts.get(conversationId) ?? 0;
     if (count >= this.maxOperations) {
       return Promise.reject(
@@ -139,8 +152,8 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     const run = previous
       .catch(() => undefined)
       .then(() => {
-        signal?.throwIfAborted();
-        return operation();
+        operationSignal.throwIfAborted();
+        return operation(operationSignal);
       });
     const tracked = run.catch(() => undefined).then(() => undefined);
 
@@ -161,11 +174,12 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
       this.scheduleEviction(conversationId);
     });
 
-    return signal ? raceWithSignal(run, signal) : run;
+    return raceWithSignal(run, operationSignal);
   }
 
   /** (Re)arm the supervised idle-eviction fiber for a conversation. */
   public scheduleEviction(conversationId: string): void {
+    if (this.closed) return;
     const revision = this.cancelEviction(conversationId);
     if (this.idleTtlMs <= 0) return;
 
@@ -197,20 +211,45 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     FiberMap.unsafeSet(this.evictionSupervisor.fibers, conversationId, fiber);
   }
 
-  /** Stop every actor and drop all registry state. */
-  public dispose(): void {
-    this.evictionGeneration++;
-    const previousSupervisor = this.evictionSupervisor;
-    this.evictionSupervisor = this.createEvictionSupervisor();
-    Effect.runFork(Scope.close(previousSupervisor.scope, Exit.void));
+  /** Terminally stop admission, drain operations, and stop every actor. */
+  public close(
+    reason: unknown = new Error("Conversation actor registry closed"),
+  ): Promise<void> {
+    if (this.closePromise) return this.closePromise;
 
+    this.closed = true;
+    this.closeReason = reason;
+    this.evictionGeneration++;
+    this.lifecycleController.abort(reason);
+    const operations = [...this.operations.values()];
+    this.closePromise = this.closeRegistry(operations);
+    return this.closePromise;
+  }
+
+  private async closeRegistry(operations: Promise<void>[]): Promise<void> {
+    const settlements = await Promise.allSettled([
+      Effect.runPromise(Scope.close(this.evictionSupervisor.scope, Exit.void)),
+      ...operations,
+    ]);
+
+    const stopErrors: unknown[] = [];
     for (const actor of this.actors.values()) {
-      actor.stop();
+      try {
+        actor.stop();
+      } catch (error) {
+        stopErrors.push(error);
+      }
     }
     this.actors.clear();
     this.operations.clear();
     this.operationCounts.clear();
     this.evictionRevisions.clear();
+
+    const settlementFailure = settlements.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (settlementFailure) throw settlementFailure.reason;
+    if (stopErrors.length > 0) throw stopErrors[0];
   }
 
   private cancelEviction(conversationId: string): number {
@@ -225,6 +264,10 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
       Effect.runSync(Fiber.interruptFork(fiber.value));
     }
     return revision;
+  }
+
+  private assertOpen(): void {
+    if (this.closed) throw this.closeReason;
   }
 
   private createEvictionSupervisor(): EvictionSupervisor {

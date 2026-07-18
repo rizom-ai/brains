@@ -23,7 +23,7 @@ export class PluginLifecycle {
   private daemonRegistry: IDaemonRegistry;
   private logger: Logger;
   private readonly resourceScopes = new Map<string, PluginResourceScope>();
-  private readonly releasedPluginIds = new Set<string>();
+  private readonly releasePromises = new Map<string, Promise<void>>();
 
   constructor(
     plugins: Map<string, PluginInfo>,
@@ -62,7 +62,7 @@ export class PluginLifecycle {
       shell.getJobQueueService().unregisterPluginHandlers(pluginId),
     );
     this.resourceScopes.set(pluginId, resources);
-    this.releasedPluginIds.delete(pluginId);
+    this.releasePromises.delete(pluginId);
 
     this.logger.debug(`Initializing plugin: ${pluginId}`);
 
@@ -183,19 +183,34 @@ export class PluginLifecycle {
     const failed = pluginInfo.status === PluginStatus.ERROR;
     await this.releasePluginResources(id, Exit.void);
 
-    if (!failed) {
-      pluginInfo.status = PluginStatus.DISABLED;
-      this.events.emit(PluginEvent.DISABLED, id, pluginInfo.plugin);
+    const releasedPluginInfo = this.plugins.get(id);
+    if (
+      !failed &&
+      releasedPluginInfo &&
+      releasedPluginInfo.status !== PluginStatus.DISABLED
+    ) {
+      releasedPluginInfo.status = PluginStatus.DISABLED;
+      this.events.emit(PluginEvent.DISABLED, id, releasedPluginInfo.plugin);
     }
     this.logger.debug(`Disabled plugin: ${id}`);
   }
 
-  private async releasePluginResources(
+  private releasePluginResources(
     id: string,
     exit: Exit.Exit<unknown, unknown>,
   ): Promise<void> {
-    if (this.releasedPluginIds.has(id)) return;
-    this.releasedPluginIds.add(id);
+    const existing = this.releasePromises.get(id);
+    if (existing) return existing;
+
+    const release = this.releasePluginResourcesOnce(id, exit);
+    this.releasePromises.set(id, release);
+    return release;
+  }
+
+  private async releasePluginResourcesOnce(
+    id: string,
+    exit: Exit.Exit<unknown, unknown>,
+  ): Promise<void> {
     const pluginInfo = this.plugins.get(id);
     if (!pluginInfo) return;
 
@@ -204,6 +219,18 @@ export class PluginLifecycle {
       this.logger.debug(`Stopped daemons for plugin: ${id}`);
     } catch (error) {
       this.logger.error(`Failed to stop daemons for plugin: ${id}`, error);
+    }
+
+    // Remove shell-owned ingress and drain scoped resources before invoking
+    // plugin shutdown, so no admitted callback can enter torn-down plugin code.
+    const resources = this.resourceScopes.get(id);
+    this.resourceScopes.delete(id);
+    if (resources) {
+      try {
+        await resources.close(exit);
+      } catch (error) {
+        this.logger.error(`Failed to close resources for plugin ${id}`, error);
+      }
     }
 
     if (pluginInfo.plugin.shutdown) {
@@ -223,16 +250,6 @@ export class PluginLifecycle {
           `Failed to unregister daemon ${daemon.name} for plugin ${id}`,
           error,
         );
-      }
-    }
-
-    const resources = this.resourceScopes.get(id);
-    this.resourceScopes.delete(id);
-    if (resources) {
-      try {
-        await resources.close(exit);
-      } catch (error) {
-        this.logger.error(`Failed to close resources for plugin ${id}`, error);
       }
     }
   }

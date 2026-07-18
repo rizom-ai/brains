@@ -9,5 +9,5 @@ import { resetServiceSingletons } from "./shellInitializer";
  */
 export async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
-  resetServiceSingletons();
+  await resetServiceSingletons();
 }

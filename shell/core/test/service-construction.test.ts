@@ -23,7 +23,7 @@ function createTestConfig(dir: string): ShellConfigInput {
 describe("Shell service construction", () => {
   afterEach(async () => {
     await Shell.resetInstance();
-    resetServiceSingletons();
+    await resetServiceSingletons();
   });
 
   it("closes acquired services when later construction fails", async () => {

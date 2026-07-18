@@ -42,6 +42,10 @@ The A2A interface applies the same boundary locally: its private turn supervisor
 
 The shared media renderer applies scoped ownership to each launch-per-render browser. Acquisition remains interruptible, late launches are released exactly once, and render timeout or caller cancellation does not settle until an acquired browser has completed bounded cleanup. A hung or failed close falls back to process `SIGKILL`. Its public functions remain Promise-based and accept cancellation only through optional `AbortSignal`; fake-browser `TestClock` coverage exercises timeout and close-timeout behavior without launching Chromium.
 
+Shell boot, close, daemon, plugin, job-worker, and batch-cleanup transitions are serialized and joinable: matching concurrent callers observe one transition, crossed requests run in admission order, and terminal close prevents later work from entering. Shutdown follows dependency order—stop recurring schedules, interrupt agent and conversation work, drain claimed durable jobs, release plugins and daemons, then close databases and services. Plugin release similarly joins concurrent callers and drains plugin-owned recurring checks before teardown completes.
+
+Conversation actor registries close terminally: queued operations receive the lifecycle abort reason without starting, active operations settle before XState actors stop, and eviction scopes close exactly once. Discord drains admitted message and interaction handlers during daemon stop, while site-builder disposal cancels pending debounce windows and awaits admitted rebuild enqueues. These package-local owners use Promise coordination and `AbortSignal`; they do not add Layers or expose Effect publicly.
+
 ### Layer adoption
 
 Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
