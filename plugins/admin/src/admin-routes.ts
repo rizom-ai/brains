@@ -2,12 +2,12 @@ import { join } from "node:path";
 import type { AuthAdminPrincipal } from "@brains/auth-service/admin-contracts";
 import { deriveConsoleSurfaces } from "@brains/console-theme";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { renderPeopleShellHtml } from "./people-shell";
+import { renderAdminShellHtml } from "./admin-shell";
 
 // The release bundle copies this named asset beside the other console UIs.
-const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "people-app.js");
+const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "admin-app.js");
 
-export interface PeopleRouteOptions {
+export interface AdminRouteOptions {
   routePath: string;
   getContext: () => ServicePluginContext;
   resolvePrincipal: (
@@ -15,8 +15,8 @@ export interface PeopleRouteOptions {
   ) => Promise<AuthAdminPrincipal | undefined>;
 }
 
-export function createPeopleRoutes(
-  options: PeopleRouteOptions,
+export function createAdminRoutes(
+  options: AdminRouteOptions,
 ): WebRouteDefinition[] {
   const assetPath = `${options.routePath}/assets/app.js`;
 
@@ -39,7 +39,7 @@ export function createPeopleRoutes(
 
         const context = options.getContext();
         return new Response(
-          renderPeopleShellHtml({
+          renderAdminShellHtml({
             assetPath,
             routePath: options.routePath,
             displayName: principal.displayName,
@@ -73,7 +73,9 @@ export function createPeopleRoutes(
       handler: async (): Promise<Response> => {
         const file = Bun.file(uiAssetFile);
         if (!(await file.exists())) {
-          return new Response("People UI asset not built", { status: 503 });
+          return new Response("Admin console UI asset not built", {
+            status: 503,
+          });
         }
         return new Response(file, {
           headers: {

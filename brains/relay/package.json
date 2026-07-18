@@ -4,6 +4,7 @@
   "description": "Relay brain model — collaborative knowledge management",
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
@@ -22,7 +23,6 @@
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
-    "@brains/people": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
@@ -55,7 +55,7 @@
   ],
   "private": true,
   "scripts": {
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/people",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin",
     "eval": "brain-eval",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",

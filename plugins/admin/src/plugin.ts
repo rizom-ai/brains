@@ -3,28 +3,23 @@ import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { createPeopleRoutes } from "./people-routes";
+import { createAdminRoutes } from "./admin-routes";
 
-export interface PeopleConfig {
+export interface AdminConfig {
   routePath: string;
 }
 
-export interface PeopleConfigInput {
+export interface AdminConfigInput {
   routePath?: string | undefined;
 }
 
-const peopleConfigSchema: z.ZodType<PeopleConfig, PeopleConfigInput> = z.object(
-  {
-    routePath: z.string().default("/admin"),
-  },
-);
+const adminConfigSchema: z.ZodType<AdminConfig, AdminConfigInput> = z.object({
+  routePath: z.string().default("/admin"),
+});
 
-export class PeoplePlugin extends ServicePlugin<
-  PeopleConfig,
-  PeopleConfigInput
-> {
-  constructor(config: PeopleConfigInput = {}) {
-    super("admin", packageJson, config, peopleConfigSchema);
+export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
+  constructor(config: AdminConfigInput = {}) {
+    super("admin", packageJson, config, adminConfigSchema);
   }
 
   protected override async onRegister(
@@ -50,7 +45,7 @@ export class PeoplePlugin extends ServicePlugin<
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
-    return createPeopleRoutes({
+    return createAdminRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
       resolvePrincipal: async (request) =>
@@ -59,6 +54,6 @@ export class PeoplePlugin extends ServicePlugin<
   }
 }
 
-export function peoplePlugin(config: PeopleConfigInput = {}): PeoplePlugin {
-  return new PeoplePlugin(config);
+export function adminPlugin(config: AdminConfigInput = {}): AdminPlugin {
+  return new AdminPlugin(config);
 }

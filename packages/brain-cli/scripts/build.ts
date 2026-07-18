@@ -61,8 +61,8 @@ const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
 const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
 const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
-const peoplePackageDir = join(monorepoRoot, "plugins", "people");
-const peopleUiAssetPath = join(peoplePackageDir, "dist", "ui", "people-app.js");
+const adminPackageDir = join(monorepoRoot, "plugins", "admin");
+const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -102,18 +102,18 @@ if (!existsSync(cmsUiAssetPath)) {
   process.exit(1);
 }
 
-console.log("Building bundled People UI...");
-const peopleBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: peoplePackageDir,
+console.log("Building bundled Admin console UI...");
+const adminBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: adminPackageDir,
   stdout: "inherit",
   stderr: "inherit",
 });
-if (peopleBuildResult.exitCode !== 0) {
-  console.error("People UI build failed");
+if (adminBuildResult.exitCode !== 0) {
+  console.error("Admin console UI build failed");
   process.exit(1);
 }
-if (!existsSync(peopleUiAssetPath)) {
-  console.error(`People UI asset not found at ${peopleUiAssetPath}`);
+if (!existsSync(adminUiAssetPath)) {
+  console.error(`Admin console UI asset not found at ${adminUiAssetPath}`);
   process.exit(1);
 }
 
@@ -336,10 +336,10 @@ const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
 if (existsSync(cmsSourceMapPath)) {
   cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
 }
-cpSync(peopleUiAssetPath, join(bundledWebChatUiDir, "people-app.js"));
-const peopleSourceMapPath = `${peopleUiAssetPath}.map`;
-if (existsSync(peopleSourceMapPath)) {
-  cpSync(peopleSourceMapPath, join(bundledWebChatUiDir, "people-app.js.map"));
+cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"));
+const adminSourceMapPath = `${adminUiAssetPath}.map`;
+if (existsSync(adminSourceMapPath)) {
+  cpSync(adminSourceMapPath, join(bundledWebChatUiDir, "admin-app.js.map"));
 }
 
 // ─── Copy migrations ──────────────────────────────────────────────────────

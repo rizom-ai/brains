@@ -84,10 +84,10 @@ describe("@rizom/brain package metadata", () => {
       'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
     );
     expect(buildScript).toContain(
-      'const peoplePackageDir = join(monorepoRoot, "plugins", "people")',
+      'const adminPackageDir = join(monorepoRoot, "plugins", "admin")',
     );
     expect(buildScript).toContain(
-      'cpSync(peopleUiAssetPath, join(bundledWebChatUiDir, "people-app.js"))',
+      'cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"))',
     );
   });
 

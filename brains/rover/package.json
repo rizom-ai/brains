@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.156",
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
@@ -28,7 +29,6 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
-    "@brains/people": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",
@@ -60,7 +60,7 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/people",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",

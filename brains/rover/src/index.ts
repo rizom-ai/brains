@@ -32,7 +32,7 @@ import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
-import { peoplePlugin } from "@brains/people";
+import { adminPlugin } from "@brains/admin";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
@@ -164,7 +164,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
-    ["admin", peoplePlugin, undefined],
+    ["admin", adminPlugin, undefined],
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],

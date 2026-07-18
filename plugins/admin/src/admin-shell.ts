@@ -8,7 +8,7 @@ import {
 } from "@brains/console-theme";
 import type { AuthAdminRole } from "@brains/auth-service/admin-contracts";
 
-export interface PeopleShellOptions {
+export interface AdminShellOptions {
   assetPath: string;
   routePath: string;
   displayName: string;
@@ -26,7 +26,7 @@ function escapeAttribute(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
-export function renderPeopleShellHtml(options: PeopleShellOptions): string {
+export function renderAdminShellHtml(options: AdminShellOptions): string {
   return `<!doctype html>
 <html lang="en" data-climate="instrument">
   <head>

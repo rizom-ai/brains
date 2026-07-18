@@ -64,6 +64,7 @@
       "version": "0.2.0-alpha.156",
       "dependencies": {
         "@brains/a2a": "workspace:*",
+        "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
@@ -82,7 +83,6 @@
         "@brains/mcp": "workspace:*",
         "@brains/note": "workspace:*",
         "@brains/notifications": "workspace:*",
-        "@brains/people": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/prompt": "workspace:*",
         "@brains/rizom-ecosystem": "workspace:*",
@@ -110,6 +110,7 @@
       "version": "0.2.0-alpha.156",
       "dependencies": {
         "@brains/a2a": "workspace:*",
+        "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
@@ -135,7 +136,6 @@
         "@brains/note": "workspace:*",
         "@brains/notifications": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
-        "@brains/people": "workspace:*",
         "@brains/playbooks": "workspace:*",
         "@brains/portfolio": "workspace:*",
         "@brains/prompt": "workspace:*",
@@ -783,6 +783,29 @@
         "preact": "^10.27.2",
       },
     },
+    "plugins/admin": {
+      "name": "@brains/admin",
+      "version": "0.2.0-alpha.156",
+      "dependencies": {
+        "@brains/auth-service": "workspace:*",
+        "@brains/console-theme": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "plugins/analytics": {
       "name": "@brains/analytics",
       "version": "0.2.0-alpha.156",
@@ -989,29 +1012,6 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "bun-types": "^1.3.14",
-        "eslint": "^10.5.0",
-        "typescript": "^7.0.2",
-      },
-    },
-    "plugins/people": {
-      "name": "@brains/people",
-      "version": "0.2.0-alpha.156",
-      "dependencies": {
-        "@brains/auth-service": "workspace:*",
-        "@brains/console-theme": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "react": "^19.2.7",
-        "react-dom": "^19.2.7",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.14",
-        "@types/react": "^19.2.17",
-        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -1968,6 +1968,8 @@
 
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
 
+    "@brains/admin": ["@brains/admin@workspace:plugins/admin"],
+
     "@brains/agent-discovery": ["@brains/agent-discovery@workspace:entities/agent-discovery"],
 
     "@brains/ai-evaluation": ["@brains/ai-evaluation@workspace:shell/ai-evaluation"],
@@ -2067,8 +2069,6 @@
     "@brains/notifications": ["@brains/notifications@workspace:plugins/notifications"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
-
-    "@brains/people": ["@brains/people@workspace:plugins/people"],
 
     "@brains/playbooks": ["@brains/playbooks@workspace:plugins/playbooks"],
 

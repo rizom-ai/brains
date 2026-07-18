@@ -17,7 +17,7 @@ import { emailResendPlugin } from "@brains/email-resend";
 import { join } from "path";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
-import { peoplePlugin } from "@brains/people";
+import { adminPlugin } from "@brains/admin";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -167,7 +167,7 @@ const relayBrain: BrainDefinition = defineBrain({
     ["email-resend", emailResendPlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
-    ["admin", peoplePlugin, undefined],
+    ["admin", adminPlugin, undefined],
     [
       "directory-sync",
       directorySync,

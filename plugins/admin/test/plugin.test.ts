@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
-import { peoplePlugin } from "../src";
+import { adminPlugin } from "../src";
 
 function findRoute(
   routes: WebRouteDefinition[],
@@ -19,7 +19,7 @@ function findRoute(
 describe("admin console plugin", () => {
   it("registers the Admin surface and browser asset", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const plugin = peoplePlugin();
+    const plugin = adminPlugin();
     await plugin.register(shell);
 
     expect(plugin.getWebRoutes().map((route) => route.path)).toEqual([
@@ -38,7 +38,7 @@ describe("admin console plugin", () => {
 
   it("redirects unauthenticated callers to login", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const plugin = peoplePlugin();
+    const plugin = adminPlugin();
     await plugin.register(shell);
 
     const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
@@ -67,7 +67,7 @@ describe("admin console plugin", () => {
       id: "discord",
       packageName: "@brains/discord",
     } as never);
-    const plugin = peoplePlugin();
+    const plugin = adminPlugin();
     await plugin.register(shell);
 
     const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
@@ -88,7 +88,7 @@ describe("admin console plugin", () => {
 
   it("respects a custom route path", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const plugin = peoplePlugin({ routePath: "/access" });
+    const plugin = adminPlugin({ routePath: "/access" });
     await plugin.register(shell);
 
     expect(plugin.getWebRoutes().map((route) => route.path)).toEqual([

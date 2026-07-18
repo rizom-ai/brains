@@ -25,7 +25,7 @@ const result = await Bun.build({
   format: "esm",
   minify: true,
   sourcemap: "external",
-  naming: "people-app.js",
+  naming: "admin-app.js",
   plugins: [
     {
       name: "dedupe-react",
@@ -47,4 +47,4 @@ if (!result.success) {
   process.exit(1);
 }
 
-console.log(`Built ${join(outdir, "people-app.js")}`);
+console.log(`Built ${join(outdir, "admin-app.js")}`);
