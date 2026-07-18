@@ -391,6 +391,7 @@
     "web-chat-session-restore",
     "web-chat-session-switch-race",
     "web-chat-spine-and-tool-collapse",
+    "web-chat-stale-approval-terminal",
     "web-chat-stale-upload-context",
     "web-chat-streamdown-markdown",
     "web-chat-theme-toggle-placement",

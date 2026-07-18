@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- [`14aaeb7`](https://github.com/rizom-ai/brains/commit/14aaeb7665d0a26a52466f8675644472089e01dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve expired or otherwise stale web-chat approval responses with a terminal AI SDK tool error event. This prevents completed stale cards from repeatedly resubmitting themselves and emitting `No pending action to confirm.` in a loop.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.202
+  - @brains/contracts@0.2.0-alpha.202
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/auth-service@0.2.0-alpha.202
+  - @brains/plugins@0.2.0-alpha.202
+
 ## 0.2.0-alpha.201
 
 ### Patch Changes

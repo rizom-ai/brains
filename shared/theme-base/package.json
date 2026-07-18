@@ -1,6 +1,6 @@
 {
   "name": "@brains/theme-base",
-  "version": "0.2.0-alpha.201",
+  "version": "0.2.0-alpha.202",
   "description": "Shared base CSS utilities for all Brain themes",
   "dependencies": {},
   "devDependencies": {
