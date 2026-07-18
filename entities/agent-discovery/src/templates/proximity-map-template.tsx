@@ -22,14 +22,11 @@ const SITE_STYLES = `
   isolation: isolate;
   overflow: hidden;
   width: 100%;
-  padding: clamp(2.25rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 0.75rem;
+  padding: clamp(2.5rem, 6vw, 4.25rem) clamp(1.5rem, 5vw, 5rem) clamp(1.75rem, 4vw, 2.5rem);
   background:
     radial-gradient(circle at 76% 44%, color-mix(in srgb, var(--console-secondary) 8%, transparent), transparent 34%),
     var(--console-card);
   color: var(--console-text);
-  box-shadow: 0 2rem 5rem -3.5rem color-mix(in srgb, var(--console-text) 60%, transparent);
 }
 .agent-proximity-site::before {
   content: "";
@@ -43,8 +40,8 @@ const SITE_STYLES = `
 }
 .agent-proximity-site__grid {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: clamp(2rem, 5vw, 4.5rem);
+  grid-template-columns: minmax(0, 10fr) minmax(0, 9fr);
+  gap: clamp(2rem, 4vw, 3.5rem);
   align-items: center;
 }
 .agent-proximity-site__copy { position: relative; z-index: 2; }
@@ -66,15 +63,15 @@ const SITE_STYLES = `
   background: currentColor;
 }
 .agent-proximity-site__heading {
-  max-width: 13ch;
+  max-width: 10.5em;
   margin: 0;
   color: var(--console-text);
   font-family: var(--console-display);
-  font-size: clamp(2rem, 4.4vw, 3.4rem);
-  font-weight: 480;
-  font-variation-settings: "SOFT" 60, "opsz" 72;
-  letter-spacing: -0.025em;
-  line-height: 1.02;
+  font-size: clamp(2.5rem, 5.2vw, 4.6rem);
+  font-weight: 435;
+  font-variation-settings: "SOFT" 92, "opsz" 130;
+  letter-spacing: -0.022em;
+  line-height: 1;
 }
 .agent-proximity-site__heading em {
   color: var(--console-accent);
@@ -83,11 +80,15 @@ const SITE_STYLES = `
   font-variation-settings: "SOFT" 100, "opsz" 72;
 }
 .agent-proximity-site__lede {
-  max-width: 44ch;
-  margin: 1.2rem 0 0;
+  max-width: 46ch;
+  margin: 1.35rem 0 0;
   color: var(--console-text-dim);
-  font-size: 0.95rem;
+  font-size: 1.06rem;
   line-height: 1.7;
+}
+.agent-proximity-site__lede b {
+  color: var(--console-text);
+  font-weight: 550;
 }
 .agent-proximity-site__foot {
   display: flex;
@@ -109,18 +110,18 @@ const SITE_STYLES = `
 .agent-proximity-site__cta {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-top: 1.85rem;
-  padding-bottom: 0.15rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--console-accent) 38%, transparent);
-  color: var(--console-accent);
-  font-size: 0.88rem;
+  margin-top: 1.9rem;
+  padding: 0.72rem 1.5rem;
+  border-radius: 3px;
+  background: var(--console-accent);
+  color: var(--console-card);
+  font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
+  transition: filter 160ms ease, transform 160ms ease;
 }
-.agent-proximity-site__cta::after { content: "→"; transition: transform 160ms ease; }
-.agent-proximity-site__cta:hover::after,
-.agent-proximity-site__cta:focus-visible::after { transform: translateX(0.28rem); }
+.agent-proximity-site__cta:hover,
+.agent-proximity-site__cta:focus-visible { filter: brightness(1.08); transform: translateY(-1px); }
 .agent-proximity-site__note {
   margin: 0.9rem 0 0;
   color: var(--console-text-muted);
@@ -130,13 +131,13 @@ const SITE_STYLES = `
 .agent-proximity-site__map { position: relative; min-width: 0; }
 .agent-proximity-site .proximity-field {
   position: relative;
-  min-height: 28rem;
+  min-height: 22rem;
   isolation: isolate;
 }
 .agent-proximity-site .proximity-field > svg {
   display: block;
   width: 100%;
-  min-height: 26rem;
+  min-height: 21rem;
   overflow: visible;
 }
 .agent-proximity-site .proximity-hud { display: none; }
@@ -299,6 +300,15 @@ const DEFAULT_COPY = {
   ctaHref: "/agents",
 } as const;
 
+/* Authored copy marks emphasis with *asterisks* (the same convention the
+   site sections use); the lede renders them as <b> so the proposition
+   triad carries weight. */
+function renderLede(text: string): (string | JSX.Element)[] {
+  return text
+    .split(/\*([^*]+)\*/g)
+    .map((part, i) => (i % 2 === 1 ? <b key={part}>{part}</b> : part));
+}
+
 export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
   const activeCount = data.nodes.filter(
     (node) => node.status !== "archived",
@@ -320,7 +330,7 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
           <h2 class="agent-proximity-site__heading">
             {headingLead} <em>{headingAccent}</em>
           </h2>
-          <p class="agent-proximity-site__lede">{lede}</p>
+          <p class="agent-proximity-site__lede">{renderLede(lede)}</p>
 
           <a class="agent-proximity-site__cta" href={ctaHref}>
             {ctaLabel}

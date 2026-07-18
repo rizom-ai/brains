@@ -92,7 +92,7 @@ describe("AgentProximityMapTemplate", () => {
       kicker: "The network, live",
       headingLead: "This is what expertise looks like",
       headingAccent: "when it's alive",
-      lede: "Independent minds, each with an agent grown from what they know.",
+      lede: "Rizom is the way in: *an agent that speaks for you*, and more.",
       ctaLabel: "Meet the agents",
       ctaHref: "/network",
     };
@@ -101,9 +101,9 @@ describe("AgentProximityMapTemplate", () => {
     expect(html).toContain("This is what expertise looks like");
     expect(html).toContain("when it's alive");
     expect(html).toContain("The network, live");
-    expect(html).toContain(
-      "Independent minds, each with an agent grown from what they know.",
-    );
+    // Asterisk emphasis in the authored lede renders as <b>.
+    expect(html).toContain("<b>an agent that speaks for you</b>");
+    expect(html).toContain("Rizom is the way in:");
     expect(html).toContain('href="/network"');
     expect(html).toContain(">Meet the agents<");
     // The plugin default must be fully replaced, not appended.
