@@ -1,5 +1,15 @@
 # @brains/a2a
 
+## 0.2.0-alpha.200
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.200
+  - @brains/utils@0.2.0-alpha.200
+  - @brains/auth-service@0.2.0-alpha.200
+  - @brains/plugins@0.2.0-alpha.200
+
 ## 0.2.0-alpha.199
 
 ### Patch Changes

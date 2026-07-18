@@ -1,5 +1,13 @@
 # @brains/wishlist
 
+## 0.2.0-alpha.200
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.200
+  - @brains/plugins@0.2.0-alpha.200
+
 ## 0.2.0-alpha.199
 
 ### Patch Changes

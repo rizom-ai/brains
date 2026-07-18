@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.200
+
+### Patch Changes
+
+- [`518483f`](https://github.com/rizom-ai/brains/commit/518483f62380bb02199ba9e14d7d341999c36f4b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the hero card background and align its gutter with the page sections, so the full-bleed hero no longer paints over the site's left-edge mycelium rail.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.200
+  - @brains/atproto-contracts@0.2.0-alpha.200
+  - @brains/content-formatters@0.2.0-alpha.200
+  - @brains/contracts@0.2.0-alpha.200
+  - @brains/http-signatures@0.2.0-alpha.200
+  - @brains/ui-library@0.2.0-alpha.200
+  - @brains/utils@0.2.0-alpha.200
+  - @brains/auth-service@0.2.0-alpha.200
+  - @brains/plugins@0.2.0-alpha.200
+  - @brains/templates@0.2.0-alpha.200
+
 ## 0.2.0-alpha.199
 
 ### Patch Changes
