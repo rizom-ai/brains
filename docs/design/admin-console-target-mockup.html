@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en" data-climate="instrument">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin console — target (completed model)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0819; --bg-deep: #05040f; --frame: #100d24; --card: #15112d;
+        --card-raised: #1b1638; --text: #f1eadd; --text-dim: #bfb7a6;
+        --text-muted: #7a7289; --rule: rgba(241, 234, 221, 0.08);
+        --rule-strong: rgba(241, 234, 221, 0.15); --accent: #ff8b3d;
+        --accent-soft: rgba(255, 139, 61, 0.12); --ok: #68cc8b;
+        --ok-soft: rgba(104, 204, 139, 0.11); --warn: #f5c158;
+        --warn-soft: rgba(245, 193, 88, 0.11); --danger: #e26d6d;
+        --danger-soft: rgba(226, 109, 109, 0.1); --info: #7db4e6;
+        --info-soft: rgba(125, 180, 230, 0.12); --glow: rgba(255, 139, 61, 0.07);
+        --display: "Fraunces", Georgia, serif; --ui: "IBM Plex Sans", sans-serif;
+        --mono: "JetBrains Mono", monospace;
+      }
+      [data-climate="paper"] {
+        --bg: #ece3cd; --bg-deep: #d4c8a8; --frame: #f7efdd; --card: #fff9eb;
+        --card-raised: #f3ead6; --text: #1a1528; --text-dim: #4a4257;
+        --text-muted: #7a7180; --rule: rgba(26, 21, 40, 0.1);
+        --rule-strong: rgba(26, 21, 40, 0.2); --accent: #b8410c;
+        --accent-soft: rgba(184, 65, 12, 0.08); --ok: #2f7b4d;
+        --ok-soft: rgba(47, 123, 77, 0.08); --warn: #8f5a10;
+        --warn-soft: rgba(143, 90, 16, 0.08); --danger: #932f2f;
+        --danger-soft: rgba(147, 47, 47, 0.08); --info: #245b86;
+        --info-soft: rgba(36, 91, 134, 0.08); --glow: rgba(184, 65, 12, 0.05);
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--text); font-family: var(--ui); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+      body::after { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 0%, transparent 0 45%, var(--bg-deep) 115%); opacity: 0.55; }
+      button, input, select { font: inherit; }
+      @keyframes rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+      @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 var(--ok-soft), 0 0 0 3px var(--ok-soft); } 70% { box-shadow: 0 0 0 6px transparent, 0 0 0 3px var(--ok-soft); } 100% { box-shadow: 0 0 0 0 transparent, 0 0 0 3px var(--ok-soft); } }
+
+      .console-strip { height: 48px; border-bottom: 1px solid var(--rule-strong); display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 22px; padding: 0 24px; position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(18px); }
+      .console-mark { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; display: flex; align-items: center; gap: 9px; }
+      .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse-ring 2.6s ease-out infinite; }
+      .surface-nav { display: flex; gap: 18px; }
+      .surface-nav a { color: var(--text-muted); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: color 0.15s ease; }
+      .surface-nav a:hover { color: var(--text-dim); } .surface-nav a.active { color: var(--text); }
+      .chip { border: 1px solid var(--rule-strong); background: transparent; color: var(--text-dim); min-height: 30px; border-radius: 7px; }
+      .command-chip { width: 196px; display: flex; align-items: center; justify-content: space-between; padding: 0 9px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
+      .command-chip kbd { font-family: var(--mono); font-size: 9px; }
+      .climate-chip { width: 32px; cursor: pointer; transition: color 0.15s ease, transform 0.3s ease; }
+      .climate-chip:hover { color: var(--accent); transform: rotate(180deg); }
+      .session-chip { display: flex; align-items: baseline; gap: 7px; padding: 5px 10px; font-size: 11px; }
+      .session-chip span { color: var(--text); }
+      .session-chip em { color: var(--accent); font-style: normal; font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+      .session-chip strong { color: var(--text-muted); font-weight: 400; }
+
+      .note-banner { width: min(1560px, 100%); margin: 20px auto -8px; padding: 0 32px; display: flex; align-items: center; gap: 14px; }
+      .note-banner .badge { font: 600 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--bg-deep); background: var(--ok); padding: 4px 9px; border-radius: 5px; }
+      .note-banner p { margin: 0; color: var(--text-muted); font-size: 12px; }
+      .note-banner b { color: var(--text-dim); font-weight: 500; }
+
+      .console { width: min(1560px, 100%); margin: 0 auto; padding: clamp(24px, 4vw, 40px) 32px 72px; }
+      .frame { position: relative; background: radial-gradient(640px 220px at 18% -4%, var(--glow), transparent 70%), var(--frame); border: 1px solid var(--rule-strong); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8); }
+      .frame::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent) 0, color-mix(in srgb, var(--accent) 35%, transparent) 34%, transparent 72%); opacity: 0.85; }
+      .masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px 28px 0; animation: rise 0.5s ease-out both; }
+      .masthead-lockup { display: flex; align-items: flex-end; gap: 20px; }
+      .brand { margin: 0; font: 560 40px/1 var(--display); font-variation-settings: "SOFT" 80, "opsz" 72; letter-spacing: -0.01em; }
+      .brand em { color: var(--accent); font-weight: 470; }
+      .tagline { margin: 0 0 5px; color: var(--text-muted); }
+      .masthead-meta { padding-bottom: 5px; color: var(--text-muted); font: 400 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; text-align: right; white-space: nowrap; }
+      .masthead-meta b { color: var(--text-dim); font-weight: 500; }
+      .tabs { display: flex; gap: 2px; padding: 20px 28px 0; border-bottom: 1px solid var(--rule-strong); }
+      .tab { position: relative; color: var(--text-muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; padding: 9px 16px 11px; border-bottom: 2px solid transparent; text-decoration: none; cursor: pointer; }
+      .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+      .tab.ghost { color: color-mix(in srgb, var(--text-muted) 55%, transparent); }
+      .tab.ghost::after { content: " soon"; font-size: 8px; opacity: 0.7; }
+
+      .canvas { padding: 26px 28px 34px; }
+      .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.17em; text-transform: uppercase; margin-bottom: 6px; }
+      .eyebrow::before { content: ""; display: inline-block; width: 14px; height: 1px; background: var(--accent); vertical-align: 3px; margin-right: 8px; }
+      h2 { margin: 0; font: 520 30px/1.05 var(--display); font-variation-settings: "SOFT" 55; letter-spacing: -0.01em; }
+      .button { border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--card-raised); color: var(--text); padding: 8px 13px; cursor: pointer; font-size: 12px; }
+      .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-deep); font-weight: 600; }
+      .text-action { background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; padding: 0; }
+      .text-action.muted { color: var(--text-muted); }
+
+      /* Anchor panel */
+      .anchor-panel { border: 1px solid var(--rule-strong); border-radius: 12px; background: radial-gradient(520px 160px at 12% -20%, var(--accent-soft), transparent 70%), var(--card); padding: 22px 24px; margin-bottom: 26px; animation: rise 0.5s ease-out 0.04s both; }
+      .anchor-top { display: flex; align-items: center; gap: 18px; }
+      .anchor-crest { width: 56px; height: 56px; border-radius: 13px; display: grid; place-items: center; font: 600 16px var(--mono); color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+      .anchor-crest.collective { border-radius: 13px 13px 4px 13px; }
+      .anchor-id h3 { margin: 0; font: 500 24px/1.05 var(--display); }
+      .anchor-id .kindline { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
+      .anchor-id .kindline b { color: var(--text-dim); font-weight: 500; }
+      .kind-toggle { margin-left: auto; display: flex; gap: 4px; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 3px; }
+      .kind-toggle button { border: none; background: transparent; color: var(--text-muted); font: 600 9px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 11px; border-radius: 6px; cursor: pointer; }
+      .kind-toggle button.on { background: var(--accent); color: var(--bg-deep); }
+      .anchor-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--rule); }
+      .field { }
+      .field .k { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
+      .field .v { font-size: 13px; }
+      .placeholder { color: var(--text-muted); font-style: italic; }
+      .placeholder::after { content: " · draft"; font: 600 8px var(--mono); letter-spacing: 0.08em; font-style: normal; color: var(--info); }
+
+      .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
+      .section-head p { margin: 7px 0 0; color: var(--text-muted); max-width: 60ch; }
+
+      .split { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+      .roster { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); overflow: hidden; }
+      .roster-search { padding: 12px 14px; border-bottom: 1px solid var(--rule); color: var(--text-muted); font-size: 12px; display: flex; gap: 8px; }
+      .roster-search input { flex: 1; background: transparent; border: none; color: var(--text); outline: none; }
+      .roster-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--rule); cursor: pointer; transition: background 0.12s ease; }
+      .roster-row:last-child { border-bottom: none; }
+      .roster-row:hover { background: var(--card-raised); }
+      .roster-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+      .avatar { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font: 600 12px var(--mono); color: var(--text); background: var(--card-raised); border: 1px solid var(--rule-strong); flex-shrink: 0; position: relative; }
+      .avatar .anchor-pin { position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); color: var(--bg-deep); font-size: 8px; display: grid; place-items: center; border: 2px solid var(--card); }
+      .who { flex: 1; min-width: 0; }
+      .who b { font-weight: 500; display: block; }
+      .who small { color: var(--text-muted); font-size: 11px; }
+      .rowtags { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+      .badge { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; white-space: nowrap; }
+      .b-admin { color: var(--accent); background: var(--accent-soft); } .b-trusted { color: var(--ok); background: var(--ok-soft); } .b-public { color: var(--text-muted); background: var(--rule); }
+      .host-chip { font: 600 8px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); border: 1px solid var(--rule-strong); }
+      .host-chip.own { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); background: var(--info-soft); }
+
+      .detail { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); padding: 24px 26px; }
+      .detail-head { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+      .detail-head .avatar { width: 48px; height: 48px; font-size: 15px; }
+      .detail-head h3 { margin: 0; font: 500 22px/1.1 var(--display); }
+      .detail-head small { color: var(--text-muted); font-family: var(--mono); font-size: 10px; }
+      .facets { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+      .facet { text-align: right; }
+      .facet .k { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+      .facet .v { font-size: 12px; }
+      .facet .v.role { color: var(--accent); font-weight: 600; }
+      .facet .v.anchor { color: var(--accent); } .facet .v.notanchor { color: var(--text-muted); }
+      .d-section { padding: 20px 0; border-bottom: 1px solid var(--rule); }
+      .d-section:last-child { border-bottom: none; padding-bottom: 0; }
+      .d-section .label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+      .d-section h4 { margin: 0; font: 500 13px var(--ui); }
+      .d-section .label p { margin: 2px 0 0; color: var(--text-muted); font-size: 11px; }
+      .item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 8px; background: var(--card-raised); }
+      .item .kind { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); width: 62px; }
+      .item .val { flex: 1; font-size: 12.5px; } .item .val small { color: var(--text-muted); }
+      .verified { color: var(--ok); } .asserted { color: var(--warn); }
+      .brain-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-muted); font-size: 12px; }
+      .brain-link.linked { border-style: solid; background: var(--info-soft); color: var(--text-dim); border-color: color-mix(in srgb, var(--info) 35%, transparent); }
+      .provider-picker { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+      .provider-picker button { border: 1px solid var(--rule-strong); background: var(--card-raised); color: var(--text-dim); border-radius: 7px; padding: 6px 11px; font-size: 12px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+      .provider-picker button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--rule-strong)); }
+      .picker-note { color: var(--text-muted); font-size: 11px; }
+      .advanced { margin-top: 10px; font: 600 9px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); cursor: pointer; }
+
+      @media (max-width: 940px) { .split { grid-template-columns: 1fr; } .anchor-fields { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="console-strip">
+      <a class="console-mark" href="#"><span class="pulse"></span>◆ ADMIN</a>
+      <nav class="surface-nav">
+        <a href="#">Dashboard</a><a href="#">Chat</a><a href="#">CMS</a>
+        <a href="#" class="active">Admin</a>
+      </nav>
+      <button class="chip command-chip">Jump to… <kbd>⌘K</kbd></button>
+      <button class="chip climate-chip" onclick="document.documentElement.dataset.climate = document.documentElement.dataset.climate === 'paper' ? 'instrument' : 'paper'">◐</button>
+      <a class="chip session-chip" href="#"><span>Jan Hein</span><em>Admin</em> · <strong>sign out</strong></a>
+    </div>
+
+    <div class="note-banner">
+      <span class="badge">Target · completed model</span>
+      <p>Decisions 11–12 + profile-on-subjects. Role vocabulary is <b>Admin / Trusted / Public</b>; <b>Anchor</b> is the brain's owner (person or collective). Toggle the Anchor to see both kinds. Fields marked <b>draft</b> are not yet a settled shape.</p>
+    </div>
+
+    <div class="console">
+      <div class="frame">
+        <div class="masthead">
+          <div class="masthead-lockup">
+            <h1 class="brand">Admin</h1>
+            <p class="tagline">members · anchor · access</p>
+          </div>
+          <div class="masthead-meta">brain <b>smoke-rover</b><br />3 members · 1 admin</div>
+        </div>
+        <nav class="tabs">
+          <a class="tab">Anchor</a>
+          <a class="tab active">Members</a>
+          <a class="tab ghost">Invitations</a>
+          <a class="tab ghost">Audit</a>
+        </nav>
+
+        <div class="canvas">
+          <!-- ANCHOR PANEL -->
+          <div class="anchor-panel" id="anchorPanel">
+            <div class="anchor-top">
+              <div class="anchor-crest" id="anchorCrest">JH</div>
+              <div class="anchor-id">
+                <h3 id="anchorName">Jan Hein</h3>
+                <div class="kindline" id="anchorKind">Anchor · <b>person</b> — this brain is owned by, and speaks as, one person.</div>
+              </div>
+              <div class="kind-toggle">
+                <button class="on" id="btnPerson" onclick="setKind('person')">Person</button>
+                <button id="btnCollective" onclick="setKind('collective')">Collective</button>
+              </div>
+            </div>
+            <div class="anchor-fields">
+              <div class="field"><div class="k">Public name</div><div class="v" id="fName">Jan Hein Hoogstad</div></div>
+              <div class="field"><div class="k">Profile / persona</div><div class="v placeholder">role, bio, expertise</div></div>
+              <div class="field"><div class="k">Administered by</div><div class="v" id="fAdmins">1 admin (self)</div></div>
+            </div>
+          </div>
+
+          <!-- MEMBERS -->
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Roster</div>
+              <h2>Members</h2>
+              <p>Everyone with a profile on this brain. Each carries a profile; some also run their own brain, linked in — we never provision one.</p>
+            </div>
+            <button class="button primary">+ Add member</button>
+          </div>
+
+          <div class="split">
+            <div class="roster">
+              <div class="roster-search">⌕ <input placeholder="Search members…" /></div>
+              <div class="roster-row active">
+                <div class="avatar">JH<span class="anchor-pin">⚓</span></div>
+                <div class="who"><b>Jan Hein</b><small>you · passkey</small></div>
+                <div class="rowtags"><span class="badge b-admin">Admin</span><span class="host-chip">Hosted</span></div>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">MR</div>
+                <div class="who"><b>Mira Reyes</b><small>discord · passkey</small></div>
+                <div class="rowtags"><span class="badge b-trusted">Trusted</span><span class="host-chip own">Own brain</span></div>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">DK</div>
+                <div class="who"><b>Devin Kwan</b><small>invited · setup sent</small></div>
+                <div class="rowtags"><span class="badge b-public">Public</span><span class="host-chip">Hosted</span></div>
+              </div>
+            </div>
+
+            <div class="detail">
+              <div class="detail-head">
+                <div class="avatar">MR</div>
+                <div>
+                  <h3>Mira Reyes</h3>
+                  <small>usr_4b1a… · member since 2026-06-11</small>
+                </div>
+                <div class="facets">
+                  <div class="facet"><div class="k">Role</div><div class="v role">Admin</div></div>
+                  <div class="facet"><div class="k">Anchor?</div><div class="v notanchor">No</div></div>
+                </div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Profile</h4><p>How this member presents. Lives with the member, not the brain.</p></div><button class="text-action">Edit</button></div>
+                <div class="anchor-fields" style="margin-top:0;padding-top:0;border-top:none;">
+                  <div class="field"><div class="k">Display name</div><div class="v">Mira Reyes</div></div>
+                  <div class="field"><div class="k">Role / title</div><div class="v placeholder">professional profile</div></div>
+                  <div class="field"><div class="k">Expertise</div><div class="v placeholder">skills, focus</div></div>
+                </div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Brain</h4><p>Optional. A member may bring their own brain — linked as a verified peer.</p></div></div>
+                <div class="brain-link linked">◆ <b>mira.rizom.ai</b> · verified peer (did:web) · trusted inbound<span style="margin-left:auto"><button class="text-action muted">Unlink</button></span></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Access</h4><p>Permission role — the only thing gates check.</p></div></div>
+                <div class="item"><span class="kind">Role</span><span class="val">Admin · <small>can administer members and access</small></span><button class="text-action">Change</button></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Identities</h4><p>Verified ways this member signs in.</p></div></div>
+                <div class="item"><span class="kind">Passkey</span><span class="val">Laptop · <small class="verified">✓ verified</small></span></div>
+                <div class="item"><span class="kind">Discord</span><span class="val">mira · <small class="verified">✓ verified via oauth</small></span><button class="text-action muted">Detach</button></div>
+                <div class="provider-picker">
+                  <button>+ Passkey</button><button>+ Discord</button><button>+ Email</button>
+                </div>
+                <div class="picker-note">Only providers this brain has configured are shown.</div>
+                <div class="advanced">▸ Advanced — attach raw provider subject (unverified)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function setKind(kind) {
+        const person = kind === 'person';
+        document.getElementById('btnPerson').classList.toggle('on', person);
+        document.getElementById('btnCollective').classList.toggle('on', !person);
+        const crest = document.getElementById('anchorCrest');
+        crest.textContent = person ? 'JH' : 'RZ';
+        crest.classList.toggle('collective', !person);
+        document.getElementById('anchorName').textContent = person ? 'Jan Hein' : 'Rizom';
+        document.getElementById('anchorKind').innerHTML = person
+          ? 'Anchor · <b>person</b> — this brain is owned by, and speaks as, one person.'
+          : 'Anchor · <b>collective</b> (team / org) — owned by the org, run by any admin. No one person is the anchor.';
+        document.getElementById('fName').textContent = person ? 'Jan Hein Hoogstad' : 'Rizom Collective';
+        document.getElementById('fAdmins').textContent = person ? '1 admin (self)' : '3 admins · impersonal ownership';
+      }
+    </script>
+  </body>
+</html>

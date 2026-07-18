@@ -427,7 +427,7 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 **Status: implemented; bounded legacy-cookie compatibility remains active.**
 
-- [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
+- [x] Approve the People-section design (now the [admin console mockup — current](../design/admin-console-current-mockup.html); the [target mockup](../design/admin-console-target-mockup.html) shows the decisions 11–12 end state).
 - [x] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
 - [x] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; no deprecated wrappers remain in the private workspace API.
 - [x] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
