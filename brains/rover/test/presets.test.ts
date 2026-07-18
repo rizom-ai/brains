@@ -82,7 +82,7 @@ describe("rover presets", () => {
       oauthRedirectUri: "https://brain.example/linkedin/callback",
     });
     expect(routeProvider?.getWebRoutes().map((route) => route.path)).toEqual([
-      "/linkedin",
+      "/linkedin/status",
       "/linkedin/connect",
       "/linkedin/callback",
       "/linkedin/disconnect",

@@ -1,4 +1,4 @@
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { LinkedInImportJobHandler } from "./handlers/linkedin-import-handler";
@@ -13,7 +13,6 @@ import {
 } from "./lib/linkedin-oauth-client";
 import {
   createLinkedInOAuthRoutes,
-  LINKEDIN_OAUTH_STATUS_PATH,
   type LinkedInOperatorSessionResolver,
 } from "./lib/linkedin-oauth-routes";
 import type { LinkedInOAuthStateStore } from "./lib/linkedin-oauth-state-store";
@@ -99,20 +98,6 @@ export class LinkedInImportPlugin extends ServicePlugin<
     this.deps = deps;
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    if (!this.hasOAuthRoutes()) return;
-
-    context.endpoints.register({
-      label: "LinkedIn import",
-      url: LINKEDIN_OAUTH_STATUS_PATH,
-      priority: 35,
-      visibility: "anchor",
-    });
-  }
-
   override getWebRoutes(): WebRouteDefinition[] {
     const routeConfig = this.getOAuthRouteConfig();
     if (!routeConfig) return [];
@@ -157,10 +142,6 @@ export class LinkedInImportPlugin extends ServicePlugin<
       Boolean(this.deps.oauthTokenStore) ||
       Boolean(this.deps.accessTokenProvider)
     );
-  }
-
-  private hasOAuthRoutes(): boolean {
-    return this.getOAuthRouteConfig() !== undefined;
   }
 
   private getOAuthRouteConfig():

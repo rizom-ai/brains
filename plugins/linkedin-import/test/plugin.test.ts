@@ -63,7 +63,7 @@ describe("LinkedInImportPlugin", () => {
     expect(
       plugin.getWebRoutes().map((route) => [route.method, route.path]),
     ).toEqual([
-      ["GET", "/linkedin"],
+      ["GET", "/linkedin/status"],
       ["POST", "/linkedin/connect"],
       ["GET", "/linkedin/callback"],
       ["POST", "/linkedin/disconnect"],

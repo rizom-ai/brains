@@ -12,9 +12,9 @@ exposing member values, and provider-neutral rich-record fingerprint merging is 
 Phase 3's reviewed narrative-distillation backend is implemented but dormant. Phase 4A's
 sanctioned OAuth authorization-code client, direct/self-hosted browser routes, expiring
 single-use state, dynamic importer token provider, private-file token store, and Rover
-wiring are implemented. LinkedIn agent tools have been removed; the plugin-owned
-`/linkedin` dashboard integration panel is the intended import surface, and its
-preview/confirmation workflow remains pending. Phase 4B's managed callback broker is
+wiring are implemented. LinkedIn agent tools and the interim standalone management page
+have been removed. The dedicated `/admin` console's Integrations section is the intended
+import surface, and its LinkedIn UI plus preview/confirmation workflow remain pending. Phase 4B's managed callback broker is
 planned: its authorization/grant transport will be provider-neutral, while LinkedIn
 scopes, token exchange, and credential validation remain provider-specific. Rich-domain
 fixtures/mappers and Phase 5 are not yet started.
@@ -147,11 +147,13 @@ SOURCES (pluggable adapters)          TRANSFORM              SINK
   one-time credential delivery to a central broker, while LinkedIn authorization URLs,
   scopes, token response validation, and refresh behavior stay in a provider adapter. A
   static environment token remains a migration/development fallback.
-- **The workflow is panel-first, not agent-driven.** `/linkedin` is a plugin-owned
-  integration panel advertised through the existing dashboard endpoint navigation. It is
-  not part of CMS, because connecting an account and running an operational import are not
-  content-authoring actions. The panel owns connection status, preview, confirmation,
-  execution status, and safe re-import. No LinkedIn MCP/chat tools are registered.
+- **The workflow is admin-console-first, not agent-driven.** LinkedIn is an Integrations
+  section in the dedicated `/admin` React console introduced by the auth workstream, with
+  People as that console's first section. It is not a dashboard widget or part of CMS,
+  because connecting an account and running an operational import are mutating management
+  actions rather than monitoring or content authoring. `plugins/linkedin-import` owns the
+  browser-safe API and provider logic but renders no standalone management page. No
+  LinkedIn MCP/chat tools are registered.
 - **Write path gotcha.** `SingletonEntityService` has no public setter and
   `AnchorProfileAdapter.createProfileContent()` validates against the _base_ schema
   (strips extension fields). Extension fields must be written by building frontmatter
@@ -262,9 +264,9 @@ LinkedIn import must neither read nor write communication preferences.
   `entity:updated` cache-invalidation path. Re-running unchanged data performs no write.
 - The deterministic preview contract carries a canonical SHA-256 digest of the mapped
   patch and anchor-profile baseline. Execution refetches both and rejects stale approval
-  when either input changed. The former agent tool surface has been removed; the
-  `/linkedin` panel will display the field-level merge preview and submit the reviewed
-  digest through operator-gated routes before queuing the existing job.
+  when either input changed. The former agent tool surface has been removed; the Admin
+  console's Integrations section will display the field-level merge preview and submit the
+  reviewed digest through Anchor-gated LinkedIn routes before queuing the existing job.
 - Rover includes the inert capability in each preset and supplies the access token from
   its declared environment schema.
 
@@ -281,7 +283,7 @@ counts, and deduplicated redacted record shapes—never member values or nested 
 Safe placeholders distinguish dates, timestamps, URLs, URNs, emails, and
 primitive/container types. This provides a privacy-preserving way to capture real
 sanctioned API shapes and value-format contracts. It has no agent tool surface; an
-operator-only advanced diagnostic in the integration panel or an explicit development
+Anchor-only advanced diagnostic in Admin's Integrations section or an explicit development
 command may expose it when sanctioned fixture capture begins.
 
 Before enabling those domains for import:
@@ -308,8 +310,8 @@ model to treat profile content as data rather than instructions.
 
 The proposal/apply contract is bound to the anchor-profile content digest and rejects
 stale or concurrent edits. It is not registered as an agent tool or active job path. If
-added later, the `/linkedin` panel must show the full proposal and require a separate
-operator confirmation. The deterministic import path never invokes this semantic pass.
+added later, Admin's Integrations section must show the full proposal and require a
+separate Anchor confirmation. The deterministic import path never invokes this semantic pass.
 
 ## Phase 4A — Direct OAuth consent for self-hosted brains (implemented)
 
@@ -319,11 +321,12 @@ authorization-code exchange with the least-privilege
 errors. The importer accepts a dynamic `LinkedInAccessTokenProvider`, resolves it for each
 API request, and can fall back to the existing static token during migration.
 
-The service plugin contributes a thin browser boundary rather than a separate
-`InterfacePlugin`: an operator-gated status page, POST-only connect/disconnect actions,
-and a public callback protected by random, process-local state that expires after ten
-minutes and can be consumed only once. The callback stores the exchanged credential and
-never exposes it to the browser. Rover injects its auth-service operator-session resolver
+The service plugin contributes a thin browser/API boundary rather than a separate
+`InterfacePlugin`: private status JSON, POST-only connect/disconnect actions, and a public
+callback protected by random, process-local state that expires after ten minutes and can
+be consumed only once. It renders no standalone management page. The callback stores the
+exchanged credential, never exposes it to the browser, and returns to Admin's Integrations
+section. Rover injects its auth-service operator-session resolver
 and a `FileLinkedInOAuthTokenStore` under `data/linkedin-import`. The store uses atomic
 local writes, a `0700` storage directory, a `0600` token file, strict persisted-shape
 validation, explicit disconnect, and expiry-aware reads.
@@ -335,11 +338,17 @@ application and for a small pilot with a fixed callback allowlist. It requires
 model because distributing the shared LinkedIn application secret and registering every
 dynamic brain callback would not scale safely.
 
-### `/linkedin` integration panel workflow (next)
+### `/admin` Integrations workflow (next)
 
-Use the existing plugin-owned `/linkedin` dashboard surface, not CMS and not agent tools.
-The first panel increment is already the connection status/connect/disconnect page. Extend
-that same page with a deterministic import wizard:
+Use the dedicated admin console from the auth workstream, not a plugin-owned page, CMS,
+dashboard, or agent tools. Add Integrations as a sibling of People and render a LinkedIn
+card/wizard there. The LinkedIn plugin remains the sole backend owner and exposes
+browser-safe service routes; `auth-service` only resolves the current principal and enforces
+Anchor access. After rebasing onto the auth workstream, replace the temporary boolean
+operator-session resolver with role-aware session resolution and require `anchor` for every
+status/connect/disconnect/preview/import action.
+
+The deterministic import wizard is:
 
 1. **Connected state** — show credential status/expiry and an `Inspect import` action.
 2. **Preview** — fetch the registered Snapshot domains, compute the normal merge, and show
@@ -351,12 +360,15 @@ that same page with a deterministic import wizard:
 4. **Confirm import** — an operator-authenticated POST consumes the review ID and queues the
    existing import job. The job refetches source/profile data and rejects stale review just
    as the existing handler already does.
-5. **Result** — redirect back to `/linkedin` with queued/completed/failed status and a
-   concise list of applied versus preserved fields. Re-import follows the same preview and
-   confirmation path.
+5. **Result** — return to `/admin?section=integrations&provider=linkedin` with
+   queued/completed/failed status and a concise list of applied versus preserved fields.
+   Re-import follows the same preview and confirmation path.
 
-All panel routes are marked `public: true` only to pass through the current webserver route
-contract; each non-callback handler performs its own auth-service operator-session check.
+The admin SPA consumes `GET /linkedin/status` and native POST actions at
+`/linkedin/connect` and `/linkedin/disconnect`; preview/import routes follow the same
+provider-owned namespace. These backend routes are marked `public: true` only to pass
+through the current webserver route contract; each non-callback handler performs its own
+auth-service Anchor check.
 POST actions rely on the operator cookie's `SameSite=Lax` protection and must additionally
 reject an explicitly cross-origin `Origin`. Responses containing profile data use
 `Cache-Control: no-store`, and neither access tokens nor raw provider responses reach the
@@ -407,8 +419,10 @@ Package boundaries:
 
 - `plugins/oauth-broker` — generic central `ServicePlugin`, Zod broker protocol, instance
   registry, state/grant stores, provider-adapter contract, and fixed callback routes;
-- `plugins/linkedin-import` — owner-side UX, `LinkedInBrokerClient`, LinkedIn credential
-  validation, local token storage, direct/self-hosted mode, and profile import; and
+- the dedicated Admin console — Integrations navigation and the LinkedIn management UI;
+- `plugins/linkedin-import` — browser-safe admin API, `LinkedInBrokerClient`, LinkedIn
+  credential validation, local token storage, direct/self-hosted mode, and profile import;
+  and
 - the first LinkedIn broker adapter may be composed with `oauth-broker` from the central
   brain model. Do not split provider adapters into a new package until a second upstream
   OAuth provider proves the boundary.

@@ -2,9 +2,9 @@
 
 Imports the anchor owner's professional profile through LinkedIn's sanctioned DMA Member Data Portability API.
 
-The plugin is inert unless a static `accessToken` or dynamic token provider is configured. It does not register agent tools. LinkedIn connection and import are an operator-owned administrative workflow on the plugin's `/linkedin` integration page, surfaced through the existing dashboard navigation rather than CMS. The current page handles connection lifecycle; deterministic field-level preview and confirmation are the next panel increment.
+The plugin is inert unless a static `accessToken` or dynamic token provider is configured. It does not register agent tools or render a standalone management page. LinkedIn connection and import are an Anchor-owned workflow for the dedicated `/admin` console's Integrations section. Deterministic field-level preview and confirmation remain the next admin-console increment.
 
-`LinkedInOAuthClient` implements LinkedIn's documented server-side authorization-code protocol with the least-privilege `r_dma_portability_3rd_party` scope. Thin service-plugin routes provide an operator-only status page plus POST-only connect/disconnect actions at `/linkedin`; the public `/linkedin/callback` is protected by random, expiring, single-use server-side state. Access tokens are never returned to the browser.
+`LinkedInOAuthClient` implements LinkedIn's documented server-side authorization-code protocol with the least-privilege `r_dma_portability_3rd_party` scope. Thin service-plugin routes provide private status JSON and POST-only connect/disconnect endpoints for the admin SPA; the public `/linkedin/callback` is protected by random, expiring, single-use server-side state. Access tokens are never returned to the browser.
 
 The importer resolves `LinkedInAccessTokenProvider` on each API request, allowing token rotation with a static-token fallback during migration. `LinkedInOAuthTokenStore` defines the interface-to-secret-store handoff and status contract. Rover injects `FileLinkedInOAuthTokenStore`, which uses atomic writes, expiry checks, a `0700` directory, and a `0600` token file under `data/linkedin-import`, following the auth-service local persistence pattern. Refresh remains intentionally unsupported until LinkedIn confirms a refresh contract for the approved portability application.
 

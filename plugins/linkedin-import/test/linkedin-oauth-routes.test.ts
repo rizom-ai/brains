@@ -75,7 +75,7 @@ describe("LinkedIn OAuth browser routes", () => {
     const statusResponse = await findRoute(
       routes,
       LINKEDIN_OAUTH_STATUS_PATH,
-    ).handler(new Request("https://brain.example/linkedin"));
+    ).handler(new Request("https://brain.example/linkedin/status"));
     const connectRoute = findRoute(routes, LINKEDIN_OAUTH_CONNECT_PATH);
     const connectResponse = await connectRoute.handler(
       new Request("https://brain.example/linkedin/connect", { method: "POST" }),
@@ -90,10 +90,10 @@ describe("LinkedIn OAuth browser routes", () => {
       }),
     );
 
-    expect(statusResponse.status).toBe(302);
-    expect(statusResponse.headers.get("location")).toBe(
-      "/login?return_to=%2Flinkedin",
-    );
+    expect(statusResponse.status).toBe(401);
+    expect(await statusResponse.json()).toEqual({
+      error: "Anchor session required",
+    });
     expect(connectResponse.status).toBe(403);
     expect(crossOriginConnect.status).toBe(403);
   });
@@ -170,16 +170,22 @@ describe("LinkedIn OAuth browser routes", () => {
     const statusResponse = await findRoute(
       routes,
       LINKEDIN_OAUTH_STATUS_PATH,
-    ).handler(operatorRequest("https://brain.example/linkedin"));
-    const statusHtml = await statusResponse.text();
+    ).handler(operatorRequest("https://brain.example/linkedin/status"));
+    const statusBody = await statusResponse.text();
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/linkedin?status=connected");
+    expect(response.headers.get("location")).toBe(
+      "/admin?section=integrations&provider=linkedin&status=connected",
+    );
     expect(replay.status).toBe(400);
     expect(exchanges).toBe(1);
     expect(await store.getAccessToken()).toBe("secret-access-token");
-    expect(statusHtml).toContain("OAuth connection active");
-    expect(statusHtml).not.toContain("secret-access-token");
+    expect(JSON.parse(statusBody)).toMatchObject({
+      connected: true,
+      requestedScope: LINKEDIN_PORTABILITY_SCOPE,
+      staticAccessTokenConfigured: false,
+    });
+    expect(statusBody).not.toContain("secret-access-token");
   });
 
   it("rejects invalid callback state before exchanging a code", async () => {
@@ -235,7 +241,7 @@ describe("LinkedIn OAuth browser routes", () => {
     expect(denied.status).toBe(403);
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "/linkedin?status=disconnected",
+      "/admin?section=integrations&provider=linkedin&status=disconnected",
     );
     expect(store.clearCount).toBe(1);
     expect(await store.getAccessToken()).toBeUndefined();
