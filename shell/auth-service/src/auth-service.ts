@@ -402,202 +402,197 @@ export class AuthService {
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
 
-  private async migrateLegacyPasskeys(): Promise<void> {
-    const credentials = await this.legacyPasskeyStore.listCredentials();
+  private async migrateLegacyRecords<T>(
+    listRecords: () => Promise<readonly T[]>,
+    importRecord: (record: T) => Promise<boolean>,
+    label: string,
+    metadata?: () => Record<string, unknown>,
+  ): Promise<void> {
     let migrated = 0;
+    for (const record of await listRecords()) {
+      if (await importRecord(record)) migrated += 1;
+    }
+
+    const details = metadata?.() ?? {};
+    const hasSkippedRecords = Object.values(details).some(
+      (value) => typeof value === "number" && value > 0,
+    );
+    if (migrated > 0 || hasSkippedRecords) {
+      this.logger?.info(label, { migrated, ...details });
+    }
+  }
+
+  private async migrateLegacyPasskeys(): Promise<void> {
     let skipped = 0;
     let anchorUser: AuthUser | undefined;
+    await this.migrateLegacyRecords(
+      () => this.legacyPasskeyStore.listCredentials(),
+      async (credential): Promise<boolean> => {
+        const user =
+          credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            : await this.getUserStore().getUser(credential.subject);
+        if (!user) {
+          skipped += 1;
+          return false;
+        }
 
-    for (const credential of credentials) {
-      const user =
-        credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-          ? (anchorUser ??= await this.ensureFirstAnchorUser())
-          : await this.getUserStore().getUser(credential.subject);
-      if (!user) {
-        skipped += 1;
-        continue;
-      }
+        const stored = await this.getCredentialStore().getPasskeyRecord(
+          credential.id,
+        );
+        if (stored && stored.userId !== user.id) {
+          skipped += 1;
+          return false;
+        }
 
-      const stored = await this.getCredentialStore().getPasskeyRecord(
-        credential.id,
-      );
-      if (stored && stored.userId !== user.id) {
-        skipped += 1;
-        continue;
-      }
+        if (!stored) {
+          await this.getCredentialStore().addPasskey({
+            id: credential.id,
+            userId: user.id,
+            publicKey: credential.public_key,
+            counter: credential.counter,
+            ...(credential.transports
+              ? { transports: credential.transports }
+              : {}),
+            credentialDeviceType: credential.credential_device_type,
+            credentialBackedUp: credential.credential_backed_up,
+            createdAt: legacyTimestampToMilliseconds(credential.created_at),
+            updatedAt: legacyTimestampToMilliseconds(credential.updated_at),
+          });
+          await this.getAuditStore().append({
+            action: "auth.passkey.migrated",
+            targetType: "passkey",
+            targetId: credential.id,
+            metadata: { userId: user.id },
+          });
+        } else if (stored.revokedAt !== undefined) {
+          return false;
+        }
 
-      if (!stored) {
-        await this.getCredentialStore().addPasskey({
-          id: credential.id,
+        await this.getUserStore().ensureIdentity({
           userId: user.id,
-          publicKey: credential.public_key,
-          counter: credential.counter,
-          ...(credential.transports
-            ? { transports: credential.transports }
-            : {}),
-          credentialDeviceType: credential.credential_device_type,
-          credentialBackedUp: credential.credential_backed_up,
-          createdAt: legacyTimestampToMilliseconds(credential.created_at),
-          updatedAt: legacyTimestampToMilliseconds(credential.updated_at),
+          type: "passkey",
+          subject: credential.id,
+          label: "Passkey credential",
+          verifiedAt: legacyTimestampToMilliseconds(credential.created_at),
+          source: { kind: "migration", id: "legacy-passkeys.json" },
         });
-        await this.getAuditStore().append({
-          action: "auth.passkey.migrated",
-          targetType: "passkey",
-          targetId: credential.id,
-          metadata: { userId: user.id },
-        });
-        migrated += 1;
-      } else if (stored.revokedAt !== undefined) {
-        continue;
-      }
-
-      await this.getUserStore().ensureIdentity({
-        userId: user.id,
-        type: "passkey",
-        subject: credential.id,
-        label: "Passkey credential",
-        verifiedAt: legacyTimestampToMilliseconds(credential.created_at),
-        source: { kind: "migration", id: "legacy-passkeys.json" },
-      });
-    }
-
-    if (migrated > 0 || skipped > 0) {
-      this.logger?.info("Migrated legacy passkey credentials", {
-        migrated,
+        return stored === undefined;
+      },
+      "Migrated legacy passkey credentials",
+      () => ({
         skipped,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
-      });
-    }
+      }),
+    );
   }
 
   private async migrateLegacySessions(): Promise<void> {
-    const sessions = await this.legacySessionStore.listSessions();
-    let migrated = 0;
     let skipped = 0;
     let anchorUser: AuthUser | undefined;
-
-    for (const session of sessions) {
-      if (session.expires_at <= nowSeconds()) continue;
-      const user =
-        session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-          ? (anchorUser ??= await this.ensureFirstAnchorUser())
-          : await this.getUserStore().getUser(session.subject);
-      if (!user) {
-        skipped += 1;
-        continue;
-      }
-      if (await this.sessionStore.importSession(session, user.id)) {
-        migrated += 1;
-      }
-    }
-
-    if (migrated > 0 || skipped > 0) {
-      this.logger?.info("Migrated legacy browser sessions", {
-        migrated,
+    await this.migrateLegacyRecords(
+      () => this.legacySessionStore.listSessions(),
+      async (session): Promise<boolean> => {
+        if (session.expires_at <= nowSeconds()) return false;
+        const user =
+          session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            : await this.getUserStore().getUser(session.subject);
+        if (!user) {
+          skipped += 1;
+          return false;
+        }
+        return this.sessionStore.importSession(session, user.id);
+      },
+      "Migrated legacy browser sessions",
+      () => ({
         skipped,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
-      });
-    }
+      }),
+    );
   }
 
   private async migrateLegacyOAuthClients(): Promise<void> {
-    const clients = await this.legacyClientStore.listClients();
-    let migrated = 0;
-    for (const client of clients) {
-      if (await this.clientStore.importClient(client)) {
-        migrated += 1;
-      }
-    }
-    if (migrated > 0) {
-      this.logger?.info("Migrated legacy OAuth clients", { migrated });
-    }
+    await this.migrateLegacyRecords(
+      () => this.legacyClientStore.listClients(),
+      (client) => this.clientStore.importClient(client),
+      "Migrated legacy OAuth clients",
+    );
   }
 
   private async migrateLegacyAuthorizationCodes(): Promise<void> {
-    const codes = await this.legacyAuthCodeStore.listCodes();
-    let migrated = 0;
     let skipped = 0;
     let anchorUser: AuthUser | undefined;
-    for (const code of codes) {
-      if (code.consumed_at !== undefined || code.expires_at <= nowSeconds()) {
-        continue;
-      }
-      if (!(await this.clientStore.getClient(code.client_id))) {
-        skipped += 1;
-        continue;
-      }
-      const user =
-        code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-          ? (anchorUser ??= await this.ensureFirstAnchorUser())
-          : await this.getUserStore().getUser(code.subject);
-      if (!user) {
-        skipped += 1;
-        continue;
-      }
-      if (await this.authCodeStore.importCode(code, user.id)) {
-        migrated += 1;
-      }
-    }
-    if (migrated > 0 || skipped > 0) {
-      this.logger?.info("Migrated legacy OAuth authorization codes", {
-        migrated,
-        skipped,
-      });
-    }
+    await this.migrateLegacyRecords(
+      () => this.legacyAuthCodeStore.listCodes(),
+      async (code): Promise<boolean> => {
+        if (code.consumed_at !== undefined || code.expires_at <= nowSeconds()) {
+          return false;
+        }
+        if (!(await this.clientStore.getClient(code.client_id))) {
+          skipped += 1;
+          return false;
+        }
+        const user =
+          code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            : await this.getUserStore().getUser(code.subject);
+        if (!user) {
+          skipped += 1;
+          return false;
+        }
+        return this.authCodeStore.importCode(code, user.id);
+      },
+      "Migrated legacy OAuth authorization codes",
+      () => ({ skipped }),
+    );
   }
 
   private async migrateLegacyPeerTrust(): Promise<void> {
-    const peers = await this.legacyPeerTrustStore.listPeers();
-    let migrated = 0;
-    for (const peer of peers) {
-      if (await this.peerTrustStore.importPeer(peer)) {
-        migrated += 1;
-      }
-    }
-    if (migrated > 0) {
-      this.logger?.info("Migrated legacy A2A peer trust", { migrated });
-    }
+    await this.migrateLegacyRecords(
+      () => this.legacyPeerTrustStore.listPeers(),
+      (peer) => this.peerTrustStore.importPeer(peer),
+      "Migrated legacy A2A peer trust",
+    );
   }
 
   private async migrateLegacySetupState(): Promise<void> {
-    const state = await this.legacySetupStateStore.getMigrationState();
-    if (await this.setupStateStore.importState(state)) {
-      this.logger?.info("Migrated legacy passkey setup state");
-    }
+    await this.migrateLegacyRecords(
+      async () => [await this.legacySetupStateStore.getMigrationState()],
+      (state) => this.setupStateStore.importState(state),
+      "Migrated legacy passkey setup state",
+    );
   }
 
   private async migrateLegacyRefreshTokens(): Promise<void> {
-    const tokens = await this.legacyRefreshTokenStore.listTokens();
-    let migrated = 0;
     let skippedLegacy = 0;
     let skippedInvalid = 0;
-    for (const token of tokens) {
-      if (token.revoked_at !== undefined || token.expires_at <= nowSeconds()) {
-        continue;
-      }
-      if (token.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT) {
-        skippedLegacy += 1;
-        continue;
-      }
-      const [user, client] = await Promise.all([
-        this.getUserStore().getUser(token.subject),
-        this.clientStore.getClient(token.client_id),
-      ]);
-      if (!user || !client) {
-        skippedInvalid += 1;
-        continue;
-      }
-      if (await this.refreshTokenStore.importToken(token)) {
-        migrated += 1;
-      }
-    }
-    if (migrated > 0 || skippedLegacy > 0 || skippedInvalid > 0) {
-      this.logger?.info("Migrated legacy OAuth refresh tokens", {
-        migrated,
-        skippedLegacy,
-        skippedInvalid,
-      });
-    }
+    await this.migrateLegacyRecords(
+      () => this.legacyRefreshTokenStore.listTokens(),
+      async (token): Promise<boolean> => {
+        if (
+          token.revoked_at !== undefined ||
+          token.expires_at <= nowSeconds()
+        ) {
+          return false;
+        }
+        if (token.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT) {
+          skippedLegacy += 1;
+          return false;
+        }
+        const [user, client] = await Promise.all([
+          this.getUserStore().getUser(token.subject),
+          this.clientStore.getClient(token.client_id),
+        ]);
+        if (!user || !client) {
+          skippedInvalid += 1;
+          return false;
+        }
+        return this.refreshTokenStore.importToken(token);
+      },
+      "Migrated legacy OAuth refresh tokens",
+      () => ({ skippedLegacy, skippedInvalid }),
+    );
   }
 
   private getUserStore(): AuthUserStore {

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Hex } from "@brains/utils/hash";
 import { JsonFileStore } from "./json-file-store";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
@@ -63,13 +63,11 @@ export interface TargetedSetupStatePersistence extends SetupStatePersistence {
 }
 
 export function setupTokenId(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  return sha256Hex(token);
 }
 
 function recipientHash(recipient: string): string {
-  return createHash("sha256")
-    .update(recipient.trim().toLowerCase())
-    .digest("hex");
+  return sha256Hex(recipient.trim().toLowerCase());
 }
 
 const storedSetupTokenSchema = z.looseObject({

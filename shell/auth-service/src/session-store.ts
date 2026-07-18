@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { sha256Base64Url } from "@brains/utils/hash";
 import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
@@ -58,7 +59,7 @@ export interface AuthSessionPersistence {
 }
 
 function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("base64url");
+  return sha256Base64Url(token);
 }
 
 const authSessionRecordSchema = z.looseObject({

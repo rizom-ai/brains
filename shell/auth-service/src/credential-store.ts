@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Base64Url } from "@brains/utils/hash";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
@@ -359,5 +359,5 @@ function parseTransports(value: string): AuthenticatorTransportFuture[] {
 }
 
 function hashChallenge(challenge: string): string {
-  return createHash("sha256").update(challenge).digest("base64url");
+  return sha256Base64Url(challenge);
 }

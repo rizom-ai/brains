@@ -1,4 +1,5 @@
-import { createHash, generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync } from "node:crypto";
+import { sha256Base64Url } from "@brains/utils/hash";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
@@ -47,7 +48,7 @@ function ecThumbprint(
     x: publicJwk.x,
     y: publicJwk.y,
   });
-  return createHash("sha256").update(canonical).digest("base64url");
+  return sha256Base64Url(canonical);
 }
 
 function okpThumbprint(
@@ -58,7 +59,7 @@ function okpThumbprint(
     kty: publicJwk.kty,
     x: publicJwk.x,
   });
-  return createHash("sha256").update(canonical).digest("base64url");
+  return sha256Base64Url(canonical);
 }
 
 function publicFromOAuthPrivate(privateJwk: OAuthPrivateJwk): OAuthPublicJwk {

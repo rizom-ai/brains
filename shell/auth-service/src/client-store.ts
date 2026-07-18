@@ -1,4 +1,5 @@
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
+import { sha256Base64Url } from "@brains/utils/hash";
 import { and, eq, lt, notExists } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
@@ -333,7 +334,7 @@ function parseClientMetadata(metadataJson: string): RegisteredOAuthClient {
 }
 
 function hashSecret(secret: string): string {
-  return createHash("sha256").update(secret).digest("base64url");
+  return sha256Base64Url(secret);
 }
 
 function constantTimeEqual(left: string, right: string): boolean {

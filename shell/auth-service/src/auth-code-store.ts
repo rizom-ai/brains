@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { sha256Base64Url } from "@brains/utils/hash";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
@@ -319,7 +320,7 @@ function codeToRow(
 }
 
 function hashCode(code: string): string {
-  return createHash("sha256").update(code).digest("base64url");
+  return sha256Base64Url(code);
 }
 
 export class InvalidGrantError extends Error {

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Hex } from "@brains/utils/hash";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
@@ -540,7 +540,7 @@ export function normalizeIdentityKey(input: ResolveAuthIdentityInput): string {
 }
 
 export function hashIdentityKey(identityKey: string): string {
-  return createHash("sha256").update(identityKey).digest("hex");
+  return sha256Hex(identityKey);
 }
 
 function canonicalIdForUserId(userId: string): string {

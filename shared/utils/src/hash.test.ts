@@ -1,5 +1,16 @@
 import { describe, it, expect } from "bun:test";
-import { computeContentHash } from "./hash";
+import { computeContentHash, sha256Base64Url, sha256Hex } from "./hash";
+
+describe("shared SHA-256 encodings", () => {
+  it("pins persisted hex and base64url representations", () => {
+    expect(sha256Hex("test")).toBe(
+      "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    );
+    expect(sha256Base64Url("test")).toBe(
+      "n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg",
+    );
+  });
+});
 
 describe("computeContentHash", () => {
   it("should return consistent hash for same content", () => {
