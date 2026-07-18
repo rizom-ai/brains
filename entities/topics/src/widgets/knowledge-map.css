@@ -1,0 +1,60 @@
+/* Knowledge map — shared styles for both surfaces. Colors ride --kmap-*
+   custom properties; each surface maps them from its own tokens (the
+   dashboard's console vars by default, the site template overrides). */
+.kmap {
+  --kmap-glow: var(--console-accent, #b45309);
+  --kmap-hot: var(--console-text, #211d18);
+  --kmap-zone: var(--console-secondary, #7653a6);
+  --kmap-skill: var(--kmap-moss, #7d9268);
+  --kmap-ink-dim: color-mix(in srgb, var(--console-text, #211d18) 50%, transparent);
+  --kmap-ink-faint: color-mix(in srgb, var(--console-text, #211d18) 22%, transparent);
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.kmap text {
+  font-family: var(--console-mono, ui-monospace, monospace);
+}
+
+/* draw-in choreography: zone borders draw, dots bloom, labels fade */
+.kmap-weave {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: kmap-draw 1.4s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+@keyframes kmap-draw {
+  to { stroke-dashoffset: 0; }
+}
+.kmap-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  animation: kmap-bloom 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) forwards;
+  animation-delay: var(--d, 0s);
+}
+@keyframes kmap-bloom {
+  to { transform: scale(1); }
+}
+.kmap-label {
+  opacity: 0;
+  animation: kmap-fade 0.9s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+@keyframes kmap-fade {
+  to { opacity: 1; }
+}
+.kmap-breathe {
+  animation: kmap-breathe 4.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes kmap-breathe {
+  50% { opacity: 0.55; transform: scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kmap-weave { stroke-dashoffset: 0; animation: none; }
+  .kmap-dot { transform: scale(1); animation: none; }
+  .kmap-label { opacity: 1; animation: none; }
+  .kmap-breathe { animation: none; }
+}
