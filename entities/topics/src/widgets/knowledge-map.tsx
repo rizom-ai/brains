@@ -1,10 +1,12 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
+import type { WidgetComponentProps } from "@brains/dashboard";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
-import type {
-  KnowledgeMapData,
-  KnowledgeMapPoint,
-  KnowledgeMapZone,
+import {
+  knowledgeMapDataSchema,
+  type KnowledgeMapData,
+  type KnowledgeMapPoint,
+  type KnowledgeMapZone,
 } from "../lib/knowledge-map-data";
 
 export { knowledgeMapStyles };
@@ -324,4 +326,13 @@ export function KnowledgeMap({
       ))}
     </svg>
   );
+}
+
+/** The dashboard face of the map — parses widget data, falls back quietly. */
+export function KnowledgeMapWidget({
+  data,
+}: WidgetComponentProps): JSX.Element {
+  const parsed = knowledgeMapDataSchema.safeParse(data);
+  if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
+  return <KnowledgeMap data={parsed.data} />;
 }
