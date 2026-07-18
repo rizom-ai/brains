@@ -2,22 +2,25 @@
 
 ## Status
 
-Partial — in progress on `work/professional-profile-v2`. Phase 1A's additive profile schema and
-site fallbacks are implemented. Phase 1B's communication-preferences contract,
+Partial — in progress on `work/professional-profile-v2`. Phase 1A's additive profile
+schema and site fallbacks are implemented. Phase 1B's communication-preferences contract,
 instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
-tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
-exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
-Phase 3's reviewed narrative-distillation backend is implemented but dormant. Phase 4A's
-sanctioned OAuth authorization-code client, direct/self-hosted browser routes, expiring
-single-use state, dynamic importer token provider, private-file token store, and Rover
-wiring are implemented. LinkedIn agent tools and the interim standalone management page
-have been removed. The dedicated `/admin` console's Integrations section is the intended
-import surface, and its LinkedIn UI plus preview/confirmation workflow remain pending. Phase 4B's managed callback broker is
-planned: its authorization/grant transport will be provider-neutral, while LinkedIn
-scopes, token exchange, and credential validation remain provider-specific. Rich-domain
-fixtures/mappers and Phase 5 are not yet started.
+backend, and Rover wiring are implemented. Phase 2B schema inspection is implemented
+without exposing member values, and provider-neutral rich-record fingerprint merging is
+implemented. Phase 3's reviewed narrative-distillation backend is implemented but
+dormant. Phase 4A's sanctioned OAuth authorization-code client, direct/self-hosted browser
+routes, expiring single-use state, dynamic importer token provider, private-file token
+store, and Rover wiring are implemented. LinkedIn agent tools and the interim standalone
+management page have been removed. The dedicated `/admin` console's Integrations section
+is the intended import surface, and its LinkedIn UI plus preview/confirmation workflow
+remain pending. Phase 4B's provider-neutral broker walking skeleton is implemented with
+authenticated instances, exact return-URI lookup, expiring state, and one-time grants.
+LinkedIn's broker adapter, owner-side broker client/return route, central deployment
+wiring, and Admin UI remain pending; LinkedIn scopes, token exchange, and credential
+validation stay provider-specific. Rich-domain fixtures/mappers and Phase 5 are not yet
+started.
 
 ## Context
 
@@ -394,13 +397,13 @@ require explicit UI review. Responses containing profile data use
 browser. Backend routes are not separately advertised as console endpoints; only the
 Admin surface is advertised.
 
-## Phase 4B — Managed OAuth callback broker (planned)
+## Phase 4B — Managed OAuth callback broker (in progress)
 
 Deploy one central `oauth-broker` `ServicePlugin`, for example at `connect.rizom.ai`, on
 the normal shared webserver. Register exactly one LinkedIn callback:
 `https://connect.rizom.ai/oauth-broker/callback/linkedin`. Managed Rover instances do not
-receive the LinkedIn application secret. Each receives only a revocable, instance-scoped broker
-credential and keeps the reusable LinkedIn member token after redemption.
+receive the LinkedIn application secret. Each receives only a revocable, instance-scoped
+broker credential and keeps the reusable LinkedIn member token after redemption.
 
 The broker mechanics are provider-neutral. Its exact first-provider route table is:
 
@@ -409,6 +412,14 @@ The broker mechanics are provider-neutral. Its exact first-provider route table 
 | `POST /oauth-broker/authorizations`   | `protocol`; instance authentication                    |
 | `GET /oauth-broker/callback/linkedin` | `protocol`; provider state validation                  |
 | `POST /oauth-broker/grants/redeem`    | `protocol`; instance authentication and one-time grant |
+
+The first broker slice is implemented in `plugins/oauth-broker`. It uses exact legacy web
+route declarations on the shared host, a provider-adapter contract, a static registry of
+revocable per-instance HTTP Basic credentials for HTTPS server-to-server calls, exact
+configured return URIs, hashed in-memory lookup keys, bounded ten-minute authorization
+state, and bounded two-minute credential grants. State and grants are deliberately
+process-local: restart invalidates only an in-flight connection, which the user can retry.
+The broker never stores reusable provider credentials after grant redemption.
 
 The broker must:
 
@@ -458,10 +469,11 @@ Package boundaries:
   brain model. Do not split provider adapters into a new package until a second upstream
   OAuth provider proves the boundary.
 
-Broker validation must cover cross-instance substitution, arbitrary return-URI rejection,
-expired/replayed state and grants, failed redemption authentication, provider denial,
-concurrent redemption, and confirmation that no provider credential appears in browser
-responses, URLs, or logs.
+Implemented broker tests cover cross-instance substitution, arbitrary return-URI
+rejection, expired/replayed state and grants, failed redemption authentication, provider
+denial, concurrent redemption, and confirmation that no provider credential appears in a
+browser redirect. Remaining integration tests must cover the LinkedIn adapter, local
+broker-return state, end-to-end log redaction, rate limits, and central deployment.
 
 ## Phase 4C — Refresh and Changelog synchronization (blocked)
 

@@ -1019,6 +1019,22 @@
         "typescript": "^7.0.2",
       },
     },
+    "plugins/oauth-broker": {
+      "name": "@brains/oauth-broker",
+      "version": "0.2.0-alpha.186",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "plugins/obsidian-vault": {
       "name": "@brains/obsidian-vault",
       "version": "0.2.0-alpha.178",
@@ -2148,6 +2164,8 @@
     "@brains/note": ["@brains/note@workspace:entities/note"],
 
     "@brains/notifications": ["@brains/notifications@workspace:plugins/notifications"],
+
+    "@brains/oauth-broker": ["@brains/oauth-broker@workspace:plugins/oauth-broker"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
 

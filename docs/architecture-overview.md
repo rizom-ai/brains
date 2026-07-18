@@ -150,6 +150,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability       |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                          |
+| `plugins/oauth-broker`     | Managed OAuth callback and one-time credential grant broker        |
 | `plugins/site-builder`     | Static site build orchestration                                    |
 | `plugins/site-content`     | Site section content generation                                    |
 | `plugins/stock-photo`      | Stock-photo search and selection                                   |
