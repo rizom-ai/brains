@@ -1,6 +1,6 @@
 {
   "name": "@brains/http-signatures",
-  "version": "0.2.0-alpha.196",
+  "version": "0.2.0-alpha.197",
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",

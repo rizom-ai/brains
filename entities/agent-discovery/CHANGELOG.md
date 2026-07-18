@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.197
+
+### Patch Changes
+
+- [`433957d`](https://github.com/rizom-ai/brains/commit/433957d57a5c122ca6cd7e705f26a972098c7aeb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rev-10 home narrative: growth carries the system (three stage columns under the diagram), the mission band is the quote alone, one-light gains its pull line and moves after the mission, the problem trio withers (cold cap, hollow numerals), and the proximity map replaces the stat ledger and kind legend with a quiet foot caption — agents · constellations discovered · the map is live.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.197
+  - @brains/atproto-contracts@0.2.0-alpha.197
+  - @brains/content-formatters@0.2.0-alpha.197
+  - @brains/contracts@0.2.0-alpha.197
+  - @brains/http-signatures@0.2.0-alpha.197
+  - @brains/ui-library@0.2.0-alpha.197
+  - @brains/utils@0.2.0-alpha.197
+  - @brains/auth-service@0.2.0-alpha.197
+  - @brains/plugins@0.2.0-alpha.197
+  - @brains/templates@0.2.0-alpha.197
+
 ## 0.2.0-alpha.196
 
 ### Patch Changes

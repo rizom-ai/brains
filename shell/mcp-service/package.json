@@ -1,6 +1,6 @@
 {
   "name": "@brains/mcp-service",
-  "version": "0.2.0-alpha.196",
+  "version": "0.2.0-alpha.197",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "dependencies": {
     "@brains/messaging-service": "workspace:*",

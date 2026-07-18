@@ -1,5 +1,18 @@
 # @brains/content-service
 
+## 0.2.0-alpha.197
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.197
+  - @brains/contracts@0.2.0-alpha.197
+  - @brains/utils@0.2.0-alpha.197
+  - @brains/ai-service@0.2.0-alpha.197
+  - @brains/entity-service@0.2.0-alpha.197
+  - @brains/job-queue@0.2.0-alpha.197
+  - @brains/templates@0.2.0-alpha.197
+
 ## 0.2.0-alpha.196
 
 ### Patch Changes

@@ -1,5 +1,55 @@
 # @brains/rover
 
+## 0.2.0-alpha.197
+
+### Patch Changes
+
+- Updated dependencies [[`433957d`](https://github.com/rizom-ai/brains/commit/433957d57a5c122ca6cd7e705f26a972098c7aeb)]:
+  - @brains/agent-discovery@0.2.0-alpha.197
+  - @brains/assessment@0.2.0-alpha.197
+  - @brains/blog@0.2.0-alpha.197
+  - @brains/decks@0.2.0-alpha.197
+  - @brains/doc@0.2.0-alpha.197
+  - @brains/document-plugin@0.2.0-alpha.197
+  - @brains/image-plugin@0.2.0-alpha.197
+  - @brains/link@0.2.0-alpha.197
+  - @brains/note@0.2.0-alpha.197
+  - @brains/portfolio@0.2.0-alpha.197
+  - @brains/products@0.2.0-alpha.197
+  - @brains/prompt@0.2.0-alpha.197
+  - @brains/rizom-ecosystem@0.2.0-alpha.197
+  - @brains/series@0.2.0-alpha.197
+  - @brains/site-info@0.2.0-alpha.197
+  - @brains/social-media@0.2.0-alpha.197
+  - @brains/topics@0.2.0-alpha.197
+  - @brains/wishlist@0.2.0-alpha.197
+  - @brains/a2a@0.2.0-alpha.197
+  - @brains/chat@0.2.0-alpha.197
+  - @brains/discord@0.2.0-alpha.197
+  - @brains/mcp@0.2.0-alpha.197
+  - @brains/web-chat@0.2.0-alpha.197
+  - @brains/webserver@0.2.0-alpha.197
+  - @brains/analytics@0.2.0-alpha.197
+  - @brains/atproto@0.2.0-alpha.197
+  - @brains/atproto-registry@0.2.0-alpha.197
+  - @brains/cms@0.2.0-alpha.197
+  - @brains/content-pipeline@0.2.0-alpha.197
+  - @brains/dashboard@0.2.0-alpha.197
+  - @brains/directory-sync@0.2.0-alpha.197
+  - @brains/email-resend@0.2.0-alpha.197
+  - @brains/newsletter@0.2.0-alpha.197
+  - @brains/notifications@0.2.0-alpha.197
+  - @brains/obsidian-vault@0.2.0-alpha.197
+  - @brains/playbooks@0.2.0-alpha.197
+  - @brains/rover-onboarding@0.2.0-alpha.197
+  - @brains/site-builder-plugin@0.2.0-alpha.197
+  - @brains/site-content@0.2.0-alpha.197
+  - @brains/stock-photo@0.2.0-alpha.197
+  - @brains/app@0.2.0-alpha.197
+  - @brains/auth-service@0.2.0-alpha.197
+  - @brains/site-default@0.2.0-alpha.197
+  - @rizom/theme-default@0.2.0-alpha.197
+
 ## 0.2.0-alpha.196
 
 ### Patch Changes

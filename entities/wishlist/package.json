@@ -1,6 +1,6 @@
 {
   "name": "@brains/wishlist",
-  "version": "0.2.0-alpha.196",
+  "version": "0.2.0-alpha.197",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
     "@brains/plugins": "workspace:*",
