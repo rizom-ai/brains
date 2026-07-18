@@ -6,10 +6,12 @@ import {
   PromotionReconciliationSummary,
   assuranceLabel,
   initials,
+  messageOf,
   promotionReconciliationDefaults,
   roleLabel,
   type PeopleBootstrap,
 } from "./App";
+import { runWithFeedback as executeWithFeedback } from "./feedback";
 import type {
   AuthAdminUserSummary,
   AuthAgentPersonReconciliationResponse,
@@ -181,5 +183,43 @@ describe("People surface", () => {
     expect(roleLabel("anchor")).toBe("Anchor");
     expect(initials("Mira Reyes")).toBe("MR");
     expect(assuranceLabel(identity)).toBe("Asserted — cannot authenticate");
+  });
+
+  it("uses safe mutation feedback fallbacks", () => {
+    expect(messageOf(new Error("Consent denied"), "Consent failed")).toBe(
+      "Consent denied",
+    );
+    expect(messageOf({ secret: "private" }, "Consent failed")).toBe(
+      "Consent failed",
+    );
+  });
+
+  it("centralizes successful and failed mutation feedback", async () => {
+    const feedback: { message: string; tone: "good" | "error" }[] = [];
+    const result = await executeWithFeedback(
+      async () => "done",
+      (entry) => feedback.push(entry),
+      { success: "Updated", fallback: "Update failed" },
+    );
+    expect(result).toBe("done");
+    expect(feedback).toEqual([{ message: "Updated", tone: "good" }]);
+
+    let thrown: unknown;
+    try {
+      await executeWithFeedback(
+        async () => {
+          throw { secret: "private" };
+        },
+        (entry) => feedback.push(entry),
+        { fallback: "Update failed" },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toEqual({ secret: "private" });
+    expect(feedback.at(-1)).toEqual({
+      message: "Update failed",
+      tone: "error",
+    });
   });
 });

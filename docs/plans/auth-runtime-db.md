@@ -104,8 +104,8 @@ Non-blocking cleanup surfaced by the merge-readiness pass over the six hardening
 
 - [x] **Finish the `http-responses.ts` migration** [fixed] — `requireSameOriginJson(request)` now owns the same-origin and JSON-content guard responses for admin reconciliation, admin mutations, representation consent, and future private mutation routes.
 - [x] **Extract shared error-to-response helpers** [fixed] — `errorMessage(error, fallback)` now centralizes safe thrown-error projection across admin, representation, and top-level auth request handling without exposing unknown thrown values.
-- [ ] **Split `plugins/people/ui-react/src/App.tsx` (~1,416 lines)** [M/L] — one module holds ~8 presentational components, 3 dialogs, pure helpers, and the ~400-line `PeopleApp` container. Split into `components/`, `dialogs/` (+ `ModalFrame`), and `format.ts` (label/date helpers), leaving `App.tsx` as just the container. Mechanical/low-risk since the helpers and dialogs are already independently exported and unit-tested.
-- [ ] **Centralize SPA mutation feedback** [S/M] — the `try → mutate → reload → setFeedback / catch → setFeedback(error)` dance is open-coded 5+ times in `PeopleApp` (`App.tsx:1102,1195,1261,1280,1368`). Extract a `runWithFeedback(fn, { success, fallback })` / `useMutationFeedback` hook and a shared `messageOf(error, fallback)` util. Do alongside the `App.tsx` split.
+- [x] **Split `plugins/people/ui-react/src/App.tsx`** [fixed] — the People container is now isolated from reusable roster/detail/consent components, add/identity/promotion dialogs, the modal frame, shared view types, and pure label/date formatting. `App.tsx` retains the stable public exports while dropping from roughly 1,416 to about 450 lines.
+- [x] **Centralize SPA mutation feedback** [fixed] — a tested `runWithFeedback` utility, `useMutationFeedback` hook, and safe `messageOf(error, fallback)` projection now own mutation, representation-consent, clipboard, and reconciliation feedback without exposing unknown thrown values.
 
 ### OAuth surface — endpoint hardening (2026-07-16 endpoint audit)
 
