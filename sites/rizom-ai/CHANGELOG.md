@@ -1,5 +1,16 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.199
+
+### Patch Changes
+
+- [`19ada88`](https://github.com/rizom-ai/brains/commit/19ada8898f6426e5ea0ba632f6b5d0c9424231c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Match the live hero to the rev-10 mock: full-bleed composition (no card chrome), mock grid proportions and display-scale headline, solid CTA button, bold-emphasis support in the authored lede, tighter map field so the foot caption sits snug — and fix the withered cap tick that referenced a nonexistent bg utility.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.199
+  - @rizom/site-sections@0.2.0-alpha.199
+  - @rizom/site-rizom@0.2.0-alpha.199
+
 ## 0.2.0-alpha.198
 
 ### Patch Changes
