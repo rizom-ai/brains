@@ -443,6 +443,26 @@
   flex-wrap: wrap;
   gap: 7px;
 }
+.people-advanced {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--console-rule);
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.people-advanced summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--console-text-dim);
+  font: 500 10px var(--console-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.people-advanced p {
+  max-width: 54ch;
+  margin: 8px 0 4px;
+  line-height: 1.5;
+}
 .people-text-action {
   border: 0;
   background: transparent;

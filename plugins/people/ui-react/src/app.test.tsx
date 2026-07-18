@@ -6,6 +6,7 @@ import {
   PromotionReconciliationSummary,
   assuranceLabel,
   initials,
+  manualIdentityTypes,
   messageOf,
   promotionReconciliationDefaults,
   roleLabel,
@@ -81,6 +82,36 @@ describe("People surface", () => {
     expect(html).toContain("Asserted — cannot authenticate");
     expect(html).toContain("Add person");
     expect(html).not.toContain("dashboard-tab-panel");
+  });
+
+  it("explains that linked agents are external representatives", () => {
+    const html = renderToStaticMarkup(
+      createElement(PeopleApp, {
+        bootstrap: anchor,
+        initialUsers: [{ ...user, agents: [] }],
+      }),
+    );
+
+    expect(html).toContain("No external representatives linked");
+    expect(html).toContain("built-in agent is");
+  });
+
+  it("demotes manual identity attachment behind an advanced warning", () => {
+    const html = renderToStaticMarkup(
+      createElement(PeopleApp, { bootstrap: anchor, initialUsers: [user] }),
+    );
+
+    expect(html).toContain("Advanced identity tools");
+    expect(html).toContain("Attach unverified identity");
+    expect(html).toContain("cannot authenticate this person");
+  });
+
+  it("filters manual identity types to human-facing configured providers", () => {
+    expect(manualIdentityTypes(["discord", "mcp", "a2a"])).toEqual([
+      "oauth",
+      "discord",
+    ]);
+    expect(manualIdentityTypes(["email-resend"])).toEqual(["oauth", "email"]);
   });
 
   it("shows only self-service representation consent to non-Anchors", () => {

@@ -1,13 +1,12 @@
-import {
-  AUTH_ADMIN_IDENTITY_TYPES,
-  type AuthAdminIdentityType,
-} from "@brains/auth-service/admin-contracts";
+import type { AuthAdminIdentityType } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
 import { Button } from "../components/primitives";
 import { roleLabel } from "../format";
+import type { ManualIdentityType } from "../identity-providers";
 import { ModalFrame } from "./ModalFrame";
 
 export function IdentityDialog(props: {
+  identityTypes: ManualIdentityType[];
   onClose: () => void;
   onAttach: (input: {
     type: Exclude<AuthAdminIdentityType, "passkey">;
@@ -18,9 +17,9 @@ export function IdentityDialog(props: {
 }): ReactElement {
   return (
     <ModalFrame
-      eyebrow="Recognition"
-      title="Attach identity"
-      copy="Connect a verified provider identity to this person."
+      eyebrow="Advanced recognition"
+      title="Attach unverified identity"
+      copy="Record a provider claim for reconciliation only. This does not verify or authenticate the person."
       onClose={props.onClose}
       onSubmit={(event) => {
         event.preventDefault();
@@ -43,15 +42,15 @@ export function IdentityDialog(props: {
             Cancel
           </Button>
           <Button type="submit" tone="primary">
-            Attach identity
+            Attach unverified identity
           </Button>
         </>
       }
     >
       <label>
         <span>Identity type</span>
-        <select name="type" defaultValue="email">
-          {AUTH_ADMIN_IDENTITY_TYPES.map((type) => (
+        <select name="type" defaultValue={props.identityTypes[0]}>
+          {props.identityTypes.map((type) => (
             <option key={type} value={type}>
               {roleLabel(type)}
             </option>
@@ -71,6 +70,7 @@ export function IdentityDialog(props: {
         <input name="label" maxLength={200} />
       </label>
       <p className="people-warning">
+        This creates an unverified claim that cannot authenticate this person.
         Provider subjects remain private in auth storage and are never shown in
         this console.
       </p>

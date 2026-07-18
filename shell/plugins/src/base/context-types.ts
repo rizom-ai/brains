@@ -127,6 +127,11 @@ export interface IPermissionsNamespace {
   ): void;
 }
 
+export interface IPluginsNamespace {
+  /** Whether a plugin is part of the resolved runtime. */
+  has(pluginId: string): boolean;
+}
+
 export interface IEndpointsNamespace {
   /** Register a user-facing URL for this plugin */
   register(endpoint: {

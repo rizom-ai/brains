@@ -13,6 +13,7 @@ export interface PeopleShellOptions {
   routePath: string;
   displayName: string;
   role: AuthAdminRole;
+  registeredInterfaces: string[];
   surfaces: ConsoleSurface[];
   sessionHref: string;
 }
@@ -74,6 +75,7 @@ ${CONSOLE_THEME_CSS}
       id="root"
       data-people-root
       data-people-role="${options.role}"
+      data-people-interfaces="${escapeAttribute(options.registeredInterfaces.join(","))}"
       data-people-name="${escapeAttribute(options.displayName)}"
       data-people-route="${escapeAttribute(options.routePath)}"
     ><p class="boot">Opening the admin console…</p></main>

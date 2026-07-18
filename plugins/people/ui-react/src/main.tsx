@@ -15,6 +15,9 @@ const bootstrap: PeopleBootstrap = {
       ? bootstrapRole
       : "public",
   routePath: root.dataset["peopleRoute"] ?? "/admin",
+  registeredInterfaces: (root.dataset["peopleInterfaces"] ?? "")
+    .split(",")
+    .filter(Boolean),
 };
 
 createRoot(root).render(

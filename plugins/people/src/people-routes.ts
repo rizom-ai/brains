@@ -37,19 +37,24 @@ export function createPeopleRoutes(
           });
         }
 
+        const context = options.getContext();
         return new Response(
           renderPeopleShellHtml({
             assetPath,
             routePath: options.routePath,
             displayName: principal.displayName,
             role: principal.role,
-            surfaces: deriveConsoleSurfaces(
-              options.getContext().webRoutes.getRoutes(),
-              {
-                activeId: "admin",
-                self: { id: "admin", href: options.routePath },
-              },
-            ),
+            registeredInterfaces: [
+              "a2a",
+              "discord",
+              "email-resend",
+              "mcp",
+              "web-chat",
+            ].filter((pluginId) => context.plugins.has(pluginId)),
+            surfaces: deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
+              activeId: "admin",
+              self: { id: "admin", href: options.routePath },
+            }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,
           }),
           {

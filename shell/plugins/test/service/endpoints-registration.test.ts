@@ -77,6 +77,18 @@ describe("context.endpoints.register", () => {
     expect(endpoints.find((e) => e.label === "MCP")?.pluginId).toBe("mcp");
   });
 
+  it("reports whether another plugin is registered", () => {
+    const shell = createMockShell({ logger });
+    const context = createBasePluginContext(shell, "admin");
+
+    expect(context.plugins.has("discord")).toBe(false);
+    shell.addPlugin({
+      id: "discord",
+      packageName: "@brains/discord",
+    } as never);
+    expect(context.plugins.has("discord")).toBe(true);
+  });
+
   it("preserves endpoint visibility", () => {
     const shell = createMockShell({ logger });
     const context = createBasePluginContext(shell, "mcp");

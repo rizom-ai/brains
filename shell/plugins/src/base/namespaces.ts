@@ -27,6 +27,7 @@ import type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IPluginsNamespace,
   TypedMessageHandler,
 } from "./context-types";
 
@@ -177,6 +178,13 @@ export function createInsightsNamespace(shell: IShell): IInsightsNamespace {
     register: (type: string, handler: InsightHandler): void => {
       shell.getInsightsRegistry().register(type, handler);
     },
+  };
+}
+
+export function createPluginsNamespace(shell: IShell): IPluginsNamespace {
+  return {
+    has: (pluginId): boolean =>
+      shell.getPluginPackageName(pluginId) !== undefined,
   };
 }
 

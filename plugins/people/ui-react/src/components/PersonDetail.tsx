@@ -94,7 +94,8 @@ export function PersonDetail(props: {
         >
           {user.agents.length === 0 ? (
             <p className="people-empty">
-              No linked agents. Promotion begins from an agent dossier.
+              No external representatives linked. The brain’s built-in agent is
+              implicit and does not require a representation link.
             </p>
           ) : (
             user.agents.map((agent) => (
@@ -162,9 +163,16 @@ export function PersonDetail(props: {
               );
             })
           )}
-          <div className="people-inline-actions">
-            <TextAction onClick={props.onIdentity}>Attach identity</TextAction>
-          </div>
+          <details className="people-advanced">
+            <summary>Advanced identity tools</summary>
+            <p>
+              Manual claims are unverified and cannot authenticate this person.
+              Prefer a verified provider sign-in or passkey whenever possible.
+            </p>
+            <TextAction onClick={props.onIdentity}>
+              Attach unverified identity
+            </TextAction>
+          </details>
         </DetailSection>
 
         <DetailSection

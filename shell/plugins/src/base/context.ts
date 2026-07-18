@@ -20,6 +20,7 @@ import {
   createJobsNamespace,
   createMessagingNamespace,
   createPermissionsNamespace,
+  createPluginsNamespace,
 } from "./namespaces";
 import type {
   IConversationsNamespace,
@@ -30,6 +31,7 @@ import type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IPluginsNamespace,
 } from "./context-types";
 
 export type {
@@ -41,6 +43,7 @@ export type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IPluginsNamespace,
   TypedMessageHandler,
 } from "./context-types";
 
@@ -194,6 +197,9 @@ export interface BasePluginContext {
    */
   readonly insights: IInsightsNamespace;
 
+  /** Read-only resolved plugin capabilities. */
+  readonly plugins: IPluginsNamespace;
+
   // ============================================================================
   // Endpoint Advertisement
   // ============================================================================
@@ -270,6 +276,8 @@ export function createBasePluginContext(
     eval: createEvalNamespace(shell, pluginId),
 
     insights: createInsightsNamespace(shell),
+
+    plugins: createPluginsNamespace(shell),
 
     endpoints: createEndpointsNamespace(shell, pluginId),
     interactions: createInteractionsNamespace(shell, pluginId),

@@ -63,6 +63,10 @@ describe("admin console plugin", () => {
     const session = await authPlugin
       .getService()
       .createAuthSession(trusted.userId);
+    shell.addPlugin({
+      id: "discord",
+      packageName: "@brains/discord",
+    } as never);
     const plugin = peoplePlugin();
     await plugin.register(shell);
 
@@ -76,6 +80,7 @@ describe("admin console plugin", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('data-climate="instrument"');
     expect(html).toContain('data-people-role="trusted"');
+    expect(html).toContain('data-people-interfaces="discord"');
     expect(html).toContain("Mira Reyes");
     expect(html).toContain('src="/admin/assets/app.js"');
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');

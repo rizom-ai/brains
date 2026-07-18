@@ -32,10 +32,11 @@ import {
 } from "./dialogs/PromotionDialog";
 import { messageOf, useMutationFeedback } from "./feedback";
 import { formatDate, roleLabel } from "./format";
+import { manualIdentityTypes } from "./identity-providers";
 import styles from "./people.css" with { type: "text" };
 import type { AgentPromotionDraft, Modal, SurfaceView } from "./people-types";
 
-export { messageOf };
+export { messageOf, manualIdentityTypes };
 export { assuranceLabel, initials, roleLabel } from "./format";
 export { PromotionReconciliationSummary, promotionReconciliationDefaults };
 
@@ -43,6 +44,7 @@ export interface PeopleBootstrap {
   displayName: string;
   role: AuthAdminRole;
   routePath: string;
+  registeredInterfaces?: string[];
 }
 
 export interface PeopleAppProps {
@@ -310,6 +312,9 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
 
       {modal?.kind === "identity" && selectedUser && (
         <IdentityDialog
+          identityTypes={manualIdentityTypes(
+            props.bootstrap.registeredInterfaces ?? [],
+          )}
           onClose={closeModal}
           onAttach={async (input) => {
             await runMutation(
