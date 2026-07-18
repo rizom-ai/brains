@@ -1,5 +1,11 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.196
+
+### Patch Changes
+
+- [`21b70b7`](https://github.com/rizom-ai/brains/commit/21b70b7962af2c815b51259e3a5d3afb7e900ba6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve paper-climate warning contrast so dashboard review states remain legible in light mode.
+
 ## 0.2.0-alpha.195
 
 ## 0.2.0-alpha.194

@@ -192,6 +192,7 @@
     "core-preset-eval-release",
     "current-main-alpha-release",
     "dashboard-light-surface-tokens",
+    "dashboard-paper-warning-contrast",
     "dashboard-tabbed-console",
     "dashboard-topics-skills-widgets",
     "debt-sweep",
