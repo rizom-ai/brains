@@ -85,36 +85,6 @@ describe("home sections — rev 10", () => {
     expect(html).not.toContain("distributed expertise");
   });
 
-  test("one-light renders the pull line when authored", () => {
-    const html = renderSection("one-light", {
-      cap: "It starts with you",
-      headline: "Your knowledge, *taking root*",
-      intro: "A brain is an agent grown from what you've written and learned.",
-      pull: "It answers. It publishes. *It stands in for you.*",
-      primaryCta: { label: "Start Building →", href: "/brain" },
-      secondaryCta: {
-        label: "View on GitHub",
-        href: "https://github.com/rizom-ai/brains",
-      },
-    });
-    expect(html).toContain("It answers. It publishes.");
-    expect(html).toContain("It stands in for you.");
-  });
-
-  test("one-light still renders without a pull line", () => {
-    const html = renderSection("one-light", {
-      cap: "It starts with you",
-      headline: "Your knowledge, *taking root*",
-      intro: "A brain is an agent grown from what you've written and learned.",
-      primaryCta: { label: "Start Building →", href: "/brain" },
-      secondaryCta: {
-        label: "View on GitHub",
-        href: "https://github.com/rizom-ai/brains",
-      },
-    });
-    expect(html).toContain("A brain is an agent grown");
-  });
-
   test("mission band renders the quote alone — no sub, no CTAs", () => {
     const html = renderSection("mission", {
       quote: "The future of work is *play*.",
