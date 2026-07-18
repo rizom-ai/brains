@@ -236,8 +236,27 @@
   .trio-item p { font-size: 13.5px; color: var(--w45); margin-top: 8px; }
 
   .quickstart { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; margin-top: 28px; max-width: 1000px; align-items: start; }
-  .pull { font-family: var(--display); font-variation-settings: "SOFT" 90, "opsz" 110; font-weight: 400; font-style: italic; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.22; letter-spacing: -.012em; color: var(--w70); margin-top: 20px; max-width: 21em; }
-  .pull b { color: var(--brass-soft); font-weight: 460; }
+  .proof-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 52px; margin-top: 8px; max-width: 1120px; align-items: center; }
+  /* The knowledge map: the brain's corpus in semantic space — no center,
+     topics as soft territories, published work glowing inside them. */
+  .kn-weave { stroke-dasharray: 1; stroke-dashoffset: 1; animation: kdraw 1.4s cubic-bezier(.3,.6,.3,1) forwards; animation-delay: var(--d, 0s); }
+  @keyframes kdraw { to { stroke-dashoffset: 0; } }
+  .kn-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: kbloom .7s cubic-bezier(.2,.9,.3,1.4) forwards; animation-delay: var(--d, 0s); }
+  @keyframes kbloom { to { transform: scale(1); } }
+  .kn-label { opacity: 0; animation: kfade .9s ease forwards; animation-delay: var(--d, 0s); }
+  @keyframes kfade { to { opacity: 1; } }
+  .kn-breathe { animation: kbreathe 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes kbreathe { 50% { opacity: .55; transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) {
+    .kn-weave { stroke-dashoffset: 0; animation: none; }
+    .kn-dot { transform: scale(1); animation: none; }
+    .kn-label { opacity: 1; animation: none; }
+    .kn-breathe { animation: none; }
+  }
+  .hn-foot .pl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; }
+  .hn-foot .pl a { font-family: var(--mono); font-size: 10px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule-soft); text-transform: none; letter-spacing: .08em; transition: color .15s; }
+  .hn-foot .pl a:hover { color: var(--brass-soft); }
+  .hn-foot .pl .pl-open { color: var(--brass); }
   .term { font-family: var(--mono); font-size: 13px; line-height: 1.9; border: 1px solid var(--rule); background: color-mix(in srgb, var(--night-deep) 60%, transparent); padding: 20px 24px; }
   .term .cm { color: var(--w28); }
   .term .ps { color: var(--brass); user-select: none; }
@@ -493,8 +512,9 @@
     .dash-canvas { grid-template-columns: 1fr; }
     .dash-canvas .ifc-card { grid-column: auto !important; }
     .mycelium { display: none; }
-    .trio, .stages, .support-row, .exhibit-grid, .personas, .quickstart { grid-template-columns: 1fr; }
+    .trio, .stages, .support-row, .exhibit-grid, .personas, .quickstart, .proof-grid { grid-template-columns: 1fr; }
     .stages { gap: 22px; }
+    .proof-grid { gap: 26px; }
     .hero .standfirst { flex-direction: column; gap: 22px; }
     .index-row { grid-template-columns: 44px 1fr; }
     .faces .face { grid-template-columns: 1fr; gap: 6px; }
@@ -515,15 +535,15 @@
   <p class="lede">The structure and visuals are the deployed page; the story is now
   one system in one place. After the pain, the organism section shows how the parts
   come together — the brain grows it, the practice maps it, constellations form from
-  it. Then the mission, and only then the ask: it starts with you. The rhizome is
-  carried by single words in plain sentences — never explained.
-  The doors close the page as a recap, and the alive-line's proof links point at
-  things that resolve.</p>
+  it. Then the mission, and only then the ask: it starts with you — where the proof
+  carries the pitch: the brain's own live console, embedded, with the alive-line's
+  claim and proof links folded in. The rhizome is carried by single words in plain
+  sentences — never explained. The doors close the page as a recap.</p>
 </header>
 
 <div class="sitemap">
   <pre><b>rizom.ai</b>
-├── <b>/</b>              the organism — <i>the map as hero</i> · alone, it withers · <i>one organism: how it comes together</i> · mission · it starts with you · three faces · alive
+├── <b>/</b>              the organism — <i>the map as hero</i> · alone, it withers · <i>one organism: how it comes together</i> · mission · <i>it starts with you: the live console as proof</i> · three faces
 ├── <b>/brain</b>         <i>the platform · “the tools”</i> — capture · ask · see it run · connect · principles · quickstart
 ├── <b>/work</b>          <span class="rb">the practice · “the service”</span> — diagnostic · workshop · personas · proof · people   <span class="dim">← 301 rizom.work/*</span>
 ├── <b>/foundation</b>    <span class="ms">the research · “the source”</span> — manifesto · essays · gatherings · support        <span class="dim">← 301 rizom.foundation/*</span>
@@ -743,13 +763,29 @@
 
     <div class="sect">
       <span class="cap rv">It starts with you</span>
-      <h4 class="rv d1">Your knowledge, <em>taking root</em></h4>
-      <p class="intro rv d1">A brain is an agent grown from what you've written and
-      learned — open source, on a server you control. That's the product.</p>
-      <p class="pull rv d2">It answers. It publishes. <b>It stands in for you.</b></p>
-      <div class="actions rv d3" style="margin-top: 24px">
-        <a class="cta" href="#brain">Start Building →</a>
-        <a class="quiet" href="#home">View on GitHub</a>
+      <h4 class="rv d1">This site is <em>a brain</em></h4>
+      <div class="proof-grid">
+        <div>
+          <p class="intro rv d1">It runs the platform it describes — and this is what
+          it knows, mapped live. Yours works the same way: an agent grown from what
+          you've written and learned, open source, on a server you control. That's
+          the product.</p>
+          <div class="actions rv d2" style="margin-top: 24px">
+            <a class="cta" href="#brain">Start Building →</a>
+            <a class="quiet" href="#home">View on GitHub</a>
+          </div>
+        </div>
+        <div class="rv d2">
+          <div class="hn-map" id="knowledgeMap"></div>
+          <div class="hn-foot">
+            <div class="hn-count"><b>85</b> entities · <b>16</b> topics · index ready</div>
+            <div class="pl">
+              <a href="#home">talk to it</a>
+              <a href="#home">agent card</a>
+              <a class="pl-open" href="#home">open the console →</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -770,13 +806,6 @@
         <h5>An independent non-profit owns the method so no company can — <em>including us</em></h5>
         <span class="go">/foundation →</span>
       </a>
-    </div>
-
-    <div class="sect alive-line">
-      <span class="a-claim rv"><b>This site is a brain</b> — running the platform it describes.</span>
-      <a class="rv d1" href="#home">talk to it</a>
-      <a class="rv d1" href="#home">agent card</a>
-      <a class="rv d2" href="#home">ai.rizom.brain.* lexicons</a>
     </div>
 
     <footer class="footer">
@@ -1631,6 +1660,149 @@
     ambient: [[0.62, 150], [0.5, 205], [0.66, 262], [0.58, 96], [0.36, 178], [0.64, 22]] }); }
   drawHome();
   document.getElementById("themeToggle").addEventListener("click", drawHome);
+
+  /* ============ the knowledge map (proof section) ============
+     Topics are territories: soft-bounded zones holding what has been filed
+     into them. Real corpus data; sized for the half-width proof column. */
+  var K_TOPICS = [
+    { name: "future of work",            x: 250, y: 150, label: 1 },
+    { name: "decentralized work",        x: 352, y: 108 },
+    { name: "workplace autonomy",        x: 168, y: 92 },
+    { name: "knowledge system design",   x: 660, y: 268, label: 1 },
+    { name: "knowledge architecture",    x: 614, y: 308 },
+    { name: "knowledge mgmt platform",   x: 696, y: 230 },
+    { name: "landing page copy",         x: 868, y: 112 },
+    { name: "website landing page",      x: 924, y: 144 },
+    { name: "message testing",           x: 836, y: 166 },
+    { name: "messaging validation",      x: 898, y: 200, label: 1 },
+    { name: "workshop design",           x: 478, y: 428, label: 1 },
+    { name: "workshop planning",         x: 418, y: 468 },
+    { name: "outcome-based cooperation", x: 562, y: 398 },
+    { name: "action plans",              x: 322, y: 328 },
+    { name: "content initialization",    x: 238, y: 388 },
+    { name: "staging deployment",        x: 148, y: 458 },
+  ];
+  var K_MEMBERS = [
+    { name: "the future of work is play", kind: "published", x: 192, y: 196, r: 8, topic: 0, label: 1 },
+    { name: "declaration",                kind: "published", x: 302, y: 212, r: 7, topic: 0 },
+    { name: "build knowledge systems",    kind: "skill",     x: 722, y: 314, r: 5.5, topic: 3 },
+    { name: "team assessment",            kind: "skill",     x: 542, y: 466, r: 5.5, topic: 10 },
+    { name: "outcome-based collaboration", kind: "skill",    x: 622, y: 438, r: 5.5, topic: 12 },
+    { name: "swot",                       kind: "pearl",     x: 508, y: 500, r: 4.2, topic: null },
+    { name: "2025",                       kind: "published", x: 952, y: 418, r: 7, topic: null, label: 1 },
+    { name: "cococo",                     kind: "published", x: 62,  y: 278, r: 6.5, topic: null },
+  ];
+  var K_HAIRS = [
+    [352, 108, 660, 268, 510, 160],
+    [660, 268, 828, 168, 750, 240],
+    [598, 322, 478, 428, 530, 380],
+    [250, 150, 322, 328, 262, 250],
+  ];
+  var K_SPORES = [
+    [86, 128], [402, 232], [438, 368], [560, 178], [590, 60],
+    [760, 424], [812, 330], [960, 270], [1010, 128], [1030, 352], [300, 60],
+    [660, 470], [508, 54], [64, 452], [906, 488], [1044, 470], [368, 542],
+  ];
+
+  function drawKnowledge() {
+    var mount = document.getElementById("knowledgeMap");
+    if (!mount) return;
+    mount.innerHTML = "";
+    var p = sitePal();
+    var moss = document.documentElement.getAttribute("data-theme") === "light" ? "#5e7a4e" : "#9caf88";
+    var rng = mulberry32(77);
+    var W = 1100, H = 588;
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 -28 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "What this brain knows, mapped in semantic space");
+
+    var defs = el(svg, "defs", {});
+    var blur = el(defs, "filter", { id: "kblur", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+    el(blur, "feGaussianBlur", { stdDeviation: "2.4" });
+    var mist = el(defs, "radialGradient", { id: "kmist" });
+    el(mist, "stop", { offset: "0%", "stop-color": "#6b2fa0", "stop-opacity": p.mistOp[0] });
+    el(mist, "stop", { offset: "70%", "stop-color": "#6b2fa0", "stop-opacity": p.mistOp[1] });
+    el(mist, "stop", { offset: "100%", "stop-color": "#6b2fa0", "stop-opacity": "0" });
+
+    K_SPORES.forEach(function (s, i) {
+      el(svg, "circle", { class: "kn-dot", cx: s[0], cy: s[1], r: 2.1, fill: p.faint,
+        style: "--d:" + (1.6 + i * 0.05) + "s" });
+    });
+
+    K_HAIRS.forEach(function (h, i) {
+      el(svg, "path", { class: "kn-weave", pathLength: 1,
+        d: "M " + h[0] + " " + h[1] + " Q " + h[4] + " " + h[5] + ", " + h[2] + " " + h[3],
+        fill: "none", stroke: p.amber, "stroke-opacity": 0.1, "stroke-width": 1.1,
+        style: "--d:" + (1.2 + i * 0.15) + "s" });
+    });
+
+    function blobPath(cx, cy, base, wobble, seed) {
+      var r2 = mulberry32(seed);
+      var n = 9, pts = [];
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * Math.PI * 2;
+        var rr = base * (0.82 + r2() * wobble);
+        pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.86]);
+      }
+      var d = "M " + ((pts[0][0] + pts[n - 1][0]) / 2) + " " + ((pts[0][1] + pts[n - 1][1]) / 2);
+      for (var j = 0; j < n; j++) {
+        var q = pts[j], nx = pts[(j + 1) % n];
+        d += " Q " + q[0] + " " + q[1] + ", " + ((q[0] + nx[0]) / 2) + " " + ((q[1] + nx[1]) / 2);
+      }
+      return d + " Z";
+    }
+
+    K_TOPICS.forEach(function (t, ti) {
+      var members = K_MEMBERS.filter(function (m) { return m.topic === ti; });
+      var cx = t.x, cy = t.y;
+      members.forEach(function (m) { cx += m.x; cy += m.y; });
+      cx /= members.length + 1; cy /= members.length + 1;
+      var base = members.length
+        ? Math.max.apply(null, members.map(function (m) { return Math.hypot(m.x - cx, m.y - cy); })) + 30
+        : 26 + (ti % 3) * 4;
+      var d = blobPath(cx, cy, base, 0.4, 40 + ti);
+      el(svg, "path", { d: d, fill: "url(#kmist)" });
+      el(svg, "path", { class: "kn-weave", pathLength: 1, d: d, fill: "none", stroke: p.purple,
+        "stroke-opacity": 0.32, "stroke-width": 1.4, "stroke-dasharray": "4 7",
+        "stroke-linecap": "round", style: "--d:" + (0.2 + ti * 0.08) + "s" });
+      if (t.label) {
+        var count = members.length ? " · " + members.length : "";
+        el(svg, "text", { class: "kn-label", x: cx, y: cy - base - 10, "text-anchor": "middle",
+          fill: p.purple,
+          style: "--d:" + (1 + ti * 0.08) + "s;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.18em;text-transform:uppercase" },
+          t.name + count);
+      }
+    });
+
+    K_MEMBERS.forEach(function (e, i) {
+      var d = 0.5 + i * 0.08;
+      if (e.kind === "published") {
+        el(svg, "circle", { class: "kn-dot kn-breathe", cx: e.x, cy: e.y, r: e.r * 3.1, fill: p.amber,
+          opacity: 0.12, filter: "url(#kblur)", style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.amber, style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r * 0.42, fill: p.hot,
+          opacity: 0.9, style: "--d:" + (d + 0.05) + "s" });
+      } else if (e.kind === "skill") {
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: moss, style: "--d:" + d + "s" });
+      } else {
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: "none",
+          stroke: p.dim, "stroke-width": 1.6, style: "--d:" + d + "s" });
+      }
+      if (e.label) {
+        var anchor = e.x > W - 220 ? "end" : "start";
+        var dx = anchor === "start" ? e.r + 10 : -(e.r + 10);
+        el(svg, "text", { class: "kn-label", x: e.x + dx, y: e.y + 5, "text-anchor": anchor,
+          fill: p.dim,
+          style: "--d:" + (1.3 + i * 0.05) + "s;font-family:var(--mono);font-size:14px;letter-spacing:.06em" },
+          e.name);
+      }
+    });
+
+    mount.appendChild(svg);
+  }
+  drawKnowledge();
+  document.getElementById("themeToggle").addEventListener("click", drawKnowledge);
 })();
 </script>
 </body>
