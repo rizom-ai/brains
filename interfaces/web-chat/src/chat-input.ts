@@ -21,11 +21,13 @@ interface FilePart {
 export interface ApprovalResponse {
   id: string;
   approved: boolean;
+  toolCallId?: string | undefined;
 }
 
 interface ApprovalResponsePart {
   [key: string]: unknown;
   state: "approval-responded";
+  toolCallId?: string | undefined;
   approval: ApprovalResponse;
 }
 
@@ -57,6 +59,7 @@ const filePartSchema: z.ZodType<FilePart> = z.object({
 const approvalResponsePartSchema: z.ZodType<ApprovalResponsePart> =
   z.looseObject({
     state: z.literal("approval-responded"),
+    toolCallId: z.string().optional(),
     approval: z.object({
       id: z.string(),
       approved: z.boolean(),
@@ -166,7 +169,10 @@ export function extractLatestApprovalResponses(
   return (lastMessage.parts ?? [])
     .map((part) => approvalResponsePartSchema.safeParse(part))
     .filter((result) => result.success)
-    .map((result) => result.data.approval);
+    .map((result) => ({
+      ...result.data.approval,
+      ...(result.data.toolCallId ? { toolCallId: result.data.toolCallId } : {}),
+    }));
 }
 
 function findLastUserMessage(

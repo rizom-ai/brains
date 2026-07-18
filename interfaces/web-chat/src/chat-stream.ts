@@ -56,6 +56,40 @@ async function deniedArtifactCardIds(
   });
 }
 
+function hasMatchingApprovalCard(
+  response: Pick<AgentResponse, "cards">,
+  approvalResponse: ApprovalResponse,
+): boolean {
+  return Boolean(
+    response.cards?.some(
+      (card) =>
+        card.kind === "tool-approval" &&
+        (card.id === approvalResponse.id ||
+          (approvalResponse.toolCallId !== undefined &&
+            card.toolCallId === approvalResponse.toolCallId)),
+    ),
+  );
+}
+
+function writeUnmatchedApprovalTerminal(
+  writer: UIMessageStreamWriter<UIMessage>,
+  approvalResponse: ApprovalResponse,
+  response: Pick<AgentResponse, "cards" | "text">,
+): void {
+  if (hasMatchingApprovalCard(response, approvalResponse)) return;
+
+  // AI SDK automatically resubmits a trailing approval response until its
+  // tool part reaches a terminal state. A stale server-side approval has no
+  // result card, so close the client-side tool instead of replaying forever.
+  const responseText = stripInternalEntityMemoryNote(response.text).trim();
+  writer.write({
+    type: "tool-output-error",
+    toolCallId: approvalResponse.toolCallId ?? approvalResponse.id,
+    errorText: responseText || "This approval is no longer pending.",
+    dynamic: true,
+  });
+}
+
 interface StreamedChatInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
@@ -164,6 +198,7 @@ export async function handleStreamedConfirmations(
       const plan = buildResponsePlan(response, { deniedCardIds });
       writeText(input.writer, response.text, "text", deps.createId);
       writePlanCards(input.writer, plan);
+      writeUnmatchedApprovalTerminal(input.writer, approvalResponse, response);
     }
   } finally {
     deps.endProcessingInput();

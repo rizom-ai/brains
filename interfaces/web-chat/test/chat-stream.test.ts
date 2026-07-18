@@ -183,6 +183,34 @@ describe("chat stream", () => {
     expect(streamed).not.toContain("card-restricted");
   });
 
+  it("terminally resolves an expired approval response", async () => {
+    const { writer, writes } = createWriter();
+    const deps = createDeps({
+      confirmPendingAction: mock(async () => ({
+        text: "No pending action to confirm.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      })),
+    });
+
+    await handleStreamedConfirmations(
+      {
+        writer: writer as never,
+        conversationId: "conversation-1",
+        approvalResponses: [{ id: "approval:expired-call", approved: true }],
+        permissionLevel: "anchor",
+        interfaceType: "web-chat",
+      },
+      deps,
+    );
+
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        type: "tool-output-error",
+        toolCallId: "approval:expired-call",
+      }),
+    );
+  });
+
   it("does not stream internal entity memory footer text from confirmation responses", async () => {
     const { writer, writes } = createWriter();
     const deps = createDeps({

@@ -1984,6 +1984,52 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("terminally resolves an expired AI SDK approval card", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "No pending action to confirm.",
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "expired-call",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  input: { noteId: "123" },
+                  approval: {
+                    id: "approval:expired-call",
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.confirmCalls).toHaveLength(1);
+    expect(body).toContain("tool-output-error");
+    expect(body).toContain("expired-call");
+  });
+
   it("handles AI SDK approval responses through the chat endpoint", async () => {
     const agent = createSpyAgentService(undefined, {
       text: "Completed: Delete note?",
