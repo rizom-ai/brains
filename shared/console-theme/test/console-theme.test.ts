@@ -50,8 +50,12 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(climateBlock("paper")).toContain("var(--color-accent");
   });
 
-  it("does not reuse dark inverse backgrounds in the paper climate", () => {
-    expect(climateBlock("paper")).not.toContain("--color-bg-dark");
+  it("does not reuse dark-only tokens in the paper climate", () => {
+    const paper = climateBlock("paper");
+    expect(paper).not.toContain("--color-bg-dark");
+    expect(paper).not.toContain("var(--color-warning-text-emphasis,");
+    expect(paper).toContain("--palette-warning-text-emphasis-light");
+    expect(paper).toContain("#7a4a05");
   });
 
   it("sets the matching color-scheme per climate", () => {

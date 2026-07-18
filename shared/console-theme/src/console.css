@@ -41,7 +41,7 @@
   --console-accent: var(--color-accent, #c44a1d);
   --console-secondary: var(--color-secondary, #6b2fa0);
   --console-ok: var(--color-success, #3d6b5c);
-  --console-warn: var(--color-warning-text-emphasis, #b3801a);
+  --console-warn: var(--palette-warning-text-emphasis-light, #7a4a05);
   --console-err: var(--color-error, #932f2f);
   --console-on-accent: var(--color-on-accent, #fff);
   --console-shadow-card:
