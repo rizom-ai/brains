@@ -1,5 +1,13 @@
 # @brains/content-formatters
 
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

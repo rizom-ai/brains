@@ -1,5 +1,43 @@
 # @brains/relay
 
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies [[`cabfd51`](https://github.com/rizom-ai/brains/commit/cabfd51b45d55edee777a5c15f35e087a1c4e293)]:
+  - @brains/a2a@0.2.0-alpha.201
+  - @brains/agent-discovery@0.2.0-alpha.201
+  - @brains/assessment@0.2.0-alpha.201
+  - @brains/conversation-memory@0.2.0-alpha.201
+  - @brains/decks@0.2.0-alpha.201
+  - @brains/doc@0.2.0-alpha.201
+  - @brains/image-plugin@0.2.0-alpha.201
+  - @brains/link@0.2.0-alpha.201
+  - @brains/note@0.2.0-alpha.201
+  - @brains/prompt@0.2.0-alpha.201
+  - @brains/rizom-ecosystem@0.2.0-alpha.201
+  - @brains/site-info@0.2.0-alpha.201
+  - @brains/topics@0.2.0-alpha.201
+  - @brains/discord@0.2.0-alpha.201
+  - @brains/mcp@0.2.0-alpha.201
+  - @brains/web-chat@0.2.0-alpha.201
+  - @brains/webserver@0.2.0-alpha.201
+  - @brains/cms@0.2.0-alpha.201
+  - @brains/dashboard@0.2.0-alpha.201
+  - @brains/directory-sync@0.2.0-alpha.201
+  - @brains/email-resend@0.2.0-alpha.201
+  - @brains/notifications@0.2.0-alpha.201
+  - @brains/site-builder-plugin@0.2.0-alpha.201
+  - @brains/site-content@0.2.0-alpha.201
+  - @brains/content-formatters@0.2.0-alpha.201
+  - @brains/site-composition@0.2.0-alpha.201
+  - @brains/theme-rizom@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/app@0.2.0-alpha.201
+  - @brains/auth-service@0.2.0-alpha.201
+  - @brains/plugins@0.2.0-alpha.201
+  - @rizom/site-rizom@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

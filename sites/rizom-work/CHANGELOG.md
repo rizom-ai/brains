@@ -1,5 +1,13 @@
 # @rizom/site-rizom-work
 
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.201
+  - @rizom/site-rizom@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

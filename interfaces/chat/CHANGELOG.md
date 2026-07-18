@@ -1,5 +1,15 @@
 # @brains/chat
 
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- [`cabfd51`](https://github.com/rizom-ai/brains/commit/cabfd51b45d55edee777a5c15f35e087a1c4e293) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise Discord and Slack Chat SDK listener cycles with one private Effect schedule that drains admitted tasks during stop. Propagate outbound A2A tool cancellation through Agent Card, POST, and SSE operations, use deterministic Effect-owned timeouts, and await stream cancellation before settling.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/plugins@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

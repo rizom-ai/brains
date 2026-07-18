@@ -1,6 +1,6 @@
 {
   "name": "@brains/web-chat",
-  "version": "0.2.0-alpha.200",
+  "version": "0.2.0-alpha.201",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",

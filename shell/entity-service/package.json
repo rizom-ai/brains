@@ -1,6 +1,6 @@
 {
   "name": "@brains/entity-service",
-  "version": "0.2.0-alpha.200",
+  "version": "0.2.0-alpha.201",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
