@@ -51,6 +51,7 @@ function createDeps(
       content: unknown;
       metadata: Record<string, unknown>;
     } | null>;
+    persistUnmatchedApprovalTerminal?: () => Promise<void>;
   },
 ): Parameters<typeof handleStreamedChat>[1] {
   return {
@@ -60,6 +61,8 @@ function createDeps(
     endProcessingInput: mock(() => {}),
     handleAgentResponseToolStatuses: mock(async () => {}),
     createId: (prefix: string) => `${prefix}-id`,
+    persistUnmatchedApprovalTerminal:
+      options?.persistUnmatchedApprovalTerminal ?? mock(async () => {}),
     displayBaseUrl: undefined,
     // Default: every artifact is visible (existing tests have no attachments).
     entityService: {

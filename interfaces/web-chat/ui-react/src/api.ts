@@ -1,6 +1,9 @@
 import type { UIMessage } from "ai";
 import { z } from "@brains/utils/zod";
-import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
+import {
+  toUiMessages,
+  webChatMessagesResponseSchema,
+} from "./history-messages";
 
 const webChatSessionSchema = z.looseObject({
   id: z.string(),
@@ -44,7 +47,7 @@ export async function fetchWebChatHistory(
   if (!parsed.success) {
     throw new Error("Could not reopen that session.");
   }
-  return parsed.data.messages.map(toUiMessage);
+  return toUiMessages(parsed.data.messages);
 }
 
 export async function fetchWebChatSessions(): Promise<WebChatSession[]> {

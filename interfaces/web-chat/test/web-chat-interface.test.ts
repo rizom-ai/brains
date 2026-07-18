@@ -147,6 +147,7 @@ function makeMessage(
 function makeFixedConversationService(input: {
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
+  addMessage?: IConversationService["addMessage"];
   updateConversationMetadata?: (request: {
     conversationId: string;
     metadata: Record<string, unknown>;
@@ -155,7 +156,7 @@ function makeFixedConversationService(input: {
 }): IConversationService {
   return {
     startConversation: async () => "web-session",
-    addMessage: async (): Promise<void> => {},
+    addMessage: input.addMessage ?? (async (): Promise<void> => {}),
     getConversation: async (conversationId: string) =>
       input.conversations.find((c) => c.id === conversationId) ?? null,
     listConversations: async (options) =>
@@ -1985,6 +1986,19 @@ describe("WebChatInterface", () => {
   });
 
   it("terminally resolves an expired AI SDK approval card", async () => {
+    const persistedMessages: Parameters<
+      IConversationService["addMessage"]
+    >[0][] = [];
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("test-conversation", "web-chat")],
+        messagesByConversation: {},
+        addMessage: async (message): Promise<void> => {
+          persistedMessages.push(message);
+        },
+      }),
+    );
     const agent = createSpyAgentService(undefined, {
       text: "No pending action to confirm.",
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
@@ -2010,6 +2024,7 @@ describe("WebChatInterface", () => {
                   toolCallId: "expired-call",
                   toolName: "delete_note",
                   state: "approval-responded",
+                  title: "Delete note?",
                   input: { noteId: "123" },
                   approval: {
                     id: "approval:expired-call",
@@ -2028,6 +2043,24 @@ describe("WebChatInterface", () => {
     expect(agent.confirmCalls).toHaveLength(1);
     expect(body).toContain("tool-output-error");
     expect(body).toContain("expired-call");
+    expect(persistedMessages).toContainEqual(
+      expect.objectContaining({
+        conversationId: "test-conversation",
+        role: "assistant",
+        metadata: expect.objectContaining({
+          cards: [
+            expect.objectContaining({
+              kind: "tool-approval",
+              id: "approval:expired-call",
+              toolCallId: "expired-call",
+              toolName: "delete_note",
+              summary: "Delete note?",
+              state: "output-error",
+            }),
+          ],
+        }),
+      }),
+    );
   });
 
   it("handles AI SDK approval responses through the chat endpoint", async () => {

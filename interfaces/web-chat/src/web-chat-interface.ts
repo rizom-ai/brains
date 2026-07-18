@@ -496,6 +496,36 @@ export class WebChatInterface extends MessageInterfacePlugin<
         id: string,
       ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
+      persistUnmatchedApprovalTerminal: (
+        id: string,
+        approvalResponse: (typeof approvalResponses)[number],
+        errorText: string,
+      ): Promise<void> =>
+        streamContext.conversations.addMessage({
+          conversationId: id,
+          role: "assistant",
+          content: errorText,
+          metadata: {
+            userPermissionLevel: permissionLevel,
+            cards: [
+              {
+                kind: "tool-approval",
+                id: approvalResponse.id,
+                ...(approvalResponse.toolCallId
+                  ? { toolCallId: approvalResponse.toolCallId }
+                  : {}),
+                toolName: approvalResponse.toolName ?? "unknown-tool",
+                ...(approvalResponse.input
+                  ? { input: approvalResponse.input }
+                  : {}),
+                summary:
+                  approvalResponse.title ?? "Approval is no longer pending.",
+                state: "output-error",
+                error: errorText,
+              },
+            ],
+          },
+        }),
       displayBaseUrl:
         streamContext.preferLocalUrls && streamContext.localSiteUrl
           ? streamContext.localSiteUrl

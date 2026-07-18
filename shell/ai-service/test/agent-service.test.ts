@@ -2272,6 +2272,20 @@ describe("AgentService", () => {
       expect(response.text).toBe("fresh answer");
       expect(response.pendingConfirmations).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalledTimes(2);
+      expect(mockConversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: "test-conversation",
+          role: "assistant",
+          metadata: expect.objectContaining({
+            cards: [
+              expect.objectContaining({
+                id: "approval:call-1",
+                state: "output-denied",
+              }),
+            ],
+          }),
+        }),
+      );
     });
 
     it("confirms from an unclassified plain yes sent through chat", async () => {
@@ -3458,6 +3472,63 @@ describe("AgentService", () => {
       );
     });
 
+    it("saves a terminal approval card when the confirmed tool throws", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: mock(async () => {
+          throw new Error("Database unavailable");
+        }),
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        anchorConfirmationContext,
+      );
+
+      expect(response.cards).toContainEqual(
+        expect.objectContaining({
+          kind: "tool-approval",
+          id: "approval:call-1",
+          state: "output-error",
+          error: "Database unavailable",
+        }),
+      );
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          conversationId: "test-conversation",
+          role: "assistant",
+          metadata: expect.objectContaining({
+            cards: [
+              expect.objectContaining({
+                id: "approval:call-1",
+                state: "output-error",
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
     it("coerces non-compliant confirmed action results from registered tools", async () => {
       setupConfirmationResponse("Deleted.");
 
@@ -3786,6 +3857,22 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toContain("cancelled");
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          conversationId: "test-conversation",
+          role: "assistant",
+          content: expect.stringContaining("cancelled"),
+          metadata: expect.objectContaining({
+            cards: [
+              expect.objectContaining({
+                kind: "tool-approval",
+                id: "approval:call-1",
+                state: "output-denied",
+              }),
+            ],
+          }),
+        }),
+      );
     });
 
     it("should execute confirmed actions with original permission and routing context", async () => {

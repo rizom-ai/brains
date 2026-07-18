@@ -311,6 +311,30 @@ export class TurnProcessor {
     return response;
   }
 
+  public async persistCancelledAction(
+    conversationId: string,
+    response: AgentResponse,
+    context: {
+      channelId: string | undefined;
+      channelName: string | undefined;
+      userPermissionLevel: ChatContext["userPermissionLevel"];
+    },
+  ): Promise<void> {
+    const channelName =
+      context.channelName ?? context.channelId ?? conversationId;
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content: response.text,
+      ...this.messageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(context.channelId, channelName),
+        userPermissionLevel: context.userPermissionLevel ?? "public",
+        cards: response.cards ?? [],
+      }),
+    });
+  }
+
   public async executeConfirmedAction(
     input: ExecuteActionInput,
     signal?: AbortSignal,
@@ -331,24 +355,30 @@ export class TurnProcessor {
       (t) => t.tool.name === pendingConfirmation.toolName,
     );
 
+    let result: unknown;
     if (!tool) {
-      return {
-        text: `Error: Tool '${pendingConfirmation.toolName}' not found.`,
-        usage: emptyUsage,
+      result = {
+        success: false,
+        error: `Tool '${pendingConfirmation.toolName}' not found.`,
       };
+    } else {
+      const context: ToolContext = {
+        interfaceType,
+        userId: "agent-user",
+        conversationId,
+        ...(channelId ? { channelId } : {}),
+        channelName,
+        userPermissionLevel,
+        ...(signal ? { signal } : {}),
+      };
+
+      try {
+        result = await tool.tool.handler(pendingConfirmation.args, context);
+      } catch (error) {
+        signal?.throwIfAborted();
+        result = { success: false, error: getErrorMessage(error) };
+      }
     }
-
-    const context: ToolContext = {
-      interfaceType,
-      userId: "agent-user",
-      conversationId,
-      ...(channelId ? { channelId } : {}),
-      channelName,
-      userPermissionLevel,
-      ...(signal ? { signal } : {}),
-    };
-
-    const result = await tool.tool.handler(pendingConfirmation.args, context);
     signal?.throwIfAborted();
     const outcome = buildConfirmedActionResult(pendingConfirmation, result);
     const failed = outcome.cards.some(

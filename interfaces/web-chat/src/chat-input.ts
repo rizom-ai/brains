@@ -22,12 +22,18 @@ export interface ApprovalResponse {
   id: string;
   approved: boolean;
   toolCallId?: string | undefined;
+  toolName?: string | undefined;
+  input?: Record<string, unknown> | undefined;
+  title?: string | undefined;
 }
 
 interface ApprovalResponsePart {
   [key: string]: unknown;
   state: "approval-responded";
   toolCallId?: string | undefined;
+  toolName?: string | undefined;
+  input?: Record<string, unknown> | undefined;
+  title?: string | undefined;
   approval: ApprovalResponse;
 }
 
@@ -60,6 +66,9 @@ const approvalResponsePartSchema: z.ZodType<ApprovalResponsePart> =
   z.looseObject({
     state: z.literal("approval-responded"),
     toolCallId: z.string().optional(),
+    toolName: z.string().optional(),
+    input: z.record(z.string(), z.unknown()).optional(),
+    title: z.string().optional(),
     approval: z.object({
       id: z.string(),
       approved: z.boolean(),
@@ -172,6 +181,9 @@ export function extractLatestApprovalResponses(
     .map((result) => ({
       ...result.data.approval,
       ...(result.data.toolCallId ? { toolCallId: result.data.toolCallId } : {}),
+      ...(result.data.toolName ? { toolName: result.data.toolName } : {}),
+      ...(result.data.input ? { input: result.data.input } : {}),
+      ...(result.data.title ? { title: result.data.title } : {}),
     }));
 }
 
