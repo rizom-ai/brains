@@ -33,6 +33,18 @@ When a push changes only deploy contract files and no generated `users/<handle>/
 
 They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
 
+## Stale deploy lock recovery
+
+Kamal intentionally leaves its remote deploy lock in place when a deployment is cancelled or interrupted. Confirm that no deployment for the user is still active before releasing the lock, then use the deploy workflow's explicit recovery input:
+
+```sh
+gh workflow run Deploy --ref main \
+  -f handle=<handle> \
+  -f release_stale_lock=true
+```
+
+Recovery is opt-in and scoped to one handle. Normal push, reconcile, and manual deploy runs never remove a lock automatically.
+
 ## Bootstrap flow
 
 For this fleet, operator-local secret material remains the source of truth during onboarding and rotation. The repo stores encrypted per-user secrets, not raw values.

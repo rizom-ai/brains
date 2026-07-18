@@ -7,6 +7,11 @@ on:
         description: User handle
         required: true
         type: string
+      release_stale_lock:
+        description: Release an operator-confirmed stale Kamal deploy lock before retrying
+        required: false
+        type: boolean
+        default: false
   push:
     branches: ["main"]
     paths:
@@ -240,6 +245,19 @@ jobs:
           done
           echo "SSH never became ready for $SSH_USER@$SERVER_IP" >&2
           exit 1
+
+      - name: Release operator-confirmed stale deploy lock
+        if: ${{ inputs.release_stale_lock }}
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          VERSION: ${{ steps.user_config.outputs.image_tag }}
+          IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}
+          REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}
+          BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
+          PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
+          BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
+        run: kamal lock release -c deploy/kamal/deploy.yml
 
       - name: Deploy
         env:

@@ -270,6 +270,15 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("users/*/content/**");
     expect(deployWorkflow).toContain("users/*.secrets.yaml.age");
     expect(deployWorkflow).toContain("handle:");
+    expect(deployWorkflow).toContain(`release_stale_lock:
+        description: Release an operator-confirmed stale Kamal deploy lock before retrying
+        required: false
+        type: boolean
+        default: false`);
+    expect(deployWorkflow).toContain("if: ${{ inputs.release_stale_lock }}");
+    expect(deployWorkflow).toContain(
+      "kamal lock release -c deploy/kamal/deploy.yml",
+    );
     expect(deployWorkflow).toContain("strategy:");
     expect(deployWorkflow).toContain("matrix.handle");
     expect(deployWorkflow).toContain(
