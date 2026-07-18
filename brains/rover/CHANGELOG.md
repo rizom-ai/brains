@@ -1,5 +1,55 @@
 # @brains/rover
 
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- Updated dependencies [[`343a862`](https://github.com/rizom-ai/brains/commit/343a8629415c7016ead7fea00d8375147a8699d0), [`3e87ccf`](https://github.com/rizom-ai/brains/commit/3e87ccfea9e664c2f31fd8bfec8a1b9ce7f12e16)]:
+  - @brains/topics@0.2.0-alpha.203
+  - @brains/web-chat@0.2.0-alpha.203
+  - @brains/agent-discovery@0.2.0-alpha.203
+  - @brains/assessment@0.2.0-alpha.203
+  - @brains/blog@0.2.0-alpha.203
+  - @brains/decks@0.2.0-alpha.203
+  - @brains/doc@0.2.0-alpha.203
+  - @brains/document-plugin@0.2.0-alpha.203
+  - @brains/image-plugin@0.2.0-alpha.203
+  - @brains/link@0.2.0-alpha.203
+  - @brains/note@0.2.0-alpha.203
+  - @brains/portfolio@0.2.0-alpha.203
+  - @brains/products@0.2.0-alpha.203
+  - @brains/prompt@0.2.0-alpha.203
+  - @brains/rizom-ecosystem@0.2.0-alpha.203
+  - @brains/series@0.2.0-alpha.203
+  - @brains/site-info@0.2.0-alpha.203
+  - @brains/social-media@0.2.0-alpha.203
+  - @brains/wishlist@0.2.0-alpha.203
+  - @brains/a2a@0.2.0-alpha.203
+  - @brains/chat@0.2.0-alpha.203
+  - @brains/discord@0.2.0-alpha.203
+  - @brains/mcp@0.2.0-alpha.203
+  - @brains/webserver@0.2.0-alpha.203
+  - @brains/analytics@0.2.0-alpha.203
+  - @brains/atproto@0.2.0-alpha.203
+  - @brains/atproto-registry@0.2.0-alpha.203
+  - @brains/cms@0.2.0-alpha.203
+  - @brains/content-pipeline@0.2.0-alpha.203
+  - @brains/dashboard@0.2.0-alpha.203
+  - @brains/directory-sync@0.2.0-alpha.203
+  - @brains/email-resend@0.2.0-alpha.203
+  - @brains/newsletter@0.2.0-alpha.203
+  - @brains/notifications@0.2.0-alpha.203
+  - @brains/obsidian-vault@0.2.0-alpha.203
+  - @brains/playbooks@0.2.0-alpha.203
+  - @brains/rover-onboarding@0.2.0-alpha.203
+  - @brains/site-builder-plugin@0.2.0-alpha.203
+  - @brains/site-content@0.2.0-alpha.203
+  - @brains/stock-photo@0.2.0-alpha.203
+  - @brains/app@0.2.0-alpha.203
+  - @brains/auth-service@0.2.0-alpha.203
+  - @brains/site-default@0.2.0-alpha.203
+  - @rizom/theme-default@0.2.0-alpha.203
+
 ## 0.2.0-alpha.202
 
 ### Patch Changes

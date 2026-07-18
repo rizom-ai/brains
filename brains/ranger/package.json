@@ -1,6 +1,6 @@
 {
   "name": "@brains/ranger",
-  "version": "0.2.0-alpha.202",
+  "version": "0.2.0-alpha.203",
   "dependencies": {
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",

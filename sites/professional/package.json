@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-professional",
-  "version": "0.2.0-alpha.202",
+  "version": "0.2.0-alpha.203",
   "description": "Professional site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",

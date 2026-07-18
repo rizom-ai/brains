@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- [`3e87ccf`](https://github.com/rizom-ai/brains/commit/3e87ccfea9e664c2f31fd8bfec8a1b9ce7f12e16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep resolved approval actions terminal when reopening web-chat history. Reloaded sessions now reconcile earlier approval requests with later result cards, while expired, declined, and failed approval outcomes are durably recorded so completed buttons do not reappear.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.203
+  - @brains/utils@0.2.0-alpha.203
+  - @brains/conversation-service@0.2.0-alpha.203
+  - @brains/entity-service@0.2.0-alpha.203
+  - @brains/identity-service@0.2.0-alpha.203
+  - @brains/mcp-service@0.2.0-alpha.203
+  - @brains/messaging-service@0.2.0-alpha.203
+  - @brains/templates@0.2.0-alpha.203
+
 ## 0.2.0-alpha.202
 
 ### Patch Changes
