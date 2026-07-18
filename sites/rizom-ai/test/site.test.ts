@@ -114,15 +114,15 @@ describe("@rizom/site-rizom-ai", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
-    // The map is the hero; the text hero is gone. Order follows the redesign:
-    // map → the dark (problem) → it starts with one light (the product) →
-    // lights find each other (growth) → mission → faces → colophon.
+    // The map is the hero; the text hero is gone. Rev-10 order: the system
+    // before the pitch — map → the pain (problem) → how it comes together
+    // (growth) → mission → the ask (one-light) → faces → colophon.
     expect(sectionIds).toEqual([
       "network",
       "problem",
-      "one-light",
       "growth",
       "mission",
+      "one-light",
       "faces",
       "alive",
     ]);
@@ -143,9 +143,9 @@ describe("@rizom/site-rizom-ai", () => {
     expect(templates).toEqual([
       "agent-discovery:proximity-map",
       "home:problem",
-      "home:one-light",
       "home:growth",
       "home:mission",
+      "home:one-light",
       "home:faces",
       "home:alive",
     ]);

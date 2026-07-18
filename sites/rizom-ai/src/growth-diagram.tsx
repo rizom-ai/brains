@@ -10,7 +10,7 @@ export function GrowthDiagram(): JSX.Element {
   return (
     <div className="growth reveal reveal-delay-1 mt-5">
       <svg
-        viewBox="0 0 980 290"
+        viewBox="0 0 980 274"
         role="img"
         aria-label="One brain growing into a team, then a network"
       >
@@ -233,7 +233,8 @@ export function GrowthDiagram(): JSX.Element {
           d="M941,141 C958,141 972,140 995,139"
         />
 
-        {/* labels along a common baseline */}
+        {/* labels along a common baseline — the stage columns beneath the
+            diagram carry the words, so the sub-labels are gone (rev 10) */}
         <line className="tick" x1="110" y1="238" x2="110" y2="248" />
         <text
           className="gt-you"
@@ -243,15 +244,6 @@ export function GrowthDiagram(): JSX.Element {
           style="--d:.4s"
         >
           You
-        </text>
-        <text
-          className="gt-sub"
-          x="110"
-          y="281"
-          text-anchor="middle"
-          style="--d:.5s"
-        >
-          personal brain · available now
         </text>
         <line className="tick" x1="452" y1="238" x2="452" y2="248" />
         <text
@@ -263,15 +255,6 @@ export function GrowthDiagram(): JSX.Element {
         >
           Team
         </text>
-        <text
-          className="gt-sub"
-          x="452"
-          y="281"
-          text-anchor="middle"
-          style="--d:1.1s"
-        >
-          shared intelligence · the team bundle
-        </text>
         <line className="tick" x1="795" y1="238" x2="795" y2="248" />
         <text
           className="gt-net"
@@ -281,15 +264,6 @@ export function GrowthDiagram(): JSX.Element {
           style="--d:1.7s"
         >
           Network
-        </text>
-        <text
-          className="gt-sub"
-          x="795"
-          y="281"
-          text-anchor="middle"
-          style="--d:1.8s"
-        >
-          distributed expertise · emerging
         </text>
       </svg>
     </div>

@@ -30,16 +30,20 @@ export const HIGHLIGHT_CLS = "italic font-[395] text-accent-bright";
 export const ROOM_HIGHLIGHT_CLS = "italic font-[400] text-accent";
 
 /* The mockup's `.cap` section caption: mono, wide-tracked, a short
-   accent tick leading in, optional lowercase trail note. */
+   accent tick leading in, optional lowercase trail note. The "cold" tone
+   drains the accent — rev-10's withered section holds no warmth. */
 export function SectCap({
   lead,
   trail,
+  tone = "accent",
   className = "",
 }: {
   lead: string;
   trail?: string | undefined;
+  tone?: "accent" | "cold";
   className?: string;
 }): JSX.Element {
+  const cold = tone === "cold";
   return (
     <p
       className={`reveal flex flex-wrap items-baseline gap-3.5 font-label text-label-xs uppercase tracking-[0.2em] ${className}`}
@@ -49,9 +53,13 @@ export function SectCap({
       <span className="flex items-baseline gap-3.5">
         <span
           aria-hidden="true"
-          className="h-px w-[26px] self-center bg-accent opacity-80"
+          className={`h-px w-[26px] self-center opacity-80 ${cold ? "bg-theme-light" : "bg-accent"}`}
         />
-        <span className="font-medium text-accent">{lead}</span>
+        <span
+          className={`font-medium ${cold ? "text-theme-light" : "text-accent"}`}
+        >
+          {lead}
+        </span>
       </span>
       {trail && (
         <span className="normal-case tracking-[0.1em] text-theme-light">
@@ -206,7 +214,8 @@ export function delayClass(index: number): string {
 /* The three-up marker/title/text grid shared by two rooms: home's "why it
    has to exist" problem trio (large display numerals) and /brain's "your
    data, your rules" principles (mono markers). One schema, one component,
-   the marker style toggled by `mono`. */
+   the marker style toggled by `mono`; `withered` hollows the numerals and
+   cools the titles — the rev-10 no-warmth treatment for the pain section. */
 export const trioItemSchema: z.ZodObject<{
   marker: z.ZodString;
   title: z.ZodString;
@@ -232,10 +241,15 @@ export type TrioItem = z.infer<typeof trioItemSchema>;
 export function Trio({
   items,
   mono,
+  withered = false,
 }: {
   items: TrioItem[];
   mono: boolean;
+  withered?: boolean;
 }): JSX.Element {
+  const numeralClass = withered
+    ? "block font-display text-[44px] font-light leading-none text-transparent [-webkit-text-stroke:1px_var(--color-text-light)] [font-variation-settings:'SOFT'_30,'opsz'_100]"
+    : "block font-display text-[44px] font-light leading-none text-theme-light [font-variation-settings:'SOFT'_30,'opsz'_100]";
   return (
     <div className="mt-[30px] grid gap-11 md:grid-cols-3">
       {items.map((item, i) => (
@@ -245,11 +259,11 @@ export function Trio({
               {item.marker}
             </span>
           ) : (
-            <span className="block font-display text-[44px] font-light leading-none text-theme-light [font-variation-settings:'SOFT'_30,'opsz'_100]">
-              {item.marker}
-            </span>
+            <span className={numeralClass}>{item.marker}</span>
           )}
-          <b className="mt-2.5 block font-display text-[21px] font-[520] tracking-[-0.006em] text-theme [font-variation-settings:'SOFT'_55]">
+          <b
+            className={`mt-2.5 block font-display text-[21px] font-[520] tracking-[-0.006em] [font-variation-settings:'SOFT'_55] ${withered ? "text-theme-muted" : "text-theme"}`}
+          >
             {item.title}
           </b>
           <p className="mt-2 font-body text-[15.5px] text-theme-light">

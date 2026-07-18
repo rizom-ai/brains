@@ -19,35 +19,60 @@ import {
 /**
  * The umbrella home page. The hero is the live agent proximity map (wired in
  * routes.ts as agent-discovery:proximity-map); the sections here tell the
- * story the map opens — the dark it fights (problem), the one light that
- * starts it (the product hook), how the network grows (growth), the mission
- * band, the three faces, and the living-proof colophon.
+ * rev-10 story the map opens — the pain (problem, withered), how the parts
+ * come together (growth carries the system: brain, practice, network), the
+ * mission band (the quote alone), the single ask (one-light), the three
+ * faces, and the living-proof colophon.
  * Each section is authored from one zod schema (its component's props are
  * `z.infer` of that schema); copy is content-driven, stored as markdown in
  * site-content/home/<section>.md. Only the assembled section group is
  * exported — the schemas and components are module-local.
  */
 
-/* ============ growth diagram ============ */
+/* ============ growth diagram + the three stages ============ */
+
+const growthStageSchema = z.object({
+  title: z.string(),
+  text: z.string(),
+});
 
 const growthSchema = z.object({
   cap: z.string(),
-  capNote: z.string(),
-  note: z.string(),
+  capNote: z.string().optional(),
+  stages: z.array(growthStageSchema),
 });
+
+/* Stage columns are keyed to the diagram's zone colors by position:
+   You (brass, the brain) → Team (ruby, the practice) → Network (moss). */
+const STAGE_TITLE_COLOR = [
+  "text-[color:var(--palette-brass)]",
+  "text-[color:var(--palette-ruby-soft)]",
+  "text-[color:var(--palette-moss)]",
+];
 
 function HomeGrowthSection({
   cap,
   capNote,
-  note,
+  stages,
 }: z.infer<typeof growthSchema>): JSX.Element {
   return (
     <Section id="growth" className="py-14">
       <SectCap lead={cap} trail={capNote} />
       <GrowthDiagram />
-      <p className="reveal reveal-delay-2 mt-5 max-w-[52em] font-display text-[17px] font-normal italic text-theme-light [font-variation-settings:'SOFT'_85]">
-        {renderHighlightedText(note, "font-medium not-italic text-theme-muted")}
-      </p>
+      <div className="reveal reveal-delay-2 mt-6 grid max-w-[1040px] gap-x-11 gap-y-6 md:grid-cols-3">
+        {stages.map((stage, i) => (
+          <div key={stage.title}>
+            <b
+              className={`block font-label text-label-xs font-semibold uppercase tracking-[0.18em] ${STAGE_TITLE_COLOR[i] ?? ""}`}
+            >
+              {stage.title}
+            </b>
+            <p className="mt-2 font-body text-[15px] text-theme-light">
+              {stage.text}
+            </p>
+          </div>
+        ))}
+      </div>
     </Section>
   );
 }
@@ -61,8 +86,9 @@ function HomeProblemSection({
 }: z.infer<typeof trioSchema>): JSX.Element {
   return (
     <Section id="problem" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <Trio items={items} mono={false} />
+      {/* The one section with no warmth: cold cap, hollow numerals. */}
+      <SectCap lead={cap} trail={capNote} tone="cold" />
+      <Trio items={items} mono={false} withered />
     </Section>
   );
 }
@@ -71,9 +97,10 @@ function HomeProblemSection({
 
 const oneLightSchema = z.object({
   cap: z.string(),
-  capNote: z.string(),
+  capNote: z.string().optional(),
   headline: z.string(),
   intro: z.string(),
+  pull: z.string().optional(),
   primaryCta: ctaSchema,
   secondaryCta: ctaSchema,
 });
@@ -83,6 +110,7 @@ function HomeOneLightSection({
   capNote,
   headline,
   intro,
+  pull,
   primaryCta,
   secondaryCta,
 }: z.infer<typeof oneLightSchema>): JSX.Element {
@@ -92,9 +120,14 @@ function HomeOneLightSection({
       <h2 className="reveal reveal-delay-1 mt-3.5 max-w-[20em] font-display text-[clamp(28px,3vw,40px)] font-[465] leading-[1.1] tracking-[-0.014em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
         {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
       </h2>
-      <p className="reveal reveal-delay-2 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
+      <p className="reveal reveal-delay-1 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
         {intro}
       </p>
+      {pull && (
+        <p className="reveal reveal-delay-2 mt-5 max-w-[21em] font-display text-[clamp(24px,2.8vw,34px)] font-normal italic leading-[1.22] tracking-[-0.012em] text-theme-muted [font-variation-settings:'SOFT'_90,'opsz'_110]">
+          {renderHighlightedText(pull, "font-[460] text-accent-bright")}
+        </p>
+      )}
       <CtaRow
         primaryCta={primaryCta}
         secondaryCta={secondaryCta}
@@ -106,11 +139,13 @@ function HomeOneLightSection({
 
 /* ============ mission band ============ */
 
+/* Rev 10: the band is pure thesis — the quote carries the mission alone.
+   Sub and CTAs stay authorable but optional, so older content parses. */
 const missionSchema = z.object({
   quote: z.string(),
-  sub: z.string(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
+  sub: z.string().optional(),
+  primaryCta: ctaSchema.optional(),
+  secondaryCta: ctaSchema.optional(),
 });
 
 function HomeMissionSection({
@@ -121,14 +156,18 @@ function HomeMissionSection({
 }: z.infer<typeof missionSchema>): JSX.Element {
   return (
     <Band quote={quote}>
-      <p className="reveal reveal-delay-1 mt-[18px] max-w-[52ch] font-body text-[17px] text-theme-light">
-        {sub}
-      </p>
-      <CtaRow
-        primaryCta={primaryCta}
-        secondaryCta={secondaryCta}
-        className="reveal reveal-delay-2 mt-[26px]"
-      />
+      {sub && (
+        <p className="reveal reveal-delay-1 mt-[18px] max-w-[52ch] font-body text-[17px] text-theme-light">
+          {sub}
+        </p>
+      )}
+      {primaryCta && secondaryCta && (
+        <CtaRow
+          primaryCta={primaryCta}
+          secondaryCta={secondaryCta}
+          className="reveal reveal-delay-2 mt-[26px]"
+        />
+      )}
     </Band>
   );
 }
@@ -213,20 +252,23 @@ const aliveSchema = z.object({
 export const homeSections: SiteSectionGroup = sectionGroup("home", {
   growth: defineSection(growthSchema, HomeGrowthSection, {
     title: "Growth",
-    description: "You → Team → Network growth diagram with caption and note",
+    description:
+      "You → Team → Network diagram with the three stage columns — how the parts come together",
   }),
   problem: defineSection(trioSchema, HomeProblemSection, {
     title: "Problem",
-    description: "The dark around the lights — problem trio (large numerals)",
+    description:
+      "Alone, it withers — problem trio (hollow numerals, no warmth)",
   }),
   "one-light": defineSection(oneLightSchema, HomeOneLightSection, {
     title: "One Light",
     description:
-      "It starts with one light — the product hook between problem and growth",
+      "It starts with you — the single ask, after the mission and before the faces",
   }),
   mission: defineSection(missionSchema, HomeMissionSection, {
     title: "Mission",
-    description: "Mission band — display-italic statement, sub line, CTAs",
+    description:
+      "Mission band — display-italic statement alone; sub and CTAs optional",
   }),
   faces: defineSection(facesSchema, HomeFacesSection, {
     title: "Faces",

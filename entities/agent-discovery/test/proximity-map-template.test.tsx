@@ -68,10 +68,16 @@ describe("AgentProximityMapTemplate", () => {
     // dashboard composition shifts
     expect(html).toContain('viewBox="180 0 680 520"');
     expect(html).toContain("research · 2");
-    expect(html).toContain("archived traces");
+    // Rev-10 foot: a quiet caption attached to the map, honest counts only.
+    expect(html).toContain("constellations discovered");
+    expect(html).toContain("the map is live");
     expect(html).toContain("pending semantic indexing");
     expect(html).toContain('href="/agents"');
     expect(html).not.toContain("proximity-hud-title");
+    // The big-number ledger and the kind legend are gone.
+    expect(html).not.toContain("archived traces");
+    expect(html).not.toContain("agent-proximity-site__legend");
+    expect(html).not.toContain("agent-proximity-site__stat-number");
   });
 
   test("renders byte-identically across consecutive builds", () => {

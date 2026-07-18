@@ -17,18 +17,18 @@ export const aiRoutes: RouteDefinitionInput[] = [
       // The hero is the live agent proximity map, rendered from this brain's
       // own registry. dataQuery routes it through the datasource (live map
       // data); its hero copy is authored at site-content/home/network.md and
-      // merged over via the content overlay. Then the story the map opens: the
-      // dark it fights, the one light that starts it (the product hook), how
-      // the network grows, the mission, the faces.
+      // merged over via the content overlay. Then the rev-10 story: the pain
+      // (problem), how the parts come together (growth carries the system),
+      // the mission, and only then the ask (one-light), the faces, the proof.
       {
         id: "network",
         template: "agent-discovery:proximity-map",
         dataQuery: {},
       },
       { id: "problem", template: "home:problem" },
-      { id: "one-light", template: "home:one-light" },
       { id: "growth", template: "home:growth" },
       { id: "mission", template: "home:mission" },
+      { id: "one-light", template: "home:one-light" },
       { id: "faces", template: "home:faces" },
       { id: "alive", template: "home:alive" },
     ],
