@@ -1,5 +1,12 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.195
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/theme-default@0.2.0-alpha.195
+
 ## 0.2.0-alpha.194
 
 ### Patch Changes
