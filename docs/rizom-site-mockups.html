@@ -22,6 +22,7 @@
     --ruby: #d0453a;
     --ruby-soft: #e07a6a;
     --moss: #9caf88;
+    --purple: #8c82c8;
     --cta-ink: #0e0d20;
     --myc-root: rgba(212,175,55,.26);
     --myc-twig: rgba(250,248,243,.1);
@@ -47,6 +48,7 @@
     --ruby: #b83a2e;
     --ruby-soft: #b8503f;
     --moss: #5e7a4e;
+    --purple: #6b2fa0;
     --cta-ink: #faf8f3;
     --myc-root: rgba(168,130,28,.4);
     --myc-twig: rgba(35,33,58,.14);
@@ -217,13 +219,25 @@
   .l-note { font-family: var(--display); font-variation-settings: "SOFT" 85; font-style: italic; font-size: 15px; color: var(--w45); margin-top: 20px; max-width: 52em; }
   .l-note b { color: var(--w70); font-weight: 500; }
 
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; margin-top: 26px; max-width: 1040px; }
+  .stage b { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-weight: 600; }
+  .stage.st-you b { color: var(--brass); }
+  .stage.st-team b { color: var(--ruby-soft); }
+  .stage.st-net b { color: var(--moss); }
+  .stage p { font-size: 13.5px; color: var(--w45); margin-top: 9px; }
+
   .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; margin-top: 30px; max-width: 1040px; }
   .trio-item .t-no { font-family: var(--display); font-variation-settings: "SOFT" 30, "opsz" 100; font-weight: 300; font-size: 40px; color: var(--w28); line-height: 1; }
+  /* withered: the one section with no warmth — hollow numerals, cold text */
+  .withered .t-no { color: transparent; -webkit-text-stroke: 1px var(--w28); }
+  .withered .trio-item b { color: var(--w70); }
   .trio-item .t-no.m { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent, var(--brass)); letter-spacing: .1em; padding: 12px 0 15px; display: inline-block; }
   .trio-item b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 55; font-weight: 520; font-size: 18.5px; margin-top: 10px; letter-spacing: -.006em; }
   .trio-item p { font-size: 13.5px; color: var(--w45); margin-top: 8px; }
 
   .quickstart { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; margin-top: 28px; max-width: 1000px; align-items: start; }
+  .pull { font-family: var(--display); font-variation-settings: "SOFT" 90, "opsz" 110; font-weight: 400; font-style: italic; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.22; letter-spacing: -.012em; color: var(--w70); margin-top: 20px; max-width: 21em; }
+  .pull b { color: var(--brass-soft); font-weight: 460; }
   .term { font-family: var(--mono); font-size: 13px; line-height: 1.9; border: 1px solid var(--rule); background: color-mix(in srgb, var(--night-deep) 60%, transparent); padding: 20px 24px; }
   .term .cm { color: var(--w28); }
   .term .ps { color: var(--brass); user-select: none; }
@@ -414,11 +428,9 @@
   .standfirst-p b { color: var(--white); font-weight: 500; }
   .hero-net .actions { margin-top: 30px; }
   .hn-map svg { display: block; width: 100%; height: auto; }
-  .hn-foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px 32px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--rule-soft); }
-  .hn-foot .lg { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); }
-  .hn-foot .lg:first-of-type { margin-left: auto; }
-  .hn-foot .pending { font-family: var(--display); font-style: italic; font-size: 12.5px; color: var(--w28); }
-  .hn-foot .pending b { color: var(--brass); font-weight: 500; font-style: normal; }
+  .hn-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 22px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule-soft); }
+  .hn-count { font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--w45); }
+  .hn-count b { color: var(--brass); font-weight: 600; }
   .kg { display: block; margin-bottom: 6px; }
 
   /* ============ rev 7: /brain product screens ============ */
@@ -480,9 +492,9 @@
     .hn-grid, .chatgrid, .studio-grid { grid-template-columns: 1fr; }
     .dash-canvas { grid-template-columns: 1fr; }
     .dash-canvas .ifc-card { grid-column: auto !important; }
-    .hn-foot .lg:first-of-type { margin-left: 0; }
     .mycelium { display: none; }
-    .trio, .support-row, .exhibit-grid, .personas, .quickstart { grid-template-columns: 1fr; }
+    .trio, .stages, .support-row, .exhibit-grid, .personas, .quickstart { grid-template-columns: 1fr; }
+    .stages { gap: 22px; }
     .hero .standfirst { flex-direction: column; gap: 22px; }
     .index-row { grid-template-columns: 44px 1fr; }
     .faces .face { grid-template-columns: 1fr; gap: 6px; }
@@ -498,20 +510,20 @@
 <body>
 
 <header class="mock-header">
-  <div class="kicker">rizom.ai — consolidated site · rev 8 · the map tells the story, the screens illustrate it</div>
-  <h1>Home tells Rizom's story <em>through</em> the map; /brain tells the brain's story with screens as illustration.</h1>
-  <p class="lede">Rev 8 fixes the narratives. Home no longer explains the visualization —
-  it tells Rizom through it: this is expertise alive, here's the dark it fights (your best
-  thinking never ships), it starts with one light (yours), lights find each other (you →
-  team → network), the mission, the faces. /brain is no longer a screen catalog — it's the
-  brain's life with you in four chapters: capture (the studio), ask (chat and its
-  integrations), see it run (the dashboard), connect (back to the map). The screens
-  illustrate the chapters, not the other way round.</p>
+  <div class="kicker">rizom.ai — consolidated site · rev 10 · the whole story on the live bones</div>
+  <h1>Rev 10 tells all of Rizom — the tool, the people, the ground — as <em>one story</em>.</h1>
+  <p class="lede">The structure and visuals are the deployed page; the story is now
+  one system in one place. After the pain, the organism section shows how the parts
+  come together — the brain grows it, the practice maps it, constellations form from
+  it. Then the mission, and only then the ask: it starts with you. The rhizome is
+  carried by single words in plain sentences — never explained.
+  The doors close the page as a recap, and the alive-line's proof links point at
+  things that resolve.</p>
 </header>
 
 <div class="sitemap">
   <pre><b>rizom.ai</b>
-├── <b>/</b>              the organism — <i>the map as hero</i> · the dark · one light · lights find each other · mission · faces
+├── <b>/</b>              the organism — <i>the map as hero</i> · alone, it withers · <i>one organism: how it comes together</i> · mission · it starts with you · three faces · alive
 ├── <b>/brain</b>         <i>the platform · “the tools”</i> — capture · ask · see it run · connect · principles · quickstart
 ├── <b>/work</b>          <span class="rb">the practice · “the service”</span> — diagnostic · workshop · personas · proof · people   <span class="dim">← 301 rizom.work/*</span>
 ├── <b>/foundation</b>    <span class="ms">the research · “the source”</span> — manifesto · essays · gatherings · support        <span class="dim">← 301 rizom.foundation/*</span>
@@ -532,10 +544,10 @@
 <section class="screen" id="home">
   <div class="screen-label">
     <span class="num">01</span>
-    <h2>Home — the organism</h2>
-    <span class="note">The map opens the story and the copy tells Rizom through it — the
-    dark (why), one light (you), lights finding each other (growth), mission, faces. No
-    section explains the artifact.</span>
+    <h2>Home — the live structure, rewritten</h2>
+    <span class="note">Live page's structure and visuals; the organism section now
+    carries the system — the diagram with the three parts under their stages — before
+    the brain pitch. Map and counters stay honest.</span>
   </div>
   <div class="frame">
     <svg class="mycelium" viewBox="0 0 210 2400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
@@ -556,7 +568,6 @@
       <a href="#brain">Brain</a>
       <a href="#work">Work</a>
       <a href="#foundation">Foundation</a>
-      <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
       <a class="wordmark" href="#home">rizom<i>.</i></a>
@@ -573,32 +584,28 @@
     <div class="hero-net">
       <div class="hn-grid">
         <div>
-          <div class="h-kicker hload">The network, live — every light is a working agent</div>
+          <div class="h-kicker hload">Growing in public</div>
           <h3 class="hload h2">This is what expertise looks like <em>when it's alive</em></h3>
-          <p class="standfirst-p hload h3">Independent minds — researchers, builders,
-          operators — each with an agent grown from what they actually know, finding each
-          other by meaning. Rizom exists to grow this network: <b>the tools, the practice,
-          and the research behind it.</b></p>
+          <p class="standfirst-p hload h3">Every agent here is grown from what one person
+          actually knows — and belongs to that person. Rizom is the way in: <b>an agent
+          that speaks for you</b>, <b>people who build with you</b>, and <b>a foundation
+          that keeps it yours</b>.</p>
           <div class="actions hload h3">
-            <a class="cta" href="#brain">Get Your Brain →</a>
-            <a class="quiet" href="#home">Meet the agents</a>
+            <a class="cta" href="#home">Explore the network</a>
           </div>
         </div>
-        <div class="hn-map hload h2" id="homeMap"></div>
-      </div>
-      <div class="hn-foot hload h4">
-        <div class="net-stat"><b>12</b><span>agents</span></div>
-        <div class="net-stat"><b>2</b><span>constellations</span></div>
-        <div class="net-stat"><b>2</b><span>sightings</span></div>
-        <span class="lg"><svg width="16" height="14"><circle cx="8" cy="7" r="2.6" style="fill:var(--brass)"/></svg>professional</span>
-        <span class="lg"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" style="fill:var(--brass)"/><circle cx="10.5" cy="9" r="1.8" style="fill:var(--brass)"/><circle cx="8" cy="4.6" r="1.8" style="fill:var(--brass)"/></svg>team</span>
-        <span class="lg"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" style="fill:var(--brass)"/><circle cx="12" cy="6.4" r="1.4" style="fill:var(--brass)"/><circle cx="10.5" cy="11" r="1.4" style="fill:var(--brass)"/><circle cx="5.5" cy="11" r="1.4" style="fill:var(--brass)"/><circle cx="4" cy="6.4" r="1.4" style="fill:var(--brass)"/></svg>collective</span>
-        <span class="pending"><b>1 agent</b> still germinating — appears once indexed</span>
+        <div>
+          <div class="hn-map hload h2" id="homeMap"></div>
+          <div class="hn-foot hload h4">
+            <div class="hn-count"><b>2</b> agents · <b>0</b> constellations discovered</div>
+            <div class="hn-count" style="color: var(--w28)">the map is live</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="sect">
-      <span class="cap rv">The dark around the lights <small>— what happens to expertise without a network</small></span>
+    <div class="sect withered">
+      <span class="cap rv">Alone, it withers</span>
       <div class="trio">
         <div class="trio-item rv">
           <span class="t-no">01</span>
@@ -615,28 +622,16 @@
         <div class="trio-item rv d2">
           <span class="t-no">03</span>
           <b>The right people never find each other</b>
-          <p>Collaborators matched by job titles and résumés, not by what they actually
-          know. The perfect expert might be one connection away.</p>
+          <p>Collaboration gets matched on titles and résumés. What you actually know —
+          the thing that matters — never enters the search.</p>
         </div>
       </div>
     </div>
 
     <div class="sect">
-      <span class="cap rv">It starts with one light <small>— yours</small></span>
-      <h4 class="rv d1">Your knowledge, <em>switched on</em></h4>
-      <p class="intro rv d2">A brain turns your notes, essays, and judgment into an agent
-      that answers, publishes, and represents you — open source, on your own server, in
-      your own voice. That's the product.</p>
-      <div class="actions rv d3" style="margin-top: 24px">
-        <a class="cta" href="#brain">Meet the brain →</a>
-        <a class="quiet" href="#brain">Three commands to start</a>
-      </div>
-    </div>
-
-    <div class="sect">
-      <span class="cap rv">Lights find each other <small>— you → team → network · each layer makes the others smarter</small></span>
+      <span class="cap rv">One organism <small>— how it comes together</small></span>
       <div class="growth rv d1">
-        <svg viewBox="0 0 980 290" role="img" aria-label="One brain growing into a team, then a network">
+        <svg viewBox="0 0 980 274" role="img" aria-label="One brain growing into a team, then a network">
           <defs>
             <radialGradient id="zw-you" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stop-color="#d4af37" stop-opacity=".1" />
@@ -715,48 +710,64 @@
           <!-- labels along a common baseline -->
           <line class="tick" x1="110" y1="238" x2="110" y2="248" />
           <text class="gt-you" x="110" y="264" text-anchor="middle" style="--d:.4s">You</text>
-          <text class="gt-sub" x="110" y="281" text-anchor="middle" style="--d:.5s">personal brain · available now</text>
           <line class="tick" x1="452" y1="238" x2="452" y2="248" />
           <text class="gt-team" x="452" y="264" text-anchor="middle" style="--d:1s">Team</text>
-          <text class="gt-sub" x="452" y="281" text-anchor="middle" style="--d:1.1s">shared intelligence · the team bundle</text>
           <line class="tick" x1="795" y1="238" x2="795" y2="248" />
           <text class="gt-net" x="795" y="264" text-anchor="middle" style="--d:1.7s">Network</text>
-          <text class="gt-sub" x="795" y="281" text-anchor="middle" style="--d:1.8s">distributed expertise · emerging</text>
         </svg>
       </div>
-      <div class="l-note rv d2"><b>It starts with you. It scales to everyone.</b> Capture what
-      you know and your brain publishes in your voice; brains connect into team memory that
-      outlasts any individual; the network matches work to minds by substance, not titles.</div>
+      <div class="stages rv d2">
+        <div class="stage st-you">
+          <b>The brain</b>
+          <p>One agent that ships what you know. The thinking that used to die in
+          drafts goes out — and speaks.</p>
+        </div>
+        <div class="stage st-team">
+          <b>The practice</b>
+          <p>Working sessions — people, not software — map what a team knows before it
+          walks out the door. Brains hold it as people come and go.</p>
+        </div>
+        <div class="stage st-net">
+          <b>The network</b>
+          <p>Brains find each other by substance, not titles, and constellations form:
+          the start of a team, a field, or a piece of work.</p>
+        </div>
+      </div>
     </div>
 
     <div class="band">
       <blockquote class="rv">AI is not taking your job. It's exposing how much of your talent
       you've been wasting. When machines handle the busywork, what remains is the deeply
       human. <em>The future of work is play.</em></blockquote>
-      <p class="b-sub rv d1">Brains are the foundation. But the vision is bigger:
-      infrastructure for a world where talent flows to opportunity, professionals own what
-      they create, and distributed teams outperform traditional organizations.</p>
-      <div class="actions rv d2">
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">It starts with you</span>
+      <h4 class="rv d1">Your knowledge, <em>taking root</em></h4>
+      <p class="intro rv d1">A brain is an agent grown from what you've written and
+      learned — open source, on a server you control. That's the product.</p>
+      <p class="pull rv d2">It answers. It publishes. <b>It stands in for you.</b></p>
+      <div class="actions rv d3" style="margin-top: 24px">
         <a class="cta" href="#brain">Start Building →</a>
         <a class="quiet" href="#home">View on GitHub</a>
       </div>
     </div>
 
-    <div class="sect faces">
-      <span class="cap rv">One practice, three faces</span>
+    <div class="sect faces answers">
+      <span class="cap rv">One root, three faces</span>
       <a class="face f-plat rv" href="#brain" style="margin-top: 10px">
-        <span class="f-k">The tools</span>
-        <h5>Open-source AI agents built from your own knowledge — <em>get your brain</em></h5>
+        <span class="f-k">The brain</span>
+        <h5>An agent grown from your knowledge, answering and publishing in your voice — <em>yours, on your own server</em></h5>
         <span class="go">/brain →</span>
       </a>
       <a class="face f-work rv d1" href="#work">
-        <span class="f-k">The service</span>
-        <h5>Workshops and consulting that apply the methodology in live engagements — <em>one session, one map</em></h5>
+        <span class="f-k">The practice</span>
+        <h5>Working sessions that map what your team actually knows — <em>people, in the room</em></h5>
         <span class="go">/work →</span>
       </a>
       <a class="face f-fnd rv d2" href="#foundation">
-        <span class="f-k">The source</span>
-        <h5>The non-profit that holds the IP and stewards the methodology independently — <em>essays &amp; gatherings</em></h5>
+        <span class="f-k">The foundation</span>
+        <h5>An independent non-profit owns the method so no company can — <em>including us</em></h5>
         <span class="go">/foundation →</span>
       </a>
     </div>
@@ -764,14 +775,14 @@
     <div class="sect alive-line">
       <span class="a-claim rv"><b>This site is a brain</b> — running the platform it describes.</span>
       <a class="rv d1" href="#home">talk to it</a>
-      <a class="rv d1" href="#home">/.well-known/agent-card</a>
+      <a class="rv d1" href="#home">agent card</a>
       <a class="rv d2" href="#home">ai.rizom.brain.* lexicons</a>
     </div>
 
     <footer class="footer">
       <div class="f-brand">
         <a class="wordmark" href="#home">rizom<i>.</i></a>
-        <p>The living ecosystem where independent experts thrive together.</p>
+        <p>Build the agent that represents you.</p>
       </div>
       <div class="f-col">
         <div class="f-h">The brain</div>
@@ -794,10 +805,7 @@
         <a href="#foundation">Support</a>
       </div>
       <div class="f-legal">
-        <span>© 2026 Stichting Rizom · Amsterdam</span>
-        <span>Apache-2.0</span>
-        <span class="spacer"></span>
-        <span>rizom.work &amp; rizom.foundation now live here — old links redirect</span>
+        <span>© 2026 Rizom</span>
       </div>
     </footer>
   </div>
@@ -831,7 +839,6 @@
       <a class="on" href="#brain">Brain</a>
       <a href="#work">Work</a>
       <a href="#foundation">Foundation</a>
-      <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
       <a class="wordmark" href="#brain">rizom<i>.</i><small>brain</small></a>
@@ -1104,7 +1111,6 @@
       <a href="#brain">Brain</a>
       <a class="on" href="#work">Work</a>
       <a href="#foundation">Foundation</a>
-      <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
       <a class="wordmark" href="#work">rizom<i>.</i><small>work</small></a>
@@ -1292,7 +1298,6 @@
       <a href="#brain">Brain</a>
       <a href="#work">Work</a>
       <a class="on" href="#foundation">Foundation</a>
-      <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
       <a class="wordmark" href="#foundation">rizom<i>.</i><small>foundation</small></a>
@@ -1444,28 +1449,14 @@
 // ---- agent proximity map — the console component, re-rendered here in both climates.
 // Mirrors docs/plans/agent-proximity-map-mockup.html; seeded, so byte-identical per render.
 (function(){
+  /* honest data: the agents that actually exist today. Ambient dots are unnamed
+     texture — space the network hasn't reached — never fictional members. */
   var NODES = [
-    { id: "kai.brain",   name: "Kai",   kind: "professional", status: "approved",   distance: 0.28, bearing: 35 },
-    { id: "mira.studio", name: "Mira",  kind: "professional", status: "approved",   distance: 0.34, bearing: 52 },
-    { id: "sage.co",     name: "Sage",  kind: "collective",   status: "approved",   distance: 0.31, bearing: 20 },
-    { id: "nova.works",  name: "Nova",  kind: "professional", status: "discovered", distance: 0.38, bearing: 40 },
-    { id: "north.ops",   name: "North", kind: "team",         status: "approved",   distance: 0.42, bearing: 212 },
-    { id: "forge.dev",   name: "Forge", kind: "team",         status: "approved",   distance: 0.48, bearing: 228 },
-    { id: "atlas.net",   name: "Atlas", kind: "team",         status: "discovered", distance: 0.39, bearing: 194 },
-    { id: "lumen.art",   name: "Lumen", kind: "professional", status: "approved",   distance: 0.26, bearing: 138 },
-    { id: "echo.club",   name: "Echo",  kind: "collective",   status: "approved",   distance: 0.45, bearing: 98 },
-    { id: "drift.fi",    name: "Drift", kind: "professional", status: "discovered", distance: 0.58, bearing: 322 },
-    { id: "quill.law",   name: "Quill", kind: "professional", status: "approved",   distance: 0.61, bearing: 166 },
-    { id: "pixel.zone",  name: "Pixel", kind: "collective",   status: "discovered", distance: 0.52, bearing: 74 }
+    { id: "metis",       name: "Metis",       kind: "professional", status: "approved", distance: 0.3,  bearing: 58 },
+    { id: "paper-tiger", name: "Paper Tiger", kind: "professional", status: "approved", distance: 0.52, bearing: 328 }
   ];
-  var CLUSTERS = [
-    { label: "research", memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
-    { label: "operations", memberIds: ["north.ops", "forge.dev", "atlas.net"] }
-  ];
-  var SIGHTINGS = [
-    { name: "Vale",  kind: "professional", via: ["kai.brain"],              distance: 0.35, bearing: 64 },
-    { name: "Cairn", kind: "team",         via: ["north.ops", "forge.dev"], distance: 0.55, bearing: 221 }
-  ];
+  var CLUSTERS = [];
+  var SIGHTINGS = [];
   var MAXD = 0.7, STRATA = [0.2, 0.4, 0.6], NS = "http://www.w3.org/2000/svg";
 
   function mulberry32(seed){ var a = seed >>> 0; return function(){
@@ -1505,6 +1496,11 @@
       if (o.labels) el(svg, "text", { x: c + 4, y: cy0 - rOf(STRATA[s]) - 4, fill: pal.faint,
         style: "font-family:var(--mono);font-size:8px;letter-spacing:.08em" }, STRATA[s].toFixed(1));
     }
+
+    (o.ambient || []).forEach(function(a){
+      var ap = polar(c, cy0, rOf(a[0]), a[1]);
+      el(svg, "circle", { cx: ap.x, cy: ap.y, r: 1.2, fill: pal.faint });
+    });
 
     var pos = {};
     NODES.forEach(function(n){ pos[n.id] = polar(c, cy0, rOf(n.distance), n.bearing); });
@@ -1584,7 +1580,7 @@
     el(svg, "circle", { cx: c, cy: cy0, r: 4.4, fill: pal.amber });
     el(svg, "circle", { cx: c, cy: cy0, r: 1.9, fill: pal.hot });
     if (o.labels) el(svg, "text", { x: c, y: cy0 + 28, "text-anchor": "middle", fill: pal.dim,
-      style: "font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase" }, "you");
+      style: "font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase" }, o.centerLabel || "you");
 
     function bulb(g, x, y, r, mode){
       if (mode === "lit") {
@@ -1630,7 +1626,9 @@
           mistOp: [".3", ".12"], memberHalo: 0.2 };
   }
   var home = document.getElementById("homeMap");
-  function drawHome(){ render(home, sitePal(), { id: "hm", seed: 133, w: 620, h: 560, pad: 54, labels: true }); }
+  function drawHome(){ render(home, sitePal(), { id: "hm", seed: 133, w: 620, h: 560, pad: 54, labels: true,
+    centerLabel: "this brain",
+    ambient: [[0.62, 150], [0.5, 205], [0.66, 262], [0.58, 96], [0.36, 178], [0.64, 22]] }); }
   drawHome();
   document.getElementById("themeToggle").addEventListener("click", drawHome);
 })();
