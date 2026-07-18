@@ -1,0 +1,112 @@
+.swot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.swot-cell {
+  padding: 14px 18px 16px;
+}
+.swot-cell:nth-child(1) {
+  padding-left: 0;
+  padding-top: 2px;
+  border-right: 1px solid var(--console-rule);
+  border-bottom: 1px solid var(--console-rule);
+}
+.swot-cell:nth-child(2) {
+  padding-right: 0;
+  padding-top: 2px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.swot-cell:nth-child(3) {
+  padding-left: 0;
+  padding-bottom: 2px;
+  border-right: 1px solid var(--console-rule);
+}
+.swot-cell:nth-child(4) {
+  padding-right: 0;
+  padding-bottom: 2px;
+}
+.swot-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 17px;
+  font-style: italic;
+  font-variation-settings:
+    "opsz" 72,
+    "SOFT" 50,
+    "wght" 380;
+  letter-spacing: -0.005em;
+  line-height: 1;
+}
+.swot-head::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.swot-cell.is-s .swot-head::before {
+  background: var(--console-ok);
+}
+.swot-cell.is-w .swot-head::before {
+  background: var(--console-warn);
+}
+.swot-cell.is-o .swot-head::before {
+  background: var(--console-accent);
+}
+.swot-cell.is-t .swot-head::before {
+  background: var(--console-err);
+}
+.swot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.swot-item {
+  color: var(--console-text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.swot-item b {
+  color: var(--console-text);
+  font-weight: 500;
+}
+.swot-empty {
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 540px) {
+  .swot {
+    grid-template-columns: 1fr;
+  }
+  .swot-cell {
+    padding: 14px 0;
+    border-right: none !important;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .swot-cell:last-child {
+    border-bottom: none;
+  }
+}
+
+@container dashboard-card (max-width: 520px) {
+  .swot {
+    grid-template-columns: 1fr;
+  }
+  .swot-cell {
+    padding: 14px 0;
+    border-right: none !important;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .swot-cell:last-child {
+    border-bottom: none;
+  }
+}

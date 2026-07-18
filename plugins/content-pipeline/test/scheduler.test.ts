@@ -4,10 +4,53 @@ import type { SchedulerConfig } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
-import { TestSchedulerBackend } from "../src/scheduler-backend";
+import {
+  TestSchedulerBackend,
+  type ScheduledJob,
+  type SchedulerBackend,
+  type SchedulerCallback,
+} from "../src/scheduler-backend";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
+
+class DrainingSchedulerBackend implements SchedulerBackend {
+  public stopCalls = 0;
+  private stopResolvers: Array<() => void> = [];
+
+  scheduleCron(
+    _expression: string,
+    _callback: SchedulerCallback,
+  ): ScheduledJob {
+    return this.createJob();
+  }
+
+  scheduleInterval(
+    _intervalMs: number,
+    _callback: SchedulerCallback,
+  ): ScheduledJob {
+    return this.createJob();
+  }
+
+  validateCron(): void {}
+
+  resolveStops(): void {
+    for (const resolve of this.stopResolvers.splice(0)) resolve();
+  }
+
+  private createJob(): ScheduledJob {
+    let stopping: Promise<void> | undefined;
+    return {
+      stop: (): Promise<void> => {
+        this.stopCalls++;
+        stopping ??= new Promise<void>((resolve) => {
+          this.stopResolvers.push(resolve);
+        });
+        return stopping;
+      },
+    };
+  }
+}
 
 function executorResult(
   entityType: string,
@@ -91,7 +134,7 @@ describe("ContentScheduler", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    ContentScheduler.resetInstance();
+    await ContentScheduler.resetInstance();
   });
 
   describe("start/stop", () => {
@@ -110,6 +153,31 @@ describe("ContentScheduler", () => {
       await scheduler.start(); // Should be no-op
 
       expect(scheduler.isRunning()).toBe(true);
+    });
+
+    it("waits for publish and generation jobs to drain during stop", async () => {
+      const drainingBackend = new DrainingSchedulerBackend();
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          backend: drainingBackend,
+          entitySchedules: { "blog-post": "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * * *" },
+        }),
+      );
+      await scheduler.start();
+
+      let stopSettled = false;
+      const stopping = scheduler.stop().then(() => {
+        stopSettled = true;
+      });
+      await Promise.resolve();
+
+      expect(drainingBackend.stopCalls).toBe(3);
+      expect(stopSettled).toBe(false);
+
+      drainingBackend.resolveStops();
+      await stopping;
+      expect(stopSettled).toBe(true);
     });
   });
 
@@ -207,6 +275,20 @@ describe("ContentScheduler", () => {
       const instance2 = ContentScheduler.getInstance(baseConfig());
 
       expect(instance1).toBe(instance2);
+    });
+
+    it("returns an awaitable reset that drains the singleton", async () => {
+      const drainingBackend = new DrainingSchedulerBackend();
+      const singleton = ContentScheduler.getInstance(
+        baseConfig({ backend: drainingBackend }),
+      );
+      await singleton.start();
+
+      const resetting = ContentScheduler.resetInstance();
+      drainingBackend.resolveStops();
+
+      expect(resetting).toBeInstanceOf(Promise);
+      await resetting;
     });
   });
 

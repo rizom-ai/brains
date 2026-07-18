@@ -9,7 +9,7 @@ import type { ChatThread } from "./types";
 
 interface ApprovalCardTrackerDeps {
   cardBuilder: ChatCardBuilder;
-  /** Strip interactive components from a resolved approval message (Discord). */
+  /** Strip transport components when an adapter needs explicit cleanup. */
   clearMessageComponents: (
     threadId: string,
     messageId: string,
@@ -19,8 +19,8 @@ interface ApprovalCardTrackerDeps {
 /**
  * Tracks the approval-request card posted for each pending confirmation so a
  * later confirm/cancel can edit it in place to its resolved state. Keyed by
- * conversation + approval id. Extracted from ChatInterface; the only chat-glue
- * dependency (clearing Discord message components) is injected.
+ * conversation + approval id. Extracted from ChatInterface; adapter-specific
+ * component cleanup is injected.
  */
 export class ApprovalCardTracker {
   private readonly deps: ApprovalCardTrackerDeps;
@@ -73,24 +73,26 @@ export class ApprovalCardTracker {
   async resolve(
     conversationId: string,
     approvalId: string,
-    confirmed: boolean,
-  ): Promise<void> {
+    resolution: { title: string; detail: string },
+  ): Promise<boolean> {
     const key = this.key(conversationId, approvalId);
     const tracked = this.cards.get(key);
-    if (!tracked) return;
+    if (!tracked) return false;
     this.cards.delete(key);
-    const label = confirmed ? "confirmed" : "cancelled";
     await tracked.message.edit({
       card: this.deps.cardBuilder.buildResolvedApprovalCard(
         tracked.summary,
-        confirmed,
+        resolution,
       ),
-      fallbackText: `Approval ${label}: ${tracked.summary}`,
+      fallbackText: `${resolution.title}: ${tracked.summary}${
+        resolution.title === "Action failed" ? `\n${resolution.detail}` : ""
+      }`,
     });
     await this.deps.clearMessageComponents(
       tracked.threadId,
       tracked.message.id,
     );
+    return true;
   }
 
   private key(conversationId: string, approvalId: string): string {

@@ -55,6 +55,7 @@ export class DashboardDataSource implements DataSource {
           dataProvider: _,
           digestProvider: _digestProvider,
           component: __,
+          clientStyles: _clientStyles,
           clientScript: ___,
           visibility = "public",
           ...widgetMeta

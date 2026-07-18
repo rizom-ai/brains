@@ -55,7 +55,7 @@ describe("MCPInterface", () => {
 
   afterEach(async () => {
     await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
-    StreamableHTTPServer.resetInstance();
+    await StreamableHTTPServer.resetInstance();
   });
 
   describe("initialization", () => {

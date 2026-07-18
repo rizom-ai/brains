@@ -3,6 +3,7 @@ import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
   SiteContentDefinition,
+  SiteSectionGroup,
 } from "@rizom/site";
 import type { SiteCompositionPlugin } from "./plugin";
 
@@ -49,6 +50,9 @@ export interface SitePackage<
 
   /** Optional content definitions owned by this package. */
   content?: SiteContentDefinition | SiteContentDefinition[];
+
+  /** Optional schema-first section groups (authored via @rizom/site-sections). */
+  sections?: SiteSectionGroup | SiteSectionGroup[];
 
   /**
    * Optional additive CSS owned by the site package.
@@ -105,6 +109,24 @@ function mergeContent(
   const merged = [
     ...normalizeContent(baseContent),
     ...normalizeContent(overrideContent),
+  ];
+  return merged.length > 0 ? merged : undefined;
+}
+
+function normalizeSections(
+  sections: SiteSectionGroup | SiteSectionGroup[] | undefined,
+): SiteSectionGroup[] {
+  if (!sections) return [];
+  return Array.isArray(sections) ? sections : [sections];
+}
+
+function mergeSections(
+  baseSections: SiteSectionGroup | SiteSectionGroup[] | undefined,
+  overrideSections: SiteSectionGroup | SiteSectionGroup[] | undefined,
+): SiteSectionGroup[] | undefined {
+  const merged = [
+    ...normalizeSections(baseSections),
+    ...normalizeSections(overrideSections),
   ];
   return merged.length > 0 ? merged : undefined;
 }
@@ -175,11 +197,11 @@ export function extendSite<
   const themeOverride = [baseSite.themeOverride, overrideThemeOverride]
     .filter(Boolean)
     .join("\n\n");
-  const headScripts = [
-    ...(baseSite.headScripts ?? []),
-    ...(overrideHeadScripts ?? []),
-  ];
+  // Replace, don't concat: a variant's head script bundle supersedes the
+  // base's (both include /boot.js — stacking them double-binds #themeToggle).
+  const headScripts = overrideHeadScripts ?? baseSite.headScripts ?? [];
   const content = mergeContent(baseSite.content, overrides.content);
+  const sections = mergeSections(baseSite.sections, overrides.sections);
 
   return {
     layouts,
@@ -187,6 +209,7 @@ export function extendSite<
     ...(plugin ? { plugin } : {}),
     entityDisplay,
     ...(content ? { content } : {}),
+    ...(sections ? { sections } : {}),
     ...(themeOverride ? { themeOverride } : {}),
     ...(headScripts.length > 0 ? { headScripts } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0

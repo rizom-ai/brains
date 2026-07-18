@@ -56,6 +56,7 @@ import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAttachmentsNamespace } from "./service/attachment-registry";
+import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type {
@@ -268,6 +269,7 @@ export type InsightHandler = (
  */
 export interface IInsightsRegistry {
   register(type: string, handler: InsightHandler): void;
+  unregister(type: string): void;
   getTypes(): string[];
   get(
     type: string,
@@ -299,6 +301,7 @@ export interface IShell {
   getAttachmentRegistry(): IAttachmentsNamespace;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getRuntimeState(): IRuntimeStateNamespace;
+  getRecurringChecks(pluginId: string): IRecurringChecksNamespace;
 
   // Identity and Profile
   getIdentity(): BrainCharacter;
@@ -325,6 +328,7 @@ export interface IShell {
   generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{ object: T }>;
   judge<T>(input: JudgeInput<T>): Promise<{
     verdict: T;
@@ -358,6 +362,8 @@ export interface IShell {
   ): void;
   registerPrompt(pluginId: string, prompt: Prompt): void;
   registerInstructions(pluginId: string, instructions: string): void;
+  /** @internal Release capabilities owned by a terminally stopped plugin. */
+  unregisterPluginCapabilities?(pluginId: string): void | Promise<void>;
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;

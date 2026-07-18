@@ -313,6 +313,55 @@ describe("DiscordInterface", () => {
     await harness.installPlugin(spacedDiscord);
   }
 
+  describe("Daemon lifecycle", () => {
+    it("waits for an admitted message handler before stop settles", async () => {
+      let signalChatStarted: (() => void) | undefined;
+      const chatStarted = new Promise<void>((resolve) => {
+        signalChatStarted = resolve;
+      });
+      let releaseChat: (() => void) | undefined;
+      const chatGate = new Promise<void>((resolve) => {
+        releaseChat = resolve;
+      });
+      let chatSettled = false;
+      let signalChatSettled: (() => void) | undefined;
+      const chatFinished = new Promise<void>((resolve) => {
+        signalChatSettled = resolve;
+      });
+      mockAgentService.chat.mockImplementation(async () => {
+        signalChatStarted?.();
+        await chatGate;
+        chatSettled = true;
+        signalChatSettled?.();
+        return {
+          text: "Agent response text.",
+          usage: {
+            promptTokens: 50,
+            completionTokens: 100,
+            totalTokens: 150,
+          },
+        };
+      });
+      const daemonRegistry = harness.getMockShell().getDaemonRegistry();
+      await daemonRegistry.start("discord:discord");
+
+      messageCreateHandler?.(createDiscordMessage());
+      await chatStarted;
+      let stopSettled = false;
+      const stopping = daemonRegistry.stop("discord:discord").then(() => {
+        stopSettled = true;
+      });
+      await Promise.resolve();
+
+      expect(stopSettled).toBe(false);
+      expect(chatSettled).toBe(false);
+      releaseChat?.();
+      await chatFinished;
+      await stopping;
+      expect(stopSettled).toBe(true);
+    });
+  });
+
   describe("Initialization", () => {
     it("should create interface with valid config", () => {
       expect(discord).toBeDefined();
@@ -337,6 +386,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "public",
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -377,6 +427,7 @@ describe("DiscordInterface", () => {
             displayName: "Mira",
           }),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -395,6 +446,7 @@ describe("DiscordInterface", () => {
         "Hello bot",
         expect.stringContaining("discord-"),
         expect.objectContaining({ userPermissionLevel: "public" }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -425,6 +477,7 @@ describe("DiscordInterface", () => {
             }),
           }),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -732,6 +785,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "trusted",
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -913,6 +967,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -956,6 +1011,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith("Fresh topic answer.");
     });
@@ -1095,6 +1151,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1161,6 +1218,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1367,6 +1425,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1438,6 +1497,7 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
+        expect.any(AbortSignal),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1481,6 +1541,7 @@ describe("DiscordInterface", () => {
         expect.stringContaining("notes.md"),
         expect.any(String),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
 
@@ -1506,6 +1567,7 @@ describe("DiscordInterface", () => {
         "save this",
         expect.any(String),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
 

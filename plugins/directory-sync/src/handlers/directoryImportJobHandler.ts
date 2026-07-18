@@ -8,6 +8,7 @@ import {
   type DirectoryImportJobData,
   type IDirectorySync,
 } from "../types";
+import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 
 export class DirectoryImportJobHandler extends BaseJobHandler<
   "directory-import",
@@ -15,17 +16,21 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   ImportResult
 > {
   private directorySync: IDirectorySync;
+  private readonly operationStatus:
+    DirectorySyncOperationStatusService | undefined;
 
   constructor(
     logger: Logger,
     _context: ServicePluginContext,
     directorySync: IDirectorySync,
+    operationStatus?: DirectorySyncOperationStatusService,
   ) {
     super(logger, {
       schema: directoryImportJobSchema,
       jobTypeName: "directory-import",
     });
     this.directorySync = directorySync;
+    this.operationStatus = operationStatus;
   }
 
   public async process(
@@ -52,10 +57,16 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
         quarantined: result.quarantined,
         duration: Date.now() - startTime,
       });
+      await this.operationStatus?.addImportResult(result);
 
       return result;
     } catch (error) {
       this.logger.error("Directory import job failed", { jobId, error });
+      await this.operationStatus?.recordIssue({
+        kind: "import",
+        message:
+          error instanceof Error ? error.message : "Directory import failed",
+      });
       throw error;
     }
   }

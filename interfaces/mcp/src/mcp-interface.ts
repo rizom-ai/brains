@@ -373,6 +373,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
 
   protected override async onShutdown(): Promise<void> {
     StdioMCPServer.resetInstance();
-    StreamableHTTPServer.resetInstance();
+    await StreamableHTTPServer.resetInstance();
   }
 }

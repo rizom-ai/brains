@@ -15,6 +15,7 @@ import { preparePublishManifest } from "@brains/build-tools";
 const packageDir = join(import.meta.dir, "..");
 const basePackageDir = join(packageDir, "../rizom");
 const sdkPackageDir = join(packageDir, "../../packages/site");
+const sectionsPackageDir = join(packageDir, "../../packages/site-sections");
 
 async function run(command: string[], cwd: string): Promise<string> {
   const process = Bun.spawn(command, {
@@ -97,9 +98,11 @@ describe("@rizom/site-rizom-ai package boundary", () => {
     try {
       const sdkCopyDir = join(tempDir, "sdk-copy");
       const baseCopyDir = join(tempDir, "base-copy");
+      const sectionsCopyDir = join(tempDir, "sections-copy");
       const workCopyDir = join(tempDir, "ai-copy");
       await stagePublishableCopy(sdkPackageDir, sdkCopyDir);
       await stagePublishableCopy(basePackageDir, baseCopyDir);
+      await stagePublishableCopy(sectionsPackageDir, sectionsCopyDir);
       await stagePublishableCopy(packageDir, workCopyDir);
 
       await run(
@@ -112,11 +115,19 @@ describe("@rizom/site-rizom-ai package boundary", () => {
       );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
+        sectionsCopyDir,
+      );
+      await run(
+        ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
         workCopyDir,
       );
 
       const sdkTarball = await findPackedTarball(tempDir, "rizom-site-");
       const baseTarball = await findPackedTarball(tempDir, "rizom-site-rizom-");
+      const sectionsTarball = await findPackedTarball(
+        tempDir,
+        "rizom-site-sections-",
+      );
       const aiTarball = await findPackedTarball(
         tempDir,
         "rizom-site-rizom-ai-",
@@ -141,6 +152,7 @@ describe("@rizom/site-rizom-ai package boundary", () => {
             overrides: {
               "@rizom/site": `file:${sdkTarball}`,
               "@rizom/site-rizom": `file:${baseTarball}`,
+              "@rizom/site-sections": `file:${sectionsTarball}`,
             },
           },
           null,

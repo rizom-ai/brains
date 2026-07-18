@@ -1,46 +1,29 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@brains/ui-library";
-import type { TemplateAgent, AgentSkill } from "../schemas/agent";
-import { AgentAvatar, KindBadge, extractDomain } from "./shared";
+import type { TemplateAgent, AgentStatus } from "../schemas/agent";
+import {
+  DotPattern,
+  DotStatus,
+  GhostGlyph,
+  RuledHeading,
+  extractDomain,
+  isSightedAgent,
+} from "./shared";
 
 export interface AgentListProps {
   agents: TemplateAgent[];
   pageTitle?: string;
   pagination?: PaginationInfo | null;
   baseUrl?: string;
-  selectedStatus: "all" | "discovered" | "approved";
+  selectedStatus: "all" | AgentStatus;
 }
 
-const SkillPills = ({
-  skills,
-}: {
-  skills: AgentSkill[];
-}): JSX.Element | null => {
-  if (skills.length === 0) return null;
-
-  return (
-    <div className="flex gap-1.5 flex-wrap mt-2">
-      {skills.map((skill) => (
-        <span
-          key={skill.name}
-          className="text-[11px] px-2 py-0.5 bg-theme-subtle rounded-md text-theme-muted"
-        >
-          {skill.name}
-        </span>
-      ))}
-    </div>
-  );
-};
-
-function formatDiscoveryDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+const MAX_SKILL_NAMES = 3;
 
 function getFilteredPageUrl(
   baseUrl: string,
-  status: "discovered" | "approved",
+  status: AgentStatus,
   page: number,
 ): string {
   const params = new URLSearchParams({ status });
@@ -51,61 +34,176 @@ function getFilteredPageUrl(
 }
 
 /**
- * Single agent card in the list
+ * Footer meta line: kind, then skills as prose with a +N overflow.
+ * Sightings also carry their domain here since the eyebrow shows the
+ * introducer instead.
  */
-const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
-  const { frontmatter, about, skills, url } = agent;
-  const isApproved = frontmatter.status === "approved";
+const CardMeta = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
+  const { frontmatter, skills } = agent;
+  const parts: JSX.Element[] = [
+    <span key="kind" className="font-medium text-theme-muted">
+      {frontmatter.kind}
+    </span>,
+  ];
+
+  if (isSightedAgent(frontmatter)) {
+    parts.push(<span key="domain"> — {extractDomain(frontmatter.url)}</span>);
+  }
+
+  if (frontmatter.status !== "archived" && skills.length > 0) {
+    const names = skills.slice(0, MAX_SKILL_NAMES).map((s) => s.name);
+    const overflow = skills.length - names.length;
+    parts.push(
+      <span key="skills">
+        {" — "}
+        {names.join(", ")}
+        {overflow > 0 ? ` +${overflow}` : ""}
+      </span>,
+    );
+  }
 
   return (
-    <a
-      href={url}
-      className={`flex items-start gap-5 p-6 rounded-xl border border-theme bg-theme-subtle hover:shadow-lg transition-shadow ${
-        isApproved ? "" : "opacity-70"
-      }`}
-    >
-      <AgentAvatar name={frontmatter.name} className="w-12 h-12 text-lg" />
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-lg font-semibold text-heading">
-            {frontmatter.name}
-          </span>
-          <KindBadge kind={frontmatter.kind} size="sm" />
-          {frontmatter.organization && (
-            <span className="text-xs text-theme-muted">
-              · {frontmatter.organization}
-            </span>
-          )}
-        </div>
-
-        <div className="text-sm text-theme-muted mb-1">
-          {frontmatter.brainName}
-        </div>
-
-        {about && (
-          <p className="text-sm text-theme-muted line-clamp-2 mb-0">{about}</p>
-        )}
-
-        {isApproved && <SkillPills skills={skills} />}
-      </div>
-
-      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right">
-        <span className="text-xs text-theme-muted">
-          {extractDomain(frontmatter.url)}
-        </span>
-        <span className="text-[11px] text-theme-muted opacity-60">
-          {isApproved
-            ? `Discovered ${formatDiscoveryDate(frontmatter.discoveredAt)}`
-            : "Discovered · approve before calling"}
-        </span>
-      </div>
-    </a>
+    <div className="mt-4 pt-3.5 border-t border-theme text-[13px] text-theme-muted">
+      {parts}
+    </div>
   );
 };
 
 /**
- * Agent directory list template — contact list with filter pills
+ * Single agent card in the grid
+ */
+const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
+  const { frontmatter, about, url } = agent;
+  const isArchived = frontmatter.status === "archived";
+  const isSighted = isSightedAgent(frontmatter);
+  const introducers = frontmatter.introducedBy ?? [];
+
+  return (
+    <a
+      href={url}
+      className={`relative overflow-hidden flex flex-col p-5 sm:px-7 sm:py-6 rounded-md border border-theme bg-theme-subtle hover:border-brand hover:shadow-lg transition-all ${
+        isArchived ? "opacity-55" : ""
+      }`}
+      style={
+        isSighted
+          ? {
+              background:
+                "linear-gradient(135deg, var(--color-status-warning-bg), var(--color-bg-subtle) 55%)",
+            }
+          : undefined
+      }
+    >
+      <GhostGlyph name={frontmatter.name} />
+
+      <div className="flex flex-wrap items-center gap-2 font-mono text-xs mb-2.5">
+        {isSighted ? (
+          <>
+            <span className="text-status-warning font-medium">
+              via {introducers[0]}
+            </span>
+            {frontmatter.hops !== undefined && (
+              <span className="text-theme-muted">
+                · {frontmatter.hops} hops
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="text-brand font-medium">
+              {extractDomain(frontmatter.url)}
+            </span>
+            {frontmatter.organization && (
+              <span className="text-theme-muted">
+                · {frontmatter.organization}
+              </span>
+            )}
+          </>
+        )}
+        <DotStatus frontmatter={frontmatter} />
+      </div>
+
+      <h3 className="font-heading font-semibold text-[27px] leading-tight text-heading mb-2">
+        {frontmatter.name}
+      </h3>
+
+      {about && (
+        <p className="text-sm text-theme-muted line-clamp-2 mb-0">{about}</p>
+      )}
+
+      <CardMeta agent={agent} />
+    </a>
+  );
+};
+
+const StatTab = ({
+  label,
+  count,
+  href,
+  active,
+}: {
+  label: string;
+  count: number;
+  href: string;
+  active: boolean;
+}): JSX.Element => (
+  <a
+    href={href}
+    data-count={count}
+    className={`flex flex-col gap-0.5 pb-2.5 border-b-2 transition-colors ${
+      active ? "border-brand" : "border-transparent"
+    }`}
+  >
+    <span
+      className={`font-heading font-medium text-3xl leading-none ${
+        active ? "text-heading" : "text-theme-muted"
+      }`}
+    >
+      {count}
+    </span>
+    <span
+      className={`font-mono text-[11px] uppercase tracking-[0.12em] ${
+        active ? "text-brand" : "text-theme-muted"
+      }`}
+    >
+      {label}
+    </span>
+  </a>
+);
+
+const AgentSection = ({
+  title,
+  hint,
+  agents,
+}: {
+  title: string;
+  hint?: string;
+  agents: TemplateAgent[];
+}): JSX.Element => (
+  <section className="mt-14">
+    <RuledHeading title={title} count={agents.length} {...(hint && { hint })} />
+    <div className="grid gap-4 md:grid-cols-2">
+      {agents.map((agent) => (
+        <AgentCard key={agent.id} agent={agent} />
+      ))}
+    </div>
+  </section>
+);
+
+const SECTION_COPY: Record<AgentStatus, { title: string; hint?: string }> = {
+  approved: { title: "Connected" },
+  discovered: {
+    title: "Sightings",
+    hint: "seen in peers' directories — approve to connect",
+  },
+  archived: {
+    title: "Archived",
+    hint: "kept as history — can't be called",
+  },
+};
+
+/**
+ * Agent directory list template — editorial masthead with stat tabs
+ * over a card grid grouped by status
  */
 export const AgentListTemplate = ({
   agents,
@@ -114,131 +212,86 @@ export const AgentListTemplate = ({
   baseUrl = "/agents",
   selectedStatus,
 }: AgentListProps): JSX.Element => {
-  const title = pageTitle ?? "Agent Directory";
+  const title = pageTitle ?? "Agents";
   const totalCount = pagination?.totalItems ?? agents.length;
-  const approvedAgents = agents.filter(
-    (agent) => agent.frontmatter.status === "approved",
-  );
-  const discoveredAgents = agents.filter(
-    (agent) => agent.frontmatter.status === "discovered",
-  );
-  const approvedCount = approvedAgents.length;
-  const discoveredCount = discoveredAgents.length;
+  const byStatus: Record<AgentStatus, TemplateAgent[]> = {
+    approved: agents.filter((a) => a.frontmatter.status === "approved"),
+    discovered: agents.filter((a) => a.frontmatter.status === "discovered"),
+    archived: agents.filter((a) => a.frontmatter.status === "archived"),
+  };
   const description = `Your network of ${totalCount} ${totalCount === 1 ? "brain" : "brains"} and their anchors`;
+
+  const tabs: { key: "all" | AgentStatus; label: string; href: string }[] = [
+    { key: "all", label: "All", href: baseUrl },
+    { key: "approved", label: "Connected", href: `${baseUrl}?status=approved` },
+    {
+      key: "discovered",
+      label: "Sightings",
+      href: `${baseUrl}?status=discovered`,
+    },
+    { key: "archived", label: "Archived", href: `${baseUrl}?status=archived` },
+  ];
 
   return (
     <>
       <Head title={title} description={description} />
       <div className="agent-list bg-theme">
-        <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">
-          {/* Header */}
-          <div className="mb-8 pb-6 border-b border-theme">
-            <h1 className="text-4xl font-bold text-heading mb-2">{title}</h1>
-            <p className="text-theme-muted mb-4">{description}</p>
-            <div className="flex flex-wrap gap-2 text-sm mb-4">
-              <span className="px-3 py-1 rounded-full bg-theme-subtle text-heading">
-                {totalCount} total
-              </span>
-              <span className="px-3 py-1 rounded-full bg-theme-subtle text-status-success">
-                {approvedCount} approved
-              </span>
-              <span className="px-3 py-1 rounded-full bg-theme-subtle text-theme-muted">
-                {discoveredCount} discovered
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 text-sm">
-              <a
-                href={baseUrl}
-                className={`px-3 py-1 rounded-full border transition-colors ${
-                  selectedStatus === "all"
-                    ? "border-theme text-heading bg-theme-subtle"
-                    : "border-theme text-theme-muted hover:text-heading"
-                }`}
-              >
-                All
-              </a>
-              <a
-                href={`${baseUrl}?status=approved`}
-                className={`px-3 py-1 rounded-full border transition-colors ${
-                  selectedStatus === "approved"
-                    ? "border-theme text-heading bg-theme-subtle"
-                    : "border-theme text-theme-muted hover:text-heading"
-                }`}
-              >
-                Approved
-              </a>
-              <a
-                href={`${baseUrl}?status=discovered`}
-                className={`px-3 py-1 rounded-full border transition-colors ${
-                  selectedStatus === "discovered"
-                    ? "border-theme text-heading bg-theme-subtle"
-                    : "border-theme text-theme-muted hover:text-heading"
-                }`}
-              >
-                Discovered
-              </a>
+        <div className="container mx-auto px-6 md:px-12 max-w-5xl py-14 md:py-20">
+          {/* Masthead */}
+          <div className="relative">
+            <DotPattern />
+            <div className="relative pt-8 pb-2">
+              <div className="font-mono text-[11.5px] font-medium uppercase tracking-[0.18em] text-brand mb-3.5">
+                Agent network
+              </div>
+              <h1 className="font-heading font-semibold text-5xl md:text-6xl leading-none tracking-tight text-heading mb-4">
+                {title}
+              </h1>
+              <p className="text-[17px] font-light text-theme-muted max-w-[52ch] mb-0">
+                Brains discovered, sighted, and connected through the A2A
+                network — your corner of the rhizome.
+              </p>
+              <div className="flex gap-10 mt-9">
+                {tabs.map((tab) => (
+                  <StatTab
+                    key={tab.key}
+                    label={tab.label}
+                    count={
+                      tab.key === "all"
+                        ? agents.length
+                        : byStatus[tab.key].length
+                    }
+                    href={tab.href}
+                    active={selectedStatus === tab.key}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
-          {selectedStatus === "all" && approvedAgents.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-heading">
-                  Approved brains
-                </h2>
-                <span className="text-sm text-theme-muted">
-                  {approvedAgents.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-4">
-                {approvedAgents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {selectedStatus === "all" && discoveredAgents.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-heading">
-                    Discovered brains
-                  </h2>
-                  <p className="text-sm text-theme-muted">
-                    Review and approve these before calling them.
-                  </p>
-                </div>
-                <span className="text-sm text-theme-muted">
-                  {discoveredAgents.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-4">
-                {discoveredAgents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))}
-              </div>
-            </section>
-          )}
+          {selectedStatus === "all" &&
+            (["approved", "discovered", "archived"] as const).map(
+              (status) =>
+                byStatus[status].length > 0 && (
+                  <AgentSection
+                    key={status}
+                    title={SECTION_COPY[status].title}
+                    {...(SECTION_COPY[status].hint && {
+                      hint: SECTION_COPY[status].hint,
+                    })}
+                    agents={byStatus[status]}
+                  />
+                ),
+            )}
 
           {selectedStatus !== "all" && agents.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-heading">
-                  {selectedStatus === "approved"
-                    ? "Approved brains"
-                    : "Discovered brains"}
-                </h2>
-                <span className="text-sm text-theme-muted">
-                  {agents.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-4">
-                {agents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))}
-              </div>
-            </section>
+            <AgentSection
+              title={SECTION_COPY[selectedStatus].title}
+              {...(SECTION_COPY[selectedStatus].hint && {
+                hint: SECTION_COPY[selectedStatus].hint,
+              })}
+              agents={agents}
+            />
           )}
 
           {agents.length === 0 && (
@@ -273,12 +326,12 @@ export const AgentListTemplate = ({
                       selectedStatus,
                       pagination.currentPage - 1,
                     )}
-                    className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
+                    className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
                   >
                     ← Prev
                   </a>
                 ) : (
-                  <span className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted opacity-50">
+                  <span className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted opacity-50">
                     ← Prev
                   </span>
                 )}
@@ -292,12 +345,12 @@ export const AgentListTemplate = ({
                       selectedStatus,
                       pagination.currentPage + 1,
                     )}
-                    className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
+                    className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
                   >
                     Next →
                   </a>
                 ) : (
-                  <span className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted opacity-50">
+                  <span className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted opacity-50">
                     Next →
                   </span>
                 )}

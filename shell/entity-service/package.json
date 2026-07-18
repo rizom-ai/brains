@@ -1,6 +1,6 @@
 {
   "name": "@brains/entity-service",
-  "version": "0.2.0-alpha.156",
+  "version": "0.2.0-alpha.200",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -23,6 +23,7 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./effect": "./src/effect.ts",
     "./migrate": "./src/migrate.ts"
   },
   "files": [

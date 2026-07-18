@@ -2,12 +2,13 @@
 
 ## Status
 
-Proposed. Adapted from Sam's feature blueprint ("BD Priority Engine — Feature
-Blueprint") into a Brains-native implementation plan. The shared package/entity
-name is resolved as **opportunity** rather than Rizom-internal **BD** language.
-The open product decisions have been resolved with Jan Hein (see
-[Decisions](#decisions)); the only remaining deferral is which brain composes the
-package, which does not block the build. Ready to break into phased work.
+In progress on `feat/opportunity-priority-engine`. The worktree contains the initial
+`@brains/business-development` package with the `opportunity` entity, deterministic
+ranking/stack, focus and state suggestions, and a first dashboard widget. Remaining local
+work is capture-eval hardening, composition into a Rizom brain, and focused dashboard
+follow-through. Stale-opportunity alerts are deliberately blocked on a shared recurring
+check abstraction; scheduling, dedupe, and notification delivery must not become
+business-development-specific infrastructure.
 
 ## Goal
 

@@ -1,9 +1,9 @@
 {
   "name": "@brains/theme-rizom",
-  "version": "0.2.0-alpha.156",
+  "version": "0.2.0-alpha.200",
   "description": "Rizom brand theme — amber + purple bioluminescent palette shared by the Rizom site family. Profile-specific accents and typography via [data-theme-profile] selectors.",
   "dependencies": {
-    "@brains/theme-default": "workspace:*"
+    "@rizom/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

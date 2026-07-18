@@ -17,6 +17,7 @@ import type {
   WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
+import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
 import {
   renderDashboardPageHtml,
@@ -78,6 +79,7 @@ const registerWidgetPayloadSchema = z
       .max(4)
       .optional(),
     component: z.custom<WidgetComponent>().optional(),
+    clientStyles: z.string().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.custom<() => Promise<unknown>>(
       (value) => typeof value === "function",
@@ -143,11 +145,17 @@ const directorySyncStatusResponseSchema = z.object({
     syncPath: z.string(),
     isInitialized: z.boolean(),
     watchEnabled: z.boolean(),
-    lastSync: z.string().datetime().optional(),
+    lastSync: z
+      .string()
+      .datetime()
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
     totalFiles: z.number().int().nonnegative().optional(),
     byEntityType: z
       .record(z.string(), z.number().int().nonnegative())
       .optional(),
+    managementUrl: z.string().optional(),
   }),
 });
 
@@ -169,6 +177,7 @@ function createRegisteredWidget(
     }),
     ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),
+    ...(payload.clientStyles ? { clientStyles: payload.clientStyles } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
     ...(payload.digestProvider
@@ -181,6 +190,7 @@ export class DashboardPlugin extends ServicePlugin<
   DashboardConfig,
   DashboardConfigInput
 > {
+  private readonly assetRegistry: DashboardAssetRegistry;
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
@@ -190,6 +200,7 @@ export class DashboardPlugin extends ServicePlugin<
 
   constructor(config: DashboardConfigInput = {}) {
     super("dashboard", packageJson, config, dashboardConfigSchema);
+    this.assetRegistry = new DashboardAssetRegistry(this.config.routePath);
   }
 
   private recordActivity(
@@ -457,12 +468,19 @@ export class DashboardPlugin extends ServicePlugin<
             dashboardData.widgets,
             this.widgetRegistry,
           );
+          const assetUrls = this.assetRegistry.createRenderUrls({
+            themeCSS: this.config.themeCSS,
+            widgetStyles: resolvedWidgets.widgetStyles,
+            widgetScripts: resolvedWidgets.widgetScripts,
+          });
 
           const input: DashboardRenderInput = {
             title,
             baseUrl,
             widgets: resolvedWidgets.widgets,
+            widgetStyles: resolvedWidgets.widgetStyles,
             widgetScripts: resolvedWidgets.widgetScripts,
+            assetUrls,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
@@ -495,7 +513,10 @@ export class DashboardPlugin extends ServicePlugin<
           };
 
           return new Response(renderDashboardPageHtml(input), {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
+            headers: {
+              "Cache-Control": "private, no-store",
+              "Content-Type": "text/html; charset=utf-8",
+            },
           });
         },
       },
@@ -570,6 +591,7 @@ export class DashboardPlugin extends ServicePlugin<
           });
         },
       },
+      ...this.assetRegistry.getRoutes(),
     ];
   }
 

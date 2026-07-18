@@ -118,6 +118,8 @@ export function buildSkillRows(
   }
 
   for (const { entity, frontmatter, body } of parsedAgents) {
+    if (frontmatter.status === "archived") continue;
+
     body.skills.forEach((skill, index) => {
       pushSkillRow({
         id: `${entity.id}:${index}`,

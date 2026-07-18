@@ -73,4 +73,13 @@ describe("deploy templates", () => {
       "deploy-scripts/provision-server.ts",
     );
   });
+
+  it("excludes the backend bootstrap token from runtime secret validation", () => {
+    const script = readFileSync(
+      resolveDeployScriptPath("validate-secrets.ts"),
+      "utf8",
+    );
+
+    expect(script).toContain('entry.key !== "BWS_ACCESS_TOKEN"');
+  });
 });

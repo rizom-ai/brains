@@ -3,6 +3,7 @@ import type {
   ConversationMessageMetadata,
   ConversationMessageSource,
 } from "@brains/conversation-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type {
   CanonicalIdentityResolver,
   ChatAttachment,
@@ -16,6 +17,8 @@ import type { AgentContactCandidate, EntityMemoryRef } from "./agent-results";
  * with the keys this module actually produces.
  */
 export interface AgentMessageMetadata extends ConversationMessageMetadata {
+  /** Permission scope that governed the turn producing this message. */
+  userPermissionLevel?: UserPermissionLevel;
   attachments?: Record<string, unknown>[];
   cards?: StructuredChatCard[];
   entityMemoryRefs?: EntityMemoryRef[];
@@ -46,6 +49,7 @@ function toMessageAttachmentMetadata(
 export async function buildMessageMetadata(params: {
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
+  userPermissionLevel?: UserPermissionLevel;
   attachments?: ChatAttachment[];
   cards?: StructuredChatCard[];
   entityMemoryRefs?: EntityMemoryRef[];
@@ -55,6 +59,7 @@ export async function buildMessageMetadata(params: {
   const {
     actor,
     source,
+    userPermissionLevel,
     attachments = [],
     cards = [],
     entityMemoryRefs = [],
@@ -67,6 +72,7 @@ export async function buildMessageMetadata(params: {
   return {
     ...(enrichedActor ? { actor: enrichedActor } : {}),
     ...(source ? { source } : {}),
+    ...(userPermissionLevel ? { userPermissionLevel } : {}),
     ...(attachments.length > 0
       ? {
           attachments: attachments.map((attachment) =>

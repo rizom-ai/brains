@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
@@ -7,12 +8,10 @@ import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
   applyFieldAssistSuggestion,
-  applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
-  DeleteDialog,
-  derivePipeline,
+  DirectorySyncWorkspace,
   emptyDraft,
   entityPublicationState,
   entityTitle,
@@ -21,16 +20,34 @@ import {
   fieldAssistVariant,
   parseCmsHash,
   MODEL_ASSIST_TARGET,
-  PipelineStations,
-  SaveStateNotice,
+  PublicationActions,
+  PublishConfirmationDialog,
+  PublishingWorkspace,
+  SiteWorkspace,
+  styles,
   typeHasPublicationField,
   TypeSwitcher,
+  parseCmsWorkspaceHash,
 } from "./App";
+import {
+  DeleteDialog,
+  derivePipeline,
+  PipelineStations,
+  SaveStateNotice,
+} from "./editor-status";
+import { applyFieldChange } from "./editor-workflow";
+import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
+  CmsWorkspaceInfo,
+  DirectorySyncWorkspaceActionResult,
+  DirectorySyncWorkspaceSnapshot,
   EntityTypeInfo,
   FieldDescriptor,
   GitSyncState,
+  PublicationPipelineSnapshot,
+  SiteWorkspaceActionResult,
+  SiteWorkspaceSnapshot,
 } from "./api";
 
 const stringField: FieldDescriptor = {
@@ -80,6 +97,30 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 
+  it("carries no content-studio wordmark in the crumbbar", () => {
+    // The label added noise without wayfinding value; the crumbbar leads
+    // with the collection breadcrumb directly.
+    expect(styles).not.toContain("crumb-mark");
+    expect(visualRefreshStyles).not.toContain("crumb-mark");
+    expect(responsiveStyles).not.toContain("crumb-mark");
+  });
+
+  it("separates the save bar's status line from the pipeline readout", () => {
+    // Without a margin the error line butts against the commit ref:
+    // "last write 3bfa1e6× title: …".
+    expect(visualRefreshStyles).toMatch(
+      /\.pipeline > \.status \{[^}]*margin-left/,
+    );
+  });
+
+  it("lets the conflict card's reload button keep its ghost treatment", () => {
+    // `.pipeline .reload` once styled the button for the dark pipeline
+    // bar (frame-on-frame). The button now lives in the floating conflict
+    // card, where that rule made it invisible in paper climate — it must
+    // fall through to `.btn.ghost`.
+    expect(styles).not.toContain(".pipeline .reload");
+  });
+
   it("centers the pill type switcher and keeps row meta on the title line", () => {
     // The desktop rail aligns type rows to the baseline; the 44px mobile
     // pills must center their label instead of pinning it to the top edge.
@@ -95,8 +136,13 @@ describe("editor surface styles", () => {
 });
 
 function renderField(descriptor: FieldDescriptor, value: unknown): string {
+  const client = createCmsQueryClient();
   return renderToStaticMarkup(
-    createElement(Field, { descriptor, value, onChange: () => {} }),
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(Field, { descriptor, value, onChange: () => {} }),
+    ),
   );
 }
 
@@ -124,6 +170,16 @@ describe("parseCmsHash", () => {
       entityType: "site info",
       id: "front page",
     });
+  });
+
+  it("parses workspace doors separately from entity doors", () => {
+    expect(parseCmsWorkspaceHash("#/workspace/publishing")).toEqual({
+      workspaceId: "publishing",
+    });
+    expect(parseCmsWorkspaceHash("#/workspace/publish%20desk")).toEqual({
+      workspaceId: "publish desk",
+    });
+    expect(parseCmsHash("#/workspace/publishing")).toBeNull();
   });
 
   it("rejects everything else", () => {
@@ -362,6 +418,41 @@ describe("TypeSwitcher", () => {
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
   });
 
+  it("shows Operations only when a workspace capability registers", () => {
+    const workspace: CmsWorkspaceInfo = {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "PublishingWorkspace",
+      priority: 40,
+      entityTypes: ["post"],
+    };
+    const withWorkspace = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types,
+        active: null,
+        onSelect: () => {},
+        workspaces: [workspace],
+        activeWorkspace: "publishing",
+        workspaceBadges: { publishing: 2 },
+        onSelectWorkspace: () => {},
+      }),
+    );
+    const withoutWorkspace = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types,
+        active: "post",
+        onSelect: () => {},
+      }),
+    );
+
+    expect(withWorkspace).toContain("Operations");
+    expect(withWorkspace).toContain("Publishing");
+    expect(withWorkspace).toContain(">2<");
+    expect(withoutWorkspace).not.toContain("Operations");
+    expect(withoutWorkspace).not.toContain("Publishing");
+  });
+
   it("groups brain machinery under System instead of flooding Content", () => {
     const machinery: EntityTypeInfo[] = [
       {
@@ -399,6 +490,295 @@ describe("TypeSwitcher", () => {
     expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
     expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
     expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
+  });
+});
+
+describe("PublishingWorkspace", () => {
+  const data: PublicationPipelineSnapshot = {
+    summary: {
+      draft: 1,
+      queued: 1,
+      generating: 1,
+      failed: 1,
+      published: 8,
+      needsOperator: 2,
+    },
+    queue: [
+      {
+        entityId: "queued-post",
+        entityType: "post",
+        title: "Domain as identity",
+        position: 1,
+        queuedAt: "2026-07-14T08:00:00.000Z",
+        destination: "website",
+        scheduledFor: "2026-07-20T09:00:00.000Z",
+      },
+    ],
+    generating: [
+      {
+        id: "job-1",
+        label: "og-image",
+        target: "post/queued-post",
+        status: "processing",
+      },
+    ],
+    failures: [
+      {
+        entityId: "failed-newsletter",
+        entityType: "newsletter",
+        title: "March dispatch",
+        error: "Provider rejected sender",
+        retryCount: 1,
+      },
+    ],
+    publishableEntityTypes: ["newsletter", "post"],
+  };
+
+  it("renders the publication desk from canonical pipeline data", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain("Publishing desk");
+    expect(html).toContain("Dispatch queue");
+    expect(html).toContain("Domain as identity");
+    expect(html).toContain("Website");
+    expect(html).toContain("OG Image");
+    expect(html).toContain("March dispatch");
+    expect(html).toContain("Provider rejected sender");
+  });
+
+  it("renders a quiet queue when no dispatch is pending", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data: {
+          ...data,
+          summary: { ...data.summary, queued: 0 },
+          queue: [],
+        },
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain("Nothing is queued for publication");
+  });
+
+  it("offers queue ordering, removal, and failed-item retry controls", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain('aria-label="Move Domain as identity earlier"');
+    expect(html).toContain('aria-label="Move Domain as identity later"');
+    expect(html).toContain('aria-label="Remove Domain as identity from queue"');
+    expect(html).toContain(">Retry<");
+  });
+});
+
+describe("SiteWorkspace", () => {
+  const data: SiteWorkspaceSnapshot = {
+    site: {
+      title: "Fern & Fable",
+      previewUrl: "https://preview.example.com",
+      liveUrl: "https://example.com",
+    },
+    automation: {
+      autoRebuild: true,
+      debounceMs: 5000,
+      defaultEnvironment: "preview",
+    },
+    environments: [
+      {
+        environment: "preview",
+        lastSuccess: {
+          jobId: "preview-1",
+          completedAt: "2026-07-16T09:00:00.000Z",
+          routesBuilt: 18,
+          warnings: [],
+        },
+      },
+      {
+        environment: "production",
+        lastFailure: {
+          jobId: "production-1",
+          completedAt: "2026-07-16T08:00:00.000Z",
+          message: "Template failed",
+        },
+      },
+    ],
+    recentBuilds: [
+      {
+        jobId: "preview-1",
+        environment: "preview",
+        outcome: "succeeded",
+        completedAt: "2026-07-16T09:00:00.000Z",
+        routesBuilt: 18,
+      },
+    ],
+    routes: [{ id: "home", path: "/", title: "Home" }],
+  };
+
+  it("renders preview and live state without duplicating site settings", () => {
+    const onAction = async (): Promise<SiteWorkspaceActionResult> => ({
+      accepted: true,
+      environment: "preview",
+    });
+    const html = renderToStaticMarkup(
+      createElement(SiteWorkspace, {
+        data,
+        onAction,
+      }),
+    );
+
+    expect(html).toContain("Site control");
+    expect(html).toContain("Build preview");
+    expect(html).toContain("Update live site");
+    expect(html).toContain("18 routes");
+    expect(html).toContain("Template failed");
+    expect(html).toContain("Registered routes · 1");
+    expect(html).toContain("Auto-rebuild");
+  });
+});
+
+describe("DirectorySyncWorkspace", () => {
+  const data: DirectorySyncWorkspaceSnapshot = {
+    health: "attention",
+    directory: {
+      displayPath: "brain-data",
+      exists: true,
+      watching: true,
+      totalFiles: 148,
+      byEntityType: { note: 42, post: 18 },
+      lastSettledAt: "2026-07-16T09:00:00.000Z",
+    },
+    git: {
+      branch: "main",
+      remoteLabel: "rizom-ai/rover-data",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit: "abcdef123456",
+      changedFiles: [],
+      changedFilesTruncated: false,
+    },
+    automation: {
+      autoSync: true,
+      watchIntervalMs: 1000,
+      remoteIntervalMinutes: 2,
+      commitDebounceMs: 5000,
+      deleteOnFileRemoval: true,
+    },
+    recentRuns: [
+      {
+        id: "run-1",
+        source: "manual",
+        outcome: "attention",
+        startedAt: "2026-07-16T08:59:00.000Z",
+        completedAt: "2026-07-16T09:00:00.000Z",
+        imported: 2,
+        skipped: 0,
+        failed: 0,
+        quarantined: 1,
+        exported: 0,
+        summary: "Import completed with attention",
+      },
+    ],
+    issues: [
+      {
+        id: "quarantined:post/broken.md.invalid",
+        kind: "quarantined",
+        path: "post/broken.md.invalid",
+        message: "Invalid status frontmatter",
+        occurredAt: "2026-07-16T09:00:00.000Z",
+      },
+    ],
+  };
+
+  it("renders status, a narrow manual action, history, and safe attention", () => {
+    const onAction = async (): Promise<DirectorySyncWorkspaceActionResult> => ({
+      accepted: true,
+      status: "queued",
+      runId: "run-2",
+    });
+    const html = renderToStaticMarkup(
+      createElement(DirectorySyncWorkspace, { data, onAction }),
+    );
+
+    expect(html).toContain("Content sync");
+    expect(html).toContain("Sync now");
+    expect(html).toContain("brain-data");
+    expect(html).toContain("rizom-ai/rover-data");
+    expect(html).toContain("post/broken.md.invalid");
+    expect(html).toContain("Import completed with attention");
+    expect(html).not.toContain("Force sync");
+  });
+
+  it("renders a local-only flow without an empty Git remote card", () => {
+    const html = renderToStaticMarkup(
+      createElement(DirectorySyncWorkspace, {
+        data: { ...data, health: "healthy", git: null, issues: [] },
+        onAction: async (): Promise<DirectorySyncWorkspaceActionResult> => ({
+          accepted: false,
+          status: "settled",
+        }),
+      }),
+    );
+
+    expect(html).toContain("files only");
+    expect(html).not.toContain("Git remote</strong>");
+  });
+});
+
+describe("PublicationActions", () => {
+  const renderActions = (status: string, unsaved = false): string =>
+    renderToStaticMarkup(
+      createElement(PublicationActions, {
+        entityType: "post",
+        entityId: "field-notes",
+        title: "Field notes",
+        status,
+        unsaved,
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+  it("maps persisted publication state to contextual actions", () => {
+    expect(renderActions("draft")).toContain("Add to queue");
+    expect(renderActions("queued")).toContain("Remove from queue");
+    expect(renderActions("failed")).toContain(">Retry<");
+    expect(renderActions("published")).toContain("Published");
+    expect(renderActions("published")).not.toContain("Publish now");
+  });
+
+  it("keeps publication separate from unsaved editor state", () => {
+    const html = renderActions("draft", true);
+    expect(html).toContain("Save changes before changing publication state");
+    expect(html).toContain("disabled");
+  });
+
+  it("renders an explicit external-publication confirmation", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishConfirmationDialog, {
+        title: "Field notes",
+        preview: "This will publish post:field-notes publicly.",
+        confirming: false,
+        onCancel: () => {},
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("Publish Field notes now?");
+    expect(html).toContain("publicly");
+    expect(html).toContain("Confirm publication");
   });
 });
 

@@ -24,8 +24,8 @@ interface ThreadIdParts {
 }
 
 interface ChatInputBuilderDeps {
-  /** The platform's already-scoped upload store (Discord scope applied by the caller). */
-  getUploadStore: () => RuntimeUploadStore | undefined;
+  /** Return the platform's scoped upload store, or undefined when ingestion is unsupported. */
+  getUploadStore: (platform: string) => RuntimeUploadStore | undefined;
   getThreadIdParts: (threadId: string) => ThreadIdParts;
   logger: {
     error: (message: string, context?: Record<string, unknown>) => void;
@@ -35,8 +35,8 @@ interface ChatInputBuilderDeps {
 /**
  * Turns an incoming chat message into agent input: validates and stores each
  * file attachment (collecting notices for rejects), producing the message text
- * plus ChatAttachments. Platform-agnostic — the only platform-specific input,
- * the scoped upload store, is injected so a future Slack adapter reuses this.
+ * plus ChatAttachments. Platform-agnostic — the platform-scoped upload store
+ * is injected, while each adapter supplies its own authenticated fetchData().
  */
 export class ChatInputBuilder {
   private readonly deps: ChatInputBuilderDeps;
@@ -52,7 +52,7 @@ export class ChatInputBuilder {
     userLevel: string,
   ): Promise<AgentInput> {
     const agentInput: AgentInput = {
-      message: message.text.trim(),
+      message: normalizeIncomingMessageText(platform, message),
       attachments: [],
       notices: [],
     };
@@ -61,7 +61,7 @@ export class ChatInputBuilder {
     const canUpload = userLevel === "anchor" || userLevel === "trusted";
     if (!canUpload) return agentInput;
 
-    const uploadStore = this.deps.getUploadStore();
+    const uploadStore = this.deps.getUploadStore(platform);
     if (!uploadStore) return agentInput;
 
     for (const attachment of message.attachments) {
@@ -172,6 +172,19 @@ export function chatAttachmentFromStoredUpload(
     source,
     isUploadableTextFile(filename, mediaType),
   );
+}
+
+function normalizeIncomingMessageText(
+  platform: string,
+  message: Message,
+): string {
+  const text = message.text.trim();
+  if (platform !== "slack" || !message.isMention) return text;
+
+  // The Slack adapter leaves the bot's own unresolved @U… mention in plain
+  // text so Chat SDK can detect app mentions. Do not pass that routing marker
+  // through to the agent as user intent.
+  return text.replace(/(^|\s)@[UW][A-Z0-9]+\b\s*/g, "$1").trim();
 }
 
 function toChatAttachment(

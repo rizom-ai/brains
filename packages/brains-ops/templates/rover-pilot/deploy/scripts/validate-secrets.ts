@@ -4,7 +4,7 @@ import { parseEnvSchema } from "./helpers";
 const envSchemaPath = ".env.schema";
 const schema = parseEnvSchema(readFileSync(envSchemaPath, "utf8"));
 const requiredKeys = schema
-  .filter((entry) => entry.required)
+  .filter((entry) => entry.required && entry.key !== "BWS_ACCESS_TOKEN")
   .map((entry) => entry.key);
 
 const missing: string[] = [];

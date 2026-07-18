@@ -3,6 +3,17 @@ export {
   loadPilotRegistry,
   type LoadPilotRegistryOptions,
 } from "./load-registry";
+export {
+  siteImageTag,
+  sitePackagesFor,
+  requiredImages,
+  resolveImageBuilds,
+  runResolveMissingImages,
+  type ImageRequirementSource,
+  type RequiredImage,
+  type ResolveImageBuildsOptions,
+  type RunResolveMissingImagesOptions,
+} from "./images";
 export { writeUsersTable } from "./render-users-table";
 export { onboardUser } from "./onboard-user";
 export { addPilotUser } from "./user-add";

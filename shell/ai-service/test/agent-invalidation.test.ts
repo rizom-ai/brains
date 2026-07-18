@@ -12,8 +12,8 @@ import type { BrainAgent } from "../src/agent-types";
 describe("AgentService invalidation", () => {
   let agentFactoryCalls: number;
 
-  beforeEach(() => {
-    AgentService.resetInstance();
+  beforeEach(async () => {
+    await AgentService.resetInstance();
     agentFactoryCalls = 0;
   });
 

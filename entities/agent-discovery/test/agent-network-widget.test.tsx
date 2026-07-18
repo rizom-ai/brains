@@ -4,9 +4,15 @@ import { render } from "preact-render-to-string";
 import {
   AgentNetworkWidget,
   agentNetworkWidgetScript,
+  agentNetworkWidgetStyles,
 } from "../src/widgets/agent-network-widget";
 
 describe("AgentNetworkWidget", () => {
+  it("owns its dashboard styles", () => {
+    expect(agentNetworkWidgetStyles).toContain(".agent-network-list");
+    expect(agentNetworkWidgetStyles).toContain("prefers-reduced-motion");
+  });
+
   it("bridges approved-agent promotion into the Anchor People flow", () => {
     expect(agentNetworkWidgetScript).toContain(
       'sessionStorage.setItem("brains:people-agent-promotion"',
@@ -111,6 +117,13 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain('data-agent-network-view="agents"');
     expect(html).toContain('data-agent-network-view-tab="agents"');
     expect(html).toContain('data-agent-network-view-tab="skills"');
+    expect(html).toContain('data-ui-tabs-default="agents"');
+    expect(html).toContain(
+      'data-ui-tabs-state-attribute="data-agent-network-view"',
+    );
+    expect(html).toContain('data-ui-tabs-default="all"');
+    expect(html).toContain('data-ui-tab="skills"');
+    expect(html).toContain('data-ui-panel="professional"');
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
     expect(html).toContain('data-agent-promote="kai.brain"');

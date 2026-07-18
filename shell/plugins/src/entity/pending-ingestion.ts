@@ -2,6 +2,7 @@ import type {
   BaseEntity,
   EntityInput,
   EntityMutationResult,
+  UpdateEntityOptions,
 } from "@brains/entity-service";
 
 export type PendingIngestionStatus = "pending" | "draft" | "failed";
@@ -20,7 +21,10 @@ export interface PendingEntityService {
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
   }): Promise<EntityMutationResult>;
-  updateEntity(request: { entity: BaseEntity }): Promise<EntityMutationResult>;
+  updateEntity(request: {
+    entity: BaseEntity;
+    options?: UpdateEntityOptions | undefined;
+  }): Promise<EntityMutationResult>;
 }
 
 type EntityInputWithId = EntityInput<BaseEntity> & {
@@ -76,6 +80,7 @@ export async function createPendingEntity({
 export interface SaveProcessedEntityRequest {
   entityService: PendingEntityService;
   entity: EntityInputWithId;
+  expectedContentHash?: string | undefined;
 }
 
 export interface SaveProcessedEntityResult {
@@ -112,6 +117,7 @@ export type FailPendingEntityResult =
 export async function saveProcessedEntity({
   entityService,
   entity,
+  expectedContentHash,
 }: SaveProcessedEntityRequest): Promise<SaveProcessedEntityResult> {
   const previousEntity = await entityService.getEntity({
     entityType: entity.entityType,
@@ -127,12 +133,28 @@ export async function saveProcessedEntity({
     };
     const mutation = await entityService.updateEntity({
       entity: updatedEntity,
+      ...(expectedContentHash !== undefined
+        ? { options: { expectedContentHash } }
+        : {}),
     });
     return {
       entityId: mutation.entityId,
       updated: true,
       mutation,
       previousEntity,
+    };
+  }
+
+  if (expectedContentHash !== undefined) {
+    return {
+      entityId: entity.id,
+      updated: false,
+      mutation: {
+        entityId: entity.id,
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      },
     };
   }
 

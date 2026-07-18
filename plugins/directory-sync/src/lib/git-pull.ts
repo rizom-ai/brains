@@ -15,7 +15,9 @@ export async function pullGitChanges(
   logger: Logger,
   branch: string,
   net: GitNetwork,
+  signal?: AbortSignal,
 ): Promise<PullResult> {
+  signal?.throwIfAborted();
   logger.debug("Pulling from origin", { branch });
 
   const status = await git.status();
@@ -33,18 +35,24 @@ export async function pullGitChanges(
   try {
     // The network fetch runs on a throwaway, stall-guarded instance so an
     // unresponsive remote can't hang the caller and wedge the git lock.
-    await runGitWithStallTimeout(net, (g) =>
-      g.pull("origin", branch, {
-        "--no-rebase": null,
-        "--allow-unrelated-histories": null,
-        "--strategy=recursive": null,
-        "-Xtheirs": null,
-      }),
+    await runGitWithStallTimeout(
+      net,
+      (g) =>
+        g.pull("origin", branch, {
+          "--no-rebase": null,
+          "--allow-unrelated-histories": null,
+          "--strategy=recursive": null,
+          "-Xtheirs": null,
+        }),
+      signal,
     );
+    signal?.throwIfAborted();
 
-    return await getChangedFilesSince(git, headBefore);
+    const result = await getChangedFilesSince(git, headBefore);
+    signal?.throwIfAborted();
+    return result;
   } catch (pullError) {
-    return handlePullError(git, logger, branch, net, pullError);
+    return handlePullError(git, logger, branch, net, pullError, signal);
   }
 }
 
@@ -54,7 +62,9 @@ async function handlePullError(
   branch: string,
   net: GitNetwork,
   pullError: unknown,
+  signal?: AbortSignal,
 ): Promise<PullResult> {
+  if (signal?.aborted) throw signal.reason;
   if (pullError instanceof GitStallError) {
     throw pullError;
   }
@@ -66,7 +76,7 @@ async function handlePullError(
   }
 
   if (msg.includes("couldn't find remote ref")) {
-    return bootstrapRemoteBranch(git, logger, branch, net);
+    return bootstrapRemoteBranch(git, logger, branch, net, signal);
   }
 
   throw new Error(`Failed to pull: ${msg}`);
@@ -110,6 +120,7 @@ async function bootstrapRemoteBranch(
   logger: Logger,
   branch: string,
   net: GitNetwork,
+  signal?: AbortSignal,
 ): Promise<PullResult> {
   // Remote is empty (no branches) — bootstrap it by committing any
   // pending local changes and pushing to create the remote branch.
@@ -126,6 +137,7 @@ async function bootstrapRemoteBranch(
       throw commitError;
     }
   }
-  await pushGitChanges(logger, branch, net);
+  signal?.throwIfAborted();
+  await pushGitChanges(logger, branch, net, signal);
   return { files: [] };
 }

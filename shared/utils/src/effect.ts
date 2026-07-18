@@ -1,0 +1,17 @@
+// Canonical internal Effect boundary. Keep exports curated so workspace packages
+// do not depend on Effect's broad root surface independently.
+export {
+  Cause,
+  Clock,
+  Context,
+  Effect,
+  Either,
+  Exit,
+  Fiber,
+  FiberMap,
+  FiberSet,
+  Layer,
+  Option,
+  Schedule,
+  Scope,
+} from "effect";

@@ -1,7 +1,7 @@
 ---
 "@brains/site-personal": patch
 "@brains/theme-base": patch
-"@brains/theme-default": patch
+"@rizom/theme-default": patch
 "@brains/theme-rizom": patch
 "@brains/rover": patch
 "@rizom/brain": patch

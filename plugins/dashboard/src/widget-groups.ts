@@ -1,7 +1,6 @@
 export const DASHBOARD_GROUP_ORDER = [
   "knowledge",
   "publishing",
-  "site",
   "network",
   "system",
 ] as const;
@@ -9,7 +8,6 @@ export const DASHBOARD_GROUP_ORDER = [
 const GROUP_LABELS: Record<string, string> = {
   knowledge: "Knowledge",
   publishing: "Publishing",
-  site: "Site",
   network: "Network",
   system: "System",
 };

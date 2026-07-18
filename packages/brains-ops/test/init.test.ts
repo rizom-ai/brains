@@ -229,24 +229,28 @@ describe("initPilotRepo", () => {
     );
     expect(buildWorkflow).toContain("docker/build-push-action@v7");
     expect(buildWorkflow).toContain("target: fleet");
-    expect(buildWorkflow).toContain("brainVersion");
+    // The image set is a pure function of the declared fleet state: a config
+    // push resolves the registry and matrix-builds only the missing images.
     expect(buildWorkflow).toContain("brain_version:");
     expect(buildWorkflow).toContain("users/*.yaml");
-    expect(buildWorkflow).toContain("cohorts/*.yaml");
-    expect(buildWorkflow).toContain("package.json");
-    expect(buildWorkflow).toContain("bun.lock");
+    expect(buildWorkflow).toContain("cohorts/**");
+    expect(buildWorkflow).toContain("pilot.yaml");
     expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
     expect(buildWorkflow).toContain(
-      "bun deploy/scripts/resolve-build-config.ts",
+      "bun deploy/scripts/resolve-missing-images.ts",
     );
-    expect(buildWorkflow).toContain("SITE_PACKAGES=${{ env.SITE_PACKAGES }}");
     expect(buildWorkflow).toContain(
-      "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
+      "image: ${{ fromJson(needs.resolve.outputs.images_json) }}",
     );
-    expect(buildWorkflow).toContain("type=raw,value=${{ env.IMAGE_TAG }}");
-    expect(buildWorkflow).not.toContain(
-      "type=raw,value=brain-${{ env.BRAIN_VERSION }}-${{ github.sha }}",
+    expect(buildWorkflow).toContain(
+      "BRAIN_VERSION=${{ matrix.image.brain_version }}",
     );
+    expect(buildWorkflow).toContain(
+      "SITE_PACKAGES=${{ matrix.image.site_packages }}",
+    );
+    expect(buildWorkflow).toContain("ghcr.io/${{ github.repository }}");
+    expect(buildWorkflow).toContain("type=raw,value=${{ matrix.image.tag }}");
+    expect(buildWorkflow).not.toContain("resolve-build-config");
     expect(buildWorkflow).not.toContain("TODO:");
 
     const deployWorkflow = await readFile(
@@ -261,12 +265,20 @@ describe("initPilotRepo", () => {
       "github.event.workflow_run.conclusion == 'success'",
     );
     expect(deployWorkflow).toContain("fetch-depth: 0");
-    expect(deployWorkflow).toContain("users/*.yaml");
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
     expect(deployWorkflow).toContain("users/*/content/**");
     expect(deployWorkflow).toContain("users/*.secrets.yaml.age");
     expect(deployWorkflow).toContain("handle:");
+    expect(deployWorkflow).toContain(`release_stale_lock:
+        description: Release an operator-confirmed stale Kamal deploy lock before retrying
+        required: false
+        type: boolean
+        default: false`);
+    expect(deployWorkflow).toContain("if: ${{ inputs.release_stale_lock }}");
+    expect(deployWorkflow).toContain(
+      "kamal lock release -c deploy/kamal/deploy.yml",
+    );
     expect(deployWorkflow).toContain("strategy:");
     expect(deployWorkflow).toContain("matrix.handle");
     expect(deployWorkflow).toContain(
@@ -275,15 +287,22 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("Finalize generated config");
     expect(deployWorkflow).toContain("actions/download-artifact@v4");
     expect(deployWorkflow).toContain("pattern: generated-*-config");
+    // A new user's generated config is untracked; without intent-to-add
+    // every `git diff` below is blind to it and the finalize step silently
+    // drops the directory, so later deploys skip the user forever.
+    expect(deployWorkflow).toContain("git add --intent-to-add -- users views");
     expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-deploy-handles.ts",
     );
     expect(deployWorkflow).toContain("Decrypt user secrets");
+    // Shared operator env (age key, shared API keys) loads through varlock —
+    // per-step secret plumbing is gone with it.
     expect(deployWorkflow).toContain(
-      "AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}",
+      "BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}",
     );
+    expect(deployWorkflow).toContain("varlock");
     expect(deployWorkflow).toContain(
       'bun deploy/scripts/decrypt-user-secrets.ts "$HANDLE"',
     );
@@ -292,9 +311,6 @@ describe("initPilotRepo", () => {
       "bun deploy/scripts/resolve-user-config.ts",
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/sync-content-repo.ts");
-    expect(deployWorkflow).toContain(
-      'export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"',
-    );
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
@@ -304,10 +320,7 @@ describe("initPilotRepo", () => {
       "WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}",
     );
     expect(deployWorkflow).toContain(
-      "CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
-    );
-    expect(deployWorkflow).toContain(
-      'export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"',
+      "CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
     );
     expect(deployWorkflow).toContain('if [ -n "$WWW_DOMAIN" ]; then');
     expect(deployWorkflow).toContain(
@@ -316,23 +329,17 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
-    expect(deployWorkflow).toContain("https://$WWW_DOMAIN/");
+    expect(deployWorkflow).toContain("https://$PREVIEW_DOMAIN/");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
     );
-    expect(deployWorkflow).toContain(
-      'export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"',
-    );
     expect(deployWorkflow).not.toContain("MCP_AUTH_TOKEN");
-    expect(deployWorkflow).toContain(
-      "SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}",
-    );
-    expect(deployWorkflow).toContain(
-      "SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}",
-    );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
-    expect(deployWorkflow).toContain("Wait for shared image tag");
+    // The Build workflow fires off the same config push, so the deploy waits
+    // long enough to cover a full image build.
+    expect(deployWorkflow).toContain("Wait for image tag");
+    expect(deployWorkflow).toContain("seq 1 60");
     expect(deployWorkflow).toContain(
       "${{ steps.user_config.outputs.image_repository }}:${{ steps.user_config.outputs.image_tag }}",
     );
@@ -373,31 +380,42 @@ describe("initPilotRepo", () => {
       'git commit -m "chore(ops): reconcile $HANDLE"',
     );
     expect(deployWorkflow).not.toContain("\n          git push\n");
-    expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
 
     const decryptUserSecretsScript = await readFile(
       join(repo, "deploy", "scripts", "decrypt-user-secrets.ts"),
       "utf8",
     );
+    // Secrets are emitted through writeSecretGitHubEnv, which masks the value
+    // and skips empties. CMS_CONTENT_REPO_PAT falls back to the git-sync token.
+    // Optional per-user ATProto and custom-domain TLS values override shared
+    // deploy env only when they are present in the encrypted user payload.
     expect(decryptUserSecretsScript).toContain(
-      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+      'writeSecretGitHubEnv("AI_API_KEY"',
+    );
+    expect(decryptUserSecretsScript).toContain('"CMS_CONTENT_REPO_PAT"');
+    expect(decryptUserSecretsScript).toContain("maskGitHubSecret");
+    expect(decryptUserSecretsScript).toContain(
+      'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
     expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
     expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
+    expect(decryptUserSecretsScript).toContain("decodeEscapedSecret");
+    expect(decryptUserSecretsScript).toContain("Bun.YAML.parse");
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
 
-    const resolveBuildScript = await readFile(
-      join(repo, "deploy", "scripts", "resolve-build-config.ts"),
+    // The build's resolve step is a thin caller — the logic (derive the
+    // declared image set, probe the registry) lives in @rizom/ops.
+    const resolveImagesScript = await readFile(
+      join(repo, "deploy", "scripts", "resolve-missing-images.ts"),
       "utf8",
     );
-    expect(resolveBuildScript).toContain("loadPilotRegistry");
-    expect(resolveBuildScript).toContain("SITE_PACKAGES");
-    expect(resolveBuildScript).toContain("IMAGE_TAG");
-    expect(resolveBuildScript).toContain("siteOverride.package");
-    expect(resolveBuildScript).toContain("sites-");
+    expect(resolveImagesScript).toContain("runResolveMissingImages");
+    expect(resolveImagesScript).toContain('requireEnv("GITHUB_REPOSITORY")');
+    expect(resolveImagesScript).toContain("writeGitHubOutput");
+    expect(resolveImagesScript).toContain('from "./helpers"');
 
     const resolveScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-user-config.ts"),
@@ -408,12 +426,13 @@ describe("initPilotRepo", () => {
     expect(resolveScript).toContain("www_domain");
     expect(resolveScript).toContain("cloudflare_zone_id");
     expect(resolveScript).toContain("image_tag");
-    expect(resolveScript).toContain("resolveImageTag");
-    expect(resolveScript).toContain("const previewDomain = pilotZone");
-    expect(resolveScript).toContain(": `preview.${brainDomain}`");
-    expect(resolveScript).toContain(
-      'const wwwDomain = pilotZone ? "" : `www.${brainDomain}`',
-    );
+    // Tag derivation goes through the shared @rizom/ops helpers so the build
+    // and the deploy can never disagree about a tag.
+    expect(resolveScript).toContain("siteImageTag");
+    expect(resolveScript).toContain("sitePackagesFor");
+    expect(resolveScript).toContain("resolvePreviewDomain");
+    expect(resolveScript).toContain("-preview.");
+    expect(resolveScript).toContain("`preview.${domain}`");
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
@@ -423,6 +442,8 @@ describe("initPilotRepo", () => {
     expect(helpersScript).toContain("readJsonResponse");
     expect(helpersScript).toContain("parseEnvFile");
     expect(helpersScript).toContain("requireEnv");
+    expect(helpersScript).toContain("siteImageTag");
+    expect(helpersScript).toContain("runResolveMissingImages");
 
     const resolveHandlesScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-deploy-handles.ts"),
@@ -432,8 +453,14 @@ describe("initPilotRepo", () => {
       'if (eventName !== "push" && eventName !== "workflow_run")',
     );
     expect(resolveHandlesScript).toContain('eventName === "workflow_run"');
+    // Deploy handles come from reconcile outputs (brain.yaml/.env/content) and
+    // the encrypted secrets file — NOT the raw users/<handle>.yaml registry
+    // file, which flows through Build + Reconcile first.
     expect(resolveHandlesScript).toContain(
-      "path.match(/^users\\/([^/]+)\\.yaml$/)",
+      "path.match(/^users\\/([^/]+)\\/(?:\\.env|brain\\.yaml|content\\/.*)$/)",
+    );
+    expect(resolveHandlesScript).toContain(
+      "path.match(/^users\\/([^/]+)\\.secrets\\.yaml\\.age$/)",
     );
 
     const reconcileWorkflow = await readFile(
@@ -448,6 +475,11 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(reconcileWorkflow).toContain(
       'git fetch origin "${{ github.ref_name }}"',
+    );
+    // Same untracked-blindness guard as the deploy finalize step: a brand
+    // new users/<handle>/ directory must be visible to the diff dance.
+    expect(reconcileWorkflow).toContain(
+      "git add --intent-to-add -- views users",
     );
     expect(reconcileWorkflow).toContain(
       'git reset --hard "origin/${{ github.ref_name }}"',
@@ -487,6 +519,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("app_port: 8080");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
+    expect(deployConfig).toContain("- <%= ENV['WWW_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain-state:/data");
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
@@ -601,7 +634,7 @@ describe("initPilotRepo", () => {
     await writeFile(
       decryptScriptPath,
       (await readFile(decryptScriptPath, "utf8")).replace(
-        'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+        'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
         "",
       ),
     );
@@ -615,7 +648,7 @@ describe("initPilotRepo", () => {
       "- ATPROTO_APP_PASSWORD",
     );
     expect(await readFile(decryptScriptPath, "utf8")).toContain(
-      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+      'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
   });
 
@@ -748,7 +781,7 @@ describe("initPilotRepo", () => {
     expect(output).toContain('handles_json=["alice"]');
   });
 
-  it("resolve-deploy-handles returns changed handles for user registry changes", async () => {
+  it("resolve-deploy-handles deploys the reconciled brain.yaml, not the raw registry file", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
@@ -758,13 +791,16 @@ describe("initPilotRepo", () => {
     initializeGitRepo(repo);
     const beforeSha = commitAll(repo, "initial");
 
+    // A raw users/<handle>.yaml registry edit does NOT trigger a deploy handle
+    // on its own: it flows through Build (image) + Reconcile, and it is the
+    // regenerated users/<handle>/brain.yaml that deploys. This ordering keeps a
+    // deploy from running against stale config before reconcile catches up.
     await writeFile(
       join(repo, "users", "alice.yaml"),
       `handle: alice\ndiscord:\n  enabled: false\nsiteOverride:\n  package: "@rizom/site-docs"\n  version: 0.2.0-alpha.136\n`,
     );
-    const currentSha = commitAll(repo, "update alice site package");
+    const registrySha = commitAll(repo, "update alice site package");
     await writeFile(outputPath, "");
-
     execFileSync(
       process.execPath,
       ["deploy/scripts/resolve-deploy-handles.ts"],
@@ -774,15 +810,41 @@ describe("initPilotRepo", () => {
           ...process.env,
           GITHUB_EVENT_NAME: "push",
           BEFORE_SHA: beforeSha,
-          GITHUB_SHA: currentSha,
+          GITHUB_SHA: registrySha,
           GITHUB_OUTPUT: outputPath,
         },
         encoding: "utf8",
       },
     );
+    expect(await readFile(outputPath, "utf8")).toContain("handles_json=[]");
 
-    const output = await readFile(outputPath, "utf8");
-    expect(output).toContain('handles_json=["alice"]');
+    // Reconcile's output — users/<handle>/brain.yaml — is what resolves the
+    // handle and triggers the deploy.
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(
+      join(repo, "users", "alice", "brain.yaml"),
+      "version: 0.2.0-alpha.136\n",
+    );
+    const reconciledSha = commitAll(repo, "reconcile alice brain.yaml");
+    await writeFile(outputPath, "");
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: registrySha,
+          GITHUB_SHA: reconciledSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+    expect(await readFile(outputPath, "utf8")).toContain(
+      'handles_json=["alice"]',
+    );
   });
 
   it("resolve-deploy-handles returns changed user handles for workflow_run events", async () => {

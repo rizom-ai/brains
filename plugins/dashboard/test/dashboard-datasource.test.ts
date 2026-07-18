@@ -187,6 +187,8 @@ describe("DashboardDataSource", () => {
         section: "primary",
         priority: 10,
         rendererName: "CustomWidget",
+        clientStyles: ".test-widget {}",
+        clientScript: "window.__testWidget = true;",
         dataProvider: async () => ({ value: 1 }),
       };
 
@@ -209,8 +211,10 @@ describe("DashboardDataSource", () => {
         expect(widgetData.widget.group).toBe("knowledge");
         expect(widgetData.widget.priority).toBe(10);
         expect(widgetData.widget.rendererName).toBe("CustomWidget");
-        // dataProvider should not be in the returned metadata
+        // Runtime providers and client assets should not leak into data.
         expect(widgetData.widget).not.toHaveProperty("dataProvider");
+        expect(widgetData.widget).not.toHaveProperty("clientStyles");
+        expect(widgetData.widget).not.toHaveProperty("clientScript");
       }
     });
   });

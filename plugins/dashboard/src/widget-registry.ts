@@ -7,6 +7,9 @@ export interface WidgetComponentProps {
   title: string;
   description?: string;
   data: unknown;
+  pluginId?: string;
+  widgetId?: string;
+  instanceId?: string;
 }
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
@@ -119,6 +122,7 @@ export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;
   digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
+  clientStyles?: string;
   clientScript?: string;
 }
 
@@ -126,6 +130,7 @@ export interface StoredRegisteredWidget extends DashboardWidgetMeta {
   dataProvider: WidgetDataProvider;
   digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
+  clientStyles?: string;
   clientScript?: string;
 }
 
@@ -146,6 +151,7 @@ export class DashboardWidgetRegistry {
         ? { digestProvider: widget.digestProvider }
         : {}),
       ...(widget.component ? { component: widget.component } : {}),
+      ...(widget.clientStyles ? { clientStyles: widget.clientStyles } : {}),
       ...(widget.clientScript ? { clientScript: widget.clientScript } : {}),
     };
     const key = `${normalizedWidget.pluginId}:${normalizedWidget.id}`;

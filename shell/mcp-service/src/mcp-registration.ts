@@ -226,6 +226,7 @@ export function registerToolOnServer(
             channelId,
             channelName,
             userPermissionLevel: permissionLevel,
+            signal: extra.signal,
           },
           sender: "MCPService",
         });

@@ -1,5 +1,418 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.200
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.200
+  - @rizom/site-sections@0.2.0-alpha.200
+  - @rizom/site-rizom@0.2.0-alpha.200
+
+## 0.2.0-alpha.199
+
+### Patch Changes
+
+- [`19ada88`](https://github.com/rizom-ai/brains/commit/19ada8898f6426e5ea0ba632f6b5d0c9424231c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Match the live hero to the rev-10 mock: full-bleed composition (no card chrome), mock grid proportions and display-scale headline, solid CTA button, bold-emphasis support in the authored lede, tighter map field so the foot caption sits snug — and fix the withered cap tick that referenced a nonexistent bg utility.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.199
+  - @rizom/site-sections@0.2.0-alpha.199
+  - @rizom/site-rizom@0.2.0-alpha.199
+
+## 0.2.0-alpha.198
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.198
+  - @rizom/site-sections@0.2.0-alpha.198
+  - @rizom/site-rizom@0.2.0-alpha.198
+
+## 0.2.0-alpha.197
+
+### Patch Changes
+
+- [`433957d`](https://github.com/rizom-ai/brains/commit/433957d57a5c122ca6cd7e705f26a972098c7aeb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rev-10 home narrative: growth carries the system (three stage columns under the diagram), the mission band is the quote alone, one-light gains its pull line and moves after the mission, the problem trio withers (cold cap, hollow numerals), and the proximity map replaces the stat ledger and kind legend with a quiet foot caption — agents · constellations discovered · the map is live.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.197
+  - @rizom/site-sections@0.2.0-alpha.197
+  - @rizom/site-rizom@0.2.0-alpha.197
+
+## 0.2.0-alpha.196
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.196
+  - @rizom/site-sections@0.2.0-alpha.196
+  - @rizom/site-rizom@0.2.0-alpha.196
+
+## 0.2.0-alpha.195
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.195
+  - @rizom/site@0.2.0-alpha.195
+  - @rizom/site-sections@0.2.0-alpha.195
+
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.194
+  - @rizom/site-sections@0.2.0-alpha.194
+  - @rizom/site-rizom@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.193
+  - @rizom/site-sections@0.2.0-alpha.193
+  - @rizom/site-rizom@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.192
+  - @rizom/site-sections@0.2.0-alpha.192
+  - @rizom/site-rizom@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.191
+  - @rizom/site-sections@0.2.0-alpha.191
+  - @rizom/site-rizom@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.190
+  - @rizom/site@0.2.0-alpha.190
+  - @rizom/site-sections@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.189
+  - @rizom/site@0.2.0-alpha.189
+  - @rizom/site-sections@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.188
+  - @rizom/site-sections@0.2.0-alpha.188
+  - @rizom/site-rizom@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.187
+  - @rizom/site-sections@0.2.0-alpha.187
+  - @rizom/site-rizom@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.186
+  - @rizom/site@0.2.0-alpha.186
+  - @rizom/site-sections@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.185
+  - @rizom/site-sections@0.2.0-alpha.185
+  - @rizom/site-rizom@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.184
+  - @rizom/site@0.2.0-alpha.184
+  - @rizom/site-sections@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.183
+  - @rizom/site@0.2.0-alpha.183
+  - @rizom/site-sections@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- [`e01e612`](https://github.com/rizom-ai/brains/commit/e01e612a14105fe70fcb5074605d8c006d1a08e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - One width system: section blocks fill the shared content column instead of stopping at per-section caps tuned to the mockup's narrower frame (the growth diagram gains ~200px of presence); reading measure moves to ch caps on the copy itself. Chrome fixes: the faces strip's rizom mark links home, and the org-index pages (/writing, /network) wear the plain umbrella wordmark and home links instead of falling back to rizom.brain.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.182
+  - @rizom/site-sections@0.2.0-alpha.182
+  - @rizom/site-rizom@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Visual pass on the consolidated-site chrome and sections across breakpoints. The faces strip wraps with tighter mobile metrics instead of overflowing narrow phones, the per-face nav links appear from `sm` (the footer covers them below), and the wordmark clamps so `rizom.foundation` fits a 360px row. A `#themeToggle` button joins the strip — boot.js and the site-engine `window.toggleTheme` were already wired, so this makes the theme's first-class light mode actually reachable. The org indexes (Writing, Network) move out of the strip into the home page's own nav, replacing the Brain/Docs links that duplicated the strip and footer; the strip keeps just the three faces and the toggle. The footer takes its four-column form from `lg`. IndexRow no longer drops its display title into the 44px folio column below `md` (title and meta take full-width rows). SectCap's accent tick wraps as one unit with its lead. The /brain product screens collapse on phones: the studio's library pane becomes a horizontal file strip and the dashboard strip/tabs wrap or scroll. Small mono links across the chrome and colophon carry enlarged tap areas.
+
+- Updated dependencies [[`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75)]:
+  - @rizom/site-rizom@0.2.0-alpha.181
+  - @rizom/site@0.2.0-alpha.181
+  - @rizom/site-sections@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.180
+  - @rizom/site@0.2.0-alpha.180
+  - @rizom/site-sections@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.179
+  - @rizom/site@0.2.0-alpha.179
+  - @rizom/site-sections@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.178
+  - @rizom/site-sections@0.2.0-alpha.178
+  - @rizom/site-rizom@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.177
+  - @rizom/site-sections@0.2.0-alpha.177
+  - @rizom/site-rizom@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.176
+  - @rizom/site@0.2.0-alpha.176
+  - @rizom/site-sections@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.175
+  - @rizom/site@0.2.0-alpha.175
+  - @rizom/site-sections@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.174
+  - @rizom/site@0.2.0-alpha.174
+  - @rizom/site-sections@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.173
+  - @rizom/site@0.2.0-alpha.173
+  - @rizom/site-sections@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.172
+  - @rizom/site-sections@0.2.0-alpha.172
+  - @rizom/site-rizom@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.171
+  - @rizom/site-sections@0.2.0-alpha.171
+  - @rizom/site-rizom@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.170
+  - @rizom/site-sections@0.2.0-alpha.170
+  - @rizom/site-rizom@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.169
+  - @rizom/site-sections@0.2.0-alpha.169
+  - @rizom/site-rizom@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the missing "It starts with one light — yours" home section (the product hook between the problem trio and the growth diagram, per the rev-8 redesign), and give the shared trio schema an optional cap note so the problem cap can carry its trail line.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.168
+  - @rizom/site-sections@0.2.0-alpha.168
+  - @rizom/site-rizom@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.167
+  - @rizom/site@0.2.0-alpha.167
+  - @rizom/site-sections@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.166
+  - @rizom/site-sections@0.2.0-alpha.166
+  - @rizom/site-rizom@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.165
+  - @rizom/site@0.2.0-alpha.165
+  - @rizom/site-sections@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.164
+  - @rizom/site-sections@0.2.0-alpha.164
+  - @rizom/site-rizom@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.163
+  - @rizom/site-sections@0.2.0-alpha.163
+  - @rizom/site-rizom@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.162
+  - @rizom/site-sections@0.2.0-alpha.162
+  - @rizom/site-rizom@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.161
+  - @rizom/site@0.2.0-alpha.161
+  - @rizom/site-sections@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- [`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The consolidated rizom.ai site (rev-5): one site serving the platform home plus
+  the `/work` and `/foundation` rooms, with `/writing` (essays + talks) and
+  `/network` (agent directory) rendered by the blog/decks/agent-discovery
+  plugins' own list templates. Two-tier chrome (faces strip over per-face nav),
+  mycelium rail, You→Team→Network growth diagram, and a four-column footer on
+  every face. All sections are authored schema-first via `@rizom/site-sections`;
+  copy ships as `site-content/<page>/<section>.md` entities. The consolidated
+  rover composition adds `site-content` (it registers the entity type the page
+  sections render from) alongside web-chat, atproto-registry, products,
+  rizom-ecosystem, and newsletter.
+- Updated dependencies [[`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89)]:
+  - @rizom/site-sections@0.2.0-alpha.160
+  - @rizom/site@0.2.0-alpha.160
+  - @rizom/site-rizom@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.159
+  - @rizom/site-rizom@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.158
+  - @rizom/site-rizom@0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.157
+  - @rizom/site-rizom@0.2.0-alpha.157
+
 ## 0.2.0-alpha.156
 
 ### Patch Changes

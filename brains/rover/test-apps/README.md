@@ -7,6 +7,7 @@ Local rover preset apps for fast iteration during development.
 - `core` — minimal capture + sync + MCP/A2A surface, with webserver but no site-builder
 - `default` — adds the website surface, dashboard, blog, decks, analytics, and site-builder; uses `@brains/site-personal` with the rover model's default theme
 - `full` — adds portfolio, content automation, newsletter, social-media, and stock-photo workflows
+- `slack` — core preset plus `@brains/chat` in Slack Socket Mode, with no public webhook
 
 ## Start a preset
 
@@ -16,9 +17,10 @@ From `brains/rover/`:
 bun start:core
 bun start:default
 bun start:full
+bun start:slack
 ```
 
-Each command runs the matching test app via the in-repo `@rizom/brain` workspace package. `directory-sync` bootstraps the preset-specific local content remote from `../../eval-content-core`, `../../eval-content-default`, or `../../eval-content-full` when the remote is missing or empty.
+Each command runs the matching test app via the in-repo `@rizom/brain` workspace package. `directory-sync` bootstraps the preset-specific local content remote from `../../eval-content-core`, `../../eval-content-default`, or `../../eval-content-full` when the remote is missing or empty. `start:slack` first runs the credential-safe Slack preflight and uses the core seed content.
 
 ## Minimum local env
 
@@ -43,6 +45,7 @@ Only set these when you need the corresponding integration:
 
 - `MCP_AUTH_TOKEN` — deprecated static fallback for MCP HTTP auth. Prefer the built-in OAuth/passkey provider; when `auth-service` is enabled, `/mcp` accepts brain-issued OAuth bearer tokens without this env var.
 - `DISCORD_BOT_TOKEN` — enable the Discord interface
+- `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` — required by `start:slack`; the app token needs `connections:write`
 - `LINKEDIN_ACCESS_TOKEN`
 - `BUTTONDOWN_API_KEY`
 - `UNSPLASH_ACCESS_KEY`
@@ -60,6 +63,7 @@ Remove the matching test app state and local content remote:
 rm -rf brains/rover/test-apps/core/brain-data brains/rover/test-apps/core/data brains/rover/test-apps/core/dist /tmp/rover-core-test-content.git
 rm -rf brains/rover/test-apps/default/brain-data brains/rover/test-apps/default/data brains/rover/test-apps/default/dist /tmp/rover-default-test-content.git
 rm -rf brains/rover/test-apps/full/brain-data brains/rover/test-apps/full/data brains/rover/test-apps/full/dist /tmp/rover-full-test-content.git
+rm -rf brains/rover/test-apps/slack/brain-data brains/rover/test-apps/slack/data brains/rover/test-apps/slack/dist /tmp/rover-slack-test-content.git
 ```
 
 The next `bun start:*` recreates and seeds that preset's local content remote from the matching `brains/rover/eval-content-*` directory.

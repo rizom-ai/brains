@@ -183,8 +183,7 @@ body {
 .web-chat-app > .web-chat-session-notice,
 .web-chat-app > .web-chat-status,
 .web-chat-app > .web-chat-error,
-.web-chat-app > .web-chat-file-notice,
-.web-chat-app > .web-chat-prompt-input {
+.web-chat-app > .web-chat-file-notice {
   width: min(calc(100% - 40px), 900px);
   max-width: 900px;
   margin-inline: auto;
@@ -231,19 +230,96 @@ body {
 .web-chat-error,
 .web-chat-file-notice { margin-top: 12px; }
 .web-chat-status { margin-block: 8px; }
+
+/* Composer — the attach / message / send pill from the mockups, at every
+   width. The boxed instrument card in chat-page.css (kicker label, attach
+   pill, keyboard hints) is neutralized here. */
 .web-chat-prompt-input {
-  margin-top: 8px;
-  margin-bottom: 18px;
   clip-path: none;
-  border-color: var(--console-rule-strong);
-  border-radius: 16px;
-  background: var(--console-card);
-  box-shadow: var(--console-shadow-card);
 }
 .web-chat-prompt-input::before { display: none; }
-.web-chat-prompt-textarea {
+.web-chat-app > .web-chat-prompt-input {
+  align-self: end;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding:
+    12px
+    clamp(12px, 3vw, 32px)
+    calc(14px + env(safe-area-inset-bottom, 0px));
+  border-width: 1px 0 0;
+  border-color: var(--console-rule-strong);
+  border-radius: 0;
+  background: var(--console-frame);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.web-chat-prompt-input > [data-slot="input-group"] {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 7px;
   min-height: 58px;
-  padding-top: 14px;
+  width: min(100%, 900px);
+  max-width: 900px;
+  margin-inline: auto;
+  padding: 6px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 22px;
+  background: var(--console-card);
+  box-shadow: none;
+}
+.web-chat-prompt-input label { display: none; }
+.web-chat-prompt-input [data-align="block-end"] {
+  display: contents;
+}
+.web-chat-prompt-input [data-slot="input-group-addon"]:empty {
+  display: none;
+}
+.web-chat-prompt-attachments {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  padding: 4px;
+}
+.web-chat-prompt-textarea {
+  grid-column: 2;
+  grid-row: 1;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 96px;
+  padding: 10px 2px !important;
+  line-height: 1.45;
+}
+.web-chat-prompt-footer { display: contents; }
+.web-chat-prompt-footer > div {
+  grid-column: 1;
+  grid-row: 1;
+}
+.web-chat-prompt-attach {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--console-card-soft);
+  font-size: 0;
+}
+.web-chat-prompt-attach::before {
+  content: "+";
+  font-family: var(--console-mono);
+  font-size: 19px;
+  font-weight: 400;
+}
+.web-chat-prompt-submit {
+  grid-column: 3;
+  grid-row: 1;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  justify-content: center;
 }
 
 @media (min-width: 761px) and (max-width: 900px) {
@@ -273,18 +349,13 @@ body {
   .web-chat-app > .web-chat-session-notice,
   .web-chat-app > .web-chat-status,
   .web-chat-app > .web-chat-error,
-  .web-chat-app > .web-chat-file-notice,
-  .web-chat-app > .web-chat-prompt-input {
+  .web-chat-app > .web-chat-file-notice {
     width: calc(100% - 24px);
   }
   .web-chat-conversation { padding-block: 12px; }
   .web-chat-conversation-content { padding-bottom: 16px; }
   .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
     padding-left: 12px;
-  }
-  .web-chat-prompt-input {
-    margin-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    border-radius: 18px;
   }
 }
 
@@ -327,86 +398,13 @@ body {
     border-radius: 13px;
   }
 
-  /* Phone composer mirrors the mockup's attach / message / send instrument. */
+  /* The composer pill is defined at base scope; phones only tighten the
+     band's gutter so it matches the approved mobile mockups exactly. */
   .web-chat-app > .web-chat-prompt-input {
-    align-self: end;
-    width: 100%;
-    max-width: none;
-    margin: 0;
     padding:
       10px
       12px
       calc(12px + env(safe-area-inset-bottom, 0px));
-    border-width: 1px 0 0;
-    border-radius: 0;
-    background: var(--console-frame);
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-  .web-chat-prompt-input > [data-slot="input-group"] {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 44px;
-    align-items: center;
-    gap: 7px;
-    min-height: 58px;
-    padding: 6px;
-    border: 1px solid var(--console-rule-strong);
-    border-radius: 22px;
-    background: var(--console-card);
-    box-shadow: none;
-  }
-  .web-chat-prompt-input label { display: none; }
-  .web-chat-prompt-input [data-align="block-end"] {
-    display: contents;
-  }
-  .web-chat-prompt-input [data-slot="input-group-addon"]:empty {
-    display: none;
-  }
-  .web-chat-prompt-attachments {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding: 4px;
-  }
-  .web-chat-prompt-textarea {
-    grid-column: 2;
-    grid-row: 1;
-    height: 44px !important;
-    min-height: 44px !important;
-    max-height: 96px;
-    padding: 10px 2px !important;
-    line-height: 1.45;
-  }
-  .web-chat-prompt-footer { display: contents; }
-  .web-chat-prompt-footer > div {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .web-chat-prompt-hint { display: none; }
-  .web-chat-prompt-attach {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: var(--console-card-soft);
-    font-size: 0;
-  }
-  .web-chat-prompt-attach::before {
-    content: "+";
-    font-family: var(--console-mono);
-    font-size: 19px;
-    font-weight: 400;
-  }
-  .web-chat-prompt-submit {
-    grid-column: 3;
-    grid-row: 1;
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0;
-    justify-content: center;
   }
 }
 

@@ -68,6 +68,36 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Hello");
   });
 
+  it("serves rebuilt-in-place assets (css/js) without immutable caching", async () => {
+    // main.css and boot.js live at stable URLs and change on every site
+    // rebuild. An immutable/max-age=1y header lets the CDN edge and browsers
+    // hold a stale copy for up to a year — new pages then render against
+    // old CSS (the /essays detail page shipped unstyled this way).
+    const m = setup();
+    const prodDir = join(testDir, "dist", "production");
+    mkdirSync(join(prodDir, "styles"), { recursive: true });
+    writeFileSync(join(prodDir, "styles", "main.css"), "body{}");
+    writeFileSync(join(prodDir, "boot.js"), ";");
+    writeFileSync(join(prodDir, "logo.png"), "png");
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+
+    for (const path of ["/styles/main.css", "/boot.js"]) {
+      const res = await fetch(`${url}${path}`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe("no-cache");
+    }
+
+    // Images stay immutable: the shared images dir is content-addressed.
+    const img = await fetch(`${url}/logo.png`);
+    expect(img.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+  });
+
   it("should stop cleanly", async () => {
     const m = setup();
     await m.start();

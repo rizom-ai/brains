@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX } from "preact";
 import { externalLinkProps } from "./external-link";
 import type { RizomBrandSuffix, RizomLink } from "./types";

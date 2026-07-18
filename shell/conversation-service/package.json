@@ -1,6 +1,6 @@
 {
   "name": "@brains/conversation-service",
-  "version": "0.2.0-alpha.156",
+  "version": "0.2.0-alpha.200",
   "description": "Conversation storage and retrieval service for Brains",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -20,6 +20,7 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./effect": "./src/effect.ts",
     "./migrate": "./src/migrate.ts"
   },
   "main": "./src/index.ts",

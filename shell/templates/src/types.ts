@@ -38,6 +38,7 @@ export interface TemplateInput {
   useKnowledgeContext?: boolean | undefined;
   requiredPermission: "anchor" | "trusted" | "public";
   formatter?: unknown;
+  overlayFormatter?: unknown;
   layout?:
     | {
         component?: unknown;
@@ -87,6 +88,16 @@ export interface Template extends Omit<
   formatter?: ContentFormatter<unknown>; // For parsing stored content
 
   /**
+   * Opt-in content overlay. When set alongside a `dataSourceId`, the section's
+   * saved content is parsed with this formatter and merged over the datasource
+   * output (authored fields win), rather than the two being mutually exclusive.
+   * Lets a live datasource-backed section carry content-authored fields — e.g.
+   * a map whose data is live but whose hero copy is editable. Absent → the
+   * classic datasource-or-saved precedence is unchanged.
+   */
+  overlayFormatter?: ContentFormatter<unknown>;
+
+  /**
    * Whether to retrieve relevant entities from the knowledge base
    * and inject them as context before AI generation. Default: false.
    */
@@ -98,6 +109,14 @@ export interface Template extends Omit<
    * templates on a route, dedupes by src, and injects into <head>.
    */
   runtimeScripts?: RuntimeScript[];
+
+  /**
+   * Static files this template needs served alongside the site — typically
+   * the file behind a runtimeScripts src. Keyed by output-relative path;
+   * site-builder writes each entry into the build output for routes that
+   * actually render this template.
+   */
+  staticAssets?: Record<string, string>;
 }
 
 /**
@@ -115,6 +134,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
       fullscreen?: boolean;
     };
     runtimeScripts?: RuntimeScript[];
+    staticAssets?: Record<string, string>;
   },
 ): Template {
   const { layout, schema, ...rest } = template;
@@ -151,6 +171,7 @@ export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   useKnowledgeContext: z.boolean().optional(),
   requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
+  overlayFormatter: z.any().optional(), // ContentFormatter for authored overlay
   layout: z
     .object({
       component: z.any().optional(), // ComponentType or string

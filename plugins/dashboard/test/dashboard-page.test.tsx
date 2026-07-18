@@ -6,13 +6,28 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "../src/dashboard-page";
+import type { WidgetComponentProps } from "../src/widget-registry";
 
-function TestCustomWidget({ data }: { data: unknown }): JSX.Element {
+function TestCustomWidget({
+  data,
+  pluginId,
+  widgetId,
+  instanceId,
+}: WidgetComponentProps): JSX.Element {
   const value =
     typeof data === "object" && data !== null && "message" in data
       ? String((data as { message: unknown }).message)
       : "missing";
-  return <div data-test-custom-widget>{value}</div>;
+  return (
+    <div
+      data-test-custom-widget
+      data-plugin-id={pluginId}
+      data-widget-id={widgetId}
+      data-instance-id={instanceId}
+    >
+      {value}
+    </div>
+  );
 }
 
 describe("renderDashboardPageHtml", () => {
@@ -116,6 +131,42 @@ describe("renderDashboardPageHtml", () => {
     expect(html.indexOf("--color-accent: #c6ff00")).toBeLessThan(
       html.indexOf("data-dashboard-styles"),
     );
+  });
+
+  it("should reference external client assets in deterministic cascade order", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      themeCSS: ":root { --private-theme: lime; }",
+      widgetStyles: [".private-widget { display: grid; }"],
+      widgetScripts: ["window.privateWidget = true;"],
+      assetUrls: {
+        themeStyles: "/dashboard/assets/theme.hash.css",
+        dashboardStyles: "/dashboard/assets/dashboard.hash.css",
+        widgetStyles: ["/dashboard/assets/widget.hash.css"],
+        dashboardScript: "/dashboard/assets/dashboard.hash.js",
+        widgetScripts: ["/dashboard/assets/widget.hash.js"],
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+    const themeIndex = html.indexOf("/dashboard/assets/theme.hash.css");
+    const dashboardIndex = html.indexOf("/dashboard/assets/dashboard.hash.css");
+    const widgetIndex = html.indexOf("/dashboard/assets/widget.hash.css");
+
+    expect(themeIndex).toBeGreaterThan(-1);
+    expect(themeIndex).toBeLessThan(dashboardIndex);
+    expect(dashboardIndex).toBeLessThan(widgetIndex);
+    expect(html.indexOf("/dashboard/assets/dashboard.hash.js")).toBeLessThan(
+      html.indexOf("/dashboard/assets/widget.hash.js"),
+    );
+    expect(html).not.toContain("--private-theme");
+    expect(html).not.toContain(".private-widget");
+    expect(html).not.toContain("window.privateWidget");
   });
 
   it("should derive tabs from non-empty widget groups", () => {
@@ -316,6 +367,10 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Entities");
     expect(html).toContain("Publication Pipeline");
     expect(html).toContain("dashboard-tabs-ready");
+    expect(html).toContain('data-ui-tabs-default="overview"');
+    expect(html).toContain('data-ui-tab="overview"');
+    expect(html).toContain('data-ui-panel="publishing"');
+    expect(html).toContain('aria-labelledby="dashboard-tab-publishing"');
     expect(html).not.toContain('hidden=""');
   });
 
@@ -399,6 +454,7 @@ describe("renderDashboardPageHtml", () => {
         lastSync: "2026-07-08T09:30:00.000Z",
         totalFiles: 4,
         byEntityType: { note: 3, post: 1 },
+        managementUrl: "/studio#/workspace/sync",
       },
     };
 
@@ -427,6 +483,8 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("entity db");
     expect(html).toContain("exported");
     expect(html).toContain("committed");
+    expect(html).toContain('href="/studio#/workspace/sync"');
+    expect(html).toContain("Open in CMS");
   });
 
   it("should render the shared console strip from derived surfaces", () => {
@@ -710,11 +768,14 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(3);
     expect(html).toContain(
+      '<article class="card widget-card--wide"><div class="card-head"><span class="card-title">Content Pipeline</span>',
+    );
+    expect(html).toContain(
       '<article class="card"><div class="card-head"><span class="card-title">Tiny Stats</span>',
     );
   });
 
-  it("should render the pipeline widget as a three-lane board", () => {
+  it("renders the pipeline widget as a wide read-only digest", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -734,32 +795,22 @@ describe("renderDashboardPageHtml", () => {
             visibility: "public",
           },
           data: {
-            summary: { draft: 1, queued: 1, published: 3, failed: 1 },
-            items: [
+            summary: {
+              draft: 1,
+              queued: 1,
+              generating: 1,
+              failed: 1,
+              published: 3,
+              needsOperator: 2,
+            },
+            queue: [
               {
-                id: "q1",
+                entityId: "q1",
+                entityType: "post",
                 title: "Domain as identity",
-                type: "post",
-                status: "queued",
-              },
-              {
-                id: "d1",
-                title: "Verdigris pigments",
-                type: "note",
-                status: "draft",
-              },
-              {
-                id: "f1",
-                title: "Broken send",
-                type: "newsletter",
-                status: "failed",
-                retryInfo: "retried 2/3",
-              },
-              {
-                id: "p1",
-                title: "Shipped post",
-                type: "post",
-                status: "published",
+                position: 1,
+                queuedAt: "2026-07-14T08:00:00.000Z",
+                destination: "website",
               },
             ],
             generating: [
@@ -770,6 +821,17 @@ describe("renderDashboardPageHtml", () => {
                 status: "processing",
               },
             ],
+            failures: [
+              {
+                entityId: "f1",
+                entityType: "newsletter",
+                title: "Broken send",
+                error: "Provider rejected sender",
+                retryCount: 2,
+              },
+            ],
+            publishableEntityTypes: ["newsletter", "post"],
+            managementUrl: "/cms#/workspace/publishing",
           },
         },
       },
@@ -778,20 +840,62 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    // Three lanes with counts; published items stay off the board.
-    expect(html).toContain('class="board"');
+    expect(html).toContain('class="pipeline-digest"');
     expect(html).toContain("Queued");
     expect(html).toContain("Generating");
-    expect(html).toContain("Review");
-    expect(html).toContain("Domain as identity");
-    expect(html).toContain("og-image");
-    expect(html).toContain("post/domain-as-identity");
-    expect(html).toContain("Verdigris pigments");
-    expect(html).toContain("retried 2/3");
-    const board = html.slice(html.indexOf('class="board"'));
-    expect(board).not.toContain("Shipped post");
-    // The old filter-tab pipeline UI is gone.
-    expect(html).not.toContain("data-pipeline-tab");
+    expect(html).toContain("Awaiting review");
+    expect(html).toContain("Published");
+    expect(html).toContain("Broken send");
+    expect(html).toContain("Provider rejected sender");
+    expect(html).toContain('href="/cms#/workspace/publishing"');
+    expect(html).toContain("Open in CMS");
+    expect(html).not.toContain('class="board"');
+    expect(html).not.toContain("Domain as identity");
+    expect(html).not.toContain("post/domain-as-identity");
+  });
+
+  it("omits the CMS link when no publishing workspace registered", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+          },
+          data: {
+            summary: {
+              draft: 0,
+              queued: 0,
+              generating: 0,
+              failed: 0,
+              published: 4,
+              needsOperator: 0,
+            },
+            queue: [],
+            generating: [],
+            failures: [],
+            publishableEntityTypes: ["post"],
+          },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+    expect(html).toContain('class="pipeline-digest"');
+    expect(html).not.toContain("Open in CMS");
+    expect(html).not.toContain('href="undefined"');
   });
 
   it("should render plugin-owned custom widgets and inject their scripts", () => {
@@ -839,6 +943,9 @@ describe("renderDashboardPageHtml", () => {
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain("data-test-custom-widget");
+    expect(html).toContain('data-plugin-id="custom"');
+    expect(html).toContain('data-widget-id="test-widget"');
+    expect(html).toContain('data-instance-id="widget-custom-test-widget"');
     expect(html).toContain("hello from plugin");
     expect(html).toContain("window.__customWidgetBoot = 'ready';");
   });

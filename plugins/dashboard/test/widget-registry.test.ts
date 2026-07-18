@@ -30,22 +30,24 @@ describe("DashboardWidgetRegistry", () => {
       expect(registry.size).toBe(1);
     });
 
-    it("normalizes deprecated attention counts without overriding the current field", () => {
-      const widget: RegisteredWidget = {
-        id: "legacy-attention-widget",
-        pluginId: "legacy-plugin",
-        group: "publishing",
-        title: "Legacy Attention Widget",
+    it("should store package-owned client assets", () => {
+      registry.register({
+        id: "styled-widget",
+        pluginId: "test-plugin",
+        group: "knowledge",
+        title: "Styled Widget",
+        section: "primary",
+        priority: 10,
         rendererName: "StatsWidget",
-        needsAttention: 4,
-        needsOperator: 3,
+        clientStyles: ".styled-widget { display: grid; }",
+        clientScript: "window.__styledWidget = true;",
         dataProvider: async () => ({}),
-      };
+      });
 
-      registry.register(widget);
-
-      expect(registry.list()[0]?.needsAttention).toBe(4);
-      expect(registry.list()[0]).not.toHaveProperty("needsOperator");
+      expect(registry.get("test-plugin", "styled-widget")).toMatchObject({
+        clientStyles: ".styled-widget { display: grid; }",
+        clientScript: "window.__styledWidget = true;",
+      });
     });
 
     it("should store the widget rendererName and group", () => {

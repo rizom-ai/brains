@@ -4,17 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       brain_version:
-        description: Brain version to build; defaults to pilot.yaml brainVersion
+        description: Force one explicit build at this brain version (skips the registry-derived resolve)
+        required: false
+        type: string
+      site_packages:
+        description: 'Space-separated site packages for a per-instance site image (e.g. "@rizom/site-rizom-ai@0.2.0-alpha.148"). Empty builds the default fleet image.'
         required: false
         type: string
   push:
     branches: ["main"]
     paths:
+      # The image set is a pure function of the declared fleet state: a push
+      # that changes it builds exactly what it declares, so the deploy (fired
+      # off the same push via Reconcile) finds its tag ready.
       - pilot.yaml
-      - cohorts/*.yaml
+      - cohorts/**
       - users/*.yaml
-      - package.json
-      - bun.lock
       - deploy/**
       - .github/workflows/build.yml
 
@@ -23,8 +28,10 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  resolve:
     runs-on: ubuntu-latest
+    outputs:
+      images_json: ${{ steps.resolve.outputs.images_json }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,12 +42,40 @@ jobs:
       - name: Install operator tooling
         run: bun install
 
-      - name: Resolve image metadata inputs
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve images to build
+        id: resolve
         env:
           BRAIN_VERSION_INPUT: ${{ inputs.brain_version || '' }}
-        run: |
-          bun deploy/scripts/resolve-build-config.ts
-          echo "IMAGE_REPOSITORY=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+          SITE_PACKAGES_INPUT: ${{ inputs.site_packages || '' }}
+        run: bun deploy/scripts/resolve-missing-images.ts
+
+  no_builds:
+    needs: resolve
+    if: needs.resolve.outputs.images_json == '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when every declared image exists
+        run: echo "All declared images already exist; nothing to build."
+
+  build:
+    needs: resolve
+    if: needs.resolve.outputs.images_json != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.resolve.outputs.images_json) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -49,9 +84,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_REPOSITORY }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=${{ matrix.image.tag }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -68,8 +103,8 @@ jobs:
           target: fleet
           push: true
           build-args: |
-            BRAIN_VERSION=${{ env.BRAIN_VERSION }}
-            SITE_PACKAGES=${{ env.SITE_PACKAGES }}
+            BRAIN_VERSION=${{ matrix.image.brain_version }}
+            SITE_PACKAGES=${{ matrix.image.site_packages }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             ${{ steps.meta.outputs.labels }}

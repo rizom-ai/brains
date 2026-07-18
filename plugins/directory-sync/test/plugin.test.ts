@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import type { CmsWorkspaceRegistration } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
@@ -17,11 +18,23 @@ describe("DirectorySyncPlugin", () => {
   let plugin: DirectorySyncPlugin;
   let capabilities: PluginCapabilities;
   let syncPath: string;
+  let workspaceRegistration: CmsWorkspaceRegistration | undefined;
 
   beforeEach(async () => {
     syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
+    workspaceRegistration = undefined;
+    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+      "cms:register-workspace",
+      async (message) => {
+        workspaceRegistration = message.payload;
+        return {
+          success: true,
+          data: { workspaceUrl: "/studio#/workspace/sync" },
+        };
+      },
+    );
 
     const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
@@ -42,6 +55,7 @@ describe("DirectorySyncPlugin", () => {
     });
 
     capabilities = await harness.installPlugin(plugin);
+    await plugin.ready();
   });
 
   afterEach(() => {
@@ -68,6 +82,16 @@ describe("DirectorySyncPlugin", () => {
     it("should register templates", () => {
       const templates = harness.getTemplates();
       expect(templates.has("directory-sync:status")).toBe(true);
+    });
+
+    it("should register the optional CMS Sync workspace", () => {
+      expect(workspaceRegistration).toMatchObject({
+        id: "sync",
+        pluginId: "directory-sync",
+        label: "Sync",
+        rendererName: "DirectorySyncWorkspace",
+        priority: 60,
+      });
     });
   });
 
@@ -117,6 +141,7 @@ describe("DirectorySyncPlugin", () => {
           totalFiles: number;
           byEntityType: Record<string, number>;
           git: unknown;
+          managementUrl?: string;
         }
       >("sync:status:request", {}, "test");
 
@@ -129,6 +154,7 @@ describe("DirectorySyncPlugin", () => {
       // No git configured in this harness — status degrades, not errors.
       expect(response?.git).toBeNull();
       expect(response?.lastSync).toBeNull();
+      expect(response?.managementUrl).toBe("/studio#/workspace/sync");
     });
 
     it("should respond to export requests", async () => {

@@ -28,3 +28,27 @@ export type {
   WidgetData,
   WidgetDigestLine,
 } from "./widget-schema";
+
+// Shared SSR primitives for custom dashboard widgets
+export {
+  createWidgetInstanceId,
+  EmptyState,
+  KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
+  WidgetEmptyState,
+  WidgetFilter,
+  WidgetList,
+  WidgetListItem,
+  WidgetMetaLine,
+  WidgetStatusPill,
+  WidgetTabs,
+  WidgetTags,
+} from "./widget-ui";
+export type {
+  KeyValueItem,
+  WidgetDataAttributes,
+  WidgetElementProps,
+  WidgetFilterOption,
+  WidgetTabDefinition,
+} from "./widget-ui";

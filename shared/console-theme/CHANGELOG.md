@@ -1,5 +1,103 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.200
+
+## 0.2.0-alpha.199
+
+## 0.2.0-alpha.198
+
+## 0.2.0-alpha.197
+
+## 0.2.0-alpha.196
+
+### Patch Changes
+
+- [`21b70b7`](https://github.com/rizom-ai/brains/commit/21b70b7962af2c815b51259e3a5d3afb7e900ba6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve paper-climate warning contrast so dashboard review states remain legible in light mode.
+
+## 0.2.0-alpha.195
+
+## 0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- [`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring Chat and CMS into the approved console visual language. Chat gains a compact conversation index and responsive composer while removing its parallel surface-token palette; CMS now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, responsive Details/Write/Preview styling, authored image/date/toggle/tag widgets, conflict feedback, and a recoverable delete dialog. The shared font payload includes the CMS editorial mono face.
+
+- [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-review fixes across the console: the climate toggle moves into the shared strip on all three surfaces (replacing the dashboard masthead button and chat's local toggle), the session chip gains a neutral visitor variant and quiet phone treatment, sign-in controls adopt the console button language, and the CMS library groups brain machinery under a System rail section, hides publication chips for types without a publication lifecycle, and repairs the phone type pills and row meta alignment.
+
 ## 0.2.0-alpha.156
 
 ## 0.2.0-alpha.155

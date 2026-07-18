@@ -14,17 +14,19 @@ export type FetchFn = (
 export async function fetchAgentCard(
   domain: string,
   fetchFn: FetchFn,
+  signal?: AbortSignal,
 ): Promise<ParsedAgentCard | null> {
   const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
   const cardUrl = `${baseUrl.replace(/\/$/, "")}/.well-known/agent-card.json`;
 
   try {
-    const response = await fetchFn(cardUrl);
+    const response = await fetchFn(cardUrl, signal ? { signal } : undefined);
     if (!response.ok) return null;
 
     const data: unknown = await response.json();
     return parseAgentCard(data);
   } catch {
+    if (signal?.aborted) throw signal.reason;
     return null;
   }
 }

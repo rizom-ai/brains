@@ -3,9 +3,19 @@ import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
+import {
+  CardHeader,
+  createWidgetInstanceId,
+  EmptyState,
+  KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
+  WidgetList,
+  WidgetListItem,
+  WidgetStatusPill,
+} from "../widget-ui";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
-const PIPELINE_STATUSES = ["draft", "queued", "published", "failed"] as const;
 const COMPACT_WIDGET_RENDERERS = new Set(["StatsWidget", "SystemWidget"]);
 
 const listItemSchema = z.object({
@@ -24,48 +34,42 @@ const listWidgetDataSchema = z.object({
 });
 const kvWidgetDataSchema = z.record(z.string(), z.unknown());
 
-const pipelineStatusSchema = z.enum(PIPELINE_STATUSES);
-const pipelineSummarySchema = z.object({
-  draft: z.number().optional(),
-  queued: z.number().optional(),
-  published: z.number().optional(),
-  failed: z.number().optional(),
-});
-const pipelineItemSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  type: z.string(),
-  status: pipelineStatusSchema,
-  scheduledFor: z.string().optional(),
-  retryInfo: z.string().optional(),
-});
-const pipelineGeneratingItemSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  target: z.string(),
-  status: z.enum(["pending", "processing"]),
-});
 const pipelineWidgetDataSchema = z.object({
-  summary: pipelineSummarySchema,
-  items: z.array(pipelineItemSchema),
-  generating: z.array(pipelineGeneratingItemSchema).default([]),
+  summary: z.object({
+    draft: z.number().int().nonnegative(),
+    queued: z.number().int().nonnegative(),
+    generating: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    published: z.number().int().nonnegative(),
+    needsOperator: z.number().int().nonnegative(),
+  }),
+  failures: z
+    .array(
+      z.object({
+        entityId: z.string(),
+        entityType: z.string(),
+        title: z.string(),
+        error: z.string(),
+        retryCount: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  managementUrl: z.string().optional(),
 });
 
 type ListItem = z.output<typeof listItemSchema>;
-type PipelineItem = z.output<typeof pipelineItemSchema>;
-type PipelineGeneratingItem = z.output<typeof pipelineGeneratingItemSchema>;
 
 interface RendererProps {
   widget: RenderableWidgetData;
 }
 
-const PRIO_CLASS: Record<string, string> = {
-  crit: "pill--err",
-  critical: "pill--err",
-  high: "pill--warn",
-  med: "",
-  medium: "",
-  low: "pill--mute",
+const PRIO_TONE: Record<string, "plain" | "warn" | "error" | "muted"> = {
+  crit: "error",
+  critical: "error",
+  high: "warn",
+  med: "plain",
+  medium: "plain",
+  low: "muted",
 };
 
 function isEmptyValue(value: unknown): boolean {
@@ -80,15 +84,6 @@ function toDisplayValue(value: unknown): string {
     return JSON.stringify(value);
   }
   return String(value);
-}
-
-function comparePipelineItems(a: PipelineItem, b: PipelineItem): number {
-  const aMeta = a.retryInfo ?? a.scheduledFor ?? "";
-  const bMeta = b.retryInfo ?? b.scheduledFor ?? "";
-  const metaDiff = aMeta.localeCompare(bMeta);
-  if (metaDiff !== 0) return metaDiff;
-
-  return a.title.localeCompare(b.title);
 }
 
 function parsedListData(data: unknown): ListItem[] {
@@ -114,13 +109,13 @@ function CountChip({ widget }: RendererProps): JSX.Element | null {
     return null;
   }
 
-  return <span class="chip">{items.length}</span>;
+  return <span class="tab-badge tab-badge--muted">{items.length}</span>;
 }
 
 function KeyValueBody({ widget }: RendererProps): JSX.Element {
   const data = parsedKvData(widget.data);
   if (!data) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   const entries = Object.entries(data).filter(
@@ -128,108 +123,81 @@ function KeyValueBody({ widget }: RendererProps): JSX.Element {
   );
 
   if (entries.length === 0) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   return (
-    <dl class="kv">
-      {entries.map(([key, value]) => (
-        <div key={key} class="kv-row">
-          <dt>{formatLabel(key)}</dt>
-          <dd>{toDisplayValue(value)}</dd>
-        </div>
-      ))}
-    </dl>
+    <KeyValueList
+      items={entries.map(([key, value]) => ({
+        label: formatLabel(key),
+        value: toDisplayValue(value),
+      }))}
+    />
   );
 }
 
 function ListRow({ item }: { item: ListItem }): JSX.Element {
-  const priorityClass = item.priority
-    ? (PRIO_CLASS[item.priority.toLowerCase()] ?? "")
-    : "";
+  const priorityTone = item.priority
+    ? (PRIO_TONE[item.priority.toLowerCase()] ?? "plain")
+    : "plain";
+  const hasTrailing =
+    typeof item.count === "number" || Boolean(item.priority ?? item.status);
 
   return (
-    <li class="list-item">
-      <div class="list-main">
-        <span class="list-name">{item.name}</span>
-        {item.description && <span class="list-desc">{item.description}</span>}
-        {item.meta && item.meta.length > 0 && (
-          <span class="list-meta-text">
-            {item.meta.map((segment, index) => (
-              <span key={`${item.id}-meta-${index}`}>
-                {index > 0 && <span class="sep">·</span>}
-                {segment}
-              </span>
-            ))}
-          </span>
-        )}
-        {item.tags && item.tags.length > 0 && (
-          <div class="list-tags">
-            {item.tags.map((tag) => (
-              <span key={tag} class="tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      <div class="list-meta">
-        {typeof item.count === "number" && (
-          <span class="list-count">{item.count}</span>
-        )}
-        {item.priority && (
-          <span class={`pill ${priorityClass}`.trim()}>{item.priority}</span>
-        )}
-        {item.status && <span class="pill pill--ok">{item.status}</span>}
-      </div>
-    </li>
+    <WidgetListItem
+      title={item.name}
+      description={item.description}
+      meta={item.meta}
+      tags={item.tags}
+      trailing={
+        hasTrailing ? (
+          <>
+            {typeof item.count === "number" && (
+              <span class="list-count">{item.count}</span>
+            )}
+            {item.priority && (
+              <WidgetStatusPill tone={priorityTone}>
+                {item.priority}
+              </WidgetStatusPill>
+            )}
+            {item.status && (
+              <WidgetStatusPill tone="ok">{item.status}</WidgetStatusPill>
+            )}
+          </>
+        ) : undefined
+      }
+    />
   );
 }
 
 function ListBody({ widget }: RendererProps): JSX.Element {
   const items = parsedListData(widget.data);
   if (items.length === 0) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
   return (
-    <ul class="list">
+    <WidgetList>
       {items.map((item) => (
         <ListRow key={item.id} item={item} />
       ))}
-    </ul>
+    </WidgetList>
   );
 }
 
-function BoardWorkCard({ item }: { item: PipelineItem }): JSX.Element {
-  return (
-    <div class={`work${item.status === "failed" ? " work--failed" : ""}`}>
-      <div class="work-title">{item.title}</div>
-      <div class="work-meta">
-        <span>{item.type}</span>
-        <span class={item.status === "failed" ? "work-status--err" : ""}>
-          {item.retryInfo ?? item.scheduledFor ?? item.status}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function BoardLane({
+function PipelineMetric({
   label,
-  count,
-  children,
+  value,
+  tone = "",
 }: {
   label: string;
-  count: number;
-  children: JSX.Element[] | JSX.Element;
+  value: number;
+  tone?: string;
 }): JSX.Element {
   return (
-    <div class="lane">
-      <div class="lane-head">
-        {label} <span class="lane-count">{count}</span>
-      </div>
-      {count === 0 ? <p class="lane-empty">—</p> : children}
+    <div class={`pipeline-metric${tone ? ` pipeline-metric--${tone}` : ""}`}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
@@ -237,44 +205,43 @@ function BoardLane({
 function PipelineBody({ widget }: RendererProps): JSX.Element {
   const parsed = pipelineWidgetDataSchema.safeParse(widget.data);
   if (!parsed.success) {
-    return <p class="muted">Nothing to show yet.</p>;
+    return <EmptyState />;
   }
 
-  const items = [...parsed.data.items].sort(comparePipelineItems);
-  const queued = items.filter((item) => item.status === "queued");
-  // Review holds everything waiting for human attention: drafts and failures.
-  const review = [
-    ...items.filter((item) => item.status === "draft"),
-    ...items.filter((item) => item.status === "failed"),
-  ];
-  const generating: PipelineGeneratingItem[] = parsed.data.generating;
-
+  const { summary, failures, managementUrl } = parsed.data;
   return (
-    <div class="board">
-      <BoardLane label="Queued" count={queued.length}>
-        {queued.map((item) => (
-          <BoardWorkCard key={item.id} item={item} />
-        ))}
-      </BoardLane>
-      <BoardLane label="Generating" count={generating.length}>
-        {generating.map((job) => (
-          <div key={job.id} class="work work--generating">
-            <div class="work-title">{job.label}</div>
-            <div class="work-meta">
-              <span>{job.target}</span>
-              <span class="work-status--warm">{job.status}</span>
+    <div class="pipeline-digest">
+      <dl class="pipeline-metrics">
+        <PipelineMetric label="Queued" value={summary.queued} />
+        <PipelineMetric label="Generating" value={summary.generating} />
+        <PipelineMetric
+          label="Awaiting review"
+          value={summary.needsOperator}
+          tone={summary.needsOperator > 0 ? "warn" : ""}
+        />
+        <PipelineMetric label="Published" value={summary.published} tone="ok" />
+      </dl>
+      {failures.length > 0 && (
+        <section class="pipeline-failures" aria-label="Publication failures">
+          <h4>Needs attention</h4>
+          {failures.slice(0, 3).map((failure) => (
+            <div
+              class="pipeline-failure"
+              key={`${failure.entityType}:${failure.entityId}`}
+            >
+              <strong>{failure.title}</strong>
+              <span>{failure.error}</span>
             </div>
-            <div class="minibar" aria-hidden="true">
-              <i></i>
-            </div>
-          </div>
-        ))}
-      </BoardLane>
-      <BoardLane label="Review" count={review.length}>
-        {review.map((item) => (
-          <BoardWorkCard key={item.id} item={item} />
-        ))}
-      </BoardLane>
+          ))}
+        </section>
+      )}
+      {managementUrl && (
+        <WidgetActions label="Publication actions">
+          <WidgetActionLink href={managementUrl} emphasis="primary">
+            Open in CMS
+          </WidgetActionLink>
+        </WidgetActions>
+      )}
     </div>
   );
 }
@@ -289,6 +256,12 @@ function WidgetBody({ widget }: RendererProps): JSX.Element {
           ? { description: widget.widget.description }
           : {})}
         data={widget.data}
+        pluginId={widget.widget.pluginId}
+        widgetId={widget.widget.id}
+        instanceId={createWidgetInstanceId(
+          widget.widget.pluginId,
+          widget.widget.id,
+        )}
       />
     );
   }
@@ -317,10 +290,9 @@ export function WidgetCard({
 
   return (
     <article class={className}>
-      <div class="card-head">
-        <span class="card-title">{widget.widget.title}</span>
+      <CardHeader title={widget.widget.title}>
         <CountChip widget={widget} />
-      </div>
+      </CardHeader>
       <WidgetBody widget={widget} />
     </article>
   );

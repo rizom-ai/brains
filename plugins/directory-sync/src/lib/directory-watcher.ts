@@ -26,13 +26,10 @@ export async function startDirectoryWatcherIfNeeded(
   return startDirectoryWatcher(options);
 }
 
-export function stopDirectoryWatcher(
+export async function stopDirectoryWatcher(
   fileWatcher: FileWatcher | undefined,
-): FileWatcher | undefined {
-  if (fileWatcher) {
-    fileWatcher.stop();
-  }
-  return undefined;
+): Promise<void> {
+  await fileWatcher?.stop();
 }
 
 export function setDirectoryWatchCallback(

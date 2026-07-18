@@ -17,7 +17,7 @@ export interface AtprotoBrainDiscoveryEventPayload {
   agentId: string;
   name: string;
   url: string;
-  status: "discovered" | "approved";
+  status: "discovered" | "approved" | "archived";
   repoDid?: string | undefined;
   brainDid?: string | undefined;
   anchorDid?: string | undefined;
@@ -48,7 +48,7 @@ export const atprotoBrainDiscoveryEventPayloadSchema: z.ZodType<AtprotoBrainDisc
       agentId: z.string().min(1),
       name: z.string().min(1),
       url: z.string().url(),
-      status: z.enum(["discovered", "approved"]),
+      status: z.enum(["discovered", "approved", "archived"]),
       repoDid: z.string().min(1).optional(),
       brainDid: z.string().min(1).optional(),
       anchorDid: z.string().min(1).optional(),

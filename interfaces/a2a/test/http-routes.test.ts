@@ -7,6 +7,7 @@ import {
   authServicePlugin,
   getActiveAuthService,
 } from "@brains/auth-service";
+import type { AgentResponse } from "@brains/plugins";
 import { keyFingerprint, signRequest } from "@brains/http-signatures";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -150,6 +151,64 @@ describe("A2A HTTP routes", () => {
 
     expect(capabilities.tools.map((tool) => tool.name)).toContain("agent_call");
     expect(plugin.getWebRoutes()).toEqual([]);
+  });
+
+  it("aborts active turns when the A2A daemon stops", async () => {
+    installWebserverPlugin();
+    let receivedSignal: AbortSignal | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const response: AgentResponse = {
+      text: "unused",
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
+    const agentService = {
+      chat: async (
+        _message: string,
+        _conversationId: string,
+        _context?: unknown,
+        signal?: AbortSignal,
+      ): Promise<AgentResponse> => {
+        receivedSignal = signal;
+        markStarted?.();
+        return new Promise<AgentResponse>(() => {});
+      },
+      confirmPendingAction: async (): Promise<AgentResponse> => response,
+      invalidateAgent: (): void => {},
+    };
+    harness.getMockShell().setAgentService(agentService);
+
+    const plugin = new A2AInterface({ port: 0 });
+    await harness.installPlugin(plugin);
+    const daemons = harness.getMockShell().getDaemonRegistry();
+    await daemons.startPlugin("a2a");
+
+    const route = a2aPostRoute(plugin);
+    const httpResponse = await route.handler(
+      new Request("http://brain/a2a", {
+        method: "POST",
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "message/send",
+          params: {
+            message: {
+              kind: "message",
+              messageId: "shutdown-test",
+              role: "user",
+              parts: [{ kind: "text", text: "Hello" }],
+            },
+          },
+        }),
+      }),
+    );
+    expect(httpResponse.status).toBe(200);
+    await started;
+
+    await daemons.stopPlugin("a2a");
+    expect(receivedSignal?.aborted).toBe(true);
   });
 
   it("exposes shared-host routes for agent card and a2a", async () => {

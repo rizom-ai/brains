@@ -1,0 +1,122 @@
+id: multi-turn-web-chat-text-upload-edit-save-note
+name: Web chat updates a saved upload instead of importing duplicate originals
+description: >-
+  Verifies that after importing a markdown upload as a note, a later edit
+  request updates that saved note with the revised content instead of importing
+  the original upload again under a duplicate name.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-text-upload-edit-save-note
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - text
+  - note
+  - editing
+  - regression
+  - multi-turn
+  - preset-default
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: text
+        filename: community-launch-plan.md
+        mediaType: text/markdown
+        content: |
+          # Community Launch Plan
+
+          Launch day: Monday.
+          Owner: Unassigned.
+          Next step: Draft the agenda.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000941
+    successCriteria:
+      responseContains:
+        - "community-launch-plan.md"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Save this file in my notes."
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+            source.kind: upload
+            source.upload.id: upload-00000000-0000-4000-8000-000000000941
+            source.transform: extract-markdown
+
+  - userMessage: "Confirm creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Create"
+
+  - userMessage: >-
+      Actually, change the launch day to Friday, set the owner to Mira, replace
+      the next step with "Publish the participant checklist," and save it in my
+      notes.
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+        - toolName: system_create
+          shouldBeCalled: false
+
+  - userMessage: "Confirm update"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Update"
+
+  - userMessage: "Show me the updated note."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "Friday"
+        - "Mira"
+        - "Publish the participant checklist"
+      responseNotContains:
+        - "Launch day: Monday"
+        - "Owner: Unassigned"
+        - "Draft the agenda"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        source.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000941
+        source.transform: extract-markdown
+    - toolName: system_update
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+  responseNotContains:
+    - "Please re-upload"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 70000

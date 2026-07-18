@@ -37,6 +37,8 @@ describe("cms plugin", () => {
       "GET /cms",
       "GET /cms/assets/app.js",
       "GET /cms/api/types",
+      "GET /cms/api/workspace",
+      "POST /cms/api/workspace",
       "GET /cms/api/schema",
       "GET /cms/api/entities",
       "PUT /cms/api/entities",

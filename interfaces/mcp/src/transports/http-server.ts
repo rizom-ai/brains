@@ -7,6 +7,7 @@ import type { ActorRef } from "@brains/contracts";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
+import { SessionEvictionSupervisor } from "./session-eviction-supervisor";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
@@ -83,7 +84,7 @@ export class StreamableHTTPServer {
   private mcpTransport: IMCPTransport | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
-  private evictionTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly sessionEviction: SessionEvictionSupervisor;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
   private readonly authConfig: AuthConfig;
@@ -99,15 +100,6 @@ export class StreamableHTTPServer {
     this.sessionIdleTtlMs =
       config.sessionIdleTtlMs ?? DEFAULT_SESSION_IDLE_TTL_MS;
 
-    // The transport is often mounted on a shared webserver without start(),
-    // so the eviction sweep runs from construction. unref'd — it never
-    // keeps the process alive.
-    this.evictionTimer = setInterval(
-      () => this.evictIdleSessions(),
-      Math.min(this.sessionIdleTtlMs, MAX_EVICTION_SWEEP_INTERVAL_MS),
-    );
-    this.evictionTimer.unref();
-
     if (
       !this.authConfig.disabled &&
       !this.authConfig.token &&
@@ -118,6 +110,18 @@ export class StreamableHTTPServer {
           "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
       );
     }
+
+    // The transport is often mounted on a shared webserver without start(),
+    // so the lifecycle-owned eviction schedule begins after validation.
+    this.sessionEviction = new SessionEvictionSupervisor(
+      Math.min(this.sessionIdleTtlMs, MAX_EVICTION_SWEEP_INTERVAL_MS),
+      (now) => this.evictIdleSessions(now),
+      {
+        onError: (error): void => {
+          this.logger.error("Error sweeping idle MCP sessions:", error);
+        },
+      },
+    );
   }
 
   public static getInstance(
@@ -127,8 +131,10 @@ export class StreamableHTTPServer {
     return StreamableHTTPServer.instance;
   }
 
-  public static resetInstance(): void {
+  public static async resetInstance(): Promise<void> {
+    const instance = StreamableHTTPServer.instance;
     StreamableHTTPServer.instance = null;
+    await instance?.stop();
   }
 
   public static createFresh(
@@ -325,8 +331,8 @@ export class StreamableHTTPServer {
     this.sessionLastActivity.set(sessionId, Date.now());
   }
 
-  private evictIdleSessions(): void {
-    const now = Date.now();
+  private async evictIdleSessions(now: number): Promise<void> {
+    const closes: Promise<void>[] = [];
     for (const [sessionId, lastActivity] of this.sessionLastActivity) {
       if (now - lastActivity < this.sessionIdleTtlMs) continue;
 
@@ -336,14 +342,17 @@ export class StreamableHTTPServer {
       const transport = this.transports[sessionId];
       if (transport) {
         delete this.transports[sessionId];
-        transport.close().catch((error: unknown) => {
-          this.logger.error(
-            `Error closing idle transport for session ${sessionId}:`,
-            error,
-          );
-        });
+        closes.push(
+          transport.close().catch((error: unknown) => {
+            this.logger.error(
+              `Error closing idle transport for session ${sessionId}:`,
+              error,
+            );
+          }),
+        );
       }
     }
+    await Promise.all(closes);
   }
 
   private async handleMcpRequest(
@@ -588,10 +597,7 @@ export class StreamableHTTPServer {
   }
 
   public async stop(): Promise<void> {
-    if (this.evictionTimer) {
-      clearInterval(this.evictionTimer);
-      this.evictionTimer = null;
-    }
+    await this.sessionEviction.close();
     this.sessionLastActivity.clear();
     this.sessionAuthorizations.clear();
 

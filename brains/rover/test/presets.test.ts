@@ -60,6 +60,20 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("site-content");
   });
 
+  it("keeps series out of default but in full", () => {
+    // The consolidated rizom.ai brain is the default preset's only consumer
+    // and has no series entities or site surface; full keeps the whole
+    // publishing kit.
+    const defaultConfig = resolve(rover, {}, { preset: "default" });
+    const defaultPluginIds =
+      defaultConfig.plugins?.map((plugin) => plugin.id) ?? [];
+    expect(defaultPluginIds).not.toContain("series");
+
+    const fullConfig = resolve(rover, {}, { preset: "full" });
+    const fullPluginIds = fullConfig.plugins?.map((plugin) => plugin.id) ?? [];
+    expect(fullPluginIds).toContain("series");
+  });
+
   it("keeps the ATProto registry opt-in for canonical protocol hosts", () => {
     const defaultConfig = resolve(rover, {}, { preset: "default" });
     const defaultPluginIds =

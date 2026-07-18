@@ -53,18 +53,20 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
 export interface CreateAgentContentInput {
   name: string;
   kind: "professional" | "team" | "collective";
-  organization?: string;
+  organization?: string | undefined;
   brainName: string;
   url: string;
-  did?: string;
-  repoDid?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  cardUri?: string;
-  cardCid?: string;
-  a2aEndpoint?: string;
+  did?: string | undefined;
+  repoDid?: string | undefined;
+  brainDid?: string | undefined;
+  anchorDid?: string | undefined;
+  cardUri?: string | undefined;
+  cardCid?: string | undefined;
+  a2aEndpoint?: string | undefined;
   status: AgentStatus | string;
   discoveredAt: string;
+  introducedBy?: string[] | undefined;
+  hops?: number | undefined;
   about: string;
   skills: AgentSkill[];
   notes: string;
@@ -82,6 +84,9 @@ export class AgentAdapter extends BaseEntityAdapter<
         "A saved remote peer-brain contact in the local agent directory.",
       schema: agentEntitySchema,
       frontmatterSchema: agentFrontmatterSchema,
+      // Approval is the directory's publish gate: production site builds
+      // (publishedOnly) emit detail routes only for approved agents.
+      publishedStatuses: ["approved"],
     });
   }
 
@@ -126,6 +131,8 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,
+      ...(input.introducedBy?.length && { introducedBy: input.introducedBy }),
+      ...(input.hops !== undefined && { hops: input.hops }),
     };
 
     const body = bodyFormatter.format({

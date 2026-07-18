@@ -34,6 +34,9 @@ const toolExecuteRequestSchema = z.object({
   runId: z.string().optional(),
   toolCallId: z.string().optional(),
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+  signal: z
+    .custom<AbortSignal>((value) => value instanceof AbortSignal)
+    .optional(),
 });
 
 const resourceGetRequestSchema = z.object({
@@ -142,6 +145,7 @@ export abstract class BasePlugin<
             runId,
             toolCallId,
             userPermissionLevel,
+            signal,
           } = parsedRequest.data;
 
           const tools = await this.getTools();
@@ -165,6 +169,7 @@ export abstract class BasePlugin<
             ...(runId && { runId }),
             ...(toolCallId && { toolCallId }),
             ...(userPermissionLevel && { userPermissionLevel }),
+            ...(signal && { signal }),
             ...(hasProgress &&
               progressToken !== undefined && {
                 progressToken,

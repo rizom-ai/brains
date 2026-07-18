@@ -1,0 +1,65 @@
+/* Deprecated aliases for custom widgets authored before WidgetTabs. */
+.view-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--console-rule);
+  padding-bottom: 2px;
+}
+.view-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 2px 0 10px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.view-tab:hover {
+  color: var(--console-text-dim);
+}
+.view-tab.is-active {
+  color: var(--console-text);
+  border-bottom-color: var(--console-accent);
+}
+.view-tab-count {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.view-tab.is-active .view-tab-count {
+  color: var(--console-text-dim);
+}
+
+@media (max-width: 900px) {
+  .view-tabs {
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .view-tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .view-tab {
+    min-height: 40px;
+  }
+}

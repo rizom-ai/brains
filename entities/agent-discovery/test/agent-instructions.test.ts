@@ -19,7 +19,14 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain(
       "agent_set_trust_level is the only tool for granting or revoking inbound A2A trust",
     );
+    expect(instructions).toContain(
+      "approve/archive an existing or discovered agent with system_update",
+    );
+    expect(instructions).toContain(
+      "agent_connect only to verify and save a new domain/URL",
+    );
     expect(instructions).toContain("returned entity id/domain");
-    expect(instructions.toLowerCase()).not.toContain("archived");
+    expect(instructions).toContain("never recommend archived contacts");
+    expect(instructions).toContain("using only the requested topic verbatim");
   });
 });

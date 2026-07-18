@@ -1,18 +1,19 @@
 # Interface Setup Guide
 
-Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, webserver, Discord, A2A, and the local chat REPL.
+Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, the webserver and operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL.
 
-Interfaces are selected by the active brain model preset, then refined with `add` / `remove` and configured under `plugins:` in `brain.yaml`.
+Interfaces are selected by the active capability bundles, then refined with `add` / `remove` and configured under `plugins:` in `brain.yaml`.
 
 ## Quick reference
 
-| Interface | Plugin id   | Local surface                        | Common use                                  |
-| --------- | ----------- | ------------------------------------ | ------------------------------------------- |
-| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling  |
-| Webserver | `webserver` | `http://localhost:8080`              | site, CMS, dashboard, People, shared routes |
-| Discord   | `discord`   | Discord bot                          | chat with the brain from Discord            |
-| A2A       | `a2a`       | `http://localhost:8080/a2a`          | agent-to-agent communication                |
-| Chat REPL | command     | `brain chat`                         | local terminal chat                         |
+| Interface | Plugin id   | Local surface                        | Common use                                      |
+| --------- | ----------- | ------------------------------------ | ----------------------------------------------- |
+| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling      |
+| Webserver | `webserver` | `http://localhost:8080`              | Site, CMS, dashboard, Admin, shared HTTP routes |
+| Web chat  | `web-chat`  | `http://localhost:8080/chat`         | Authenticated browser chat                      |
+| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat         |
+| A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                    |
+| Chat REPL | command     | `brain chat`                         | Local terminal chat                             |
 
 ## Shared setup
 
@@ -33,6 +34,8 @@ Most interfaces also need permissions. The common identity forms are:
 - `mcp:stdio`
 - `mcp:http`
 - `discord:<user-id>`
+- `slack:<user-id>`
+- `web-chat:<session-or-user-id>`
 - `a2a:<agent-id-or-domain>`
 
 Example permission config:
@@ -44,10 +47,13 @@ permissions:
     - "mcp:stdio"
   trusted:
     - "discord:123456789012345678"
+    - "slack:U0123456789"
   rules:
     - pattern: "mcp:http"
       level: public
     - pattern: "discord:*"
+      level: public
+    - pattern: "slack:*"
       level: public
     - pattern: "a2a:*"
       level: public
@@ -81,7 +87,7 @@ Deployed URL:
 https://your-domain.com/mcp
 ```
 
-When the model includes `auth-service` (Rover does), HTTP MCP is protected by the brain's built-in OAuth provider:
+When `auth-service` is enabled, HTTP MCP is protected by the brain's built-in OAuth provider:
 
 1. First boot prints a one-shot `/setup` URL.
 2. The first Anchor opens that URL locally and registers a passkey.
@@ -101,11 +107,11 @@ plugins:
 
 MCP defaults to `basic` mode. In `basic`, clients see:
 
-- raw read-only query tools such as `system_search`, `system_get`, `system_list`, and `job_status`
+- raw read-only query tools such as `system_search`, `system_get`, `system_list`, and `system_job_status`
 - `chat` for commands, writes, and reasoning requests that should run through the brain agent
 - `confirm` for approving or denying pending actions returned by `chat`
 
-Raw write tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; use `system_get` or `job_status` to observe those results.
+Raw write tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; use `system_get` or `system_job_status` to observe those results.
 
 Use `debug` mode only for local/operator inspection when you intentionally need raw tool access. It requires `anchor` permissions and is refused for unauthenticated HTTP.
 
@@ -165,10 +171,11 @@ The webserver is the shared HTTP surface for the site, CMS, dashboard, Admin con
 Common local URLs:
 
 ```text
-http://localhost:8080/           # public site or dashboard route, depending on preset/config
+http://localhost:8080/           # public site or dashboard route, depending on bundle/config
 http://localhost:8080/cms        # CMS when enabled
 http://localhost:8080/dashboard  # dashboard when enabled
 http://localhost:8080/admin      # administration console; People section when enabled
+http://localhost:8080/chat       # authenticated web chat when enabled
 http://localhost:8080/mcp        # MCP HTTP when enabled
 http://localhost:8080/a2a        # A2A when enabled
 ```
@@ -187,84 +194,92 @@ plugins:
 
 The old separate internal preview/API listener model has converged on the shared HTTP host for normal app verification. Prefer testing through `http://localhost:8080` or through `brain --remote` against the running app.
 
-## Discord
+## Multi-platform chat
 
-Discord lets users chat with the brain by mentioning a bot in server channels or by sending direct messages.
+The `chat` interface hosts Discord and Slack adapters in one Chat SDK runtime. Either adapter can run by itself, or both can run together.
 
-### 1. Create a Discord app and bot
+Shared features include mentions, DMs, channel allowlists, subscribed-thread follow-ups, URL capture, confirmations, suggested actions, progress updates, permission-gated uploads, and native generated-artifact delivery.
 
-1. Open [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Open **Bot** → **Add Bot**
-4. Reset/copy the bot token
-5. Store it as `DISCORD_BOT_TOKEN`
+### Discord adapter
+
+Create a Discord application and bot in the [Discord Developer Portal](https://discord.com/developers/applications). Enable **Message Content Intent**, invite the bot with channel, message, thread, and history permissions, then configure all three application credentials:
 
 ```bash
-# .env
 DISCORD_BOT_TOKEN=...
+DISCORD_PUBLIC_KEY=...
+DISCORD_APPLICATION_ID=...
 ```
-
-### 2. Enable required intent
-
-In the bot settings, enable:
-
-- **Message Content Intent**
-
-The interface also uses non-privileged gateway intents for guilds, messages, and direct messages.
-
-### 3. Invite the bot
-
-In **OAuth2 → URL Generator**:
-
-- scopes: `bot`
-- permissions:
-  - View Channels
-  - Send Messages
-  - Send Messages in Threads
-  - Create Public Threads
-  - Read Message History
-
-Open the generated URL and invite the bot to your server.
-
-### 4. Configure the brain
 
 ```yaml
 plugins:
-  discord:
-    botToken: ${DISCORD_BOT_TOKEN}
-    requireMention: true
-    allowDMs: true
-    useThreads: true
-    allowedChannels: []
+  chat:
+    adapters:
+      discord:
+        botToken: ${DISCORD_BOT_TOKEN}
+        publicKey: ${DISCORD_PUBLIC_KEY}
+        applicationId: ${DISCORD_APPLICATION_ID}
+        requireMention: true
+        allowDMs: true
+        useThreads: true
+        allowedChannels: []
+        captureUrls: true
 ```
 
-Add your Discord user id as an anchor or trusted identity if needed:
+Discord supports direct gateway operation and webhook delivery.
+
+### Slack adapter
+
+Slack supports one workspace through either Socket Mode or a public webhook.
+
+For Socket Mode, provide a bot token and app-level token:
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+```
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: socket
+        botToken: ${SLACK_BOT_TOKEN}
+        appToken: ${SLACK_APP_TOKEN}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+For webhook mode, replace `appToken` with `signingSecret: ${SLACK_SIGNING_SECRET}` and point Slack events at:
+
+```text
+POST /api/webhooks/chat/slack
+```
+
+Slack requires the configured app scopes for mentions, channel/DM history, users, file reads, file writes, and messages. Reinstall the app after changing its scopes.
+
+### Chat permissions and safety
+
+Permissions remain platform-scoped:
 
 ```yaml
 permissions:
-  anchors:
-    - "discord:YOUR_DISCORD_USER_ID"
   rules:
     - pattern: "discord:*"
-      level: public
+      level: trusted
+    - pattern: "slack:*"
+      level: trusted
 ```
 
-To find your user id: Discord settings → Advanced → enable Developer Mode → right-click your username → **Copy User ID**.
+Recommended production settings:
 
-### Discord config fields
+- keep `requireMention: true` unless all channel messages should reach the brain;
+- restrict `allowedChannels` where appropriate;
+- disable `allowDMs` unless direct messages are intentional;
+- grant `trusted` or `anchor` only to users who may supply reusable uploads or perform writes.
 
-| Field                 | Default              | Notes                                               |
-| --------------------- | -------------------- | --------------------------------------------------- |
-| `botToken`            | required             | Usually `${DISCORD_BOT_TOKEN}`                      |
-| `allowedChannels`     | `[]`                 | Empty means all channels                            |
-| `requireMention`      | `true`               | Server channels require mentioning the bot          |
-| `allowDMs`            | `true`               | Allows direct messages                              |
-| `showTypingIndicator` | `true`               | Shows typing while processing                       |
-| `statusMessage`       | `Mention me to chat` | Bot profile status                                  |
-| `useThreads`          | `true`               | Replies in public threads                           |
-| `threadAutoArchive`   | `1440`               | One of `60`, `1440`, `4320`, `10080`                |
-| `captureUrls`         | plugin default       | When enabled, URLs can be captured as link entities |
-| `captureUrlEmoji`     | `🔖`                 | Reaction used for URL capture                       |
+Public users can chat, but their platform attachments are not downloaded or passed to the agent. Discord and Slack keep subscriptions and uploads in separate runtime namespaces.
 
 ## A2A
 
@@ -297,26 +312,10 @@ plugins:
     organization: "Your Organization"
 ```
 
-Token-auth config:
-
-```yaml
-plugins:
-  a2a:
-    trustedTokens:
-      inbound-secret-token: remote-agent.example.com
-    outboundTokens:
-      remote-agent.example.com: ${REMOTE_AGENT_TOKEN}
-```
-
-- `trustedTokens` maps inbound bearer tokens to caller identities
-- `outboundTokens` maps remote agent domains to bearer tokens this brain should send
-
-A2A calling is directory-aware. Save and approve a remote agent first, then call it by its saved local agent id. Do not call raw URLs directly.
-
-Save an agent by URL:
+A2A can verify an exact domain for a one-shot call without saving it. To create a durable approved outbound contact, connect the remote brain by domain or URL and complete the returned confirmation:
 
 ```bash
-brain tool system_create '{"entityType":"agent","source":{"kind":"url","url":"https://remote.example.com"}}'
+brain tool agent_connect '{"source":{"kind":"url","url":"remote.example.com"}}'
 ```
 
 List saved agents:
@@ -324,6 +323,16 @@ List saved agents:
 ```bash
 brain tool system_list '{"entityType":"agent"}'
 ```
+
+Call an approved contact:
+
+```bash
+brain tool agent_call '{"agent":"remote.example.com","message":"What can you help with?"}'
+```
+
+Inbound trust is separate from outbound contact approval. Grant or revoke it with `agent_set_trust_level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
+
+A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agent_scan_directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
 
 Manual smoke test:
 
@@ -340,7 +349,7 @@ cd mybrain
 brain chat
 ```
 
-The chat REPL is useful for quick local testing because it runs against the same model, content, tools, and permissions as the configured brain instance.
+The chat REPL is useful for quick local testing because it runs against the same content, tools, permissions, and AI configuration as the brain instance.
 
 ## Troubleshooting
 
@@ -348,7 +357,8 @@ The chat REPL is useful for quick local testing because it runs against the same
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MCP HTTP 404                 | Ensure `webserver` and `mcp` are both enabled. MCP HTTP mounts on the shared webserver.                                                                    |
 | MCP HTTP unauthorized        | For OAuth clients, clear stale client auth and repeat the browser/passkey flow. For deprecated static-token mode, pass `MCP_AUTH_TOKEN` as a bearer token. |
-| Discord bot does not respond | Check token, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`.                                                             |
+| Discord bot does not respond | Check all three Discord credentials, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`.                                     |
+| Slack app does not respond   | Check bot/app or signing-secret credentials, installed scopes, Socket Mode/webhook setup, `requireMention`, and `allowedChannels`.                         |
 | A2A card missing             | Ensure `a2a` and `webserver` are enabled and the brain has a domain or local webserver.                                                                    |
 | Remote CLI command fails     | Use `brain --remote <url> --token <token> ...` and verify `/mcp` is reachable.                                                                             |
 
@@ -358,4 +368,4 @@ The chat REPL is useful for quick local testing because it runs against the same
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)
 - [CLI Reference](../packages/brain-cli/docs/cli-reference.md)
 - [A2A interface README](../interfaces/a2a/README.md)
-- [Discord interface README](../interfaces/discord/README.md)
+- [Multi-platform chat README](../interfaces/chat/README.md)

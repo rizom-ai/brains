@@ -22,11 +22,7 @@ const PLANS_DIR = join(DOCS_DIR, "plans");
 const OUTPUT_HTML = join(DOCS_DIR, "roadmap-visual.html");
 
 export type StatusBucket =
-  | "active"
-  | "partial"
-  | "proposed"
-  | "parked"
-  | "done";
+  "active" | "partial" | "proposed" | "parked" | "done";
 
 export interface PlanCard {
   file: string;
@@ -78,7 +74,7 @@ export function resolveStatus(statusText: string): StatusBucket {
   ) {
     return "proposed";
   }
-  if (t.startsWith("active")) return "active";
+  if (t.startsWith("active") || t.startsWith("in progress")) return "active";
   if (t.startsWith("done") || t.startsWith("complete")) return "done";
 
   // Otherwise infer from the full status prose.

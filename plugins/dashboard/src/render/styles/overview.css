@@ -1,0 +1,425 @@
+.overview-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--col-gap);
+  margin-bottom: 22px;
+}
+.vital-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 10px;
+  background: var(--console-card);
+}
+.vital-label {
+  display: block;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.vital-num {
+  display: block;
+  margin-top: 6px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-variation-settings:
+    "SOFT" 40,
+    "opsz" 50;
+  font-weight: 540;
+  font-size: 34px;
+  line-height: 1.1;
+}
+.vital-num--text {
+  font-size: 26px;
+  padding-top: 6px;
+}
+.vital-sub {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--console-mono);
+  font-size: 11px;
+  color: var(--console-text-muted);
+}
+.vital-sub b {
+  color: var(--console-ok);
+  font-weight: 500;
+}
+.vital-card--ok::after,
+.vital-card--warm::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.vital-card--ok::after {
+  background: var(--console-ok);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--console-ok) 80%, transparent);
+}
+.vital-card--warm::after {
+  background: var(--console-warn);
+  animation: pulse-warm 1.8s ease-in-out infinite;
+}
+@keyframes pulse-warm {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--console-warn) 50%, transparent);
+  }
+  55% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+.identity-capsule {
+  margin-bottom: var(--col-gap);
+}
+.identity-capsule-body {
+  display: flex;
+  gap: 12px 26px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.identity-capsule-role {
+  font-family: var(--console-display);
+  font-variation-settings: "SOFT" 70;
+  font-style: italic;
+  font-size: 16px;
+  color: var(--console-text);
+}
+.identity-capsule-purpose {
+  font-size: 12.5px;
+  color: var(--console-text-dim);
+}
+.dashboard-tab-panel > .access-gate {
+  margin-bottom: var(--col-gap);
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--col-gap);
+  align-items: flex-start;
+}
+.digests {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--col-gap);
+}
+.digest-card {
+  display: block;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.digest-card:hover {
+  border-color: color-mix(in srgb, var(--console-accent) 50%, transparent);
+  transform: translateY(-2px);
+}
+.digest-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.digest-head h4 {
+  font-family: var(--console-display);
+  font-variation-settings: "SOFT" 50;
+  font-size: 18px;
+  font-weight: 540;
+  color: var(--console-text);
+}
+.digest-go {
+  font-family: var(--console-mono);
+  font-size: 11px;
+  color: var(--console-accent);
+}
+.digest-lines {
+  margin-top: 10px;
+}
+.digest-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--console-text-dim);
+  padding: 4px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.digest-line:first-child {
+  border-top: none;
+}
+.digest-line dd {
+  font-family: var(--console-mono);
+  font-size: 11.5px;
+  color: var(--console-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.digest-line--good dd {
+  color: var(--console-ok);
+}
+.digest-line--warn dd {
+  color: var(--console-warn);
+}
+
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ledger-entry {
+  display: grid;
+  grid-template-columns: 52px 14px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.ledger-entry:first-child {
+  border-top: none;
+}
+.ledger-time {
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  color: var(--console-text-muted);
+}
+.ledger-glyph {
+  font-family: var(--console-mono);
+  font-size: 11px;
+  color: var(--console-accent);
+  text-align: center;
+}
+.ledger-glyph--ok {
+  color: var(--console-ok);
+}
+.ledger-glyph--warn {
+  color: var(--console-warn);
+}
+.ledger-what {
+  font-size: 13px;
+  color: var(--console-text-dim);
+}
+.ledger-what b {
+  color: var(--console-text);
+  font-weight: 500;
+}
+.ledger-what code {
+  font-family: var(--console-mono);
+  font-size: 11px;
+  color: var(--console-text-muted);
+}
+
+@media (max-width: 1100px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 900px) {
+  .overview-vitals {
+    grid-template-columns: 1fr 1fr;
+  }
+  .digests {
+    grid-template-columns: 1fr;
+  }
+}
+
+.access-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--console-accent) 12%, transparent),
+      transparent 42%
+    ),
+    var(--console-card);
+}
+.access-gate p {
+  margin-top: 10px;
+  color: var(--console-text-dim);
+  font-size: 13.5px;
+}
+.access-gate-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--console-accent);
+  color: var(--console-on-accent);
+  font-family: var(--console-ui);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.access-gate-link:hover {
+  filter: brightness(1.06);
+}
+@media (max-width: 640px) {
+  .access-gate {
+    grid-template-columns: 1fr;
+  }
+  .access-gate-link {
+    justify-self: start;
+  }
+}
+
+.values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+.value {
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--console-text-dim);
+  padding: 3px 8px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+}
+
+@media (max-width: 640px) {
+  .overview-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .vital-card {
+    min-height: 88px;
+    padding: 12px;
+    border-radius: 9px;
+  }
+  .vital-label {
+    font-size: 8.5px;
+  }
+  .vital-num {
+    font-size: 27px;
+  }
+  .vital-num--text {
+    padding-top: 4px;
+    font-size: 18px;
+  }
+  .vital-sub {
+    overflow: hidden;
+    font-size: 9.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .identity-capsule {
+    margin-bottom: 8px;
+  }
+  .identity-capsule-body {
+    display: grid;
+    gap: 8px;
+  }
+  .identity-capsule-purpose {
+    grid-row: 2;
+  }
+  .overview-grid,
+  .digests {
+    gap: 8px;
+  }
+  .digest-card {
+    padding: 14px;
+    border-radius: 9px;
+  }
+  .digest-head h4 {
+    font-size: 17px;
+  }
+  .ledger-entry {
+    grid-template-columns: 42px 12px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .ledger-time {
+    font-size: 9px;
+  }
+  .ledger-what {
+    font-size: 12px;
+  }
+  .ledger-what code {
+    display: block;
+    margin-top: 2px;
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .overview-vitals {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1440px) {
+  .overview-vitals {
+    margin-bottom: 26px;
+  }
+  .vital-card {
+    padding: 18px 20px 16px;
+  }
+  .vital-label {
+    font-size: 10.5px;
+  }
+  .vital-num {
+    font-size: 39px;
+  }
+  .vital-num--text {
+    font-size: 30px;
+  }
+  .vital-sub {
+    font-size: 11.5px;
+  }
+  .identity-capsule-role {
+    font-size: 17.5px;
+  }
+  .identity-capsule-purpose {
+    font-size: 13.5px;
+  }
+  .digest-card {
+    padding: 18px 20px;
+  }
+  .digest-head h4 {
+    font-size: 20px;
+  }
+  .digest-go {
+    font-size: 11.5px;
+  }
+  .digest-line {
+    font-size: 13.5px;
+  }
+  .digest-line dd {
+    font-size: 12.5px;
+  }
+  .ledger-entry {
+    grid-template-columns: 56px 15px minmax(0, 1fr);
+  }
+  .ledger-time {
+    font-size: 11px;
+  }
+  .ledger-what {
+    font-size: 14px;
+  }
+  .ledger-what code {
+    font-size: 11.5px;
+  }
+}

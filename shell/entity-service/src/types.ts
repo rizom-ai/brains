@@ -60,14 +60,21 @@ export interface CreateEntityOptions extends EntityJobOptions {
   deduplicateId?: boolean;
 }
 
+/** Options for updating an existing entity. */
+export interface UpdateEntityOptions extends EntityJobOptions {
+  /** Apply only while the stored entity still has this content hash. */
+  expectedContentHash?: string | undefined;
+}
+
 /**
  * Result of an entity mutation that triggers an embedding job.
- * When skipped is true, content was unchanged — no DB write, no event, no embedding job.
+ * When skipped is true, no DB write, event, or embedding job was produced.
  */
 export interface EntityMutationResult {
   entityId: string;
   jobId: string;
   skipped: boolean;
+  skipReason?: "content-conflict" | undefined;
 }
 
 /**
@@ -424,6 +431,15 @@ export interface EntityAdapter<
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 
+  /**
+   * Optional: the `metadata.status` values that count as published for
+   * `publishedOnly` queries (production site builds). Declaring this makes the
+   * list exact — entities without a status are NOT published. When absent, the
+   * default lifecycle semantics apply: status `published`, `active`, or no
+   * status at all.
+   */
+  publishedStatuses?: string[];
+
   /** Optional: Extract coverImageId from entity content/frontmatter */
   getCoverImageId?(entity: TEntity): string | undefined;
 
@@ -547,7 +563,7 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
-  options?: EntityJobOptions | undefined;
+  options?: UpdateEntityOptions | undefined;
 }
 
 export interface DeleteEntityRequest {
@@ -567,6 +583,51 @@ export interface EntitySearchRequest {
 
 export interface SearchWithDistancesRequest {
   query: string;
+}
+
+export interface SemanticEntityReference {
+  entityId: string;
+  entityType: string;
+}
+
+export interface ProjectSemanticSpaceRequest {
+  /** Entity types to include as projected points. Empty or omitted includes all types. */
+  types?: string[];
+  /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
+  origin?: SemanticEntityReference;
+  /** Include pairwise neighbors at or below this cosine distance. */
+  maxNeighborDistance?: number;
+  /** Undefined fails closed to public-only visibility. */
+  visibilityScope?: ContentVisibility;
+}
+
+export interface SemanticSpacePoint extends SemanticEntityReference {
+  /** Coordinates on the first two principal components of the semantic space. */
+  coordinates: [number, number];
+  /** Cosine distance from the requested origin or the fallback centroid. */
+  distanceToOrigin: number;
+}
+
+export interface SemanticSpaceNeighbor {
+  source: SemanticEntityReference;
+  target: SemanticEntityReference;
+  distance: number;
+}
+
+export type SemanticSpaceOrigin =
+  ({ kind: "entity" } & SemanticEntityReference) | { kind: "centroid" };
+
+export interface SemanticSpaceDistanceRange {
+  min: number;
+  max: number;
+}
+
+export interface SemanticSpaceProjection {
+  origin: SemanticSpaceOrigin;
+  points: SemanticSpacePoint[];
+  neighbors: SemanticSpaceNeighbor[];
+  /** Observed origin-distance extent for projection-independent scaling. */
+  distanceRange: SemanticSpaceDistanceRange;
 }
 
 /**
@@ -673,6 +734,11 @@ export interface ICoreEntityService {
     request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
 
+  /** Project visible entities into a provider-independent semantic space. */
+  projectSemanticSpace(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
+
   // Entity type information
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
@@ -773,8 +839,11 @@ export interface EmbeddingIndexStats {
 }
 
 export interface IndexReadinessOptions {
-  timeoutMs: number;
+  /** Stop polling after this duration. Omit for an owning runtime monitor. */
+  timeoutMs?: number;
   intervalMs?: number;
+  /** Cancels readiness polling when the owning runtime shuts down. */
+  signal?: AbortSignal;
 }
 
 export interface IndexReadinessStatus extends EmbeddingIndexStats {
@@ -840,6 +909,9 @@ export interface EntityRegistry {
     adapter: EntityAdapter<TEntity, TMetadata>,
     config?: EntityTypeConfig,
   ): void;
+
+  /** Remove an entity type after failed plugin registration or shell teardown. */
+  unregisterEntityType(type: string): void;
 
   getSchema(type: string): UnknownEntitySchema;
 

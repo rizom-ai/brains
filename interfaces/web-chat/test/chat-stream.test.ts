@@ -159,6 +159,7 @@ describe("chat stream", () => {
           role: "user",
         },
       }),
+      undefined,
     );
   });
 

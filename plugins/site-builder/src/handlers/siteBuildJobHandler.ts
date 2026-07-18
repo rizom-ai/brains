@@ -12,6 +12,7 @@ import {
 } from "../types/job-types";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
+import type { SiteBuildStatusService } from "../lib/site-build-status";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
@@ -25,6 +26,7 @@ export interface SiteBuildJobHandlerConfig {
   getHeadScripts?: (() => string[]) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
+  statusService?: SiteBuildStatusService | undefined;
 }
 
 /**
@@ -58,6 +60,11 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     // Apply defaults for optional fields
     const environment = data.environment ?? "preview";
     const enableContentGeneration = data.enableContentGeneration ?? false;
+
+    await this.recordStatus(
+      () => this.cfg.statusService?.markBuilding(environment, jobId),
+      "building",
+    );
 
     try {
       this.logger.debug("Starting site build job", {
@@ -103,6 +110,29 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         },
         buildProgressReporter.toCallback(),
       );
+
+      if (result.success) {
+        await this.recordStatus(
+          () =>
+            this.cfg.statusService?.markSuccess(
+              environment,
+              jobId,
+              result.routesBuilt,
+              result.warnings ?? [],
+            ),
+          "success",
+        );
+      } else {
+        await this.recordStatus(
+          () =>
+            this.cfg.statusService?.markFailure(
+              environment,
+              jobId,
+              result.errors?.join("; ") ?? "Site build failed",
+            ),
+          "failure",
+        );
+      }
 
       // Report completion
       await progressReporter.report({
@@ -156,8 +186,28 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         ...(result.warnings && { warnings: result.warnings }),
       };
     } catch (error) {
+      await this.recordStatus(
+        () =>
+          this.cfg.statusService?.markFailure(
+            environment,
+            jobId,
+            error instanceof Error ? error.message : "Site build failed",
+          ),
+        "failure",
+      );
       this.logger.error("Site build job failed", error);
       throw error;
+    }
+  }
+
+  private async recordStatus(
+    update: () => Promise<void> | undefined,
+    state: string,
+  ): Promise<void> {
+    try {
+      await update();
+    } catch (error) {
+      this.logger.warn(`Failed to record site build ${state} state`, { error });
     }
   }
 

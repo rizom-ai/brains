@@ -1,5 +1,129 @@
 # @brains/ops
 
+## 0.2.0-alpha.200
+
+## 0.2.0-alpha.199
+
+## 0.2.0-alpha.198
+
+### Patch Changes
+
+- [`4f70541`](https://github.com/rizom-ai/brains/commit/4f705417d076bf8bdef1c620a6d211a3d1993f0a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, per-handle Rover Pilot deploy option for releasing an operator-confirmed stale Kamal lock before retrying. Normal deployments continue to preserve deploy locks by default.
+
+## 0.2.0-alpha.197
+
+## 0.2.0-alpha.196
+
+## 0.2.0-alpha.195
+
+## 0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- [`9374b1e`](https://github.com/rizom-ai/brains/commit/9374b1e040951a3b69b76750fc9c61392c41f7a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Parse decrypted pilot secrets as YAML so real long-form certificate and private-key payloads survive folded YAML serialization.
+
+## 0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- [`25ae7bb`](https://github.com/rizom-ai/brains/commit/25ae7bb769072598c3e1e320fa8ed004ebda7c50) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore rover-pilot custom-domain deployment support through per-user age-encrypted TLS overrides, safe real-PEM file encryption, custom preview and `www` aliases, and per-user Cloudflare zone selection.
+
+## 0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [#59](https://github.com/rizom-ai/brains/pull/59) [`e52ca13`](https://github.com/rizom-ai/brains/commit/e52ca13cf888013687734af3bb39469859d4e23c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add shell-owned recurring checks with deterministic UTC staggering, a shared Effect test clock, cooperative cancellation, startup catch-up, bounded retries, condition-based alert deduplication, and notification delivery. Agent discovery now scans peer directories daily, while generated Rover and fleet configuration reuse the onboarding recipient for recurring alerts.
+
+## 0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- [`b1c4afb`](https://github.com/rizom-ai/brains/commit/b1c4afbe9e1616fb70c99851e76d4a2962cb417e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reconcile the rover-pilot scaffold's deploy scripts with the running pilot pipeline so `brains-ops init` produces what actually deploys. Four scripts adopt live's current form: secret masking + CMS_CONTENT_REPO_PAT in decrypt-user-secrets, the BWS bootstrap token excluded from user-secret validation, the reconcile-aware deploy-handle matcher that keys off users/<h>/brain.yaml (and .env/content/.secrets) rather than the raw registry file, and the main()-wrapped sync-content-repo. (provision-server stays on its plain-access form: live's `?.` optional chaining is redundant under the ops types and functionally identical.) update-dns keeps its richer CNAME-migration form — a strict superset that lets a deploy claim a domain currently held by a CNAME (needed for the rizom.* cutover) — and that version is adopted into the live pilot too. The scaffold retains the per-user ATProto app-password wiring (now via the masked writeSecretGitHubEnv path): outbound publishing is implemented and rizom.ai is its flagship, so this is about-to-be-needed capability the live deploy will wire when publishing is switched on. Init's ATProto staleness detector and the init tests are updated to the new script forms.
+
+## 0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- [`fccd93d`](https://github.com/rizom-ai/brains/commit/fccd93dff5635d942bcc43c631a26bc1267630ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Sync the rover-pilot scaffold templates to the running pipeline design: build.yml resolves the declared image set from the registry and matrix-builds missing images (replacing the batched resolve-build-config design, which leaked every same-version site override into one shared image), deploy.yml waits long enough for a concurrent build and drops the per-step shared-secret plumbing in favor of varlock, and the deploy scripts derive tags through the shared @rizom/ops helpers. Remaining drift in six templated scripts (update-dns, decrypt-user-secrets, resolve-deploy-handles, sync-content-repo, provision-server, validate-secrets) is bidirectional and tracked as a follow-up.
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- [`5c828fd`](https://github.com/rizom-ai/brains/commit/5c828fd6823b582835f5c7892ed2994b322ba603) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `resolveImageBuilds` and `runResolveMissingImages` (also on the `/deploy` entry): the Build workflow's resolve step as ops logic — derive the declared image set from the pilot registry, probe the container registry per tag, and emit the missing ones as a GitHub Actions build matrix, with dispatch inputs forcing a single explicit build. rover-pilot's build.yml becomes a thin caller.
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- [`13efe5c`](https://github.com/rizom-ai/brains/commit/13efe5cb1f15ef694e4634914ffee5d68f57c37a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add image derivation to the ops registry model: `siteImageTag` (moved from rover-pilot's local copy), `sitePackagesFor`, and `requiredImages` — the image set the declared fleet state requires, derived purely from resolved users. This lets rover-pilot's Build workflow build exactly what a config push declares (default image per brain version in use, plus one per-instance sites image per site override) instead of relying on manual dispatches, and lets its deploy resolve tags through the same function so build and deploy can never disagree.
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- [`78ff7f2`](https://github.com/rizom-ai/brains/commit/78ff7f294dadd6e4b830ea0f5a262b0c4ec4b9d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix new users being skipped by every deploy after onboarding. The reconcile and deploy workflows committed generated output via `git diff`, which is blind to untracked files — so a newly added user's generated `users/<handle>/` directory was silently dropped and never appeared in any commit range the deploy handle-resolver inspects. Both workflow templates now stage generated paths with `git add --intent-to-add` before the diff dance.
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
 ## 0.2.0-alpha.156
 
 ## 0.2.0-alpha.155

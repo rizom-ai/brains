@@ -1,0 +1,30 @@
+{
+  "name": "@brains/recurring-checks",
+  "version": "0.2.0-alpha.200",
+  "description": "Shell-owned recurring checks, deduplication, and delivery orchestration",
+  "dependencies": {
+    "@brains/job-queue": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
+    "@brains/scheduler": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./src/index.ts"
+}

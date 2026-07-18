@@ -38,17 +38,19 @@ export class ContentScheduler {
   private publishRunner: PublishScheduleRunner;
   private generationRunner: GenerationScheduleRunner;
   private running = false;
+  private stopPromise: Promise<void> | null = null;
 
   public static getInstance(config: SchedulerConfig): ContentScheduler {
     ContentScheduler.instance ??= new ContentScheduler(config);
     return ContentScheduler.instance;
   }
 
-  public static resetInstance(): void {
-    if (ContentScheduler.instance) {
-      void ContentScheduler.instance.stop();
-    }
+  public static async resetInstance(): Promise<void> {
+    const instance = ContentScheduler.instance;
     ContentScheduler.instance = null;
+    if (instance) {
+      await instance.stop();
+    }
   }
 
   public static createFresh(config: SchedulerConfig): ContentScheduler {
@@ -83,6 +85,10 @@ export class ContentScheduler {
 
   public async start(): Promise<void> {
     if (this.running) return;
+    if (this.stopPromise) {
+      await this.stopPromise;
+      this.stopPromise = null;
+    }
 
     this.running = true;
 
@@ -90,11 +96,15 @@ export class ContentScheduler {
     this.generationRunner.start();
   }
 
-  public async stop(): Promise<void> {
-    this.running = false;
+  public stop(): Promise<void> {
+    if (this.stopPromise) return this.stopPromise;
 
-    this.publishRunner.stop();
-    this.generationRunner.stop();
+    this.running = false;
+    this.stopPromise = Promise.all([
+      this.publishRunner.stop(),
+      this.generationRunner.stop(),
+    ]).then(() => undefined);
+    return this.stopPromise;
   }
 
   public isRunning(): boolean {

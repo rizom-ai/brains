@@ -1,6 +1,9 @@
 /** @jsxImportSource preact */
 import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
+import styles from "./swot-widget.css" with { type: "text" };
+
+export const swotWidgetStyles: string = styles;
 
 const swotItemSchema = z.object({
   title: z.string(),

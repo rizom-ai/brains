@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAssessmentPlugin } from "../src";
+import { swotWidgetStyles } from "../src/widgets/swot-widget";
 
 describe("SwotAssessmentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -10,6 +11,11 @@ describe("SwotAssessmentPlugin", () => {
     harness = createPluginHarness({
       dataDir: `/tmp/test-swot-${randomUUID()}`,
     });
+  });
+
+  it("owns its dashboard widget styles", () => {
+    expect(swotWidgetStyles).toContain(".swot-cell");
+    expect(swotWidgetStyles).toContain("@container dashboard-card");
   });
 
   it("registers the swot entity type", async () => {
@@ -42,6 +48,7 @@ describe("SwotAssessmentPlugin", () => {
       id: string;
       group: string;
       rendererName: string;
+      hasClientStyles: boolean;
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
@@ -49,11 +56,13 @@ describe("SwotAssessmentPlugin", () => {
         id: string;
         group: string;
         rendererName: string;
+        clientStyles?: unknown;
       };
       registrations.push({
         id: payload.id,
         group: payload.group,
         rendererName: payload.rendererName,
+        hasClientStyles: typeof payload.clientStyles === "string",
       });
       return { success: true };
     });
@@ -62,7 +71,12 @@ describe("SwotAssessmentPlugin", () => {
     await harness.sendMessage("system:plugins:ready", {}, "shell");
 
     expect(registrations).toEqual([
-      { id: "swot", group: "network", rendererName: "SwotWidget" },
+      {
+        id: "swot",
+        group: "network",
+        rendererName: "SwotWidget",
+        hasClientStyles: true,
+      },
     ]);
   });
 

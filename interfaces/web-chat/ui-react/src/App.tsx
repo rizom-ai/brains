@@ -8,6 +8,7 @@ import {
 } from "react";
 import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
@@ -51,7 +52,21 @@ import {
   parseChatSessionHash,
   type JumpLocalGroup,
 } from "./jump-local";
-import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
+import type { WebChatSession } from "./api";
+import { createActiveMessageSeed } from "./history-messages";
+import {
+  archiveWebChatSession,
+  deleteWebChatSession,
+  removeWebChatSessionCaches,
+  renameWebChatSession,
+  renameWebChatSessionCache,
+} from "./mutations";
+import {
+  sessionHistoryQueryOptions,
+  sessionListQueryOptions,
+  webChatKeys,
+} from "./queries";
+import { runSessionSwitch } from "./session-switch";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -60,7 +75,6 @@ import {
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 
-type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
   | { kind: "archive"; session: WebChatSession }
@@ -125,30 +139,7 @@ function PromptSubmitControl({
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
-const webChatSessionSchema = z.looseObject({
-  id: z.string(),
-  title: z.string(),
-  lastActiveAt: z.string(),
-});
-
-const webChatSessionsResponseSchema = z.looseObject({
-  sessions: z.array(webChatSessionSchema),
-});
-
-type WebChatSession = z.output<typeof webChatSessionSchema>;
-
-interface WebChatStarter {
-  id: string;
-  title: string;
-  description?: string;
-  playbookId: string;
-  lifecycle: string;
-  starterPrompt: string;
-}
-
-interface WebChatBootstrapResponse {
-  starters: WebChatStarter[];
-}
+const emptySessions: WebChatSession[] = [];
 
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
@@ -331,69 +322,49 @@ export function ProgressPart({
   );
 }
 
-function describeFetchFailure(response: Response, fallback: string): string {
-  if (response.status === 401 || response.status === 403) {
-    return "Your authenticated session may have expired. Refresh or sign in again.";
-  }
-  return `${fallback} (${response.status})`;
-}
-
-function PlaybookStarterCard({
-  starter,
-  onStart,
-  disabled,
-}: {
-  starter: WebChatStarter;
-  onStart: (starter: WebChatStarter) => void;
-  disabled: boolean;
-}): React.ReactElement {
-  return (
-    <section className="web-chat-playbook-starter" aria-label={starter.title}>
-      <span className="web-chat-playbook-starter-kicker">guided start</span>
-      <h2>{starter.title}</h2>
-      <p>
-        {starter.description ??
-          "Start a guided playbook inside this chat. Rover will teach by doing real work with your brain."}
-      </p>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onStart(starter)}
-      >
-        Start setup
-      </button>
-    </section>
-  );
-}
-
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );
-  const [sessions, setSessions] = useState<WebChatSession[]>([]);
-  const [sessionsStatus, setSessionsStatus] = useState<AsyncStatus>("idle");
-  const [sessionError, setSessionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const sessionsQuery = useQuery(sessionListQueryOptions());
+  const renameSessionMutation = useMutation({
+    mutationFn: renameWebChatSession,
+  });
+  const archiveSessionMutation = useMutation({
+    mutationFn: archiveWebChatSession,
+  });
+  const deleteSessionMutation = useMutation({
+    mutationFn: deleteWebChatSession,
+  });
+  const sessions = sessionsQuery.data ?? emptySessions;
+  const sessionsStatus = sessionsQuery.isPending
+    ? "loading"
+    : sessionsQuery.isError
+      ? "error"
+      : "ready";
+  const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const startupRestoreAttemptedRef = useRef(false);
+  const switchRequestIdRef = useRef(0);
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
   >(null);
-  const [deletingConversationId, setDeletingConversationId] = useState<
-    string | null
-  >(null);
-  const [archivingConversationId, setArchivingConversationId] = useState<
-    string | null
-  >(null);
-  const [renamingConversationId, setRenamingConversationId] = useState<
-    string | null
-  >(null);
+  const deletingConversationId = deleteSessionMutation.isPending
+    ? deleteSessionMutation.variables.conversationId
+    : null;
+  const archivingConversationId = archiveSessionMutation.isPending
+    ? archiveSessionMutation.variables.conversationId
+    : null;
+  const renamingConversationId = renameSessionMutation.isPending
+    ? renameSessionMutation.variables.conversationId
+    : null;
   const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
-  const [bootstrapStarter, setBootstrapStarter] =
-    useState<WebChatStarter | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(
     null,
   );
@@ -532,57 +503,21 @@ export function App(): React.ReactElement {
 
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
-    void loadSessions();
-    void loadBootstrap();
   }, []);
 
-  async function loadBootstrap(): Promise<void> {
-    try {
-      const response = await fetch("/api/chat/bootstrap", {
-        credentials: "include",
-      });
-      if (!response.ok) return;
-      const body = (await response.json()) as WebChatBootstrapResponse;
-      setBootstrapStarter(body.starters[0] ?? null);
-    } catch {
-      setBootstrapStarter(null);
-    }
+  async function loadSessions(
+    _options: { quiet?: boolean } = {},
+  ): Promise<void> {
+    await sessionsQuery.refetch();
   }
 
-  async function loadSessions(
-    options: { quiet?: boolean } = {},
-  ): Promise<void> {
-    if (!options.quiet) {
-      setSessionsStatus("loading");
-      setSessionError(null);
-    }
-
-    try {
-      const response = await fetch("/api/chat/sessions", {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not load saved sessions."),
-        );
-      }
-      const parsed = webChatSessionsResponseSchema.safeParse(
-        await response.json(),
-      );
-      if (!parsed.success) {
-        throw new Error("Could not load saved sessions.");
-      }
-      setSessions(parsed.data.sessions);
-      setSessionsStatus("ready");
-      setSessionError(null);
-    } catch (error) {
-      setSessionsStatus("error");
-      setSessionError(
-        error instanceof Error
-          ? error.message
-          : "Could not load saved sessions.",
-      );
-    }
+  function updateCachedSessions(
+    update: (current: WebChatSession[]) => WebChatSession[],
+  ): void {
+    queryClient.setQueryData<WebChatSession[]>(
+      webChatKeys.sessions(),
+      (current) => update(current ?? emptySessions),
+    );
   }
 
   function upsertPendingSession(text: string): void {
@@ -592,7 +527,7 @@ export function App(): React.ReactElement {
       title: deriveSessionTitle(text),
       lastActiveAt: now,
     };
-    setSessions((current) => {
+    updateCachedSessions((current) => {
       const existingSession = current.find(
         (session) => session.id === conversationId,
       );
@@ -610,46 +545,50 @@ export function App(): React.ReactElement {
   async function switchConversation(nextConversationId: string): Promise<void> {
     if (isBusyStatus(status) || loadingConversationId) return;
 
+    const switchRequestId = ++switchRequestIdRef.current;
     setHistoryError(null);
     setLoadingConversationId(nextConversationId);
-    try {
-      const response = await fetch(
-        `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
-        { credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not reopen that session."),
+    await runSessionSwitch({
+      load: async () => {
+        const cachedHistory = await queryClient.fetchQuery({
+          ...sessionHistoryQueryOptions(nextConversationId),
+          staleTime: 0,
+        });
+        return createActiveMessageSeed(cachedHistory);
+      },
+      isCurrent: () => switchRequestId === switchRequestIdRef.current,
+      onSuccess: (nextMessages) => {
+        try {
+          localStorage.setItem(conversationStorageKey, nextConversationId);
+        } catch {
+          /* localStorage unavailable — switching still works in memory */
+        }
+        setMessages(nextMessages);
+        setInitialMessages(nextMessages);
+        setConversationId(nextConversationId);
+        setInput("");
+        closeDrawer();
+        focusPromptTextarea(promptInputRef.current);
+      },
+      onError: (error) => {
+        setHistoryError(
+          error instanceof Error
+            ? error.message
+            : "Could not reopen that session.",
         );
-      }
-      const parsed = webChatMessagesResponseSchema.safeParse(
-        await response.json(),
-      );
-      if (!parsed.success) {
-        throw new Error("Could not reopen that session.");
-      }
-      const nextMessages = parsed.data.messages.map(toUiMessage);
-      try {
-        localStorage.setItem(conversationStorageKey, nextConversationId);
-      } catch {
-        /* localStorage unavailable — switching still works in memory */
-      }
-      setMessages(nextMessages);
-      setInitialMessages(nextMessages);
-      setConversationId(nextConversationId);
-      setInput("");
-      closeDrawer();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not reopen that session.",
-      );
-    } finally {
-      setLoadingConversationId(null);
-    }
+      },
+      onSettled: () => setLoadingConversationId(null),
+    });
   }
+
+  useEffect(() => {
+    if (!sessionsQuery.isSuccess || startupRestoreAttemptedRef.current) return;
+    startupRestoreAttemptedRef.current = true;
+
+    if (sessions.some((session) => session.id === conversationId)) {
+      void switchConversation(conversationId);
+    }
+  }, [conversationId, sessions, sessionsQuery.isSuccess]);
 
   async function submitMessage(
     textOverride?: string,
@@ -695,6 +634,9 @@ export function App(): React.ReactElement {
         setHistoryError(effect.historyError);
       })
       .finally(() => {
+        void queryClient.invalidateQueries({
+          queryKey: webChatKeys.history(conversationId),
+        });
         void loadSessions({ quiet: true });
         focusPromptTextarea(promptInputRef.current);
       });
@@ -754,6 +696,9 @@ export function App(): React.ReactElement {
           },
         ]);
       }
+      void queryClient.invalidateQueries({
+        queryKey: webChatKeys.history(conversationId),
+      });
       void loadSessions({ quiet: true });
     } catch (error) {
       const effect = classifySubmitError(error, "send");
@@ -762,11 +707,9 @@ export function App(): React.ReactElement {
     }
   }
 
-  function startPlaybook(starter: WebChatStarter): void {
-    void submitMessage(starter.starterPrompt);
-  }
-
   function resetToNewConversation(): void {
+    switchRequestIdRef.current += 1;
+    setLoadingConversationId(null);
     const next = createConversationId();
     try {
       localStorage.setItem(conversationStorageKey, next);
@@ -835,14 +778,14 @@ export function App(): React.ReactElement {
     setRenameDraft("");
   }
 
-  async function renameConversation(
+  function renameConversation(
     session: WebChatSession,
     nextTitle: string,
-  ): Promise<void> {
+  ): void {
     const trimmedTitle = nextTitle.trim();
     if (
       isBusyStatus(status) ||
-      renamingConversationId ||
+      renameSessionMutation.isPending ||
       !trimmedTitle ||
       trimmedTitle === session.title
     ) {
@@ -851,108 +794,62 @@ export function App(): React.ReactElement {
     }
 
     setHistoryError(null);
-    setRenamingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: trimmedTitle }),
+    renameSessionMutation.mutate(
+      { conversationId: session.id, title: trimmedTitle },
+      {
+        onSuccess: () => {
+          renameWebChatSessionCache(queryClient, {
+            conversationId: session.id,
+            title: trimmedTitle,
+          });
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
         },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not rename that session."),
-        );
-      }
-      setSessions((current) =>
-        current.map((candidate) =>
-          candidate.id === session.id
-            ? { ...candidate, title: trimmedTitle }
-            : candidate,
-        ),
-      );
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not rename that session.",
-      );
-    } finally {
-      setRenamingConversationId(null);
-    }
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
-  async function archiveConversation(session: WebChatSession): Promise<void> {
-    if (isBusyStatus(status) || archivingConversationId) return;
+  function archiveConversation(session: WebChatSession): void {
+    if (isBusyStatus(status) || archiveSessionMutation.isPending) return;
 
     setHistoryError(null);
-    setArchivingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions/archive?id=${encodeURIComponent(session.id)}`,
-        { method: "PUT", credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not archive that session."),
-        );
-      }
-      setSessions((current) =>
-        current.filter((candidate) => candidate.id !== session.id),
-      );
-      if (session.id === conversationId) {
-        resetToNewConversation();
-      }
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not archive that session.",
-      );
-    } finally {
-      setArchivingConversationId(null);
-    }
+    archiveSessionMutation.mutate(
+      { conversationId: session.id },
+      {
+        onSuccess: () => {
+          removeWebChatSessionCaches(queryClient, session.id);
+          if (session.id === conversationId) resetToNewConversation();
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
+        },
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
-  async function deleteConversation(session: WebChatSession): Promise<void> {
-    if (isBusyStatus(status) || deletingConversationId) return;
+  function deleteConversation(session: WebChatSession): void {
+    if (isBusyStatus(status) || deleteSessionMutation.isPending) return;
 
     setHistoryError(null);
-    setDeletingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
-        { method: "DELETE", credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not delete that session."),
-        );
-      }
-      setSessions((current) =>
-        current.filter((candidate) => candidate.id !== session.id),
-      );
-      if (session.id === conversationId) {
-        resetToNewConversation();
-      }
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not delete that session.",
-      );
-    } finally {
-      setDeletingConversationId(null);
-    }
+    deleteSessionMutation.mutate(
+      { conversationId: session.id },
+      {
+        onSuccess: () => {
+          removeWebChatSessionCaches(queryClient, session.id);
+          if (session.id === conversationId) resetToNewConversation();
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
+        },
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
   function renderSessions(): React.ReactNode {
@@ -1372,18 +1269,10 @@ export function App(): React.ReactElement {
         <Conversation>
           <ConversationContent>
             {messages.length === 0 ? (
-              bootstrapStarter ? (
-                <PlaybookStarterCard
-                  starter={bootstrapStarter}
-                  disabled={isBusyStatus(status)}
-                  onStart={startPlaybook}
-                />
-              ) : (
-                <ConversationEmptyState
-                  title="Begin a field note."
-                  description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
-                />
-              )
+              <ConversationEmptyState
+                title="Begin a field note."
+                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+              />
             ) : (
               messages.map((message) => (
                 <Message
@@ -1446,6 +1335,7 @@ export function App(): React.ReactElement {
             id="web-chat-input"
             ref={promptInputRef}
             value={input}
+            aria-label="Message"
             placeholder="Plant a question…"
             onInput={(event) => setInput(event.currentTarget.value)}
           />
@@ -1453,10 +1343,6 @@ export function App(): React.ReactElement {
             <PromptInputTools>
               <PromptAttachmentButton />
             </PromptInputTools>
-            <span className="web-chat-prompt-hint">
-              <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
-              newline
-            </span>
             <PromptSubmitControl input={input} status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>

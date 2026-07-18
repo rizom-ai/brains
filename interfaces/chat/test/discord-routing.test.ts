@@ -6,7 +6,7 @@ import {
   getThreadIdParts,
   isAllowedChannel,
   isBotCreatedDiscordThread,
-  shouldHandleDiscordAction,
+  shouldHandleChatAction,
   shouldRouteDiscordMessage,
   type RoutedMessage,
   type RoutedThread,
@@ -178,26 +178,23 @@ describe("shouldRouteDiscordMessage", () => {
   });
 });
 
-describe("shouldHandleDiscordAction", () => {
+describe("shouldHandleChatAction", () => {
   const config = { allowedChannels: [], allowDMs: true };
 
-  it("lets non-discord platforms through and requires config for discord", () => {
-    expect(shouldHandleDiscordAction(thread(), "slack", undefined)).toBe(true);
-    expect(shouldHandleDiscordAction(thread(), "discord", undefined)).toBe(
-      false,
-    );
+  it("requires platform configuration", () => {
+    expect(shouldHandleChatAction(thread(), undefined)).toBe(false);
   });
 
-  it("applies DM and channel policy for discord", () => {
-    expect(shouldHandleDiscordAction(thread(), "discord", config)).toBe(true);
+  it("applies DM and channel policy", () => {
+    expect(shouldHandleChatAction(thread(), config)).toBe(true);
     expect(
-      shouldHandleDiscordAction(thread({ isDM: true }), "discord", {
+      shouldHandleChatAction(thread({ isDM: true }), {
         ...config,
         allowDMs: false,
       }),
     ).toBe(false);
     expect(
-      shouldHandleDiscordAction(thread(), "discord", {
+      shouldHandleChatAction(thread(), {
         ...config,
         allowedChannels: ["elsewhere"],
       }),

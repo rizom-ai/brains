@@ -1,11 +1,14 @@
 {
   "name": "@brains/core",
-  "version": "0.2.0-alpha.156",
+  "version": "0.2.0-alpha.200",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
+    "@brains/notification-contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/recurring-checks": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"

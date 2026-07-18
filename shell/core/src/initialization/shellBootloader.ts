@@ -1,10 +1,12 @@
 import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
-import { ShellInitializer } from "./shellInitializer";
+import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
+import type { ShellLifecycle } from "./shell-lifecycle";
+import { runConcurrentPhase } from "../effect-runtime";
+import { Effect } from "@brains/utils/effect";
 
-const INDEX_READINESS_TIMEOUT_MS = 30_000;
-const INDEX_READINESS_RETRY_MS = 5_000;
+const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
 /**
  * Boot mode variants. Mutually exclusive — encoded as a single field so callers
@@ -38,28 +40,36 @@ export interface ShellBootloaderHooks {
 export class ShellBootloader {
   private readonly config: ShellConfig;
   private readonly services: ShellServices;
+  private readonly lifecycle: ShellLifecycle;
+  private readonly initializer: ShellInitializer;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
     services: ShellServices,
+    lifecycle: ShellLifecycle,
+    initializer: ShellInitializer,
     hooks: ShellBootloaderHooks,
   ) {
     this.config = config;
     this.services = services;
+    this.lifecycle = lifecycle;
+    this.initializer = initializer;
     this.hooks = hooks;
   }
 
   public async boot(options?: ShellBootloaderOptions): Promise<void> {
     this.services.logger.debug("Starting Shell boot");
 
-    const shellInitializer = ShellInitializer.getInstance(
-      this.services.logger,
-      this.config,
-    );
+    const shellInitializer = this.initializer;
 
-    // Initialize databases (WAL mode, migrations, indexes, ATTACH) before
-    // plugins load — they need search and embeddings to work.
-    await this.services.entityService.initialize();
+    // Settle database readiness (WAL mode, migrations, indexes, ATTACH)
+    // before plugins load or runtime services can use the connections.
+    await runConcurrentPhase([
+      (): Promise<void> => this.services.entityService.initialize(),
+      (): Promise<void> =>
+        this.services.jobQueueService.initialize?.() ?? Promise.resolve(),
+      (): Promise<void> => this.services.runtimeStateService.initialize(),
+    ]);
 
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
@@ -115,7 +125,7 @@ export class ShellBootloader {
     }
 
     await this.startRuntimeServices();
-    this.startIndexReadinessMonitor();
+    await this.startIndexReadinessMonitor();
 
     this.services.logger.debug("Shell boot complete");
   }
@@ -142,10 +152,11 @@ export class ShellBootloader {
   }
 
   private async prepareReadyState(): Promise<void> {
-    await Promise.all([
-      this.services.identityService.initialize(),
-      this.services.profileService.initialize(),
-      this.services.canonicalIdentityService.refreshCache(),
+    await runConcurrentPhase([
+      (): Promise<void> => this.services.identityService.initialize(),
+      (): Promise<void> => this.services.profileService.initialize(),
+      (): Promise<void> =>
+        this.services.canonicalIdentityService.refreshCache(),
     ]);
     this.services.logger.debug("Identity services initialized");
 
@@ -159,54 +170,48 @@ export class ShellBootloader {
   }
 
   private async startRuntimeServices(): Promise<void> {
+    const recurringDaemonName = "shell:recurring-checks";
+    if (this.services.daemonRegistry.has(recurringDaemonName)) {
+      await this.services.daemonRegistry.start(recurringDaemonName);
+    }
     await this.services.pluginManager.startPluginDaemons();
     await this.services.jobQueueWorker.start();
     this.services.jobProgressMonitor.start();
-    this.services.batchJobManager.start();
+    await this.services.batchJobManager.start();
   }
 
-  private startIndexReadinessMonitor(): void {
-    void this.runIndexReadinessMonitor();
+  private async startIndexReadinessMonitor(): Promise<void> {
+    await this.lifecycle.fork(this.runIndexReadinessMonitor());
   }
 
-  private async runIndexReadinessMonitor(): Promise<void> {
-    for (;;) {
-      try {
-        const status = await this.services.entityService.awaitIndexReady({
-          timeoutMs: INDEX_READINESS_TIMEOUT_MS,
-        });
+  private runIndexReadinessMonitor(): Effect.Effect<void> {
+    const { entityService, logger } = this.services;
 
-        if (status.ready) {
+    return Effect.tryPromise({
+      try: (signal) =>
+        entityService.awaitIndexReady({
+          intervalMs: INDEX_READINESS_POLL_INTERVAL_MS,
+          signal,
+        }),
+      catch: (error) => error,
+    }).pipe(
+      Effect.tap((status) =>
+        Effect.sync(() => {
           if (status.degraded) {
-            this.services.logger.warn(
+            logger.warn(
               "Semantic index ready with degraded embeddings",
               status,
             );
           } else {
-            this.services.logger.debug("Semantic index ready", status);
+            logger.debug("Semantic index ready", status);
           }
-          return;
-        }
-
-        this.services.logger.warn(
-          "Semantic index not ready yet; retrying readiness monitor",
-          status,
-        );
-      } catch (error) {
-        this.services.logger.warn(
-          "Semantic index readiness monitor failed; retrying",
-          error,
-        );
-      }
-
-      await this.delayIndexReadinessRetry();
-    }
-  }
-
-  private async delayIndexReadinessRetry(): Promise<void> {
-    await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, INDEX_READINESS_RETRY_MS);
-      timer.unref();
-    });
+        }),
+      ),
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          logger.warn("Semantic index readiness monitor stopped", error);
+        }),
+      ),
+    );
   }
 }

@@ -70,7 +70,7 @@ export interface IDirectorySync {
     totalFiles: number;
   } | null>;
   startWatching(): Promise<void>;
-  stopWatching(): void;
+  stopWatching(): Promise<void>;
   setWatchCallback(callback: (event: string, path: string) => void): void;
 }
 
@@ -79,14 +79,14 @@ export interface IDirectorySync {
  * Consumers accept this instead of the class, enabling clean test mocks.
  */
 export interface IGitSync {
-  withLock<T>(fn: () => Promise<T>): Promise<T>;
+  withLock<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T>;
   initialize(): Promise<void>;
   hasRemote(): boolean;
   getStatus(): Promise<GitSyncStatus>;
   hasLocalChanges(): Promise<boolean>;
   commit(message?: string): Promise<void>;
-  push(): Promise<void>;
-  pull(): Promise<PullResult>;
+  push(signal?: AbortSignal): Promise<void>;
+  pull(signal?: AbortSignal): Promise<PullResult>;
   cleanup(): void;
 
   /** Get commit history for a specific file path (relative to data dir) */

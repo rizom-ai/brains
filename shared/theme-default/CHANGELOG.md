@@ -1,5 +1,104 @@
 # @brains/theme-default
 
+## 0.2.0-alpha.200
+
+## 0.2.0-alpha.199
+
+## 0.2.0-alpha.198
+
+## 0.2.0-alpha.197
+
+## 0.2.0-alpha.196
+
+## 0.2.0-alpha.195
+
+## 0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- [`457e95f`](https://github.com/rizom-ai/brains/commit/457e95f38476ef5fdc2b676ae83153de6be66599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Themes become independently published npm packages, completing the
+  published-package model for brain.yaml: `@rizom/theme-default` (the editorial
+  base) and `@rizom/theme-rizom-ai` (the consolidated rizom.ai theme, depending
+  on the base so fixes flow via npm resolution) publish dist-only artifacts with
+  their CSS inlined. The brain entrypoint registers `@rizom/theme-default` and
+  keeps a `@brains/theme-default` alias for pre-rename brain.yaml files; hosted
+  deployments install `@rizom/*` theme refs next to the brain instead of
+  requiring themes to be bundled into a brain release.
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
 ## 0.2.0-alpha.156
 
 ## 0.2.0-alpha.155

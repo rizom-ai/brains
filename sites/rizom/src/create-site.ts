@@ -1,8 +1,10 @@
 import { extendSite } from "@brains/site-composition";
 import type {
+  EntityDisplayEntry,
   RouteDefinitionInput,
   SiteContentDefinition,
   SiteDefinition,
+  SiteSectionGroup,
 } from "@rizom/site";
 import rizomBaseSite from ".";
 import type {
@@ -55,11 +57,32 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
 
 export interface CreateRizomSiteOptions {
   packageName: string;
-  themeProfile: RizomThemeProfile;
+  /**
+   * Optional profile-driven chrome: sets `data-theme-profile` on the document
+   * and loads the matching background canvas (product→tree, editorial→roots,
+   * studio→constellation). Omit for sites that draw their own motifs — the
+   * boot.js animation runtime always loads regardless. Only the retiring
+   * rizom-work/rizom-foundation variants still use profiles; the machinery
+   * goes with them at consolidation Phase 6.
+   */
+  themeProfile?: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
   content?: SiteContentDefinition | SiteContentDefinition[];
+  /**
+   * Schema-first section groups (authored via `@rizom/site-sections`'
+   * `defineSection`/`sectionGroup`). Registered as content templates at brain
+   * boot exactly like `content`, so the CMS + directory-sync + resolver treat
+   * them identically — but the section shape is derived from one zod schema.
+   */
+  sections?: SiteSectionGroup | SiteSectionGroup[];
   themeOverride?: string;
+  /**
+   * Presentation config for entity-backed list/detail routes (labels, plural
+   * names, navigation). Merged onto the base site's empty map. Sites that
+   * surface plugin lists — e.g. `post`→"Essay", `deck`→"Talk" — set it here.
+   */
+  entityDisplay?: Record<string, EntityDisplayEntry>;
   /** Advanced runtime hooks for in-repo sites that need custom template/data-source wiring. */
   runtime?: RizomRuntimeHooks;
 }
@@ -86,7 +109,10 @@ function createRuntimePlugin(
   return (config?: Record<string, unknown>): RizomRuntimePlugin =>
     new RizomVariantPlugin(
       options.packageName,
-      { themeProfile: options.themeProfile, ...(config ?? {}) },
+      {
+        ...(options.themeProfile ? { themeProfile: options.themeProfile } : {}),
+        ...(config ?? {}),
+      },
       buildTemplateGroups(options),
       options.runtime?.dataSources,
     );
@@ -100,7 +126,9 @@ export function createRizomSite(
   return extendSite(rizomBaseSite, {
     layouts: { default: options.layout },
     routes: options.routes,
+    ...(options.entityDisplay ? { entityDisplay: options.entityDisplay } : {}),
     ...(options.content ? { content: options.content } : {}),
+    ...(options.sections ? { sections: options.sections } : {}),
     headScripts: [buildRizomHeadScript(options.themeProfile)],
     ...(plugin ? { plugin } : {}),
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),

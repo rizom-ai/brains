@@ -51,6 +51,12 @@ export class RenderService implements IViewTemplateRegistry {
     if (template.runtimeScripts && template.runtimeScripts.length > 0) {
       viewTemplate.runtimeScripts = template.runtimeScripts;
     }
+    if (
+      template.staticAssets &&
+      Object.keys(template.staticAssets).length > 0
+    ) {
+      viewTemplate.staticAssets = template.staticAssets;
+    }
 
     return viewTemplate;
   }

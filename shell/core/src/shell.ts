@@ -40,6 +40,7 @@ import type { IContentService } from "@brains/content-service";
 
 // Messaging
 import type { IMessageBus } from "@brains/messaging-service";
+import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
@@ -74,10 +75,7 @@ import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
 import { registerCoreDataSources } from "./core-data-sources";
 import { generateShellContent } from "./shell-content";
-import {
-  ShellInitializer,
-  resetServiceSingletons,
-} from "./initialization/shellInitializer";
+import { ShellInitializer } from "./initialization/shellInitializer";
 import {
   ShellBootloader,
   type BootMode,
@@ -91,18 +89,28 @@ import {
   collectPluginApiRoutes,
   collectPluginWebRoutes,
 } from "./plugin-routes";
-import { shutdownShellServices } from "./shell-shutdown";
+import { registerShellRuntimeFinalizers } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
+import { ShellLifecycle } from "./initialization/shell-lifecycle";
+import { Exit } from "@brains/utils/effect";
 
 export type { ShellDependencies };
+
+type ShellLifecycleState =
+  "constructed" | "booting" | "running" | "closing" | "closed" | "failed";
 
 export class Shell implements IShell {
   private config: ShellConfig;
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
+  private readonly lifecycle: ShellLifecycle;
   private readonly bootloader: ShellBootloader;
   private initialized = false;
+  private lifecycleState: ShellLifecycleState = "constructed";
+  private bootMode: BootMode | undefined;
+  private bootPromise: Promise<void> | null = null;
+  private shutdownPromise: Promise<void> | null = null;
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
@@ -126,43 +134,62 @@ export class Shell implements IShell {
     config?: ShellConfigInput,
     dependencies?: ShellDependencies,
   ): Shell {
-    // Reset all service singletons so this truly creates a fresh shell.
-    // The caller must shutdown() any previous shell first to stop
-    // background services; this handles the singleton references.
-    resetServiceSingletons();
-    const fullConfig = createShellConfig(config);
-    return new Shell(fullConfig, dependencies);
+    return new Shell(createShellConfig(config), dependencies);
   }
 
   private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
     this.config = config;
-    const shellInitializer = ShellInitializer.getInstance(
-      dependencies?.logger ?? Logger.getInstance(),
+    this.lifecycle = new ShellLifecycle();
+    const constructionLogger = dependencies?.logger ?? Logger.getInstance();
+    const shellInitializer = ShellInitializer.createFresh(
+      constructionLogger,
       this.config,
     );
 
-    this.services = shellInitializer.initializeServices(dependencies);
+    try {
+      this.services = shellInitializer.initializeServices(
+        this.lifecycle,
+        dependencies,
+      );
 
-    this.jobs = createJobsNamespace(
-      this.services.batchJobManager,
-      this.services.jobQueueService,
-    );
+      this.jobs = createJobsNamespace(
+        this.services.batchJobManager,
+        this.services.jobQueueService,
+      );
 
-    this.insightsRegistry = createInsightsRegistry();
-    this.bootloader = new ShellBootloader(this.config, this.services, {
-      registerCoreDataSources: (): void =>
-        registerCoreDataSources(this.services, this.config),
-      registerSystemCapabilities: (): void =>
-        registerShellSystemCapabilities({
-          services: this.services,
-          jobs: this.jobs,
-          insights: this.insightsRegistry,
-          query: (prompt, context) => this.query(prompt, context),
-          getAppInfo: () => this.getAppInfo(),
-        }),
-    });
+      this.insightsRegistry = createInsightsRegistry();
+      this.bootloader = new ShellBootloader(
+        this.config,
+        this.services,
+        this.lifecycle,
+        shellInitializer,
+        {
+          registerCoreDataSources: (): void =>
+            registerCoreDataSources(this.services, this.config),
+          registerSystemCapabilities: (): void =>
+            registerShellSystemCapabilities({
+              services: this.services,
+              jobs: this.jobs,
+              insights: this.insightsRegistry,
+              query: (prompt, context) => this.query(prompt, context),
+              getAppInfo: () => this.getAppInfo(),
+            }),
+        },
+      );
 
-    shellInitializer.wireShell(this.services, this);
+      shellInitializer.wireShell(this.services, this);
+      registerShellRuntimeFinalizers(this.lifecycle, this.services);
+    } catch (error) {
+      try {
+        this.lifecycle.closeSync(Exit.fail(error));
+      } catch (cleanupError) {
+        constructionLogger.error(
+          "Failed to roll back Shell service construction",
+          cleanupError,
+        );
+      }
+      throw error;
+    }
   }
 
   // Lifecycle
@@ -177,16 +204,57 @@ export class Shell implements IShell {
    */
   public async initialize(options?: { mode?: BootMode }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");
-    if (this.initialized) {
+    const requestedMode = options?.mode;
+
+    if (this.lifecycleState === "running") {
       this.services.logger.warn("Shell already initialized");
-      return;
+      return Promise.resolve();
+    }
+    if (this.lifecycleState === "booting") {
+      if (this.bootMode !== requestedMode) {
+        return Promise.reject(
+          new Error(
+            `Shell is already initializing in ${this.bootMode ?? "normal"} mode; cannot join ${requestedMode ?? "normal"} mode`,
+          ),
+        );
+      }
+      return this.bootPromise ?? Promise.resolve();
+    }
+    if (this.lifecycleState === "closing" || this.lifecycleState === "closed") {
+      return Promise.reject(new Error("Cannot initialize a closing shell"));
+    }
+    if (this.lifecycleState === "failed") {
+      return Promise.reject(
+        new Error("Cannot initialize a shell after boot failure"),
+      );
     }
 
+    this.lifecycleState = "booting";
+    this.bootMode = requestedMode;
+    this.bootPromise = this.boot(options);
+    return this.bootPromise;
+  }
+
+  private async boot(options?: { mode?: BootMode }): Promise<void> {
     try {
       await this.bootloader.boot(options);
-      this.initialized = true;
+      if (this.lifecycleState === "booting") {
+        this.lifecycleState = "running";
+        this.initialized = true;
+      }
     } catch (error) {
       this.services.logger.error("Failed to initialize Shell", error);
+      if (this.lifecycleState !== "closing") {
+        this.lifecycleState = "failed";
+      }
+      try {
+        await this.lifecycle.close(Exit.fail(error));
+      } catch (cleanupError) {
+        this.services.logger.error(
+          "Failed to clean up Shell after initialization failure",
+          cleanupError,
+        );
+      }
       throw error;
     }
   }
@@ -205,10 +273,28 @@ export class Shell implements IShell {
     }
   }
 
-  public async shutdown(): Promise<void> {
+  public shutdown(): Promise<void> {
+    this.shutdownPromise ??= this.shutdownShell();
+    return this.shutdownPromise;
+  }
+
+  private async shutdownShell(): Promise<void> {
     this.services.logger.debug("Shutting down Shell");
-    await shutdownShellServices(this.services);
+    if (this.lifecycleState === "closed") return;
+
+    const admittedBoot = this.bootPromise;
+    this.lifecycleState = "closing";
     this.initialized = false;
+    if (admittedBoot) {
+      try {
+        await admittedBoot;
+      } catch {
+        // Boot reports its original failure and closes the same lifecycle.
+      }
+    }
+
+    await this.lifecycle.close();
+    this.lifecycleState = "closed";
     this.services.logger.debug("Shell shutdown complete");
   }
 
@@ -277,12 +363,14 @@ export class Shell implements IShell {
   public async generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{ object: T }> {
     this.requireInitialized("Shell generateObject");
     const { object } = await this.services.aiService.generateObject(
       "You are a helpful assistant. Respond with the requested structured data.",
       prompt,
       schema,
+      signal,
     );
     return { object };
   }
@@ -336,6 +424,10 @@ export class Shell implements IShell {
 
   public getRuntimeState(): IRuntimeStateNamespace {
     return this.services.runtimeStateService;
+  }
+
+  public getRecurringChecks(pluginId: string): IRecurringChecksNamespace {
+    return this.services.recurringCheckService.namespace(pluginId);
   }
 
   public getMessageBus(): IMessageBus {
@@ -416,6 +508,31 @@ export class Shell implements IShell {
     if (this.initialized) {
       this.services.agentService.invalidateAgent();
     }
+  }
+
+  public async unregisterPluginCapabilities(pluginId: string): Promise<void> {
+    this.services.mcpService.unregisterPlugin?.(pluginId);
+    this.services.jobQueueService.unregisterPluginHandlers(pluginId);
+    this.endpointRegistry.unregister(pluginId);
+    this.interactionRegistry.unregister(pluginId);
+
+    for (const name of this.services.templateRegistry.getNames()) {
+      if (name.startsWith(`${pluginId}:`)) {
+        this.services.templateRegistry.unregister(name);
+      }
+    }
+
+    const evalRegistry = this.config.evalHandlerRegistry;
+    if (evalRegistry) {
+      for (const handler of evalRegistry.list()) {
+        if (handler.pluginId === pluginId) {
+          evalRegistry.unregister(pluginId, handler.handlerId);
+        }
+      }
+    }
+
+    this.services.agentService.invalidateAgent();
+    await this.services.recurringCheckService.unregisterPlugin(pluginId);
   }
 
   // Plugin, daemon, and endpoint registration

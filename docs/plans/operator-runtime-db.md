@@ -2,19 +2,28 @@
 
 ## Status
 
-Proposed foundation. This plan owns the **operator/admin durable tier** of private, non-content persistence: identity and security state that must survive, be backed up, and stay locked down. Auth-specific schema and migration details are tracked in [Auth runtime database](./auth-runtime-db.md).
-
-Ephemeral operational state (chat subscriptions, playbook run state, delivery dedupe) is **not** owned here — it belongs to the the runtime state store (`shell/runtime-state`), a separate tier with different durability, secrecy, and reset characteristics. This plan remains the ownership boundary for the durable operator/security tier and its hosted-persistence contract.
+Proposed durable operator/security tier. The separate ephemeral operational tier already
+ships as `shell/runtime-state`; this plan does not duplicate it. This plan owns the
+persisted, private database needed for identity and security state whose loss would cause
+a lockout or security incident. Auth-specific schema and migration details are tracked in
+[Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
-Introduce a shell-owned runtime-state persistence service for private, non-content state that today lives in scattered plugin-local files. It gives plugins a narrow, namespaced store so they can persist runtime state without each one opening its own database, inventing its own write-safety, or shipping its own migrations. This makes hosted Rover operations safer and easier to evolve without mixing operator, security, or runtime state into entity content — and without every plugin re-solving persistence by hand.
+Establish one deployment-safe, backed-up database boundary for credentials, sessions,
+tokens, identity bindings, and audit state. It must live under the canonical runtime data
+root, never under `brain-data`, and must not share a physical store with disposable
+operational state.
 
-Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md). The boundary here is the **durable operator/security tier**: state whose loss is a security or lockout incident (credentials, sessions, tokens, identity bindings, audit). Ephemeral operational state that is recoverable on loss and carries no secrets — chat subscriptions, playbook runs, delivery dedupe — is owned by the the runtime state store (`shell/runtime-state`) instead. Both tiers share the same engineering shape (a shell-owned, namespaced, migration-managed store under `dataDir`), but they are distinct physical stores so secret-bearing durable state is never co-located with disposable operational state.
+The existing `shell/runtime-state` service remains the home for recoverable, secret-free
+state such as chat subscriptions, playbook runs, and delivery dedupe. The two tiers may
+share engineering patterns, but not lifecycle or storage.
 
 ## Source of truth
 
-This plan owns the runtime-state boundary, storage-root/deploy persistence contract, backup/restore expectations, and shared operator DB service shape. It intentionally does not own auth table schemas or multi-user behavior:
+This plan owns the durable storage boundary, storage-root/deploy persistence contract,
+backup/restore expectations, and operator DB lifecycle. It intentionally does not own
+auth table schemas or multi-user behavior:
 
 - auth schema, auth migrations, and `single-operator` migration live in [Auth runtime database](./auth-runtime-db.md)
 - roles, permissions, People UX, and runtime user behavior live in [Multi-User & Permissions](./multi-user.md)
@@ -28,7 +37,7 @@ The operator DB is for durable operator/security state, not durable user-authore
 - identity bindings (e.g. `discord:<id>` → user)
 - future operator audit events and delivery history
 
-Moved to the the runtime state store (`shell/runtime-state`) (ephemeral tier, not here):
+Owned by the runtime state store (`shell/runtime-state`) (ephemeral tier, not here):
 
 - chat thread subscriptions
 - playbook run state: runs, typed evidence rows, gate verdicts
@@ -67,7 +76,7 @@ Plugins consume this service through a narrow, namespaced handle rather than a r
 
 This is the "shell-owned runtime persistence" the onboarding plan defers to. The relative-path default is not a one-plugin quirk — auth-service (`./data/auth`) and the in-flight playbooks run store (default `./data/playbooks`) both default to a plugin-relative root that resolves under the Docker `WORKDIR` instead of the canonical `dataDir`. The service closes that footgun by owning the path.
 
-The same plugin-facing shape is shared by the the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs are a worked example of that shape, but as an **ephemeral-tier** consumer they live in the runtime state store, not here: the hand-rolled `runs.json` store (from the in-flight playbooks work) collapses into normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables there. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
+The same plugin-facing shape is shared by the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs are a worked example of that shape, but as an **ephemeral-tier** consumer they live in the runtime state store, not here: the hand-rolled `runs.json` store (from the in-flight playbooks work) collapses into normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables there. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
 
 ## Incremental path
 
@@ -77,7 +86,7 @@ The same plugin-facing shape is shared by the the runtime state store (`shell/ru
 2. Add regression coverage that generated deploy templates persist the auth/operator-runtime storage path.
 3. Keep immediate Rover setup-email dedupe file-backed behind a small storage interface until the DB service exists.
 4. Define the operator DB service contract and ownership boundary in shell/app or a shared shell package.
-5. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the the runtime state store (`shell/runtime-state`).)
+5. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the runtime state store (`shell/runtime-state`).)
 6. Add optional audit/delivery history only after the auth migration is stable.
 
 ## Compatibility and migration notes
@@ -112,6 +121,6 @@ The earlier open question — "one shared runtime-state DB file, or one per cons
 
 ## Related plans
 
-- the runtime state store (`shell/runtime-state`) — the ephemeral operational tier this plan is deliberately not part of
+- `shell/runtime-state` — the shipped ephemeral operational tier this plan is deliberately not part of
 - [Auth runtime database](./auth-runtime-db.md)
 - [Multi-user and permissions](./multi-user.md)

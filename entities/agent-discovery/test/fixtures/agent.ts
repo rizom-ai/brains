@@ -2,8 +2,10 @@ import { slugifyUrl } from "@brains/utils/string-utils";
 import { AgentAdapter } from "../../src/adapters/agent-adapter";
 import type {
   AgentEntity,
+  AgentSkill,
   AgentStatus,
   AgentWithData,
+  TemplateAgent,
 } from "../../src/schemas/agent";
 
 const adapter = new AgentAdapter();
@@ -20,7 +22,10 @@ export interface TestAgentInput {
   did?: string;
   status?: AgentStatus;
   discoveredAt?: string;
+  introducedBy?: string[];
+  hops?: number;
   about?: string;
+  skills?: AgentSkill[];
   notes?: string;
 }
 
@@ -43,8 +48,12 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
       url,
       status: input.status ?? "discovered",
       discoveredAt,
+      ...(input.introducedBy !== undefined
+        ? { introducedBy: input.introducedBy }
+        : {}),
+      ...(input.hops !== undefined ? { hops: input.hops } : {}),
       about: input.about ?? `${name} is a brain agent.`,
-      skills: [
+      skills: input.skills ?? [
         {
           name: "Content Creation",
           description: "Create blog posts",
@@ -79,6 +88,16 @@ export function createTestAgentWithData(
     about: parsed.body.about,
     skills: parsed.body.skills,
     notes: parsed.body.notes,
+  };
+}
+
+export function createTemplateAgent(input: TestAgentInput = {}): TemplateAgent {
+  const agent = createTestAgentWithData(input);
+
+  return {
+    ...agent,
+    url: `/agents/${agent.metadata.slug}`,
+    typeLabel: "Agent",
   };
 }
 

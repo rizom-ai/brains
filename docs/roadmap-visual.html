@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-07-11 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-07-17 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -130,7 +130,7 @@
             <span class="card-name">Auth runtime database</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.</div>
+          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.</div>
           <div class="card-file">auth-runtime-db.md</div>
         </div>
         <div class="card status-proposed">
@@ -170,6 +170,22 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</summary>
         <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Finish the hosted Rizom site rollout</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">hosted package/image/TLS machinery is released and proven by <code>new.rizom.ai</code>; remaining scope is the <code>docs.rizom.ai</code> hosted cutover.</div>
+          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">the consolidated site and composition are merged and published; refresh <code>new.rizom.ai</code> from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.</div>
+          <div class="card-file">rizom-consolidation.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Rover default batch onboarding</span>
@@ -177,30 +193,6 @@
           </div>
           <div class="card-desc">next hosted Rover pilot customization/preflight work.</div>
           <div class="card-file">rover-default-batch-onboarding.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rizom sites on hosted Rover</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.</div>
-          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rizom consolidation — one brain, one site</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.</div>
-          <div class="card-file">rizom-consolidation.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rover onboarding plugin plan</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.</div>
-          <div class="card-file">rover-onboarding-plugin.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -223,21 +215,13 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">CMS AI-Assisted Authoring</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">selection-scoped AI assist inside the shipped first-party CMS editor. The CodeMirror 6 upgrade and the selection rewrite (read-only <code>/cms/api/assist</code>) have shipped; summarise/tag-suggest prompt variants and the authoring-pass polish backlog remain.</div>
-          <div class="card-file">cms-ai-assisted-authoring.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Slack Chat SDK Interface</span>
+            <span class="card-name">Installable operator-console PWA</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, building on the shared <code>MessageInterface</code> helpers already extracted from Discord/web-chat workflows.</div>
-          <div class="card-file">slack-chat-sdk.md</div>
+          <div class="card-desc">add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.</div>
+          <div class="card-file">operator-console-pwa.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
@@ -268,6 +252,14 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§6</span>Ecosystem</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Opportunity Priority Engine</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
+          <div class="card-file">bd-priority-engine.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
@@ -284,27 +276,11 @@
           <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
           <div class="card-file">npm-package-boundaries.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Opportunity Priority Engine</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">Opportunity Priority Engine: proposed standalone <code>@brains/opportunity</code> package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.</div>
-          <div class="card-file">bd-priority-engine.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Local AI Runtime</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">local AI runtime sidecar direction.</div>
-          <div class="card-file">embedding-service.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
@@ -323,11 +299,11 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Codebase cleanup backlog</span>
+            <span class="card-name">HTTP route registry hardening</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, <code>@brains/utils</code> split, package-script drift).</div>
-          <div class="card-file">codebase-cleanup-backlog.md</div>
+          <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
+          <div class="card-file">http-route-registry-hardening.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -345,61 +321,17 @@
           <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
           <div class="card-file">turso-database-engine.md</div>
         </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Local AI Runtime</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">local AI runtime sidecar direction.</div>
+          <div class="card-file">embedding-service.md</div>
+        </div>
         </div>
       </details>
-      <details class="group group-completed">
-        <summary class="group-title"><span class="group-num">✓</span>Recently completed<span class="completed-count">48 items</span></summary>
-        <div class="completed-list">
-          <div class="completed-item"><span class="completed-name">Entity and plugin architecture</span> — unified <code>EntityPlugin</code> / <code>ServicePlugin</code> / <code>InterfacePlugin</code> split</div>
-          <div class="completed-item"><span class="completed-name">System tool surface</span> — create, update, delete, search, extract, status, and insights consolidated into framework-level tools, with durable writes routed through explicit confirmation</div>
-          <div class="completed-item"><span class="completed-name">Plugin create interceptors</span> — plugins can override <code>system_create</code> behavior per entity type via <code>EntityPlugin.interceptCreate</code>; link capture and image cover-target resolution moved into their respective plugins</div>
-          <div class="completed-item"><span class="completed-name">Knowledge-context opt-in</span> — AI templates explicitly opt in to knowledge-base context injection, replacing an implicit default that caused embedding-API overflows on long extractive prompts</div>
-          <div class="completed-item"><span class="completed-name">Search and embeddings</span> — SQLite FTS + online embeddings + diagnostics</div>
-          <div class="completed-item"><span class="completed-name">Eval overhaul</span> — app/model/shell eval layering and comparison reporting</div>
-          <div class="completed-item"><span class="completed-name">Theme/site decoupling</span> — site packages are structural-only; themes resolve independently</div>
-          <div class="completed-item"><span class="completed-name">Standalone authoring</span> — local <code>src/site.ts</code> / <code>src/theme.css</code> conventions for models that scaffold site/theme authoring, plus deploy scaffolding through <code>brain init --deploy</code></div>
-          <div class="completed-item"><span class="completed-name">Alpha npm publishing</span> — <code>@rizom/brain</code> is already shipping public alpha releases with automated Changesets-based publishing</div>
-          <div class="completed-item"><span class="completed-name">Library exports Tier 1</span> — <code>@rizom/brain/site</code> and <code>@rizom/brain/themes</code></div>
-          <div class="completed-item"><span class="completed-name">Deployment foundation</span> — <code>brain cert:bootstrap</code>, app-local <code>.env.schema</code> generation, init artifact reconciliation, and the first standalone Kamal workflow shape</div>
-          <div class="completed-item"><span class="completed-name">Multi-user fleet operations</span> — <code>@rizom/ops</code> for operator-managed rover fleets: shared wildcard TLS with <code>&lt;handle&gt;-preview.&lt;zone&gt;</code> preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths</div>
-          <div class="completed-item"><span class="completed-name">Production deploy validation</span> — <code>rizom.ai</code>, <code>mylittlephoney.com</code>, and <code>yeehaa.io</code> are live on their intended production paths</div>
-          <div class="completed-item"><span class="completed-name">Extracted deploy convergence</span> — the checked-out external deployments now use the shared HTTP-host shape: <code>app_port: 8080</code>, no active in-container <code>Caddyfile</code>, and direct <code>brain start</code> boot</div>
-          <div class="completed-item"><span class="completed-name">Rizom site follow-through</span> — <code>rizom.ai</code>, <code>rizom.foundation</code>, and <code>rizom.work</code> own their final route composition from app-local <code>src/site.ts</code>, over the shared <code>sites/rizom</code> core with <code>shared/theme-rizom</code> kept separate; remaining CTA/content polish belongs to the extracted app/content repos, not this monorepo roadmap</div>
-          <div class="completed-item"><span class="completed-name">Monorepo cleanup</span> — transitional apps/packages removed; <code>rizom.ai</code>, <code>rizom.foundation</code>, <code>rizom.work</code>, <code>mylittlephoney</code>, and <code>yeehaa.io</code> extracted</div>
-          <div class="completed-item"><span class="completed-name">Agent directory tightening</span> — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain <code>discovered</code>, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced</div>
-          <div class="completed-item"><span class="completed-name">Finalized content preservation</span> — exact/finalized/approved content now persists directly through <code>system_create</code> without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts</div>
-          <div class="completed-item"><span class="completed-name">Rover eval stabilization</span> — the full Rover suite covers shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior across the inheritable preset suites described below; the mainline suite stays green</div>
-          <div class="completed-item"><span class="completed-name">Assistant instruction hardening</span> — the Rover system prompt now closes a set of identity-disclosure and tool-routing gaps surfaced by eval/regression work: it refuses to reveal the configured anchor/profile identity when answering &quot;am I your anchor?&quot;/&quot;am I {name}?&quot; (answering from permission level only), treats an ambiguous &quot;make one draft&quot; follow-up as a clarification rather than self-picking a published item or firing <code>system_update</code>, resolves a source named by title/slug through <code>system_get</code> before continuing to <code>system_create</code> in the same turn for source-derived artifact saves, and refuses to substitute <code>system_search</code> for an unavailable <code>system_extract</code> instead of presenting existing topics as newly generated — each guarded by <code>build-instructions</code> assertions</div>
-          <div class="completed-item"><span class="completed-name">Inheritable core-preset eval suite</span> — eval suites are now declarative and preset-aware in <code>brain.eval.yaml</code>: <code>core</code> runs <code>preset-core</code>, <code>default</code> extends <code>core</code> with <code>preset-default</code>, and <code>full</code> extends <code>default</code> with <code>preset-full</code>, so larger gates inherit smaller-preset tags instead of duplicating them. The 136 existing fixtures split 67 / 33 / 36 across the three tiers, a <code>--preset &lt;name&gt;</code> runner flag boots the named preset hermetically (atproto, email-resend, and other live-effect plugins stay in <code>evalDisable</code>), a committed tool-coverage ledger keeps &quot;exhaustive&quot; measurable (17/17 core tools asserted), and a case-level <code>permissions:</code> matrix plus turn-level multi-user context exercise public/trusted/anchor boundaries — including approval-hijack and shared-thread denial cases — in single multi-turn conversations</div>
-          <div class="completed-item"><span class="completed-name">Pending entity ingestion</span> — async entity creation now persists a durable <code>pending</code> placeholder immediately and enriches the same entity to <code>draft</code> (or <code>failed</code>) when the background job completes, so just-saved items are referenceable before processing finishes. A shared <code>shell/plugins</code> ingestion helper preserves entity IDs across the lifecycle; <code>entities/link</code> is the first adopter (save two links, immediately summarize both), with media/upload entities to follow</div>
-          <div class="completed-item"><span class="completed-name">Tabbed dashboard console</span> — the operator dashboard restructured into tabs derived from widget groups (converging to bundle ids when bundles land), a fixed Overview that answers &quot;anything need me?&quot; (vitals, per-group digest cards, activity ledger), operator-work badges, and the publishing three-lane board — still server-rendered Preact with progressive enhancement</div>
-          <div class="completed-item"><span class="completed-name">First-party CMS editor</span> — Sveltia and its browser GitHub tokens replaced by a React 19 editor at <code>/cms</code> that writes through the entity service (git persistence follows via directory-sync); frontmatter forms render from server field descriptors, the save pipeline is a visible instrument strip, and AI-assisted body editing (CodeMirror 6 + selection rewrite) landed on top</div>
-          <div class="completed-item"><span class="completed-name">Console unification foundation</span> — one <code>@brains/console-theme</code> token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations. Responsive behavior has shipped, but visual fidelity remains active under §5.</div>
-          <div class="completed-item"><span class="completed-name">Assessment package split</span> — SWOT moved out of agent discovery into <code>entities/assessment</code>, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary</div>
-          <div class="completed-item"><span class="completed-name">Documentation phase 3 / docs site</span> — <code>entities/doc</code> package, <code>/docs</code> routes, grouped docs navigation, release-driven content sync, and the standalone <code>rizom-ai/doc-brain</code> deploy/rebuild path for <code>docs.rizom.ai</code> are complete</div>
-          <div class="completed-item"><span class="completed-name">Docs sync script</span> — <code>scripts/sync-docs-content.ts</code> generates <code>doc/*.md</code> from <code>docs/docs-manifest.yaml</code> into a content checkout; <code>bun run docs:check</code> validates manifest and links while model-specific eval fixtures stay curated by their brain packages</div>
-          <div class="completed-item"><span class="completed-name">Shell initialization coordination</span> — <code>ShellBootloader</code> now owns phased startup, plugin <code>onReady</code> is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade</div>
-          <div class="completed-item"><span class="completed-name">External plugin API</span> — <code>@rizom/brain</code> exposes curated <code>/plugins</code>, <code>/entities</code>, <code>/services</code>, <code>/interfaces</code>, and <code>/templates</code> authoring subpaths; <code>brain.yaml</code> loads installed plugin packages via keyed <code>plugins.&lt;id&gt;.package</code> entries with env-var interpolation; alpha compatibility is governed by <code>peerDependencies</code>; separate-repo reference plugins <code>rizom-ai/brain-plugin-hello</code> (service/lifecycle) and <code>rizom-ai/brain-plugin-recipes</code> (durable entity) prove the path end-to-end; public entity-service types now use the canonical runtime contracts for <code>IEntityService</code>, <code>IEntitiesNamespace</code>, <code>ListOptions</code>, <code>SearchOptions</code>, and <code>SearchResult</code>; declaration bundling now has an explicit documented inline allowlist, clearer internal-import diagnostics, and focused tests</div>
-          <div class="completed-item"><span class="completed-name">Rizom ecosystem section</span> — entity-backed <code>entities/rizom-ecosystem</code> package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared <code>@rizom/ui</code> wordmark/header alignment</div>
-          <div class="completed-item"><span class="completed-name">Professional-site Rizom alignment</span> — editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a <code>Wordmark</code> slot generalized in <code>@rizom/ui</code></div>
-          <div class="completed-item"><span class="completed-name">Relay POC scaffolding</span> — <code>brains/relay</code> preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split</div>
-          <div class="completed-item"><span class="completed-name">Newsletter composite plugin</span> — <code>plugins/newsletter</code> bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry</div>
-          <div class="completed-item"><span class="completed-name">Bitwarden-backed secrets</span> — <code>brain secrets:push</code> pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites <code>.env.schema</code> with pinned Varlock references; generated deploy workflows run the current Varlock CLI with only <code>BWS_ACCESS_TOKEN</code> in GitHub Actions secrets</div>
-          <div class="completed-item"><span class="completed-name">External plugin smoke testing</span> — <code>brain start --startup-check</code> loads configured plugins, runs <code>onRegister</code> and <code>onReady</code>, then exits without starting daemons or job workers and without requiring a real AI API key</div>
-          <div class="completed-item"><span class="completed-name">Entity visibility foundation</span> — entities now carry normalized <code>public</code> / <code>shared</code> / <code>restricted</code> visibility, persisted as top-level runtime state and enforced across read/search/list/update surfaces so public/trusted/anchor contexts fail closed by default</div>
-          <div class="completed-item"><span class="completed-name">Shared-space trust first slice</span> — configured <code>spaces</code> can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and anchor non-escalation covered by tests</div>
-          <div class="completed-item"><span class="completed-name">Local auth issuer defaults</span> — local development auth now prefers the running localhost origin while preserving explicit and production issuer behavior</div>
-          <div class="completed-item"><span class="completed-name">Dashboard entry point</span> — the dashboard now uses permission-aware widgets/endpoints/interactions, renders first-class “ways to connect,” and has mobile ordering that leads with identity and interaction affordances before corpus metrics</div>
-          <div class="completed-item"><span class="completed-name">Preview-domain alignment</span> — standalone deploy scaffolding and shared preview-domain derivation now use <code>preview.&lt;brain-domain&gt;</code> consistently for apex and nested brain domains</div>
-          <div class="completed-item"><span class="completed-name">PDF carousel and LinkedIn document publishing</span> — deck-owned carousel rendering now produces Playwright-backed PDF attachments with opaque LinkedIn-safe backgrounds; operators can preview generated attachments, save durable PDF <code>document</code> entities, attach them to <code>social-post.documents[]</code>, and publish native LinkedIn document/carousel posts through the current <code>/rest/documents</code> + <code>/rest/posts</code> flow</div>
-          <div class="completed-item"><span class="completed-name">Queued entity stubs</span> — after confirmation, prompt-based <code>system_create</code> persists an addressable stub with <code>status: generating</code> and returns its id immediately, so multi-turn follow-ups (e.g. &quot;now generate a cover image for that post&quot;) can reference the entity before the generation job completes; stubs are excluded from semantic search by default and the base generation handler updates the stub in place on completion or marks it <code>failed</code> on error</div>
-          <div class="completed-item"><span class="completed-name">Publish action policy</span> — entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows</div>
-          <div class="completed-item"><span class="completed-name">Structured chat confirmations</span> — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path</div>
-          <div class="completed-item"><span class="completed-name">Web chat session management</span> — the bundled <code>/chat</code> surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation</div>
-          <div class="completed-item"><span class="completed-name">Web chat outbound attachments</span> — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances</div>
-          <div class="completed-item"><span class="completed-name">Runtime state store service</span> — <code>shell/runtime-state</code> ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into <code>shell/core</code> service initialization and exposed to plugins via <code>context.runtimeState</code>; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending</div>
-        </div>
-      </details>
+
     </main>
   </body>
 </html>

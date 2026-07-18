@@ -45,6 +45,7 @@ export interface AgentMachineContext {
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
   attachments: ChatAttachment[];
+  signal: AbortSignal | undefined;
   response: AgentResponse | null;
   pendingConfirmations: RuntimePendingConfirmation[];
   activeConfirmation: RuntimePendingConfirmation | null;
@@ -66,6 +67,7 @@ export type AgentMachineEvent =
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
       attachments: ChatAttachment[];
+      signal?: AbortSignal;
     }
   | {
       type: "CONFIRM";
@@ -76,6 +78,7 @@ export type AgentMachineEvent =
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
+      signal?: AbortSignal;
     }
   | {
       type: "CANCEL";
@@ -86,6 +89,7 @@ export type AgentMachineEvent =
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
+      signal?: AbortSignal;
     };
 
 /**
@@ -101,6 +105,7 @@ export interface ProcessMessageInput {
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
   attachments: ChatAttachment[];
+  signal: AbortSignal | undefined;
 }
 
 /**
@@ -114,6 +119,7 @@ export interface ExecuteActionInput {
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
+  signal: AbortSignal | undefined;
 }
 
 export const emptyUsage = {
@@ -263,6 +269,7 @@ export const agentMachine: AgentMachine = setup({
     actor: null,
     source: null,
     attachments: [],
+    signal: undefined,
     response: null,
     pendingConfirmations: [],
     activeConfirmation: null,
@@ -283,6 +290,7 @@ export const agentMachine: AgentMachine = setup({
             actor: event.actor,
             source: event.source,
             attachments: event.attachments,
+            signal: event.signal,
             response: null,
             pendingConfirmations: [],
             activeConfirmation: null,
@@ -305,6 +313,7 @@ export const agentMachine: AgentMachine = setup({
           actor: context.actor,
           source: context.source,
           attachments: context.attachments,
+          signal: context.signal,
         }),
         onDone: [
           {
@@ -319,6 +328,7 @@ export const agentMachine: AgentMachine = setup({
               ),
               activeConfirmation: null,
               attachments: [],
+              signal: undefined,
             })),
           },
           {
@@ -326,6 +336,7 @@ export const agentMachine: AgentMachine = setup({
             actions: assign(({ event }) => ({
               response: event.output,
               attachments: [],
+              signal: undefined,
             })),
           },
         ],
@@ -344,6 +355,7 @@ export const agentMachine: AgentMachine = setup({
               usage: emptyUsage,
             },
             attachments: [],
+            signal: undefined,
           })),
         },
       },
@@ -360,6 +372,7 @@ export const agentMachine: AgentMachine = setup({
             userPermissionLevel: event.userPermissionLevel,
             actor: event.actor,
             source: event.source,
+            signal: event.signal,
             activeConfirmation: findPendingConfirmation(
               context,
               event.approvalId,
@@ -389,6 +402,7 @@ export const agentMachine: AgentMachine = setup({
                 event.approvalId,
               ),
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
           {
@@ -405,6 +419,7 @@ export const agentMachine: AgentMachine = setup({
               ),
               pendingConfirmations: [],
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
         ],
@@ -426,6 +441,7 @@ export const agentMachine: AgentMachine = setup({
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,
             actor: context.actor,
+            signal: context.signal,
           };
         },
         onDone: [
@@ -444,6 +460,7 @@ export const agentMachine: AgentMachine = setup({
                 ),
               ],
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
           {
@@ -452,6 +469,7 @@ export const agentMachine: AgentMachine = setup({
               response: event.output,
               pendingConfirmations: [],
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
         ],
@@ -474,6 +492,7 @@ export const agentMachine: AgentMachine = setup({
                 usage: emptyUsage,
               },
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
           {
@@ -493,6 +512,7 @@ export const agentMachine: AgentMachine = setup({
               },
               pendingConfirmations: [],
               activeConfirmation: null,
+              signal: undefined,
             })),
           },
         ],

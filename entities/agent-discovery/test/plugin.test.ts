@@ -170,6 +170,28 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers the directory scan as a daily recurring check", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let registered: { id: string; cadence: string } | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        registered = check;
+        return () => {};
+      },
+    });
+
+    await harness.installPlugin(new AgentToolsPlugin());
+
+    expect(registered).toMatchObject({
+      id: "directory-scan",
+      cadence: "daily",
+    });
+    harness.reset();
+  });
+
   it("registers agent_connect as the canonical confirmation-gated A2A verification tool", async () => {
     const harness = createPluginHarness<Plugin>({});
     const fetchMock = createMockAgentCardFetch({
@@ -187,6 +209,9 @@ describe("AgentDiscoveryPlugin", () => {
     expect(tool?.description).toContain("/.well-known/agent-card.json");
     expect(tool?.description).toContain(
       "Call this tool without confirmed on the initial request",
+    );
+    expect(tool?.description).toContain(
+      "Never use this tool for a request to approve or archive an existing saved contact",
     );
     expect(tool?.description).not.toContain("prior conversation turn");
 
@@ -624,6 +649,38 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers agent directory and proximity-map datasources", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    expect(Array.from(harness.getDataSources().keys()).sort()).toEqual([
+      "agent-discovery:entities",
+      "agent-discovery:proximity-map",
+    ]);
+
+    harness.reset();
+  });
+
+  it("registers site templates under the scoped names routes reference", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    // Site routes address templates as `${pluginId}:${key}` — these names are
+    // the public contract (sites/rizom-ai routes reference them verbatim).
+    const names = Array.from(harness.getTemplates().keys()).sort();
+    expect(names).toEqual([
+      "agent-discovery:agent-detail",
+      "agent-discovery:agent-list",
+      "agent-discovery:proximity-map",
+    ]);
+
+    harness.reset();
+  });
+
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
@@ -632,6 +689,7 @@ describe("AgentDiscoveryPlugin", () => {
       group: string;
       rendererName: string;
       hasComponent: boolean;
+      hasClientStyles: boolean;
       hasClientScript: boolean;
     }> = [];
 
@@ -641,6 +699,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: string;
         rendererName: string;
         component?: unknown;
+        clientStyles?: unknown;
         clientScript?: unknown;
       };
       registrations.push({
@@ -648,6 +707,7 @@ describe("AgentDiscoveryPlugin", () => {
         group: payload.group,
         rendererName: payload.rendererName,
         hasComponent: typeof payload.component === "function",
+        hasClientStyles: typeof payload.clientStyles === "string",
         hasClientScript: typeof payload.clientScript === "string",
       });
       return { success: true };
@@ -662,6 +722,15 @@ describe("AgentDiscoveryPlugin", () => {
         group: "network",
         rendererName: "AgentNetworkWidget",
         hasComponent: true,
+        hasClientStyles: true,
+        hasClientScript: true,
+      },
+      {
+        id: "agent-proximity",
+        group: "network",
+        rendererName: "AgentProximityWidget",
+        hasComponent: true,
+        hasClientStyles: true,
         hasClientScript: true,
       },
     ]);

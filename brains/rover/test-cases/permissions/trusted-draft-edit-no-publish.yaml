@@ -19,7 +19,7 @@ tags:
 turns:
   - userMessage: >-
       As a trusted collaborator, update the draft LinkedIn post titled
-      "Publish Policy Draft" to make the copy say that collaborators can help
+      "Trusted Publish Policy Draft" to make the copy say that collaborators can help
       draft while owners approve publishing. Do not publish, queue, schedule,
       or send it.
 

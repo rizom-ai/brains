@@ -235,6 +235,19 @@ describe("EntityRegistry", (): void => {
     }).toThrow();
   });
 
+  test("unregister entity type removes its registration state", (): void => {
+    registry.registerCreateInterceptor("note", async (input) => ({
+      kind: "continue",
+      input,
+    }));
+
+    registry.unregisterEntityType("note");
+
+    expect(registry.hasEntityType("note")).toBe(false);
+    expect(registry.getCreateInterceptor("note")).toBeUndefined();
+    expect(() => registry.getAdapter("note")).toThrow();
+  });
+
   test("get schema and adapter for registered type", (): void => {
     const schema = registry.getSchema("note");
     expect(schema).toBeDefined();

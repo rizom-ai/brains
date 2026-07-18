@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial. Existing services cover online embeddings (`IAIService`, `IEmbeddingService`, async embedding jobs, lazy Sharp loading). Remaining: the proposed unified `IAIProvider`, `HttpAIProvider`, `runtime.yaml`, and separate local AI runtime process.
+Parked research probe. No local AI sidecar implementation has started. Existing online embeddings (`IAIService`, `IEmbeddingService`, async embedding jobs) and lazy Sharp loading are baseline services, not partial implementation of this proposal. Revisit the unified `IAIProvider`, `HttpAIProvider`, `runtime.yaml`, and separate local runtime only when a concrete deployment need justifies it.
 
 ## Context
 

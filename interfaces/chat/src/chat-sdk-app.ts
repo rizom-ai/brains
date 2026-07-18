@@ -1,0 +1,197 @@
+import {
+  formatContentDispositionHeader,
+  type IRuntimeStateNamespace,
+  type RuntimeUploadStore,
+  type WebRouteDefinition,
+} from "@brains/plugins";
+import type {
+  ActionEvent,
+  Channel,
+  Message,
+  MessageContext,
+  Thread,
+} from "chat";
+import type { ChatWebhookMap } from "./types";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "./config";
+import type { ChatPlatform } from "./types";
+
+/**
+ * The slice of the Chat SDK app the interface drives. Handler registration
+ * (the turn-routing binding) stays with the interface; this owns the HTTP
+ * surface (webhook + upload routes) and initialize/shutdown.
+ *
+ * Type-only "chat" imports here — this module pulls in no SDK at runtime, so it
+ * (and its unit test) stay free of Chat SDK module mocks. Construction lives in
+ * `createChatSdkApp`, injected via `buildApp`.
+ */
+export interface ChatSdkApp {
+  initialize(): Promise<void>;
+  shutdown(): Promise<void>;
+  webhooks?: ChatWebhookMap;
+  onDirectMessage(
+    handler: (
+      thread: Thread,
+      message: Message,
+      channel: Channel,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onNewMention(
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onNewMessage(
+    pattern: RegExp,
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onSubscribedMessage(
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onAction(handler: (event: ActionEvent) => Promise<void>): void;
+  onAction(
+    actionIds: string[] | string,
+    handler: (event: ActionEvent) => Promise<void>,
+  ): void;
+}
+
+interface ChatSdkAppHostDeps {
+  /** Configured adapters gate their corresponding upload routes. */
+  discord: DiscordChatAdapterConfig | undefined;
+  slack: SlackChatAdapterConfig | undefined;
+  /** Lazy: runtime upload stores are only available once the plugin is registered. */
+  getUploadStore: (platform: ChatPlatform) => RuntimeUploadStore | undefined;
+  /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
+  buildApp: (runtimeState: IRuntimeStateNamespace) => ChatSdkApp;
+}
+
+/** Owns the multi-adapter Chat SDK lifecycle and HTTP surface. */
+export class ChatSdkAppHost {
+  private readonly deps: ChatSdkAppHostDeps;
+  private app: ChatSdkApp | undefined;
+
+  constructor(deps: ChatSdkAppHostDeps) {
+    this.deps = deps;
+  }
+
+  /** Construct the Chat SDK app. Returns it so the interface can register handlers. */
+  build(runtimeState: IRuntimeStateNamespace): ChatSdkApp {
+    this.app = this.deps.buildApp(runtimeState);
+    return this.app;
+  }
+
+  /** The built app, for handler registration by the interface. Undefined before build(). */
+  get instance(): ChatSdkApp | undefined {
+    return this.app;
+  }
+
+  async initialize(): Promise<void> {
+    if (!this.app) throw new Error("Chat SDK app not initialized");
+    await this.app.initialize();
+  }
+
+  async shutdown(): Promise<void> {
+    await this.app?.shutdown();
+  }
+
+  getWebRoutes(): WebRouteDefinition[] {
+    return [
+      {
+        path: "/api/webhooks/chat/discord",
+        method: "POST",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          if (!this.app?.webhooks?.discord) {
+            return new Response("Discord chat webhook not configured", {
+              status: 404,
+            });
+          }
+          return this.app.webhooks.discord(request);
+        },
+      },
+      {
+        path: "/api/webhooks/chat/slack",
+        method: "POST",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          if (
+            this.deps.slack?.mode !== "webhook" ||
+            !this.app?.webhooks?.slack
+          ) {
+            return new Response("Slack chat webhook not configured", {
+              status: 404,
+            });
+          }
+          return this.app.webhooks.slack(request);
+        },
+      },
+      {
+        path: "/api/webhooks/chat/discord/uploads",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> =>
+          this.handleUploadRequest(request, "discord"),
+      },
+      {
+        path: "/api/webhooks/chat/slack/uploads",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> =>
+          this.handleUploadRequest(request, "slack"),
+      },
+    ];
+  }
+
+  private async handleUploadRequest(
+    request: Request,
+    platform: ChatPlatform,
+  ): Promise<Response> {
+    if (!this.deps[platform]) {
+      const label = platform === "discord" ? "Discord" : "Slack";
+      return new Response(`${label} chat uploads not configured`, {
+        status: 404,
+      });
+    }
+
+    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
+    if (!uploadId) {
+      return new Response("Missing upload id", { status: 400 });
+    }
+
+    try {
+      const uploadStore = this.deps.getUploadStore(platform);
+      if (!uploadStore) throw new Error("Chat upload store unavailable");
+      const { record, content } = await uploadStore.read(uploadId);
+      const body = new Uint8Array(content).buffer;
+      return new Response(body, {
+        headers: {
+          "Content-Type": record.mediaType,
+          "Content-Length": String(content.byteLength),
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Disposition": formatContentDispositionHeader({
+            disposition: new URL(request.url).searchParams.has("download")
+              ? "attachment"
+              : "inline",
+            filename: record.filename,
+          }),
+        },
+      });
+    } catch {
+      return new Response("Upload not found", { status: 404 });
+    }
+  }
+}

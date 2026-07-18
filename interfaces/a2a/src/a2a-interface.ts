@@ -20,8 +20,10 @@ import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
 import { buildAgentCard } from "./agent-card";
+import { buildAgentDirectory } from "./agent-directory";
 import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
+import { A2ATurnSupervisor } from "./turn-supervisor";
 import {
   handleJsonRpc,
   handleStreamMessage,
@@ -55,6 +57,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
+  private readonly turnSupervisor = new A2ATurnSupervisor();
   private agentService: AgentNamespace | undefined;
   private readonly jwksResolver = new JwksResolver();
   private app: Hono | undefined;
@@ -234,6 +237,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       return this.withCors(c.json(this.agentCard));
     });
 
+    app.get("/.well-known/agent-directory.json", async (c) => {
+      // Built per request: the directory must reflect approvals and
+      // archivals live, unlike the identity-shaped cached Agent Card.
+      const directory = await buildAgentDirectory(
+        this.getContext().entityService,
+      );
+      return this.withCors(c.json(directory));
+    });
+
     app.get("/a2a", (c) => {
       return this.withCors(
         c.json(
@@ -322,6 +334,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
           streamParams.data.message,
           {
             taskManager: this.taskManager,
+            turnSupervisor: this.turnSupervisor,
             agentService: this.agentService,
             callerPermissionLevel: caller.permissionLevel,
             callerDomain: caller.callerDomain,
@@ -347,6 +360,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,
+        turnSupervisor: this.turnSupervisor,
         agentService: this.agentService,
         callerPermissionLevel: caller.permissionLevel,
         callerDomain: caller.callerDomain,
@@ -370,6 +384,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     return [
       {
         path: "/.well-known/agent-card.json",
+        method: "GET",
+        public: true,
+        handler: handleSharedRoute,
+      },
+      {
+        path: "/.well-known/agent-directory.json",
         method: "GET",
         public: true,
         handler: handleSharedRoute,
@@ -455,6 +475,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         }
       },
       stop: async (): Promise<void> => {
+        await this.turnSupervisor.close();
         this.logger.info("A2A server stopped");
       },
     };

@@ -32,11 +32,33 @@ describe("DASHBOARD_STYLES", () => {
     expect(localStyles).not.toContain(".session-chip");
   });
 
+  it("provides generic widget action, tab, and filter primitives", () => {
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-tabs[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-tab[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tabs[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tab[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-actions[,\s{]/);
+    expect(DASHBOARD_STYLES).toMatch(/\.widget-action[,\s{]/);
+  });
+
+  it("contains no styles for the removed identity card", () => {
+    expect(DASHBOARD_STYLES).not.toContain(".identity-card");
+    expect(DASHBOARD_STYLES).not.toContain(".identity-role");
+    expect(DASHBOARD_STYLES).not.toContain(".identity-purpose");
+  });
+
+  it("contains no entity-owned widget styles", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(?:swot|agent-network|proximity)[a-z-]*/,
+    );
+    expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
+  });
+
   it("ships a phone composition for tabs, vitals, and job rows", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");
-    expect(DASHBOARD_STYLES).toContain(
-      '.jobs td:nth-child(1)::before { content: "Job"; }',
+    expect(DASHBOARD_STYLES).toMatch(
+      /\.jobs td:nth-child\(1\)::before\s*{\s*content: "Job";/,
     );
   });
 });

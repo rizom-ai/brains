@@ -1,3 +1,5 @@
+import { Effect, Fiber } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 
@@ -5,6 +7,8 @@ import simpleGit from "simple-git";
 export interface GitNetwork {
   baseDir: string;
   timeoutMs: number;
+  /** Injectable timing service for deterministic stall tests. */
+  clock?: Clock.Clock | undefined;
 }
 
 /** Thrown when a git network operation produces no output for too long. */
@@ -16,32 +20,46 @@ export class GitStallError extends Error {
 }
 
 /**
- * Run a single network git operation on a throwaway simple-git instance,
- * rejecting with GitStallError if git produces no output for `timeoutMs`.
+ * Run one network git operation on a throwaway simple-git instance.
  *
- * Why not rely on simple-git's own `timeout.block`: simple-git only settles a
- * task once the child's stdio fully closes. A hung remote keeps the inherited
- * pipes open through a transport grandchild, so the SIGINT from `timeout.block`
- * never lets the promise resolve — it would wedge the git lock indefinitely.
- * We instead watch the output streams directly and reject as soon as they go
- * quiet, abort the child best-effort, and discard the instance so a leaked
- * process can't block subsequent operations or hold the lock open.
- *
- * The timer resets on every chunk of git output, so a slow-but-progressing
- * transfer is never killed — only a genuinely stalled one.
+ * The output-sensitive stall delay resets on every chunk. Caller cancellation
+ * and no-output stalls both abort simple-git, while retaining distinct error
+ * identity at the Promise boundary.
  */
 export async function runGitWithStallTimeout<T>(
   net: GitNetwork,
   run: (git: SimpleGit) => Promise<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
+  signal?.throwIfAborted();
+
   const { baseDir, timeoutMs } = net;
   const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
   let onStall = (): void => {};
+  let onAbort = (): void => {};
+  let closed = false;
 
+  const cancelStallTimer = (): void => {
+    if (!timerFiber) return;
+    Effect.runSync(Fiber.interruptFork(timerFiber));
+    timerFiber = null;
+  };
   const armStall = (): void => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => onStall(), timeoutMs);
+    if (closed) return;
+    cancelStallTimer();
+    const delay = Effect.sleep(timeoutMs).pipe(
+      Effect.andThen(Effect.sync(() => onStall())),
+    );
+    const ownedDelay = net.clock ? Effect.withClock(delay, net.clock) : delay;
+    timerFiber = Effect.runFork(ownedDelay);
+  };
+  const settleStallTimer = async (): Promise<void> => {
+    const activeTimer = timerFiber;
+    timerFiber = null;
+    if (activeTimer) {
+      await Effect.runPromise(Fiber.interrupt(activeTimer));
+    }
   };
 
   const git = simpleGit(baseDir, {
@@ -54,15 +72,27 @@ export async function runGitWithStallTimeout<T>(
 
   const stalled = new Promise<never>((_resolve, reject) => {
     onStall = (): void => {
-      controller.abort();
-      reject(new GitStallError(timeoutMs));
+      const error = new GitStallError(timeoutMs);
+      reject(error);
+      controller.abort(error);
     };
   });
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    onAbort = (): void => {
+      const reason = signal?.reason;
+      reject(reason);
+      controller.abort(reason);
+    };
+  });
+  signal?.addEventListener("abort", onAbort, { once: true });
+  if (signal?.aborted) onAbort();
 
   armStall();
   try {
-    return await Promise.race([run(git), stalled]);
+    return await Promise.race([run(git), stalled, cancelled]);
   } finally {
-    if (timer) clearTimeout(timer);
+    closed = true;
+    signal?.removeEventListener("abort", onAbort);
+    await settleStallTimer();
   }
 }

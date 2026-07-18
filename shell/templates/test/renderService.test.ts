@@ -44,6 +44,24 @@ describe("RenderService", () => {
     expect(retrieved?.renderers.web).toBeDefined();
   });
 
+  test("should pass runtimeScripts and staticAssets through to the view template", () => {
+    const scriptedTemplate: Template = {
+      ...testTemplate,
+      name: "test-plugin:scripted",
+      runtimeScripts: [{ src: "/scripts/map.js", defer: true }],
+      staticAssets: { "/scripts/map.js": "(function(){/* map */})();" },
+    };
+    templateRegistry.register(scriptedTemplate.name, scriptedTemplate);
+
+    const retrieved = renderService.get("test-plugin:scripted");
+    expect(retrieved?.runtimeScripts).toEqual([
+      { src: "/scripts/map.js", defer: true },
+    ]);
+    expect(retrieved?.staticAssets).toEqual({
+      "/scripts/map.js": "(function(){/* map */})();",
+    });
+  });
+
   test("should not return templates without layout components", () => {
     const templateWithoutLayout: Template = {
       name: "no-layout:template",

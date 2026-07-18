@@ -48,6 +48,7 @@ import {
   type DataSource,
   type EntityAdapter,
   type UploadSaveHandlerRegistration,
+  type UpdateEntityOptions,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -337,7 +338,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       } as BaseEntity;
       return entityService.createEntity({ entity });
     },
-    updateEntity: async (request: { entity: BaseEntity }) => {
+    updateEntity: async (request: {
+      entity: BaseEntity;
+      options?: UpdateEntityOptions;
+    }) => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
@@ -345,6 +349,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = entities.get(entity.id);
+      if (
+        request.options?.expectedContentHash !== undefined &&
+        existing?.contentHash !== request.options.expectedContentHash
+      ) {
+        return {
+          entityId: entity.id,
+          jobId: "",
+          skipped: true,
+          skipReason: "content-conflict" as const,
+        };
+      }
       if (
         existing?.contentHash === contentHash &&
         existing.visibility === entity.visibility &&
@@ -467,6 +482,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entityAdapters.set(type, adapter as unknown as EntityAdapter<BaseEntity>);
       entityTypeConfigs.set(type, config ?? {});
     },
+    unregisterEntityType: (type): void => {
+      entityTypes.delete(type);
+      entityAdapters.delete(type);
+      entityTypeConfigs.delete(type);
+      createInterceptors.delete(type);
+    },
     getSchema: (): never => {
       throw new Error("Not implemented");
     },
@@ -588,6 +609,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const insightsRegistry: IInsightsRegistry = {
     register: (type: string, handler: InsightHandler) => {
       insightHandlers.set(type, handler);
+    },
+    unregister: (type: string) => {
+      insightHandlers.delete(type);
     },
     getTypes: () => Array.from(insightHandlers.keys()),
     get: async (type: string, es, visibilityScope) => {
@@ -720,6 +744,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,
+    getRecurringChecks: () => ({ register: () => () => {} }),
     getConversationService: () => conversationService,
     getMCPService: () =>
       ({

@@ -1,22 +1,48 @@
-/**
- * Serializes git operations so commit/push/pull tasks do not race each other.
- */
+/** Serializes git operations so commit/push/pull tasks do not race. */
 export class GitOperationLock {
   private queue: Promise<void> = Promise.resolve();
 
-  run<T>(fn: () => Promise<T>): Promise<T> {
-    let resolve: (() => void) | undefined;
-    const next = new Promise<void>((r) => {
-      resolve = r;
+  run<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    signal?.throwIfAborted();
+
+    const previous = this.queue;
+    let release = (): void => {};
+    const next = new Promise<void>((resolve) => {
+      release = resolve;
     });
-    const prev = this.queue;
     this.queue = next;
-    return prev.then(async () => {
+
+    let admitted = false;
+    const turn = previous.then(async () => {
       try {
+        admitted = true;
+        signal?.throwIfAborted();
         return await fn();
       } finally {
-        resolve?.();
+        release();
       }
     });
+    return waitForTurn(turn, () => admitted, signal);
   }
+}
+
+function waitForTurn<T>(
+  turn: Promise<T>,
+  isAdmitted: () => boolean,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (!signal) return turn;
+  if (signal.aborted) return Promise.reject(signal.reason);
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      if (!isAdmitted()) reject(signal.reason);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+
+    void turn.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
 }

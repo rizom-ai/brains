@@ -4,11 +4,14 @@ Content pipeline plugin for managing entity publishing queues, scheduling, and g
 
 ## Features
 
-- **Queue Management**: Add, remove, and reorder entities in publish queues
+- **Durable Queue Management**: Add, remove, reorder, and recover publication intent across restarts
 - **Cron Scheduling**: Schedule publishing at specific times per entity type
+- **Supervised Cycles**: Skip overlapping firings and drain active work during shutdown
 - **Generation Scheduling**: Trigger automatic draft creation on schedule
-- **Retry Logic**: Automatic retry with exponential backoff for failed publishes
+- **Failure Recovery**: Track failed publications and let operators explicitly retry them
 - **Provider Registry**: Register custom publish providers per entity type
+- **Optional CMS Workspace**: Expose queue controls and confirmed direct publishing when `@brains/cms` is installed
+- **Dashboard Digest**: Report compact, read-only pipeline health when `@brains/dashboard` is installed
 
 ## Usage
 
@@ -31,10 +34,27 @@ const config = defineConfig({
 });
 ```
 
+## Operator surfaces
+
+When CMS and content-pipeline are both installed, CMS automatically adds an
+**Operations → Publishing** workspace. Operators can reorder or remove queued
+items, retry failures, open source entities, and publish the current saved
+version after an explicit confirmation. CMS remains unchanged when the pipeline
+is absent.
+
+The Dashboard widget is read-only. It shows queued, generating, awaiting-review,
+and published totals, plus current failures. An **Open in CMS** action appears
+only when CMS registration succeeded.
+
+Queue membership is durable entity lifecycle state. Recoverable queue ordering
+and enqueue metadata live in the namespaced runtime-state store, so reordering
+does not rewrite Markdown or create Git noise.
+
 ## Tools
 
-- `content-pipeline:queue` - Add entity to publish queue
-- `content-pipeline:publish` - Publish entity directly
+- `content-pipeline_queue` - List, add, remove, or reorder queued entities
+- `content-pipeline_publish` - Publish directly with confirmation and a content-hash precondition
+- `content-pipeline_ensure-assets` - Reconcile generated assets for published content
 
 ## Messages
 

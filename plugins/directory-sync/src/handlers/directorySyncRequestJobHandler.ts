@@ -24,21 +24,21 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
   DirectorySyncRequestJobResult
 > {
   private readonly context: ServicePluginContext;
-  private readonly directorySync: IDirectorySync;
-  private readonly gitSync: IGitSync;
+  private readonly getDirectorySync: () => IDirectorySync;
+  private readonly getGitSync: () => IGitSync;
   constructor(
     logger: Logger,
     context: ServicePluginContext,
-    directorySync: IDirectorySync,
-    gitSync: IGitSync,
+    getDirectorySync: () => IDirectorySync,
+    getGitSync: () => IGitSync,
   ) {
     super(logger, {
       schema: directorySyncRequestJobSchema,
       jobTypeName: "sync-request",
     });
     this.context = context;
-    this.directorySync = directorySync;
-    this.gitSync = gitSync;
+    this.getDirectorySync = getDirectorySync;
+    this.getGitSync = getGitSync;
   }
 
   async process(
@@ -51,15 +51,17 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       message: "Pulling latest content from git",
     });
 
-    const result = await this.gitSync.withLock(async () => {
-      await this.gitSync.pull();
+    const directorySync = this.getDirectorySync();
+    const gitSync = this.getGitSync();
+    const result = await gitSync.withLock(async () => {
+      await gitSync.pull();
 
       await progressReporter.report({
         progress: 35,
         message: "Scanning pulled content for sync changes",
       });
 
-      return this.directorySync.queueSyncBatch(this.context, data.source, {
+      return directorySync.queueSyncBatch(this.context, data.source, {
         rootJobId: jobId,
         interfaceType: data.interfaceType,
         channelId: data.channelId,

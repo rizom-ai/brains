@@ -1,29 +1,39 @@
 import { describe, it, expect } from "bun:test";
-import { ConversationActorRegistry } from "../src/conversation-actor-registry";
+import {
+  ConversationActorRegistry,
+  type ConversationActorRegistryOptions,
+} from "../src/conversation-actor-registry";
+import { Effect } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 interface FakeActor {
   id: number;
   idle: boolean;
   stopped: boolean;
+  stopCalls: number;
   stop(): void;
 }
 
 function createRegistry(options?: {
   idleTtlMs?: number;
   maxOperationsPerConversation?: number;
+  clock?: Clock.Clock;
 }): {
   registry: ConversationActorRegistry<FakeActor>;
   created: FakeActor[];
 } {
   const created: FakeActor[] = [];
-  const registry = new ConversationActorRegistry<FakeActor>({
+  const registryOptions: ConversationActorRegistryOptions<FakeActor> = {
     createActor: (): FakeActor => {
       const actor: FakeActor = {
         id: created.length,
         idle: true,
         stopped: false,
+        stopCalls: 0,
         stop() {
           this.stopped = true;
+          this.stopCalls++;
         },
       };
       created.push(actor);
@@ -36,7 +46,16 @@ function createRegistry(options?: {
           maxOperationsPerConversation: options.maxOperationsPerConversation,
         }
       : {}),
-  });
+  };
+
+  // Keep the clock seam out of the package's public Promise API.
+  const RegistryWithClock = ConversationActorRegistry as unknown as new (
+    registryOptions: ConversationActorRegistryOptions<FakeActor>,
+    runtimeOptions?: { clock: Clock.Clock },
+  ) => ConversationActorRegistry<FakeActor>;
+  const registry = options?.clock
+    ? new RegistryWithClock(registryOptions, { clock: options.clock })
+    : new ConversationActorRegistry<FakeActor>(registryOptions);
   return { registry, created };
 }
 
@@ -56,6 +75,23 @@ function deferred<T>(): {
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+function withRegistryTestClock(
+  idleTtlMs: number,
+  run: (registry: ConversationActorRegistry<FakeActor>) => Effect.Effect<void>,
+): Promise<void> {
+  return Effect.runPromise(
+    Effect.gen(function* () {
+      const clock = yield* TestClock.testClock();
+      const { registry } = createRegistry({ idleTtlMs, clock });
+      yield* Effect.acquireUseRelease(
+        Effect.succeed(registry),
+        run,
+        (ownedRegistry) => Effect.promise(() => ownedRegistry.close()),
+      );
+    }).pipe(Effect.provide(TestContext.TestContext)),
+  );
+}
 
 describe("ConversationActorRegistry", () => {
   describe("acquire and peek", () => {
@@ -173,86 +209,169 @@ describe("ConversationActorRegistry", () => {
 
   describe("eviction", () => {
     it("stops and removes an idle actor after the TTL", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          yield* Effect.promise(() =>
+            registry.enqueue("conv-a", async () => "done"),
+          );
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      await registry.enqueue("conv-a", async () => "done");
-
-      await delay(25);
-      expect(actor.stopped).toBe(true);
-      expect(registry.peek("conv-a")).toBeUndefined();
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(true);
+          expect(registry.peek("conv-a")).toBeUndefined();
+        }),
+      );
     });
 
     it("does not evict while operations are pending", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
-      const gate = deferred<void>();
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const gate = deferred<void>();
+          const actor = registry.acquire("conv-a");
+          const pending = registry.enqueue("conv-a", () => gate.promise);
+          registry.scheduleEviction("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      const pending = registry.enqueue("conv-a", () => gate.promise);
-      registry.scheduleEviction("conv-a");
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
 
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
-
-      gate.resolve();
-      await pending;
+          gate.resolve();
+          yield* Effect.promise(() => pending);
+        }),
+      );
     });
 
     it("does not evict actors reported non-evictable", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          actor.idle = false;
+          registry.scheduleEviction("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      actor.idle = false;
-      registry.scheduleEviction("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
 
     it("cancels a pending eviction when the actor is reacquired", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          registry.scheduleEviction("conv-a");
+          registry.acquire("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      registry.scheduleEviction("conv-a");
-      registry.acquire("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
 
     it("never schedules eviction when the TTL is disabled", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 0 });
+      await withRegistryTestClock(0, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          yield* Effect.promise(() =>
+            registry.enqueue("conv-a", async () => "done"),
+          );
+          registry.scheduleEviction("conv-a");
+          yield* TestClock.adjust(5);
 
-      const actor = registry.acquire("conv-a");
-      await registry.enqueue("conv-a", async () => "done");
-      registry.scheduleEviction("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
   });
 
-  describe("dispose", () => {
-    it("stops every actor and clears all state", async () => {
+  describe("close", () => {
+    it("is terminal and stops every actor exactly once", async () => {
       const { registry, created } = createRegistry({ idleTtlMs: 5 });
 
       registry.acquire("conv-a");
       registry.acquire("conv-b");
       await registry.enqueue("conv-a", async () => "done");
 
-      registry.dispose();
+      await Promise.all([registry.close(), registry.close()]);
 
       expect(created.every((actor) => actor.stopped)).toBe(true);
+      expect(created.map((actor) => actor.stopCalls)).toEqual([1, 1]);
       expect(registry.peek("conv-a")).toBeUndefined();
       expect(registry.peek("conv-b")).toBeUndefined();
 
-      // A disposed registry is still usable for new conversations.
-      const fresh = registry.acquire("conv-a");
-      expect(fresh.stopped).toBe(false);
+      expect(() => registry.acquire("conv-a")).toThrow(
+        "Conversation actor registry closed",
+      );
+      expect(
+        await registry
+          .enqueue("conv-a", async () => "never")
+          .catch((error: unknown) => error),
+      ).toEqual(new Error("Conversation actor registry closed"));
+    });
+
+    it("prevents queued operations from starting and drains active work", async () => {
+      const { registry } = createRegistry();
+      const actor = registry.acquire("conv-a");
+      const gate = deferred<void>();
+      const closeReason = new Error("registry test close");
+      let queuedOperationStarted = false;
+      const active = registry
+        .enqueue("conv-a", () => gate.promise)
+        .catch((error: unknown) => error);
+      const queued = registry
+        .enqueue("conv-a", async () => {
+          queuedOperationStarted = true;
+        })
+        .catch((error: unknown) => error);
+      await Promise.resolve();
+
+      let closeSettled = false;
+      const closing = registry.close(closeReason).then(() => {
+        closeSettled = true;
+      });
+      await Promise.resolve();
+
+      expect(queuedOperationStarted).toBe(false);
+      expect(closeSettled).toBe(false);
+      expect(actor.stopped).toBe(false);
+      expect(await active).toBe(closeReason);
+      expect(await queued).toBe(closeReason);
+
+      gate.resolve();
+      await closing;
+      expect(queuedOperationStarted).toBe(false);
+      expect(actor.stopped).toBe(true);
+    });
+
+    it("links active operations to the registry close signal", async () => {
+      const { registry } = createRegistry();
+      const started = deferred<void>();
+      const closeReason = new Error("registry test close");
+      let observedSignal: AbortSignal | undefined;
+      const active = registry
+        .enqueue("conv-a", async (signal) => {
+          observedSignal = signal;
+          started.resolve();
+          await new Promise<void>((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        })
+        .catch((error: unknown) => error);
+      await started.promise;
+
+      const closing = registry.close(closeReason);
+
+      expect(observedSignal?.aborted).toBe(true);
+      expect(await active).toBe(closeReason);
+      await closing;
     });
   });
 });

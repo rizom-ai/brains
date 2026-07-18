@@ -6,6 +6,13 @@ import type {
   GetEntityRequest,
   ICoreEntityService,
   IEntitiesNamespace,
+  ProjectSemanticSpaceRequest,
+  SemanticEntityReference,
+  SemanticSpaceDistanceRange,
+  SemanticSpaceNeighbor,
+  SemanticSpaceOrigin,
+  SemanticSpacePoint,
+  SemanticSpaceProjection,
   ListEntitiesRequest,
   ListOptions,
   SearchOptions,
@@ -268,6 +275,13 @@ export type {
   EntitySearchRequest,
   GetEntityRequest,
   IEntitiesNamespace,
+  ProjectSemanticSpaceRequest,
+  SemanticEntityReference,
+  SemanticSpaceDistanceRange,
+  SemanticSpaceNeighbor,
+  SemanticSpaceOrigin,
+  SemanticSpacePoint,
+  SemanticSpaceProjection,
   ListEntitiesRequest,
   ListOptions,
   SearchOptions,
@@ -319,6 +333,12 @@ export interface IEvalNamespace {
 
 export interface IInsightsNamespace {
   register(type: string, handler: InsightHandler): void;
+}
+
+export interface ISemanticNamespace {
+  project(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
 }
 
 export interface IPermissionsNamespace {
@@ -396,6 +416,7 @@ export interface BasePluginContext {
     };
   }>;
   readonly entityService: IEntityService;
+  readonly semantic: ISemanticNamespace;
   readonly identity: IIdentityNamespace;
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;

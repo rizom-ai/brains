@@ -2,14 +2,29 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createTemplate } from "@brains/plugins";
+import {
+  createTemplate,
+  type AnchorProfile,
+  type CmsWorkspaceRegistration,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
-import { mkdtemp } from "fs/promises";
+import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+
+interface DashboardWidgetRegistration {
+  id: string;
+  group: string;
+  rendererName: string;
+  visibility: string;
+  section: string;
+  clientStyles: string;
+  dataProvider: () => Promise<unknown>;
+  digestProvider: (data: unknown) => unknown;
+}
 
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
@@ -51,6 +66,69 @@ describe("SiteBuilderPlugin", () => {
     expect(capabilities).toBeDefined();
     expect(capabilities.tools).toBeDefined();
     expect(capabilities.tools.length).toBeGreaterThan(0);
+  });
+
+  it("uses the shell-owned profile exposed by the plugin context", async () => {
+    const outputDir = await mkdtemp(
+      join(process.cwd(), ".site-builder-profile-"),
+    );
+    const profileUrl = "https://github.com/fresh-shell-profile";
+    harness.getMockShell().getProfile = (): AnchorProfile => ({
+      name: "Fresh Shell",
+      kind: "professional",
+      socialLinks: [{ platform: "github", url: profileUrl }],
+    });
+
+    try {
+      plugin = new SiteBuilderPlugin(
+        createTestConfig({
+          previewOutputDir: outputDir,
+          productionOutputDir: outputDir,
+          layouts: {
+            profile: ({ siteInfo }) =>
+              h("main", {}, siteInfo.socialLinks?.[0]?.url ?? "missing"),
+          },
+          routes: [
+            {
+              id: "profile",
+              path: "/",
+              title: "Profile",
+              description: "Profile route",
+              layout: "profile",
+              sections: [],
+            },
+          ],
+        }),
+      );
+
+      await harness.installPlugin(plugin);
+      const builder = plugin.getSiteBuilder();
+      expect(builder).toBeDefined();
+      if (!builder) throw new Error("Site builder was not initialized");
+
+      const result = await builder.build({
+        environment: "preview",
+        outputDir,
+        sharedImagesDir: join(outputDir, "images"),
+        enableContentGeneration: false,
+        cleanBeforeBuild: true,
+        siteConfig: {
+          title: "Profile",
+          description: "Profile route",
+        },
+        layouts: {
+          profile: ({ siteInfo }) =>
+            h("main", {}, siteInfo.socialLinks?.[0]?.url ?? "missing"),
+        },
+      });
+      expect(result).toMatchObject({ success: true, routesBuilt: 1 });
+
+      expect(await readFile(join(outputDir, "index.html"), "utf8")).toContain(
+        profileUrl,
+      );
+    } finally {
+      await rm(outputDir, { recursive: true, force: true });
+    }
   });
 
   it("should register templates when provided", async () => {
@@ -117,6 +195,110 @@ describe("SiteBuilderPlugin", () => {
     expect(registeredJobTypes).not.toContain(
       "site-builder:media-carousel-generate",
     );
+  });
+
+  it("registers the optional CMS Site workspace and Dashboard health", async () => {
+    let registration: CmsWorkspaceRegistration | undefined;
+    let dashboardWidget: DashboardWidgetRegistration | undefined;
+    harness.subscribe<DashboardWidgetRegistration, { success: boolean }>(
+      "dashboard:register-widget",
+      async (message) => {
+        dashboardWidget = message.payload;
+        return { success: true };
+      },
+    );
+    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+      "cms:register-workspace",
+      async (message) => {
+        registration = message.payload;
+        return {
+          success: true,
+          data: { workspaceUrl: "/cms#/workspace/site" },
+        };
+      },
+    );
+
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            title: "Home",
+            description: "Home page",
+            layout: "default",
+            sections: [],
+          },
+        ],
+      }),
+    );
+    await harness.installPlugin(plugin);
+    await plugin.ready();
+
+    expect(registration).toMatchObject({
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "SiteWorkspace",
+      priority: 50,
+    });
+    if (!registration) throw new Error("Expected CMS workspace registration");
+    if (!registration.actionHandler) {
+      throw new Error("Expected CMS workspace actions");
+    }
+    const actionHandler = registration.actionHandler;
+    expect(await registration.dataProvider()).toMatchObject({
+      site: { title: "Test Site" },
+      routes: [{ id: "home", path: "/", title: "Home" }],
+    });
+
+    const result = await actionHandler(
+      { type: "build-preview" },
+      {
+        interfaceType: "cms",
+        userId: "operator",
+        userPermissionLevel: "anchor",
+      },
+    );
+    expect(result).toEqual({ accepted: true, environment: "preview" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(await registration.dataProvider()).toMatchObject({
+      environments: [
+        {
+          environment: "preview",
+          active: {
+            state: "queued",
+          },
+        },
+        { environment: "production" },
+      ],
+    });
+    expect(
+      actionHandler(
+        { type: "build-production" },
+        {
+          interfaceType: "cms",
+          userId: "operator",
+          userPermissionLevel: "anchor",
+        },
+      ),
+    ).rejects.toThrow("Invalid site workspace action");
+    expect(dashboardWidget).toMatchObject({
+      id: "site-health",
+      group: "publishing",
+      section: "sidebar",
+      rendererName: "SiteHealthWidget",
+      visibility: "anchor",
+    });
+    expect(dashboardWidget?.clientStyles).toContain(".site-health-widget");
+    const dashboardData = await dashboardWidget?.dataProvider();
+    expect(dashboardData).toMatchObject({
+      site: { title: "Test Site" },
+      managementUrl: "/cms#/workspace/site",
+    });
+    expect(dashboardWidget?.digestProvider(dashboardData)).toMatchObject({
+      needsOperator: 0,
+    });
   });
 
   it("should provide site builder tools", async () => {

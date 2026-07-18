@@ -87,8 +87,8 @@ the same entity and the same lifecycle.
 export const AGENT_ENTITY_TYPE = "agent";
 
 export const agentStatusSchema = z
-  .enum(["discovered", "approved"])
-  .describe("Discovered for review or approved for calling");
+  .enum(["discovered", "approved", "archived"])
+  .describe("Discovered for review, approved for calling, or archived");
 ```
 
 Frontmatter fields include `brainName`, `url`, `status`, `discoveredAt`, and

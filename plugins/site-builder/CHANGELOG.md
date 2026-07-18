@@ -1,5 +1,551 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.200
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.200
+  - @brains/site-composition@0.2.0-alpha.200
+  - @brains/site-engine@0.2.0-alpha.200
+  - @brains/ui-library@0.2.0-alpha.200
+  - @brains/utils@0.2.0-alpha.200
+  - @brains/plugins@0.2.0-alpha.200
+
+## 0.2.0-alpha.199
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.199
+  - @brains/site-composition@0.2.0-alpha.199
+  - @brains/site-engine@0.2.0-alpha.199
+  - @brains/ui-library@0.2.0-alpha.199
+  - @brains/utils@0.2.0-alpha.199
+  - @brains/plugins@0.2.0-alpha.199
+
+## 0.2.0-alpha.198
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.198
+  - @brains/site-composition@0.2.0-alpha.198
+  - @brains/site-engine@0.2.0-alpha.198
+  - @brains/ui-library@0.2.0-alpha.198
+  - @brains/utils@0.2.0-alpha.198
+  - @brains/plugins@0.2.0-alpha.198
+
+## 0.2.0-alpha.197
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.197
+  - @brains/site-composition@0.2.0-alpha.197
+  - @brains/site-engine@0.2.0-alpha.197
+  - @brains/ui-library@0.2.0-alpha.197
+  - @brains/utils@0.2.0-alpha.197
+  - @brains/plugins@0.2.0-alpha.197
+
+## 0.2.0-alpha.196
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.196
+  - @brains/site-composition@0.2.0-alpha.196
+  - @brains/site-engine@0.2.0-alpha.196
+  - @brains/ui-library@0.2.0-alpha.196
+  - @brains/utils@0.2.0-alpha.196
+  - @brains/plugins@0.2.0-alpha.196
+
+## 0.2.0-alpha.195
+
+### Patch Changes
+
+- [`1ece871`](https://github.com/rizom-ai/brains/commit/1ece871c78c950ff91033cb62e34fe89987cfd2c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make shell, daemon, worker, plugin, recurring-check, Discord-handler, site-rebuild, and conversation teardown transitions joinable and terminal; stop active agent work before plugin teardown; and prevent queued work from entering after shutdown.
+
+- Updated dependencies [[`1ece871`](https://github.com/rizom-ai/brains/commit/1ece871c78c950ff91033cb62e34fe89987cfd2c)]:
+  - @brains/plugins@0.2.0-alpha.195
+  - @brains/image@0.2.0-alpha.195
+  - @brains/site-engine@0.2.0-alpha.195
+  - @brains/site-composition@0.2.0-alpha.195
+  - @brains/ui-library@0.2.0-alpha.195
+  - @brains/utils@0.2.0-alpha.195
+
+## 0.2.0-alpha.194
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.194
+  - @brains/site-composition@0.2.0-alpha.194
+  - @brains/site-engine@0.2.0-alpha.194
+  - @brains/ui-library@0.2.0-alpha.194
+  - @brains/utils@0.2.0-alpha.194
+  - @brains/plugins@0.2.0-alpha.194
+
+## 0.2.0-alpha.193
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.193
+  - @brains/site-composition@0.2.0-alpha.193
+  - @brains/site-engine@0.2.0-alpha.193
+  - @brains/ui-library@0.2.0-alpha.193
+  - @brains/utils@0.2.0-alpha.193
+  - @brains/plugins@0.2.0-alpha.193
+
+## 0.2.0-alpha.192
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.192
+  - @brains/site-composition@0.2.0-alpha.192
+  - @brains/site-engine@0.2.0-alpha.192
+  - @brains/ui-library@0.2.0-alpha.192
+  - @brains/utils@0.2.0-alpha.192
+  - @brains/plugins@0.2.0-alpha.192
+
+## 0.2.0-alpha.191
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.191
+  - @brains/site-composition@0.2.0-alpha.191
+  - @brains/site-engine@0.2.0-alpha.191
+  - @brains/ui-library@0.2.0-alpha.191
+  - @brains/utils@0.2.0-alpha.191
+  - @brains/plugins@0.2.0-alpha.191
+
+## 0.2.0-alpha.190
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.190
+  - @brains/site-composition@0.2.0-alpha.190
+  - @brains/site-engine@0.2.0-alpha.190
+  - @brains/ui-library@0.2.0-alpha.190
+  - @brains/utils@0.2.0-alpha.190
+  - @brains/plugins@0.2.0-alpha.190
+
+## 0.2.0-alpha.189
+
+### Patch Changes
+
+- Updated dependencies [[`5294aec`](https://github.com/rizom-ai/brains/commit/5294aec7eab3b98ddfa68fc3aadc4b966355740e)]:
+  - @brains/plugins@0.2.0-alpha.189
+  - @brains/image@0.2.0-alpha.189
+  - @brains/site-composition@0.2.0-alpha.189
+  - @brains/site-engine@0.2.0-alpha.189
+  - @brains/ui-library@0.2.0-alpha.189
+  - @brains/utils@0.2.0-alpha.189
+
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.188
+  - @brains/site-composition@0.2.0-alpha.188
+  - @brains/site-engine@0.2.0-alpha.188
+  - @brains/ui-library@0.2.0-alpha.188
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.187
+  - @brains/site-composition@0.2.0-alpha.187
+  - @brains/site-engine@0.2.0-alpha.187
+  - @brains/ui-library@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a multi-provider CMS workspace contract and register site-builder as the second provider. The CMS gains preview/live build controls and status, while Dashboard gets a read-only Site health tab backed by the same runtime-state projection.
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/image@0.2.0-alpha.186
+  - @brains/site-engine@0.2.0-alpha.186
+  - @brains/site-composition@0.2.0-alpha.186
+  - @brains/ui-library@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.185
+  - @brains/site-composition@0.2.0-alpha.185
+  - @brains/site-engine@0.2.0-alpha.185
+  - @brains/ui-library@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+
+## 0.2.0-alpha.184
+
+### Patch Changes
+
+- Updated dependencies [[`14cab1b`](https://github.com/rizom-ai/brains/commit/14cab1b4de0e2498129d0e00a6fe2df1d5bdfc5e)]:
+  - @brains/site-composition@0.2.0-alpha.184
+  - @brains/site-engine@0.2.0-alpha.184
+  - @brains/plugins@0.2.0-alpha.184
+  - @brains/image@0.2.0-alpha.184
+  - @brains/ui-library@0.2.0-alpha.184
+  - @brains/utils@0.2.0-alpha.184
+
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/image@0.2.0-alpha.183
+  - @brains/site-engine@0.2.0-alpha.183
+  - @brains/site-composition@0.2.0-alpha.183
+  - @brains/ui-library@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.182
+  - @brains/site-composition@0.2.0-alpha.182
+  - @brains/site-engine@0.2.0-alpha.182
+  - @brains/ui-library@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.181
+  - @brains/site-composition@0.2.0-alpha.181
+  - @brains/site-engine@0.2.0-alpha.181
+  - @brains/ui-library@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/image@0.2.0-alpha.180
+  - @brains/site-engine@0.2.0-alpha.180
+  - @brains/site-composition@0.2.0-alpha.180
+  - @brains/ui-library@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Construct each shell from fresh service and initializer instances without resetting process-global singletons, honor entity service/registry overrides, and keep site-builder profile access bound to its owning shell.
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.179
+  - @brains/site-engine@0.2.0-alpha.179
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/site-composition@0.2.0-alpha.179
+  - @brains/ui-library@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.178
+  - @brains/site-composition@0.2.0-alpha.178
+  - @brains/site-engine@0.2.0-alpha.178
+  - @brains/ui-library@0.2.0-alpha.178
+  - @brains/utils@0.2.0-alpha.178
+  - @brains/plugins@0.2.0-alpha.178
+
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.177
+  - @brains/site-composition@0.2.0-alpha.177
+  - @brains/site-engine@0.2.0-alpha.177
+  - @brains/ui-library@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/image@0.2.0-alpha.176
+  - @brains/site-composition@0.2.0-alpha.176
+  - @brains/site-engine@0.2.0-alpha.176
+  - @brains/ui-library@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/image@0.2.0-alpha.175
+  - @brains/site-engine@0.2.0-alpha.175
+  - @brains/site-composition@0.2.0-alpha.175
+  - @brains/ui-library@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.174
+  - @brains/site-engine@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/site-composition@0.2.0-alpha.174
+  - @brains/ui-library@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/image@0.2.0-alpha.173
+  - @brains/site-engine@0.2.0-alpha.173
+  - @brains/site-composition@0.2.0-alpha.173
+  - @brains/ui-library@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.172
+  - @brains/site-composition@0.2.0-alpha.172
+  - @brains/site-engine@0.2.0-alpha.172
+  - @brains/ui-library@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.171
+  - @brains/site-composition@0.2.0-alpha.171
+  - @brains/site-engine@0.2.0-alpha.171
+  - @brains/ui-library@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.170
+  - @brains/site-composition@0.2.0-alpha.170
+  - @brains/site-engine@0.2.0-alpha.170
+  - @brains/ui-library@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.169
+  - @brains/site-composition@0.2.0-alpha.169
+  - @brains/site-engine@0.2.0-alpha.169
+  - @brains/ui-library@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.168
+  - @brains/site-composition@0.2.0-alpha.168
+  - @brains/site-engine@0.2.0-alpha.168
+  - @brains/ui-library@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an opt-in content overlay so a datasource-backed section can also carry
+  content-authored fields. A template may declare an `overlayFormatter`; when it
+  does, its section's saved site-content is parsed and merged over the datasource
+  output (authored fields win, then the merge is validated against the template
+  schema), instead of datasource and saved content being mutually exclusive.
+  Site-builder now offers every section its own saved content alongside any
+  dataQuery. Templates without an overlayFormatter are unchanged — the datasource
+  still wins outright and the saved entity is never read. This lets a live
+  section (e.g. the agent proximity map) keep real-time data while its hero copy
+  is edited like any other markdown section.
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/site-engine@0.2.0-alpha.167
+  - @brains/image@0.2.0-alpha.167
+  - @brains/ui-library@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.166
+  - @brains/site-composition@0.2.0-alpha.166
+  - @brains/site-engine@0.2.0-alpha.166
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- [`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Polish the agent proximity map: templates can now declare `staticAssets` that site-builder emits for routes using them, so the map's interaction script ships as a real file instead of a CSP-hostile data: URI. The chart HUD gains a free-agents row with hover linkage, nutrient pulses ride approved threads (hidden under reduced motion), SVG defs are namespaced per surface, the tooltip is structured and injection-safe, node labels thin out past the label budget, and interactive elements drop the button role they could not honor.
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/site-engine@0.2.0-alpha.165
+  - @brains/site-composition@0.2.0-alpha.165
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/image@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.164
+  - @brains/site-composition@0.2.0-alpha.164
+  - @brains/site-engine@0.2.0-alpha.164
+  - @brains/ui-library@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.163
+  - @brains/site-composition@0.2.0-alpha.163
+  - @brains/site-engine@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.162
+  - @brains/site-composition@0.2.0-alpha.162
+  - @brains/site-engine@0.2.0-alpha.162
+  - @brains/ui-library@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/image@0.2.0-alpha.161
+  - @brains/site-engine@0.2.0-alpha.161
+  - @brains/site-composition@0.2.0-alpha.161
+  - @brains/ui-library@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.160
+  - @brains/site-engine@0.2.0-alpha.160
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/image@0.2.0-alpha.160
+  - @brains/ui-library@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.159
+  - @brains/site-composition@0.2.0-alpha.159
+  - @brains/site-engine@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.158
+  - @brains/site-composition@0.2.0-alpha.158
+  - @brains/site-engine@0.2.0-alpha.158
+  - @brains/ui-library@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.157
+  - @brains/site-composition@0.2.0-alpha.157
+  - @brains/site-engine@0.2.0-alpha.157
+  - @brains/ui-library@0.2.0-alpha.157
+  - @brains/utils@0.2.0-alpha.157
+  - @brains/plugins@0.2.0-alpha.157
+
 ## 0.2.0-alpha.156
 
 ### Patch Changes

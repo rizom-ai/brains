@@ -39,6 +39,7 @@ import {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
 } from "./artifact-entity";
+import { KeyedCleanupSupervisor } from "./keyed-cleanup-supervisor";
 
 export { urlCaptureConfigSchema };
 
@@ -91,6 +92,7 @@ interface ProgressMessageTracking {
  * Prevents hitting Matrix rate limits while still providing responsive feedback
  */
 const PROGRESS_EDIT_THROTTLE_MS = 500;
+const PROGRESS_CLEANUP_DELAY_MS = 500;
 
 /**
  * Job tracking info for message-based interfaces
@@ -282,6 +284,10 @@ export abstract class MessageInterfacePlugin<
     JobProgressEvent
   >();
 
+  private readonly progressCleanupSupervisor = new KeyedCleanupSupervisor(
+    PROGRESS_CLEANUP_DELAY_MS,
+  );
+
   /**
    * Send a message to a specific channel
    * Must be implemented by each interface
@@ -458,6 +464,20 @@ export abstract class MessageInterfacePlugin<
         id: this.id,
       },
     );
+  }
+
+  /** Interrupt delayed cleanup before plugin-owned state is released. */
+  protected override async onShutdown(): Promise<void> {
+    await this.progressCleanupSupervisor.close();
+    this.progressEvents.clear();
+    this.progressMessageTracking.clear();
+    this.agentResponseTracking.clear();
+    this.pendingToolCompletions.clear();
+    this.bufferedCompletionMessages = [];
+    this.isProcessingInput = false;
+    this.currentChannelId = null;
+    delete this.progressCallback;
+    await super.onShutdown();
   }
 
   /**
@@ -689,10 +709,10 @@ export abstract class MessageInterfacePlugin<
   }
 
   private scheduleProgressCleanup(eventId: string): void {
-    setTimeout(() => {
+    this.progressCleanupSupervisor.schedule(eventId, () => {
       this.progressEvents.delete(eventId);
       this.notifyProgressCallback();
-    }, 500);
+    });
   }
 
   private logProgressProcessed(event: JobProgressEvent): void {

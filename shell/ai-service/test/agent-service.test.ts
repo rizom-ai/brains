@@ -30,8 +30,11 @@ let mockAgentGenerateResult: BrainAgentResult = {
 
 // Mock the agent's generate function
 const mockGenerate = mock(
-  async (_params: { messages: ModelMessage[]; options: BrainCallOptions }) =>
-    mockAgentGenerateResult,
+  async (_params: {
+    messages: ModelMessage[];
+    options: BrainCallOptions;
+    abortSignal?: AbortSignal;
+  }) => mockAgentGenerateResult,
 );
 
 // Mock agent factory - returns a mock agent with generate
@@ -144,8 +147,8 @@ describe("AgentService", () => {
   let mockProfileService: IAnchorProfileService;
   let mockConversationService: IConversationService;
 
-  beforeEach(() => {
-    AgentService.resetInstance();
+  beforeEach(async () => {
+    await AgentService.resetInstance();
     logger = createSilentLogger();
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
@@ -167,14 +170,15 @@ describe("AgentService", () => {
       async (_params: {
         messages: ModelMessage[];
         options: BrainCallOptions;
+        abortSignal?: AbortSignal;
       }) => mockAgentGenerateResult,
     );
     mockGenerate.mockClear();
     mockAgentFactory.mockClear();
   });
 
-  afterEach(() => {
-    AgentService.resetInstance();
+  afterEach(async () => {
+    await AgentService.resetInstance();
   });
 
   describe("Component Interface Standardization", () => {
@@ -199,7 +203,7 @@ describe("AgentService", () => {
       expect(instance1).toBe(instance2);
     });
 
-    it("should reset instance", () => {
+    it("should reset instance", async () => {
       const instance1 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -209,7 +213,7 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
 
-      AgentService.resetInstance();
+      await AgentService.resetInstance();
 
       const instance2 = AgentService.getInstance(
         mockMCPService,
@@ -324,6 +328,159 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(2);
     });
 
+    it("cancels an active turn with the original abort reason", async () => {
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+          abortSignal?: AbortSignal;
+        }) => {
+          modelSignal = params.abortSignal;
+          return new Promise<BrainAgentResult>((_resolve, reject) => {
+            params.abortSignal?.addEventListener(
+              "abort",
+              () => reject(params.abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const controller = new AbortController();
+      const abortReason = new Error("caller disconnected");
+      const turn = service.chat(
+        "hello",
+        "test-conversation",
+        undefined,
+        controller.signal,
+      );
+      while (!modelSignal) {
+        await delay(1);
+      }
+
+      controller.abort(abortReason);
+
+      let receivedError: unknown;
+      try {
+        await turn;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(abortReason);
+      expect(modelSignal.aborted).toBe(true);
+      await service.shutdown();
+    });
+
+    it("removes a cancelled queued turn without releasing serialization early", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      mockGenerate.mockImplementation(async () => {
+        await firstTurnGate;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const controller = new AbortController();
+      const abortReason = new Error("queued request cancelled");
+      const second = service.chat(
+        "second",
+        "test-conversation",
+        undefined,
+        controller.signal,
+      );
+
+      controller.abort(abortReason);
+      let receivedError: unknown;
+      try {
+        await second;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(abortReason);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      releaseFirst();
+      await first;
+      await delay(1);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      await service.shutdown();
+    });
+
+    it("terminally cancels active and queued turns during shutdown", async () => {
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+          abortSignal?: AbortSignal;
+        }) => {
+          modelSignal = params.abortSignal;
+          return new Promise<BrainAgentResult>((_resolve, reject) => {
+            params.abortSignal?.addEventListener(
+              "abort",
+              () => reject(params.abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const active = service
+        .chat("first", "test-conversation")
+        .catch((error: unknown) => error);
+      while (!modelSignal) {
+        await delay(1);
+      }
+      const queued = service
+        .chat("second", "test-conversation")
+        .catch((error: unknown) => error);
+
+      const shuttingDown = service.shutdown();
+      expect(service.shutdown()).toBe(shuttingDown);
+      const activeError = await active;
+      const queuedError = await queued;
+      await shuttingDown;
+
+      expect(activeError).toBe(queuedError);
+      expect(activeError).toEqual(
+        new Error("Agent service has been shut down"),
+      );
+      expect(modelSignal.aborted).toBe(true);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(
+        await service
+          .chat("after", "test-conversation")
+          .catch((error: unknown) => error),
+      ).toBe(activeError);
+    });
+
     it("rejects messages beyond the bounded per-conversation queue", async () => {
       let releaseFirst!: () => void;
       const firstTurnGate = new Promise<void>((resolve) => {
@@ -429,7 +586,7 @@ describe("AgentService", () => {
             role: "user",
             content: "Previous message",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg2",
@@ -437,7 +594,7 @@ describe("AgentService", () => {
             role: "assistant",
             content: "Previous response",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
         ]),
       );
@@ -468,6 +625,66 @@ describe("AgentService", () => {
       );
     });
 
+    it("filters higher-permission history before a lower-permission model turn", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "anchor-user",
+            conversationId: "shared-conversation",
+            role: "user",
+            content: "Show the restricted note",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+          },
+          {
+            id: "anchor-assistant",
+            conversationId: "shared-conversation",
+            role: "assistant",
+            content: "restricted phrase",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+          },
+          {
+            id: "public-assistant",
+            conversationId: "shared-conversation",
+            role: "assistant",
+            content: "public context",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
+          },
+        ]),
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("What happened?", "shared-conversation", {
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+      });
+
+      const serializedMessages = JSON.stringify(
+        mockGenerate.mock.calls[0]?.[0].messages,
+      );
+      expect(serializedMessages).toContain("public context");
+      expect(serializedMessages).not.toContain("restricted phrase");
+      expect(serializedMessages).not.toContain("Show the restricted note");
+      expect(mockConversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: "user",
+          metadata: expect.objectContaining({
+            userPermissionLevel: "public",
+          }),
+        }),
+      );
+    });
+
     it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
@@ -478,6 +695,7 @@ describe("AgentService", () => {
             content: "Queued image generation.",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               entityMemoryRefs: [
                 {
                   entityType: "image",
@@ -590,6 +808,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -608,6 +827,7 @@ describe("AgentService", () => {
             content: "I got `robot.png`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [
                 {
                   kind: "actions",
@@ -694,6 +914,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -713,6 +934,7 @@ describe("AgentService", () => {
               "I got `flirty-robot.png`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [{ kind: "actions", id: "actions:upload-intent" }],
             }),
           },
@@ -722,7 +944,7 @@ describe("AgentService", () => {
             role: "assistant",
             content: "It is a retro-futuristic robot illustration.",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg-pdf-upload",
@@ -731,6 +953,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -750,6 +973,7 @@ describe("AgentService", () => {
               "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [{ kind: "actions", id: "actions:upload-intent" }],
             }),
           },
@@ -814,6 +1038,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -838,6 +1063,7 @@ describe("AgentService", () => {
               "I got `alpha.pdf`, `beta.png`. What would you like me to do with these files?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [
                 {
                   kind: "actions",
@@ -901,6 +1127,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -942,6 +1169,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -959,6 +1187,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1044,6 +1273,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1061,6 +1291,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1077,7 +1308,7 @@ describe("AgentService", () => {
             role: "user",
             content: "save it as an image",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg-clarify",
@@ -1086,7 +1317,7 @@ describe("AgentService", () => {
             content:
               "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
         ]),
       );

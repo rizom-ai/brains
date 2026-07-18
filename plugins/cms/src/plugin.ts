@@ -1,9 +1,15 @@
 import { getActiveAuthService } from "@brains/auth-service";
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import type {
+  CmsWorkspaceRegistration,
+  CmsWorkspaceRegistrationResult,
+  ServicePluginContext,
+  WebRouteDefinition,
+} from "@brains/plugins";
+import { CMS_WORKSPACE_REGISTER_MESSAGE, ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CmsEntityDisplayMap } from "./config";
 import { createEditorRoutes } from "./editor-routes";
+import { CmsWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 
 interface CmsEntityDisplayEntry {
@@ -45,6 +51,8 @@ export class CmsPlugin extends ServicePlugin<
   CmsPluginConfig,
   CmsPluginConfigInput
 > {
+  private readonly workspaceRegistry = new CmsWorkspaceRegistry();
+
   constructor(config: CmsPluginConfigInput = {}) {
     super("cms", packageJson, config, cmsPluginConfigSchema);
   }
@@ -68,6 +76,26 @@ export class CmsPlugin extends ServicePlugin<
       priority: 40,
       visibility: "anchor",
     });
+
+    context.messaging.subscribe<
+      CmsWorkspaceRegistration,
+      CmsWorkspaceRegistrationResult
+    >(CMS_WORKSPACE_REGISTER_MESSAGE, async (message) => {
+      try {
+        const workspace = this.workspaceRegistry.register(message.payload);
+        return {
+          success: true,
+          data: {
+            workspaceUrl: `${this.config.routePath}#/workspace/${encodeURIComponent(workspace.id)}`,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -78,6 +106,7 @@ export class CmsPlugin extends ServicePlugin<
       getEntityDisplay: () =>
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
+      workspaceRegistry: this.workspaceRegistry,
     });
   }
 }

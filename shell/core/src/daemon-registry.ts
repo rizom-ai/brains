@@ -12,6 +12,18 @@ import {
   startDaemonInfo,
   stopDaemonInfo,
 } from "./daemon-operations";
+import { Effect, Exit, Scope } from "@brains/utils/effect";
+import { runEffectPromise } from "./effect-runtime";
+
+type DaemonTransitionKind = "start" | "stop" | "unregister";
+
+interface DaemonTransitionQueue {
+  tail: Promise<void>;
+  lastKind: DaemonTransitionKind | undefined;
+  lastPromise: Promise<void> | undefined;
+  pending: number;
+  terminal: boolean;
+}
 
 /**
  * Daemon registry for managing long-running interface processes
@@ -21,6 +33,8 @@ export class DaemonRegistry {
   private static instance: DaemonRegistry | null = null;
 
   private daemons: Map<string, DaemonInfo> = new Map();
+  private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
+  private daemonTransitions = new Map<string, DaemonTransitionQueue>();
   private logger: Logger;
 
   /**
@@ -58,6 +72,12 @@ export class DaemonRegistry {
    * Register a daemon
    */
   public register(name: string, daemon: Daemon, pluginId: string): void {
+    if (this.daemonScopes.has(name)) {
+      throw new Error(`Cannot overwrite running daemon: ${name}`);
+    }
+    if ((this.daemonTransitions.get(name)?.pending ?? 0) > 0) {
+      throw new Error(`Cannot overwrite transitioning daemon: ${name}`);
+    }
     if (this.daemons.has(name)) {
       this.logger.warn(`Daemon already registered: ${name}, overwriting`);
     }
@@ -90,25 +110,55 @@ export class DaemonRegistry {
   /**
    * Start a daemon
    */
-  public async start(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
-      throw new Error(`Daemon not registered: ${name}`);
+  public start(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
+      return Promise.reject(new Error(`Daemon not registered: ${name}`));
+    }
+    return this.enqueueTransition(name, "start", () => this.startDaemon(name));
+  }
+
+  private async startDaemon(name: string): Promise<void> {
+    const daemonInfo = this.requireDaemon(name);
+    if (this.daemonScopes.has(name)) {
+      await startDaemonInfo(daemonInfo, this.logger);
+      return;
     }
 
-    await startDaemonInfo(daemonInfo, this.logger);
+    const scope = Effect.runSync(Scope.make());
+    const daemonResource = Effect.acquireRelease(
+      Effect.promise(() => startDaemonInfo(daemonInfo, this.logger)),
+      () => Effect.promise(() => stopDaemonInfo(daemonInfo, this.logger)),
+    );
+
+    try {
+      await runEffectPromise(Scope.extend(daemonResource, scope));
+      this.daemonScopes.set(name, scope);
+    } catch (error) {
+      await runEffectPromise(Scope.close(scope, Exit.fail(error)));
+      throw error;
+    }
   }
 
   /**
    * Stop a daemon
    */
-  public async stop(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
-      throw new Error(`Daemon not registered: ${name}`);
+  public stop(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
+      return Promise.reject(new Error(`Daemon not registered: ${name}`));
+    }
+    return this.enqueueTransition(name, "stop", () => this.stopDaemon(name));
+  }
+
+  private async stopDaemon(name: string): Promise<void> {
+    const daemonInfo = this.requireDaemon(name);
+    const scope = this.daemonScopes.get(name);
+    if (!scope) {
+      await stopDaemonInfo(daemonInfo, this.logger);
+      return;
     }
 
-    await stopDaemonInfo(daemonInfo, this.logger);
+    this.daemonScopes.delete(name);
+    await runEffectPromise(Scope.close(scope, Exit.void));
   }
 
   /**
@@ -166,20 +216,42 @@ export class DaemonRegistry {
   /**
    * Unregister a daemon (stops it first if running)
    */
-  public async unregister(name: string): Promise<void> {
-    const daemonInfo = this.daemons.get(name);
-    if (!daemonInfo) {
+  public unregister(name: string): Promise<void> {
+    if (!this.daemons.has(name)) {
       this.logger.warn(`Daemon not registered: ${name}`);
-      return;
+      return Promise.resolve();
     }
+    return this.enqueueTransition(
+      name,
+      "unregister",
+      async () => {
+        const daemonInfo = this.requireDaemon(name);
+        if (this.daemonScopes.has(name) || daemonInfo.status !== "stopped") {
+          await this.stopDaemon(name);
+        }
+        this.daemons.delete(name);
+        this.logger.debug(`Unregistered daemon: ${name}`);
+      },
+      true,
+    );
+  }
 
-    // Stop the daemon if it's running
-    if (daemonInfo.status === "running") {
-      await this.stop(name);
+  /**
+   * Synchronously discard a daemon that has not started yet.
+   * Used only for construction rollback; running daemons require unregister().
+   */
+  public abandon(name: string): void {
+    const daemonInfo = this.daemons.get(name);
+    if (!daemonInfo) return;
+    if (
+      daemonInfo.status !== "stopped" ||
+      this.daemonScopes.has(name) ||
+      (this.daemonTransitions.get(name)?.pending ?? 0) > 0
+    ) {
+      throw new Error(`Cannot abandon active daemon: ${name}`);
     }
-
     this.daemons.delete(name);
-    this.logger.debug(`Unregistered daemon: ${name}`);
+    this.logger.debug(`Abandoned daemon registration: ${name}`);
   }
 
   /**
@@ -192,16 +264,30 @@ export class DaemonRegistry {
     );
 
     let firstError: Error | undefined;
+    const attempted: string[] = [];
 
     for (const daemonInfo of pluginDaemons) {
+      const alreadyRunning = this.daemonScopes.has(daemonInfo.name);
       try {
         await this.start(daemonInfo.name);
+        if (!alreadyRunning) attempted.push(daemonInfo.name);
       } catch (error) {
         firstError ??= toError(error);
+        if (!alreadyRunning) attempted.push(daemonInfo.name);
       }
     }
 
     if (firstError) {
+      for (const daemonName of attempted.reverse()) {
+        try {
+          await this.stop(daemonName);
+        } catch (rollbackError) {
+          this.logger.error(
+            `Failed to roll back daemon: ${daemonName}`,
+            rollbackError,
+          );
+        }
+      }
       throw firstError;
     }
   }
@@ -231,22 +317,64 @@ export class DaemonRegistry {
   public async clear(): Promise<void> {
     this.logger.debug("Clearing all daemons");
 
-    const runningDaemons = Array.from(this.daemons.values()).filter(
-      (info) => info.status === "running",
-    );
-
-    for (const daemonInfo of runningDaemons) {
+    for (const name of [...this.daemons.keys()]) {
       try {
-        await this.stop(daemonInfo.name);
+        await this.unregister(name);
       } catch (error) {
         this.logger.error(
-          `Failed to stop daemon during clear: ${daemonInfo.name}`,
+          `Failed to unregister daemon during clear: ${name}`,
           error,
         );
       }
     }
 
-    this.daemons.clear();
     this.logger.debug("All daemons cleared");
+  }
+
+  private requireDaemon(name: string): DaemonInfo {
+    const daemonInfo = this.daemons.get(name);
+    if (!daemonInfo) throw new Error(`Daemon not registered: ${name}`);
+    return daemonInfo;
+  }
+
+  private enqueueTransition(
+    name: string,
+    kind: DaemonTransitionKind,
+    operation: () => Promise<void>,
+    terminal = false,
+  ): Promise<void> {
+    let queue = this.daemonTransitions.get(name);
+    if (!queue) {
+      queue = {
+        tail: Promise.resolve(),
+        lastKind: undefined,
+        lastPromise: undefined,
+        pending: 0,
+        terminal: false,
+      };
+      this.daemonTransitions.set(name, queue);
+    }
+
+    if (kind === "start" && queue.terminal) {
+      return Promise.reject(new Error(`Daemon is being unregistered: ${name}`));
+    }
+    if (queue.lastKind === kind && queue.lastPromise) {
+      return queue.lastPromise;
+    }
+    if (terminal) queue.terminal = true;
+
+    queue.pending++;
+    const transition = queue.tail.then(operation);
+    const transitionSettled = (): void => {
+      queue.pending--;
+      if (queue.pending === 0) {
+        this.daemonTransitions.delete(name);
+      }
+    };
+    const settled = transition.then(transitionSettled, transitionSettled);
+    queue.tail = settled;
+    queue.lastKind = kind;
+    queue.lastPromise = transition;
+    return transition;
   }
 }

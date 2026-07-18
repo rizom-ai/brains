@@ -142,6 +142,15 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   }
 
   /**
+   * Escape line-leading '#' in string values so they stay paragraph text
+   * when parsed back, instead of being re-read as section headings
+   * (e.g. shell comments like "# install").
+   */
+  private escapeBlockMarkup(value: string): string {
+    return value.replace(/^(\s*)#/gm, "$1\\#");
+  }
+
+  /**
    * Format a field and add it to the lines array
    */
   private formatField(
@@ -168,7 +177,10 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     switch (mapping.type) {
       case "string":
       case "number":
-        lines.push(heading, String(value ?? ""), "");
+        // Absent optional fields stay absent — emitting an empty heading
+        // would round-trip them back as "".
+        if (value === undefined || value === null) break;
+        lines.push(heading, this.escapeBlockMarkup(String(value)), "");
         break;
 
       case "object":

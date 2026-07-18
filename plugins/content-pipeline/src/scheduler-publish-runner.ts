@@ -39,13 +39,16 @@ export class PublishScheduleRunner {
     );
   }
 
-  public stop(): void {
-    stopAndClearJobs(this.publishJobs);
+  public async stop(): Promise<void> {
+    const jobs = Array.from(this.publishJobs.values());
+    this.publishJobs.clear();
 
     if (this.immediateIntervalJob) {
-      this.immediateIntervalJob.stop();
+      jobs.push(this.immediateIntervalJob);
       this.immediateIntervalJob = null;
     }
+
+    await Promise.all(jobs.map((job) => job.stop()));
   }
 
   private async processEntityType(entityType: string): Promise<void> {
@@ -101,11 +104,4 @@ export class PublishScheduleRunner {
   private get entitySchedules(): Record<string, string> {
     return this.deps.config.entitySchedules as Record<string, string>;
   }
-}
-
-function stopAndClearJobs(jobs: Map<string, ScheduledJob>): void {
-  for (const job of jobs.values()) {
-    job.stop();
-  }
-  jobs.clear();
 }

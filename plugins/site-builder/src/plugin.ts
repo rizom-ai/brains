@@ -4,8 +4,12 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
+import type {
+  SiteBuildProfile,
+  SiteBuildProfileService,
+} from "./lib/site-build-profile-service";
 import {
   RouteRegistry,
   UISlotRegistry,
@@ -24,6 +28,9 @@ import {
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
+import { SiteBuildStatusService } from "./lib/site-build-status";
+import { SiteWorkspaceProvider } from "./lib/site-workspace";
+import { registerSiteHealthWidget } from "./lib/dashboard-widget";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
@@ -41,9 +48,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
   private _slotRegistry?: UISlotRegistry;
-  private profileService?: AnchorProfileService;
+  private profileService?: SiteBuildProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
+  private buildStatusService?: SiteBuildStatusService;
+  private siteWorkspaceProvider?: SiteWorkspaceProvider;
   private headScripts = new Map<string, string>();
 
   private get routeRegistry(): RouteRegistry {
@@ -109,10 +118,14 @@ export class SiteBuilderPlugin extends ServicePlugin<
       ),
     );
 
-    this.profileService = AnchorProfileService.getInstance(
-      context.entityService,
-      context.logger,
+    this.profileService = {
+      getProfile: (): SiteBuildProfile => context.identity.getProfile(),
+    };
+    this.buildStatusService = new SiteBuildStatusService(
+      context.runtimeState,
+      context.jobs,
     );
+    await this.buildStatusService.initialize();
 
     setupRouteHandlers(context, this._routeRegistry, this.logger);
 
@@ -135,11 +148,12 @@ export class SiteBuilderPlugin extends ServicePlugin<
     };
 
     // Initialize site builder
-    this.siteBuilder = SiteBuilder.getInstance(
+    this.siteBuilder = SiteBuilder.createFresh(
       context.logger.child("SiteBuilder"),
       siteBuilderServices,
       this.routeRegistry,
       this.profileService,
+      undefined,
       this.config.entityDisplay,
     );
 
@@ -162,6 +176,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
+          statusService: this.buildStatusService,
         },
       ),
     );
@@ -172,7 +187,18 @@ export class SiteBuilderPlugin extends ServicePlugin<
       context,
       this.id,
       this.logger,
+      this.buildStatusService,
     );
+
+    this.siteWorkspaceProvider = new SiteWorkspaceProvider({
+      context,
+      config: this.config,
+      routeRegistry: this.routeRegistry,
+      statusService: this.buildStatusService,
+      requestBuild: (environment): void => {
+        this.rebuildManager?.requestBuild(environment);
+      },
+    });
 
     if (this.config.autoRebuild) {
       this.logger.debug("Auto-rebuild enabled");
@@ -197,6 +223,19 @@ export class SiteBuilderPlugin extends ServicePlugin<
       routeRegistry: this._routeRegistry,
       logger: this.logger,
     });
+  }
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.siteWorkspaceProvider) return;
+    const managementUrl =
+      await this.siteWorkspaceProvider.registerCmsWorkspace();
+    await registerSiteHealthWidget(
+      context,
+      this.siteWorkspaceProvider,
+      managementUrl,
+    );
   }
 
   /**
@@ -346,8 +385,9 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
-    this.rebuildManager?.dispose();
-    SiteBuilder.resetInstance();
+    await this.rebuildManager?.dispose();
+    delete this.rebuildManager;
+    delete this.siteBuilder;
     this.logger.debug("Cleaned up all event subscriptions");
   }
 }

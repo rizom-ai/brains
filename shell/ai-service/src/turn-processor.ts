@@ -42,6 +42,7 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
+  filterConversationHistoryForPermission,
   resolveConversationUploadContinuity,
 } from "./conversation-messages";
 import {
@@ -81,7 +82,9 @@ export class TurnProcessor {
 
   public async processMessage(
     input: ProcessMessageInput,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     const {
       conversationId,
       message,
@@ -118,6 +121,7 @@ export class TurnProcessor {
         ...(await this.messageMetadata({
           actor: attributedActor,
           source,
+          userPermissionLevel,
           attachments,
           actorAlreadyEnriched: true,
         })),
@@ -133,6 +137,7 @@ export class TurnProcessor {
         ...(await this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          userPermissionLevel,
           cards: responseCards,
         })),
       });
@@ -146,9 +151,13 @@ export class TurnProcessor {
     }
 
     // Load conversation history
-    const historyMessages = await this.deps.conversationService.getMessages(
-      conversationId,
-      { limit: 50 },
+    const storedHistoryMessages =
+      await this.deps.conversationService.getMessages(conversationId, {
+        limit: 50,
+      });
+    const historyMessages = filterConversationHistoryForPermission(
+      storedHistoryMessages,
+      userPermissionLevel,
     );
 
     const uploadContinuity = resolveConversationUploadContinuity({
@@ -178,6 +187,7 @@ export class TurnProcessor {
       channelName,
       userPermissionLevel,
     });
+    signal?.throwIfAborted();
 
     const modelMessage = buildMessageWithAttachments(
       effectiveMessage,
@@ -210,6 +220,7 @@ export class TurnProcessor {
       ...(await this.messageMetadata({
         actor: attributedActor,
         source,
+        userPermissionLevel,
         attachments: effectiveAttachments,
         actorAlreadyEnriched: true,
       })),
@@ -237,7 +248,9 @@ export class TurnProcessor {
     const result = await this.deps.getAgent().generate({
       messages,
       options: callOptions,
+      ...(signal ? { abortSignal: signal } : {}),
     });
+    signal?.throwIfAborted();
 
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
@@ -272,6 +285,7 @@ export class TurnProcessor {
         ...(await this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          userPermissionLevel,
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
@@ -303,7 +317,9 @@ export class TurnProcessor {
 
   public async executeConfirmedAction(
     input: ExecuteActionInput,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
     const {
       conversationId,
       pendingConfirmation,
@@ -338,9 +354,11 @@ export class TurnProcessor {
       ...(channelId ? { channelId } : {}),
       channelName,
       userPermissionLevel,
+      ...(signal ? { signal } : {}),
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
+    signal?.throwIfAborted();
     const outcome = buildConfirmedActionResult(pendingConfirmation, result);
     const failed = outcome.cards.some(
       (card) => card.kind === "tool-approval" && card.state === "output-error",
@@ -354,6 +372,7 @@ export class TurnProcessor {
           channelId,
           channelName,
           userPermissionLevel,
+          signal,
         });
     const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
     const responseText = response?.text.trim()
@@ -370,6 +389,7 @@ export class TurnProcessor {
       ...outcome.entityMemoryRefs,
       ...followUpEntityMemoryRefs,
     ];
+    signal?.throwIfAborted();
 
     await this.deps.conversationService.addMessage({
       conversationId,
@@ -378,6 +398,7 @@ export class TurnProcessor {
       ...(await this.messageMetadata({
         actor: this.getAssistantActor(),
         source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
         cards,
         entityMemoryRefs,
       })),
@@ -433,7 +454,9 @@ export class TurnProcessor {
     channelId: string | undefined;
     channelName: string;
     userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+    signal: AbortSignal | undefined;
   }): Promise<AgentResponse | undefined> {
+    params.signal?.throwIfAborted();
     if (!this.deps.agentContextProvider) return undefined;
 
     const followUpPrompt = `The operator approved the pending action. The system executed it successfully: ${params.resultText} Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again. Do not suggest repeating the same collection, save, or create task unless the current playbook context explicitly asks for another item. If the approved action saved, created, or updated an item for a completed playbook collection step, do not ask for another item; follow the refreshed current state instead. Do not offer a completed prior-state task as an alternative to the current playbook task. Do not say you found, retrieved, or showed an entity unless the approved action or latest tool result actually performed retrieval or display; after a save or update, say it was saved or updated.`;
@@ -445,11 +468,16 @@ export class TurnProcessor {
       channelName: params.channelName,
       userPermissionLevel: params.userPermissionLevel,
     });
+    params.signal?.throwIfAborted();
     if (!contextItems || contextItems.length === 0) return undefined;
 
-    const historyMessages = await this.deps.conversationService.getMessages(
-      params.conversationId,
-      { limit: 50 },
+    const storedHistoryMessages =
+      await this.deps.conversationService.getMessages(params.conversationId, {
+        limit: 50,
+      });
+    const historyMessages = filterConversationHistoryForPermission(
+      storedHistoryMessages,
+      params.userPermissionLevel,
     );
     const messages = buildModelMessages(historyMessages, followUpPrompt);
     const agentContextInstructions =
@@ -465,7 +493,9 @@ export class TurnProcessor {
         ...(agentContextInstructions ? { agentContextInstructions } : {}),
         disableTools: true,
       },
+      ...(params.signal ? { abortSignal: params.signal } : {}),
     });
+    params.signal?.throwIfAborted();
 
     const { toolResults, pendingConfirmations, cards } = extractToolResults(
       result.steps,
@@ -485,6 +515,7 @@ export class TurnProcessor {
   private async messageMetadata(params: {
     actor: ConversationMessageActor | null;
     source: ConversationMessageSource | null;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];

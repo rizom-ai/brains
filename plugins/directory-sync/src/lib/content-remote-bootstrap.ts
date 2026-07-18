@@ -103,7 +103,12 @@ export async function bootstrapContentRemoteFromSeed(
       "user.email",
       options.authorEmail ?? "brain@localhost",
     ]);
-    cpSync(seedPath, worktree, { recursive: true });
+    // The seed dir may itself be a git checkout (e.g. a local clone of a
+    // content repo) — its .git must not clobber the temp worktree's repo.
+    cpSync(seedPath, worktree, {
+      recursive: true,
+      filter: (source) => !source.split("/").includes(".git"),
+    });
     git(worktree, ["add", "."]);
     git(worktree, ["commit", "-m", "seed content remote"]);
     git(worktree, ["remote", "add", "origin", options.gitUrl]);

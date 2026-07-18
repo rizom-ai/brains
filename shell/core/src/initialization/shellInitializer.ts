@@ -10,6 +10,7 @@ import { SHELL_ENTITY_TYPES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
+import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
 import { resetCoreServiceSingletons } from "./service-singletons";
 
@@ -90,11 +91,15 @@ export class ShellInitializer {
     });
   }
 
-  public initializeServices(dependencies?: ShellDependencies): ShellServices {
+  public initializeServices(
+    lifecycle: ShellLifecycle,
+    dependencies?: ShellDependencies,
+  ): ShellServices {
     return createShellServices({
       config: this.config,
       dependencies,
       initializerLogger: this.logger,
+      lifecycle,
     });
   }
 
@@ -147,14 +152,14 @@ export class ShellInitializer {
 }
 
 /**
- * Reset all service singletons (sync).
- * Closes DB connections and nulls static references so the next
- * getInstance() / createFresh() call creates brand-new instances.
+ * Compatibility/test utility for legacy package singleton factories.
+ * Normal Shell construction and rollback do not call this function, and
+ * createFresh() services never depend on it.
  *
  * Does NOT touch Shell.instance — call Shell.resetInstance() or
  * shell.shutdown() separately when you need to stop background services.
  */
-export function resetServiceSingletons(): void {
+export async function resetServiceSingletons(): Promise<void> {
   ShellInitializer.resetInstance();
-  resetCoreServiceSingletons();
+  await resetCoreServiceSingletons();
 }

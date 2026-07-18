@@ -105,6 +105,9 @@ export interface JobHandler<
  * Job queue service interface
  */
 export interface IJobQueueService {
+  /** Settle database readiness work before runtime services start. */
+  initialize?(): Promise<void>;
+
   /**
    * Register a job handler for a specific type
    */
@@ -269,10 +272,10 @@ export interface IJobQueueWorker {
  */
 export interface IBatchJobManager {
   /** Start periodic cleanup of terminal batch metadata. Idempotent. */
-  start(intervalMs?: number): void;
+  start(intervalMs?: number): void | Promise<void>;
 
-  /** Stop periodic cleanup. Safe to call without a prior `start`. */
-  stop(): void;
+  /** Stop periodic cleanup and drain in-flight metadata cleanup. */
+  stop(): void | Promise<void>;
 
   /** Register a batch for tracking */
   registerBatch(

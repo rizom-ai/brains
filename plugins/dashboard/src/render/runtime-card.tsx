@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import type { AppInfo } from "@brains/plugins";
 import type { JSX } from "preact";
+import { CardHeader, KeyValueList } from "../widget-ui";
 
 function formatUptime(seconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(seconds));
@@ -39,40 +40,23 @@ export function RuntimeCard(props: {
 
   return (
     <aside class="card runtime-card">
-      <div class="card-head">
-        <span class="card-title">Runtime</span>
-        <span class="card-from">core</span>
-      </div>
-      <dl class="kv">
-        <div class="kv-row">
-          <dt>Version</dt>
-          <dd>v{appInfo.version}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Daemons</dt>
-          <dd>
-            {daemonCount === 0
-              ? "—"
-              : `${healthyDaemons}/${daemonCount} healthy`}
-          </dd>
-        </div>
-        <div class="kv-row">
-          <dt>Model</dt>
-          <dd>{appInfo.model}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Uptime</dt>
-          <dd>{formatUptime(appInfo.uptime)}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Embeddings</dt>
-          <dd>{appInfo.embeddings}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Rendered</dt>
-          <dd>{formatRendered(now)}</dd>
-        </div>
-      </dl>
+      <CardHeader title="Runtime" source="core" />
+      <KeyValueList
+        items={[
+          { label: "Version", value: `v${appInfo.version}` },
+          {
+            label: "Daemons",
+            value:
+              daemonCount === 0
+                ? "—"
+                : `${healthyDaemons}/${daemonCount} healthy`,
+          },
+          { label: "Model", value: appInfo.model },
+          { label: "Uptime", value: formatUptime(appInfo.uptime) },
+          { label: "Embeddings", value: appInfo.embeddings },
+          { label: "Rendered", value: formatRendered(now) },
+        ]}
+      />
     </aside>
   );
 }

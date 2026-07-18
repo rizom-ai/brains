@@ -102,6 +102,10 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
   private pendingConfirmations = new Map<string, Set<string>>();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
+  private readonly eventHandlerController = new AbortController();
+  private readonly activeEventHandlers = new Set<Promise<void>>();
+  private eventHandlerStopPromise: Promise<void> | null = null;
+  private eventHandlersClosed = false;
 
   constructor(config: DiscordConstructorConfig, deps: DiscordDeps = {}) {
     super("discord", packageJson, config, discordConfigSchema);
@@ -126,11 +130,15 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
     // Set up event handlers
     this.client.on(Events.MessageCreate, (message: Message) => {
-      void this.handleMessage(message);
+      this.runEventHandler("message", (signal) =>
+        this.handleMessage(message, signal),
+      );
     });
 
     this.client.on(Events.InteractionCreate, (interaction: Interaction) => {
-      void this.handleInteraction(interaction);
+      this.runEventHandler("interaction", (signal) =>
+        this.handleInteraction(interaction, signal),
+      );
     });
 
     this.client.once(Events.ClientReady, () => {
@@ -148,17 +156,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
         }
         await this.client.login(this.config.botToken);
       },
-      stop: async (): Promise<void> => {
-        for (const interval of this.typingIntervals.values()) {
-          clearInterval(interval);
-        }
-        this.typingIntervals.clear();
-
-        if (this.client) {
-          await this.client.destroy();
-          this.client = null;
-        }
-      },
+      stop: (): Promise<void> => this.stopEventHandlers(),
       healthCheck: async () => ({
         status: this.client?.user ? "healthy" : "error",
         message: this.client?.user
@@ -167,6 +165,54 @@ export class DiscordInterface extends MessageInterfacePlugin<
         lastCheck: new Date(),
       }),
     };
+  }
+
+  private runEventHandler(
+    kind: "message" | "interaction",
+    operation: (signal: AbortSignal) => Promise<void>,
+  ): void {
+    if (this.eventHandlersClosed) return;
+    const signal = this.eventHandlerController.signal;
+    const task = operation(signal).catch((error: unknown) => {
+      if (signal.aborted) return;
+      this.logger.error(`Discord ${kind} handler failed`, { error });
+    });
+    this.activeEventHandlers.add(task);
+    void task.then(() => {
+      this.activeEventHandlers.delete(task);
+    });
+  }
+
+  private stopEventHandlers(): Promise<void> {
+    if (this.eventHandlerStopPromise) return this.eventHandlerStopPromise;
+
+    this.eventHandlersClosed = true;
+    this.eventHandlerController.abort(
+      new Error("Discord interface has been stopped"),
+    );
+    for (const interval of this.typingIntervals.values()) {
+      clearInterval(interval);
+    }
+    this.typingIntervals.clear();
+
+    const client = this.client;
+    this.client = null;
+    const destroy = client?.destroy() ?? Promise.resolve();
+    const handlers = [...this.activeEventHandlers];
+    this.eventHandlerStopPromise = this.drainEventHandlers(destroy, handlers);
+    return this.eventHandlerStopPromise;
+  }
+
+  private async drainEventHandlers(
+    destroy: Promise<void>,
+    handlers: Promise<void>[],
+  ): Promise<void> {
+    const results = await Promise.allSettled([destroy, ...handlers]);
+    this.pendingConfirmations.clear();
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) throw failure.reason;
   }
 
   // ── Abstract method implementation ──
@@ -260,7 +306,11 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
   // ── Message handling ──
 
-  private async handleMessage(message: Message): Promise<void> {
+  private async handleMessage(
+    message: Message,
+    signal: AbortSignal,
+  ): Promise<void> {
+    signal.throwIfAborted();
     if (message.author.id === this.client?.user?.id) return;
     if (!this.context) return;
 
@@ -310,6 +360,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
             channelId: spaceChannelId,
           }),
       );
+      signal.throwIfAborted();
     }
 
     // In server channels / foreign threads: require mention.
@@ -337,6 +388,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
             ).catch((e: unknown) =>
               this.logger.error("URL capture failed", { error: e, url }),
             );
+            signal.throwIfAborted();
           }
         }
       }
@@ -365,6 +417,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
           try {
             const fileContent = await this.fetchText(attachment.url);
+            signal.throwIfAborted();
             agentMessage +=
               "\n\n" + this.formatFileUploadMessage(filename, fileContent);
           } catch (e: unknown) {
@@ -381,15 +434,21 @@ export class DiscordInterface extends MessageInterfacePlugin<
     if (!agentMessage) return;
 
     const channelId = message.channel.id;
+    signal.throwIfAborted();
     await this.routeToAgent(
       agentMessage,
       channelId,
       message,
       permissionContext,
+      signal,
     );
   }
 
-  private async handleInteraction(interaction: Interaction): Promise<void> {
+  private async handleInteraction(
+    interaction: Interaction,
+    signal: AbortSignal,
+  ): Promise<void> {
+    signal.throwIfAborted();
     if (!this.context || !interaction.isButton()) return;
 
     const parsed = this.parseApprovalButtonCustomId(interaction.customId);
@@ -418,6 +477,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
       );
 
     await this.clearApprovalInteractionComponents(interaction);
+    signal.throwIfAborted();
 
     const confirmationContext =
       await this.buildInteractionConfirmationContext(interaction);
@@ -426,9 +486,12 @@ export class DiscordInterface extends MessageInterfacePlugin<
       parsed.confirmed,
       parsed.approvalId,
       confirmationContext,
+      signal,
     );
+    signal.throwIfAborted();
 
     await this.handleAgentResponseToolStatuses(response, conversationId);
+    signal.throwIfAborted();
 
     this.syncPendingApprovalsAfterResolution(
       conversationId,
@@ -548,6 +611,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
     channelId: string,
     discordMessage: Message,
     permissionContext: PermissionLookupContext,
+    signal: AbortSignal,
   ): Promise<void> {
     if (!this.context) return;
 
@@ -570,6 +634,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
       }
     }
 
+    signal.throwIfAborted();
     const conversationId = `discord-${replyChannelId}`;
     const authResolution = await this.resolveDiscordAuth(
       this.context,
@@ -594,32 +659,39 @@ export class DiscordInterface extends MessageInterfacePlugin<
           replyChannelId,
           discordMessage,
           permissionContext,
+          signal,
         );
         if (handledConfirmation) return;
       }
 
-      const response = await agentService.chat(message, conversationId, {
-        userPermissionLevel,
-        interfaceType: "discord",
-        channelId: replyChannelId,
-        channelName,
-        ...this.buildUserMessageMetadata(
-          discordMessage,
-          channelId,
-          channelName,
-          {
-            threadId:
-              replyChannelId !== channelId || discordMessage.channel.isThread()
-                ? replyChannelId
-                : undefined,
-            ...(authResolution.principal
-              ? { principal: authResolution.principal }
-              : {}),
-          },
-        ),
-      });
+      const response = await agentService.chat(
+        message,
+        conversationId,
+        {
+          userPermissionLevel,
+          interfaceType: "discord",
+          ...this.buildUserMessageMetadata(
+            discordMessage,
+            channelId,
+            channelName,
+            {
+              threadId:
+                replyChannelId !== channelId ||
+                discordMessage.channel.isThread()
+                  ? replyChannelId
+                  : undefined,
+              ...(authResolution.principal
+                ? { principal: authResolution.principal }
+                : {}),
+            },
+          ),
+        },
+        signal,
+      );
+      signal.throwIfAborted();
 
       await this.handleAgentResponseToolStatuses(response, conversationId);
+      signal.throwIfAborted();
 
       const approvalCards = getPendingApprovalCards(response.cards);
       if (approvalCards.length > 0) {
@@ -658,6 +730,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
         }
       }
     } catch (error: unknown) {
+      if (signal.aborted) return;
       this.logger.error("Error handling message", {
         error,
         channelId: replyChannelId,
@@ -910,6 +983,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
     channelId: string,
     discordMessage: Message,
     permissionContext: PermissionLookupContext,
+    signal: AbortSignal,
   ): Promise<boolean> {
     const context = this.context;
     if (!context) return false;
@@ -955,8 +1029,11 @@ export class DiscordInterface extends MessageInterfacePlugin<
           channelName,
         ),
       },
+      signal,
     );
+    signal.throwIfAborted();
     await this.handleAgentResponseToolStatuses(response, conversationId);
+    signal.throwIfAborted();
     this.syncPendingApprovalsAfterResolution(
       conversationId,
       approvalId,

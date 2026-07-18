@@ -5,13 +5,19 @@ import {
   type ContentVisibility,
   type SearchResult,
   type SearchOptions,
+  type ProjectSemanticSpaceRequest,
+  type SemanticSpaceProjection,
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { sql, and, desc, inArray, type SQL } from "drizzle-orm";
+import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
+import {
+  buildSemanticSpaceProjection,
+  type SemanticEmbedding,
+} from "./semantic-space";
 
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
@@ -279,6 +285,100 @@ export class EntitySearch {
     };
 
     return this.search(query, searchOptions);
+  }
+
+  /**
+   * Project visible entity embeddings into a provider-independent semantic
+   * space. Raw vectors never cross the entity-service boundary.
+   */
+  public async projectSemanticSpace(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection> {
+    const pointTypes =
+      request.types && request.types.length > 0
+        ? new Set(request.types)
+        : undefined;
+    const queryTypes = pointTypes ? new Set(pointTypes) : undefined;
+    if (queryTypes && request.origin) {
+      queryTypes.add(request.origin.entityType);
+    }
+
+    const embeddings = await this.readEmbeddings(
+      queryTypes ? Array.from(queryTypes) : undefined,
+      request.visibilityScope,
+    );
+    const originReference = request.origin;
+    const origin = originReference
+      ? embeddings.find(
+          (embedding) =>
+            embedding.entityId === originReference.entityId &&
+            embedding.entityType === originReference.entityType,
+        )
+      : undefined;
+    const points = embeddings.filter((embedding) => {
+      const matchesPointType = pointTypes?.has(embedding.entityType) ?? true;
+      const isOrigin =
+        embedding.entityId === originReference?.entityId &&
+        embedding.entityType === originReference.entityType;
+      return matchesPointType && !isOrigin;
+    });
+
+    return buildSemanticSpaceProjection(points, {
+      ...(origin && { origin }),
+      ...(request.maxNeighborDistance !== undefined && {
+        maxNeighborDistance: request.maxNeighborDistance,
+      }),
+    });
+  }
+
+  /** Read and decode vectors from the attached embedding database. */
+  private async readEmbeddings(
+    types?: string[],
+    visibilityScope?: ContentVisibility,
+  ): Promise<SemanticEmbedding[]> {
+    const conditions = this.buildVisibilityConditions(visibilityScope);
+    if (types && types.length > 0) {
+      conditions.push(inArray(entities.entityType, types));
+    }
+
+    const embeddingExpr = sql<Float32Array>`emb_e.embedding`.mapWith({
+      mapFromDriverValue(value: unknown): Float32Array {
+        if (!ArrayBuffer.isView(value)) {
+          throw new TypeError(
+            "Expected embedding blob to be an ArrayBuffer view",
+          );
+        }
+
+        const source = new Uint8Array(
+          value.buffer,
+          value.byteOffset,
+          value.byteLength,
+        );
+        if (source.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
+          throw new RangeError(
+            "Embedding blob byte length must be divisible by 4",
+          );
+        }
+
+        const copy = new Uint8Array(source.byteLength);
+        copy.set(source);
+        return new Float32Array(copy.buffer);
+      },
+    });
+
+    return this.db
+      .select({
+        entityId: entities.id,
+        entityType: entities.entityType,
+        embedding: embeddingExpr,
+      })
+      .from(entities)
+      .innerJoin(
+        sql`emb.embeddings AS emb_e`,
+        sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(entities.entityType), asc(entities.id));
   }
 
   /**

@@ -11,7 +11,7 @@ export async function initializeDirectorySync(
   await ensureSyncPath(syncPath);
 
   if (autoSync) {
-    void startWatching();
+    await startWatching();
   }
 }
 
