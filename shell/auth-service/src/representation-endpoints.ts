@@ -1,9 +1,10 @@
 import { z } from "@brains/utils/zod";
 import { AUTH_REPRESENTATION_MUTATION_ACTIONS } from "./admin-contracts";
 import {
-  isSameOriginRequest,
+  errorMessage,
   privateJsonResponse,
   readJsonRequest,
+  requireSameOriginJson,
 } from "./http-responses";
 import type { AgentPersonLink } from "./runtime-schema";
 
@@ -49,12 +50,8 @@ export async function handleAuthRepresentationRequest(
   if (request.method !== "POST") {
     return privateJsonResponse({ error: "Method not allowed" }, 405);
   }
-  if (!isSameOriginRequest(request)) {
-    return privateJsonResponse({ error: "Same-origin request required" }, 403);
-  }
-  if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return privateJsonResponse({ error: "JSON request required" }, 415);
-  }
+  const requestError = requireSameOriginJson(request);
+  if (requestError) return requestError;
 
   const parsed = representationMutationSchema.safeParse(
     await readJsonRequest(request),
@@ -75,7 +72,7 @@ export async function handleAuthRepresentationRequest(
     });
   } catch (error) {
     return privateJsonResponse(
-      { error: error instanceof Error ? error.message : "Mutation failed" },
+      { error: errorMessage(error, "Mutation failed") },
       400,
     );
   }

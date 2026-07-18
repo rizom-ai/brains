@@ -1,8 +1,9 @@
 import { z } from "@brains/utils/zod";
 import {
-  isSameOriginRequest,
+  errorMessage,
   privateJsonResponse,
   readJsonRequest,
+  requireSameOriginJson,
 } from "./http-responses";
 import {
   AUTH_ADMIN_IDENTITY_TYPES,
@@ -236,15 +237,8 @@ export async function handleAuthAdminRequest(
   }
 
   if (request.method === "POST" && path === "/auth/admin/reconciliation") {
-    if (!isSameOriginRequest(request)) {
-      return privateJsonResponse(
-        { error: "Same-origin request required" },
-        403,
-      );
-    }
-    if (!request.headers.get("content-type")?.startsWith("application/json")) {
-      return privateJsonResponse({ error: "JSON request required" }, 415);
-    }
+    const requestError = requireSameOriginJson(request);
+    if (requestError) return requestError;
 
     const parsed = z
       .strictObject({ claims: z.array(agentPersonClaimSchema).min(1).max(10) })
@@ -262,25 +256,15 @@ export async function handleAuthAdminRequest(
       );
     } catch (error) {
       return privateJsonResponse(
-        {
-          error:
-            error instanceof Error ? error.message : "Reconciliation failed",
-        },
+        { error: errorMessage(error, "Reconciliation failed") },
         400,
       );
     }
   }
 
   if (request.method === "POST" && path === "/auth/admin/mutations") {
-    if (!isSameOriginRequest(request)) {
-      return privateJsonResponse(
-        { error: "Same-origin request required" },
-        403,
-      );
-    }
-    if (!request.headers.get("content-type")?.startsWith("application/json")) {
-      return privateJsonResponse({ error: "JSON request required" }, 415);
-    }
+    const requestError = requireSameOriginJson(request);
+    if (requestError) return requestError;
 
     const parsed = adminMutationSchema.safeParse(
       await readJsonRequest(request),
@@ -298,7 +282,7 @@ export async function handleAuthAdminRequest(
       );
     } catch (error) {
       return privateJsonResponse(
-        { error: error instanceof Error ? error.message : "Mutation failed" },
+        { error: errorMessage(error, "Mutation failed") },
         400,
       );
     }

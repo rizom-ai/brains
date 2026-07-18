@@ -41,6 +41,20 @@ export function isSameOriginRequest(request: Request): boolean {
   return origin !== null && origin === new URL(request.url).origin;
 }
 
+export function requireSameOriginJson(request: Request): Response | undefined {
+  if (!isSameOriginRequest(request)) {
+    return privateJsonResponse({ error: "Same-origin request required" }, 403);
+  }
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return privateJsonResponse({ error: "JSON request required" }, 415);
+  }
+  return undefined;
+}
+
+export function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function htmlResponse(body: string): Response {
   return new Response(body, {
     headers: {

@@ -77,6 +77,7 @@ import {
 } from "./token-verifier";
 import {
   corsPreflightResponse,
+  errorMessage,
   htmlResponse,
   isCorsMachineEndpoint,
   jsonResponse,
@@ -1348,7 +1349,7 @@ export class AuthService {
       requestIssuer = this.resolveRequestIssuer(request);
     } catch (error) {
       this.logger?.warn("Rejected OAuth request from untrusted issuer", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error, String(error)),
       });
       return new Response("Untrusted OAuth issuer", { status: 400 });
     }
