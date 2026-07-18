@@ -217,6 +217,14 @@ Keep first UX small and explicit:
 - The surface can list users, create trusted users, change role, suspend users, attach/detach identities, generate passkey setup links, and run the agent-promotion/claim-link flow.
 - Do not build public signup, email delivery, or route-wide CMS/dashboard lock-down in v1.
 
+#### UX gaps — 2026-07-18 console review
+
+The `@brains/people` console is functionally complete and correctly gated, but it currently renders the raw auth schema rather than the operator's mental model. Three concrete gaps, verified against source; none are correctness/security defects, so they do not block a merge on those grounds — but they are the "is the UX there yet" bar. Ordered by operator impact.
+
+- [ ] **The anchor's own brain agent is never shown, so their card reads as empty/broken** — a `person_agent` link is only created through the consent flow (`promoteAgentPerson`/`linkAgent` → `pending`, then `acceptRepresentation` → `active`); anchor bootstrap (`user-store.ts:87-132`) links no agent, and the running brain agent (`"brain-agent"`) is never passed into `PersonAgentStore` at all. The most obvious relationship — _this operator runs this brain_ — is unmodeled, so the anchor sees "No linked agents. Promotion begins from an agent dossier." **Fix:** either seed the brain's own agent as an `active` representation of the anchor at bootstrap, or scope the empty-state copy to make clear this list is only for _external_ representatives (not the operator's own brain).
+- [ ] **"Attach identity" is a raw admin escape hatch surfaced as a primary action** — the dialog (`App.tsx:755-823`) asks for a required freeform "Provider subject" (a provider's internal id, e.g. a Discord snowflake, that an operator rarely knows) plus issuer/label, and produces the _weakest_ identity: an `admin`-asserted, **unverified** claim (`user-store.ts:298-303`). Real identities normally arrive verified (passkey registration today, `credential-store.ts:94`; OAuth/provider login later). **Fix:** demote the manual form behind an "Advanced" affordance, make verified provider-link / passkey the primary path, and label the manual one as the unverified escape hatch it is (with the assurance downgrade stated).
+- [ ] **The identity-type dropdown is not relevance-filtered** — it renders the static six `AUTH_ADMIN_IDENTITY_TYPES` (`admin-contracts.ts:4`, mapped bare at `App.tsx:799`) with no reference to which interfaces the brain actually runs, so it offers `discord` on a brain with no Discord and exposes machine-level types (`a2a`, `did`, `mcp`) a human would never hand-attach. **Fix:** pass the registered-interface set into the console props and filter the dropdown to configured providers; keep `a2a`/`did`/`mcp` out of the human-facing flow (they are the reserved cross-subject hook, see [Identity & trust architecture](./identity-and-trust.md)).
+
 ### CLI
 
 Add wrappers where useful:
