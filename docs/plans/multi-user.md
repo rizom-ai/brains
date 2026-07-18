@@ -208,7 +208,13 @@ Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus
 
 ### Admin console (People is its first section)
 
-The administration UX is its own console surface (see decision 11), a peer to `/cms` and `/chat` — the `@brains/people` React SPA at `/admin` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*` and `/auth/representations`. It is an **admin console**, with People as its first section; invitations and an audit-log viewer can follow as further sections. Roster administration and promotion controls are Anchor-only; authenticated non-Anchors receive only the self-service representation-consent view. It is **not** a dashboard tab.
+The administration UX is its own console surface (see decision 11), a peer to `/cms` and `/chat` — a React SPA at `/admin` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*` and `/auth/representations`. It is an **admin console**, with People as its first section; invitations and an audit-log viewer can follow as further sections. Roster administration and promotion controls are Anchor-only; authenticated non-Anchors receive only the self-service representation-consent view. It is **not** a dashboard tab.
+
+#### Package rename: `@brains/people` → `@brains/admin`
+
+The console's plugin id (`admin`), route (`/admin`), console/⌘K label ("Admin"), and framing all say **admin** — but the package is still `@brains/people` (dir `plugins/people`). "People" is the console's first _section_, not the console; leaving the package as `people` is exactly the "second rename" decision 11 warned against. Rename the console-level names to `admin`; keep `people`/`person` for the genuine domain concept (the People section, `PersonDetail`, `person-agent-store`, the roster).
+
+- [ ] **Rename the package to `@brains/admin`** — `plugins/people/` → `plugins/admin/`, package name `@brains/people` → `@brains/admin`, exported `peoplePlugin`/`PeoplePlugin` → `adminPlugin`/`AdminPlugin`. Console-serving files `people-routes.ts`/`people-shell.ts` → `admin-routes.ts`/`admin-shell.ts`, and the build asset `people-app.js` → `admin-app.js`. Update consumers `brains/relay` and `brains/rover` (dep + import) and the `packages/brain-cli` build/test that copy the asset by name. Do **not** globally sed `people`→`admin`: the People section, `Person*` components, and `person-agent` storage keep their names.
 
 Keep first UX small and explicit:
 
