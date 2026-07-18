@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 import {
   InvalidGrantError,
   type AuthorizationCodePersistence,
@@ -28,9 +29,11 @@ import type { ValidAuthorizationRequest } from "./types";
 
 const AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS = 10 * 60;
 const CLIENT_REGISTRATION_RATE_LIMIT = 30;
+const CLIENT_REGISTRATION_GLOBAL_RATE_LIMIT = 300;
 const CLIENT_REGISTRATION_RATE_WINDOW_SECONDS = 60;
+const UNKNOWN_CLIENT_REGISTRATION_SOURCE = "unknown";
 const UNCONSENTED_CLIENT_RETENTION_SECONDS = 7 * 24 * 60 * 60;
-const CLIENT_PRUNE_INTERVAL_SECONDS = 60 * 60;
+const DEFAULT_CLIENT_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
 interface AuthorizationApprovalTokenState {
   token: string;
@@ -49,6 +52,22 @@ export interface OAuthEndpointsOptions {
   refreshTokenStore: RefreshTokenPersistence;
   resolveSession: (request: Request) => Promise<AuthSessionRecord | undefined>;
   keyStore: AuthKeyStore;
+  clientMaintenanceIntervalMs?: number;
+  onClientMaintenanceError?: (error: unknown) => void;
+}
+
+function clientRegistrationSource(request: Request): string {
+  // Hosted brains run behind a proxy that canonicalizes these headers. Direct
+  // requests without one share a conservative fallback bucket.
+  for (const header of ["cf-connecting-ip", "x-forwarded-for", "x-real-ip"]) {
+    const value = request.headers.get(header);
+    if (!value) continue;
+    for (const candidate of value.split(",")) {
+      const address = candidate.trim();
+      if (isIP(address) !== 0) return address.toLowerCase();
+    }
+  }
+  return UNKNOWN_CLIENT_REGISTRATION_SOURCE;
 }
 
 /**
@@ -64,12 +83,15 @@ export class OAuthEndpoints {
     request: Request,
   ) => Promise<AuthSessionRecord | undefined>;
   private readonly keyStore: AuthKeyStore;
+  private readonly clientMaintenanceIntervalMs: number;
+  private readonly onClientMaintenanceError: (error: unknown) => void;
   private readonly authorizationApprovalTokens = new Map<
     string,
     AuthorizationApprovalTokenState
   >();
-  private clientRegistrationAttempts: number[] = [];
-  private lastClientPruneAt: number | undefined;
+  private readonly clientRegistrationAttempts = new Map<string, number[]>();
+  private globalClientRegistrationAttempts: number[] = [];
+  private clientMaintenanceTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor(options: OAuthEndpointsOptions) {
     this.clientStore = options.clientStore;
@@ -77,6 +99,14 @@ export class OAuthEndpoints {
     this.refreshTokenStore = options.refreshTokenStore;
     this.resolveSession = options.resolveSession;
     this.keyStore = options.keyStore;
+    this.clientMaintenanceIntervalMs =
+      options.clientMaintenanceIntervalMs !== undefined &&
+      Number.isFinite(options.clientMaintenanceIntervalMs) &&
+      options.clientMaintenanceIntervalMs > 0
+        ? options.clientMaintenanceIntervalMs
+        : DEFAULT_CLIENT_PRUNE_INTERVAL_MS;
+    this.onClientMaintenanceError =
+      options.onClientMaintenanceError ?? ((): void => undefined);
   }
 
   async handleAuthorizePage(request: Request): Promise<Response> {
@@ -251,7 +281,7 @@ export class OAuthEndpoints {
   }
 
   async handleClientRegistration(request: Request): Promise<Response> {
-    if (!this.consumeClientRegistrationAttempt()) {
+    if (!this.consumeClientRegistrationAttempt(request)) {
       return jsonResponse(
         {
           error: "temporarily_unavailable",
@@ -272,7 +302,6 @@ export class OAuthEndpoints {
       );
     }
 
-    await this.pruneStaleUnconsentedClients();
     try {
       const client = await this.clientStore.registerClient(body);
       return jsonResponse(client, 201);
@@ -284,33 +313,68 @@ export class OAuthEndpoints {
     }
   }
 
-  private consumeClientRegistrationAttempt(): boolean {
+  private consumeClientRegistrationAttempt(request: Request): boolean {
     const now = Math.floor(Date.now() / 1000);
     const windowStart = now - CLIENT_REGISTRATION_RATE_WINDOW_SECONDS;
-    this.clientRegistrationAttempts = this.clientRegistrationAttempts.filter(
-      (attemptedAt) => attemptedAt > windowStart,
-    );
+    this.globalClientRegistrationAttempts =
+      this.globalClientRegistrationAttempts.filter(
+        (attemptedAt) => attemptedAt > windowStart,
+      );
     if (
-      this.clientRegistrationAttempts.length >= CLIENT_REGISTRATION_RATE_LIMIT
+      this.globalClientRegistrationAttempts.length >=
+      CLIENT_REGISTRATION_GLOBAL_RATE_LIMIT
     ) {
       return false;
     }
-    this.clientRegistrationAttempts.push(now);
+
+    for (const [source, attempts] of this.clientRegistrationAttempts) {
+      const activeAttempts = attempts.filter(
+        (attemptedAt) => attemptedAt > windowStart,
+      );
+      if (activeAttempts.length === 0) {
+        this.clientRegistrationAttempts.delete(source);
+      } else if (activeAttempts.length !== attempts.length) {
+        this.clientRegistrationAttempts.set(source, activeAttempts);
+      }
+    }
+
+    const source = clientRegistrationSource(request);
+    const attempts = this.clientRegistrationAttempts.get(source) ?? [];
+    if (attempts.length >= CLIENT_REGISTRATION_RATE_LIMIT) {
+      return false;
+    }
+
+    attempts.push(now);
+    this.clientRegistrationAttempts.set(source, attempts);
+    this.globalClientRegistrationAttempts.push(now);
     return true;
   }
 
-  private async pruneStaleUnconsentedClients(): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-    if (
-      this.lastClientPruneAt !== undefined &&
-      now - this.lastClientPruneAt < CLIENT_PRUNE_INTERVAL_SECONDS
-    ) {
-      return;
+  async startClientMaintenance(): Promise<void> {
+    if (this.clientMaintenanceTimer) return;
+    await this.runClientMaintenance();
+    if (!this.clientStore.pruneStaleUnconsentedClients) return;
+
+    this.clientMaintenanceTimer = setInterval(() => {
+      void this.runClientMaintenance();
+    }, this.clientMaintenanceIntervalMs);
+    this.clientMaintenanceTimer.unref();
+  }
+
+  stopClientMaintenance(): void {
+    if (!this.clientMaintenanceTimer) return;
+    clearInterval(this.clientMaintenanceTimer);
+    this.clientMaintenanceTimer = undefined;
+  }
+
+  private async runClientMaintenance(): Promise<void> {
+    try {
+      await this.clientStore.pruneStaleUnconsentedClients?.(
+        Math.floor(Date.now() / 1000) - UNCONSENTED_CLIENT_RETENTION_SECONDS,
+      );
+    } catch (error) {
+      this.onClientMaintenanceError(error);
     }
-    this.lastClientPruneAt = now;
-    await this.clientStore.pruneStaleUnconsentedClients?.(
-      now - UNCONSENTED_CLIENT_RETENTION_SECONDS,
-    );
   }
 
   async handleTokenRequest(

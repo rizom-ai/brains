@@ -166,6 +166,8 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
+  /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
+  oauthClientMaintenanceIntervalMs?: number;
   logger?: Logger;
 }
 
@@ -271,6 +273,15 @@ export class AuthService {
       resolveSession: async (request): Promise<AuthSessionRecord | undefined> =>
         (await this.resolveActiveSession(request))?.session,
       keyStore: this.keyStore,
+      ...(options.oauthClientMaintenanceIntervalMs !== undefined
+        ? {
+            clientMaintenanceIntervalMs:
+              options.oauthClientMaintenanceIntervalMs,
+          }
+        : {}),
+      onClientMaintenanceError: (error): void => {
+        this.logger?.warn("Failed to prune stale OAuth clients", { error });
+      },
     });
     this.webauthnEndpoints = new WebAuthnEndpoints({
       passkeyService: this.passkeyService,
@@ -366,9 +377,11 @@ export class AuthService {
         }
       }
     }
+    await this.oauthEndpoints.startClientMaintenance();
   }
 
   async close(): Promise<void> {
+    this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
     this.personAgentStore = undefined;
     this.auditStore = undefined;

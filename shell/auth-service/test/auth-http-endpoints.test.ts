@@ -609,37 +609,40 @@ describe("revoke endpoint", () => {
 });
 
 describe("dynamic client registration", () => {
-  it("rate-limits registration bursts without closing public registration", async () => {
+  it("rate-limits each caller without exhausting another caller's budget", async () => {
     const service = await makeService();
+    const registrationRequest = (index: number, source: string): Request =>
+      new Request(`${ISSUER}/register`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": source,
+        },
+        body: JSON.stringify({
+          redirect_uris: [`https://client-${index}.example/callback`],
+        }),
+      });
 
     for (let index = 0; index < 30; index += 1) {
       const response = await service.handleRequest(
-        new Request(`${ISSUER}/register`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            redirect_uris: [`https://client-${index}.example/callback`],
-          }),
-        }),
+        registrationRequest(index, "198.51.100.10"),
       );
       expect(response.status).toBe(201);
     }
 
     const limited = await service.handleRequest(
-      new Request(`${ISSUER}/register`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          redirect_uris: ["https://one-too-many.example/callback"],
-        }),
-      }),
+      registrationRequest(31, "198.51.100.10"),
     );
-
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("60");
     expect(await limited.json()).toMatchObject({
       error: "temporarily_unavailable",
     });
+
+    const otherCaller = await service.handleRequest(
+      registrationRequest(32, "203.0.113.20"),
+    );
+    expect(otherCaller.status).toBe(201);
   });
 });
 
