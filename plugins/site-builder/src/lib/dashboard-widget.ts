@@ -1,6 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h, type ComponentChild } from "preact";
+import siteHealthWidgetStyles from "./dashboard-widget.css" with { type: "text" };
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
 const environmentSchema = z.object({
@@ -69,19 +70,36 @@ function EnvironmentMetric(props: {
   const state = props.environment
     ? environmentState(props.environment)
     : "unavailable";
-  return h("div", { class: "pipeline-metric" }, [
-    h("dt", {}, props.label),
-    h("dd", {}, state),
-    props.environment
-      ? h("small", { class: "muted" }, environmentDetail(props.environment))
-      : null,
-  ]);
+  return h(
+    "div",
+    {
+      class: `pipeline-metric site-health-metric site-health-metric--${state}`,
+    },
+    [
+      h("dt", {}, [
+        h("span", { class: "site-health-dot", "aria-hidden": "true" }),
+        props.label,
+      ]),
+      h("dd", {}, state),
+      props.environment
+        ? h("small", { class: "muted" }, environmentDetail(props.environment))
+        : null,
+    ],
+  );
 }
 
-function actionLink(href: string, label: string): ComponentChild {
+function actionLink(
+  href: string,
+  label: string,
+  kind: "external" | "manage" = "external",
+): ComponentChild {
   return h(
     "a",
-    { class: "pipeline-manage", href, target: "_blank", rel: "noreferrer" },
+    {
+      class: `site-health-action site-health-action--${kind}`,
+      href,
+      ...(kind === "external" ? { target: "_blank", rel: "noreferrer" } : {}),
+    },
     label,
   );
 }
@@ -104,16 +122,16 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
   );
   const links: ComponentChild[] = [];
   if (data.site.previewUrl) {
-    links.push(actionLink(data.site.previewUrl, "Open preview ↗"));
+    links.push(actionLink(data.site.previewUrl, "Open preview"));
   }
   if (data.site.liveUrl) {
-    links.push(actionLink(data.site.liveUrl, "Open live ↗"));
+    links.push(actionLink(data.site.liveUrl, "Open live"));
   }
   if (data.managementUrl) {
-    links.push(actionLink(data.managementUrl, "Manage in CMS →"));
+    links.push(actionLink(data.managementUrl, "Manage in CMS", "manage"));
   }
 
-  return h("div", { class: "pipeline-digest" }, [
+  return h("div", { class: "pipeline-digest site-health-widget" }, [
     h("dl", { class: "pipeline-metrics" }, [
       h(EnvironmentMetric, { label: "Preview", environment: preview }),
       h(EnvironmentMetric, { label: "Live", environment: production }),
@@ -136,7 +154,13 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
           ),
         ])
       : null,
-    links.length > 0 ? h("div", { class: "pipeline-digest" }, links) : null,
+    links.length > 0
+      ? h(
+          "nav",
+          { class: "site-health-actions", "aria-label": "Site links" },
+          links,
+        )
+      : null,
   ]);
 }
 
@@ -185,11 +209,12 @@ export async function registerSiteHealthWidget(
       title: "Site health",
       description: "Preview and live build status",
       group: "publishing",
-      section: "primary",
+      section: "sidebar",
       priority: 50,
       rendererName: "SiteHealthWidget",
       visibility: "anchor",
       component: SiteHealthWidget,
+      clientStyles: siteHealthWidgetStyles,
       dataProvider: async (): Promise<SiteHealthWidgetData> => ({
         ...(await provider.getSnapshot()),
         ...(managementUrl ? { managementUrl } : {}),

@@ -1,0 +1,136 @@
+.site-health-widget {
+  gap: 16px;
+}
+
+.site-health-widget .pipeline-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.site-health-widget .pipeline-metric:nth-child(2) {
+  border-right: 0;
+}
+
+.site-health-metric {
+  position: relative;
+  min-height: 92px;
+  padding: 14px 13px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--site-health-tone) 9%, transparent),
+      transparent 62%
+    ),
+    var(--console-card-soft);
+}
+
+.site-health-metric--current {
+  --site-health-tone: var(--console-ok);
+}
+
+.site-health-metric--debouncing,
+.site-health-metric--queued,
+.site-health-metric--building {
+  --site-health-tone: var(--console-warn);
+}
+
+.site-health-metric--failed {
+  --site-health-tone: var(--console-err);
+}
+
+.site-health-metric--not-built,
+.site-health-metric--unavailable {
+  --site-health-tone: var(--console-text-muted);
+}
+
+.site-health-metric dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.site-health-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--site-health-tone);
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--site-health-tone) 68%, transparent);
+}
+
+.site-health-metric dd {
+  font-size: 22px;
+  text-transform: capitalize;
+}
+
+.site-health-metric small {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.site-health-actions {
+  display: grid;
+  gap: 7px;
+}
+
+.site-health-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--console-rule);
+  border-radius: 6px;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.site-health-action::after {
+  content: "↗";
+  color: var(--console-accent);
+  transition: transform 0.15s ease;
+}
+
+.site-health-action--manage {
+  border-color: var(--console-rule-accent);
+  color: var(--console-accent);
+  background: var(--console-accent-soft);
+}
+
+.site-health-action--manage::after {
+  content: "→";
+}
+
+.site-health-action:hover {
+  border-color: var(--console-rule-accent);
+  color: var(--console-accent);
+  background: var(--console-accent-soft);
+}
+
+.site-health-action:hover::after {
+  transform: translate(2px, -1px);
+}
+
+@container dashboard-card (min-width: 620px) {
+  .site-health-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-health-action,
+  .site-health-action::after {
+    transition: none;
+  }
+}

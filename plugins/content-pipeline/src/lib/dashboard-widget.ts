@@ -31,7 +31,7 @@ export async function registerDashboardWidget(
       pluginId,
       title: "Publication Pipeline",
       group: "publishing",
-      section: "secondary",
+      section: "primary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",

@@ -72,7 +72,7 @@ describe("dashboard widget registration", () => {
     );
   });
 
-  it("registers a compact, read-only publication widget", async () => {
+  it("registers the primary read-only publication widget", async () => {
     await registerDashboardWidget(context, "content-pipeline", deps);
 
     expect(widgetPayload).toMatchObject({
@@ -80,7 +80,7 @@ describe("dashboard widget registration", () => {
       pluginId: "content-pipeline",
       title: "Publication Pipeline",
       group: "publishing",
-      section: "secondary",
+      section: "primary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",

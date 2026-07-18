@@ -14,11 +14,7 @@ import {
 } from "../widget-ui";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
-const COMPACT_WIDGET_RENDERERS = new Set([
-  "StatsWidget",
-  "SystemWidget",
-  "PipelineWidget",
-]);
+const COMPACT_WIDGET_RENDERERS = new Set(["StatsWidget", "SystemWidget"]);
 
 const listItemSchema = z.object({
   id: z.string(),

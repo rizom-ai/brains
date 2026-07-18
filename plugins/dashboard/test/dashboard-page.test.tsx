@@ -701,16 +701,16 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(2);
+    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(3);
     expect(html).toContain(
-      '<article class="card"><div class="card-head"><span class="card-title">Content Pipeline</span>',
+      '<article class="card widget-card--wide"><div class="card-head"><span class="card-title">Content Pipeline</span>',
     );
     expect(html).toContain(
       '<article class="card"><div class="card-head"><span class="card-title">Tiny Stats</span>',
     );
   });
 
-  it("renders the pipeline widget as a compact read-only digest", () => {
+  it("renders the pipeline widget as a wide read-only digest", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",

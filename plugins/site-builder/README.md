@@ -10,7 +10,7 @@ This plugin generates static websites from Brain entities, enabling you to publi
 
 When the optional CMS is installed, site-builder registers a **Site** workspace with separate Preview and Live status, bounded recent results, route inventory, **Build preview**, and confirmed **Update live site** actions. The CMS remains independent when site-builder is absent.
 
-When Dashboard is installed, site-builder adds read-only site health to the **Publishing** tab alongside the publication pipeline. It reports preview/live health and links to the CMS workspace when available; build controls remain in CMS, tools, and chat.
+When Dashboard is installed, site-builder adds a read-only site-health rail to the **Publishing** tab beside the primary publication pipeline. It reports preview/live health and links to the CMS workspace when available; build controls remain in CMS, tools, and chat.
 
 Build status is a site-builder-owned projection stored in runtime state. Preview includes public drafts, while production includes published public content only.
 

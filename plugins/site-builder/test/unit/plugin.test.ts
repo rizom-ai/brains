@@ -20,6 +20,8 @@ interface DashboardWidgetRegistration {
   group: string;
   rendererName: string;
   visibility: string;
+  section: string;
+  clientStyles: string;
   dataProvider: () => Promise<unknown>;
   digestProvider: (data: unknown) => unknown;
 }
@@ -284,9 +286,11 @@ describe("SiteBuilderPlugin", () => {
     expect(dashboardWidget).toMatchObject({
       id: "site-health",
       group: "publishing",
+      section: "sidebar",
       rendererName: "SiteHealthWidget",
       visibility: "anchor",
     });
+    expect(dashboardWidget?.clientStyles).toContain(".site-health-widget");
     const dashboardData = await dashboardWidget?.dataProvider();
     expect(dashboardData).toMatchObject({
       site: { title: "Test Site" },
