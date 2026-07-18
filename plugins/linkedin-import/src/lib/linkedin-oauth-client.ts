@@ -31,7 +31,14 @@ export interface LinkedInOAuthToken {
   tokenType?: string | undefined;
 }
 
+export interface LinkedInOAuthConnectionStatus {
+  connected: boolean;
+  expiresAt?: number | undefined;
+  scope?: string | undefined;
+}
+
 export interface LinkedInOAuthTokenStore extends LinkedInAccessTokenProvider {
+  getStatus(): Promise<LinkedInOAuthConnectionStatus>;
   storeToken(token: LinkedInOAuthToken): Promise<void>;
   clearToken(): Promise<void>;
 }

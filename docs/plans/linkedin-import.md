@@ -2,18 +2,20 @@
 
 ## Status
 
-In progress on `work/professional-profile-v2`. Phase 1A's additive profile schema and
+Partial — in progress on `work/professional-profile-v2`. Phase 1A's additive profile schema and
 site fallbacks are implemented. Phase 1B's communication-preferences contract,
 instruction wiring, public-projection boundary, onboarding ownership change, and
 non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
 exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
-Phase 3's optional reviewed narrative distillation is implemented. Phase 4's sanctioned
-OAuth authorization-code protocol client, dynamic importer token-provider seam, and a
-private-file token store are implemented, while browser routes/state and Rover wiring
-remain pending. Rich-domain fixtures/mappers and Phase 5 are not
-yet started.
+Phase 3's optional reviewed narrative distillation is implemented. Phase 4A's sanctioned
+OAuth authorization-code client, direct/self-hosted browser routes, expiring single-use
+state, dynamic importer token provider, private-file token store, and Rover wiring are
+implemented. Phase 4B's managed callback broker is planned: its authorization/grant
+transport will be provider-neutral, while LinkedIn scopes, token exchange, and credential
+validation remain provider-specific. Rich-domain fixtures/mappers and Phase 5 are not yet
+started.
 
 ## Context
 
@@ -90,11 +92,15 @@ behavior rather than published owner-profile data.
 - **Connections / other people's data.** The professional _profile_ only. Importing the
   owner's network (other members' PII) is a separate initiative with its own consent and
   privacy story.
-- **A generic "any provider" connector.** This is LinkedIn-specific, but built behind a
-  pluggable-source seam so other sources can be added later.
+- **A generic "any provider" data connector.** Profile extraction and mapping remain
+  LinkedIn-specific behind the existing pluggable-source seam. The managed OAuth broker's
+  callback/grant mechanics may be provider-neutral, but it does not normalize provider
+  data or provider-specific OAuth semantics.
 - **Third-party scraper integration.** Explicitly rejected (see Context).
-- **Multi-tenant token storage.** Each user runs their own brain → a single owner token
-  per brain, stored like any other integration credential.
+- **Durable central token custody.** Each user runs their own brain, and the reusable owner
+  token is stored there like any other integration credential. A managed broker may hold
+  an exchanged credential only behind a short-lived, single-use grant until the
+  originating brain redeems it.
 
 ## Architecture
 
@@ -132,10 +138,13 @@ SOURCES (pluggable adapters)          TRANSFORM              SINK
   optional LLM pass distills presentation fields (`story`, `tagline`, `intro`) _from_ the
   structured record. A source-provided `headline` remains deterministic. Never LLM the
   whole thing inline.
-- **Auth is a prerequisite, not the plugin's job.** The plugin consumes a stored token;
-  the OAuth consent flow lives at the interface (web) layer. Phase 1–2 use a static token
-  in `brain.yaml` (like `UNSPLASH_ACCESS_KEY`); the browser callback + refresh is a later
-  phase.
+- **Auth has explicit browser, broker, and provider boundaries.** The importer consumes a
+  stored token. Thin status/connect/callback/disconnect routes remain on the LinkedIn
+  service plugin rather than introducing another `InterfacePlugin`. Self-hosted brains can
+  exchange LinkedIn codes directly. Managed brains delegate callback correlation and
+  one-time credential delivery to a central broker, while LinkedIn authorization URLs,
+  scopes, token response validation, and refresh behavior stay in a provider adapter. A
+  static environment token remains a migration/development fallback.
 - **Write path gotcha.** `SingletonEntityService` has no public setter and
   `AnchorProfileAdapter.createProfileContent()` validates against the _base_ schema
   (strips extension fields). Extension fields must be written by building frontmatter
@@ -293,31 +302,95 @@ is bound to the anchor-profile content digest; a separate job applies only the r
 proposal and rejects stale or concurrent profile edits. The deterministic import path
 never invokes this semantic pass.
 
-## Phase 4 — OAuth consent + token refresh (interface layer, in progress)
+## Phase 4A — Direct OAuth consent for self-hosted brains (implemented)
 
-The service package now exposes a protocol-only `LinkedInOAuthClient` implementing
-LinkedIn's documented authorization URL and server-side authorization-code exchange with
-the least-privilege `r_dma_portability_3rd_party` scope. It validates token responses,
-bounds provider errors, and does not register routes or persist credentials. The importer
-accepts a dynamic `LinkedInAccessTokenProvider`, resolves it for each API request, and can
-fall back to the existing static token during migration. A future interface can implement
-`LinkedInOAuthTokenStore` to both persist exchanged tokens and supply them to the importer.
-`FileLinkedInOAuthTokenStore` now implements that contract using the auth-service pattern:
-atomic local writes, `0700` storage directory, `0600` token file, strict persisted-shape
+`LinkedInOAuthClient` implements LinkedIn's documented authorization URL and server-side
+authorization-code exchange with the least-privilege
+`r_dma_portability_3rd_party` scope. It validates token responses and bounds provider
+errors. The importer accepts a dynamic `LinkedInAccessTokenProvider`, resolves it for each
+API request, and can fall back to the existing static token during migration.
+
+The service plugin contributes a thin browser boundary rather than a separate
+`InterfacePlugin`: an operator-gated status page, POST-only connect/disconnect actions,
+and a public callback protected by random, process-local state that expires after ten
+minutes and can be consumed only once. The callback stores the exchanged credential and
+never exposes it to the browser. Rover injects its auth-service operator-session resolver
+and a `FileLinkedInOAuthTokenStore` under `data/linkedin-import`. The store uses atomic
+local writes, a `0700` storage directory, a `0600` token file, strict persisted-shape
 validation, explicit disconnect, and expiry-aware reads.
 
-Remaining interface-layer work:
+Direct mode is appropriate for self-hosted owners with their own approved LinkedIn
+application and for a small pilot with a fixed callback allowlist. It requires
+`LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and an exact
+`LINKEDIN_REDIRECT_URI` ending in `/linkedin/callback`. It is not the managed rollout
+model because distributing the shared LinkedIn application secret and registering every
+dynamic brain callback would not scale safely.
 
-1. Add an operator-authenticated connect route and public callback with expiring,
-   single-use state.
-2. Instantiate the private-file `LinkedInOAuthTokenStore` from the route layer and inject
-   it into the importer, replacing the static `brain.yaml` token. Hosted deployments may
-   substitute another approved store through the same contract.
-3. Confirm refresh-token availability for `r_dma_portability_3rd_party` in the approved
+## Phase 4B — Managed OAuth callback broker (planned)
+
+Deploy one central `oauth-broker` `ServicePlugin`, for example at `connect.rizom.ai`, and
+register one LinkedIn callback:
+`https://connect.rizom.ai/oauth/callback/linkedin`. Managed Rover instances do not receive
+the LinkedIn application secret. Each receives only a revocable, instance-scoped broker
+credential and keeps the reusable LinkedIn member token after redemption.
+
+The broker mechanics are provider-neutral:
+
+- register and authenticate brain instances;
+- allowlist each instance's exact return URI rather than accepting a browser-supplied URI;
+- create expiring authorization state bound to provider, instance, and return URI;
+- route a fixed provider callback back to the initiating brain;
+- hold an exchanged credential behind a random, short-lived, single-use grant;
+- redeem that grant only over an authenticated server-to-server request from the bound
+  instance; and
+- prevent replay, avoid credential logging, and retain only bounded audit metadata.
+
+Provider adapters remain explicit. The LinkedIn adapter owns its authorization/token URLs,
+`r_dma_portability_3rd_party` scope, request parameters, token schema, bounded errors, and
+any future refresh or revocation behavior. The generic broker core treats provider
+credentials as opaque and must not infer refresh support, scope syntax, or token fields.
+
+Managed connection sequence:
+
+1. The operator POSTs `/linkedin/connect` on their own brain.
+2. The LinkedIn import plugin creates local single-use state and asks the broker to start
+   `provider: "linkedin"` for its registered instance.
+3. The broker authenticates the brain, resolves the exact allowlisted return URI, stores
+   broker state, and returns LinkedIn's authorization URL.
+4. LinkedIn redirects only to the central broker callback. The LinkedIn adapter validates
+   and exchanges the provider code server-side.
+5. The broker creates a short-lived opaque grant, then redirects the browser to the bound
+   brain callback with the grant and the brain's original state—never the access token.
+6. The brain consumes its local state and redeems the grant server-to-server using its
+   instance credential. The broker atomically consumes the grant and returns the
+   provider-specific credential once.
+7. The brain validates and stores the LinkedIn credential through
+   `LinkedInOAuthTokenStore`; imports continue to call LinkedIn directly from that brain.
+
+Package boundaries:
+
+- `plugins/oauth-broker` — generic central `ServicePlugin`, Zod broker protocol, instance
+  registry, state/grant stores, provider-adapter contract, and fixed callback routes;
+- `plugins/linkedin-import` — owner-side UX, `LinkedInBrokerClient`, LinkedIn credential
+  validation, local token storage, direct/self-hosted mode, and profile import; and
+- the first LinkedIn broker adapter may be composed with `oauth-broker` from the central
+  brain model. Do not split provider adapters into a new package until a second upstream
+  OAuth provider proves the boundary.
+
+Broker validation must cover cross-instance substitution, arbitrary return-URI rejection,
+expired/replayed state and grants, failed redemption authentication, provider denial,
+concurrent redemption, and confirmation that no provider credential appears in browser
+responses, URLs, or logs.
+
+## Phase 4C — Refresh and Changelog synchronization (blocked)
+
+1. Confirm refresh-token availability for `r_dma_portability_3rd_party` in the approved
    LinkedIn application before implementing refresh. LinkedIn's public authorization-code
-   contract does not currently document refresh fields, so the client deliberately ignores
-   them rather than guessing a refresh contract.
-4. Use refresh, if sanctioned, to support scheduled Changelog pulls.
+   contract does not currently document refresh fields, so direct mode and the provider
+   adapter deliberately ignore them rather than guessing a refresh contract.
+2. Keep refresh and revocation provider-specific even when authorization is brokered.
+3. Use refresh, if sanctioned, to support scheduled Changelog pulls within LinkedIn's
+   28-day window.
 
 ## Phase 5 — Export-ZIP fallback source (non-EEA)
 
@@ -343,7 +416,14 @@ _same_ transform + sink. Selected when the member is not EEA-eligible.
   readership/tone. LinkedIn import only enriches the owner profile.
 - **Additive compatibility window** — retain populated legacy profile fields while new
   consumers move to the clearer contracts; migration is explicit and non-destructive.
-- **Single owner token per brain** — each user runs their own brain; no multi-tenancy.
+- **Single owner token per brain** — each user runs their own brain; the managed broker is
+  multi-instance routing infrastructure, not durable multi-tenant token storage.
+- **Generic broker transport, specific provider semantics** — instance authentication,
+  state correlation, callback routing, and one-time grants are reusable; LinkedIn scopes,
+  token exchange/validation, refresh, revocation, and imported data remain explicit.
+- **Two OAuth deployment modes** — direct mode supports self-hosted applications and small
+  fixed pilots; managed mode centralizes the shared application secret and callback without
+  centralizing the reusable owner token.
 - **Deterministic first, LLM second** — structured record is deterministic; only narrative
   fields use an LLM, as a separate optional pass.
 - **DMA API primary (EEA), export-ZIP fallback (rest)** — sanctioned and stable beats
@@ -355,6 +435,13 @@ _same_ transform + sink. Selected when the member is not EEA-eligible.
   portability.
 - **Developer-approval gate** — one-time but not instant; start the application early since
   it blocks phases 2–4.
+- **Broker trust boundary** — the managed broker holds the shared LinkedIn client secret and
+  transient exchanged credentials. Exact return-URI registration, per-instance revocation,
+  short grant TTLs, atomic consumption, log redaction, rate limits, and operational audit
+  are launch requirements.
+- **Broker availability** — managed users cannot establish or renew a connection while the
+  broker is unavailable, although an unexpired token already stored in their brain remains
+  usable.
 - **28-day Changelog window** — continuous sync must run inside it with a valid (refreshed)
   token.
 - **Write-path/cache** — extension-field write + singleton cache invalidation must be

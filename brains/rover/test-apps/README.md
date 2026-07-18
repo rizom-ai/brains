@@ -43,7 +43,8 @@ Only set these when you need the corresponding integration:
 
 - `MCP_AUTH_TOKEN` — deprecated static fallback for MCP HTTP auth. Prefer the built-in OAuth/passkey provider; when `auth-service` is enabled, `/mcp` accepts brain-issued OAuth bearer tokens without this env var.
 - `DISCORD_BOT_TOKEN` — enable the Discord interface
-- `LINKEDIN_ACCESS_TOKEN`
+- `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_REDIRECT_URI` — together enable the operator OAuth flow at `/linkedin`; the redirect URI must end in `/linkedin/callback`
+- `LINKEDIN_ACCESS_TOKEN` — optional static portability fallback
 - `BUTTONDOWN_API_KEY`
 - `UNSPLASH_ACCESS_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`

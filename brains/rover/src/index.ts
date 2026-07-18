@@ -2,6 +2,7 @@ import {
   defineBrain,
   type BrainDefinition,
   type PluginConfig,
+  type PluginFactory,
 } from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
@@ -11,7 +12,7 @@ import { ChatInterface } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
-import { authServicePlugin } from "@brains/auth-service";
+import { authServicePlugin, getActiveAuthService } from "@brains/auth-service";
 import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
@@ -25,7 +26,11 @@ import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
-import { linkedinImportPlugin } from "@brains/linkedin-import";
+import {
+  FileLinkedInOAuthTokenStore,
+  linkedinImportPlugin,
+  type LinkedInImportConfigInput,
+} from "@brains/linkedin-import";
 import { portfolioPlugin } from "@brains/portfolio";
 import { productsPlugin } from "@brains/products";
 import { topicsPlugin } from "@brains/topics";
@@ -66,6 +71,21 @@ import packageJson from "../package.json" with { type: "json" };
  * discord token, analytics tags) goes in brain.yaml.
  * Only secrets (tokens, API keys) come from .env.
  */
+const roverLinkedInImportPlugin: PluginFactory = (config) => {
+  const oauthTokenStore = new FileLinkedInOAuthTokenStore({
+    storageDir: join("data", "linkedin-import"),
+  });
+  return linkedinImportPlugin(config as LinkedInImportConfigInput, {
+    oauthTokenStore,
+    resolveOperatorSession: async (request): Promise<boolean> => {
+      const authService = getActiveAuthService();
+      return authService
+        ? (await authService.getOperatorSession(request)) !== undefined
+        : false;
+    },
+  });
+};
+
 const core = [
   "prompt",
   "rover-profile",
@@ -164,10 +184,19 @@ const roverBrain: BrainDefinition = defineBrain({
     ["rover-onboarding", roverOnboardingPlugin, {}],
     [
       "linkedin-import",
-      linkedinImportPlugin,
+      roverLinkedInImportPlugin,
       (env): PluginConfig => ({
         ...(env["LINKEDIN_ACCESS_TOKEN"]
           ? { accessToken: env["LINKEDIN_ACCESS_TOKEN"] }
+          : {}),
+        ...(env["LINKEDIN_CLIENT_ID"]
+          ? { oauthClientId: env["LINKEDIN_CLIENT_ID"] }
+          : {}),
+        ...(env["LINKEDIN_CLIENT_SECRET"]
+          ? { oauthClientSecret: env["LINKEDIN_CLIENT_SECRET"] }
+          : {}),
+        ...(env["LINKEDIN_REDIRECT_URI"]
+          ? { oauthRedirectUri: env["LINKEDIN_REDIRECT_URI"] }
           : {}),
       }),
     ],

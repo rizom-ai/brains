@@ -61,6 +61,34 @@ describe("rover presets", () => {
     });
   });
 
+  it("wires operator-gated LinkedIn OAuth routes from declared credentials", () => {
+    const config = resolve(
+      rover,
+      {
+        LINKEDIN_CLIENT_ID: "client-id",
+        LINKEDIN_CLIENT_SECRET: "client-secret",
+        LINKEDIN_REDIRECT_URI: "https://brain.example/linkedin/callback",
+      },
+      { preset: "core" },
+    );
+    const linkedinImport = config.plugins?.find(
+      (plugin) => plugin.id === "linkedin-import",
+    );
+    const routeProvider = getWebRouteProvider(linkedinImport);
+
+    expect(linkedinImport?.config).toMatchObject({
+      oauthClientId: "client-id",
+      oauthClientSecret: "client-secret",
+      oauthRedirectUri: "https://brain.example/linkedin/callback",
+    });
+    expect(routeProvider?.getWebRoutes().map((route) => route.path)).toEqual([
+      "/linkedin",
+      "/linkedin/connect",
+      "/linkedin/callback",
+      "/linkedin/disconnect",
+    ]);
+  });
+
   it("keeps site-content opt-in for hosted custom site packages", () => {
     const defaultConfig = resolve(rover, {}, { preset: "default" });
     const defaultPluginIds =

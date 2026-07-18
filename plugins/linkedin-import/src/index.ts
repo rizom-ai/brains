@@ -30,6 +30,7 @@ export {
   LINKEDIN_PORTABILITY_SCOPE,
   LinkedInOAuthClient,
   type LinkedInAuthorizationRequest,
+  type LinkedInOAuthConnectionStatus,
   type LinkedInCodeExchangeRequest,
   type LinkedInOAuthToken,
   type LinkedInOAuthTokenStore,
@@ -37,8 +38,21 @@ export {
 export {
   FileLinkedInOAuthTokenStore,
   type FileLinkedInOAuthTokenStoreOptions,
-  type LinkedInOAuthConnectionStatus,
 } from "./lib/linkedin-oauth-token-store";
+export {
+  createLinkedInOAuthRoutes,
+  LINKEDIN_OAUTH_CALLBACK_PATH,
+  LINKEDIN_OAUTH_CONNECT_PATH,
+  LINKEDIN_OAUTH_DISCONNECT_PATH,
+  LINKEDIN_OAUTH_STATUS_PATH,
+  type LinkedInOAuthRoutesOptions,
+  type LinkedInOperatorSessionResolver,
+} from "./lib/linkedin-oauth-routes";
+export {
+  LinkedInOAuthStateStore,
+  type LinkedInOAuthStateStoreOptions,
+  type PendingLinkedInOAuthState,
+} from "./lib/linkedin-oauth-state-store";
 export {
   loadLinkedInProfileImport,
   type LinkedInProfessionalSnapshotSource,

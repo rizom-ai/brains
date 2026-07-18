@@ -58,4 +58,44 @@ describe("LinkedInImportPlugin", () => {
       "linkedin-import_distill_profile",
     ]);
   });
+
+  it("exposes browser OAuth routes only with complete config and injected boundaries", () => {
+    const plugin = new LinkedInImportPlugin(
+      {
+        oauthClientId: "client-id",
+        oauthClientSecret: "client-secret",
+        oauthRedirectUri: "https://brain.example/linkedin/callback",
+      },
+      {
+        oauthTokenStore: {
+          getAccessToken: async (): Promise<undefined> => undefined,
+          getStatus: async (): Promise<{ connected: false }> => ({
+            connected: false,
+          }),
+          storeToken: async (): Promise<void> => undefined,
+          clearToken: async (): Promise<void> => undefined,
+        },
+        resolveOperatorSession: async (): Promise<boolean> => true,
+      },
+    );
+
+    expect(
+      plugin.getWebRoutes().map((route) => [route.method, route.path]),
+    ).toEqual([
+      ["GET", "/linkedin"],
+      ["POST", "/linkedin/connect"],
+      ["GET", "/linkedin/callback"],
+      ["POST", "/linkedin/disconnect"],
+    ]);
+    expect(new LinkedInImportPlugin().getWebRoutes()).toEqual([]);
+  });
+
+  it("rejects partial OAuth configuration", () => {
+    expect(
+      () =>
+        new LinkedInImportPlugin({
+          oauthClientId: "client-id",
+        }),
+    ).toThrow("Invalid plugin config for linkedin-import");
+  });
 });

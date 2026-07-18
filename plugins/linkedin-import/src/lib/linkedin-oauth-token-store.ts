@@ -10,6 +10,7 @@ import {
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import type {
+  LinkedInOAuthConnectionStatus,
   LinkedInOAuthToken,
   LinkedInOAuthTokenStore,
 } from "./linkedin-oauth-client";
@@ -33,12 +34,6 @@ const storedTokenSchema: z.ZodType<StoredLinkedInOAuthToken> = z
     tokenType: z.string().optional(),
   })
   .strict();
-
-export interface LinkedInOAuthConnectionStatus {
-  connected: boolean;
-  expiresAt?: number | undefined;
-  scope?: string | undefined;
-}
 
 export interface FileLinkedInOAuthTokenStoreOptions {
   storageDir: string;
