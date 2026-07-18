@@ -283,7 +283,7 @@ describe("SiteBuilderPlugin", () => {
     ).rejects.toThrow("Invalid site workspace action");
     expect(dashboardWidget).toMatchObject({
       id: "site-health",
-      group: "site",
+      group: "publishing",
       rendererName: "SiteHealthWidget",
       visibility: "anchor",
     });

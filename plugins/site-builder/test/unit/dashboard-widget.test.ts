@@ -30,7 +30,7 @@ const siteHealth = {
 };
 
 describe("SiteHealthWidget", () => {
-  it("renders a read-only Site tab digest with CMS management link", () => {
+  it("renders a read-only Publishing tab digest with CMS management link", () => {
     const html = render(
       h(SiteHealthWidget, { title: "Site health", data: siteHealth }),
     );

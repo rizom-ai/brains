@@ -184,7 +184,7 @@ export async function registerSiteHealthWidget(
       pluginId: "site-builder",
       title: "Site health",
       description: "Preview and live build status",
-      group: "site",
+      group: "publishing",
       section: "primary",
       priority: 50,
       rendererName: "SiteHealthWidget",

@@ -26,7 +26,7 @@ Widgets are registered with the widget registry and rendered in the tabbed dashb
 - `id` - Unique identifier within the registering plugin
 - `pluginId` - Owning plugin identifier
 - `title` - Display title
-- `group` - Tab id (`knowledge`, `publishing`, `site`, `network`, `system`, or a custom group)
+- `group` - Tab id (`knowledge`, `publishing`, `network`, `system`, or a custom group)
 - `section` - Placement within the tab (`primary`, `secondary`, or `sidebar`)
 - `rendererName` - Built-in renderer name or custom renderer key
 - `component` - Preact component for custom renderers
