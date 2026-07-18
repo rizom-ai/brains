@@ -50,19 +50,18 @@ export type KnowledgeMapTemplateData = z.infer<typeof knowledgeMapDataSchema> &
 export const knowledgeMapTemplateSchema: z.ZodType<KnowledgeMapTemplateData> =
   knowledgeMapDataSchema.extend(copyShape);
 
+/* Brain-agnostic defaults: this template ships with the topics plugin to
+   every brain, so nothing here may assume a particular site's routes or
+   repos. A site overrides all of it by authoring the section's markdown. */
 const DEFAULT_COPY = {
-  cap: "It starts with you",
-  headingLead: "This site is",
-  headingAccent: "a brain",
+  cap: "The corpus",
+  headingLead: "What this brain",
+  headingAccent: "knows",
   intro:
-    "It runs the platform it describes — and this is what it knows, mapped live. Yours works the same way: an agent grown from what you've written and learned, open source, on a server you control. That's the product.",
-  primaryCta: { label: "Start Building →", href: "/brain#quickstart" },
-  secondaryCta: {
-    label: "View on GitHub",
-    href: "https://github.com/rizom-ai",
-  },
+    "Every mark is a real entity from this brain's corpus, placed by meaning. Topics are the territories; what has been published glows; anything outside every border is still waiting to be filed.",
+  primaryCta: { label: "Talk to it →", href: "/chat" },
+  secondaryCta: { label: "Open the console", href: "/dashboard" },
   proofLinks: [
-    { label: "talk to it", href: "/chat" },
     { label: "agent card", href: "/.well-known/agent-card.json" },
     { label: "open the console →", href: "/dashboard" },
   ],

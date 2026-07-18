@@ -39,9 +39,11 @@ describe("KnowledgeMapTemplate", () => {
   test("renders the proof section with defaults when no copy is authored", () => {
     const html = render(<KnowledgeMapTemplate {...data} />);
 
-    expect(html).toContain("It starts with you");
-    expect(html).toContain("This site is");
-    expect(html).toContain("a brain");
+    // defaults are brain-agnostic — the plugin ships to every brain, so no
+    // site-specific routes or repos may appear here
+    expect(html).toContain("The corpus");
+    expect(html).toContain("What this brain");
+    expect(html).not.toContain("github.com");
     expect(html).toContain("kmap--site");
     expect(html).toContain("Future of Work · 1");
     // honest counts in the foot
@@ -67,7 +69,7 @@ describe("KnowledgeMapTemplate", () => {
     expect(html).toContain("Custom intro.");
     expect(html).toContain('href="/go"');
     expect(html).toContain('href="/card"');
-    expect(html).not.toContain("It starts with you");
+    expect(html).not.toContain("waiting to be filed");
   });
 });
 
