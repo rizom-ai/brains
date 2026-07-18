@@ -16,47 +16,28 @@ describe("LinkedInImportPlugin", () => {
     ).toEqual([]);
   });
 
-  it("registers deterministic import, inspection, and optional distillation tools", async () => {
-    const harness = createPluginHarness();
-    const plugin = new LinkedInImportPlugin({ accessToken: "test-token" });
-
-    await harness.installPlugin(plugin);
-
-    expect(
-      harness
-        .getCapabilities()
-        .tools.filter((tool) => tool.name.startsWith("linkedin-import"))
-        .map((tool) => tool.name),
-    ).toEqual([
-      "linkedin-import_import",
-      "linkedin-import_inspect_schema",
-      "linkedin-import_distill_profile",
-    ]);
-  });
-
-  it("registers against a dynamic OAuth token provider before consent", async () => {
-    const harness = createPluginHarness();
-    const plugin = new LinkedInImportPlugin(
-      {},
-      {
-        accessTokenProvider: {
-          getAccessToken: async (): Promise<undefined> => undefined,
+  it("does not expose agent tools for static or dynamic credentials", async () => {
+    const plugins = [
+      new LinkedInImportPlugin({ accessToken: "test-token" }),
+      new LinkedInImportPlugin(
+        {},
+        {
+          accessTokenProvider: {
+            getAccessToken: async (): Promise<undefined> => undefined,
+          },
         },
-      },
-    );
+      ),
+    ];
 
-    await harness.installPlugin(plugin);
-
-    expect(
-      harness
-        .getCapabilities()
-        .tools.filter((tool) => tool.name.startsWith("linkedin-import"))
-        .map((tool) => tool.name),
-    ).toEqual([
-      "linkedin-import_import",
-      "linkedin-import_inspect_schema",
-      "linkedin-import_distill_profile",
-    ]);
+    for (const plugin of plugins) {
+      const harness = createPluginHarness();
+      await harness.installPlugin(plugin);
+      expect(
+        harness
+          .getCapabilities()
+          .tools.filter((tool) => tool.name.startsWith("linkedin-import")),
+      ).toEqual([]);
+    }
   });
 
   it("exposes browser OAuth routes only with complete config and injected boundaries", () => {

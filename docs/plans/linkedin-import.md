@@ -9,13 +9,15 @@ non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PRO
 snapshot client, deterministic mapper, merge-not-clobber job, confirmation-gated preview
 tool, and Rover wiring are implemented. Phase 2B schema inspection is implemented without
 exposing member values, and provider-neutral rich-record fingerprint merging is implemented.
-Phase 3's optional reviewed narrative distillation is implemented. Phase 4A's sanctioned
-OAuth authorization-code client, direct/self-hosted browser routes, expiring single-use
-state, dynamic importer token provider, private-file token store, and Rover wiring are
-implemented. Phase 4B's managed callback broker is planned: its authorization/grant
-transport will be provider-neutral, while LinkedIn scopes, token exchange, and credential
-validation remain provider-specific. Rich-domain fixtures/mappers and Phase 5 are not yet
-started.
+Phase 3's reviewed narrative-distillation backend is implemented but dormant. Phase 4A's
+sanctioned OAuth authorization-code client, direct/self-hosted browser routes, expiring
+single-use state, dynamic importer token provider, private-file token store, and Rover
+wiring are implemented. LinkedIn agent tools have been removed; the plugin-owned
+`/linkedin` dashboard integration panel is the intended import surface, and its
+preview/confirmation workflow remains pending. Phase 4B's managed callback broker is
+planned: its authorization/grant transport will be provider-neutral, while LinkedIn
+scopes, token exchange, and credential validation remain provider-specific. Rich-domain
+fixtures/mappers and Phase 5 are not yet started.
 
 ## Context
 
@@ -145,6 +147,11 @@ SOURCES (pluggable adapters)          TRANSFORM              SINK
   one-time credential delivery to a central broker, while LinkedIn authorization URLs,
   scopes, token response validation, and refresh behavior stay in a provider adapter. A
   static environment token remains a migration/development fallback.
+- **The workflow is panel-first, not agent-driven.** `/linkedin` is a plugin-owned
+  integration panel advertised through the existing dashboard endpoint navigation. It is
+  not part of CMS, because connecting an account and running an operational import are not
+  content-authoring actions. The panel owns connection status, preview, confirmation,
+  execution status, and safe re-import. No LinkedIn MCP/chat tools are registered.
 - **Write path gotcha.** `SingletonEntityService` has no public setter and
   `AnchorProfileAdapter.createProfileContent()` validates against the _base_ schema
   (strips extension fields). Extension fields must be written by building frontmatter
@@ -253,26 +260,29 @@ LinkedIn import must neither read nor write communication preferences.
   untouched seed placeholders, preserves owner-authored values, uses optimistic
   concurrency, and relies on the normal
   `entity:updated` cache-invalidation path. Re-running unchanged data performs no write.
-- `tools/index.ts` exposes the anchor-only, write-marked `linkedin-import_import` tool. Its
-  initial call fetches and displays the deterministic merge preview; only the host's typed,
-  token-bound confirmation call can queue the import job. The confirmation carries a
-  canonical SHA-256 digest of the previewed patch and anchor-profile baseline. Execution
-  refetches both and rejects stale approval when either input changed.
+- The deterministic preview contract carries a canonical SHA-256 digest of the mapped
+  patch and anchor-profile baseline. Execution refetches both and rejects stale approval
+  when either input changed. The former agent tool surface has been removed; the
+  `/linkedin` panel will display the field-level merge preview and submit the reviewed
+  digest through operator-gated routes before queuing the existing job.
 - Rover includes the inert capability in each preset and supplies the access token from
   its declared environment schema.
 
 Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
-mapping and merging, idempotent handler behavior, conflict handling, preview and forged or
-stale confirmation behavior, tool queuing, and inert/configured plugin wiring.
+mapping and merging, idempotent handler behavior, conflict handling, stale digest
+rejection, absence of agent tools, and inert/configured plugin wiring. Panel preview and
+confirmation-route tests are required when that workflow lands.
 
 ## Phase 2B — Rich professional domains
 
 The client supports `POSITIONS`, `EDUCATION`, `SKILLS`, and `CERTIFICATIONS`, and the
-anchor-only `linkedin-import_inspect_schema` tool reports only source field names, value
-types, occurrence counts, record counts, and deduplicated redacted record shapes—never
-member values or nested object keys. Safe placeholders distinguish dates, timestamps,
-URLs, URNs, emails, and primitive/container types. This provides a privacy-preserving way
-to capture real sanctioned API shapes and value-format contracts.
+schema summarizer reports only source field names, value types, occurrence counts, record
+counts, and deduplicated redacted record shapes—never member values or nested object keys.
+Safe placeholders distinguish dates, timestamps, URLs, URNs, emails, and
+primitive/container types. This provides a privacy-preserving way to capture real
+sanctioned API shapes and value-format contracts. It has no agent tool surface; an
+operator-only advanced diagnostic in the integration panel or an explicit development
+command may expose it when sanctioned fixture capture begins.
 
 Before enabling those domains for import:
 
@@ -289,18 +299,17 @@ skills, positions, education, and certifications. Matching owner-authored record
 preserved rather than enriched or overwritten, while records with new identities append.
 Do not guess source keys from display labels or third-party export examples.
 
-## Phase 3 — LLM distillation pass (implemented)
+## Phase 3 — LLM distillation backend (implemented but dormant)
 
-The anchor-only `linkedin-import_distill_profile` tool is an optional, re-runnable second
-pass over the current structured profile and imported summary/story. It uses structured AI
-generation to propose bounded `tagline`, `intro`, and `story` values, explicitly excludes
-`headline` from its output contract, and warns the model to treat profile content as data
-rather than instructions.
+The optional, re-runnable second pass over the current structured profile and imported
+summary/story uses structured AI generation to propose bounded `tagline`, `intro`, and
+`story` values. It explicitly excludes `headline` from its output contract and warns the
+model to treat profile content as data rather than instructions.
 
-The proposal is shown in full before the host's typed, token-bound confirmation. Approval
-is bound to the anchor-profile content digest; a separate job applies only the reviewed
-proposal and rejects stale or concurrent profile edits. The deterministic import path
-never invokes this semantic pass.
+The proposal/apply contract is bound to the anchor-profile content digest and rejects
+stale or concurrent edits. It is not registered as an agent tool or active job path. If
+added later, the `/linkedin` panel must show the full proposal and require a separate
+operator confirmation. The deterministic import path never invokes this semantic pass.
 
 ## Phase 4A — Direct OAuth consent for self-hosted brains (implemented)
 
@@ -325,6 +334,33 @@ application and for a small pilot with a fixed callback allowlist. It requires
 `LINKEDIN_REDIRECT_URI` ending in `/linkedin/callback`. It is not the managed rollout
 model because distributing the shared LinkedIn application secret and registering every
 dynamic brain callback would not scale safely.
+
+### `/linkedin` integration panel workflow (next)
+
+Use the existing plugin-owned `/linkedin` dashboard surface, not CMS and not agent tools.
+The first panel increment is already the connection status/connect/disconnect page. Extend
+that same page with a deterministic import wizard:
+
+1. **Connected state** — show credential status/expiry and an `Inspect import` action.
+2. **Preview** — fetch the registered Snapshot domains, compute the normal merge, and show
+   current value, imported value, and outcome (`fill`, `append`, or `preserve owner value`)
+   for every proposed field. Do not run AI.
+3. **Review binding** — create a short-lived, single-use review ID bound server-side to the
+   mapped patch digest and current anchor-profile baseline. Do not trust a browser-submitted
+   patch or digest by itself.
+4. **Confirm import** — an operator-authenticated POST consumes the review ID and queues the
+   existing import job. The job refetches source/profile data and rejects stale review just
+   as the existing handler already does.
+5. **Result** — redirect back to `/linkedin` with queued/completed/failed status and a
+   concise list of applied versus preserved fields. Re-import follows the same preview and
+   confirmation path.
+
+All panel routes are marked `public: true` only to pass through the current webserver route
+contract; each non-callback handler performs its own auth-service operator-session check.
+POST actions rely on the operator cookie's `SameSite=Lax` protection and must additionally
+reject an explicitly cross-origin `Origin`. Responses containing profile data use
+`Cache-Control: no-store`, and neither access tokens nor raw provider responses reach the
+browser.
 
 ## Phase 4B — Managed OAuth callback broker (planned)
 

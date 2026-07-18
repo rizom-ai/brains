@@ -46,6 +46,11 @@ function redirect(location: string, status: 302 | 303): Response {
   });
 }
 
+function isExplicitlyCrossOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  return origin !== null && origin !== new URL(request.url).origin;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -185,7 +190,10 @@ export function createLinkedInOAuthRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (!(await options.resolveOperatorSession(request))) {
+        if (
+          isExplicitlyCrossOrigin(request) ||
+          !(await options.resolveOperatorSession(request))
+        ) {
           return new Response("Forbidden", { status: 403 });
         }
         try {
@@ -273,7 +281,10 @@ export function createLinkedInOAuthRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (!(await options.resolveOperatorSession(request))) {
+        if (
+          isExplicitlyCrossOrigin(request) ||
+          !(await options.resolveOperatorSession(request))
+        ) {
           return new Response("Forbidden", { status: 403 });
         }
         try {

@@ -76,11 +76,18 @@ describe("LinkedIn OAuth browser routes", () => {
       routes,
       LINKEDIN_OAUTH_STATUS_PATH,
     ).handler(new Request("https://brain.example/linkedin"));
-    const connectResponse = await findRoute(
-      routes,
-      LINKEDIN_OAUTH_CONNECT_PATH,
-    ).handler(
+    const connectRoute = findRoute(routes, LINKEDIN_OAUTH_CONNECT_PATH);
+    const connectResponse = await connectRoute.handler(
       new Request("https://brain.example/linkedin/connect", { method: "POST" }),
+    );
+    const crossOriginConnect = await connectRoute.handler(
+      new Request("https://brain.example/linkedin/connect", {
+        method: "POST",
+        headers: {
+          Origin: "https://attacker.example",
+          "x-test-operator": "true",
+        },
+      }),
     );
 
     expect(statusResponse.status).toBe(302);
@@ -88,6 +95,7 @@ describe("LinkedIn OAuth browser routes", () => {
       "/login?return_to=%2Flinkedin",
     );
     expect(connectResponse.status).toBe(403);
+    expect(crossOriginConnect.status).toBe(403);
   });
 
   it("starts least-privilege authorization with expiring server-side state", async () => {

@@ -1,11 +1,6 @@
-import type {
-  ServicePluginContext,
-  Tool,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { LinkedInDistillationJobHandler } from "./handlers/linkedin-distillation-handler";
 import { LinkedInImportJobHandler } from "./handlers/linkedin-import-handler";
 import {
   LinkedInClient,
@@ -22,8 +17,6 @@ import {
   type LinkedInOperatorSessionResolver,
 } from "./lib/linkedin-oauth-routes";
 import type { LinkedInOAuthStateStore } from "./lib/linkedin-oauth-state-store";
-import { createLinkedInImportTools } from "./tools";
-import { createLinkedInDistillationTools } from "./tools/distillation";
 import packageJson from "../package.json" with { type: "json" };
 
 export interface LinkedInImportConfig {
@@ -97,7 +90,6 @@ export class LinkedInImportPlugin extends ServicePlugin<
   private cachedClient: LinkedInClient | null = null;
   private cachedOAuthClient: LinkedInOAuthClient | null = null;
   private cachedOAuthRoutes: WebRouteDefinition[] | null = null;
-  private cachedTools: Tool[] | null = null;
 
   constructor(
     config: LinkedInImportConfigInput = {},
@@ -143,26 +135,6 @@ export class LinkedInImportPlugin extends ServicePlugin<
     return this.cachedOAuthRoutes;
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.hasAccessTokenSource()) return [];
-    if (this.cachedTools) return this.cachedTools;
-
-    const context = this.getContext();
-    this.cachedTools = [
-      ...createLinkedInImportTools(this.id, {
-        client: this.getClient(),
-        entityService: context.entityService,
-        jobs: context.jobs,
-      }),
-      ...createLinkedInDistillationTools(this.id, {
-        ai: context.ai,
-        entityService: context.entityService,
-        jobs: context.jobs,
-      }),
-    ];
-    return this.cachedTools;
-  }
-
   protected override async registerJobHandlers(): Promise<void> {
     if (!this.hasAccessTokenSource()) return;
 
@@ -175,13 +147,6 @@ export class LinkedInImportPlugin extends ServicePlugin<
           client: this.getClient(),
           entityService: context.entityService,
         },
-      ),
-    );
-    context.jobs.registerHandler(
-      "linkedin-profile-distill",
-      new LinkedInDistillationJobHandler(
-        this.logger.child("LinkedInDistillationJobHandler"),
-        context.entityService,
       ),
     );
   }
