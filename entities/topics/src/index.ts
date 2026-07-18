@@ -22,6 +22,8 @@ import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-templat
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
+import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
+import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
@@ -82,11 +84,15 @@ export class TopicsPlugin extends EntityPlugin<
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
+      "knowledge-map": getKnowledgeMapTemplate(),
     };
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
+    return [
+      new TopicsDataSource(this.logger.child("TopicsDataSource")),
+      new KnowledgeMapDataSource(),
+    ];
   }
 
   protected override getDerivedEntityProjections(

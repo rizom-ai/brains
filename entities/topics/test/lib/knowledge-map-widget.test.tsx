@@ -1,43 +1,23 @@
 /** @jsxImportSource preact */
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
-import type { EntityPluginContext } from "@brains/plugins";
-import { registerKnowledgeMapDashboardWidget } from "../../src/lib/knowledge-map-widget";
+import {
+  knowledgeMapWidgetRegistration,
+  registerKnowledgeMapDashboardWidget,
+  type KnowledgeMapWidgetContext,
+  type KnowledgeMapWidgetRegistration,
+} from "../../src/lib/knowledge-map-widget";
+import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
 import { KnowledgeMapWidget } from "../../src/widgets/knowledge-map";
 
-/* Phase 3 of docs/plans/knowledge-map.md: the console widget. Registered
-   like every dashboard widget (agent-network pattern): a component + shared
-   styles, a dataProvider that runs the phase-1 builder against the live
-   context, and a digest with the honest counts. */
+/* Phase 3 of docs/plans/knowledge-map.md: the console widget. The narrow
+   structural contexts keep every stub honestly typed — no casts. */
 
-describe("registerKnowledgeMapDashboardWidget", () => {
-  it("registers the widget and wires the builder as its data provider", async () => {
-    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    let payload: Record<string, unknown> | undefined;
-
-    const send = mock(
-      async (request: {
-        type: string;
-        payload: Record<string, unknown>;
-      }): Promise<void> => {
-        payload = request.payload;
-      },
-    );
-    const subscribe = mock(
-      (
-        _topic: string,
-        handler: () => Promise<{ success: boolean }>,
-      ): (() => void) => {
-        readyHandler = handler;
-        return (): void => undefined;
-      },
-    );
-
-    const context = {
-      messaging: { send, subscribe },
-      semantic: {
-        project: mock(async () => ({
-          origin: { kind: "centroid" as const },
+function makeDataContext(): KnowledgeMapDataContext {
+  return {
+    semantic: {
+      project: () =>
+        Promise.resolve({
           points: [
             {
               entityId: "future-of-work",
@@ -52,12 +32,11 @@ describe("registerKnowledgeMapDashboardWidget", () => {
               distanceToOrigin: 0.25,
             },
           ],
-          neighbors: [],
-          distanceRange: { min: 0.2, max: 0.25 },
-        })),
-      },
-      entityService: {
-        listEntities: mock(async (request: { entityType: string }) =>
+        }),
+    },
+    entityService: {
+      listEntities: (request: { entityType: string }) =>
+        Promise.resolve(
           request.entityType === "topic"
             ? [
                 {
@@ -74,53 +53,64 @@ describe("registerKnowledgeMapDashboardWidget", () => {
                 },
               ],
         ),
-      },
-    } as unknown as EntityPluginContext;
+    },
+  };
+}
 
-    registerKnowledgeMapDashboardWidget({ context, pluginId: "topics" });
-    expect(subscribe).toHaveBeenCalledWith(
-      "system:plugins:ready",
-      expect.any(Function),
+describe("knowledgeMapWidgetRegistration", () => {
+  it("builds the payload with the live data provider and honest digest", async () => {
+    const registration = knowledgeMapWidgetRegistration(
+      makeDataContext(),
+      "topics",
     );
 
-    const result = await readyHandler?.();
-    expect(result).toEqual({ success: true });
+    expect(registration.id).toBe("topics-knowledge-map");
+    expect(registration.pluginId).toBe("topics");
+    expect(registration.title).toBe("Knowledge Map");
+    expect(registration.group).toBe("knowledge");
+    expect(registration.section).toBe("primary");
+    expect(registration.rendererName).toBe("KnowledgeMapWidget");
+    expect(registration.clientStyles).toContain(".kmap");
 
-    expect(send).toHaveBeenCalledWith({
-      type: "dashboard:register-widget",
-      payload: expect.objectContaining({
-        id: "topics-knowledge-map",
-        pluginId: "topics",
-        title: "Knowledge Map",
-        group: "knowledge",
-        section: "primary",
-        rendererName: "KnowledgeMapWidget",
-        component: expect.any(Function),
-        digestProvider: expect.any(Function),
-      }),
-    });
-    if (!payload) throw new Error("widget was not registered");
-
-    // shared styles travel with the widget
-    expect(String(payload["clientStyles"])).toContain(".kmap");
-
-    // the data provider runs the phase-1 builder against the live context
-    const dataProvider = payload["dataProvider"] as () => Promise<unknown>;
-    const data = (await dataProvider()) as {
-      zones: { name: string }[];
-      counts: { entities: number; topics: number };
-    };
+    const data = await registration.dataProvider();
     expect(data.zones.map((zone) => zone.name)).toEqual(["Future of Work"]);
     expect(data.counts).toEqual({ entities: 2, topics: 1 });
 
-    // the digest carries the honest counts
-    const digestProvider = payload["digestProvider"] as (value: unknown) => {
-      digest: { label: string; value: string }[];
-    };
-    expect(digestProvider(data).digest).toEqual([
+    expect(registration.digestProvider(data).digest).toEqual([
       { label: "Entities", value: "2" },
       { label: "Topics", value: "1" },
     ]);
+  });
+});
+
+describe("registerKnowledgeMapDashboardWidget", () => {
+  it("registers the payload once plugins are ready", async () => {
+    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
+    const sent: { type: string; payload: KnowledgeMapWidgetRegistration }[] =
+      [];
+
+    const context: KnowledgeMapWidgetContext = {
+      ...makeDataContext(),
+      messaging: {
+        subscribe: (_channel, handler) => {
+          readyHandler = handler;
+          return () => undefined;
+        },
+        send: (request) => {
+          sent.push(request);
+          return Promise.resolve(undefined);
+        },
+      },
+    };
+
+    registerKnowledgeMapDashboardWidget({ context, pluginId: "topics" });
+    expect(readyHandler).toBeDefined();
+
+    const result = await readyHandler?.();
+    expect(result).toEqual({ success: true });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.type).toBe("dashboard:register-widget");
+    expect(sent[0]?.payload.id).toBe("topics-knowledge-map");
   });
 });
 
