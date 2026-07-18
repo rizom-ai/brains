@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.198
+
+### Patch Changes
+
+- [`4f70541`](https://github.com/rizom-ai/brains/commit/4f705417d076bf8bdef1c620a6d211a3d1993f0a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, per-handle Rover Pilot deploy option for releasing an operator-confirmed stale Kamal lock before retrying. Normal deployments continue to preserve deploy locks by default.
+
 ## 0.2.0-alpha.197
 
 ## 0.2.0-alpha.196

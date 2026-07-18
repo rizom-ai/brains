@@ -272,6 +272,7 @@
     "pilot-custom-domain-age-tls",
     "pilot-custom-domain-long-pem",
     "pilot-deploy-reconcile-chain",
+    "pilot-stale-lock-recovery",
     "pipeline-tabs-last-widget",
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
