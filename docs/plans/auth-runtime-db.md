@@ -132,6 +132,15 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - **MCP access tokens with `single-operator` subject rejected post-migration** (`mcp-interface.ts:136`) — **intended one-time re-auth**, not a lockout: 15-min access-token TTL, and the operator's passkey is migrated to the anchor, so it's a one-time OAuth re-consent.
 - **Drizzle `.notNull()` vs nullable `ALTER` on `person_id`** (`runtime-schema.ts:164`) — **refuted.** Migration 6 backfills every row and all insert paths set `person_id`; no NULL row is constructible.
 
+### Downstream: anchor/admin terminology + `isAnchor` (from multi-user decision 12)
+
+`multi-user.md` decision 12 (adopted 2026-07-18) splits **`Anchor`** (the brain's owner/subject — an identity) from **`Admin`** (the human permission role). Auth owns the role enum and the principal, so the following land here as a **follow-on migration, not part of the current merge** — the shipped `anchor`-as-role state is coherent and renames later behind the release gate. Recommendation: do this as a dedicated migration _after_ this branch merges, riding the same compat machinery as the shipped Operator→Anchor rename — do **not** stack a second terminology rename into this already-verified diff.
+
+- [ ] **Role rename `anchor` → `admin`** — `AUTH_USER_ROLES`, `permissionLevel`, `principalFromUser`, admin-endpoint gates, and `@brains/admin` console copy move from `anchor` to `admin`. Retain `anchor` as a read-compat role alias behind the release gate; remove only once CI confirms no deprecated consumers and the minimum supported upgrade version already issues `admin`. This is the branch's **second** terminology migration (Operator→Anchor→Admin) — accepted cost, tracked so it isn't a surprise.
+- [ ] **`AuthPrincipal` gains an `isAnchor` facet** — separate from `permissionLevel`. Interfaces authorize on `admin` only; `isAnchor` is identity, read solely for representation/voice. Resolving it requires the principal resolver to know the brain's anchor subject (below).
+- [ ] **Persist the anchor kind + subject** — a brain is anchored to a `person` or a `collective` (team/org; same kind, no nesting). Something must record which, and for a person anchor, which user, so `isAnchor` resolves (person brain → that one admin is the anchor; collective brain → `isAnchor` is false for everyone, admins act for the collective). Decide whether this small bit of runtime state lives in auth storage or is sourced from the profile subject.
+- [ ] **`profileEntityId` is the profile-generalization seam** — the person↔profile link already in the admin contract (`admin-contracts.ts:140`) is where the companion profile-on-subjects model (first-class profiles; subject = person/team/org; members carry profiles) attaches. Forward-referenced here so it is reused, not reinvented; the profile model itself is captured separately, not in the auth plan.
+
 ## Consumers to satisfy
 
 - **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple anchors, last-anchor protection.

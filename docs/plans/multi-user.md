@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/people` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent Anchor administration API. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/admin` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent Anchor administration API. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -24,7 +24,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin anchor-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
-- The standalone admin console (React, implemented by `@brains/people` at `/admin` with People as its first section) provides Anchor-only roster administration and authenticated self-service representation consent. A local CLI remains optional.
+- The standalone admin console (React, implemented by `@brains/admin` at `/admin` with People as its first section) provides Anchor-only roster administration and authenticated self-service representation consent. A local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -46,13 +46,14 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - Fresh setups use `usr_<uuid>` as the passkey/session/OAuth subject.
    - Existing `single-operator` installs migrate lazily to a real user id.
    - `single-operator` remains only a compatibility/migration alias, not new canonical state.
-5. **First passkey setup creates the first anchor user.**
-   - First setup creates one active `anchor` user and binds the passkey to that user.
-   - The data model supports multiple active anchors from the start.
+5. **First passkey setup creates the first admin, who is the anchor on a personal brain.**
+   - First setup creates one active **`admin`** user (the `anchor` role, renamed per decision 12) and binds the passkey to that user.
+   - On a **personal** brain that first admin is also the **anchor/owner** (admin _is_ anchor). On a **collective** brain the anchor is the team/org; the first admin runs it but is not the anchor.
+   - The data model supports multiple active admins from the start.
 6. **Multiple anchors are allowed, but the last active anchor is protected.**
    - Anchors can promote other users to `anchor`.
-   - The system must reject demoting, suspending, or deleting the last active anchor.
-   - User-facing copy must use **Anchor**, never Owner or Operator, for this role.
+   - The system must reject demoting, suspending, or deleting the last active admin (the last-active-anchor invariant, renamed under decision 12).
+   - ~~User-facing copy must use **Anchor**, never Owner or Operator, for this role.~~ **Superseded by decision 12:** the permission role is **Admin**; **Anchor** now names the brain's owner/subject, not the role.
 7. **Per-request/session permissions must replace global HTTP MCP anchor.**
    - OAuth-authenticated MCP should use the token subject's user role.
    - Static `MCP_AUTH_TOKEN` can continue to grant anchor as a deprecated fallback.
@@ -74,11 +75,20 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - `shell/auth-service` remains the sole owner of the admin HTTP endpoints, schema, permission policy, last-anchor invariant, and audit. The surface is a thin same-origin client over `/auth/admin/*` and **imports auth-service's exported role/mutation contract types** rather than re-declaring the role list or mutation-action names — so the vocabulary cannot drift.
     - The dashboard stays pure monitoring: no People tab, no inline admin script, no hand-rolled anchor-visibility branch.
     - **Console integration lives here now.** Console unification shipped and its plan retired, so the surface-registration work it defined is owned by this decision: register the admin console as a web route so the shared console strip renders its nav link (route-derived nav via `getWebRoutes()`), extend the `GET /api/console/jump` contract with an admin surface door so ⌘K reaches it, and default the surface to the `instrument` climate like the other operator surfaces. The strip, palette, and climate CSS come from `@brains/console-theme` unchanged; its route-derived surface registry adds the Admin consumer.
-    - **Current state:** implemented as the standalone `@brains/people` package (React SPA, runtime plugin id `admin`, own plugin identity outside the dashboard's Preact SSR package) with a configurable `routePath` defaulting to `/admin`. People is the first section in the console shell; future invitations and audit sections can join it without another route rename.
+    - **Current state:** implemented as the standalone `@brains/admin` package (React SPA, runtime plugin id `admin`, own plugin identity outside the dashboard's Preact SSR package) with a configurable `routePath` defaulting to `/admin`. People is the first section in the console shell; future invitations and audit sections can join it without another route rename.
+12. **`Anchor` is the owner (an identity), `Admin` is the permission role.** _(Adopted 2026-07-18; supersedes the "Anchor is the role" naming in decision 6 and the Terminology contract. Propagation through code and the rest of this plan is a tracked follow-on, not yet done.)_
+    - **Anchor = the brain's owner/subject — a person, team, or organization.** It is an _identity/profile_ concept, not an authenticator: an org never logs in, so "anchor" names _what the brain is anchored to / represents_, not a login. This is already the meaning in the identity code (`agent.ts:83` `anchorDid` = "ATProto anchor DID"; the `anchor-profile` entity = the owner's profile), so this reframe **realigns** those names rather than renaming them — `anchor-profile`/`anchorDid` are now correctly named and stay.
+    - **Admin = the human permission role** that administers the brain. The permission levels become **`admin` / `trusted` / `public`**; the `anchor` _level_ is what moves. Admins work in the `/admin` console (decision 11), so role and surface line up.
+    - **`admin`, not `operator`.** `operator` is already the _infrastructure_ operator (`operator-runtime-db.md`, `@rizom/ops`) and `single-operator` is the retired legacy subject decision 4 is migrating away from; reusing `operator` for a role recollides both. `admin` matches the console.
+    - **The owner subject is not an auth principal.** Humans (users/persons) authenticate and hold roles; the person/team/org that a brain is anchored to is a profile subject that never signs in. See the companion profile-on-subjects model (profile is first-class, subject = person/team/org; members have profiles; a member's own brain is optional and never provisioned) — to be captured as its own design doc.
+    - **Two anchor kinds: `person` or `collective`. No nesting.** Team and organization are the _same_ kind — a collective anchor — differing only in profile flavor, not in mechanics; "team" is a label/profile-shape choice, not a separate model. A brain has exactly **one** anchor, so a collective anchor is never nested (no team-within-org): a brain is anchored to a person or to a collective, full stop.
+    - **Ownership rule.** A **person** anchor is owned by that one human, who is also its admin — so on a personal brain "admin _is_ anchor" (1:1). A **collective** anchor is owned by the collective and run by **any** admin — ownership is impersonal, there is no designated owner-admin, and the last-active-admin invariant (decision 6) is the only protection. On a collective brain no single user is the anchor; admins act on the collective's behalf.
+    - **`isAnchor` is identity, not permission.** Because ownership grants nothing an admin lacks (personal: owner == admin; collective: impersonal), interfaces **authorize on the `admin` role only** and never gate on ownership. The resolved principal carries two independent facets: `permissionLevel: admin | trusted | public` (authorization) and `isAnchor` (identity — true for the person on a personal brain, false for everyone on a collective brain). Chat and other interfaces read `isAnchor` **only** for representation/voice ("this is your brain"), never for access. Migrating existing `anchor` checks is triage: authorization checks → `admin`; any "is this the owner" check → the `isAnchor` facet.
+    - **Migration is compatibility-safe and rides existing machinery.** The `anchor` role → `admin` rename reuses the same ordered, release-gated approach as the shipped Operator→Anchor session/role migration: retain `anchor` as a read-compat role alias behind the release gate, flip user-facing copy, remove the alias only once CI confirms no deprecated consumers and the minimum supported upgrade version already issues `admin`. Honest cost: the role is renamed twice in one arc (Operator→Anchor→Admin) — accepted, because it frees `anchor` for the ownership concept the profile/identity model needs.
 
 ## Terminology contract
 
-- **Anchor**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy.
+- **Admin**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy _(per decision 12; the `anchor` role is renamed to `admin`, `anchor` retained as a read-compat alias behind the release gate)_. **Anchor** is reserved for the brain's owner/subject (person, team, or organization) — an identity concept, not a role.
 - **Operator is not a role.** Existing names such as `operator_sessions`, `OperatorSessionStore`, `getOperatorSession`, `brains_operator_session`, and “Operator access” are legacy single-user terminology and must be migrated to authenticated/browser-session naming.
 - Rename the persisted session table to `auth_sessions` in an ordered auth DB migration. Preserve existing sessions during the rename.
 - Use `AuthSession`/`BrowserSession` service names; the private workspace API keeps no deprecated session wrappers.
@@ -210,11 +220,11 @@ Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus
 
 The administration UX is its own console surface (see decision 11), a peer to `/cms` and `/chat` — a React SPA at `/admin` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*` and `/auth/representations`. It is an **admin console**, with People as its first section; invitations and an audit-log viewer can follow as further sections. Roster administration and promotion controls are Anchor-only; authenticated non-Anchors receive only the self-service representation-consent view. It is **not** a dashboard tab.
 
-#### Package rename: `@brains/people` → `@brains/admin`
+#### Admin package naming
 
-The console's plugin id (`admin`), route (`/admin`), console/⌘K label ("Admin"), and framing all say **admin** — but the package is still `@brains/people` (dir `plugins/people`). "People" is the console's first _section_, not the console; leaving the package as `people` is exactly the "second rename" decision 11 warned against. Rename the console-level names to `admin`; keep `people`/`person` for the genuine domain concept (the People section, `PersonDetail`, `person-agent-store`, the roster).
+The console's plugin id (`admin`), route (`/admin`), console/⌘K label ("Admin"), package (`@brains/admin`), and directory (`plugins/admin`) now consistently describe the **admin** surface. `people`/`person` remains reserved for the genuine domain concept: the People section, `PersonDetail`, `person-agent-store`, and the roster.
 
-- [ ] **Rename the package to `@brains/admin`** — `plugins/people/` → `plugins/admin/`, package name `@brains/people` → `@brains/admin`, exported `peoplePlugin`/`PeoplePlugin` → `adminPlugin`/`AdminPlugin`. Console-serving files `people-routes.ts`/`people-shell.ts` → `admin-routes.ts`/`admin-shell.ts`, and the build asset `people-app.js` → `admin-app.js`. Update consumers `brains/relay` and `brains/rover` (dep + import) and the `packages/brain-cli` build/test that copy the asset by name. Do **not** globally sed `people`→`admin`: the People section, `Person*` components, and `person-agent` storage keep their names.
+- [x] **Use console-level Admin names throughout** — export `adminPlugin`/`AdminPlugin` from `@brains/admin`, serve the console through `admin-routes.ts` and `admin-shell.ts`, bundle `admin-app.js`, and consume the renamed package and asset from Relay, Rover, and `@rizom/brain`.
 
 Keep first UX small and explicit:
 
@@ -225,7 +235,7 @@ Keep first UX small and explicit:
 
 #### UX gaps — 2026-07-18 console review
 
-The `@brains/people` console is functionally complete and correctly gated, but it currently renders the raw auth schema rather than the operator's mental model. Three concrete gaps, verified against source; none are correctness/security defects, so they do not block a merge on those grounds — but they are the "is the UX there yet" bar. Ordered by operator impact.
+The `@brains/admin` console is functionally complete and correctly gated. The 2026-07-18 review identified three operator-mental-model gaps; their resolutions are tracked below in impact order.
 
 - [x] **Clarify that linked agents are external representatives.** The empty state now explains that the brain's built-in agent is implicit and does not require a representation link, rather than presenting the absent owner-agent row as broken.
 - [x] **Demote raw identity attachment to an advanced escape hatch.** Passkey setup remains the primary person-level action; the manual form is behind an Advanced affordance and explicitly labels the resulting claim unverified and non-authenticating.
@@ -361,7 +371,7 @@ Validation:
 
 - [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
 - [x] Add Anchor-only roster administration and authenticated self-service representation consent over the existing auth APIs.
-- [x] Move People off the dashboard SSR page into the standalone `@brains/people` React admin console (decision 11), importing auth-service's browser-safe contract types and constants instead of literal role/mutation vocabularies. Dashboard is pure monitoring again.
+- [x] Move People off the dashboard SSR page into the standalone `@brains/admin` React admin console (decision 11), importing auth-service's browser-safe contract types and constants instead of literal role/mutation vocabularies. Dashboard is pure monitoring again.
   - The console is a registered route-derived surface using the `instrument` climate.
   - `GET /api/console/jump` includes an admin surface door for authenticated Anchors.
   - The surface consumes `@brains/console-theme`; the shared surface registry recognizes the new consumer.
