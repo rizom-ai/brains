@@ -7,22 +7,20 @@ import { GrowthDiagram } from "./growth-diagram";
 import {
   Band,
   CtaRow,
-  AliveLine,
   SectCap,
   Trio,
   trioSchema,
   ctaSchema,
   delayClass,
-  ROOM_HIGHLIGHT_CLS,
 } from "./shared";
 
 /**
  * The umbrella home page. The hero is the live agent proximity map (wired in
  * routes.ts as agent-discovery:proximity-map); the sections here tell the
- * rev-10 story the map opens — the pain (problem, withered), how the parts
+ * rev-11 story the map opens — the pain (problem, withered), how the parts
  * come together (growth carries the system: brain, practice, network), the
- * mission band (the quote alone), the single ask (one-light), the three
- * faces, and the living-proof colophon.
+ * mission band (the quote alone), then the ask carried by proof — the
+ * knowledge map (topics:knowledge-map, wired in routes.ts) — and the faces.
  * Each section is authored from one zod schema (its component's props are
  * `z.infer` of that schema); copy is content-driven, stored as markdown in
  * site-content/home/<section>.md. Only the assembled section group is
@@ -89,50 +87,6 @@ function HomeProblemSection({
       {/* The one section with no warmth: cold cap, hollow numerals. */}
       <SectCap lead={cap} trail={capNote} tone="cold" />
       <Trio items={items} mono={false} withered />
-    </Section>
-  );
-}
-
-/* ============ it starts with one light ============ */
-
-const oneLightSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().optional(),
-  headline: z.string(),
-  intro: z.string(),
-  pull: z.string().optional(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
-});
-
-function HomeOneLightSection({
-  cap,
-  capNote,
-  headline,
-  intro,
-  pull,
-  primaryCta,
-  secondaryCta,
-}: z.infer<typeof oneLightSchema>): JSX.Element {
-  return (
-    <Section id="one-light" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <h2 className="reveal reveal-delay-1 mt-3.5 max-w-[20em] font-display text-[clamp(28px,3vw,40px)] font-[465] leading-[1.1] tracking-[-0.014em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
-        {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-      </h2>
-      <p className="reveal reveal-delay-1 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
-        {intro}
-      </p>
-      {pull && (
-        <p className="reveal reveal-delay-2 mt-5 max-w-[21em] font-display text-[clamp(24px,2.8vw,34px)] font-normal italic leading-[1.22] tracking-[-0.012em] text-theme-muted [font-variation-settings:'SOFT'_90,'opsz'_110]">
-          {renderHighlightedText(pull, "font-[460] text-accent-bright")}
-        </p>
-      )}
-      <CtaRow
-        primaryCta={primaryCta}
-        secondaryCta={secondaryCta}
-        className="reveal reveal-delay-3 mt-6"
-      />
     </Section>
   );
 }
@@ -231,23 +185,15 @@ function HomeFacesSection({
   );
 }
 
-/* ============ living-proof colophon ============ */
-
-// The colophon renders through the shared AliveLine component directly.
-const aliveSchema = z.object({
-  claim: z.string(),
-  links: z.array(ctaSchema),
-});
-
 /* ============ the home section group ============ */
 
 /**
  * The umbrella home page's authored sections. The namespace ("home") matches
  * the route id, so each stores as site-content/home/<section>.md and resolves
- * as "home:<section>". The hero is not here — it is the live agent proximity
- * map (agent-discovery:proximity-map), whose authored copy lives at
- * site-content/home/network.md and merges over the live data via the content
- * overlay.
+ * as "home:<section>". Two sections live elsewhere: the hero is the live
+ * agent proximity map (agent-discovery:proximity-map) and the proof/ask is
+ * the knowledge map (topics:knowledge-map) — both authored via overlay
+ * markdown merged over their live datasource payloads.
  */
 export const homeSections: SiteSectionGroup = sectionGroup("home", {
   growth: defineSection(growthSchema, HomeGrowthSection, {
@@ -260,11 +206,6 @@ export const homeSections: SiteSectionGroup = sectionGroup("home", {
     description:
       "Alone, it withers — problem trio (hollow numerals, no warmth)",
   }),
-  "one-light": defineSection(oneLightSchema, HomeOneLightSection, {
-    title: "One Light",
-    description:
-      "It starts with you — the single ask, after the mission and before the faces",
-  }),
   mission: defineSection(missionSchema, HomeMissionSection, {
     title: "Mission",
     description:
@@ -273,9 +214,5 @@ export const homeSections: SiteSectionGroup = sectionGroup("home", {
   faces: defineSection(facesSchema, HomeFacesSection, {
     title: "Faces",
     description: "One practice, three faces — platform / work / foundation",
-  }),
-  alive: defineSection(aliveSchema, AliveLine, {
-    title: "Alive",
-    description: "Living-proof colophon — italic claim plus proof links",
   }),
 });
