@@ -53,7 +53,7 @@ export function SectCap({
       <span className="flex items-baseline gap-3.5">
         <span
           aria-hidden="true"
-          className={`h-px w-[26px] self-center opacity-80 ${cold ? "bg-theme-light" : "bg-accent"}`}
+          className={`h-px w-[26px] self-center opacity-80 ${cold ? "bg-[color:var(--color-text-light)]" : "bg-accent"}`}
         />
         <span
           className={`font-medium ${cold ? "text-theme-light" : "text-accent"}`}
