@@ -1,0 +1,4749 @@
+{
+  "rover": {
+    "definition": {
+      "name": "rover",
+      "capabilityIds": [
+        "prompt",
+        "rover-profile",
+        "image",
+        "cms",
+        "auth-service",
+        "notifications",
+        "playbook",
+        "playbooks",
+        "rover-onboarding",
+        "email-resend",
+        "dashboard",
+        "dashboard-root",
+        "blog",
+        "series",
+        "decks",
+        "docs",
+        "document",
+        "note",
+        "link",
+        "portfolio",
+        "products",
+        "topics",
+        "content-pipeline",
+        "social-media",
+        "newsletter",
+        "obsidian-vault",
+        "wishlist",
+        "stock-photo",
+        "agents",
+        "assessment",
+        "atproto",
+        "atproto-registry",
+        "directory-sync",
+        "analytics",
+        "rizom-ecosystem",
+        "site-info",
+        "site-content",
+        "site-builder"
+      ],
+      "interfaceIds": [
+        "mcp",
+        "discord",
+        "chat",
+        "webserver",
+        "web-chat",
+        "a2a"
+      ],
+      "evalDisable": [
+        "discord",
+        "chat",
+        "webserver",
+        "web-chat",
+        "mcp",
+        "atproto",
+        "analytics",
+        "dashboard",
+        "dashboard-root",
+        "email-resend"
+      ],
+      "site": {
+        "entityDisplay": {
+          "base": {
+            "label": "Note",
+            "navigation": {
+              "show": false
+            }
+          },
+          "deck": {
+            "label": "Deck"
+          },
+          "link": {
+            "label": "Link",
+            "navigation": {
+              "slot": "secondary"
+            }
+          },
+          "newsletter": {
+            "label": "Newsletter",
+            "navigation": {
+              "slot": "secondary"
+            }
+          },
+          "post": {
+            "label": "Post"
+          },
+          "project": {
+            "label": "Project"
+          },
+          "series": {
+            "label": "Series",
+            "navigation": {
+              "slot": "secondary"
+            }
+          },
+          "social-post": {
+            "label": "Social Post",
+            "navigation": {
+              "slot": "secondary"
+            },
+            "pluralName": "social-posts"
+          },
+          "topic": {
+            "label": "Topic",
+            "navigation": {
+              "slot": "secondary"
+            }
+          }
+        },
+        "layouts": {
+          "default": {
+            "$function": true
+          }
+        },
+        "plugin": {
+          "$function": true
+        },
+        "routes": [
+          {
+            "description": "Professional site homepage",
+            "id": "home",
+            "layout": "default",
+            "navigation": {
+              "label": "Home",
+              "priority": 10,
+              "show": true,
+              "slot": "secondary"
+            },
+            "path": "/",
+            "sections": [
+              {
+                "dataQuery": {},
+                "id": "homepage",
+                "template": "professional-site:homepage-list"
+              }
+            ],
+            "title": "Home"
+          },
+          {
+            "description": "About page",
+            "id": "about",
+            "layout": "default",
+            "navigation": {
+              "label": "About",
+              "priority": 90,
+              "show": true,
+              "slot": "primary"
+            },
+            "path": "/about",
+            "sections": [
+              {
+                "dataQuery": {},
+                "id": "about",
+                "template": "professional-site:about"
+              }
+            ],
+            "title": "About"
+          },
+          {
+            "description": "Newsletter subscription confirmation",
+            "id": "subscribe-thanks",
+            "layout": "default",
+            "navigation": {
+              "show": false
+            },
+            "path": "/subscribe/thanks",
+            "sections": [
+              {
+                "content": {},
+                "dataQuery": {},
+                "id": "subscribe-thanks",
+                "template": "professional-site:subscribe-thanks"
+              }
+            ],
+            "title": "Thanks for subscribing"
+          },
+          {
+            "description": "Newsletter subscription error",
+            "id": "subscribe-error",
+            "layout": "default",
+            "navigation": {
+              "show": false
+            },
+            "path": "/subscribe/error",
+            "sections": [
+              {
+                "content": {},
+                "dataQuery": {},
+                "id": "subscribe-error",
+                "template": "professional-site:subscribe-error"
+              }
+            ],
+            "title": "Subscription failed"
+          }
+        ]
+      },
+      "theme": {
+        "$string": {
+          "length": 12522,
+          "sha256": "a440e956edc22c06adfcd4bef2cadedba8c76aac6a57c5671f976a8c9af0cf04"
+        }
+      }
+    },
+    "variants": {
+      "core": {
+        "selection": {
+          "preset": "core",
+          "members": [
+            "prompt",
+            "rover-profile",
+            "image",
+            "document",
+            "note",
+            "link",
+            "wishlist",
+            "topics",
+            "directory-sync",
+            "atproto",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "playbook",
+            "playbooks",
+            "rover-onboarding",
+            "email-resend",
+            "cms",
+            "dashboard-root",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "rover-profile",
+              "packageName": "@brains/rover",
+              "config": {}
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "playbook",
+              "packageName": "@brains/playbooks",
+              "config": {}
+            },
+            {
+              "id": "playbooks",
+              "packageName": "@brains/playbooks",
+              "config": {
+                "lifecycle": {},
+                "triggers": {}
+              }
+            },
+            {
+              "id": "rover-onboarding",
+              "packageName": "@brains/rover-onboarding",
+              "config": {
+                "enabled": false
+              }
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/",
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/"
+              }
+            },
+            {
+              "id": "document",
+              "packageName": "@brains/document-plugin",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ]
+              }
+            },
+            {
+              "id": "wishlist",
+              "packageName": "@brains/wishlist",
+              "config": {}
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "atproto",
+              "packageName": "@brains/atproto",
+              "config": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              },
+              "criticalConfig": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/rover/seed-content-core",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/rover/seed-content-core"
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": false,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 241,
+                "sha256": "cf064b12ce59fa9a13f7853ba952afa14050be7290f710d8c43d7044c2516f58"
+              }
+            },
+            "When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.",
+            {
+              "$string": {
+                "length": 644,
+                "sha256": "87c0c7b0a248c7b997eb236726654cabbb912743caafc4b2a64ee23e59c99138"
+              }
+            },
+            {
+              "$string": {
+                "length": 604,
+                "sha256": "86a859d7fdc4dd7406e8f3aa617ac0ae1b6eef8bbf3166e314fdce2e4e73d77a"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "public",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      },
+      "default": {
+        "selection": {
+          "preset": "default",
+          "members": [
+            "prompt",
+            "rover-profile",
+            "image",
+            "document",
+            "note",
+            "link",
+            "wishlist",
+            "topics",
+            "directory-sync",
+            "atproto",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "playbook",
+            "playbooks",
+            "rover-onboarding",
+            "email-resend",
+            "cms",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a",
+            "dashboard",
+            "blog",
+            "decks",
+            "analytics",
+            "obsidian-vault",
+            "site-info",
+            "site-builder"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "professional-site",
+              "packageName": "@brains/site-professional",
+              "config": {
+                "entityDisplay": {
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "post": {
+                    "label": "Post"
+                  }
+                }
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "rover-profile",
+              "packageName": "@brains/rover",
+              "config": {}
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "playbook",
+              "packageName": "@brains/playbooks",
+              "config": {}
+            },
+            {
+              "id": "playbooks",
+              "packageName": "@brains/playbooks",
+              "config": {
+                "lifecycle": {},
+                "triggers": {}
+              }
+            },
+            {
+              "id": "rover-onboarding",
+              "packageName": "@brains/rover-onboarding",
+              "config": {
+                "enabled": false
+              }
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "blog",
+              "packageName": "@brains/blog",
+              "config": {
+                "defaultPrompt": "Write a blog post about my recent work and insights",
+                "pageSize": 10,
+                "paginate": true
+              }
+            },
+            {
+              "id": "decks",
+              "packageName": "@brains/decks",
+              "config": {}
+            },
+            {
+              "id": "document",
+              "packageName": "@brains/document-plugin",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ]
+              }
+            },
+            {
+              "id": "obsidian-vault",
+              "packageName": "@brains/obsidian-vault",
+              "config": {
+                "baseFolder": "_obsidian"
+              }
+            },
+            {
+              "id": "wishlist",
+              "packageName": "@brains/wishlist",
+              "config": {}
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "atproto",
+              "packageName": "@brains/atproto",
+              "config": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              },
+              "criticalConfig": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/rover/seed-content-core",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/rover/seed-content-core"
+              }
+            },
+            {
+              "id": "analytics",
+              "packageName": "@brains/analytics",
+              "config": {}
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {
+                  "base": {
+                    "label": "Note",
+                    "navigation": {
+                      "show": false
+                    }
+                  },
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "link": {
+                    "label": "Link",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "newsletter": {
+                    "label": "Newsletter",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "post": {
+                    "label": "Post"
+                  },
+                  "project": {
+                    "label": "Project"
+                  },
+                  "series": {
+                    "label": "Series",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "social-post": {
+                    "label": "Social Post",
+                    "navigation": {
+                      "slot": "secondary"
+                    },
+                    "pluralName": "social-posts"
+                  },
+                  "topic": {
+                    "label": "Topic",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  }
+                },
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [
+                  {
+                    "description": "Professional site homepage",
+                    "id": "home",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "Home",
+                      "priority": 10,
+                      "show": true,
+                      "slot": "secondary"
+                    },
+                    "path": "/",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "homepage",
+                        "template": "professional-site:homepage-list"
+                      }
+                    ],
+                    "title": "Home"
+                  },
+                  {
+                    "description": "About page",
+                    "id": "about",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "About",
+                      "priority": 90,
+                      "show": true,
+                      "slot": "primary"
+                    },
+                    "path": "/about",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "about",
+                        "template": "professional-site:about"
+                      }
+                    ],
+                    "title": "About"
+                  },
+                  {
+                    "description": "Newsletter subscription confirmation",
+                    "id": "subscribe-thanks",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/thanks",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-thanks",
+                        "template": "professional-site:subscribe-thanks"
+                      }
+                    ],
+                    "title": "Thanks for subscribing"
+                  },
+                  {
+                    "description": "Newsletter subscription error",
+                    "id": "subscribe-error",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/error",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-error",
+                        "template": "professional-site:subscribe-error"
+                      }
+                    ],
+                    "title": "Subscription failed"
+                  }
+                ],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 241,
+                "sha256": "cf064b12ce59fa9a13f7853ba952afa14050be7290f710d8c43d7044c2516f58"
+              }
+            },
+            "When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.",
+            {
+              "$string": {
+                "length": 644,
+                "sha256": "87c0c7b0a248c7b997eb236726654cabbb912743caafc4b2a64ee23e59c99138"
+              }
+            },
+            {
+              "$string": {
+                "length": 604,
+                "sha256": "86a859d7fdc4dd7406e8f3aa617ac0ae1b6eef8bbf3166e314fdce2e4e73d77a"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "public",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      },
+      "full": {
+        "selection": {
+          "preset": "full",
+          "members": [
+            "prompt",
+            "rover-profile",
+            "image",
+            "document",
+            "note",
+            "link",
+            "wishlist",
+            "topics",
+            "directory-sync",
+            "atproto",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "playbook",
+            "playbooks",
+            "rover-onboarding",
+            "email-resend",
+            "cms",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a",
+            "dashboard",
+            "blog",
+            "decks",
+            "analytics",
+            "obsidian-vault",
+            "site-info",
+            "site-builder",
+            "series",
+            "portfolio",
+            "topics",
+            "content-pipeline",
+            "social-media",
+            "newsletter",
+            "stock-photo"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "professional-site",
+              "packageName": "@brains/site-professional",
+              "config": {
+                "entityDisplay": {
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "post": {
+                    "label": "Post"
+                  }
+                }
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "rover-profile",
+              "packageName": "@brains/rover",
+              "config": {}
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "playbook",
+              "packageName": "@brains/playbooks",
+              "config": {}
+            },
+            {
+              "id": "playbooks",
+              "packageName": "@brains/playbooks",
+              "config": {
+                "lifecycle": {},
+                "triggers": {}
+              }
+            },
+            {
+              "id": "rover-onboarding",
+              "packageName": "@brains/rover-onboarding",
+              "config": {
+                "enabled": false
+              }
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "blog",
+              "packageName": "@brains/blog",
+              "config": {
+                "defaultPrompt": "Write a blog post about my recent work and insights",
+                "pageSize": 10,
+                "paginate": true
+              }
+            },
+            {
+              "id": "series",
+              "packageName": "@brains/series",
+              "config": {}
+            },
+            {
+              "id": "decks",
+              "packageName": "@brains/decks",
+              "config": {}
+            },
+            {
+              "id": "document",
+              "packageName": "@brains/document-plugin",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "portfolio",
+              "packageName": "@brains/portfolio",
+              "config": {}
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ]
+              }
+            },
+            {
+              "id": "content-pipeline",
+              "packageName": "@brains/content-pipeline",
+              "config": {
+                "generationConditions": {
+                  "newsletter": {
+                    "minSourceEntities": 1,
+                    "skipIfDraftExists": true,
+                    "sourceEntityType": "post"
+                  },
+                  "social-post": {
+                    "maxUnpublishedDrafts": 5,
+                    "skipIfDraftExists": true
+                  }
+                },
+                "generationSchedules": {
+                  "newsletter": "0 9 * * 1",
+                  "social-post": "0 10 * * *"
+                }
+              }
+            },
+            {
+              "id": "social-media",
+              "packageName": "@brains/social-media",
+              "config": {
+                "autoGenerateOnBlogPublish": true,
+                "defaultPrompt": "Create an engaging social media post that drives engagement",
+                "enabled": true,
+                "maxRetries": 3,
+                "publishInterval": 3600000
+              },
+              "criticalConfig": {
+                "autoGenerateOnBlogPublish": true
+              }
+            },
+            {
+              "id": "newsletter",
+              "packageName": "@brains/newsletter",
+              "config": {}
+            },
+            {
+              "id": "buttondown",
+              "packageName": "@brains/newsletter",
+              "config": {
+                "autoSendOnPublish": false,
+                "doubleOptIn": true
+              }
+            },
+            {
+              "id": "obsidian-vault",
+              "packageName": "@brains/obsidian-vault",
+              "config": {
+                "baseFolder": "_obsidian"
+              }
+            },
+            {
+              "id": "wishlist",
+              "packageName": "@brains/wishlist",
+              "config": {}
+            },
+            {
+              "id": "stock-photo",
+              "packageName": "@brains/stock-photo",
+              "config": {
+                "provider": "unsplash"
+              }
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "atproto",
+              "packageName": "@brains/atproto",
+              "config": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              },
+              "criticalConfig": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/rover/seed-content-core",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/rover/seed-content-core"
+              }
+            },
+            {
+              "id": "analytics",
+              "packageName": "@brains/analytics",
+              "config": {}
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {
+                  "base": {
+                    "label": "Note",
+                    "navigation": {
+                      "show": false
+                    }
+                  },
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "link": {
+                    "label": "Link",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "newsletter": {
+                    "label": "Newsletter",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "post": {
+                    "label": "Post"
+                  },
+                  "project": {
+                    "label": "Project"
+                  },
+                  "series": {
+                    "label": "Series",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "social-post": {
+                    "label": "Social Post",
+                    "navigation": {
+                      "slot": "secondary"
+                    },
+                    "pluralName": "social-posts"
+                  },
+                  "topic": {
+                    "label": "Topic",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  }
+                },
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [
+                  {
+                    "description": "Professional site homepage",
+                    "id": "home",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "Home",
+                      "priority": 10,
+                      "show": true,
+                      "slot": "secondary"
+                    },
+                    "path": "/",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "homepage",
+                        "template": "professional-site:homepage-list"
+                      }
+                    ],
+                    "title": "Home"
+                  },
+                  {
+                    "description": "About page",
+                    "id": "about",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "About",
+                      "priority": 90,
+                      "show": true,
+                      "slot": "primary"
+                    },
+                    "path": "/about",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "about",
+                        "template": "professional-site:about"
+                      }
+                    ],
+                    "title": "About"
+                  },
+                  {
+                    "description": "Newsletter subscription confirmation",
+                    "id": "subscribe-thanks",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/thanks",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-thanks",
+                        "template": "professional-site:subscribe-thanks"
+                      }
+                    ],
+                    "title": "Thanks for subscribing"
+                  },
+                  {
+                    "description": "Newsletter subscription error",
+                    "id": "subscribe-error",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/error",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-error",
+                        "template": "professional-site:subscribe-error"
+                      }
+                    ],
+                    "title": "Subscription failed"
+                  }
+                ],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 241,
+                "sha256": "cf064b12ce59fa9a13f7853ba952afa14050be7290f710d8c43d7044c2516f58"
+              }
+            },
+            "When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.",
+            {
+              "$string": {
+                "length": 644,
+                "sha256": "87c0c7b0a248c7b997eb236726654cabbb912743caafc4b2a64ee23e59c99138"
+              }
+            },
+            {
+              "$string": {
+                "length": 604,
+                "sha256": "86a859d7fdc4dd7406e8f3aa617ac0ae1b6eef8bbf3166e314fdce2e4e73d77a"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "public",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      },
+      "rizom-ai": {
+        "selection": {
+          "preset": "default",
+          "members": [
+            "prompt",
+            "rover-profile",
+            "image",
+            "document",
+            "note",
+            "link",
+            "wishlist",
+            "topics",
+            "directory-sync",
+            "atproto",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "playbook",
+            "playbooks",
+            "rover-onboarding",
+            "email-resend",
+            "cms",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a",
+            "dashboard",
+            "blog",
+            "decks",
+            "analytics",
+            "obsidian-vault",
+            "site-info",
+            "site-builder"
+          ],
+          "add": [
+            "web-chat",
+            "atproto-registry",
+            "products",
+            "rizom-ecosystem",
+            "newsletter",
+            "site-content"
+          ],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "professional-site",
+              "packageName": "@brains/site-professional",
+              "config": {
+                "entityDisplay": {
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "post": {
+                    "label": "Post"
+                  }
+                }
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "rover-profile",
+              "packageName": "@brains/rover",
+              "config": {}
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "playbook",
+              "packageName": "@brains/playbooks",
+              "config": {}
+            },
+            {
+              "id": "playbooks",
+              "packageName": "@brains/playbooks",
+              "config": {
+                "lifecycle": {},
+                "triggers": {}
+              }
+            },
+            {
+              "id": "rover-onboarding",
+              "packageName": "@brains/rover-onboarding",
+              "config": {
+                "enabled": false
+              }
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "blog",
+              "packageName": "@brains/blog",
+              "config": {
+                "defaultPrompt": "Write a blog post about my recent work and insights",
+                "pageSize": 10,
+                "paginate": true
+              }
+            },
+            {
+              "id": "decks",
+              "packageName": "@brains/decks",
+              "config": {}
+            },
+            {
+              "id": "document",
+              "packageName": "@brains/document-plugin",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "products",
+              "packageName": "@brains/products",
+              "config": {
+                "route": "/products"
+              },
+              "criticalConfig": {
+                "route": "/products"
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "post",
+                  "deck",
+                  "project",
+                  "link",
+                  "anchor-profile"
+                ]
+              }
+            },
+            {
+              "id": "newsletter",
+              "packageName": "@brains/newsletter",
+              "config": {}
+            },
+            {
+              "id": "buttondown",
+              "packageName": "@brains/newsletter",
+              "config": {
+                "autoSendOnPublish": false,
+                "doubleOptIn": true
+              }
+            },
+            {
+              "id": "obsidian-vault",
+              "packageName": "@brains/obsidian-vault",
+              "config": {
+                "baseFolder": "_obsidian"
+              }
+            },
+            {
+              "id": "wishlist",
+              "packageName": "@brains/wishlist",
+              "config": {}
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "atproto",
+              "packageName": "@brains/atproto",
+              "config": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              },
+              "criticalConfig": {
+                "enabled": true,
+                "pdsEndpoint": "https://bsky.social"
+              }
+            },
+            {
+              "id": "atproto-registry",
+              "packageName": "@brains/atproto-registry",
+              "config": {
+                "enabled": true
+              },
+              "criticalConfig": {
+                "enabled": true
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/rover/seed-content-core",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/rover/seed-content-core"
+              }
+            },
+            {
+              "id": "analytics",
+              "packageName": "@brains/analytics",
+              "config": {}
+            },
+            {
+              "id": "rizom-ecosystem",
+              "packageName": "@brains/rizom-ecosystem",
+              "config": {}
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-content",
+              "packageName": "@brains/site-content",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {
+                  "base": {
+                    "label": "Note",
+                    "navigation": {
+                      "show": false
+                    }
+                  },
+                  "deck": {
+                    "label": "Deck"
+                  },
+                  "link": {
+                    "label": "Link",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "newsletter": {
+                    "label": "Newsletter",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "post": {
+                    "label": "Post"
+                  },
+                  "project": {
+                    "label": "Project"
+                  },
+                  "series": {
+                    "label": "Series",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  },
+                  "social-post": {
+                    "label": "Social Post",
+                    "navigation": {
+                      "slot": "secondary"
+                    },
+                    "pluralName": "social-posts"
+                  },
+                  "topic": {
+                    "label": "Topic",
+                    "navigation": {
+                      "slot": "secondary"
+                    }
+                  }
+                },
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [
+                  {
+                    "description": "Professional site homepage",
+                    "id": "home",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "Home",
+                      "priority": 10,
+                      "show": true,
+                      "slot": "secondary"
+                    },
+                    "path": "/",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "homepage",
+                        "template": "professional-site:homepage-list"
+                      }
+                    ],
+                    "title": "Home"
+                  },
+                  {
+                    "description": "About page",
+                    "id": "about",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "About",
+                      "priority": 90,
+                      "show": true,
+                      "slot": "primary"
+                    },
+                    "path": "/about",
+                    "sections": [
+                      {
+                        "dataQuery": {},
+                        "id": "about",
+                        "template": "professional-site:about"
+                      }
+                    ],
+                    "title": "About"
+                  },
+                  {
+                    "description": "Newsletter subscription confirmation",
+                    "id": "subscribe-thanks",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/thanks",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-thanks",
+                        "template": "professional-site:subscribe-thanks"
+                      }
+                    ],
+                    "title": "Thanks for subscribing"
+                  },
+                  {
+                    "description": "Newsletter subscription error",
+                    "id": "subscribe-error",
+                    "layout": "default",
+                    "navigation": {
+                      "priority": 50,
+                      "show": false,
+                      "slot": "primary"
+                    },
+                    "path": "/subscribe/error",
+                    "sections": [
+                      {
+                        "content": {},
+                        "dataQuery": {},
+                        "id": "subscribe-error",
+                        "template": "professional-site:subscribe-error"
+                      }
+                    ],
+                    "title": "Subscription failed"
+                  }
+                ],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 26309,
+                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 241,
+                "sha256": "cf064b12ce59fa9a13f7853ba952afa14050be7290f710d8c43d7044c2516f58"
+              }
+            },
+            "When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.",
+            {
+              "$string": {
+                "length": 644,
+                "sha256": "87c0c7b0a248c7b997eb236726654cabbb912743caafc4b2a64ee23e59c99138"
+              }
+            },
+            {
+              "$string": {
+                "length": 604,
+                "sha256": "86a859d7fdc4dd7406e8f3aa617ac0ae1b6eef8bbf3166e314fdce2e4e73d77a"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "public",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "relay": {
+    "definition": {
+      "name": "relay",
+      "capabilityIds": [
+        "prompt",
+        "note",
+        "link",
+        "image",
+        "topics",
+        "conversation-memory",
+        "docs",
+        "decks",
+        "agents",
+        "assessment",
+        "auth-service",
+        "notifications",
+        "email-resend",
+        "cms",
+        "dashboard",
+        "directory-sync",
+        "site-content",
+        "rizom-ecosystem",
+        "site-info",
+        "site-builder"
+      ],
+      "interfaceIds": ["mcp", "discord", "a2a", "webserver", "web-chat"],
+      "evalDisable": ["webserver", "web-chat", "mcp", "discord"],
+      "site": {
+        "entityDisplay": {},
+        "headScripts": [
+          {
+            "$string": {
+              "length": 245,
+              "sha256": "9a85583f0d7e187e6048ac89b98064379950a2aa023a40541466681a18996b2d"
+            }
+          }
+        ],
+        "layouts": {
+          "default": {
+            "$function": true
+          }
+        },
+        "plugin": {
+          "$function": true
+        },
+        "routes": [
+          {
+            "description": "Collaborative team memory and synthesis brain",
+            "id": "home",
+            "layout": "default",
+            "navigation": {
+              "label": "Home",
+              "priority": 10,
+              "show": true,
+              "slot": "secondary"
+            },
+            "path": "/",
+            "sections": [
+              {
+                "id": "diagram",
+                "template": "relay-site:home-diagram"
+              }
+            ],
+            "title": "Relay"
+          },
+          {
+            "description": "What Relay is designed to do",
+            "id": "about",
+            "layout": "default",
+            "navigation": {
+              "label": "About",
+              "priority": 20,
+              "show": true,
+              "slot": "primary"
+            },
+            "path": "/about",
+            "sections": [
+              {
+                "content": {
+                  "intro": "It exists for teams that need to remember together: capturing what happened, summarizing why it matters, and coordinating with trusted peer brains when work crosses boundaries.",
+                  "points": [
+                    "Not a personal blog engine or portfolio shell.",
+                    "Not a marketing automation stack.",
+                    "A small public face for a larger private knowledge workflow."
+                  ],
+                  "title": "Relay is a collaborative team-memory brain."
+                },
+                "id": "about",
+                "template": "relay-site:about"
+              }
+            ],
+            "title": "About Relay"
+          }
+        ],
+        "staticAssets": {
+          "/atproto/lexicons/ai.rizom.brain.card.json": {
+            "$string": {
+              "length": 4620,
+              "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.deck.json": {
+            "$string": {
+              "length": 1576,
+              "sha256": "66f9cdd535c7256701820537b2b598fee865940badf50b2e874fcd6053406f5d"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.link.json": {
+            "$string": {
+              "length": 1737,
+              "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.note.json": {
+            "$string": {
+              "length": 1181,
+              "sha256": "1fa2c32362d149e17e42a6e5f875a9fdffada8b1cf2d9fe09e2dff470add1d63"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.post.json": {
+            "$string": {
+              "length": 2280,
+              "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.project.json": {
+            "$string": {
+              "length": 1627,
+              "sha256": "a475fee64a30d70949feeb41879863123aa4193cbc805f7e31e93a1bb8187fe6"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.series.json": {
+            "$string": {
+              "length": 1095,
+              "sha256": "59531bb4ecb39f323f003b90a197a05cc2a29a08c04c09cbc883cb8ec4d9692e"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.socialPost.json": {
+            "$string": {
+              "length": 1707,
+              "sha256": "7fd10bb7d368895826e60ce55b31d8097937c65fe2924e4f831ee4f1444b089b"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.topic.json": {
+            "$string": {
+              "length": 1178,
+              "sha256": "5324fc1c06e52073a354ccf368744e680e9e794aa1553d8ff7f289ca9a3a41b7"
+            }
+          },
+          "/boot.js": {
+            "$string": {
+              "length": 2968,
+              "sha256": "b2ec537c2c16745a5b681061419d43705f31bebcbcda8e7b53076634bcc7a99d"
+            }
+          },
+          "/canvases/constellation.canvas.js": {
+            "$string": {
+              "length": 9771,
+              "sha256": "cb2d7cd9192b6709fe6a8d90884de1dfb6299156b6376263e3c419d05e2c8739"
+            }
+          },
+          "/canvases/prelude.canvas.js": {
+            "$string": {
+              "length": 5846,
+              "sha256": "7a6733ad231f1a1fc90a37ab4ab81fab797afa0f939bbac8959a4ca56c56700e"
+            }
+          },
+          "/canvases/roots.canvas.js": {
+            "$string": {
+              "length": 11349,
+              "sha256": "f3b3b8cf690b32569e41b5f8972881ca5d3038b856f2d637a69c82e9cbdd1d77"
+            }
+          },
+          "/canvases/tree.canvas.js": {
+            "$string": {
+              "length": 16831,
+              "sha256": "f2ee5a4004bfac693169fc98e8800eaf2ffa378f00d70597b6a5fd0258cf1b2a"
+            }
+          }
+        }
+      },
+      "theme": {
+        "$string": {
+          "length": 45131,
+          "sha256": "47e027cf3a6eb169b435a49b46c2eb15a50d67043224d393e6136e916521af02"
+        }
+      }
+    },
+    "variants": {
+      "core": {
+        "selection": {
+          "preset": "core",
+          "members": [
+            "prompt",
+            "directory-sync",
+            "note",
+            "link",
+            "topics",
+            "conversation-memory",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "email-resend",
+            "cms",
+            "dashboard",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ]
+              }
+            },
+            {
+              "id": "conversation-memory",
+              "packageName": "@brains/conversation-memory",
+              "config": {
+                "enableProjection": true,
+                "includeKeyPoints": true,
+                "maxEntries": 50,
+                "maxEntryLength": 800,
+                "maxMessagesPerChunk": 40,
+                "maxSourceMessages": 1000,
+                "memoryVisibility": "shared",
+                "projectionDelayMs": 90000,
+                "projectionVersion": 1
+              },
+              "criticalConfig": {
+                "memoryVisibility": "shared"
+              }
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/relay/seed-content",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/relay/seed-content"
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": false,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 203,
+                "sha256": "c7ac70abf5ff17594f3d9236794671acec4ccb48b199f9e06332e477f60dfc0e"
+              }
+            },
+            {
+              "$string": {
+                "length": 215,
+                "sha256": "504af5b2f2e7e4c08d3540790cdee19c78de47bf044e9e3a8354a6ae045c7acb"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "action-item": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "decision": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "deck": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "doc": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "image": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "link": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "note": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      },
+      "default": {
+        "selection": {
+          "preset": "default",
+          "members": [
+            "prompt",
+            "directory-sync",
+            "note",
+            "link",
+            "topics",
+            "conversation-memory",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "email-resend",
+            "cms",
+            "dashboard",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a",
+            "image",
+            "site-info",
+            "site-content",
+            "site-builder"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "rizom-site",
+              "packageName": "@brains/relay/site",
+              "config": {
+                "themeProfile": "studio"
+              }
+            },
+            {
+              "id": "site-package",
+              "packageName": "@rizom/site-package",
+              "config": {
+                "$undefined": true
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ]
+              }
+            },
+            {
+              "id": "conversation-memory",
+              "packageName": "@brains/conversation-memory",
+              "config": {
+                "enableProjection": true,
+                "includeKeyPoints": true,
+                "maxEntries": 50,
+                "maxEntryLength": 800,
+                "maxMessagesPerChunk": 40,
+                "maxSourceMessages": 1000,
+                "memoryVisibility": "shared",
+                "projectionDelayMs": 90000,
+                "projectionVersion": 1
+              },
+              "criticalConfig": {
+                "memoryVisibility": "shared"
+              }
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/relay/seed-content",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/relay/seed-content"
+              }
+            },
+            {
+              "id": "site-content",
+              "packageName": "@brains/site-content",
+              "config": {
+                "definitions": {
+                  "namespace": "relay-site",
+                  "sections": {
+                    "about": {
+                      "description": "Default Relay about page",
+                      "fields": {
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "points": {
+                          "items": {
+                            "label": "Point",
+                            "type": "string"
+                          },
+                          "label": "Points",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "About Relay"
+                    },
+                    "home-hero": {
+                      "description": "Relay homepage hero section",
+                      "fields": {
+                        "eyebrow": {
+                          "label": "Eyebrow",
+                          "type": "string"
+                        },
+                        "headline": {
+                          "label": "Headline",
+                          "type": "string"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "primaryCta": {
+                          "fields": {
+                            "href": {
+                              "label": "Href",
+                              "type": "string"
+                            },
+                            "label": {
+                              "label": "Label",
+                              "type": "string"
+                            }
+                          },
+                          "label": "Primary CTA",
+                          "type": "object"
+                        },
+                        "secondaryCta": {
+                          "fields": {
+                            "href": {
+                              "label": "Href",
+                              "type": "string"
+                            },
+                            "label": {
+                              "label": "Label",
+                              "type": "string"
+                            }
+                          },
+                          "label": "Secondary CTA",
+                          "type": "object"
+                        },
+                        "signals": {
+                          "items": {
+                            "fields": {
+                              "label": {
+                                "label": "Label",
+                                "type": "string"
+                              },
+                              "note": {
+                                "label": "Note",
+                                "type": "string"
+                              },
+                              "value": {
+                                "label": "Value",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Signal",
+                            "type": "object"
+                          },
+                          "label": "Signals",
+                          "minItems": 1,
+                          "type": "array"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home hero"
+                    },
+                    "home-loop": {
+                      "description": "Relay capture, synthesis, and sharing loop",
+                      "fields": {
+                        "eyebrow": {
+                          "label": "Eyebrow",
+                          "type": "string"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "steps": {
+                          "items": {
+                            "fields": {
+                              "phase": {
+                                "label": "Phase",
+                                "type": "string"
+                              },
+                              "text": {
+                                "label": "Text",
+                                "type": "string"
+                              },
+                              "title": {
+                                "label": "Title",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Step",
+                            "type": "object"
+                          },
+                          "label": "Steps",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home operating loop"
+                    },
+                    "home-surface": {
+                      "description": "Relay default template explanation cards",
+                      "fields": {
+                        "cards": {
+                          "items": {
+                            "fields": {
+                              "label": {
+                                "label": "Label",
+                                "type": "string"
+                              },
+                              "text": {
+                                "label": "Text",
+                                "type": "string"
+                              },
+                              "title": {
+                                "label": "Title",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Card",
+                            "type": "object"
+                          },
+                          "label": "Cards",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home surface"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {},
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [
+                  {
+                    "description": "Collaborative team memory and synthesis brain",
+                    "id": "home",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "Home",
+                      "priority": 10,
+                      "show": true,
+                      "slot": "secondary"
+                    },
+                    "path": "/",
+                    "sections": [
+                      {
+                        "id": "diagram",
+                        "template": "relay-site:home-diagram"
+                      }
+                    ],
+                    "title": "Relay"
+                  },
+                  {
+                    "description": "What Relay is designed to do",
+                    "id": "about",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "About",
+                      "priority": 20,
+                      "show": true,
+                      "slot": "primary"
+                    },
+                    "path": "/about",
+                    "sections": [
+                      {
+                        "content": {
+                          "intro": "It exists for teams that need to remember together: capturing what happened, summarizing why it matters, and coordinating with trusted peer brains when work crosses boundaries.",
+                          "points": [
+                            "Not a personal blog engine or portfolio shell.",
+                            "Not a marketing automation stack.",
+                            "A small public face for a larger private knowledge workflow."
+                          ],
+                          "title": "Relay is a collaborative team-memory brain."
+                        },
+                        "id": "about",
+                        "template": "relay-site:about"
+                      }
+                    ],
+                    "title": "About Relay"
+                  }
+                ],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "staticAssets": {
+                  "/atproto/lexicons/ai.rizom.brain.card.json": {
+                    "$string": {
+                      "length": 4620,
+                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.deck.json": {
+                    "$string": {
+                      "length": 1576,
+                      "sha256": "66f9cdd535c7256701820537b2b598fee865940badf50b2e874fcd6053406f5d"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.link.json": {
+                    "$string": {
+                      "length": 1737,
+                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.note.json": {
+                    "$string": {
+                      "length": 1181,
+                      "sha256": "1fa2c32362d149e17e42a6e5f875a9fdffada8b1cf2d9fe09e2dff470add1d63"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.post.json": {
+                    "$string": {
+                      "length": 2280,
+                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.project.json": {
+                    "$string": {
+                      "length": 1627,
+                      "sha256": "a475fee64a30d70949feeb41879863123aa4193cbc805f7e31e93a1bb8187fe6"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.series.json": {
+                    "$string": {
+                      "length": 1095,
+                      "sha256": "59531bb4ecb39f323f003b90a197a05cc2a29a08c04c09cbc883cb8ec4d9692e"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.socialPost.json": {
+                    "$string": {
+                      "length": 1707,
+                      "sha256": "7fd10bb7d368895826e60ce55b31d8097937c65fe2924e4f831ee4f1444b089b"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.topic.json": {
+                    "$string": {
+                      "length": 1178,
+                      "sha256": "5324fc1c06e52073a354ccf368744e680e9e794aa1553d8ff7f289ca9a3a41b7"
+                    }
+                  },
+                  "/boot.js": {
+                    "$string": {
+                      "length": 2968,
+                      "sha256": "b2ec537c2c16745a5b681061419d43705f31bebcbcda8e7b53076634bcc7a99d"
+                    }
+                  },
+                  "/canvases/constellation.canvas.js": {
+                    "$string": {
+                      "length": 9771,
+                      "sha256": "cb2d7cd9192b6709fe6a8d90884de1dfb6299156b6376263e3c419d05e2c8739"
+                    }
+                  },
+                  "/canvases/prelude.canvas.js": {
+                    "$string": {
+                      "length": 5846,
+                      "sha256": "7a6733ad231f1a1fc90a37ab4ab81fab797afa0f939bbac8959a4ca56c56700e"
+                    }
+                  },
+                  "/canvases/roots.canvas.js": {
+                    "$string": {
+                      "length": 11349,
+                      "sha256": "f3b3b8cf690b32569e41b5f8972881ca5d3038b856f2d637a69c82e9cbdd1d77"
+                    }
+                  },
+                  "/canvases/tree.canvas.js": {
+                    "$string": {
+                      "length": 16831,
+                      "sha256": "f2ee5a4004bfac693169fc98e8800eaf2ffa378f00d70597b6a5fd0258cf1b2a"
+                    }
+                  }
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 203,
+                "sha256": "c7ac70abf5ff17594f3d9236794671acec4ccb48b199f9e06332e477f60dfc0e"
+              }
+            },
+            {
+              "$string": {
+                "length": 215,
+                "sha256": "504af5b2f2e7e4c08d3540790cdee19c78de47bf044e9e3a8354a6ae045c7acb"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "action-item": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "decision": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "deck": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "doc": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "image": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "link": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "note": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      },
+      "full": {
+        "selection": {
+          "preset": "full",
+          "members": [
+            "prompt",
+            "directory-sync",
+            "note",
+            "link",
+            "topics",
+            "conversation-memory",
+            "agents",
+            "assessment",
+            "auth-service",
+            "notifications",
+            "email-resend",
+            "cms",
+            "dashboard",
+            "mcp",
+            "webserver",
+            "web-chat",
+            "discord",
+            "a2a",
+            "image",
+            "site-info",
+            "site-content",
+            "site-builder",
+            "docs",
+            "decks"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "rizom-site",
+              "packageName": "@brains/relay/site",
+              "config": {
+                "themeProfile": "studio"
+              }
+            },
+            {
+              "id": "site-package",
+              "packageName": "@rizom/site-package",
+              "config": {
+                "$undefined": true
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "image",
+              "packageName": "@brains/image-plugin",
+              "config": {
+                "defaultAspectRatio": "16:9"
+              }
+            },
+            {
+              "id": "topics",
+              "packageName": "@brains/topics",
+              "config": {
+                "autoMerge": true,
+                "enableAutoExtraction": true,
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ],
+                "mergeSimilarityThreshold": 0.85,
+                "minRelevanceScore": 0.5,
+                "sourceChangeBatchDelayMs": 1000
+              },
+              "criticalConfig": {
+                "extractableStatuses": ["published", "draft"],
+                "extractionVisibility": "public",
+                "includeEntityTypes": [
+                  "note",
+                  "link",
+                  "summary",
+                  "agent",
+                  "swot",
+                  "deck",
+                  "doc",
+                  "anchor-profile",
+                  "brain-character"
+                ]
+              }
+            },
+            {
+              "id": "conversation-memory",
+              "packageName": "@brains/conversation-memory",
+              "config": {
+                "enableProjection": true,
+                "includeKeyPoints": true,
+                "maxEntries": 50,
+                "maxEntryLength": 800,
+                "maxMessagesPerChunk": 40,
+                "maxSourceMessages": 1000,
+                "memoryVisibility": "shared",
+                "projectionDelayMs": 90000,
+                "projectionVersion": 1
+              },
+              "criticalConfig": {
+                "memoryVisibility": "shared"
+              }
+            },
+            {
+              "id": "docs",
+              "packageName": "@brains/doc",
+              "config": {}
+            },
+            {
+              "id": "decks",
+              "packageName": "@brains/decks",
+              "config": {}
+            },
+            {
+              "id": "agent-discovery",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "agent",
+              "packageName": "@brains/agent-discovery",
+              "config": {
+                "notifyOnNewAgents": false
+              }
+            },
+            {
+              "id": "skill",
+              "packageName": "@brains/agent-discovery",
+              "config": {}
+            },
+            {
+              "id": "swot",
+              "packageName": "@brains/assessment",
+              "config": {}
+            },
+            {
+              "id": "auth-service",
+              "packageName": "@brains/auth-service",
+              "config": {
+                "setupTokenTtlSeconds": 86400,
+                "storageDir": "./data/auth",
+                "trustedIssuers": []
+              }
+            },
+            {
+              "id": "notifications",
+              "packageName": "@brains/notifications",
+              "config": {}
+            },
+            {
+              "id": "email-resend",
+              "packageName": "@brains/email-resend",
+              "config": {}
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/relay/seed-content",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/relay/seed-content"
+              }
+            },
+            {
+              "id": "site-content",
+              "packageName": "@brains/site-content",
+              "config": {
+                "definitions": {
+                  "namespace": "relay-site",
+                  "sections": {
+                    "about": {
+                      "description": "Default Relay about page",
+                      "fields": {
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "points": {
+                          "items": {
+                            "label": "Point",
+                            "type": "string"
+                          },
+                          "label": "Points",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "About Relay"
+                    },
+                    "home-hero": {
+                      "description": "Relay homepage hero section",
+                      "fields": {
+                        "eyebrow": {
+                          "label": "Eyebrow",
+                          "type": "string"
+                        },
+                        "headline": {
+                          "label": "Headline",
+                          "type": "string"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "primaryCta": {
+                          "fields": {
+                            "href": {
+                              "label": "Href",
+                              "type": "string"
+                            },
+                            "label": {
+                              "label": "Label",
+                              "type": "string"
+                            }
+                          },
+                          "label": "Primary CTA",
+                          "type": "object"
+                        },
+                        "secondaryCta": {
+                          "fields": {
+                            "href": {
+                              "label": "Href",
+                              "type": "string"
+                            },
+                            "label": {
+                              "label": "Label",
+                              "type": "string"
+                            }
+                          },
+                          "label": "Secondary CTA",
+                          "type": "object"
+                        },
+                        "signals": {
+                          "items": {
+                            "fields": {
+                              "label": {
+                                "label": "Label",
+                                "type": "string"
+                              },
+                              "note": {
+                                "label": "Note",
+                                "type": "string"
+                              },
+                              "value": {
+                                "label": "Value",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Signal",
+                            "type": "object"
+                          },
+                          "label": "Signals",
+                          "minItems": 1,
+                          "type": "array"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home hero"
+                    },
+                    "home-loop": {
+                      "description": "Relay capture, synthesis, and sharing loop",
+                      "fields": {
+                        "eyebrow": {
+                          "label": "Eyebrow",
+                          "type": "string"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "steps": {
+                          "items": {
+                            "fields": {
+                              "phase": {
+                                "label": "Phase",
+                                "type": "string"
+                              },
+                              "text": {
+                                "label": "Text",
+                                "type": "string"
+                              },
+                              "title": {
+                                "label": "Title",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Step",
+                            "type": "object"
+                          },
+                          "label": "Steps",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home operating loop"
+                    },
+                    "home-surface": {
+                      "description": "Relay default template explanation cards",
+                      "fields": {
+                        "cards": {
+                          "items": {
+                            "fields": {
+                              "label": {
+                                "label": "Label",
+                                "type": "string"
+                              },
+                              "text": {
+                                "label": "Text",
+                                "type": "string"
+                              },
+                              "title": {
+                                "label": "Title",
+                                "type": "string"
+                              }
+                            },
+                            "label": "Card",
+                            "type": "object"
+                          },
+                          "label": "Cards",
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "intro": {
+                          "label": "Intro",
+                          "type": "string"
+                        },
+                        "title": {
+                          "label": "Title",
+                          "type": "string"
+                        }
+                      },
+                      "layout": {
+                        "$function": true
+                      },
+                      "title": "Home surface"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {},
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [
+                  {
+                    "description": "Collaborative team memory and synthesis brain",
+                    "id": "home",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "Home",
+                      "priority": 10,
+                      "show": true,
+                      "slot": "secondary"
+                    },
+                    "path": "/",
+                    "sections": [
+                      {
+                        "id": "diagram",
+                        "template": "relay-site:home-diagram"
+                      }
+                    ],
+                    "title": "Relay"
+                  },
+                  {
+                    "description": "What Relay is designed to do",
+                    "id": "about",
+                    "layout": "default",
+                    "navigation": {
+                      "label": "About",
+                      "priority": 20,
+                      "show": true,
+                      "slot": "primary"
+                    },
+                    "path": "/about",
+                    "sections": [
+                      {
+                        "content": {
+                          "intro": "It exists for teams that need to remember together: capturing what happened, summarizing why it matters, and coordinating with trusted peer brains when work crosses boundaries.",
+                          "points": [
+                            "Not a personal blog engine or portfolio shell.",
+                            "Not a marketing automation stack.",
+                            "A small public face for a larger private knowledge workflow."
+                          ],
+                          "title": "Relay is a collaborative team-memory brain."
+                        },
+                        "id": "about",
+                        "template": "relay-site:about"
+                      }
+                    ],
+                    "title": "About Relay"
+                  }
+                ],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "staticAssets": {
+                  "/atproto/lexicons/ai.rizom.brain.card.json": {
+                    "$string": {
+                      "length": 4620,
+                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.deck.json": {
+                    "$string": {
+                      "length": 1576,
+                      "sha256": "66f9cdd535c7256701820537b2b598fee865940badf50b2e874fcd6053406f5d"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.link.json": {
+                    "$string": {
+                      "length": 1737,
+                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.note.json": {
+                    "$string": {
+                      "length": 1181,
+                      "sha256": "1fa2c32362d149e17e42a6e5f875a9fdffada8b1cf2d9fe09e2dff470add1d63"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.post.json": {
+                    "$string": {
+                      "length": 2280,
+                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.project.json": {
+                    "$string": {
+                      "length": 1627,
+                      "sha256": "a475fee64a30d70949feeb41879863123aa4193cbc805f7e31e93a1bb8187fe6"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.series.json": {
+                    "$string": {
+                      "length": 1095,
+                      "sha256": "59531bb4ecb39f323f003b90a197a05cc2a29a08c04c09cbc883cb8ec4d9692e"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.socialPost.json": {
+                    "$string": {
+                      "length": 1707,
+                      "sha256": "7fd10bb7d368895826e60ce55b31d8097937c65fe2924e4f831ee4f1444b089b"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.topic.json": {
+                    "$string": {
+                      "length": 1178,
+                      "sha256": "5324fc1c06e52073a354ccf368744e680e9e794aa1553d8ff7f289ca9a3a41b7"
+                    }
+                  },
+                  "/boot.js": {
+                    "$string": {
+                      "length": 2968,
+                      "sha256": "b2ec537c2c16745a5b681061419d43705f31bebcbcda8e7b53076634bcc7a99d"
+                    }
+                  },
+                  "/canvases/constellation.canvas.js": {
+                    "$string": {
+                      "length": 9771,
+                      "sha256": "cb2d7cd9192b6709fe6a8d90884de1dfb6299156b6376263e3c419d05e2c8739"
+                    }
+                  },
+                  "/canvases/prelude.canvas.js": {
+                    "$string": {
+                      "length": 5846,
+                      "sha256": "7a6733ad231f1a1fc90a37ab4ab81fab797afa0f939bbac8959a4ca56c56700e"
+                    }
+                  },
+                  "/canvases/roots.canvas.js": {
+                    "$string": {
+                      "length": 11349,
+                      "sha256": "f3b3b8cf690b32569e41b5f8972881ca5d3038b856f2d637a69c82e9cbdd1d77"
+                    }
+                  },
+                  "/canvases/tree.canvas.js": {
+                    "$string": {
+                      "length": 16831,
+                      "sha256": "f2ee5a4004bfac693169fc98e8800eaf2ffa378f00d70597b6a5fd0258cf1b2a"
+                    }
+                  }
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "a2a",
+              "packageName": "@brains/a2a",
+              "config": {
+                "maxNetworkAttempts": 2,
+                "port": 3334,
+                "requestTimeoutMs": 30000,
+                "streamIdleTimeoutMs": 60000
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            },
+            {
+              "id": "web-chat",
+              "packageName": "@brains/web-chat",
+              "config": {
+                "apiPath": "/api/chat",
+                "routePath": "/chat"
+              }
+            }
+          ],
+          "agentInstructions": [
+            {
+              "$string": {
+                "length": 203,
+                "sha256": "c7ac70abf5ff17594f3d9236794671acec4ccb48b199f9e06332e477f60dfc0e"
+              }
+            },
+            {
+              "$string": {
+                "length": 215,
+                "sha256": "504af5b2f2e7e4c08d3540790cdee19c78de47bf044e9e3a8354a6ae045c7acb"
+              }
+            }
+          ],
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "action-item": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "decision": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "deck": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "doc": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "image": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "link": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              },
+              "note": {
+                "create": "trusted",
+                "delete": "anchor",
+                "update": "trusted"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "web-chat:*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ranger": {
+    "definition": {
+      "name": "ranger",
+      "capabilityIds": [
+        "prompt",
+        "cms",
+        "dashboard",
+        "atproto-registry",
+        "note",
+        "link",
+        "social-media",
+        "products",
+        "wishlist",
+        "directory-sync",
+        "analytics",
+        "site-info",
+        "site-content",
+        "site-builder"
+      ],
+      "interfaceIds": ["mcp", "discord", "webserver"],
+      "evalDisable": ["discord", "webserver", "analytics", "dashboard"],
+      "site": {
+        "entityDisplay": {},
+        "headScripts": ["<script src=\"/boot.js\" defer></script>"],
+        "layouts": {
+          "default": {
+            "$function": true
+          }
+        },
+        "routes": [],
+        "staticAssets": {
+          "/atproto/lexicons/ai.rizom.brain.card.json": {
+            "$string": {
+              "length": 4620,
+              "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.deck.json": {
+            "$string": {
+              "length": 1576,
+              "sha256": "66f9cdd535c7256701820537b2b598fee865940badf50b2e874fcd6053406f5d"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.link.json": {
+            "$string": {
+              "length": 1737,
+              "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.note.json": {
+            "$string": {
+              "length": 1181,
+              "sha256": "1fa2c32362d149e17e42a6e5f875a9fdffada8b1cf2d9fe09e2dff470add1d63"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.post.json": {
+            "$string": {
+              "length": 2280,
+              "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.project.json": {
+            "$string": {
+              "length": 1627,
+              "sha256": "a475fee64a30d70949feeb41879863123aa4193cbc805f7e31e93a1bb8187fe6"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.series.json": {
+            "$string": {
+              "length": 1095,
+              "sha256": "59531bb4ecb39f323f003b90a197a05cc2a29a08c04c09cbc883cb8ec4d9692e"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.socialPost.json": {
+            "$string": {
+              "length": 1707,
+              "sha256": "7fd10bb7d368895826e60ce55b31d8097937c65fe2924e4f831ee4f1444b089b"
+            }
+          },
+          "/atproto/lexicons/ai.rizom.brain.topic.json": {
+            "$string": {
+              "length": 1178,
+              "sha256": "5324fc1c06e52073a354ccf368744e680e9e794aa1553d8ff7f289ca9a3a41b7"
+            }
+          },
+          "/boot.js": {
+            "$string": {
+              "length": 2968,
+              "sha256": "b2ec537c2c16745a5b681061419d43705f31bebcbcda8e7b53076634bcc7a99d"
+            }
+          },
+          "/canvases/constellation.canvas.js": {
+            "$string": {
+              "length": 9771,
+              "sha256": "cb2d7cd9192b6709fe6a8d90884de1dfb6299156b6376263e3c419d05e2c8739"
+            }
+          },
+          "/canvases/prelude.canvas.js": {
+            "$string": {
+              "length": 5846,
+              "sha256": "7a6733ad231f1a1fc90a37ab4ab81fab797afa0f939bbac8959a4ca56c56700e"
+            }
+          },
+          "/canvases/roots.canvas.js": {
+            "$string": {
+              "length": 11349,
+              "sha256": "f3b3b8cf690b32569e41b5f8972881ca5d3038b856f2d637a69c82e9cbdd1d77"
+            }
+          },
+          "/canvases/tree.canvas.js": {
+            "$string": {
+              "length": 16831,
+              "sha256": "f2ee5a4004bfac693169fc98e8800eaf2ffa378f00d70597b6a5fd0258cf1b2a"
+            }
+          }
+        }
+      },
+      "theme": {
+        "$string": {
+          "length": 45131,
+          "sha256": "47e027cf3a6eb169b435a49b46c2eb15a50d67043224d393e6136e916521af02"
+        }
+      }
+    },
+    "variants": {
+      "default": {
+        "selection": {
+          "preset": "default",
+          "members": [
+            "prompt",
+            "cms",
+            "dashboard",
+            "note",
+            "link",
+            "social-media",
+            "products",
+            "wishlist",
+            "analytics",
+            "directory-sync",
+            "site-info",
+            "site-content",
+            "site-builder",
+            "mcp",
+            "discord",
+            "webserver"
+          ],
+          "add": [],
+          "remove": []
+        },
+        "resolved": {
+          "plugins": [
+            {
+              "id": "site-package",
+              "packageName": "@rizom/site-package",
+              "config": {
+                "$undefined": true
+              }
+            },
+            {
+              "id": "prompt",
+              "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "cms",
+              "packageName": "@brains/cms",
+              "config": {
+                "routePath": "/cms"
+              }
+            },
+            {
+              "id": "dashboard",
+              "packageName": "@brains/dashboard",
+              "config": {
+                "routePath": "/dashboard",
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "version": "1.0.0"
+              },
+              "criticalConfig": {
+                "routePath": "/dashboard"
+              }
+            },
+            {
+              "id": "note",
+              "packageName": "@brains/note",
+              "config": {
+                "defaultPrompt": "Create a note summarizing key concepts from my knowledge base"
+              }
+            },
+            {
+              "id": "link",
+              "packageName": "@brains/link",
+              "config": {
+                "enableSummarization": true
+              }
+            },
+            {
+              "id": "social-media",
+              "packageName": "@brains/social-media",
+              "config": {
+                "autoGenerateOnBlogPublish": false,
+                "defaultPrompt": "Create an engaging social media post that drives engagement",
+                "enabled": true,
+                "maxRetries": 3,
+                "publishInterval": 3600000
+              },
+              "criticalConfig": {
+                "autoGenerateOnBlogPublish": false
+              }
+            },
+            {
+              "id": "products",
+              "packageName": "@brains/products",
+              "config": {
+                "route": "/products"
+              },
+              "criticalConfig": {
+                "route": "/products"
+              }
+            },
+            {
+              "id": "wishlist",
+              "packageName": "@brains/wishlist",
+              "config": {}
+            },
+            {
+              "id": "directory-sync",
+              "packageName": "@brains/directory-sync",
+              "config": {
+                "autoSync": true,
+                "commitDebounce": 5000,
+                "deleteOnFileRemoval": true,
+                "includeMetadata": true,
+                "initialSync": true,
+                "seedContent": true,
+                "seedContentPath": "<repo>/ranger/seed-content",
+                "syncBatchSize": 10,
+                "syncInterval": 2,
+                "syncPriority": 3,
+                "watchInterval": 1000
+              },
+              "criticalConfig": {
+                "autoSync": true,
+                "initialSync": true,
+                "seedContentPath": "<repo>/ranger/seed-content"
+              }
+            },
+            {
+              "id": "analytics",
+              "packageName": "@brains/analytics",
+              "config": {}
+            },
+            {
+              "id": "site-info",
+              "packageName": "@brains/site-info",
+              "config": {}
+            },
+            {
+              "id": "site-content",
+              "packageName": "@brains/site-content",
+              "config": {}
+            },
+            {
+              "id": "site-builder",
+              "packageName": "@brains/site-builder-plugin",
+              "config": {
+                "autoRebuild": true,
+                "entityDisplay": {},
+                "layouts": {
+                  "default": {
+                    "$function": true
+                  }
+                },
+                "previewOutputDir": "./dist/site-preview",
+                "productionOutputDir": "./dist/site-production",
+                "rebuildDebounce": 5000,
+                "routes": [],
+                "sharedImagesDir": "./dist/images",
+                "siteInfo": {
+                  "description": "A knowledge management system",
+                  "title": "Brain"
+                },
+                "staticAssets": {
+                  "/atproto/lexicons/ai.rizom.brain.card.json": {
+                    "$string": {
+                      "length": 4620,
+                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.deck.json": {
+                    "$string": {
+                      "length": 1576,
+                      "sha256": "66f9cdd535c7256701820537b2b598fee865940badf50b2e874fcd6053406f5d"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.link.json": {
+                    "$string": {
+                      "length": 1737,
+                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.note.json": {
+                    "$string": {
+                      "length": 1181,
+                      "sha256": "1fa2c32362d149e17e42a6e5f875a9fdffada8b1cf2d9fe09e2dff470add1d63"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.post.json": {
+                    "$string": {
+                      "length": 2280,
+                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.project.json": {
+                    "$string": {
+                      "length": 1627,
+                      "sha256": "a475fee64a30d70949feeb41879863123aa4193cbc805f7e31e93a1bb8187fe6"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.series.json": {
+                    "$string": {
+                      "length": 1095,
+                      "sha256": "59531bb4ecb39f323f003b90a197a05cc2a29a08c04c09cbc883cb8ec4d9692e"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.socialPost.json": {
+                    "$string": {
+                      "length": 1707,
+                      "sha256": "7fd10bb7d368895826e60ce55b31d8097937c65fe2924e4f831ee4f1444b089b"
+                    }
+                  },
+                  "/atproto/lexicons/ai.rizom.brain.topic.json": {
+                    "$string": {
+                      "length": 1178,
+                      "sha256": "5324fc1c06e52073a354ccf368744e680e9e794aa1553d8ff7f289ca9a3a41b7"
+                    }
+                  },
+                  "/boot.js": {
+                    "$string": {
+                      "length": 2968,
+                      "sha256": "b2ec537c2c16745a5b681061419d43705f31bebcbcda8e7b53076634bcc7a99d"
+                    }
+                  },
+                  "/canvases/constellation.canvas.js": {
+                    "$string": {
+                      "length": 9771,
+                      "sha256": "cb2d7cd9192b6709fe6a8d90884de1dfb6299156b6376263e3c419d05e2c8739"
+                    }
+                  },
+                  "/canvases/prelude.canvas.js": {
+                    "$string": {
+                      "length": 5846,
+                      "sha256": "7a6733ad231f1a1fc90a37ab4ab81fab797afa0f939bbac8959a4ca56c56700e"
+                    }
+                  },
+                  "/canvases/roots.canvas.js": {
+                    "$string": {
+                      "length": 11349,
+                      "sha256": "f3b3b8cf690b32569e41b5f8972881ca5d3038b856f2d637a69c82e9cbdd1d77"
+                    }
+                  },
+                  "/canvases/tree.canvas.js": {
+                    "$string": {
+                      "length": 16831,
+                      "sha256": "f2ee5a4004bfac693169fc98e8800eaf2ffa378f00d70597b6a5fd0258cf1b2a"
+                    }
+                  }
+                },
+                "themeCSS": {
+                  "$string": {
+                    "length": 58918,
+                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                  }
+                },
+                "workingDir": "./.preact-work"
+              },
+              "criticalConfig": {
+                "autoRebuild": true,
+                "rebuildDebounce": 5000
+              }
+            },
+            {
+              "id": "mcp",
+              "packageName": "@brains/mcp",
+              "config": {
+                "authToken": {
+                  "$undefined": true
+                },
+                "httpPort": 3333,
+                "mode": "basic",
+                "sessionIdleTtlMs": 1800000,
+                "transport": "http"
+              }
+            },
+            {
+              "id": "webserver",
+              "packageName": "@brains/webserver",
+              "config": {
+                "apiPort": 3335,
+                "enablePreview": true,
+                "previewDistDir": "./dist/site-preview",
+                "previewPort": 4321,
+                "productionDistDir": "./dist/site-production",
+                "productionPort": 8080,
+                "sharedImagesDir": "./dist/images"
+              }
+            }
+          ],
+          "agentInstructions": {
+            "$undefined": true
+          },
+          "permissions": {
+            "entityActions": {
+              "*": {
+                "create": "anchor",
+                "delete": "anchor",
+                "extract": "anchor",
+                "publish": "anchor",
+                "update": "anchor"
+              },
+              "anchor-profile": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              },
+              "brain-character": {
+                "create": "never",
+                "delete": "never",
+                "update": "anchor"
+              }
+            },
+            "rules": [
+              {
+                "level": "anchor",
+                "pattern": "cli:*"
+              },
+              {
+                "level": "anchor",
+                "pattern": "mcp:stdio"
+              },
+              {
+                "level": "public",
+                "pattern": "mcp:http"
+              },
+              {
+                "level": "public",
+                "pattern": "discord:*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,10 +4,12 @@ Last updated: 2026-07-19
 
 ## Status
 
-Proposed and now a **pre-`v0.2.0` release-candidate gate**. The product decision is
-settled, but no bundle runtime has been implemented. This refresh replaces the June 2026
-phase plan with the current alpha.204 architecture, resolver, permission stack, authoring
-surface, and hosted Rover deployment path.
+Phase 0 complete; Phase 1 is next and remains a **pre-`v0.2.0`
+release-candidate gate**. No bundle runtime has been implemented. The alpha.204 model and
+preset contract is frozen in
+`packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
+catalog IDs, selected members, sanitized resolved config, instruction text, effective
+permissions, site/theme identity, and the consolidated Rizom additions.
 
 The known-good baseline is `@rizom/brain@0.2.0-alpha.204`, healthy on the hosted `jo` and
 `smoke` canaries and on the consolidated `rizom.ai` production deployment. Unification
@@ -85,16 +87,19 @@ Two non-union behaviors require explicit treatment rather than a mechanical pres
 
 The model/preset contract is also embedded in:
 
-- `packages/brain-cli` model registry, build entrypoint, init command, env-schema
-  generator, docs, packed runtime, and tests;
-- `shell/app` parsing, resolution, generated entrypoints, runner errors, and tests;
-- `shell/ai-evaluation` CLI options, suite inheritance, tags, and fixture boot;
-- `@rizom/ops` pilot schemas, generated `brain.yaml`, user tables, image resolution,
-  reconcile flows, templates, and tests;
-- the private Rover Pilot desired-state repository (`model: rover`, per-user/cohort
-  `preset`, generated config, and image tags);
-- standalone apps and published external-plugin fixtures.
+| Area                | Migration inventory                                                                                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model packages      | `brains/rover`, `brains/relay`, and `brains/ranger` definitions, package env schemas, seed/eval content, test apps, and model tests                                                                |
+| App resolver        | `brain-definition.ts`, `brain-resolver.ts`, `instance-overrides.ts`, `runner.ts`, `generate-entrypoint.ts`, public contracts/exports, and preset-focused tests                                     |
+| Published CLI       | build entrypoint, static model registry, bundled env-schema generator/output, init command, brain-YAML loader, public definition exports, docs, packed startup tests, and external-plugin fixtures |
+| Evaluation          | CLI `--preset`, suite config/inheritance, run orchestration, coverage tags, and Rover/Relay eval YAML                                                                                              |
+| Operations          | `@rizom/ops` schema, registry loader, default-user renderer, verifier, user table, templates/tests, and private pilot `model`/`preset` desired state                                               |
+| Sites and instances | Rover/Relay test apps, consolidated Rizom additions, docs-site additions, local site/theme/content conventions, and standalone `brain.yaml` files                                                  |
+| Documentation       | model/preset examples and reference-model language across README, app/CLI docs, brain-model docs, architecture, roadmap, and operator playbooks                                                    |
 
+The baseline fixture is generated through
+`packages/brain-cli/scripts/brain-model-baseline.ts`; long CSS/content values retain
+length plus SHA-256 identity, and absolute worktree paths normalize to `<repo>/...`.
 Removing model packages before these callers migrate would break working deployments.
 
 ## Settled decisions
@@ -143,13 +148,14 @@ are either merged or explicitly assigned a port. The intended taxonomy is:
 
 Posture-independent runtime foundation:
 
-- infrastructure: prompt, directory-sync, auth-service, notifications, email delivery,
-  CMS, one canonical dashboard capability, playbook runtime, onboarding;
+- infrastructure: prompt, directory-sync, auth-service, the Admin console, notifications,
+  email delivery, CMS, one canonical dashboard capability, playbook runtime, onboarding;
 - universal entities/workflows: profile, note, link, image, document, wishlist, topics,
   decks;
 - discovery/trust: agents, assessment, ATProto registry;
 - interfaces: MCP, webserver, web chat, Discord, and A2A;
-- anchor-only platform permission baseline.
+- the admin-only platform permission baseline from `feature/auth-runtime-db`; alpha.204's
+  anchor-only baseline remains frozen only as migration evidence.
 
 Model-specific capability IDs are normalized during migration:
 
@@ -185,7 +191,7 @@ Shared-memory posture:
 - docs;
 - team-specific topic coverage and agent instruction fragments;
 - trusted create/update posture for note, link, image, doc, deck, decision, and
-  action-item, while destructive actions remain anchor-only.
+  action-item, while destructive actions remain admin-only after the auth branch lands.
 
 ### Explicit opt-ins
 
@@ -211,6 +217,23 @@ decision:
 
 Recipes may generate explicit additions needed to preserve an old preset, but those
 additions must be visible in `brain.yaml`; recipes cannot create hidden runtime variants.
+
+### Intentional differences from alpha.204
+
+| Alpha.204 behavior                                                                                           | Unified target                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Admin is absent and `anchor` doubles as the administrative permission level                                  | Admin is a core capability; the auth branch's distinct `admin` level owns administrative routes and destructive defaults |
+| Decks are absent from Rover/Relay core                                                                       | Decks move to `core` as universal knowledge-work output                                                                  |
+| Outbound ATProto is in Rover core; the registry is only a catalog/instance addition                          | ATProto registry moves to `core`; outbound ATProto moves to `publishing`                                                 |
+| `dashboard-root` and `dashboard` are separate capability IDs selected by preset subtraction                  | One `dashboard` member defaults to `/`; `site` explicitly overrides it to `/dashboard`                                   |
+| `rover-profile` and `rover-onboarding` expose model names in capability IDs                                  | Transitional aliases map to model-neutral `profile` and `onboarding` IDs                                                 |
+| Rover default mixes blog, decks, analytics, Obsidian, and site infrastructure                                | Blog belongs to `publishing`, decks to `core`, analytics/site infrastructure to `site`, and Obsidian remains opt-in      |
+| Rover does not select `site-content` by preset; production Rizom adds it manually                            | `site-content` belongs to `site` because entity-backed site sections require it                                          |
+| Relay model defaults carry team instructions, permissions, topic config, site/theme, and seed paths together | `team` owns instruction/config/permission posture; recipe/instance output owns site, theme, and seed content explicitly  |
+| Professional-profile work temporarily adds LinkedIn import to Rover core                                     | Provider-neutral profile ownership remains core; LinkedIn import and OAuth broker remain opt-in                          |
+
+Every other change must either preserve the fixture or add another explicit row before its
+implementation merges.
 
 ## Bundle and resolver contract
 
@@ -299,7 +322,9 @@ an explicit override; do not silently use YAML order. Identical contributions ma
 coexist.
 
 The contract covers transport rules and every entity action currently supported:
-`create`, `update`, `delete`, `extract`, and `publish`.
+`create`, `update`, `delete`, `extract`, and `publish`. Phase 1 starts from the auth
+branch's `admin` / `anchor` / `trusted` / `public` subject model rather than introducing a
+second transitional bundle permission vocabulary.
 
 ### Instructions, site, and seed content
 
@@ -315,44 +340,29 @@ The contract covers transport rules and every entity action currently supported:
 
 ## Active-branch coordination
 
-Before Phase 0 freezes the catalog, reconcile active branches that change the same
-surfaces:
+Phase 0 assigns every overlapping worktree an explicit disposition:
 
-- `feature/auth-runtime-db` changes auth, People/admin capabilities, identity, and
-  permission assumptions;
-- `work/professional-profile-v2` changes profile ownership, Rover wiring, LinkedIn import,
-  and OAuth broker placement;
-- `work/topics-derivation` may change the topics capability/config baseline;
-- `feat/opportunity-priority-engine` remains opt-in and must not enter a default bundle by
-  accident.
+| Branch                             | Disposition                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `feature/auth-runtime-db`          | Merge before Phase 1. Bundles use its Admin capability and four-level permission model; do not build bundle policy merging against the obsolete alpha.204 anchor/admin conflation.                                                                                       |
+| `work/professional-profile-v2`     | Rebase/port after auth and before Phase 2 catalog freeze. Keep the provider-neutral profile extension/migration in `core`; LinkedIn import and the OAuth broker remain explicit opt-ins even though the current worktree temporarily adds LinkedIn import to Rover core. |
+| `work/topics-derivation`           | Keep independent and port before Phase 3 finalizes posture-sensitive topics config. Its reviewed source tiers/weights replace generic array union; Phase 1 only supplies deterministic bundle context and conflict handling.                                             |
+| `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                                       |
 
-These branches do not all need to merge first, but each needs one explicit disposition:
-merged before the inventory, rebased onto the bundle work, or recorded as a later opt-in
-port. Do not independently edit generated/scaffolded pilot files to work around conflicts.
+Do not edit generated/scaffolded pilot files to work around branch conflicts. Pilot changes
+start upstream in `@rizom/ops` during Phase 6 and are regenerated after release.
 
 ## Phasing
 
-Each phase is independently reviewable and keeps the previous input format working until
-the migration phase. Characterization tests precede production changes.
-
-### Phase 0 — Freeze the current matrix and target taxonomy
-
-No runtime behavior changes.
-
-- Record exact active capability/interface IDs, sanitized resolved config, instructions,
-  site/theme selection, and effective permissions for Rover core/default/full, Relay
-  full, Ranger default, and current production instance additions.
-- Add deterministic composition snapshots/helpers; do not use model output evals to test
-  TypeScript set/merge behavior.
-- Resolve and document the dashboard replacement, topics merge, decks placement, outbound
-  vs registry ATProto placement, profile/onboarding ID rename, and active-branch
-  dispositions.
-- Inventory all model/preset references in CLI, app, eval, ops, docs, test apps, generated
-  schemas, and pilot templates.
-
-Exit gate: the target catalog and every intentional delta from alpha.204 are explicit.
+Each remaining phase is independently reviewable and keeps the previous input format
+working until the migration phase. The Phase 0 characterization fixture remains unchanged
+until a canonical bundle profile is compared against it; intentional deltas are asserted
+separately rather than silently regenerating the baseline.
 
 ### Phase 1 — Add the bundle primitive behind presets
+
+Prerequisite: merge/rebase `feature/auth-runtime-db` and rerun the baseline test to record
+its expected permission/Admin delta separately from the immutable alpha.204 fixture.
 
 - Add Zod/TypeScript contracts, `defineBundle`, definition validation, and deterministic
   bundle selection.
