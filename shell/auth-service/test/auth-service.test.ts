@@ -17,6 +17,7 @@ import {
   authServicePlugin,
   normalizeIssuer,
 } from "../src";
+import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import type { AuthServicePlugin } from "../src";
 
 const setupRequiredToolDataSchema = z.object({
@@ -80,6 +81,11 @@ describe("AuthService", () => {
     expect(() => normalizeIssuer("https://brain.example.com/auth")).toThrow(
       "OAuth issuer must be an origin",
     );
+  });
+
+  it("keeps default auth storage outside the synchronized content tree", () => {
+    expect(resolveAuthStorageDir(undefined)).toBe(join(".", "data", "auth"));
+    expect(resolveAuthStorageDir("/srv/brain-auth")).toBe("/srv/brain-auth");
   });
 
   it("generates and reuses public JWKS keys for OAuth and A2A", async () => {

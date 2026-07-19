@@ -70,7 +70,7 @@ const authServiceConfigSchema: z.ZodType<
   trustedIssuers: z.array(z.string()).default([]),
   /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
   allowLocalhostIssuers: z.boolean().optional(),
-  /** Runtime auth storage directory. Defaults to <shell dataDir>/auth. Keep this outside brain-data/content. */
+  /** Runtime auth storage directory. Defaults to ./data/auth, outside brain-data/content. */
   storageDir: z.string().optional(),
   /** First-passkey setup token lifetime in seconds. */
   setupTokenTtlSeconds: z
@@ -98,6 +98,10 @@ export function getActiveAuthService(): AuthService | undefined {
   return activeAuthService;
 }
 
+export function resolveAuthStorageDir(configured: string | undefined): string {
+  return configured ?? join(".", "data", "auth");
+}
+
 export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfig,
   AuthServiceConfigInput
@@ -120,7 +124,7 @@ export class AuthServicePlugin extends ServicePlugin<
         ? (context.localSiteUrl ?? context.siteUrl)
         : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
-      storageDir: this.config.storageDir ?? join(context.dataDir, "auth"),
+      storageDir: resolveAuthStorageDir(this.config.storageDir),
       ...(issuer ? { issuer } : {}),
       trustedIssuers: this.config.trustedIssuers,
       ...(this.config.allowLocalhostIssuers !== undefined
