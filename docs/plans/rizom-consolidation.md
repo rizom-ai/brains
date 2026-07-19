@@ -15,10 +15,9 @@ Remaining, in order:
 1. ✅ **Edge redirects applied and verified** (2026-07-19): `rizom.work` and
    `rizom.foundation` return `301` to their rooms from root and deep paths (query
    stripped per plan), landing `200`.
-2. **Foundation memory migration is unverified** — the cutover ran via the pilot path
-   without evidence that the foundation brain's conversation/team-memory was copied
-   (§3 backup/copy steps unchecked). This gates retiring the old foundation origin;
-   until verified, retirement would lose that memory.
+2. ✅ **Foundation memory migration waived** — operator decision 2026-07-19: the old
+   foundation brain's conversation/team-memory is not needed on the consolidated
+   deployment. Retirement is ungated.
 3. **Staging still runs** — `new.rizom.ai` is up at `0.2.0-alpha.195` and should retire
    after the soak window.
 4. Retire old Work/Foundation origins, archive superseded repos, remove Ranger/Relay
