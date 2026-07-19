@@ -23,7 +23,10 @@ const WIDTH = 1000;
 const HEIGHT = 560;
 const PAD = 60;
 /** How many zone labels the sky can carry before empty zones go quiet. */
-const LABEL_BUDGET = 8;
+const LABEL_BUDGET = 6;
+const LABEL_HEIGHT = 14;
+/** Rough mono glyph advance at the label sizes — enough for collision boxes. */
+const LABEL_CHAR_WIDTH = 7.3;
 
 function mulberry32(seed: number): () => number {
   let value = seed >>> 0;
@@ -78,7 +81,10 @@ interface ZoneLayout {
   labeled: boolean;
 }
 
-function layoutZones(data: KnowledgeMapData): ZoneLayout[] {
+function layoutZones(data: KnowledgeMapData): {
+  layouts: ZoneLayout[];
+  placed: LabelBox[];
+} {
   const pointById = new Map(data.points.map((point) => [point.id, point]));
   const layouts = data.zones.map((zone, index) => {
     const members = zone.memberIds
@@ -99,7 +105,7 @@ function layoutZones(data: KnowledgeMapData): ZoneLayout[] {
             return Math.hypot(p.x - cx, p.y - cy);
           }),
         ) + 30
-      : 24 + (index % 3) * 4;
+      : 14 + (index % 3) * 3;
     return {
       zone,
       cx,
@@ -110,22 +116,50 @@ function layoutZones(data: KnowledgeMapData): ZoneLayout[] {
     };
   });
 
-  // Zones holding members always carry their names; empty zones only while
-  // the sky stays uncrowded.
+  // Text discipline: only territories that hold knowledge get a name, up
+  // to a budget, and a label whose box would collide with an already
+  // placed one stays quiet. Empty zones are silent rings; published
+  // lights carry no titles at all — the glow is the statement, the names
+  // live in the console.
+  const placed: LabelBox[] = [];
   let budget = LABEL_BUDGET;
   for (const layout of layouts) {
-    if (layout.zone.memberIds.length > 0 && budget > 0) {
-      layout.labeled = true;
-      budget--;
-    }
+    if (layout.zone.memberIds.length === 0) continue;
+    if (budget <= 0) break;
+    const text = `${layout.zone.name} · ${layout.zone.memberIds.length}`;
+    const box = centeredBox(
+      layout.cx,
+      layout.cy - layout.base - 8,
+      text.length * LABEL_CHAR_WIDTH,
+    );
+    if (placed.some((other) => intersects(box, other))) continue;
+    placed.push(box);
+    layout.labeled = true;
+    budget--;
   }
-  for (const layout of layouts) {
-    if (!layout.labeled && budget > 0) {
-      layout.labeled = true;
-      budget--;
-    }
-  }
-  return layouts;
+  return { layouts, placed };
+}
+
+interface LabelBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function centeredBox(cx: number, cy: number, width: number): LabelBox {
+  return {
+    x: cx - width / 2,
+    y: cy - LABEL_HEIGHT / 2,
+    w: width,
+    h: LABEL_HEIGHT,
+  };
+}
+
+function intersects(a: LabelBox, b: LabelBox): boolean {
+  return (
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  );
 }
 
 function ZoneShape({
@@ -141,7 +175,7 @@ function ZoneShape({
   const count = zone.memberIds.length;
   return (
     <g>
-      <path d={path} fill={`url(#kmap-mist-${surface})`} />
+      {count > 0 && <path d={path} fill={`url(#kmap-mist-${surface})`} />}
       <path
         class="kmap-weave"
         pathLength={1}
@@ -185,8 +219,6 @@ function PointShape({
   const { x, y } = toPx(point.x, point.y);
   const delay = (0.5 + index * 0.05).toFixed(2);
   if (point.kind === "published") {
-    const anchor = x > WIDTH - 200 ? "end" : "start";
-    const offset = anchor === "start" ? 14 : -14;
     return (
       <g class="kmap-point--published">
         <circle
@@ -216,18 +248,6 @@ function PointShape({
           opacity={0.9}
           style={`--d:${delay}s`}
         />
-        <text
-          class="kmap-label kmap-label--point"
-          x={x + offset}
-          y={y + 4}
-          text-anchor={anchor}
-          fill="var(--kmap-ink-dim)"
-          font-size="10.5"
-          letter-spacing="0.06em"
-          style={`--d:${(1.3 + index * 0.05).toFixed(2)}s`}
-        >
-          {point.title}
-        </text>
       </g>
     );
   }
@@ -276,7 +296,7 @@ export function KnowledgeMap({
   data: KnowledgeMapData;
   surface?: "dashboard" | "site";
 }): JSX.Element {
-  const zones = layoutZones(data);
+  const { layouts: zones } = layoutZones(data);
   // Ground first so territories and lights paint over the spores.
   const points = [...data.points].sort(
     (a, b) => (a.kind === "ground" ? 0 : 1) - (b.kind === "ground" ? 0 : 1),

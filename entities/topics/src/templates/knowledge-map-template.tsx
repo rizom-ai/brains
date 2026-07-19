@@ -141,23 +141,51 @@ html[data-theme="light"] .knowledge-map-site { --console-secondary: #6b2fa0; }
   align-items: baseline;
   margin-top: 1.5rem;
 }
-.knowledge-map-site__cta {
-  display: inline-flex;
-  padding: 0.72rem 1.5rem;
-  border-radius: 3px;
-  background: var(--console-accent);
-  color: var(--color-bg, #fff);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: filter 160ms ease, transform 160ms ease;
-}
-.knowledge-map-site__cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+/* CTAs ride the site's button tokens so they are indistinguishable from
+   the Button component everywhere else on the page; the fallbacks keep
+   them presentable on themes that don't define the tokens. */
+.knowledge-map-site__cta,
 .knowledge-map-site__cta--quiet {
-  color: var(--color-text-muted, var(--console-text));
-  font-size: 0.9rem;
-  text-decoration: underline;
-  text-underline-offset: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rizom-btn-gap, 8px);
+  border-radius: var(--rizom-btn-radius, 3px);
+  border-style: solid;
+  font-family: var(--rizom-btn-font-family, inherit);
+  font-style: var(--rizom-btn-font-style, normal);
+  font-size: 1rem;
+  letter-spacing: var(--rizom-btn-letter-spacing, 0);
+  text-transform: var(--rizom-btn-text-transform, none);
+  text-decoration: none;
+  padding: var(--rizom-btn-md-padding, 12px 24px);
+  transition: all 160ms ease;
+}
+.knowledge-map-site__cta {
+  font-weight: var(--rizom-btn-primary-font-weight, 500);
+  color: var(--rizom-btn-primary-color, var(--color-bg, #fff));
+  background: var(--rizom-btn-primary-bg, var(--console-accent));
+  border-color: var(--rizom-btn-primary-border-color, transparent);
+  border-width: var(--rizom-btn-primary-border-width, 0);
+  box-shadow: var(--rizom-btn-primary-shadow, none);
+}
+.knowledge-map-site__cta:hover {
+  color: var(--rizom-btn-primary-hover-color, var(--color-bg, #fff));
+  background: var(--rizom-btn-primary-hover-bg, var(--console-accent));
+  box-shadow: var(--rizom-btn-primary-hover-shadow, none);
+  transform: var(--rizom-btn-primary-hover-transform, none);
+}
+.knowledge-map-site__cta--quiet {
+  font-weight: var(--rizom-btn-secondary-font-weight, 400);
+  color: var(--rizom-btn-secondary-color, var(--color-text-muted, inherit));
+  background: var(--rizom-btn-secondary-bg, transparent);
+  border-color: var(--rizom-btn-secondary-border-color, currentColor);
+  border-width: var(--rizom-btn-secondary-border-width, 0 0 1px 0);
+  box-shadow: var(--rizom-btn-secondary-shadow, none);
+}
+.knowledge-map-site__cta--quiet:hover {
+  color: var(--rizom-btn-secondary-hover-color, var(--color-text, inherit));
+  border-color: var(--rizom-btn-secondary-hover-border-color, currentColor);
 }
 .knowledge-map-site__foot {
   display: flex;
@@ -182,12 +210,14 @@ html[data-theme="light"] .knowledge-map-site { --console-secondary: #6b2fa0; }
 }
 .knowledge-map-site__links a {
   color: inherit;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: none;
   text-decoration: none;
   border-bottom: 1px solid color-mix(in srgb, var(--console-text) 15%, transparent);
+  transition: color 160ms ease;
 }
+.knowledge-map-site__links a:hover { color: var(--console-accent); }
 .knowledge-map-site__links a:last-child { color: var(--console-accent); }
 `;
 

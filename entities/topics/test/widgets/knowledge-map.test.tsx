@@ -84,10 +84,12 @@ describe("KnowledgeMap", () => {
     expect(html).toContain("Future of Work · 1");
     expect(html).toContain("stroke-dasharray");
 
-    // published entities glow and carry their titles
-    expect(html).toContain("The Future of Work is Play");
-    expect(html).toContain("CoCoCo");
+    // published entities glow — but carry no titles: the glow is the
+    // statement, names live in the console. Text discipline keeps the sky
+    // legible at real corpus sizes.
     expect(html).toContain("kmap-breathe");
+    expect(html).not.toContain("The Future of Work is Play");
+    expect(html).not.toContain("CoCoCo");
 
     // kinds map to their classes
     expect(html).toContain("kmap-point--skill");
@@ -98,10 +100,10 @@ describe("KnowledgeMap", () => {
     expect(html).toContain("var(--kmap-");
   });
 
-  test("labels empty zones only while the sky stays uncrowded", () => {
+  test("empty zones stay silent — only member territories are named", () => {
     const html = render(<KnowledgeMap data={data} />);
-    // two zones total: the empty one is still labeled (≤ label budget)
-    expect(html).toContain("Staging Deployment");
+    expect(html).toContain("Future of Work · 1");
+    expect(html).not.toContain("Staging Deployment");
 
     const crowded: KnowledgeMapData = {
       ...data,
@@ -114,9 +116,39 @@ describe("KnowledgeMap", () => {
       })),
     };
     const crowdedHtml = render(<KnowledgeMap data={crowded} />);
-    // the member-holding zone keeps its label; far-tail empty zones go quiet
     expect(crowdedHtml).toContain("Topic 0 · 1");
     expect(crowdedHtml).not.toContain("Topic 11");
+  });
+
+  test("colliding zone labels are skipped — member zones win", () => {
+    const collided: KnowledgeMapData = {
+      zones: [
+        { id: "a", name: "Alpha Systems", x: 0.5, y: 0.5, memberIds: ["p"] },
+        { id: "b", name: "Beta Systems", x: 0.52, y: 0.5, memberIds: [] },
+      ],
+      points: [
+        {
+          id: "p",
+          entityType: "post",
+          title: "P",
+          kind: "published",
+          x: 0.5,
+          y: 0.52,
+          zoneId: "a",
+        },
+      ],
+      counts: { entities: 3, topics: 2 },
+    };
+    const html = render(<KnowledgeMap data={collided} />);
+    expect(html).toContain("Alpha Systems · 1");
+    expect(html).not.toContain("Beta Systems");
+  });
+
+  test("only zones holding members carry the mist", () => {
+    const html = render(<KnowledgeMap data={data} />);
+    const mists = html.match(/url\(#kmap-mist-dashboard\)/g) ?? [];
+    // one zone with members in the fixture — exactly one mist fill
+    expect(mists).toHaveLength(1);
   });
 
   test("renders byte-identically across builds and switches surfaces", () => {

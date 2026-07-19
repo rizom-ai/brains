@@ -126,11 +126,21 @@ describe("KnowledgeMapWidget", () => {
               name: "Future of Work",
               x: 0.4,
               y: 0.4,
-              memberIds: [],
+              memberIds: ["p"],
             },
           ],
-          points: [],
-          counts: { entities: 1, topics: 1 },
+          points: [
+            {
+              id: "p",
+              entityType: "post",
+              title: "The Essay",
+              kind: "published",
+              x: 0.42,
+              y: 0.44,
+              zoneId: "t",
+            },
+          ],
+          counts: { entities: 2, topics: 1 },
         }}
       />,
     );
