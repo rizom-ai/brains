@@ -32,7 +32,7 @@ const publishAuthContextSchema: z.ZodType<
 > = z.object({
   interfaceType: z.string().optional(),
   actor: actorRefSchema.optional(),
-  userPermissionLevel: z.enum(["public", "trusted", "anchor"]).optional(),
+  userPermissionLevel: z.enum(["public", "trusted", "admin"]).optional(),
   authorization: z.enum(["user", "system"]).optional(),
 });
 

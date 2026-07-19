@@ -226,7 +226,7 @@ describe("optional CMS workspaces", () => {
     });
   });
 
-  it("derives an anchor CMS actor for registered actions", async () => {
+  it("derives an admin CMS actor for registered actions", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
     const plugin = cmsPlugin();
@@ -269,7 +269,7 @@ describe("optional CMS workspaces", () => {
         actor: {
           interfaceType: "cms",
           userId: "operator",
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
         },
       },
     ]);

@@ -24,7 +24,7 @@ function playbook(overrides?: {
       metadata: {
         title: "Onboarding",
         status: overrides?.status ?? "active",
-        audience: overrides?.audience ?? "anchor",
+        audience: overrides?.audience ?? "admin",
         ...(overrides?.trigger ? { trigger: overrides.trigger } : {}),
         ...(overrides?.lifecycle ? { lifecycle: overrides.lifecycle } : {}),
         ...(overrides?.once !== undefined ? { once: overrides.once } : {}),
@@ -72,9 +72,9 @@ function createRegistry(options?: {
   });
 }
 
-const anchorWebChat = {
+const adminWebChat = {
   interfaceType: "web-chat",
-  userPermissionLevel: "anchor" as const,
+  userPermissionLevel: "admin" as const,
 };
 
 describe("LifecycleStarterRegistry.register", () => {
@@ -116,7 +116,7 @@ describe("LifecycleStarterRegistry.register", () => {
 });
 
 describe("LifecycleStarterRegistry.resolveStarters", () => {
-  it("only serves anchor operators on web-chat", async () => {
+  it("only serves admin operators on web-chat", async () => {
     const registry = createRegistry({
       configuredLifecycle: { onboarding: lifecycleConfig() },
     });
@@ -124,7 +124,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
     expect(
       await registry.resolveStarters({
         interfaceType: "matrix",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       }),
     ).toEqual([]);
     expect(
@@ -140,7 +140,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       configuredLifecycle: { onboarding: lifecycleConfig() },
     });
 
-    const starters = await registry.resolveStarters(anchorWebChat);
+    const starters = await registry.resolveStarters(adminWebChat);
 
     expect(starters).toEqual([
       {
@@ -159,7 +159,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       runsByLifecycle: { onboarding: { status: "completed" } },
     });
 
-    expect(await registry.resolveStarters(anchorWebChat)).toEqual([]);
+    expect(await registry.resolveStarters(adminWebChat)).toEqual([]);
   });
 
   it("skips configured lifecycles whose playbook is not active", async () => {
@@ -168,7 +168,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       playbooks: [playbook({ status: "draft" })],
     });
 
-    expect(await registry.resolveStarters(anchorWebChat)).toEqual([]);
+    expect(await registry.resolveStarters(adminWebChat)).toEqual([]);
   });
 
   it("merges registered starters without duplicating configured ids", async () => {
@@ -198,7 +198,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       "rover-onboarding",
     );
 
-    const starters = await registry.resolveStarters(anchorWebChat);
+    const starters = await registry.resolveStarters(adminWebChat);
 
     expect(starters.map((starter) => starter.id)).toEqual([
       "onboarding",
@@ -220,7 +220,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       playbooks: [triggered],
     });
 
-    const starters = await registry.resolveStarters(anchorWebChat);
+    const starters = await registry.resolveStarters(adminWebChat);
     expect(starters).toEqual([
       {
         id: "content-v1",
@@ -237,7 +237,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
       playbooks: [triggered],
       runsByLifecycle: { "content-v1": { status: "completed" } },
     });
-    expect(await completed.resolveStarters(anchorWebChat)).toEqual([]);
+    expect(await completed.resolveStarters(adminWebChat)).toEqual([]);
   });
 
   it("filters to a single lifecycle when requested", async () => {
@@ -249,7 +249,7 @@ describe("LifecycleStarterRegistry.resolveStarters", () => {
     });
 
     const starters = await registry.resolveStarters({
-      ...anchorWebChat,
+      ...adminWebChat,
       lifecycle: "review",
     });
     expect(starters.map((starter) => starter.id)).toEqual(["review"]);

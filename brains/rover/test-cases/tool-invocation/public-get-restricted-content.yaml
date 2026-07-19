@@ -43,7 +43,7 @@ permissions:
       - "Private Visibility Probe"
       - "restricted note exists"
       - "private operational covenant"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_get
         shouldBeCalled: true

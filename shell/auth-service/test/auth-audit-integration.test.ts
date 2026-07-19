@@ -32,7 +32,7 @@ describe("AuthService audit integration", () => {
     ).toContain("auth.setup_token.generated");
   });
 
-  it("audits automatic first-anchor creation", async () => {
+  it("audits automatic first-Admin creation", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
@@ -50,7 +50,7 @@ describe("AuthService audit integration", () => {
       {
         action: "auth.user.created",
         targetId: session.subject,
-        metadata: { role: "anchor", status: "active" },
+        metadata: { role: "admin", status: "active" },
       },
     ]);
   });
@@ -62,7 +62,7 @@ describe("AuthService audit integration", () => {
     });
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const context = { actorUserId: anchor.userId };
     const user = await service.createUser(
@@ -81,11 +81,22 @@ describe("AuthService audit integration", () => {
     );
     await service.detachIdentity(identity.id, context);
     await service.suspendUser(user.userId, context);
+    await service.updateBrainAnchor(
+      { kind: "collective", displayName: "Rizom" },
+      context,
+    );
 
     const actorEvents = (await service.listAuditEvents()).filter(
       (event) => event.targetId !== anchor.userId,
     );
-    expect(actorEvents).toHaveLength(5);
+    expect(actorEvents).toHaveLength(6);
+    expect(actorEvents).toContainEqual(
+      expect.objectContaining({
+        action: "auth.brain_anchor.updated",
+        actorUserId: anchor.userId,
+        metadata: { kind: "collective" },
+      }),
+    );
     expect(
       actorEvents.every((event) => event.actorUserId === anchor.userId),
     ).toBe(true);
@@ -98,7 +109,7 @@ describe("AuthService audit integration", () => {
     });
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const context = { actorUserId: anchor.userId };
 

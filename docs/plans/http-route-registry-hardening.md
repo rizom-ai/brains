@@ -113,7 +113,7 @@ type HttpRouteSecurity =
   | { kind: "none" }
   | {
       kind: "operator";
-      minimumLevel: "public" | "trusted" | "anchor";
+      minimumLevel: "public" | "trusted" | "admin";
       csrf?: "required" | "not-required";
     }
   | { kind: "protocol" };
@@ -223,7 +223,7 @@ Gate:
 Gate:
 
 - No non-public API route can execute as anonymous.
-- The auth matrix covers anonymous, public, trusted, anchor, expired, and suspended principals where supported by auth-service.
+- The auth matrix covers anonymous, public, trusted, Admin, expired, and suspended principals where supported by auth-service.
 - MCP bearer, signed/unsigned A2A, OAuth, WebAuthn, and webhook tests remain unchanged at the protocol boundary.
 - CMS and web-chat mutation tests cover CSRF failure and success.
 

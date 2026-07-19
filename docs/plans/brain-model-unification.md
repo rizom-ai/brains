@@ -10,7 +10,7 @@ Proposed. Design settled through a decision walk (June 2026); no implementation 
 
 Today the product ships three named brain _models_ — `rover`, `relay`, `ranger` — as separate workspace packages (`brains/*/src/index.ts`). They are not three codebases; they are three `defineBrain()` configs over the same framework, differing in preset, identity, prompts, site/theme, and permission posture:
 
-- **rover** (`@brains/rover`) — personal publishing; anchor-only permissions; default site/theme.
+- **rover** (`@brains/rover`) — personal publishing; admin-only permissions; default site/theme.
 - **relay** (`@brains/relay`) — team memory; adds `conversation-memory` (`shared`) + `docs`; **trusted-collaborator** create/update posture; relay site / rizom theme.
 - **ranger** (`@brains/ranger`) — community/org; adds `products`/`wishlist`/`social`/`atproto-registry`; rizom site/theme.
 
@@ -23,7 +23,7 @@ The distinction the three models encode (personal vs team vs community) is real,
 1. **No archetypes.** `rover`/`relay`/`ranger` model packages all retire. Each deployed brain carries its own unique name/identity (already an instance property: `seed-content/` + `brain.yaml` `name:`).
 2. **One canonical capability set, folded into `@rizom/brain`.** No surviving `brains/*` model package; the framework ships the default brain definition + bundles behind its authoring surface. `brain init` scaffolds an instance that picks bundles + a unique name.
 3. **Capability bundles are the new composition primitive.** A bundle is a _named, posture-carrying_ group: plugins **+ their config defaults + permission posture**. Selecting `team` brings `conversation-memory` `shared` visibility _and_ the trusted-collaborator permissions as one unit.
-4. **Bundle permissions are entity-type-scoped.** A bundle governs only the entity types it introduces, so combining bundles is conflict-free by construction. Merge rule: **an explicit bundle posture overrides the `core` default** (e.g. `team` loosens the core-owned `deck` from anchor to trusted); **most-restrictive-wins** only arbitrates genuine two-bundle conflicts (rare, since postures are entity-scoped); the per-instance `brain.yaml` override is the final say.
+4. **Bundle permissions are entity-type-scoped.** A bundle governs only the entity types it introduces, so combining bundles is conflict-free by construction. Merge rule: **an explicit bundle posture overrides the `core` default** (e.g. `team` loosens the core-owned `deck` from admin to trusted); **most-restrictive-wins** only arbitrates genuine two-bundle conflicts (rare, since postures are entity-scoped); the per-instance `brain.yaml` override is the final say.
 5. **Bundles are fixed, not parameterized.** A bundle's value is being a known, tested combination. Tuning lives at the edges: compose multiple bundles (up), or per-plugin `add`/`remove` + `plugins:` config overrides in `brain.yaml` (down). `publishing` without social = `bundles: [core, publishing]` + `remove: [social-media]`; removing a plugin drops its scoped permission entries with it. Recurring removals are a signal to re-cut the bundle, not to make bundles configurable.
 6. **Presets retire in favor of bundles.** No runtime `core/default/full` ladder. `brain.yaml` composes `bundles:` directly. `brain init` _recipes_ (personal / team / community) provide the friendly on-ramp by expanding to explicit bundle lists in the generated file — onboarding sugar, not a runtime concept.
 7. **`site` and `publishing` are distinct, independent axes.** Already proven by today's configs: relay = core + site (no publishing); ranger = core + site + commerce; only rover = core + site + publishing. Selecting `publishing` does **not** pull `site` — publishing can target external channels (email, LinkedIn, atproto, Discord) with no website.
@@ -75,7 +75,7 @@ Split rover's remaining capabilities into `site` and `publishing`; rover compose
 
 ### Phase 2 — `team` bundle (migrate Relay) — keystone
 
-Introduce `team` (conversation-memory `shared` + docs + trusted-collaborator posture scoped to its entity types: note/link/doc/deck/decision/action-item). Express relay as `core + site + team`. **This phase actually exercises posture-carrying bundles**: `team` explicitly loosens the core-owned `deck` (and core capture types) from anchor to trusted — the "explicit bundle posture overrides core default" merge rule. Migrate relay's conversation-memory/team eval fixtures into the suite, tagged by bundle. Retire `@brains/relay`.
+Introduce `team` (conversation-memory `shared` + docs + trusted-collaborator posture scoped to its entity types: note/link/doc/deck/decision/action-item). Express relay as `core + site + team`. **This phase actually exercises posture-carrying bundles**: `team` explicitly loosens the core-owned `deck` (and core capture types) from admin to trusted — the "explicit bundle posture overrides core default" merge rule. Migrate relay's conversation-memory/team eval fixtures into the suite, tagged by bundle. Retire `@brains/relay`.
 
 - Tests first: permission-merge tests (team loosening core defaults; the override precedence); relay's re-tagged team-memory/attribution/trust evals pass against `core + site + team`.
 - Site migration checkpoint: move Relay's remaining content definitions to `defineSection`. Keep the legacy field-DSL compatibility and `site-content` entity registration until every consumer has migrated and an equivalent sync path is proven.
@@ -104,4 +104,4 @@ Move the canonical capability set + bundle definitions behind `@rizom/brain`'s a
 
 ## Checkpoints
 
-Phases 0–2 are the spine. End of Phase 2 is the natural reassessment point: the architecture is proven against two genuinely different postures (anchor-only personal, trusted-collaborator team) before any irreversible package deletion or framework fold.
+Phases 0–2 are the spine. End of Phase 2 is the natural reassessment point: the architecture is proven against two genuinely different postures (admin-only personal, trusted-collaborator team) before any irreversible package deletion or framework fold.

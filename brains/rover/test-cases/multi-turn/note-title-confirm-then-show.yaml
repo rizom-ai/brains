@@ -3,7 +3,7 @@ name: Confirmed note title update can be shown afterward
 description: Verifies that after a confirmed title update, the agent treats the update as complete and uses system_get to show the known note instead of looping on confirmation state.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - notes
   - confirmation

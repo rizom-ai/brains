@@ -5,7 +5,7 @@ description: >-
   to retrieve the saved context and turn it into an actionable follow-up plan.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

@@ -1,8 +1,8 @@
 ---
 title: Rover Onboarding
 status: active
-audience: anchor
-trigger: first-anchor-web-chat
+audience: admin
+trigger: first-admin-web-chat
 lifecycle: onboarding
 starterText: Set up Rover
 description: Tune Rover's identity and anchor profile before using the knowledge loop.

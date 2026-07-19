@@ -7,7 +7,7 @@ description: >-
   different draft, or publish an unrelated freshly-created draft.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - rover
   - publishing

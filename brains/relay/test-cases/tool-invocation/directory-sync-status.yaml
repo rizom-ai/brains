@@ -5,7 +5,7 @@ description: >-
   directory-sync status tool instead of performing a sync or inventing git state.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - directory-sync

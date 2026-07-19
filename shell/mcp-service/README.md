@@ -114,9 +114,9 @@ Tool visibility uses `UserPermissionLevel` from `@brains/templates`:
 
 - `public`: remotely safe access
 - `trusted`: authenticated or trusted-user access
-- `anchor`: full local/owner access
+- `admin`: full administrative access
 
-Tools default to `anchor` visibility when omitted.
+Tools default to `admin` visibility when omitted.
 
 ```typescript
 mcpService.setPermissionLevel("public");
@@ -126,7 +126,7 @@ The internal registry always stores all tools. Permission checks only control wh
 
 ```typescript
 const publicTools = mcpService.listToolsForPermissionLevel("public");
-const anchorTools = mcpService.listToolsForPermissionLevel("anchor");
+const adminTools = mcpService.listToolsForPermissionLevel("admin");
 ```
 
 ## MCP servers

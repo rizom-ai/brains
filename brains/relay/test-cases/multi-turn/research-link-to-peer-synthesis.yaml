@@ -5,7 +5,7 @@ description: >-
   team's peer-brain/A2A direction using saved memory.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

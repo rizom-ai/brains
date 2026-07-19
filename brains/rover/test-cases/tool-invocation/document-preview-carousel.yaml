@@ -3,7 +3,7 @@ name: Preview Deck Carousel as Durable Document
 description: "Verifies carousel preview requests use system_generate so the operator receives a durable PDF attachment"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - decks

@@ -3,7 +3,7 @@ name: Web chat image discussion saves as note content
 description: Verifies that after describing and discussing an uploaded image, "save this as a note" creates a normal note from conversation context instead of trying to import the raw image upload as markdown.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-image-discussion-note
   channelName: Web Chat Eval

@@ -21,8 +21,8 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_create");
     expect(instructions).toContain("system_update");
     expect(instructions).toContain("system_delete");
-    expect(instructions).toContain("Anchor-only entity removal");
-    expect(instructions).toContain("deletion requires Anchor access");
+    expect(instructions).toContain("Admin-only entity removal");
+    expect(instructions).toContain("deletion requires Admin access");
     expect(instructions).toContain("system_get");
     expect(instructions).toContain("system_list");
     expect(instructions).toContain("system_search");

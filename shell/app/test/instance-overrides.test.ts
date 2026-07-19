@@ -390,23 +390,23 @@ permissions:
     "*":
       create: trusted
       update: trusted
-      delete: anchor
-      extract: anchor
-      publish: anchor
+      delete: admin
+      extract: admin
+      publish: admin
     summary:
-      create: anchor
-      update: anchor
+      create: admin
+      update: admin
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.permissions?.entityActions).toEqual({
       "*": {
         create: "trusted",
         update: "trusted",
-        delete: "anchor",
-        extract: "anchor",
-        publish: "anchor",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
       },
-      summary: { create: "anchor", update: "anchor" },
+      summary: { create: "admin", update: "admin" },
     });
   });
 
@@ -415,7 +415,7 @@ permissions:
 permissions:
   entityActions:
     summary:
-      update: admin
+      update: anchor
 `;
 
     expect(() => parseInstanceOverrides(yaml)).toThrow(
@@ -566,7 +566,7 @@ describe("parseInstanceOverrides error surfacing", () => {
   });
 
   test("throws with nested field path on nested validation failure", () => {
-    // permissions.rules[0].level expects anchor/trusted/public
+    // permissions.rules[0].level expects admin/trusted/public
     const yaml = `brain: "@brains/rover"
 permissions:
   rules:
@@ -973,7 +973,7 @@ describe("resolve with instance overrides", () => {
       capabilities: [],
       interfaces: [],
       permissions: {
-        rules: [{ pattern: "cli:*", level: "anchor" as const }],
+        rules: [{ pattern: "cli:*", level: "admin" as const }],
       },
     });
 
@@ -1034,20 +1034,20 @@ describe("resolve with instance overrides", () => {
 
     expect(config.permissions?.entityActions).toEqual({
       "*": {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
-        publish: "anchor",
+        create: "admin",
+        update: "admin",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
       },
       "anchor-profile": {
         create: "never",
-        update: "anchor",
+        update: "admin",
         delete: "never",
       },
       "brain-character": {
         create: "never",
-        update: "anchor",
+        update: "admin",
         delete: "never",
       },
     });
@@ -1092,7 +1092,7 @@ describe("resolve with instance overrides", () => {
       type: "entity",
       entityActionPolicy: {
         // @ts-expect-error — invalid required level for testing runtime guard
-        topic: { delete: "admin" },
+        topic: { delete: "owner" },
       },
       register: async (): Promise<PluginCapabilities> => ({
         tools: [],
@@ -1120,7 +1120,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
       permissions: {
         entityActions: {
-          "*": { update: "anchor", publish: "anchor" },
+          "*": { update: "admin", publish: "admin" },
         },
       },
     });
@@ -1153,11 +1153,11 @@ describe("resolve with instance overrides", () => {
           "*": {
             create: "trusted",
             update: "trusted",
-            delete: "anchor",
-            extract: "anchor",
-            publish: "anchor",
+            delete: "admin",
+            extract: "admin",
+            publish: "admin",
           },
-          summary: { create: "anchor", update: "anchor", delete: "anchor" },
+          summary: { create: "admin", update: "admin", delete: "admin" },
         },
       },
     });
@@ -1178,21 +1178,21 @@ describe("resolve with instance overrides", () => {
       "*": {
         create: "trusted",
         update: "trusted",
-        delete: "anchor",
-        extract: "anchor",
-        publish: "anchor",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
       },
       "anchor-profile": {
         create: "never",
-        update: "anchor",
+        update: "admin",
         delete: "never",
       },
       "brain-character": {
         create: "never",
-        update: "anchor",
+        update: "admin",
         delete: "never",
       },
-      summary: { create: "anchor", update: "trusted", delete: "anchor" },
+      summary: { create: "admin", update: "trusted", delete: "admin" },
     });
   });
 
@@ -1230,7 +1230,7 @@ permissions:
     expect(() =>
       service.assertEntityActionAllowed("summary", "update", "trusted"),
     ).not.toThrow();
-    // Untouched: summary delete still anchor-only.
+    // Untouched: summary delete still admin-only.
     expect(() =>
       service.assertEntityActionAllowed("summary", "delete", "trusted"),
     ).toThrow(EntityActionPermissionError);

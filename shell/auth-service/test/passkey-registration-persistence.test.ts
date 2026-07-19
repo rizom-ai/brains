@@ -28,7 +28,7 @@ describe("runtime passkey registration persistence", () => {
 
     try {
       const users = new AuthUserStore(database.db);
-      const user = await users.ensureFirstAnchorUser();
+      const user = await users.ensureFirstAdminUser();
       const store = new RuntimePasskeyStore(database);
       await store.addCredential({
         id: "new-credential",

@@ -49,7 +49,7 @@ export async function resolveMessageArtifactAccess<
 export function canReceiveNativeArtifactFile(
   userLevel: UserPermissionLevel,
 ): boolean {
-  return userLevel === "anchor" || userLevel === "trusted";
+  return userLevel === "admin" || userLevel === "trusted";
 }
 
 /**

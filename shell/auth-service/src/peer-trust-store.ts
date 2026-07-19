@@ -35,7 +35,7 @@ const peerTrustStoreFileSchema: z.ZodType<A2APeerTrustStoreFile> = z
 export interface GrantA2APeerTrustInput {
   domain: string;
   keyFingerprint: string;
-  grantedLevel: "public" | "trusted" | "anchor";
+  grantedLevel: "public" | "trusted" | "admin";
 }
 
 export interface PeerTrustMutationContext {
@@ -98,7 +98,7 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
     input: GrantA2APeerTrustInput,
     context: PeerTrustMutationContext = {},
   ): Promise<A2APeerTrustRecord> {
-    if (input.grantedLevel === "anchor") {
+    if (input.grantedLevel === "admin") {
       throw new Error("A2A peer trust grants must be trusted or public");
     }
     const record: A2APeerTrustRecord = {
@@ -181,7 +181,7 @@ export class A2APeerTrustStore implements A2APeerTrustPersistence {
   }
 
   async grant(input: GrantA2APeerTrustInput): Promise<A2APeerTrustRecord> {
-    if (input.grantedLevel === "anchor") {
+    if (input.grantedLevel === "admin") {
       throw new Error("A2A peer trust grants must be trusted or public");
     }
 

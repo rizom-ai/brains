@@ -36,7 +36,7 @@ permissions:
     responseNotContains:
       - "created"
       - "done"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true

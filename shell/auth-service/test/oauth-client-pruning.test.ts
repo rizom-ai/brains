@@ -35,7 +35,7 @@ describe("RuntimeOAuthClientStore", () => {
     await database.start();
 
     try {
-      const user = await new AuthUserStore(database.db).ensureFirstAnchorUser();
+      const user = await new AuthUserStore(database.db).ensureFirstAdminUser();
       const clients = new RuntimeOAuthClientStore(database);
       const stale = await clients.registerClient({
         redirect_uris: ["https://stale.example/callback"],

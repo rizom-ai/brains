@@ -139,7 +139,7 @@ const agentContextInputSchema = z.object({
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   userPermissionLevel: z
-    .enum(["anchor", "trusted", "public"])
+    .enum(["admin", "trusted", "public"])
     .default("trusted"),
   memory: z.array(seededMemorySchema).optional(),
 });

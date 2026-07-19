@@ -7,7 +7,7 @@ description: >-
   dashboard/CMS on the shared webserver surface while keeping Relay core private.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - dashboard

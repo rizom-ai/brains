@@ -72,8 +72,8 @@ describe("entity action policy", () => {
     services = createMockSystemServices({
       permissionService: new PermissionService({
         entityActions: {
-          "*": { create: "trusted", update: "trusted", delete: "anchor" },
-          summary: { create: "anchor", update: "anchor", delete: "anchor" },
+          "*": { create: "trusted", update: "trusted", delete: "admin" },
+          summary: { create: "admin", update: "admin", delete: "admin" },
         },
       }),
     });
@@ -126,10 +126,10 @@ describe("entity action policy", () => {
     expect(error).toContain("Public");
   });
 
-  it("hides system_delete from non-anchor tool surfaces and still fails closed for direct public calls", async () => {
+  it("hides system_delete from non-Admin tool surfaces and still fails closed for direct public calls", async () => {
     const tool = getTool("system_delete");
 
-    expect(tool.visibility).toBe("anchor");
+    expect(tool.visibility).toBe("admin");
 
     const result = await tool.handler(
       { entityType: "note", id: "missing-note" },
@@ -155,7 +155,7 @@ describe("entity action policy", () => {
     );
   });
 
-  it("denies trusted create for anchor-only derived entity types", async () => {
+  it("denies trusted create for admin-only derived entity types", async () => {
     const result = await getTool("system_create").handler(
       {
         entityType: "summary",
@@ -166,11 +166,11 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Creating `summary` requires Anchor");
+    expect(error).toContain("Creating `summary` requires Admin permission");
     expect(error).toContain("Trusted");
   });
 
-  it("denies trusted update for anchor-only entity types before confirmation", async () => {
+  it("denies trusted update for admin-only entity types before confirmation", async () => {
     const result = await getTool("system_update").handler(
       {
         entityType: "summary",
@@ -181,7 +181,7 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Updating `summary` requires Anchor");
+    expect(error).toContain("Updating `summary` requires Admin permission");
     expect(error).toContain("Trusted");
   });
 
@@ -192,11 +192,11 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Deleting `note` requires Anchor");
+    expect(error).toContain("Deleting `note` requires Admin permission");
     expect(error).toContain("Trusted");
   });
 
-  it("allows anchor update and delete to proceed to confirmation", async () => {
+  it("allows Admin update and delete to proceed to confirmation", async () => {
     expectConfirmation(
       await getTool("system_update").handler(
         {
@@ -204,14 +204,14 @@ describe("entity action policy", () => {
           id: "weekly-summary",
           fields: { title: "Edited" },
         },
-        baseContext("anchor"),
+        baseContext("admin"),
       ),
     );
 
     expectConfirmation(
       await getTool("system_delete").handler(
         { entityType: "note", id: "team-note" },
-        baseContext("anchor"),
+        baseContext("admin"),
       ),
     );
   });
@@ -222,7 +222,7 @@ describe("entity action policy", () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_delete").handler(
         { entityType: "note", id: "team-note" },
-        baseContext("anchor"),
+        baseContext("admin"),
       ),
     );
 
@@ -230,7 +230,7 @@ describe("entity action policy", () => {
     // confirmation must be bound to the approved args, not just the token.
     const swapped = await getTool("system_delete").handler(
       { ...confirmArgs, id: "other-note" },
-      baseContext("anchor"),
+      baseContext("admin"),
     );
     const error = expectError(swapped);
     expect(error).toContain("do not match the pending approval");
@@ -248,7 +248,7 @@ describe("entity action policy", () => {
         confirmed: true,
         confirmationToken: "bogus-token",
       },
-      baseContext("anchor"),
+      baseContext("admin"),
     );
 
     const error = expectError(result);
@@ -260,13 +260,13 @@ describe("entity action policy", () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_delete").handler(
         { entityType: "note", id: "team-note" },
-        baseContext("anchor"),
+        baseContext("admin"),
       ),
     );
 
     const result = await getTool("system_delete").handler(
       confirmArgs,
-      baseContext("anchor"),
+      baseContext("admin"),
     );
     const data = expectSuccess(result, z.object({ deleted: z.string() }));
     expect(data.deleted).toBe("team-note");
@@ -298,7 +298,7 @@ describe("entity action policy", () => {
       baseContext("trusted"),
     );
     const error = expectError(result);
-    expect(error).toContain("Creating `summary` requires Anchor");
+    expect(error).toContain("Creating `summary` requires Admin permission");
     expect(services.getEntities().has("intercepted-summary")).toBe(false);
   });
 });

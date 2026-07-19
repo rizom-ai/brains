@@ -3,7 +3,7 @@ name: Playbook Blocks Early Next Without Identity Details
 description: Verifies that Rover does not advance from Brain identity on a generic Next/continue request before brain identity is saved.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: web-chat-eval-playbook-gate
   channelName: Web Chat Eval

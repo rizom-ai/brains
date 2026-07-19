@@ -49,7 +49,7 @@ If `chat` returns `needsConfirmation`, call `confirm` with the returned `approva
 
 ## Debug mode
 
-For local/operator inspection, configure MCP with `mode: debug` to advertise raw tools. Debug mode requires `anchor` permissions and is refused for unauthenticated HTTP.
+For local/operator inspection, configure MCP with `mode: debug` to advertise raw tools. Debug mode requires `admin` permissions and is refused for unauthenticated HTTP.
 
 ```yaml
 plugins:

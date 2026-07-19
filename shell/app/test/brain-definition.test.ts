@@ -91,7 +91,7 @@ describe("defineBrain", () => {
       ],
       permissions: {
         anchors: ["test:user"],
-        rules: [{ pattern: "test:*", level: "anchor" }],
+        rules: [{ pattern: "test:*", level: "admin" }],
       },
       deployment: {
         domain: "test.example.com",
@@ -521,7 +521,7 @@ describe("resolve", () => {
       interfaces: [],
       permissions: {
         anchors: ["matrix:@user:server"],
-        rules: [{ pattern: "mcp:*", level: "anchor" }],
+        rules: [{ pattern: "mcp:*", level: "admin" }],
       },
       deployment: {
         domain: "example.com",

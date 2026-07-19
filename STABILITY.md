@@ -30,7 +30,7 @@ That includes fields such as:
 - `preset`
 - `mode`
 - `add` / `remove`
-- `anchors` / `trusted`
+- `admins` / `anchors` / `trusted`
 - `plugins`
 - `permissions`
 

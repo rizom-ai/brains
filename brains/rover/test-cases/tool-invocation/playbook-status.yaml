@@ -3,7 +3,7 @@ name: Playbook Status Check
 description: Verifies that explicit playbook status requests use the playbook_status tool.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - playbooks
   - tool-invocation

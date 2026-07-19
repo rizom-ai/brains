@@ -6,7 +6,7 @@ description: >-
   draft post; it should resolve or ask which existing published post to change.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - rover
   - publishing

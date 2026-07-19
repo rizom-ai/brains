@@ -3,7 +3,7 @@ name: Web chat upload context does not hijack deck carousel preview
 description: Verifies prior uploads remain passive when the user asks for a deck carousel preview from an existing deck.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-file-upload-context-deck-carousel
   channelName: Web Chat Eval

@@ -46,7 +46,7 @@ describe("PublicationQueueService", () => {
     const result = await service.enqueue("social-post", "first", {
       interfaceType: "cms",
       actor: { kind: "user", userId: "operator" },
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
       authorization: "user",
     });
 

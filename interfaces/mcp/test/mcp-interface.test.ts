@@ -130,7 +130,7 @@ describe("MCPInterface", () => {
   });
 
   describe("registration", () => {
-    it("should register with stdio transport and anchor permissions", async () => {
+    it("should register with stdio transport and admin permissions", async () => {
       const plugin = new MCPInterface({ transport: "stdio" });
 
       const capabilities = await harness.installPlugin(plugin);
@@ -145,7 +145,7 @@ describe("MCPInterface", () => {
       expect(capabilities.resources).toHaveLength(0);
     });
 
-    it("should register with http transport and anchor permissions", async () => {
+    it("should register with http transport and admin permissions", async () => {
       installWebserverPlugin();
       const plugin = new MCPInterface({ transport: "http" });
 
@@ -220,7 +220,7 @@ describe("MCPInterface", () => {
       await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
 
       expect(calls.protocolModes).toEqual(["debug"]);
-      expect(calls.permissionLevels).toEqual(["anchor"]);
+      expect(calls.permissionLevels).toEqual(["admin"]);
     });
 
     it("should reject debug mode for unauthenticated HTTP transport", async () => {

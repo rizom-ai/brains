@@ -38,8 +38,8 @@ export function PersonDetail(props: {
       title: `Change ${user.displayName}’s role?`,
       copy: `${roleLabel(user.role)} → ${roleLabel(role)} changes permissions immediately.`,
       warning:
-        role === "anchor"
-          ? "Anchor grants full administration and restricted-content access."
+        role === "admin"
+          ? "Admin grants full administration and restricted-content access."
           : "Existing sessions will end and must be reauthenticated.",
       submitLabel: "Change role",
       run: async () => {
@@ -70,26 +70,81 @@ export function PersonDetail(props: {
             </span>
           </span>
         </div>
-        <label className="people-role-control">
-          <span>Role</span>
-          <select
-            value={user.role}
-            onChange={(event) =>
-              confirmRole(event.currentTarget.value as AuthAdminRole)
-            }
-          >
-            {AUTH_USER_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {roleLabel(role)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="people-facets" aria-label="Member facets">
+          <div className="people-facet">
+            <span>Role</span>
+            <strong
+              className={`people-facet-role people-facet-role--${user.role}`}
+            >
+              {roleLabel(user.role)}
+            </strong>
+          </div>
+          <div className="people-facet">
+            <span>Anchor?</span>
+            <strong className={user.isAnchor ? "is-anchor" : "not-anchor"}>
+              {user.isAnchor ? "Yes" : "No"}
+            </strong>
+          </div>
+        </div>
       </div>
 
       <div className="people-detail-sections">
         <DetailSection
-          title="Linked agents"
+          title="Profile"
+          description="How this member presents. The profile lives with the member, not the brain."
+        >
+          <AccessItem kind="Display name" value={user.displayName} />
+          <AccessItem
+            kind="Profile record"
+            value={user.profileEntityId ?? "Role, bio, and expertise not set"}
+          />
+        </DetailSection>
+
+        <DetailSection
+          title="Brain"
+          description="Optional. A member may bring their own brain as a verified peer; this console never provisions one."
+        >
+          <AccessItem
+            kind="Linked brain"
+            value="No verified peer brain linked"
+          />
+        </DetailSection>
+
+        <DetailSection
+          title="Access"
+          description="Permission role — the only facet authorization gates check."
+        >
+          <div className="people-access-role">
+            <span>
+              <strong>{roleLabel(user.role)}</strong>
+              <small>
+                {user.role === "admin"
+                  ? "Can administer members and access"
+                  : user.role === "trusted"
+                    ? "Elevated collaboration access"
+                    : "Limited read-oriented access"}
+              </small>
+            </span>
+            <label className="people-role-control">
+              <span>Change role</span>
+              <select
+                value={user.role}
+                onChange={(event) =>
+                  confirmRole(event.currentTarget.value as AuthAdminRole)
+                }
+              >
+                {AUTH_USER_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {roleLabel(role)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </DetailSection>
+
+        <DetailSection
+          title="Representatives"
           description="Representatives sharing this person’s canonical profile and identity claims."
         >
           {user.agents.length === 0 ? (
@@ -110,7 +165,7 @@ export function PersonDetail(props: {
 
         <DetailSection
           title="Identities"
-          description="Ways this person is recognized."
+          description="Verified sign-in methods and private identity claims."
         >
           {user.identities.length === 0 ? (
             <p className="people-empty">No identities attached.</p>
@@ -284,9 +339,11 @@ export function PersonDetail(props: {
 
       <footer className="people-detail-footer">
         <small>
-          {user.role === "anchor" && user.status === "active"
-            ? "At least one active Anchor must remain."
-            : "Access changes are audited."}
+          {user.isAnchor
+            ? "A personal Anchor must remain an active Admin."
+            : user.role === "admin" && user.status === "active"
+              ? "At least one active Admin must remain."
+              : "Access changes are audited."}
         </small>
         <Button
           {...(user.status === "suspended" ? {} : { tone: "danger" as const })}

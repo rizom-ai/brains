@@ -111,7 +111,7 @@ describe("system_extract tool", () => {
   it("denies extraction when entity action policy requires a higher level", async () => {
     services = createMockSystemServices({
       permissionService: new PermissionService({
-        entityActions: { topic: { extract: "anchor" } },
+        entityActions: { topic: { extract: "admin" } },
       }),
     });
     services.addEntities([
@@ -135,7 +135,7 @@ describe("system_extract tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Extracting `topic` requires Anchor permission; your current permission is Trusted.",
+        "Extracting `topic` requires Admin permission; your current permission is Trusted.",
     });
   });
 

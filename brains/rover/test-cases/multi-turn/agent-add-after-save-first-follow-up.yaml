@@ -3,7 +3,7 @@ name: Save Agent After Bare Save-First Follow-Up
 description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, a bare affirmative follow-up uses the typed candidate to connect the same agent domain
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

@@ -145,15 +145,15 @@ describe("DashboardDataSource", () => {
         dataProvider: async () => ({ value: "trusted" }),
       });
       registry.register({
-        id: "anchor-widget",
+        id: "admin-widget",
         pluginId: "test",
         group: "knowledge",
-        title: "Anchor",
+        title: "Admin",
         section: "primary",
         priority: 30,
         rendererName: "StatsWidget",
-        visibility: "anchor",
-        dataProvider: async () => ({ value: "anchor" }),
+        visibility: "admin",
+        dataProvider: async () => ({ value: "admin" }),
       });
 
       const publicResult = await datasource.getDashboardData();
@@ -167,13 +167,13 @@ describe("DashboardDataSource", () => {
         "test:trusted-widget",
       ]);
 
-      const anchorResult = await datasource.getDashboardData({
-        permissionLevel: "anchor",
+      const adminResult = await datasource.getDashboardData({
+        permissionLevel: "admin",
       });
-      expect(Object.keys(anchorResult.widgets)).toEqual([
+      expect(Object.keys(adminResult.widgets)).toEqual([
         "test:public-widget",
         "test:trusted-widget",
-        "test:anchor-widget",
+        "test:admin-widget",
       ]);
     });
 

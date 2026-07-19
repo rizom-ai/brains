@@ -104,7 +104,7 @@ describe("ObsidianVaultPlugin", () => {
       (candidate) => candidate.name === "obsidian-vault_sync-templates",
     );
     expect(toolNames).toContain("obsidian-vault_sync-templates");
-    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("external");
   });
 

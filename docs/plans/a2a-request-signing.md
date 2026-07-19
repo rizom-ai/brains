@@ -25,7 +25,7 @@ A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, w
 
 - Adopting full AAuth (Person Server, missions, AAuth-Requirement first-call ceremony, `aauth:local@domain` identifier scheme). This plan ships the foundation only — RFC 9421 plus per-instance keys plus JWKS — which is what AAuth itself sits on top of.
 - Replacing the existing OAuth/passkey provider for human/MCP auth.
-- Changing the permission model. The anchor / trusted / public levels in `permissionService` remain authoritative; this plan only changes what feeds into the identity column.
+- Changing the permission model. The admin / trusted / public levels in `permissionService` remain authoritative; this plan only changes what feeds into the identity column.
 - Replay protection beyond a freshness window. A nonce store may be added later; the freshness window is the v1 bound.
 - Supporting reverse proxies that mutate covered headers. Operators must run with proxies that preserve `Host`, `Date`, and request body integrity. Documented as a constraint, not a feature.
 
@@ -83,7 +83,7 @@ Inbound trust uses a separate **peer-trust record** `{domain, key fingerprint, g
 
 - Adding a peer (`agent_connect` or ATProto discovery) fetches `/.well-known/agent-card.json` and saves/updates the directory entry. It does **not** create an inbound trusted grant.
 - A separate explicit trust action (`agent_set_trust_level`) fetches `/.well-known/jwks.json`, pins the peer A2A key fingerprint, and writes the peer-trust record.
-- `grantedLevel` is `trusted` or `public`; `anchor` is not grantable to a peer brain — owner authority stays human.
+- `grantedLevel` is `trusted` or `public`; `admin` is not grantable to a peer brain — administrative authority stays human.
 
 The peer-trust record — not the entity — is what inbound verification consults. This split is deliberate: agent entities are git-synced brain-data, and directory-sync ingests that repo automatically, so an entity-borne grant would let anyone with a commit to the content repo mint themselves inbound trust (add an approved entry for their own domain, sign with their own key). Trust grants therefore live on the runtime plane (same non-synced storage class as passkeys and sessions; table shape coordinates with [auth-runtime-db.md](./auth-runtime-db.md)), where only explicit runtime trust flows write. A restored brain-data repo brings back the directory _listing_; inbound trust requires a separate runtime grant.
 

@@ -5,7 +5,7 @@ description: >-
   not call it or create a fallback wish, then must save it after explicit consent.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

@@ -94,7 +94,8 @@ export const ChatAttachmentSchema: z.ZodDiscriminatedUnion<
 export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
 
 export interface ChatContext {
-  userPermissionLevel?: "anchor" | "trusted" | "public" | undefined;
+  userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
+  isAnchor?: boolean | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
   channelName?: string | undefined;
@@ -112,7 +113,8 @@ export interface ChatContext {
 }
 
 export const ChatContextSchema: z.ZodType<ChatContext, unknown> = z.object({
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+  userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
+  isAnchor: z.boolean().optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),

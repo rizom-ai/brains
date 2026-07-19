@@ -257,7 +257,7 @@ describe("SiteBuilderPlugin", () => {
       {
         interfaceType: "cms",
         userId: "operator",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
     expect(result).toEqual({ accepted: true, environment: "preview" });
@@ -279,7 +279,7 @@ describe("SiteBuilderPlugin", () => {
         {
           interfaceType: "cms",
           userId: "operator",
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
         },
       ),
     ).rejects.toThrow("Invalid site workspace action");
@@ -288,7 +288,7 @@ describe("SiteBuilderPlugin", () => {
       group: "publishing",
       section: "sidebar",
       rendererName: "SiteHealthWidget",
-      visibility: "anchor",
+      visibility: "admin",
     });
     expect(dashboardWidget?.clientStyles).toContain(".site-health-widget");
     const dashboardData = await dashboardWidget?.dataProvider();
@@ -315,7 +315,7 @@ describe("SiteBuilderPlugin", () => {
     const [tool] = capabilities.tools;
 
     expect(toolNames).toEqual(["site-builder_build-site"]);
-    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("external");
   });
 

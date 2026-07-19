@@ -3,7 +3,7 @@ name: Proactive Search for User Content
 description: Tests that agent automatically searches when user asks about their own content instead of asking permission
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - tool-invocation

@@ -27,7 +27,8 @@ function machineContext(
     interfaceType: "matrix",
     channelId: "channel-1",
     channelName: "General",
-    userPermissionLevel: "anchor",
+    userPermissionLevel: "admin",
+    isAnchor: false,
     actor: null,
     source: null,
     attachments: [],
@@ -41,7 +42,7 @@ function machineContext(
 }
 
 describe("canConfirmPendingAction", () => {
-  it("always allows the anchor", () => {
+  it("always allows an administrator", () => {
     const confirmation = pendingConfirmation({
       actorKey: "alice",
       userPermissionLevel: "trusted",
@@ -49,7 +50,7 @@ describe("canConfirmPendingAction", () => {
 
     expect(
       canConfirmPendingAction(confirmation, {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         actor: {
           identity: { kind: "external", externalActorId: "someone-else" },
           interfaceType: "matrix",
@@ -138,6 +139,7 @@ describe("resolveConfirmationContext", () => {
       channelId: "channel-9",
       channelName: "Ops",
       userPermissionLevel: "trusted",
+      isAnchor: false,
       actor: null,
       source: null,
     });
@@ -155,10 +157,11 @@ describe("resolveConfirmationContext", () => {
     };
     const resolved = resolveConfirmationContext(
       {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "matrix",
         channelId: "channel-2",
         channelName: "Direct",
+        isAnchor: true,
         actor,
       },
       machineContext(),
@@ -168,7 +171,8 @@ describe("resolveConfirmationContext", () => {
       interfaceType: "matrix",
       channelId: "channel-2",
       channelName: "Direct",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
+      isAnchor: true,
       actor,
       source: null,
     });

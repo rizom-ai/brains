@@ -491,6 +491,7 @@ describe("convertToSDKTools", () => {
         },
         displayName: "Mira",
         userPermissionLevel: "trusted",
+        isAnchor: true,
       },
       { emit: mock(() => {}) },
     );
@@ -510,6 +511,7 @@ describe("convertToSDKTools", () => {
         },
         displayName: "Mira",
         userPermissionLevel: "trusted",
+        isAnchor: true,
       }),
     );
   });

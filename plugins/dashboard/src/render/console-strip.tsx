@@ -3,7 +3,7 @@ import type { ConsoleSurface } from "@brains/console-theme";
 import type { JSX } from "preact";
 import type { DashboardRenderInput } from "./types";
 
-function roleLabel(role: "anchor" | "trusted" | "public"): string {
+function roleLabel(role: "admin" | "trusted" | "public"): string {
   return `${role.slice(0, 1).toUpperCase()}${role.slice(1)}`;
 }
 

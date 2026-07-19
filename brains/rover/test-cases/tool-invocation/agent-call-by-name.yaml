@@ -35,7 +35,7 @@ permissions:
       - "provide the full URL"
       - "I cannot"
       - "Add it first"
-  anchor:
+  admin:
     expectedTools:
       - toolName: agent_call
         shouldBeCalled: true

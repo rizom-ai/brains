@@ -100,7 +100,7 @@ type PermissionLevelResolver = (
 
 interface BrowserAccess {
   principal?: AuthPrincipal;
-  hasAnchorAccess: boolean;
+  hasAdminAccess: boolean;
 }
 
 export interface WebChatDeps {
@@ -135,7 +135,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.resolveAuthSession =
       deps.resolveAuthSession ??
       (async (request): Promise<boolean> =>
-        (await this.resolveBrowserAccess(request)).hasAnchorAccess);
+        (await this.resolveBrowserAccess(request)).hasAdminAccess);
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
@@ -148,7 +148,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       label: "Chat",
       url: this.config.routePath,
       priority: 15,
-      visibility: "anchor",
+      visibility: "admin",
     });
     context.interactions.register({
       id: "web-chat",
@@ -157,7 +157,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       href: this.config.routePath,
       kind: "human",
       priority: 15,
-      visibility: "anchor",
+      visibility: "admin",
     });
   }
 
@@ -318,7 +318,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {
-    if (!(await this.resolveAuthSession(request))) {
+    const { principal, hasAdminAccess } =
+      await this.resolveBrowserAccess(request);
+    if (!hasAdminAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -339,7 +341,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
         conversationId: parsed.data.conversationId,
         interfaceType: webChatInterfaceType,
         channelName: "Web Chat",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: principal?.isAnchor ?? false,
         action: parsed.data.action,
       },
     });
@@ -390,9 +393,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, hasAnchorAccess } =
+    const { principal, hasAdminAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAnchorAccess) {
+    if (!hasAdminAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -421,9 +424,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, hasAnchorAccess } =
+    const { principal, hasAdminAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAnchorAccess) {
+    if (!hasAdminAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -457,7 +460,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     principal: AuthPrincipal | undefined,
   ): ChatContext {
     return {
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
+      isAnchor: principal?.isAnchor ?? false,
       interfaceType: "remote-agent",
       channelId: conversationId,
       channelName: "Remote Agent",
@@ -485,12 +489,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const { principal, hasAnchorAccess } =
+    const { principal, hasAdminAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAnchorAccess) {
+    if (!hasAdminAccess) {
       return new Response("Forbidden", { status: 403 });
     }
-    const permissionLevel = "anchor";
+    const permissionLevel = "admin";
 
     let body: unknown;
     try {
@@ -683,11 +687,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
     if (principal) {
       return {
         principal,
-        hasAnchorAccess: principal.permissionLevel === "anchor",
+        hasAdminAccess: principal.permissionLevel === "admin",
       };
     }
     return {
-      hasAnchorAccess: this.resolveAuthSessionOverride
+      hasAdminAccess: this.resolveAuthSessionOverride
         ? await this.resolveAuthSessionOverride(request)
         : false,
     };
@@ -695,9 +699,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async resolvePermissionLevel(
     request: Request,
-  ): Promise<"anchor" | "public"> {
-    return (await this.resolveBrowserAccess(request)).hasAnchorAccess
-      ? "anchor"
+  ): Promise<"admin" | "public"> {
+    return (await this.resolveBrowserAccess(request)).hasAdminAccess
+      ? "admin"
       : "public";
   }
 

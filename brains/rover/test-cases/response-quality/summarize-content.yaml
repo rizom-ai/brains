@@ -3,7 +3,7 @@ name: Summarize Blog Posts
 description: Tests that the agent can list and summarize existing blog posts
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - list

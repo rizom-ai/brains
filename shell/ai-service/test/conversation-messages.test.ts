@@ -83,7 +83,7 @@ describe("toModelMessages", () => {
 describe("filterConversationHistoryForPermission", () => {
   const message = (
     id: string,
-    userPermissionLevel?: "public" | "trusted" | "anchor",
+    userPermissionLevel?: "public" | "trusted" | "admin",
   ): Message => ({
     id,
     conversationId: "conversation-1",
@@ -100,7 +100,7 @@ describe("filterConversationHistoryForPermission", () => {
     message("legacy"),
     message("public", "public"),
     message("trusted", "trusted"),
-    message("anchor", "anchor"),
+    message("admin", "admin"),
   ];
 
   it("removes higher-permission and unclassified history for public callers", () => {
@@ -119,12 +119,12 @@ describe("filterConversationHistoryForPermission", () => {
     ).toEqual(["public", "trusted"]);
   });
 
-  it("lets anchors see all history, including legacy unclassified messages", () => {
+  it("lets admins see all history, including legacy unclassified messages", () => {
     expect(
-      filterConversationHistoryForPermission(history, "anchor").map(
+      filterConversationHistoryForPermission(history, "admin").map(
         ({ id }) => id,
       ),
-    ).toEqual(["legacy", "public", "trusted", "anchor"]);
+    ).toEqual(["legacy", "public", "trusted", "admin"]);
   });
 });
 

@@ -67,6 +67,6 @@ export function createHistoryTool(pluginId: string, gitSync: IGitSync): Tool {
         );
       }
     },
-    { visibility: "anchor", sideEffects: "none" },
+    { visibility: "admin", sideEffects: "none" },
   );
 }

@@ -3,7 +3,7 @@ name: Agent Expertise Recommendation Prefers Approved Match
 description: Verifies that when approved and discovered agents both match an expertise query, the assistant recommends the approved contact first.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - tool-invocation

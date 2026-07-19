@@ -203,7 +203,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  cert:bootstrap   Issue Cloudflare Origin CA cert for brain.yaml domain",
     "  secrets:push    Push env-backed local secrets to GitHub or Bitwarden",
     "  ssh-key:bootstrap Bootstrap a Hetzner deploy SSH key and optional GitHub secret",
-    "  auth reset-passkeys --yes  Clear local Anchor passkeys and active OAuth state",
+    "  auth reset-passkeys --yes  Clear local auth passkeys and active OAuth state",
     "  tool <name>     Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];

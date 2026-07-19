@@ -31,7 +31,7 @@ const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;
 const PERMISSION_MATRIX_LEVELS: UserPermissionLevel[] = [
   "public",
   "trusted",
-  "anchor",
+  "admin",
 ];
 
 /**

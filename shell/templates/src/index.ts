@@ -32,6 +32,7 @@ export type {
   EntityActionPolicy,
   PermissionConfig,
   PermissionRule,
+  PermissionRuleInput,
   PermissionLookupContext,
   PermissionServiceOptions,
   WithVisibility,

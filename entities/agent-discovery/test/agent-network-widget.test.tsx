@@ -21,7 +21,7 @@ describe("AgentNetworkWidget", () => {
       'window.location.assign("/admin")',
     );
     expect(agentNetworkWidgetScript).not.toContain("brains:agent-promote");
-    expect(agentNetworkWidgetScript).toContain('data-auth-role") === "anchor"');
+    expect(agentNetworkWidgetScript).toContain('data-auth-role") === "admin"');
     expect(agentNetworkWidgetScript).toContain("data-agent-person-claims");
   });
 

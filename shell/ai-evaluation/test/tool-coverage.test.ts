@@ -27,7 +27,7 @@ describe("tool coverage report", () => {
           expectedTools: [{ toolName: "system_create", shouldBeCalled: false }],
         },
         permissions: {
-          anchor: {
+          admin: {
             expectedTools: [
               { toolName: "system_update", shouldBeCalled: true },
             ],

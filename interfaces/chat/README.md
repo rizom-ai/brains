@@ -132,7 +132,7 @@ Use `discord:*` and `slack:*` permission rules for their respective adapters. Op
 - `requireMention: true` so ordinary channel chatter is not routed as commands.
 - `allowedChannels` for production channels where the bot may respond or capture URLs.
 - `allowDMs: false` unless direct operator DMs are intentionally supported.
-- `trusted` or `anchor` only for users/channels that may upload source files or resolve prior upload context.
+- `trusted` or `admin` only for users/channels that may upload source files or resolve prior upload context.
 
 Upload handling is permission-gated before download: public users can still chat, but their Discord or Slack attachments are not fetched or passed to the agent. Confirmation safety is enforced by the agent permission layer and explicit approval-id selection when multiple approvals are pending.
 
@@ -148,7 +148,7 @@ Discord and Slack source uploads use separate runtime upload scopes and unguessa
 - route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`;
 - route responses include both safe fallback `filename` and encoded `filename*` content-disposition parameters.
 
-Generated image/PDF artifact cards are posted as native Discord files for trusted/anchor users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as the only fallback; this package does not add signed or Discord-authenticated artifact routes. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose protected artifacts. Public users do not receive native protected artifact files or fallback links to shared/restricted generated artifacts.
+Generated image/PDF artifact cards are posted as native Discord files for trusted/admin users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as the only fallback; this package does not add signed or Discord-authenticated artifact routes. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose protected artifacts. Public users do not receive native protected artifact files or fallback links to shared/restricted generated artifacts.
 
 ## Current test coverage
 
@@ -160,7 +160,7 @@ Slack's initial slice covers:
 - app mentions, DMs, allowed-channel policy, permission attribution, and subscribed-thread follow-ups;
 - isolated durable Discord and Slack subscription namespaces;
 - self/bot filtering through the shared routing policy;
-- trusted/anchor-only authenticated text, image, and PDF ingestion, durable follow-up reuse, and a platform-scoped upload route;
+- trusted/admin-only authenticated text, image, and PDF ingestion, durable follow-up reuse, and a platform-scoped upload route;
 - Slack's 4000-character response chunking.
 
 Slack Block Kit actions, native artifact delivery, and a live workspace trial remain pending.
@@ -180,13 +180,13 @@ Discord parity coverage includes:
 - allowed-channel gating for chat, URL capture, and thread subscription
 - URL capture, disabled URL capture, and blocked domains
 - self-message filtering, plus bot-message filtering unless mentioned, including passive URL capture
-- trusted/anchor-only text, image, and PDF uploads as durable native agent attachments with Discord source metadata
+- trusted/admin-only text, image, and PDF uploads as durable native agent attachments with Discord source metadata
 - prior upload follow-up reuse by filename, first/oldest, or most-recent wording, including restart reload from stored conversation metadata
 - queued Discord input handling so busy-thread messages are not silently dropped; earlier queued messages are preserved as coalesced context for the latest queued turn
 - user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
 - yes/no/cancel confirmation flow with readable pending-approval instructions, SDK approval cards with Confirm/Cancel buttons for single pending approvals, card-based confirmation result summaries, chained approvals, remaining-approval reminders, retry after confirmation errors, restart reload from stored approval cards, unrecognized replies, and exact approval-id selection for multiple pending approvals
 - agent error responses
-- structured artifact, approval, source, action, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including SDK artifact/source cards with link buttons for absolute URLs, prompt-action buttons for suggested actions, disabled unavailable buttons for event actions, stale suggested-action notices after restart, suppression of relative/localhost browser links in Discord summaries, and visibility-scoped native Discord file posting for trusted/anchor generated image/PDF artifacts returned by chat or confirmations, with link/metadata suppression for artifacts out of the caller's visibility scope
+- structured artifact, approval, source, action, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including SDK artifact/source cards with link buttons for absolute URLs, prompt-action buttons for suggested actions, disabled unavailable buttons for event actions, stale suggested-action notices after restart, suppression of relative/localhost browser links in Discord summaries, and visibility-scoped native Discord file posting for trusted/Admin generated image/PDF artifacts returned by chat or confirmations, with link/metadata suppression for artifacts out of the caller's visibility scope
 - live tool activity status cards edited in place, with failed-tool fallback cards
 - async job progress, completion, and failure cards for tracked tool-result or artifact-card responses and standalone progress messages
 - platform response chunking for Discord's 2000-character limit

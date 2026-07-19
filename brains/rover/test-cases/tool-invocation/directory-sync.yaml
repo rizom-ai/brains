@@ -30,7 +30,7 @@ permissions:
         shouldBeCalled: false
     responseNotContains:
       - "done"
-  anchor:
+  admin:
     expectedTools:
       - toolName: directory-sync_sync
         shouldBeCalled: true

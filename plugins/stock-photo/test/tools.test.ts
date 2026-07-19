@@ -119,9 +119,9 @@ describe("stock-photo tools", () => {
     const search = findTool(tools, "stock-photo_search");
     const select = findTool(tools, "stock-photo_select");
 
-    expect(search.visibility).toBe("anchor");
+    expect(search.visibility).toBe("admin");
     expect(search.sideEffects).toBe("none");
-    expect(select.visibility).toBe("anchor");
+    expect(select.visibility).toBe("admin");
     expect(select.sideEffects).toBe("external");
   });
 

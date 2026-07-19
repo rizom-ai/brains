@@ -67,7 +67,7 @@ export function registerA2ACallMessageHandlers(
       options: {
         filter: {
           visibilityScope: internalFullScope(
-            "Anchor CMS lists approved A2A contacts at any visibility",
+            "Admin CMS lists approved A2A contacts at any visibility",
           ),
         },
       },

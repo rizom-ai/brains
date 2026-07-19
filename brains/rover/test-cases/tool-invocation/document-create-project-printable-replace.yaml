@@ -3,7 +3,7 @@ name: Regenerate Project Printable PDF
 description: "Verifies regenerate requests force replacement of a saved project printable PDF document"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - portfolio

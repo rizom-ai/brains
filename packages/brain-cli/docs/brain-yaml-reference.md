@@ -11,6 +11,7 @@ brain: rover
 domain: mybrain.example.com
 preset: core
 
+admins: []
 anchors: []
 
 site:
@@ -48,6 +49,8 @@ add:
   - stock-photo
 remove:
   - discord
+admins:
+  - "discord:123456789"
 anchors:
   - "discord:123456789"
 trusted:
@@ -57,7 +60,7 @@ plugins:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
 permissions:
-  anchors:
+  admins:
     - "cli:*"
   trusted:
     - "discord:123456789"
@@ -68,11 +71,11 @@ permissions:
     "*":
       create: trusted
       update: trusted
-      delete: anchor
+      delete: admin
     summary:
-      create: anchor
-      update: anchor
-      delete: anchor
+      create: admin
+      update: admin
+      delete: admin
 ```
 
 ## Fields
@@ -213,14 +216,18 @@ remove:
 
 These entries refer to capability/interface ids from the brain model.
 
-### `anchors`
+### `admins`
 
-Top-level shorthand for full-access identities.
+Top-level shorthand for caller identities with administrative permission.
 
 ```yaml
-anchors:
+admins:
   - "discord:000000000000000000"
 ```
+
+### `anchors`
+
+Top-level shorthand for caller identities established as the brain's owner or subject in chat. Anchor identity does not grant permissions; list the same caller under `admins` as well when a personal Anchor should administer the brain.
 
 ### `trusted`
 
@@ -230,7 +237,7 @@ Top-level shorthand for elevated-access identities.
 
 Permission overrides.
 
-`anchors`, `trusted`, and `rules` control the caller permission level. `entityActions` controls which permission level is required to mutate each entity type through central system tools and publish pipeline commitments.
+`admins`, `trusted`, and `rules` control the caller permission level. `anchors` independently identifies callers who represent the brain's owner/subject in chat. `entityActions` controls which permission level is required to mutate each entity type through central system tools and publish pipeline commitments.
 
 ```yaml
 permissions:
@@ -238,25 +245,25 @@ permissions:
     "*":
       create: trusted
       update: trusted
-      delete: anchor
+      delete: admin
       extract: trusted
-      publish: anchor
+      publish: admin
     post:
       update: trusted # collaborators may edit drafts
-      publish: anchor # only owners may publish/queue/schedule
+      publish: admin # only admins may publish/queue/schedule
     social-post:
       update: trusted
-      publish: anchor
+      publish: admin
     summary:
-      create: anchor
-      update: anchor
-      delete: anchor
+      create: admin
+      update: admin
+      delete: admin
 ```
 
 Rules:
 
 - supported actions are `create`, `update`, `delete`, `extract`, and `publish`;
-- supported levels are `public`, `trusted`, `anchor`, and `never`;
+- supported levels are `public`, `trusted`, `admin`, and `never`;
 - `publish` gates publication commitments: publish-aware status transitions, direct publish calls, queue adds, scheduled execution, and send/publish handlers;
 - `publish` must be at least as restrictive as `update` for the same entity type after wildcard inheritance and entity-specific overrides are merged;
 - `never` forbids the action through system tools for every caller — useful for singleton identity/config entities that should not be deletable via the agent; internal plugin code can still mutate them directly;
@@ -319,12 +326,14 @@ External plugin packages should declare their compatible runtime with a peer dep
 
 ### `permissions`
 
-Explicit permission configuration.
+Explicit permission and Anchor identity configuration.
 
 ```yaml
 permissions:
-  anchors:
+  admins:
     - "cli:*"
+  anchors:
+    - "discord:000000000000000000"
   trusted:
     - "discord:123456789"
   rules:
@@ -336,13 +345,14 @@ permissions:
 
 Fields:
 
-- `anchors` — full-access identities
-- `trusted` — elevated-access identities
+- `admins` — identities with administrative permission
+- `anchors` — identities established as the brain's owner/subject in chat; this grants no permission
+- `trusted` — identities with elevated collaboration permission
 - `rules` — pattern-based permission rules
 
 Allowed rule levels:
 
-- `anchor`
+- `admin`
 - `trusted`
 - `public`
 
@@ -351,7 +361,7 @@ Allowed rule levels:
 Permission config is merged in this order:
 
 1. brain-model defaults
-2. top-level `anchors` / `trusted`
+2. top-level `admins` / `anchors` / `trusted`
 3. nested `permissions` block
 
 So the nested `permissions` block wins over the top-level shorthand.
@@ -409,6 +419,7 @@ These are not usually interpolated directly inside `brain.yaml`, but they show u
 brain: rover
 preset: core
 
+admins: []
 anchors: []
 
 plugins: {}
@@ -426,6 +437,8 @@ preset: full
 site:
   package: "@acme/brain-site"
 
+admins:
+  - "discord:000000000000000000"
 anchors:
   - "discord:000000000000000000"
 
@@ -449,7 +462,7 @@ domain: team.example.com
 preset: default
 
 permissions:
-  anchors:
+  admins:
     - "cli:*"
   rules:
     - pattern: "a2a:*"

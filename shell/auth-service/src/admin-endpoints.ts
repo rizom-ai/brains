@@ -8,12 +8,14 @@ import {
 import {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
+  AUTH_BRAIN_ANCHOR_KINDS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
   type AgentPersonClaimInput,
   type AuthAdminPrincipal,
   type AuthAdminUserSummary,
   type AuthAgentPersonReconciliationResponse,
+  type AuthBrainAnchorSummary,
   type AuthIdentitySummary,
   type AuthPasskeySummary,
 } from "./admin-contracts";
@@ -26,6 +28,17 @@ import type {
 export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
   listUsers(): Promise<AuthAdminPrincipal[]>;
+  getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
+  updateBrainAnchor(
+    input:
+      | { kind: "person"; userId: string }
+      | {
+          kind: "collective";
+          displayName: string;
+          profileEntityId?: string;
+        },
+    actorUserId: string,
+  ): Promise<AuthBrainAnchorSummary>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   reconcileAgentPersonClaims(
     claims: AgentPersonClaimInput[],
@@ -133,7 +146,8 @@ export interface AuthAdminOperations {
   ): Promise<{ sessions: number; refreshTokens: number }>;
 }
 
-const roleSchema = z.enum(AUTH_USER_ROLES);
+const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
+  z.enum(AUTH_USER_ROLES);
 const statusSchema = z.enum(AUTH_USER_STATUSES);
 const identityTypeSchema = z.enum(AUTH_ADMIN_IDENTITY_TYPES);
 
@@ -145,7 +159,24 @@ const agentPersonClaimSchema = z.strictObject({
   visibility: z.enum(["private", "trusted", "public"]).optional(),
 });
 
-const adminMutationSchema = z.discriminatedUnion("action", [
+const brainAnchorMutationSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
+    kind: z.literal(AUTH_BRAIN_ANCHOR_KINDS[0]),
+    userId: z.string().min(1),
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
+    kind: z.literal(AUTH_BRAIN_ANCHOR_KINDS[1]),
+    displayName: z.string().trim().min(1).max(200),
+    profileEntityId: z.string().trim().min(1).max(500).optional(),
+  }),
+]);
+
+const adminMutationSchema = z.union([
+  brainAnchorMutationSchema,
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
@@ -224,11 +255,15 @@ export async function handleAuthAdminRequest(
   if (!principal) {
     return privateJsonResponse({ error: "Authentication required" }, 401);
   }
-  if (principal.permissionLevel !== "anchor") {
-    return privateJsonResponse({ error: "Anchor access required" }, 403);
+  if (principal.permissionLevel !== "admin") {
+    return privateJsonResponse({ error: "Admin access required" }, 403);
   }
 
   const path = new URL(request.url).pathname;
+  if (request.method === "GET" && path === "/auth/admin/anchor") {
+    return privateJsonResponse({ anchor: await operations.getBrainAnchor() });
+  }
+
   if (request.method === "GET" && path === "/auth/admin/users") {
     const users = operations.listAdminUsers
       ? await operations.listAdminUsers()
@@ -311,6 +346,32 @@ async function executeMutation(
   operations: AuthAdminOperations,
 ): Promise<Record<string, unknown>> {
   switch (mutation.action) {
+    case "updateBrainAnchor": {
+      if (mutation.kind === "person") {
+        if (!mutation.userId) throw new Error("Select a person anchor");
+        return {
+          anchor: await operations.updateBrainAnchor(
+            { kind: "person", userId: mutation.userId },
+            actorUserId,
+          ),
+        };
+      }
+      if (!mutation.displayName) {
+        throw new Error("Collective anchor name is required");
+      }
+      return {
+        anchor: await operations.updateBrainAnchor(
+          {
+            kind: "collective",
+            displayName: mutation.displayName,
+            ...(mutation.profileEntityId
+              ? { profileEntityId: mutation.profileEntityId }
+              : {}),
+          },
+          actorUserId,
+        ),
+      };
+    }
     case "createUser":
       return {
         user: await operations.createUser(

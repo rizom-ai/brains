@@ -3,7 +3,7 @@ name: Web chat text upload follow-up imports markdown note
 description: Verifies a bare web-chat text upload is inert, then an explicit note/markdown import follow-up calls system_create with transform extract-markdown.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-text-note-import
   channelName: Web Chat Eval

@@ -3,7 +3,7 @@ name: Search Relay site info and site content
 description: Tests that the agent can answer questions about the existing minimal Relay public site content.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - site-content

@@ -20,7 +20,7 @@ const wrappedUpdateFieldsSchema = z.looseObject({
 });
 
 const ROLE_LABELS: Record<UserPermissionLevel, string> = {
-  anchor: "Anchor",
+  admin: "Admin",
   trusted: "Trusted",
   public: "Public",
 };
@@ -74,7 +74,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     sideEffects?: Tool["sideEffects"];
   } = {},
 ): Tool {
-  const { visibility = "anchor", sideEffects } = options;
+  const { visibility = "admin", sideEffects } = options;
   return {
     name: `${PLUGIN_ID}_${name}`,
     description,

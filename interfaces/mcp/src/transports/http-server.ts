@@ -15,6 +15,7 @@ export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
   permissionLevel?: ToolVisibility;
+  isAnchor?: boolean;
   actor?: ActorRef;
   displayName?: string;
 }
@@ -270,7 +271,8 @@ export class StreamableHTTPServer {
         scopes: this.authConfig.requiredScopes ?? [],
         extra: {
           subject: "static-token-operator",
-          permissionLevel: "anchor",
+          permissionLevel: "admin",
+          isAnchor: false,
           actor: { kind: "service", serviceId: "mcp-static-token" },
         },
       };
@@ -313,6 +315,7 @@ export class StreamableHTTPServer {
         extra: {
           subject: verified.subject,
           permissionLevel: verified.permissionLevel,
+          isAnchor: verified.isAnchor,
           actor: verified.actor,
           displayName: verified.displayName,
         },

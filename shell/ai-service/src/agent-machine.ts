@@ -42,6 +42,7 @@ export interface AgentMachineContext {
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  isAnchor: boolean;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
   attachments: ChatAttachment[];
@@ -64,6 +65,7 @@ export type AgentMachineEvent =
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
+      isAnchor: boolean;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
       attachments: ChatAttachment[];
@@ -76,6 +78,7 @@ export type AgentMachineEvent =
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
+      isAnchor: boolean;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
       signal?: AbortSignal;
@@ -87,6 +90,7 @@ export type AgentMachineEvent =
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
+      isAnchor: boolean;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
       signal?: AbortSignal;
@@ -102,6 +106,7 @@ export interface ProcessMessageInput {
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  isAnchor: boolean;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
   attachments: ChatAttachment[];
@@ -118,6 +123,7 @@ export interface ExecuteActionInput {
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  isAnchor: boolean;
   actor: ConversationMessageActor | null;
   signal: AbortSignal | undefined;
 }
@@ -266,6 +272,7 @@ export const agentMachine: AgentMachine = setup({
     channelId: undefined,
     channelName: "",
     userPermissionLevel: "public" as UserPermissionLevel,
+    isAnchor: false,
     actor: null,
     source: null,
     attachments: [],
@@ -287,6 +294,7 @@ export const agentMachine: AgentMachine = setup({
             channelId: event.channelId,
             channelName: event.channelName,
             userPermissionLevel: event.userPermissionLevel,
+            isAnchor: event.isAnchor,
             actor: event.actor,
             source: event.source,
             attachments: event.attachments,
@@ -310,6 +318,7 @@ export const agentMachine: AgentMachine = setup({
           channelId: context.channelId,
           channelName: context.channelName,
           userPermissionLevel: context.userPermissionLevel,
+          isAnchor: context.isAnchor,
           actor: context.actor,
           source: context.source,
           attachments: context.attachments,
@@ -370,6 +379,7 @@ export const agentMachine: AgentMachine = setup({
             channelId: event.channelId,
             channelName: event.channelName,
             userPermissionLevel: event.userPermissionLevel,
+            isAnchor: event.isAnchor,
             actor: event.actor,
             source: event.source,
             signal: event.signal,
@@ -392,6 +402,7 @@ export const agentMachine: AgentMachine = setup({
               channelId: event.channelId,
               channelName: event.channelName,
               userPermissionLevel: event.userPermissionLevel,
+              isAnchor: event.isAnchor,
               actor: event.actor,
               source: event.source,
               response: buildCancelledResponse(
@@ -412,6 +423,7 @@ export const agentMachine: AgentMachine = setup({
               channelId: event.channelId,
               channelName: event.channelName,
               userPermissionLevel: event.userPermissionLevel,
+              isAnchor: event.isAnchor,
               actor: event.actor,
               source: event.source,
               response: buildCancelledResponse(
@@ -440,6 +452,7 @@ export const agentMachine: AgentMachine = setup({
             channelId: context.channelId,
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,
+            isAnchor: context.isAnchor,
             actor: context.actor,
             signal: context.signal,
           };

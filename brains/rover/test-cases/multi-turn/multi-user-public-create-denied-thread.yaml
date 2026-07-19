@@ -1,8 +1,8 @@
 id: multi-user-public-create-denied-thread
-name: Public caller cannot create from shared anchor thread
+name: Public caller cannot create from shared Admin thread
 
 description: >
-  Verifies literal multi-user conversation context for creation tools: an anchor
+  Verifies literal multi-user conversation context for creation tools: an Admin
   can participate in a shared thread, but a later public caller in that same
   conversation still cannot create durable content.
 
@@ -22,15 +22,15 @@ tags:
 turns:
   - userMessage: "List my notes about TypeScript."
     context:
-      userPermissionLevel: anchor
+      userPermissionLevel: admin
       actor:
-        actorId: eval-anchor-alice
-        canonicalId: eval-anchor-alice
+        actorId: eval-admin-alice
+        canonicalId: eval-admin-alice
         interfaceType: evaluation
         role: user
-        displayName: Alice Anchor
+        displayName: Alice Admin
       source:
-        messageId: eval-message-anchor-public-create-1
+        messageId: eval-message-admin-public-create-1
         channelId: shared-eval-thread
         threadId: shared-eval-thread
     successCriteria:

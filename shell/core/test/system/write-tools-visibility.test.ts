@@ -158,7 +158,7 @@ describe("write tools cap visibility by caller permission", () => {
       expect(data.status).toBe("created");
     });
 
-    it("allows an anchor user creating an entity with visibility: restricted", async () => {
+    it("allows an admin user creating an entity with visibility: restricted", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
@@ -166,7 +166,7 @@ describe("write tools cap visibility by caller permission", () => {
           content:
             "---\ntitle: Restricted note\nvisibility: restricted\n---\nBody",
         },
-        "anchor",
+        "admin",
       );
       const data = expectSuccess(result, createDataSchema);
       expect(data.status).toBe("created");
@@ -237,7 +237,7 @@ describe("write tools cap visibility by caller permission", () => {
       expect(data.updated).toBe("doc-shared");
     });
 
-    it("allows an anchor user setting visibility to restricted", async () => {
+    it("allows an admin user setting visibility to restricted", async () => {
       const confirm = expectConfirmation(
         await runUpdate(
           {
@@ -245,10 +245,10 @@ describe("write tools cap visibility by caller permission", () => {
             id: "doc-shared",
             fields: { visibility: "restricted" },
           },
-          "anchor",
+          "admin",
         ),
       );
-      const result = await runUpdate(confirm.args, "anchor");
+      const result = await runUpdate(confirm.args, "admin");
       const data = expectSuccess(result, z.object({ updated: z.string() }));
       expect(data.updated).toBe("doc-shared");
     });

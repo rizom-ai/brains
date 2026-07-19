@@ -125,7 +125,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
                 | {
                     subject: string;
                     scope?: string[];
-                    permissionLevel?: "anchor" | "trusted" | "public";
+                    permissionLevel?: "admin" | "trusted" | "public";
+                    isAnchor?: boolean;
                     actor?: {
                       kind: "user";
                       userId: string;
@@ -141,6 +142,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
                   subject: grant.token.subject,
                   scope: grant.token.scope,
                   permissionLevel: grant.principal.permissionLevel,
+                  isAnchor: grant.principal.isAnchor,
                   actor: {
                     kind: "user",
                     userId: grant.principal.userId,
@@ -285,10 +287,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       this.config.transport === "http" &&
       (this.config.authToken ? true : activeAuthService !== undefined);
 
-    // Static-token auth uses anchor permissions. OAuth sessions replace this
-    // fallback with the authenticated principal's level when initialized.
+    // Static-token auth uses administrator permissions. OAuth sessions replace
+    // this fallback with the authenticated principal's level when initialized.
     if (hasHttpAuth) {
-      userLevel = "anchor";
+      userLevel = "admin";
       this.logger.debug(
         "HTTP authentication configured; session permissions resolve during initialization",
       );
@@ -301,14 +303,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
         );
       }
 
-      if (userLevel !== "anchor") {
-        throw new Error("MCP debug mode requires anchor permissions.");
+      if (userLevel !== "admin") {
+        throw new Error("MCP debug mode requires admin permissions.");
       }
     }
 
     // Pass the determined protocol mode and permission level to the MCP transport
     this.mcpTransport.setProtocolMode(this.config.mode);
     this.mcpTransport.setPermissionLevel(userLevel);
+    this.mcpTransport.setAnchorStatus?.(
+      this.context.permissions.isAnchor("mcp", transportUserId),
+    );
 
     this.logger.debug(
       `Starting MCP ${this.config.transport} transport in ${this.config.mode} mode with ${userLevel} permissions`,

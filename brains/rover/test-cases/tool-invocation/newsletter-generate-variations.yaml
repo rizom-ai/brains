@@ -3,7 +3,7 @@ name: Newsletter Generate Natural Language Variations
 description: Tests that various phrasings of newsletter generation requests use system_generate
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - newsletter
   - natural-language

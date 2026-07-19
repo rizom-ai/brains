@@ -124,7 +124,7 @@ describe("directory-sync CMS workspace", () => {
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
   });
 
-  it("routes Sync now through the shared queued request and enforces anchor permission", async () => {
+  it("routes Sync now through the shared queued request and enforces admin permission", async () => {
     const { context, getRegistration, enqueue } = createProviderContext();
     const operationStatus = new DirectorySyncOperationStatusService(
       context.runtimeState,
@@ -160,14 +160,14 @@ describe("directory-sync CMS workspace", () => {
           userPermissionLevel: "public",
         },
       ),
-    ).rejects.toThrow("anchor permission");
+    ).rejects.toThrow("admin permission");
 
     const result = await registration.actionHandler(
       { type: "sync-now" },
       {
         interfaceType: "cms",
         userId: "operator-1",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
     expect(result).toMatchObject({
@@ -185,7 +185,7 @@ describe("directory-sync CMS workspace", () => {
       toolContext: {
         interfaceType: "cms",
         actor: { kind: "user", userId: "operator-1" },
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     });
   });

@@ -42,7 +42,7 @@ permissions:
       - "extracted topics"
       - "generated topics"
       - "created topics"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_extract
         shouldBeCalled: true

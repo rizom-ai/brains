@@ -3,7 +3,7 @@ name: Handle publish request with no eligible publish target
 description: Tests that the agent checks the latest LinkedIn/social-post state and responds clearly when nothing is currently publishable, such as no eligible draft or no configured publish provider
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - social-media
   - linkedin

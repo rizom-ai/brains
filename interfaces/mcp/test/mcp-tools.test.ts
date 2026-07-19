@@ -77,7 +77,8 @@ describe("MCP tools", () => {
         conversationId: "session-conversation",
         channelId: "session-1",
         channelName: "MCP Session",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: true,
       },
     );
 
@@ -92,7 +93,8 @@ describe("MCP tools", () => {
       "Save this note",
       expect.stringMatching(/^mcp:[a-f0-9]{16}:client-conversation$/),
       {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: true,
         interfaceType: "mcp",
         channelId: "session-1",
         channelName: "MCP Session",
@@ -322,7 +324,7 @@ describe("MCP tools", () => {
         conversationId: "session-conversation",
         channelId: "session-1",
         channelName: "MCP Session",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
 
@@ -338,7 +340,8 @@ describe("MCP tools", () => {
       true,
       "approval-1",
       {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: false,
         interfaceType: "mcp",
         channelId: "session-1",
         channelName: "MCP Session",

@@ -3,7 +3,7 @@ name: Save Deck Carousel as Document Entity
 description: "Verifies system_generate renders a deck carousel as a durable PDF document artifact"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - decks

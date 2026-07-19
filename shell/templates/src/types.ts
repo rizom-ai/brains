@@ -36,7 +36,7 @@ export interface TemplateInput {
   schema: unknown;
   basePrompt?: string | undefined;
   useKnowledgeContext?: boolean | undefined;
-  requiredPermission: "anchor" | "trusted" | "public";
+  requiredPermission: "admin" | "trusted" | "public";
   formatter?: unknown;
   overlayFormatter?: unknown;
   layout?:
@@ -169,7 +169,7 @@ export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   schema: z.any(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
-  requiredPermission: z.enum(["anchor", "trusted", "public"]),
+  requiredPermission: z.enum(["admin", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
   overlayFormatter: z.any().optional(), // ContentFormatter for authored overlay
   layout: z

@@ -20,6 +20,7 @@ const currentAuthTableNames = [
   "a2a_peer_trust",
   "agent_person_links",
   "auth_audit_events",
+  "auth_brain_anchor",
   "auth_identity_evidence",
   "auth_legacy_imports",
   "auth_people",
@@ -130,7 +131,7 @@ describe("AuthRuntimeDatabase", () => {
       const expectedValues = new Map<string, string[]>([
         [
           "auth_users",
-          ["anchor", "trusted", "public", "active", "invited", "suspended"],
+          ["admin", "trusted", "public", "active", "invited", "suspended"],
         ],
         [
           "person_identity_claims",
@@ -199,12 +200,28 @@ describe("AuthRuntimeDatabase", () => {
       const rows = await migrated.client.execute(
         "SELECT token_hash, user_id FROM auth_sessions",
       );
+      const migratedUsers = await migrated.client.execute(
+        "SELECT id, person_id, role FROM auth_users",
+      );
+      const anchor = await migrated.client.execute(
+        "SELECT kind, subject_id, display_name FROM auth_brain_anchor",
+      );
       expect(
         rows.rows.map((row) => ({
           tokenHash: row["token_hash"],
           userId: row["user_id"],
         })),
       ).toEqual([{ tokenHash: "legacy-token-hash", userId: "usr_anchor" }]);
+      expect(migratedUsers.rows[0]).toMatchObject({
+        id: "usr_anchor",
+        person_id: "prsn_anchor",
+        role: "admin",
+      });
+      expect(anchor.rows[0]).toMatchObject({
+        kind: "person",
+        subject_id: "prsn_anchor",
+        display_name: "Anchor",
+      });
       const deliveries = await migrated.client.execute(
         `SELECT token_hash, recipient_hash, delivered_at
           FROM setup_token_deliveries`,
@@ -401,7 +418,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(2);
+      expect(migrations.rows).toHaveLength(3);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

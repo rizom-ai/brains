@@ -99,7 +99,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         schema: directorySyncStatusSchema,
         basePrompt: "",
         formatter: new DirectorySyncStatusFormatter(),
-        requiredPermission: "anchor",
+        requiredPermission: "admin",
       },
     });
 

@@ -105,7 +105,7 @@ describe("chat stream", () => {
         writer: writer as never,
         conversationId: "conversation-1",
         message: "Yeehaa",
-        permissionLevel: "anchor",
+        permissionLevel: "admin",
         attachments: [],
         interfaceType: "web-chat",
       },
@@ -132,11 +132,12 @@ describe("chat stream", () => {
         writer: writer as never,
         conversationId: "conversation-1",
         message: "Hello",
-        permissionLevel: "anchor",
+        permissionLevel: "admin",
         principal: {
           userId: "usr_mira",
           canonicalId: "user:mira",
           displayName: "Mira",
+          isAnchor: true,
         },
         attachments: [],
         interfaceType: "web-chat",
@@ -148,6 +149,7 @@ describe("chat stream", () => {
       "Hello",
       "conversation-1",
       expect.objectContaining({
+        isAnchor: true,
         actor: {
           identity: {
             kind: "user",
@@ -244,7 +246,7 @@ describe("chat stream", () => {
         writer: writer as never,
         conversationId: "conversation-1",
         approvalResponses: [{ id: "approval-1", approved: true }],
-        permissionLevel: "anchor",
+        permissionLevel: "admin",
         interfaceType: "web-chat",
       },
       deps,

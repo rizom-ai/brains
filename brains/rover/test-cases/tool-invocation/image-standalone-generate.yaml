@@ -3,7 +3,7 @@ name: Standalone image generation does not require a target entity
 description: Verifies that a plain image generation request uses system_generate for an image without cover-image target fields
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - image

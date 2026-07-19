@@ -33,7 +33,8 @@ const toolExecuteRequestSchema = z.object({
   channelName: z.string().optional(),
   runId: z.string().optional(),
   toolCallId: z.string().optional(),
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+  userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
+  isAnchor: z.boolean().optional(),
   signal: z
     .custom<AbortSignal>((value) => value instanceof AbortSignal)
     .optional(),
@@ -145,6 +146,7 @@ export abstract class BasePlugin<
             runId,
             toolCallId,
             userPermissionLevel,
+            isAnchor,
             signal,
           } = parsedRequest.data;
 
@@ -169,6 +171,7 @@ export abstract class BasePlugin<
             ...(runId && { runId }),
             ...(toolCallId && { toolCallId }),
             ...(userPermissionLevel && { userPermissionLevel }),
+            ...(isAnchor !== undefined && { isAnchor }),
             ...(signal && { signal }),
             ...(hasProgress &&
               progressToken !== undefined && {

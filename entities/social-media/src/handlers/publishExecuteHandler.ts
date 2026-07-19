@@ -98,7 +98,7 @@ export class PublishExecuteHandler {
     this.permissions.assertEntityActionAllowed(
       entityType,
       "publish",
-      payload.authContext ?? { userPermissionLevel: "anchor" },
+      payload.authContext ?? { userPermissionLevel: "admin" },
     );
 
     this.logger.debug("Handling publish:execute", { entityId });

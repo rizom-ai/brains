@@ -42,10 +42,11 @@ import { z } from "@brains/utils/zod";
  */
 const brainCallOptionsSchemaInternal: z.ZodObject<{
   userPermissionLevel: z.ZodEnum<{
-    anchor: "anchor";
+    admin: "admin";
     trusted: "trusted";
     public: "public";
   }>;
+  isAnchor: z.ZodOptional<z.ZodBoolean>;
   conversationId: z.ZodString;
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
@@ -58,7 +59,8 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
   hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
+  userPermissionLevel: z.enum(["admin", "trusted", "public"]),
+  isAnchor: z.boolean().optional(),
   conversationId: z.string(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
@@ -203,6 +205,8 @@ export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
+  /** Whether the authenticated caller is the brain's configured Anchor. */
+  isAnchor?: boolean;
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
   channelId?: string; // Transport channel/room identifier when distinct from conversationId
   channelName?: string; // Human-readable name for the transport channel/room

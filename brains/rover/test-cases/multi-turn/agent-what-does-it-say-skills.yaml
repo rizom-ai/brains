@@ -3,7 +3,7 @@ name: Saved Agent Has-to-Say and Skills Questions Use A2A
 description: Verifies that questions like "what does yeehaa.io have to say?" and follow-up skill questions call the saved remote agent instead of answering from local directory metadata.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

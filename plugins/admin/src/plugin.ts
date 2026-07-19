@@ -30,7 +30,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       label: "Admin",
       url: this.config.routePath,
       priority: 50,
-      visibility: "anchor",
+      visibility: "admin",
     });
     context.interactions.register({
       id: "admin",
@@ -40,7 +40,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       href: this.config.routePath,
       kind: "admin",
       priority: 50,
-      visibility: "anchor",
+      visibility: "admin",
     });
   }
 

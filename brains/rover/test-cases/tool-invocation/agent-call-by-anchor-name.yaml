@@ -3,7 +3,7 @@ name: Call Saved Agent by Anchor Name
 description: Tests that the agent resolves an A2A directory entry by anchor/contact name rather than requiring the brain name
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a
@@ -25,7 +25,6 @@ successCriteria:
     - "brain-labs.io"
     - "wishlist"
     - "wish"
-
 
 efficiency:
   maxToolCalls: 3

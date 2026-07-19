@@ -38,12 +38,16 @@ export function createAdminRoutes(
         }
 
         const context = options.getContext();
+        const appInfo = await context.appInfo();
         return new Response(
           renderAdminShellHtml({
             assetPath,
             routePath: options.routePath,
+            userId: principal.userId,
             displayName: principal.displayName,
             role: principal.role,
+            isAnchor: principal.isAnchor,
+            brainName: appInfo.model,
             registeredInterfaces: [
               "a2a",
               "discord",

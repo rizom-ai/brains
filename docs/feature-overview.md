@@ -111,7 +111,7 @@ Current shared capabilities include:
 - mentions, direct messages, channel allowlists, and mention requirements;
 - subscribed-thread follow-ups with platform-isolated subscription state that survives restarts;
 - URL capture and bot/self-message filtering;
-- trusted/owner-only text, image, and PDF upload ingestion with follow-up reuse;
+- trusted/Admin-only text, image, and PDF upload ingestion with follow-up reuse;
 - native confirmation cards plus text confirmation fallbacks;
 - suggested-action buttons with stale and replay protection;
 - live tool status and background-job progress updates;
@@ -321,9 +321,9 @@ Interfaces can be enabled or removed independently from the content bundles wher
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Operator authentication | First-run passkey registration, browser sessions, and optional setup-email delivery                                   |
 | MCP authorization       | OAuth-capable clients can use the brain's OAuth flow; static bearer tokens remain a deprecated compatibility fallback |
-| Caller roles            | `public`, `trusted` collaborator, and `anchor` owner/operator                                                         |
+| Caller roles            | `public`, `trusted` collaborator, and `admin`; Anchor ownership is a separate identity facet                          |
 | Content visibility      | `public`, `shared`, or `restricted`; reads are scoped to the caller                                                   |
-| Per-type actions        | Create, update, delete, extract, and publish thresholds can be `public`, `trusted`, `anchor`, or `never`              |
+| Per-type actions        | Create, update, delete, extract, and publish thresholds can be `public`, `trusted`, `admin`, or `never`               |
 | Confirmation            | Mutating chat and MCP actions require explicit confirmation                                                           |
 | Publishing control      | Publishing is a separate permission from ordinary editing                                                             |
 | Secret handling         | Secrets live in environment or deployment configuration, not Markdown content                                         |

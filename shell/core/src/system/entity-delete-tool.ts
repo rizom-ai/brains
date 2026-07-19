@@ -117,6 +117,6 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         args,
       };
     },
-    { visibility: "anchor", sideEffects: "writes" },
+    { visibility: "admin", sideEffects: "writes" },
   );
 }

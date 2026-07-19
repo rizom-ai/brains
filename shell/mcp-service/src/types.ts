@@ -34,6 +34,8 @@ export interface ToolContext {
   /** Caller's permission level. Tools that read/write entities use this to derive
    *  the content-visibility scope they are allowed to see. */
   userPermissionLevel?: UserPermissionLevel;
+  /** Whether the authenticated caller is the brain's configured Anchor. */
+  isAnchor?: boolean;
 }
 
 export interface ToolContextRouting {
@@ -46,6 +48,7 @@ export interface ToolContextRouting {
   runId?: string | undefined;
   toolCallId?: string | undefined;
   userPermissionLevel?: UserPermissionLevel | undefined;
+  isAnchor?: boolean | undefined;
 }
 
 interface ToolContextRoutingSchemaShape extends ZodRawShape {
@@ -59,11 +62,12 @@ interface ToolContextRoutingSchemaShape extends ZodRawShape {
   toolCallId: z.ZodOptional<z.ZodString>;
   userPermissionLevel: z.ZodOptional<
     z.ZodEnum<{
-      anchor: "anchor";
+      admin: "admin";
       trusted: "trusted";
       public: "public";
     }>
   >;
+  isAnchor: z.ZodOptional<z.ZodBoolean>;
 }
 
 /**
@@ -80,7 +84,8 @@ export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape
     channelName: z.string().optional(),
     runId: z.string().optional(),
     toolCallId: z.string().optional(),
-    userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+    userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
+    isAnchor: z.boolean().optional(),
   });
 
 export interface ToolSuccessResponse {
@@ -169,7 +174,7 @@ export interface Tool<TOutput = ToolResponse> {
   inputSchema: ToolInputSchema;
   outputSchema?: ToolOutputSchema; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
-  visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
+  visibility?: ToolVisibility; // Default: "admin" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */
   sideEffects?: ToolSideEffects;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
@@ -241,8 +246,8 @@ export interface Prompt {
       content: { type: "text"; text: string };
     }>;
   }>;
-  /** Default: "anchor" — prompt bodies can reference restricted workflows,
-   *  so they ship as anchor-only unless explicitly marked. */
+  /** Default: "admin" — prompt bodies can reference restricted workflows,
+   *  so they ship as admin-only unless explicitly marked. */
   visibility?: ToolVisibility;
 }
 
@@ -267,6 +272,9 @@ export interface IMCPTransport {
    * Set the permission level for this transport
    */
   setPermissionLevel(level: UserPermissionLevel): void;
+
+  /** Set whether the transport's configured caller is the brain Anchor. */
+  setAnchorStatus?(isAnchor: boolean): void;
 
   /** Select which registered tools are exposed on the external MCP protocol server. */
   setProtocolMode(mode: MCPProtocolMode): void;

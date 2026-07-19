@@ -3,7 +3,7 @@ name: Search Relay docs and decks
 description: Tests that the agent searches existing docs/decks content when asked to synthesize the Relay operating model.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - docs

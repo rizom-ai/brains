@@ -4,6 +4,7 @@ import {
   type AuthAdminMutation,
   type AuthAdminUsersResponse,
   type AuthAgentPersonReconciliationRequest,
+  type AuthBrainAnchorResponse,
   type AuthAgentPersonReconciliationResponse,
   type AuthRepresentationMutation,
   type AuthRepresentationsResponse,
@@ -37,6 +38,15 @@ async function parseResponse<T>(response: Response): Promise<T> {
     throw new PeopleApiError(error, response.status);
   }
   return body as T;
+}
+
+export async function fetchAnchor(): Promise<AuthBrainAnchorResponse> {
+  return parseResponse(
+    await fetch("/auth/admin/anchor", {
+      credentials: "same-origin",
+      cache: "no-store",
+    }),
+  );
 }
 
 export async function fetchUsers(): Promise<AuthAdminUsersResponse> {

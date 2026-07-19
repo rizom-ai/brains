@@ -3,7 +3,7 @@ name: Blog Post Generation via system_generate
 description: Verifies that the agent uses system_generate operation.kind prompt for broad blog post generation
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - blog

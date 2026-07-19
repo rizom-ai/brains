@@ -76,9 +76,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(tool.handler).toBeDefined();
     });
 
-    it("should have anchor visibility and external side effects", () => {
+    it("should have admin visibility and external side effects", () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.visibility).toBe("anchor");
+      expect(tool.visibility).toBe("admin");
       expect(tool.sideEffects).toBe("external");
     });
 
@@ -92,7 +92,7 @@ describe("Publish Pipeline - Publish Tool", () => {
     it("requires publish permission before direct publish", async () => {
       mockShell.getPermissionService = (): PermissionService =>
         new PermissionService({
-          entityActions: { "social-post": { publish: "anchor" } },
+          entityActions: { "social-post": { publish: "admin" } },
         });
       context = createServicePluginContext(mockShell, pluginId);
       const tool = createPublishTool(context, pluginId, providerRegistry);
@@ -105,7 +105,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(result).toEqual({
         success: false,
         error:
-          "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
+          "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
       });
     });
   });

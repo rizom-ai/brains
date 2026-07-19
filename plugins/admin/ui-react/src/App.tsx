@@ -4,7 +4,9 @@ import {
   type AuthAdminRole,
   type AuthAdminUserSummary,
   type AuthAgentPersonSummary,
+  type AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
@@ -12,12 +14,8 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import {
-  acceptRepresentation,
-  fetchRepresentations,
-  fetchUsers,
-  mutateAdmin,
-} from "./api";
+import { acceptRepresentation, mutateAdmin } from "./api";
+import { AnchorPanel } from "./components/AnchorPanel";
 import { PersonDetail } from "./components/PersonDetail";
 import { RepresentationsView } from "./components/RepresentationsView";
 import { Roster } from "./components/Roster";
@@ -31,24 +29,35 @@ import {
   promotionReconciliationDefaults,
 } from "./dialogs/PromotionDialog";
 import { messageOf, useMutationFeedback } from "./feedback";
-import { formatDate, roleLabel } from "./format";
+import { formatDate } from "./format";
 import { manualIdentityTypes } from "./identity-providers";
 import styles from "./people.css" with { type: "text" };
 import type { AgentPromotionDraft, Modal, SurfaceView } from "./people-types";
+import {
+  anchorQueryOptions,
+  invalidateAfterAdminMutation,
+  invalidateAfterRepresentationMutation,
+  representationsQueryOptions,
+  usersQueryOptions,
+} from "./queries";
 
 export { messageOf, manualIdentityTypes };
 export { assuranceLabel, initials, roleLabel } from "./format";
 export { PromotionReconciliationSummary, promotionReconciliationDefaults };
 
 export interface PeopleBootstrap {
+  userId: string;
   displayName: string;
   role: AuthAdminRole;
+  isAnchor: boolean;
+  brainName: string;
   routePath: string;
   registeredInterfaces?: string[];
 }
 
 export interface PeopleAppProps {
   bootstrap: PeopleBootstrap;
+  initialAnchor?: AuthBrainAnchorSummary;
   initialUsers?: AuthAdminUserSummary[];
   initialRepresentations?: AuthAgentPersonSummary[];
 }
@@ -56,75 +65,77 @@ export interface PeopleAppProps {
 const PROMOTION_STORAGE_KEY = "brains:people-agent-promotion";
 
 export function PeopleApp(props: PeopleAppProps): ReactElement {
-  const isAnchor = props.bootstrap.role === "anchor";
-  const [users, setUsers] = useState<AuthAdminUserSummary[]>(
-    props.initialUsers ?? [],
-  );
-  const [representations, setRepresentations] = useState<
-    AuthAgentPersonSummary[]
-  >(props.initialRepresentations ?? []);
+  const isAdmin = props.bootstrap.role === "admin";
+  const queryClient = useQueryClient();
+  const anchorQuery = useQuery({
+    ...anchorQueryOptions(),
+    enabled: isAdmin,
+    ...(props.initialAnchor !== undefined
+      ? { initialData: props.initialAnchor }
+      : {}),
+  });
+  const usersQuery = useQuery({
+    ...usersQueryOptions(),
+    enabled: isAdmin,
+    ...(props.initialUsers !== undefined
+      ? { initialData: props.initialUsers }
+      : {}),
+  });
+  const representationsQuery = useQuery({
+    ...representationsQueryOptions(),
+    ...(props.initialRepresentations !== undefined
+      ? { initialData: props.initialRepresentations }
+      : {}),
+  });
+  const users = usersQuery.data ?? [];
+  const representations = representationsQuery.data ?? [];
+  const anchor = anchorQuery.data;
+  const activeAdminCount = users.filter(
+    (user) => user.role === "admin" && user.status === "active",
+  ).length;
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(
-    props.initialUsers?.[0]?.userId,
+    props.initialUsers?.find((user) => user.userId === props.bootstrap.userId)
+      ?.userId ?? props.initialUsers?.[0]?.userId,
   );
   const [view, setView] = useState<SurfaceView>(
-    isAnchor ? "roster" : "representations",
-  );
-  const [loading, setLoading] = useState(
-    props.initialUsers === undefined &&
-      props.initialRepresentations === undefined,
+    isAdmin ? "roster" : "representations",
   );
   const [modal, setModal] = useState<Modal>(null);
   const { feedback, setFeedback, runWithFeedback } = useMutationFeedback();
-  const [error, setError] = useState<string | null>(null);
+  const { mutateAsync: runAdminMutation } = useMutation({
+    mutationFn: (mutation: AuthAdminMutation) => mutateAdmin<unknown>(mutation),
+    onSuccess: async (_result, mutation) =>
+      invalidateAfterAdminMutation(queryClient, mutation.action),
+  });
+  const { mutateAsync: runRepresentationMutation } = useMutation({
+    mutationFn: acceptRepresentation,
+    onSuccess: async () => invalidateAfterRepresentationMutation(queryClient),
+  });
+  const loading = isAdmin
+    ? anchorQuery.isPending || usersQuery.isPending
+    : representationsQuery.isPending;
+  const queryError =
+    representationsQuery.error ??
+    (isAdmin ? (anchorQuery.error ?? usersQuery.error) : null);
+  const error = queryError ? messageOf(queryError, "People unavailable") : null;
 
   const selectedUser = useMemo(
     () => users.find((user) => user.userId === selectedUserId),
     [selectedUserId, users],
   );
 
-  const loadUsers = useCallback(
-    async (preferredUserId?: string): Promise<void> => {
-      const response = await fetchUsers();
-      setUsers(response.users);
-      setSelectedUserId((current) => {
-        const candidate = preferredUserId ?? current;
-        return response.users.some((user) => user.userId === candidate)
-          ? candidate
-          : response.users[0]?.userId;
-      });
-    },
-    [],
-  );
-
-  const loadRepresentations = useCallback(async (): Promise<void> => {
-    const response = await fetchRepresentations();
-    setRepresentations(response.representations);
-  }, []);
+  useEffect(() => {
+    setSelectedUserId((current) => {
+      if (users.some((user) => user.userId === current)) return current;
+      return (
+        users.find((user) => user.userId === props.bootstrap.userId)?.userId ??
+        users[0]?.userId
+      );
+    });
+  }, [props.bootstrap.userId, users]);
 
   useEffect(() => {
-    if (
-      props.initialUsers !== undefined ||
-      props.initialRepresentations !== undefined
-    )
-      return;
-    void Promise.all([
-      isAnchor ? loadUsers() : Promise.resolve(),
-      loadRepresentations(),
-    ])
-      .catch((loadError: unknown) =>
-        setError(messageOf(loadError, "People unavailable")),
-      )
-      .finally(() => setLoading(false));
-  }, [
-    isAnchor,
-    loadRepresentations,
-    loadUsers,
-    props.initialRepresentations,
-    props.initialUsers,
-  ]);
-
-  useEffect(() => {
-    if (!isAnchor || typeof window === "undefined") return;
+    if (!isAdmin || typeof window === "undefined") return;
     const raw = window.sessionStorage.getItem(PROMOTION_STORAGE_KEY);
     if (!raw) return;
     window.sessionStorage.removeItem(PROMOTION_STORAGE_KEY);
@@ -139,7 +150,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         tone: "error",
       });
     }
-  }, [isAnchor, setFeedback]);
+  }, [isAdmin, setFeedback]);
 
   const runMutation = useCallback(
     async (
@@ -147,23 +158,22 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       preferredUserId?: string,
       successMessage = "Access record updated",
     ): Promise<unknown> => {
-      const reloadUsers =
+      const refreshesRecords =
         mutation.action !==
         AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
       return runWithFeedback(
         async () => {
-          const result = await mutateAdmin<unknown>(mutation);
-          if (reloadUsers) await loadUsers(preferredUserId);
-          setError(null);
+          const result = await runAdminMutation(mutation);
+          if (preferredUserId) setSelectedUserId(preferredUserId);
           return result;
         },
         {
           fallback: "Mutation failed",
-          ...(reloadUsers ? { success: successMessage } : {}),
+          ...(refreshesRecords ? { success: successMessage } : {}),
         },
       );
     },
-    [loadUsers, runWithFeedback],
+    [runAdminMutation, runWithFeedback],
   );
 
   const closeModal = (): void => setModal(null);
@@ -172,58 +182,52 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     <>
       <style>{styles}</style>
       <div className="people-surface">
-        <nav className="admin-section-nav" aria-label="Administration sections">
-          <span className="admin-section-label">Administration</span>
-          <a
-            className="admin-section-link is-active"
-            href={props.bootstrap.routePath}
-            aria-current="page"
-          >
-            <strong>People</strong>
-            <small>Access · identity · representation</small>
-          </a>
-        </nav>
-        <header className="people-hero">
+        <header className="admin-hero">
           <div>
-            <div className="people-kicker">
-              Private runtime · Identity ledger
-            </div>
-            <h1>People</h1>
-            <p className="people-hero-copy">
-              Access, authentication, canonical claims, and agent consent stay
-              private to this brain.
-            </p>
+            <h1>Admin</h1>
+            <p>members · anchor · access</p>
           </div>
-          <div className="people-hero-meta" aria-label="People summary">
-            <div className="people-vital">
-              <span>{isAnchor ? users.length : "01"}</span>
-              <small>{isAnchor ? "access records" : "your person"}</small>
-            </div>
-            <div className="people-vital">
-              <span>{roleLabel(props.bootstrap.role)}</span>
-              <small>{props.bootstrap.displayName}</small>
-            </div>
+          <div className="admin-hero-meta">
+            <span>
+              brain <strong>{props.bootstrap.brainName}</strong>
+            </span>
+            <span>
+              {isAdmin
+                ? `${users.length} ${users.length === 1 ? "member" : "members"} · ${activeAdminCount} ${activeAdminCount === 1 ? "admin" : "admins"}`
+                : "self service"}
+            </span>
           </div>
         </header>
 
-        {isAnchor && (
-          <nav className="people-tabs" aria-label="People views">
+        <nav className="admin-tabs" aria-label="Administration sections">
+          {isAdmin && <a href="#brain-anchor">Anchor</a>}
+          {isAdmin && (
             <button
-              className={`people-tab${view === "roster" ? " is-active" : ""}`}
+              className={view === "roster" ? "is-active" : ""}
               type="button"
               onClick={() => setView("roster")}
             >
-              Access roster
+              Members
             </button>
-            <button
-              className={`people-tab${view === "representations" ? " is-active" : ""}`}
-              type="button"
-              onClick={() => setView("representations")}
-            >
-              My agents
-            </button>
-          </nav>
-        )}
+          )}
+          <button
+            className={view === "representations" ? "is-active" : ""}
+            type="button"
+            onClick={() => setView("representations")}
+          >
+            My agents
+          </button>
+          {isAdmin && (
+            <span>
+              Invitations <small>soon</small>
+            </span>
+          )}
+          {isAdmin && (
+            <span>
+              Audit <small>soon</small>
+            </span>
+          )}
+        </nav>
 
         {error && <p className="people-error-banner">{error}</p>}
         {loading ? (
@@ -234,8 +238,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
             onAccept={async (agentId) => {
               await runWithFeedback(
                 async () => {
-                  await acceptRepresentation(agentId);
-                  await loadRepresentations();
+                  await runRepresentationMutation(agentId);
                 },
                 {
                   success: "Agent representation accepted",
@@ -245,37 +248,53 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
             }}
           />
         ) : (
-          <section className="people-panel">
-            <header className="people-head">
-              <div>
-                <div className="eyebrow">Anchor access</div>
-                <h2>Access roster</h2>
-                <p>
-                  Manage each person’s profile, access, and linked agent
-                  representatives.
-                </p>
-              </div>
-              <Button tone="primary" onClick={() => setModal({ kind: "add" })}>
-                Add person
-              </Button>
-            </header>
-            <div className="people-layout">
-              <Roster
+          <>
+            <div id="brain-anchor">
+              <AnchorPanel
+                anchor={anchor}
                 users={users}
-                selectedUserId={selectedUserId}
-                onSelect={setSelectedUserId}
-              />
-              <PersonDetail
-                user={selectedUser}
-                onIdentity={() => setModal({ kind: "identity" })}
-                onConfirm={setModal}
-                onMutation={runMutation}
-                onSetup={(setupUrl, copy) =>
-                  setModal({ kind: "setup", setupUrl, copy })
+                currentUserId={props.bootstrap.userId}
+                onMutation={(mutation) =>
+                  runMutation(mutation, undefined, "Brain anchor updated")
                 }
               />
             </div>
-          </section>
+            <section className="people-panel">
+              <header className="people-head">
+                <div>
+                  <div className="eyebrow">Roster</div>
+                  <h2>Members</h2>
+                  <p>
+                    Everyone with a profile on this brain, their access, and any
+                    linked brain representatives.
+                  </p>
+                </div>
+                <Button
+                  tone="primary"
+                  onClick={() => setModal({ kind: "add" })}
+                >
+                  Add member
+                </Button>
+              </header>
+              <div className="people-layout">
+                <Roster
+                  users={users}
+                  selectedUserId={selectedUserId}
+                  currentUserId={props.bootstrap.userId}
+                  onSelect={setSelectedUserId}
+                />
+                <PersonDetail
+                  user={selectedUser}
+                  onIdentity={() => setModal({ kind: "identity" })}
+                  onConfirm={setModal}
+                  onMutation={runMutation}
+                  onSetup={(setupUrl, copy) =>
+                    setModal({ kind: "setup", setupUrl, copy })
+                  }
+                />
+              </div>
+            </section>
+          </>
         )}
       </div>
 
@@ -304,7 +323,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               "Person created",
             );
             const created = result as { user: AuthAdminUserSummary };
-            await loadUsers(created.user.userId);
+            setSelectedUserId(created.user.userId);
             closeModal();
           }}
         />
@@ -437,7 +456,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               user: AuthAdminUserSummary;
               registration: { setupUrl: string; expiresAt: number };
             };
-            await loadUsers(promoted.user.userId);
+            setSelectedUserId(promoted.user.userId);
             setModal({
               kind: "setup",
               setupUrl: promoted.registration.setupUrl,

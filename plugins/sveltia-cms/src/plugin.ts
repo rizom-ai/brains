@@ -241,7 +241,7 @@ export class CmsPlugin extends ServicePlugin<
       label: "CMS",
       url: this.config.routePath,
       priority: 40,
-      visibility: "anchor",
+      visibility: "admin",
     });
     context.interactions.register({
       id: "sveltia-cms",
@@ -250,7 +250,7 @@ export class CmsPlugin extends ServicePlugin<
       href: this.config.routePath,
       kind: "admin",
       priority: 40,
-      visibility: "anchor",
+      visibility: "admin",
     });
   }
 
@@ -298,7 +298,7 @@ export class CmsPlugin extends ServicePlugin<
         public: true,
         handler: async (request): Promise<Response> => {
           if (loginMethods.passkeyLogin) {
-            if (!(await hasAnchorAuthSession(request))) {
+            if (!(await hasAdminAuthSession(request))) {
               return new Response(null, {
                 status: 302,
                 headers: {
@@ -370,7 +370,7 @@ export class CmsPlugin extends ServicePlugin<
     if (loginMethods.passkeyLogin) {
       // An authenticated user who already holds a session skips the passkey prompt and
       // goes straight to releasing the PAT.
-      const renderPage = (await hasAnchorAuthSession(request))
+      const renderPage = (await hasAdminAuthSession(request))
         ? renderPasskeyTokenPage
         : renderPasskeyLoginPage;
       return htmlResponse(
@@ -457,8 +457,8 @@ export class CmsPlugin extends ServicePlugin<
     if (!principal) {
       return jsonResponse({ error: "Authentication required" }, 401);
     }
-    if (principal.permissionLevel !== "anchor") {
-      return jsonResponse({ error: "Anchor access required" }, 403);
+    if (principal.permissionLevel !== "admin") {
+      return jsonResponse({ error: "Admin access required" }, 403);
     }
 
     return jsonResponse(
@@ -617,9 +617,9 @@ function oauthErrorResponse(message: string): Response {
   );
 }
 
-async function hasAnchorAuthSession(request: Request): Promise<boolean> {
+async function hasAdminAuthSession(request: Request): Promise<boolean> {
   const principal = await getActiveAuthService()?.resolveSession(request);
-  return principal?.permissionLevel === "anchor";
+  return principal?.permissionLevel === "admin";
 }
 
 function renderPasskeyLoginPage(targetOrigin: string): string {

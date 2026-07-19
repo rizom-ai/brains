@@ -100,13 +100,13 @@ export interface PlaybooksConfigInput {
 interface LifecycleStartersRequest {
   lifecycle?: string | undefined;
   interfaceType: string;
-  userPermissionLevel: "anchor" | "trusted" | "public";
+  userPermissionLevel: "admin" | "trusted" | "public";
 }
 
 export interface PlaybookEntityMetadata extends Record<string, unknown> {
   title: string;
   status: "draft" | "active" | "archived";
-  audience: "anchor" | "trusted" | "public";
+  audience: "admin" | "trusted" | "public";
   trigger?: string | undefined;
   lifecycle?: string | undefined;
   once?: boolean | undefined;
@@ -138,7 +138,7 @@ const lifecycleStartersRequestSchema: z.ZodType<
   .object({
     lifecycle: z.string().min(1).optional(),
     interfaceType: z.string().min(1),
-    userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
+    userPermissionLevel: z.enum(["admin", "trusted", "public"]),
   })
   .strict();
 
@@ -151,7 +151,7 @@ const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
       .object({
         title: z.string().min(1),
         status: z.enum(["draft", "active", "archived"]),
-        audience: z.enum(["anchor", "trusted", "public"]),
+        audience: z.enum(["admin", "trusted", "public"]),
         trigger: z.string().min(1).optional(),
         lifecycle: z.string().min(1).optional(),
         once: z.boolean().optional(),
@@ -371,7 +371,7 @@ export class PlaybooksPlugin extends ServicePlugin<
         description:
           "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
         inputSchema: statusInputSchema,
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "none",
         handler: async (
           input: unknown,
@@ -394,7 +394,7 @@ export class PlaybooksPlugin extends ServicePlugin<
         description:
           "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
         inputSchema: startInputSchema,
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "writes",
         handler: async (
           input: unknown,
@@ -445,7 +445,7 @@ export class PlaybooksPlugin extends ServicePlugin<
         description:
           "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "writes",
         handler: async (
           input: unknown,
@@ -511,7 +511,7 @@ export class PlaybooksPlugin extends ServicePlugin<
   private async handleAgentAction(
     request: AgentActionRequest,
   ): Promise<AgentResponse | undefined> {
-    if (request.userPermissionLevel !== "anchor") return undefined;
+    if (request.userPermissionLevel !== "admin") return undefined;
 
     const scopedRun = await this.resolveScopedRunResponse({
       conversationId: request.conversationId,
@@ -821,7 +821,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       await this.ctx.entityService.getEntity<RegisteredPlaybookEntity>({
         entityType: "playbook",
         id: playbookId,
-        visibilityScope: permissionToVisibilityScope("anchor"),
+        visibilityScope: permissionToVisibilityScope("admin"),
       });
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
@@ -1014,7 +1014,7 @@ function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
         options: {
           limit: 8,
           excludeTypes: ["playbook"],
-          visibilityScope: permissionToVisibilityScope("anchor"),
+          visibilityScope: permissionToVisibilityScope("admin"),
         },
       });
       const material = buildGoalCheckMaterial(input, searchResults);

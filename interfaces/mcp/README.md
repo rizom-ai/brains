@@ -136,9 +136,9 @@ Headers: {
 
 MCP uses transport-based permissions rather than user-based authentication:
 
-- **STDIO Transport**: Automatically granted `anchor` level (local access)
+- **STDIO Transport**: Uses the configured `admin` level for local access
 - **HTTP Transport**: Defaults to `public` level (remote access)
-- **Authenticated HTTP**: Granted `anchor` level for callers with the configured bearer/OAuth token
+- **Authenticated HTTP**: Resolves each bearer/OAuth caller's `admin`, `trusted`, or `public` level
 
 Configure in your app's permission settings:
 
@@ -148,7 +148,7 @@ import { defineConfig } from "@brains/app";
 const config = defineConfig({
   permissions: {
     rules: [
-      { pattern: "mcp:stdio", level: "anchor" }, // Local MCP
+      { pattern: "mcp:stdio", level: "admin" }, // Local MCP
       { pattern: "mcp:http", level: "public" }, // Remote MCP
     ],
   },
@@ -182,7 +182,7 @@ system prompt, permissions, and confirmation flow stay in the loop. Successful
 and `readYourWrites` handles with entity IDs and job IDs to fetch or poll.
 
 `debug` mode preserves raw tool exposure for local inspection. It requires
-`anchor` permissions and is refused for unauthenticated HTTP transport.
+`admin` permissions and is refused for unauthenticated HTTP transport.
 
 ```typescript
 const debugStdio = new MCPInterface({

@@ -596,7 +596,7 @@ export async function executeAgentCall(
     entityType: "agent",
     id: agentId,
     visibilityScope: internalFullScope(
-      "agent_call is anchor-only and resolves saved remote agents at any visibility",
+      "agent_call is admin-only and resolves saved remote agents at any visibility",
     ),
   });
   if (!entity) {

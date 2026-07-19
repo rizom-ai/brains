@@ -8,7 +8,7 @@ description: |
   to search.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - link
   - tool-invocation

@@ -169,7 +169,7 @@ describe("brain auth recovery", () => {
     ).toContain("credential");
   });
 
-  it("clears Anchor passkeys and active OAuth state", async () => {
+  it("clears auth passkeys and active OAuth state", async () => {
     const { runCommand } = await import("../src/run-command");
     const authDir = join(testDir, "data", "auth");
     mkdirSync(authDir, { recursive: true });

@@ -89,6 +89,7 @@ export interface ToolContext {
   runId?: string;
   toolCallId?: string;
   userPermissionLevel?: UserPermissionLevel;
+  isAnchor?: boolean;
 }
 
 export interface ToolResponse<T = unknown> {

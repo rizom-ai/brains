@@ -3,7 +3,7 @@ name: Rover Onboarding Playbook Conversation
 description: Verifies that Rover starts setup onboarding, saves identity/profile information through confirmation, then starts the first knowledge loop to save a durable seed, retrieve it through normal tools, and transform it without scripted non-exit playbook actions.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: web-chat-eval-onboarding
   channelName: Web Chat Eval

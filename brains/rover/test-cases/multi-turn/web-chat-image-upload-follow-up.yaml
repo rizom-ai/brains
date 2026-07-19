@@ -3,7 +3,7 @@ name: Web chat image upload follow-up reuses attachment context
 description: Verifies a bare web-chat image upload is inert, then an explicit follow-up description request can consume the prior upload without creating entities.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-file-upload
   channelName: Web Chat Eval

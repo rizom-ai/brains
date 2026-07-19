@@ -24,7 +24,8 @@ The top-level fields documented in [brain.yaml reference](../../packages/brain-c
 - `preset` — `core | default | full`
 - `mode` — e.g. `eval`
 - `add` / `remove` — plugin list deltas
-- `anchors` / `trusted` — user identifiers
+- `admins` / `trusted` — permission-bearing user identifiers
+- `anchors` — caller identities representing the brain's owner/subject
 - `plugins` — per-plugin config map
 - `permissions` — permission rules
 

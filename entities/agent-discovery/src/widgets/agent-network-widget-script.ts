@@ -10,7 +10,7 @@ export const agentNetworkWidgetScript = `(function () {
     }
   }
 
-  var promotionAvailable = document.body.getAttribute("data-auth-role") === "anchor";
+  var promotionAvailable = document.body.getAttribute("data-auth-role") === "admin";
   document.querySelectorAll("[data-agent-promote]").forEach(function (button) {
     button.hidden = !promotionAvailable;
     if (!promotionAvailable) return;

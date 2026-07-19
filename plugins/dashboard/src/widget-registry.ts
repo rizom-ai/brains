@@ -38,7 +38,7 @@ export type BuiltInWidgetRendererName =
 
 const builtInWidgetRendererSet = new Set<string>(BUILT_IN_WIDGET_RENDERERS);
 const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
-  z.enum(["public", "trusted", "anchor"]);
+  z.enum(["public", "trusted", "admin"]);
 
 export function isBuiltInWidgetRenderer(
   rendererName: string,

@@ -95,7 +95,7 @@ function addPlaybookEntity(
   const frontmatter: PlaybookFrontmatter = {
     title: "Rover Onboarding",
     status: "active" as const,
-    audience: "anchor" as const,
+    audience: "admin" as const,
     completionMode: "agent-confirmed" as const,
     ...metadata,
   };
@@ -320,9 +320,9 @@ describe("PlaybooksPlugin", () => {
     );
 
     expect(metadata).toEqual({
-      playbook_send_event: { visibility: "anchor", sideEffects: "writes" },
-      playbook_start: { visibility: "anchor", sideEffects: "writes" },
-      playbook_status: { visibility: "anchor", sideEffects: "none" },
+      playbook_send_event: { visibility: "admin", sideEffects: "writes" },
+      playbook_start: { visibility: "admin", sideEffects: "writes" },
+      playbook_status: { visibility: "admin", sideEffects: "none" },
     });
   });
 
@@ -350,7 +350,7 @@ describe("PlaybooksPlugin", () => {
     const conversationId = "resume-preserve-lifecycle";
     const started = await harness.executeTool(
       "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "first-anchor-web-chat" },
+      { playbookId: "rover-onboarding", lifecycle: "first-admin-web-chat" },
       { conversationId },
     );
     expectSuccess(started);
@@ -362,7 +362,7 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(restarted);
 
     const data = parsePlaybookToolData(restarted.data);
-    expect(data.activeRun.lifecycle).toBe("first-anchor-web-chat");
+    expect(data.activeRun.lifecycle).toBe("first-admin-web-chat");
   });
 
   it("uses playbook metadata lifecycle over model-authored start lifecycle", async () => {
@@ -396,7 +396,7 @@ describe("PlaybooksPlugin", () => {
           "playbook_start",
           {
             playbookId: "rover-onboarding",
-            lifecycle: "first-anchor-web-chat",
+            lifecycle: "first-admin-web-chat",
           },
           { conversationId },
         ),
@@ -422,13 +422,13 @@ describe("PlaybooksPlugin", () => {
     expect(parsePlaybookToolData(status.data).runs).toHaveLength(1);
   });
 
-  it("returns lifecycle starters for active anchor web-chat playbooks", async () => {
+  it("returns lifecycle starters for active admin web-chat playbooks", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin({
         lifecycle: {
           onboarding: {
-            trigger: "first-anchor-web-chat",
+            trigger: "first-admin-web-chat",
             playbookId: "rover-onboarding",
             once: true,
             starterText: "Set up Rover",
@@ -444,7 +444,7 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       {
         starters: Array<{
@@ -459,7 +459,7 @@ describe("PlaybooksPlugin", () => {
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toHaveLength(1);
@@ -477,7 +477,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
       starterText: "Set up Rover",
       starterPrompt: "Start the Rover onboarding playbook.",
@@ -487,7 +487,7 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       {
         starters: Array<{
@@ -502,7 +502,7 @@ describe("PlaybooksPlugin", () => {
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toEqual([]);
@@ -512,7 +512,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
       starterText: "Set up Rover",
       starterPrompt: "Start the Rover onboarding playbook.",
@@ -533,7 +533,7 @@ describe("PlaybooksPlugin", () => {
       PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
       {
         id: "onboarding",
-        trigger: "first-anchor-web-chat",
+        trigger: "first-admin-web-chat",
         playbookId: "rover-onboarding",
         once: true,
         starterText: "Set up Rover",
@@ -549,7 +549,7 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       {
         starters: Array<{
@@ -564,7 +564,7 @@ describe("PlaybooksPlugin", () => {
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toEqual([
@@ -583,7 +583,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
       starterText: "Set up Rover",
       starterPrompt: "Start the Rover onboarding playbook.",
@@ -591,7 +591,7 @@ describe("PlaybooksPlugin", () => {
 
     const payload = {
       id: "onboarding",
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       playbookId: "rover-onboarding",
       once: true,
       starterText: "Set up Rover",
@@ -614,13 +614,13 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { starters: Array<{ id: string }> }
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toHaveLength(1);
@@ -630,7 +630,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
       starterText: "Set up Rover",
       starterPrompt: "Start the Rover onboarding playbook.",
@@ -638,7 +638,7 @@ describe("PlaybooksPlugin", () => {
 
     const firstPayload = {
       id: "onboarding",
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       playbookId: "rover-onboarding",
       once: true,
       starterText: "Set up Rover",
@@ -672,13 +672,13 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { starters: Array<{ title: string; starterPrompt: string }> }
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toEqual([
@@ -692,10 +692,10 @@ describe("PlaybooksPlugin", () => {
   it("derives enabled lifecycle starters from active playbook metadata", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
-      playbooksPlugin({ triggers: { "first-anchor-web-chat": true } }),
+      playbooksPlugin({ triggers: { "first-admin-web-chat": true } }),
     );
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
       starterText: "Set up Rover",
       starterPrompt: "Start the Rover onboarding playbook.",
@@ -705,7 +705,7 @@ describe("PlaybooksPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       {
         starters: Array<{
@@ -720,7 +720,7 @@ describe("PlaybooksPlugin", () => {
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toEqual([
@@ -804,7 +804,8 @@ describe("PlaybooksPlugin", () => {
         conversationId: string;
         interfaceType: string;
         channelName: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
+        isAnchor: boolean;
         action: { type: "event"; event: "NEXT" };
       },
       {
@@ -825,7 +826,8 @@ describe("PlaybooksPlugin", () => {
       conversationId: "web-action-next",
       interfaceType: "web-chat",
       channelName: "Web Chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
+      isAnchor: false,
       action: { type: "event", event: "NEXT" },
     });
 
@@ -1651,7 +1653,8 @@ describe("PlaybooksPlugin", () => {
         conversationId: string;
         interfaceType: string;
         channelName: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
+        isAnchor: boolean;
         action: { type: "event"; event: "NEXT"; fromState: string };
       },
       { text: string }
@@ -1659,7 +1662,8 @@ describe("PlaybooksPlugin", () => {
       conversationId: "web-stale-action",
       interfaceType: "web-chat",
       channelName: "Web Chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
+      isAnchor: false,
       action: { type: "event", event: "NEXT", fromState: "welcome" },
     });
 
@@ -1748,7 +1752,7 @@ describe("PlaybooksPlugin", () => {
         interfaceType: string;
         channelId: string;
         channelName: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
     >(AGENT_CONTEXT_REQUEST_CHANNEL, {
@@ -1757,7 +1761,7 @@ describe("PlaybooksPlugin", () => {
       interfaceType: "web-chat",
       channelId: "web-agent-context",
       channelName: "Web Chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.items).toHaveLength(1);
@@ -1794,7 +1798,7 @@ describe("PlaybooksPlugin", () => {
         interfaceType: string;
         channelId: string;
         channelName: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
     >(AGENT_CONTEXT_REQUEST_CHANNEL, {
@@ -1803,7 +1807,7 @@ describe("PlaybooksPlugin", () => {
       interfaceType: "web-chat",
       channelId: "web-agent-context-completed",
       channelName: "Web Chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     const content = response?.items[0]?.content ?? "";
@@ -1859,7 +1863,7 @@ describe("PlaybooksPlugin", () => {
         interfaceType: string;
         channelId: string;
         channelName: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
     >(AGENT_CONTEXT_REQUEST_CHANNEL, {
@@ -1868,7 +1872,7 @@ describe("PlaybooksPlugin", () => {
       interfaceType: "web-chat",
       channelId: "web-actionable-context",
       channelName: "Web Chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.items).toHaveLength(1);

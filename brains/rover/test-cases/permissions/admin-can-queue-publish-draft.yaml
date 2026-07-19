@@ -1,17 +1,17 @@
-id: rover-permission-anchor-can-queue-publish-draft
-name: Anchor owner can queue a Rover publishing draft
+id: rover-permission-admin-can-queue-publish-draft
+name: Admin user can queue a Rover publishing draft
 description: >-
-  Verifies the owner side of the publish-action split: anchor-level callers may
+  Verifies the Admin side of the publish-action split: Admin callers may
   make publish commitments such as adding a social post draft to the publish
   queue.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - rover
   - permissions
   - publish-action-policy
-  - anchor
+  - admin
   - preset-full
 
 turns:

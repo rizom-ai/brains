@@ -3,7 +3,7 @@ name: Verify or Refuse Unknown Agent by Domain
 description: Tests that an unknown exact-domain agent request uses agent_call, does not create/connect a new agent, and reports verification/contact failure when no Agent Card can be verified.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

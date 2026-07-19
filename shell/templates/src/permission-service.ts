@@ -4,12 +4,12 @@ import { matchSpaceSelector } from "./space-selector";
 /**
  * User permission level schema
  */
-export type UserPermissionLevel = "anchor" | "trusted" | "public";
+export type UserPermissionLevel = "admin" | "trusted" | "public";
 
 export const UserPermissionLevelSchema: z.ZodType<
   UserPermissionLevel,
   UserPermissionLevel
-> = z.enum(["anchor", "trusted", "public"]);
+> = z.enum(["admin", "trusted", "public"]);
 
 // Add new actions only when a concrete mutating tool needs them.
 export type EntityAction =
@@ -29,7 +29,7 @@ export type EntityActionRequiredLevel = "never" | UserPermissionLevel;
 export const EntityActionRequiredLevelSchema: z.ZodType<
   EntityActionRequiredLevel,
   EntityActionRequiredLevel
-> = z.enum(["never", "anchor", "trusted", "public"]);
+> = z.enum(["never", "admin", "trusted", "public"]);
 
 export interface EntityActionPolicyRule {
   create?: EntityActionRequiredLevel | undefined;
@@ -76,7 +76,7 @@ const ACTION_LABELS: Record<EntityAction, string> = {
 const LEVEL_LABELS: Record<UserPermissionLevel, string> = {
   public: "Public",
   trusted: "Trusted",
-  anchor: "Anchor",
+  admin: "Admin",
 };
 
 /**
@@ -94,13 +94,18 @@ export interface PermissionRule {
   level: UserPermissionLevel;
 }
 
+export type PermissionRuleInput = PermissionRule;
+
 /**
  * Configuration for the permission system
  */
 export interface PermissionConfig {
+  /** Callers with administrative permission. */
+  admins?: string[];
+  /** Caller identities that represent the brain's person anchor in chat. */
   anchors?: string[];
   trusted?: string[];
-  rules?: PermissionRule[];
+  rules?: PermissionRuleInput[];
   entityActions?: EntityActionPolicyConfigInput;
 }
 
@@ -155,6 +160,7 @@ export interface PermissionServiceOptions {
  * Replaces the old PermissionHandler from @brains/utils
  */
 export class PermissionService {
+  private admins: Set<string>;
   private anchors: Set<string>;
   private trusted: Set<string>;
   private rules: PermissionRule[];
@@ -165,6 +171,7 @@ export class PermissionService {
     config: PermissionConfig,
     options: PermissionServiceOptions = {},
   ) {
+    this.admins = new Set(config.admins ?? []);
     this.anchors = new Set(config.anchors ?? []);
     this.trusted = new Set(config.trusted ?? []);
     this.rules = config.rules ?? [];
@@ -180,10 +187,10 @@ export class PermissionService {
    * Determine the permission level for a user in a specific interface.
    *
    * Resolution order (load-bearing — locks user-facing trust semantics):
-   *   1. Explicit anchor/trusted lists win — they encode operator intent.
-   *   2. Pattern rules granting anchor/trusted win — same intent, broader.
+   *   1. Explicit admin/trusted lists win — they encode operator intent.
+   *   2. Pattern rules granting admin/trusted win — same intent, broader.
    *   3. Configured shared-space membership grants `trusted` — only raises
-   *      otherwise-public callers; never elevates to `anchor`.
+   *      otherwise-public callers; never elevates to `admin`.
    *   4. Public-fallback pattern rules apply.
    *   5. Default `public`.
    */
@@ -194,11 +201,11 @@ export class PermissionService {
   ): UserPermissionLevel {
     const fullId = `${interfaceType}:${userId}`;
 
-    if (this.anchors.has(fullId)) return "anchor";
+    if (this.admins.has(fullId)) return "admin";
     if (this.trusted.has(fullId)) return "trusted";
 
     const patternLevel = this.getPatternLevel(fullId);
-    if (patternLevel === "anchor" || patternLevel === "trusted") {
+    if (patternLevel === "admin" || patternLevel === "trusted") {
       return patternLevel;
     }
 
@@ -210,6 +217,11 @@ export class PermissionService {
     }
 
     return patternLevel ?? "public";
+  }
+
+  /** Whether the caller represents this personal brain's anchor identity. */
+  isAnchor(interfaceType: string, userId: string): boolean {
+    return this.anchors.has(`${interfaceType}:${userId}`);
   }
 
   /**
@@ -322,11 +334,11 @@ export class PermissionService {
     }
 
     if (requiredLevel === "trusted") {
-      return grantedLevel === "trusted" || grantedLevel === "anchor";
+      return grantedLevel === "trusted" || grantedLevel === "admin";
     }
 
-    // At this point, requiredLevel must be "anchor"
-    return grantedLevel === "anchor";
+    // At this point, requiredLevel must be "admin".
+    return grantedLevel === "admin";
   }
 
   private getPatternLevel(id: string): UserPermissionLevel | undefined {

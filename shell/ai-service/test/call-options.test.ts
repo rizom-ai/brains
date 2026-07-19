@@ -48,6 +48,16 @@ describe("buildBrainCallOptions", () => {
     expect(options.hasPriorResponseCandidate).toBe(true);
   });
 
+  test("passes the independent Anchor identity facet through", () => {
+    const options = buildBrainCallOptions({
+      ...base,
+      hasAccessibleUploads: false,
+      isAnchor: true,
+    });
+
+    expect(options.isAnchor).toBe(true);
+  });
+
   test("passes authenticated actor attribution through", () => {
     const options = buildBrainCallOptions({
       ...base,

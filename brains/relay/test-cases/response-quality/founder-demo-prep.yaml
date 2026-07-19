@@ -5,7 +5,7 @@ description: >-
   technical buyer, including current capabilities and remaining proof.
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

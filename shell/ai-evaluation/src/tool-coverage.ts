@@ -39,7 +39,7 @@ export async function runToolCoverageReport(
   try {
     const shell = app.getShell();
     const registeredTools = shell
-      .listToolsForPermissionLevel("anchor")
+      .listToolsForPermissionLevel("admin")
       .map((tool) => tool.name);
     const testCases = await loadCoverageTestCases(
       options.testCasesDirs,

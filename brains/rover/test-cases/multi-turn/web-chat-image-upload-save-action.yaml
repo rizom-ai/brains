@@ -3,7 +3,7 @@ name: Web chat image upload Save image action promotes image
 description: Verifies the suggested Save image action uses system_create upload preserve with the prior upload ref instead of refusing or generating a new image.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-image-upload-save-action
   channelName: Web Chat Eval

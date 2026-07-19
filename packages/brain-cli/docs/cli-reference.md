@@ -107,7 +107,7 @@ Generated deploy workflows resolve `.env.schema` with Varlock, retry compact res
 
 ### `brain auth reset-passkeys`
 
-Break-glass recovery for lost or compromised Anchor passkeys. This is a local-only destructive command that clears passkey credentials, auth sessions, authorization codes, and refresh tokens from runtime auth storage. It preserves OAuth clients and the OAuth signing key.
+Break-glass recovery for lost or compromised auth passkeys. This is a local-only destructive command that clears passkey credentials, auth sessions, authorization codes, and refresh tokens from runtime auth storage. It preserves OAuth clients and the OAuth signing key.
 
 ```bash
 cd mybrain

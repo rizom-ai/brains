@@ -63,6 +63,7 @@ describe("auth admin API", () => {
     expect(plugin.getWebRoutes()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ path: "/auth/admin/users", method: "GET" }),
+        expect.objectContaining({ path: "/auth/admin/anchor", method: "GET" }),
         expect.objectContaining({
           path: "/auth/admin/mutations",
           method: "POST",
@@ -83,11 +84,11 @@ describe("auth admin API", () => {
     );
   });
 
-  it("requires an active anchor session", async () => {
+  it("requires an active admin session", async () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const collaborator = await service.createUser({
       displayName: "Mira",
@@ -106,15 +107,111 @@ describe("auth admin API", () => {
 
     expect(unauthenticated.status).toBe(401);
     expect(forbidden.status).toBe(403);
-    expect(await forbidden.json()).toEqual({ error: "Anchor access required" });
-    expect(anchor.permissionLevel).toBe("anchor");
+    expect(await forbidden.json()).toEqual({ error: "Admin access required" });
+    expect(anchor.permissionLevel).toBe("admin");
+  });
+
+  it("manages Anchor identity independently from Admin permission", async () => {
+    const service = await createService();
+    const firstSession = await service.createAuthSession();
+    const [first] = await service.listUsers();
+    if (!first) throw new Error("Expected the first Admin user");
+    const second = await service.createUser({
+      displayName: "Mira",
+      role: "admin",
+    });
+
+    const initial = await service.handleRequest(
+      adminRequest("/auth/admin/anchor", firstSession.cookie),
+    );
+    expect(initial.status).toBe(200);
+    expect(await initial.json()).toMatchObject({
+      anchor: {
+        kind: "person",
+        personId: first.personId,
+        displayName: first.displayName,
+        administeredBy: 2,
+      },
+    });
+
+    const collective = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", firstSession.cookie, {
+        action: "updateBrainAnchor",
+        confirmation: "updateBrainAnchor",
+        kind: "collective",
+        displayName: "Rizom Collective",
+      }),
+    );
+    expect(collective.status).toBe(200);
+    expect(await collective.json()).toMatchObject({
+      anchor: {
+        kind: "collective",
+        displayName: "Rizom Collective",
+        administeredBy: 2,
+      },
+    });
+    expect((await service.listUsers()).map((user) => user.isAnchor)).toEqual([
+      false,
+      false,
+    ]);
+
+    const personal = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", firstSession.cookie, {
+        action: "updateBrainAnchor",
+        confirmation: "updateBrainAnchor",
+        kind: "person",
+        userId: second.userId,
+      }),
+    );
+    expect(personal.status).toBe(200);
+    expect(await personal.json()).toMatchObject({
+      anchor: {
+        kind: "person",
+        personId: second.personId,
+        displayName: "Mira",
+        administeredBy: 2,
+      },
+    });
+    expect((await service.listUsers()).map((user) => user.isAnchor)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it("rejects fields from the other Anchor mutation variant", async () => {
+    const service = await createService();
+    const session = await service.createAuthSession();
+    const [admin] = await service.listUsers();
+    if (!admin) throw new Error("Expected the first Admin user");
+
+    const personWithCollectiveFields = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "updateBrainAnchor",
+        confirmation: "updateBrainAnchor",
+        kind: "person",
+        userId: admin.userId,
+        displayName: "Unexpected collective name",
+      }),
+    );
+    const collectiveWithPersonFields = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "updateBrainAnchor",
+        confirmation: "updateBrainAnchor",
+        kind: "collective",
+        displayName: "Rizom Collective",
+        userId: admin.userId,
+      }),
+    );
+
+    expect(personWithCollectiveFields.status).toBe(400);
+    expect(collectiveWithPersonFields.status).toBe(400);
   });
 
   it("requires same-origin JSON and explicit action confirmation", async () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const session = await service.createAuthSession(anchor.userId);
     const mutation = {
@@ -157,7 +254,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     await service.createUser({ displayName: "Mira", role: "trusted" });
     const session = await service.createAuthSession(anchor.userId);
@@ -199,7 +296,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const mira = await service.createUser({
       displayName: "Mira Reyes",
@@ -293,7 +390,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const mira = await service.createUser({
       displayName: "Mira Reyes",
@@ -344,7 +441,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const session = await service.createAuthSession(anchor.userId);
 
@@ -447,7 +544,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const collaborator = await service.createUser({
       displayName: "Mira Reyes",
@@ -696,7 +793,7 @@ describe("auth admin API", () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
-      role: "anchor",
+      role: "admin",
     });
     const session = await service.createAuthSession(anchor.userId);
 

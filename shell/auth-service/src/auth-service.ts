@@ -5,6 +5,7 @@ import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
   AuthAgentPersonReconciliationResponse,
+  AuthBrainAnchorSummary,
   AuthIdentitySummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
@@ -38,7 +39,11 @@ import {
   type GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
-import type { AgentPersonLink, AuthUser } from "./runtime-schema";
+import type {
+  AgentPersonLink,
+  AuthBrainAnchor,
+  AuthUser,
+} from "./runtime-schema";
 import {
   AuthUserStore,
   type AttachAuthIdentityInput,
@@ -108,9 +113,10 @@ export interface AuthPrincipal {
   userId: string;
   personId: string;
   displayName: string;
-  role: "anchor" | "trusted" | "public";
+  role: "admin" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
-  permissionLevel: "anchor" | "trusted" | "public";
+  permissionLevel: "admin" | "trusted" | "public";
+  isAnchor: boolean;
   canonicalId?: string;
 }
 
@@ -182,7 +188,7 @@ export class AuthService {
   private auditStore: AuthAuditStore | undefined;
   private credentialStore: AuthCredentialStore | undefined;
   private initialization: Promise<void> | undefined;
-  private firstAnchorInitialization: Promise<AuthUser> | undefined;
+  private firstAdminInitialization: Promise<AuthUser> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
   private readonly legacyClientStore: OAuthClientStore;
@@ -299,7 +305,7 @@ export class AuthService {
       ): Promise<PasskeyRegistrationUser> => {
         const user = userId
           ? await this.getUserStore().getUser(userId)
-          : await this.ensureFirstAnchorUser();
+          : await this.ensureFirstAdminUser();
         if (!user || user.status === "suspended") {
           throw new Error("Passkey registration user is unavailable");
         }
@@ -373,7 +379,7 @@ export class AuthService {
           this.logger?.warn(`Passkey setup required: ${setupUrl}`);
         } else {
           this.logger?.warn(
-            "Passkey setup required. Ask through an anchor-visible interface for the setup URL.",
+            "Passkey setup required. Ask through an Admin interface for the setup URL.",
           );
         }
       }
@@ -388,7 +394,7 @@ export class AuthService {
     this.auditStore = undefined;
     this.credentialStore = undefined;
     this.initialization = undefined;
-    this.firstAnchorInitialization = undefined;
+    this.firstAdminInitialization = undefined;
     await this.runtimeDatabase.stop();
   }
 
@@ -425,13 +431,13 @@ export class AuthService {
 
   private async migrateLegacyPasskeys(): Promise<void> {
     let skipped = 0;
-    let anchorUser: AuthUser | undefined;
+    let adminUser: AuthUser | undefined;
     await this.migrateLegacyRecords(
       () => this.legacyPasskeyStore.listCredentials(),
       async (credential): Promise<boolean> => {
         const user =
           credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            ? (adminUser ??= await this.ensureFirstAdminUser())
             : await this.getUserStore().getUser(credential.subject);
         if (!user) {
           skipped += 1;
@@ -483,21 +489,21 @@ export class AuthService {
       "Migrated legacy passkey credentials",
       () => ({
         skipped,
-        ...(anchorUser ? { userId: anchorUser.id } : {}),
+        ...(adminUser ? { userId: adminUser.id } : {}),
       }),
     );
   }
 
   private async migrateLegacySessions(): Promise<void> {
     let skipped = 0;
-    let anchorUser: AuthUser | undefined;
+    let adminUser: AuthUser | undefined;
     await this.migrateLegacyRecords(
       () => this.legacySessionStore.listSessions(),
       async (session): Promise<boolean> => {
         if (session.expires_at <= nowSeconds()) return false;
         const user =
           session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            ? (adminUser ??= await this.ensureFirstAdminUser())
             : await this.getUserStore().getUser(session.subject);
         if (!user) {
           skipped += 1;
@@ -508,7 +514,7 @@ export class AuthService {
       "Migrated legacy browser sessions",
       () => ({
         skipped,
-        ...(anchorUser ? { userId: anchorUser.id } : {}),
+        ...(adminUser ? { userId: adminUser.id } : {}),
       }),
     );
   }
@@ -523,7 +529,7 @@ export class AuthService {
 
   private async migrateLegacyAuthorizationCodes(): Promise<void> {
     let skipped = 0;
-    let anchorUser: AuthUser | undefined;
+    let adminUser: AuthUser | undefined;
     await this.migrateLegacyRecords(
       () => this.legacyAuthCodeStore.listCodes(),
       async (code): Promise<boolean> => {
@@ -536,7 +542,7 @@ export class AuthService {
         }
         const user =
           code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (anchorUser ??= await this.ensureFirstAnchorUser())
+            ? (adminUser ??= await this.ensureFirstAdminUser())
             : await this.getUserStore().getUser(code.subject);
         if (!user) {
           skipped += 1;
@@ -624,14 +630,14 @@ export class AuthService {
     return this.credentialStore;
   }
 
-  private async ensureFirstAnchorUser(): Promise<AuthUser> {
-    if (this.firstAnchorInitialization) {
-      return this.firstAnchorInitialization;
+  private async ensureFirstAdminUser(): Promise<AuthUser> {
+    if (this.firstAdminInitialization) {
+      return this.firstAdminInitialization;
     }
 
     const initialization = (async (): Promise<AuthUser> => {
       const existingUsers = await this.getUserStore().listUsers();
-      const user = await this.getUserStore().ensureFirstAnchorUser();
+      const user = await this.getUserStore().ensureFirstAdminUser();
       if (!existingUsers.some((existing) => existing.id === user.id)) {
         await this.getAuditStore().append({
           action: "auth.user.created",
@@ -642,14 +648,18 @@ export class AuthService {
       }
       return user;
     })();
-    this.firstAnchorInitialization = initialization;
+    this.firstAdminInitialization = initialization;
     try {
       return await initialization;
     } finally {
-      if (this.firstAnchorInitialization === initialization) {
-        this.firstAnchorInitialization = undefined;
+      if (this.firstAdminInitialization === initialization) {
+        this.firstAdminInitialization = undefined;
       }
     }
+  }
+
+  private async principalFromUser(user: AuthUser): Promise<AuthPrincipal> {
+    return principalFromUser(user, await this.getUserStore().getBrainAnchor());
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -789,7 +799,7 @@ export class AuthService {
       targetId: user.id,
       metadata: { role: user.role, status: user.status },
     });
-    return principalFromUser(user);
+    return this.principalFromUser(user);
   }
 
   async promoteAgentPerson(
@@ -821,7 +831,7 @@ export class AuthService {
       },
     });
     return {
-      user: principalFromUser(promoted.user),
+      user: await this.principalFromUser(promoted.user),
       representation: promoted.link,
       registration,
     };
@@ -883,31 +893,76 @@ export class AuthService {
     return accepted;
   }
 
+  async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
+    await this.ensureUserStoreStarted();
+    const [anchor, users] = await Promise.all([
+      this.getUserStore().getBrainAnchor(),
+      this.getUserStore().listUsers(),
+    ]);
+    if (!anchor) throw new Error("Brain anchor is not configured");
+    return brainAnchorSummary(anchor, users);
+  }
+
+  async updateBrainAnchor(
+    input:
+      | { kind: "person"; userId: string }
+      | {
+          kind: "collective";
+          displayName: string;
+          profileEntityId?: string;
+        },
+    context: AuthMutationContext = {},
+  ): Promise<AuthBrainAnchorSummary> {
+    await this.ensureUserStoreStarted();
+    const anchor = await this.getUserStore().updateBrainAnchor(input);
+    const users = await this.getUserStore().listUsers();
+    await this.getAuditStore().append({
+      ...auditActor(context),
+      action: "auth.brain_anchor.updated",
+      targetType: "brain_anchor",
+      targetId: anchor.subjectId,
+      metadata: { kind: anchor.kind },
+    });
+    return brainAnchorSummary(anchor, users);
+  }
+
   async listUsers(): Promise<AuthPrincipal[]> {
     await this.ensureUserStoreStarted();
-    return (await this.getUserStore().listUsers()).map(principalFromUser);
+    const [users, anchor] = await Promise.all([
+      this.getUserStore().listUsers(),
+      this.getUserStore().getBrainAnchor(),
+    ]);
+    return users.map((user) => principalFromUser(user, anchor));
   }
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
     await this.ensureUserStoreStarted();
-    const [users, identities, passkeys, agents] = await Promise.all([
-      this.getUserStore().listUsers(),
-      this.getUserStore().listAllIdentities(),
-      this.getCredentialStore().listPasskeys(),
-      this.getPersonAgentStore().listAll(),
-    ]);
+    const [users, people, identities, passkeys, agents, anchor] =
+      await Promise.all([
+        this.getUserStore().listUsers(),
+        this.getUserStore().listPeople(),
+        this.getUserStore().listAllIdentities(),
+        this.getCredentialStore().listPasskeys(),
+        this.getPersonAgentStore().listAll(),
+        this.getUserStore().getBrainAnchor(),
+      ]);
+    const peopleById = new Map(people.map((person) => [person.id, person]));
     const identitiesByPersonId = groupBy(identities, (item) => item.personId);
     const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
     const agentsByPersonId = groupBy(agents, (item) => item.personId);
 
-    return users.map((user) => ({
-      ...principalFromUser(user),
-      identities: (identitiesByPersonId.get(user.personId) ?? []).map(
-        (identity) => identitySummary(identity, user.id),
-      ),
-      passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
-      agents: agentsByPersonId.get(user.personId) ?? [],
-    }));
+    return users.map((user) => {
+      const profileEntityId = peopleById.get(user.personId)?.profileEntityId;
+      return {
+        ...principalFromUser(user, anchor),
+        ...(profileEntityId ? { profileEntityId } : {}),
+        identities: (identitiesByPersonId.get(user.personId) ?? []).map(
+          (identity) => identitySummary(identity, user.id),
+        ),
+        passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
+        agents: agentsByPersonId.get(user.personId) ?? [],
+      };
+    });
   }
 
   async reconcileAgentPersonClaims(
@@ -1029,7 +1084,7 @@ export class AuthService {
         metadata: { from: current.role, to: updated.role },
       });
     }
-    return principalFromUser(updated);
+    return this.principalFromUser(updated);
   }
 
   async updateUserStatus(
@@ -1050,7 +1105,7 @@ export class AuthService {
         metadata: { from: current.status, to: updated.status },
       });
     }
-    return principalFromUser(updated);
+    return this.principalFromUser(updated);
   }
 
   suspendUser(
@@ -1138,7 +1193,9 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     if (actor.kind === "user") {
       const user = await this.getUserStore().getUser(actor.userId);
-      return user?.status === "active" ? principalFromUser(user) : undefined;
+      return user?.status === "active"
+        ? this.principalFromUser(user)
+        : undefined;
     }
     if (actor.kind !== "external") return undefined;
 
@@ -1149,7 +1206,7 @@ export class AuthService {
     const result =
       await this.getUserStore().resolveIdentityHashAccess(identityKeyHash);
     return result.state === "resolved"
-      ? principalFromUser(result.user)
+      ? this.principalFromUser(result.user)
       : undefined;
   }
 
@@ -1173,7 +1230,10 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     const result = await this.getUserStore().resolveIdentityAccess(input);
     return result.state === "resolved"
-      ? { state: "resolved", principal: principalFromUser(result.user) }
+      ? {
+          state: "resolved",
+          principal: await this.principalFromUser(result.user),
+        }
       : result;
   }
 
@@ -1184,7 +1244,7 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     const sessionSubject =
       !subject || subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-        ? (await this.ensureFirstAnchorUser()).id
+        ? (await this.ensureFirstAdminUser()).id
         : subject;
     return this.sessionStore.createSession(sessionSubject, options);
   }
@@ -1208,7 +1268,7 @@ export class AuthService {
 
   async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
     const resolved = await this.resolveActiveSession(request);
-    return resolved ? principalFromUser(resolved.user) : undefined;
+    return resolved ? this.principalFromUser(resolved.user) : undefined;
   }
 
   createAuthLoginResponse(request: Request): Response {
@@ -1242,7 +1302,7 @@ export class AuthService {
 
     const user = await this.getUserStore().getUser(token.subject);
     return user?.status === "active"
-      ? { principal: principalFromUser(user), token }
+      ? { principal: await this.principalFromUser(user), token }
       : undefined;
   }
 
@@ -1357,6 +1417,7 @@ export class AuthService {
 
     if (
       path === "/auth/admin/users" ||
+      path === "/auth/admin/anchor" ||
       path === "/auth/admin/mutations" ||
       path === "/auth/admin/reconciliation"
     ) {
@@ -1466,6 +1527,9 @@ export class AuthService {
     return handleAuthAdminRequest(request, {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
+      getBrainAnchor: () => this.getBrainAnchor(),
+      updateBrainAnchor: (input, actorUserId) =>
+        this.updateBrainAnchor(input, { actorUserId }),
       listAdminUsers: () => this.listAdminUsers(),
       reconcileAgentPersonClaims: (claims) =>
         this.reconcileAgentPersonClaims(claims),
@@ -1565,6 +1629,24 @@ function legacyTimestampToMilliseconds(timestamp: number): number {
   return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
 }
 
+function brainAnchorSummary(
+  anchor: AuthBrainAnchor,
+  users: AuthUser[],
+): AuthBrainAnchorSummary {
+  return {
+    kind: anchor.kind,
+    subjectId: anchor.subjectId,
+    displayName: anchor.displayName,
+    ...(anchor.kind === "person" ? { personId: anchor.subjectId } : {}),
+    ...(anchor.profileEntityId
+      ? { profileEntityId: anchor.profileEntityId }
+      : {}),
+    administeredBy: users.filter(
+      (user) => user.role === "admin" && user.status === "active",
+    ).length,
+  };
+}
+
 function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
@@ -1605,7 +1687,10 @@ function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
   };
 }
 
-function principalFromUser(user: AuthUser): AuthPrincipal {
+function principalFromUser(
+  user: AuthUser,
+  anchor: AuthBrainAnchor | undefined,
+): AuthPrincipal {
   return {
     userId: user.id,
     personId: user.personId,
@@ -1613,6 +1698,7 @@ function principalFromUser(user: AuthUser): AuthPrincipal {
     role: user.role,
     status: user.status,
     permissionLevel: user.role,
+    isAnchor: anchor?.kind === "person" && anchor.subjectId === user.personId,
     ...(user.canonicalId ? { canonicalId: user.canonicalId } : {}),
   };
 }

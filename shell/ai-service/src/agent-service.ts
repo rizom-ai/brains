@@ -262,6 +262,7 @@ export class AgentService implements IAgentService {
             channelId,
             channelName,
             userPermissionLevel,
+            isAnchor: context?.isAnchor ?? false,
             actor: context?.actor ?? null,
             source: context?.source ?? null,
           };
@@ -328,6 +329,7 @@ export class AgentService implements IAgentService {
           channelId,
           channelName,
           userPermissionLevel,
+          isAnchor: context?.isAnchor ?? false,
           actor: context?.actor ?? null,
           source: context?.source ?? null,
           attachments: context?.attachments ?? [],

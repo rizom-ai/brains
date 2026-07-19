@@ -3,7 +3,7 @@ name: Remove Cover Image
 description: Verifies that the agent uses system_update to remove an existing cover image reference
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - image

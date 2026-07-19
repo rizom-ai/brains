@@ -464,7 +464,7 @@ async function handleWorkspaceAction(
   const actor: CmsWorkspaceActor = {
     interfaceType: "cms",
     userId: "operator",
-    userPermissionLevel: "anchor",
+    userPermissionLevel: "admin",
   };
 
   try {

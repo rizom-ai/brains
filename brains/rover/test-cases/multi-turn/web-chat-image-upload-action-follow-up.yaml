@@ -3,7 +3,7 @@ name: Web chat image upload action prompt hydrates prior upload ref
 description: Verifies the Describe image action prompt can inspect a prior bare image upload from conversation upload refs, without relying on same-turn attachment reuse.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-image-upload-action
   channelName: Web Chat Eval

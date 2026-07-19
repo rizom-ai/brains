@@ -22,6 +22,7 @@ function toRuntimeChatContext(
     ...(context.userPermissionLevel && {
       userPermissionLevel: context.userPermissionLevel,
     }),
+    ...(context.isAnchor !== undefined && { isAnchor: context.isAnchor }),
     ...(context.interfaceType && { interfaceType: context.interfaceType }),
     ...(context.channelId && { channelId: context.channelId }),
     ...(context.channelName && { channelName: context.channelName }),

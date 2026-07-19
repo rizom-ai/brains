@@ -1,7 +1,7 @@
 import type { ComponentChildren, JSX } from "preact";
 
 /** Permission levels for editable site content templates. */
-export type UserPermissionLevel = "anchor" | "trusted" | "public";
+export type UserPermissionLevel = "admin" | "trusted" | "public";
 
 /** Runtime script declaration attached to a content section/template. */
 export interface RuntimeScript {

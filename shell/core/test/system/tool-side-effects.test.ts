@@ -12,7 +12,7 @@ const toolContext: ToolContext = {
   interfaceType: "web-chat",
   actor: { kind: "agent", agentId: "brain-agent" },
   conversationId: "conversation-1",
-  userPermissionLevel: "anchor",
+  userPermissionLevel: "admin",
 };
 
 function message(

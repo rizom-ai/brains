@@ -141,7 +141,7 @@ describe("system_update tool", () => {
 
   async function exec(
     input: Record<string, unknown>,
-    userPermissionLevel: "anchor" | "trusted" | "public" = "anchor",
+    userPermissionLevel: "admin" | "trusted" | "public" = "admin",
   ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_update");
     if (!tool) throw new Error("system_update not found");
@@ -154,7 +154,7 @@ describe("system_update tool", () => {
 
   async function execDelete(
     input: Record<string, unknown>,
-    userPermissionLevel: "anchor" | "trusted" | "public" = "anchor",
+    userPermissionLevel: "admin" | "trusted" | "public" = "admin",
   ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_delete");
     if (!tool) throw new Error("system_delete not found");
@@ -184,7 +184,7 @@ describe("system_update tool", () => {
         channelId: "channel-1",
         runId: "run-1",
         toolCallId: "call-1",
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
 
@@ -639,10 +639,10 @@ describe("system_update tool", () => {
     expect(updated?.metadata["status"]).toBe("approved");
   });
 
-  it("rejects trusted updates when entity action policy requires anchor", async () => {
+  it("rejects trusted updates when entity action policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        agent: { update: "anchor" },
+        agent: { update: "admin" },
       },
     });
 
@@ -658,16 +658,16 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Updating `agent` requires Anchor permission; your current permission is Trusted.",
+        "Updating `agent` requires Admin permission; your current permission is Trusted.",
     });
   });
 
   // Locks the policy check above the confirmation branch: if a future refactor
   // hoisted `confirmed: true` ahead of checkEntityActionPermission, this would catch it.
-  it("rejects trusted updates with confirmed: true when policy requires anchor", async () => {
+  it("rejects trusted updates with confirmed: true when policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        agent: { update: "anchor" },
+        agent: { update: "admin" },
       },
     });
 
@@ -684,7 +684,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Updating `agent` requires Anchor permission; your current permission is Trusted.",
+        "Updating `agent` requires Admin permission; your current permission is Trusted.",
     });
 
     const unchanged = services.getEntities().get("old-agent.io");
@@ -694,7 +694,7 @@ describe("system_update tool", () => {
   it("requires publish permission when a publish-aware status enters the publish set", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "social-post": { update: "trusted", publish: "anchor" },
+        "social-post": { update: "trusted", publish: "admin" },
       },
     });
 
@@ -710,14 +710,14 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
+        "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
     });
   });
 
   it("requires publish permission when a publish-aware status stays in the publish set", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "social-post": { update: "trusted", publish: "anchor" },
+        "social-post": { update: "trusted", publish: "admin" },
       },
     });
     const existing = services.getEntities().get("linkedin-update");
@@ -740,14 +740,14 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
+        "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
     });
   });
 
   it("requires publish permission for manual failed retry", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "social-post": { update: "trusted", publish: "anchor" },
+        "social-post": { update: "trusted", publish: "admin" },
       },
     });
     const existing = services.getEntities().get("linkedin-update");
@@ -770,14 +770,14 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
+        "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
     });
   });
 
   it("does not require publish permission for matching status names on non-publish-aware entity types", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "workflow-card": { update: "trusted", publish: "anchor" },
+        "workflow-card": { update: "trusted", publish: "admin" },
       },
     });
 
@@ -799,7 +799,7 @@ describe("system_update tool", () => {
   it("requires publish permission for full content replacements entering the publish set", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "social-post": { update: "trusted", publish: "anchor" },
+        "social-post": { update: "trusted", publish: "admin" },
       },
     });
 
@@ -816,14 +816,14 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
+        "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
     });
   });
 
-  it("rejects trusted deletes when entity action policy requires anchor", async () => {
+  it("rejects trusted deletes when entity action policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
-        "*": { delete: "anchor" },
+        "*": { delete: "admin" },
       },
     });
 
@@ -839,11 +839,11 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Deleting `newsletter` requires Anchor permission; your current permission is Trusted.",
+        "Deleting `newsletter` requires Admin permission; your current permission is Trusted.",
     });
   });
 
-  it("rejects deletes marked never even for anchor callers", async () => {
+  it("rejects deletes marked never even for Admin callers", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
         newsletter: { delete: "never" },
@@ -856,7 +856,7 @@ describe("system_update tool", () => {
         id: "newsletter-1",
         confirmed: true,
       },
-      "anchor",
+      "admin",
     );
 
     expect(result).toEqual({

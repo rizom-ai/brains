@@ -302,12 +302,12 @@ describe("system_insights tool", () => {
       });
     });
 
-    it("shows every visibility tier for an anchor caller", async () => {
+    it("shows every visibility tier for an Admin caller", async () => {
       expect(
         expectSuccessData(
           await tool.handler(
             { type: "overview" },
-            { ...toolContext, userPermissionLevel: "anchor" },
+            { ...toolContext, userPermissionLevel: "admin" },
           ),
         ),
       ).toMatchObject({

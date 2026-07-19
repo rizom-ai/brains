@@ -3,7 +3,7 @@ name: Save Blog Post as Printable PDF
 description: "Verifies system_generate renders a blog post printable PDF as a durable document artifact"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - blog

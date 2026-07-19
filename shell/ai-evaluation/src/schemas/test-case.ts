@@ -197,13 +197,13 @@ export const evalAttachmentSchema: z.ZodDiscriminatedUnion<
   evalFileAttachmentSchema,
 ]);
 
-type UserPermissionLevel = "anchor" | "trusted" | "public";
+type UserPermissionLevel = "admin" | "trusted" | "public";
 
 const userPermissionLevelSchema: z.ZodEnum<{
-  anchor: "anchor";
+  admin: "admin";
   trusted: "trusted";
   public: "public";
-}> = z.enum(["anchor", "trusted", "public"]);
+}> = z.enum(["admin", "trusted", "public"]);
 
 const evalConversationMessageActorSchema: z.ZodType<
   ConversationMessageActor,
@@ -232,6 +232,7 @@ const conversationMessageSourceSchema: z.ZodType<ConversationMessageSource> =
 
 export interface TurnContext {
   userPermissionLevel?: UserPermissionLevel | undefined;
+  isAnchor?: boolean | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
   channelName?: string | undefined;
@@ -242,6 +243,7 @@ export interface TurnContext {
 export const turnContextSchema: z.ZodType<TurnContext> = z
   .object({
     userPermissionLevel: userPermissionLevelSchema.optional(),
+    isAnchor: z.boolean().optional(),
     interfaceType: z.string().optional(),
     channelId: z.string().optional(),
     channelName: z.string().optional(),
@@ -299,6 +301,7 @@ export const turnSchema: z.ZodType<Turn> = z.object({
 
 export interface TestSetup {
   permissionLevel: UserPermissionLevel;
+  isAnchor?: boolean | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
   channelName?: string | undefined;
@@ -308,7 +311,8 @@ export interface TestSetup {
  * Test setup configuration
  */
 export const testSetupSchema: z.ZodType<TestSetup> = z.object({
-  permissionLevel: userPermissionLevelSchema.default("anchor"),
+  permissionLevel: userPermissionLevelSchema.default("admin"),
+  isAnchor: z.boolean().optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
@@ -334,14 +338,14 @@ export const efficiencySchema: z.ZodType<Efficiency> = z.object({
 export interface PermissionMatrix {
   public?: SuccessCriteria | undefined;
   trusted?: SuccessCriteria | undefined;
-  anchor?: SuccessCriteria | undefined;
+  admin?: SuccessCriteria | undefined;
 }
 
 export const permissionMatrixSchema: z.ZodType<PermissionMatrix> = z
   .object({
     public: successCriteriaSchema.optional(),
     trusted: successCriteriaSchema.optional(),
-    anchor: successCriteriaSchema.optional(),
+    admin: successCriteriaSchema.optional(),
   })
   .partial();
 

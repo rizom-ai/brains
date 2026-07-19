@@ -31,7 +31,7 @@ permissions:
           source.url: "yeehaa.io"
     responseNotContains:
       - "created"
-  anchor:
+  admin:
     expectedTools:
       - toolName: agent_connect
         shouldBeCalled: true

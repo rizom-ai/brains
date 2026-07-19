@@ -11,7 +11,7 @@ function createShellWithPublishPolicy(): ReturnType<typeof createMockShell> {
   const shell = createMockShell();
   shell.getPermissionService = (): PermissionService =>
     new PermissionService({
-      entityActions: { "social-post": { publish: "anchor" } },
+      entityActions: { "social-post": { publish: "admin" } },
     });
   return shell;
 }
@@ -31,7 +31,7 @@ describe("plugin context permissions", () => {
 
     expect(() =>
       context.permissions.assertEntityActionAllowed("social-post", "publish", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       }),
     ).not.toThrow();
   });
@@ -50,7 +50,7 @@ describe("plugin context permissions", () => {
 
     expect(() =>
       context.permissions.assertEntityActionAllowed("social-post", "publish", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       }),
     ).not.toThrow();
   });

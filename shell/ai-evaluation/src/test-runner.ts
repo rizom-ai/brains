@@ -313,10 +313,13 @@ export class TestRunner implements ITestRunner {
 
   private buildChatContext(testCase: AgentTestCase): ChatContext {
     const userPermissionLevel: UserPermissionLevel =
-      testCase.setup?.permissionLevel ?? "anchor";
+      testCase.setup?.permissionLevel ?? "admin";
 
     return {
       userPermissionLevel,
+      ...(testCase.setup?.isAnchor !== undefined
+        ? { isAnchor: testCase.setup.isAnchor }
+        : {}),
       interfaceType: testCase.setup?.interfaceType ?? "evaluation",
       ...(testCase.setup?.channelId
         ? { channelId: testCase.setup.channelId }
@@ -404,6 +407,9 @@ export class TestRunner implements ITestRunner {
     if (turnContext) {
       if (turnContext.userPermissionLevel !== undefined) {
         context.userPermissionLevel = turnContext.userPermissionLevel;
+      }
+      if (turnContext.isAnchor !== undefined) {
+        context.isAnchor = turnContext.isAnchor;
       }
       if (turnContext.interfaceType !== undefined) {
         context.interfaceType = turnContext.interfaceType;

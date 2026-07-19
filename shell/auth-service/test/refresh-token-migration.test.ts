@@ -32,7 +32,7 @@ describe("legacy refresh token migration", () => {
     await runtimeDatabase.start();
     const user = await new AuthUserStore(runtimeDatabase.db).createUser({
       displayName: "Existing anchor",
-      role: "anchor",
+      role: "admin",
     });
     await runtimeDatabase.stop();
 

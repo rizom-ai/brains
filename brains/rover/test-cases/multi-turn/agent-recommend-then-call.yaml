@@ -3,7 +3,7 @@ name: Recommend Agent Then Call Them
 description: Verifies that after recommending a saved agent by expertise, a follow-up request to ask them resolves to that same saved agent.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

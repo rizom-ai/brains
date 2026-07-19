@@ -3,7 +3,7 @@ name: Finalized Blog Post Uses Direct Create
 description: Verifies finalized blog/post content is persisted with content, not regenerated via prompt.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - blog
   - finalized-content

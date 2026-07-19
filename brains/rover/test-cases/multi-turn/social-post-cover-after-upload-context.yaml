@@ -3,7 +3,7 @@ name: Social post cover follow-up ignores stale upload refs
 description: Verifies that after an uploaded image discussion and generated social post, a cover-image follow-up targets the social post with prompt-based image generation and does not reuse stale upload refs.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-social-cover-upload-context
   channelName: Web Chat Eval

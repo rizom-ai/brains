@@ -629,20 +629,20 @@ describe("AgentService", () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
-            id: "anchor-user",
+            id: "admin-user",
             conversationId: "shared-conversation",
             role: "user",
             content: "Show the restricted note",
             timestamp: new Date().toISOString(),
-            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+            metadata: JSON.stringify({ userPermissionLevel: "admin" }),
           },
           {
-            id: "anchor-assistant",
+            id: "admin-assistant",
             conversationId: "shared-conversation",
             role: "assistant",
             content: "restricted phrase",
             timestamp: new Date().toISOString(),
-            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+            metadata: JSON.stringify({ userPermissionLevel: "admin" }),
           },
           {
             id: "public-assistant",
@@ -1893,11 +1893,11 @@ describe("AgentService", () => {
         handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
-      const anchorTool: Tool = {
+      const adminTool: Tool = {
         name: "admin_delete",
         description: "Admin delete tool",
         inputSchema: { id: z.string() },
-        visibility: "anchor",
+        visibility: "admin",
         handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
@@ -1908,7 +1908,7 @@ describe("AgentService", () => {
         }
         return [
           { pluginId: "test", tool: publicTool },
-          { pluginId: "test", tool: anchorTool },
+          { pluginId: "test", tool: adminTool },
         ];
       });
 
@@ -2251,8 +2251,8 @@ describe("AgentService", () => {
 
   describe("confirmation flow", () => {
     // Helper: make the agent return a tool result with needsConfirmation
-    const anchorConfirmationContext = {
-      userPermissionLevel: "anchor" as const,
+    const adminConfirmationContext = {
+      userPermissionLevel: "admin" as const,
       interfaceType: "evaluation",
     };
     const setupConfirmationResponse = (
@@ -2305,7 +2305,7 @@ describe("AgentService", () => {
       const pending = await service.chat(
         "delete my note",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
       expect(pending.text).toBe("Confirmation required.");
 
@@ -2318,7 +2318,7 @@ describe("AgentService", () => {
       const response = await service.chat(
         "actually, tell me something else",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe("fresh answer");
@@ -2353,12 +2353,12 @@ describe("AgentService", () => {
       await service.chat(
         "delete my note",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
       const response = await service.chat(
         "yes",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
@@ -2379,7 +2379,7 @@ describe("AgentService", () => {
       );
 
       await service.chat("delete my note", "test-conversation", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         actor: {
           identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2393,7 +2393,7 @@ describe("AgentService", () => {
         steps: [],
         usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
       };
-      // Bob is not authorized to resolve the anchor's pending confirmation, so
+      // Bob is not authorized to resolve the Admin's pending confirmation, so
       // his message is rejected promptly rather than held in the serialized
       // queue — no generation runs for him and the pending action is intact.
       const bobResponse = await service.chat(
@@ -2423,7 +2423,7 @@ describe("AgentService", () => {
         false,
         "approval:call-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
           actor: {
             identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2494,7 +2494,7 @@ describe("AgentService", () => {
       const first = service.chat(
         "delete my note",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
       while (mockGenerate.mock.calls.length === 0) {
         await delay(1);
@@ -2502,7 +2502,7 @@ describe("AgentService", () => {
       const second = service.chat(
         "new topic instead",
         "test-conversation",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       releaseFirst();
@@ -2575,7 +2575,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:wrong-call",
-        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
       );
 
       expect(response.text).toBe(
@@ -2592,7 +2592,7 @@ describe("AgentService", () => {
         name: "delete_note",
         description: "Delete note",
         inputSchema: { noteId: z.string() },
-        visibility: "anchor",
+        visibility: "admin",
         handler: deleteHandler,
       };
       mockMCPService.listToolsForPermissionLevel = mock(() => [
@@ -2609,10 +2609,10 @@ describe("AgentService", () => {
       );
 
       await service.chat("delete my note", "test-conversation", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         actor: {
-          identity: { kind: "external", externalActorId: "eval-anchor-alice" },
+          identity: { kind: "external", externalActorId: "eval-admin-alice" },
           interfaceType: "evaluation",
           role: "user",
         },
@@ -2627,7 +2627,7 @@ describe("AgentService", () => {
       expect(deleteHandler).not.toHaveBeenCalled();
     });
 
-    it("rejects confirmation from a different non-anchor actor in a shared conversation", async () => {
+    it("rejects confirmation from a different non-admin actor in a shared conversation", async () => {
       setupConfirmationResponse("Deleted.");
 
       const deleteHandler = mock(async () => ({ success: true as const }));
@@ -2635,11 +2635,11 @@ describe("AgentService", () => {
         name: "delete_note",
         description: "Delete note",
         inputSchema: { noteId: z.string() },
-        visibility: "anchor",
+        visibility: "admin",
         handler: deleteHandler,
       };
       mockMCPService.listToolsForPermissionLevel = mock((level) =>
-        level === "anchor" ? [{ pluginId: "test", tool: deleteTool }] : [],
+        level === "admin" ? [{ pluginId: "test", tool: deleteTool }] : [],
       );
 
       const service = AgentService.createFresh(
@@ -2652,7 +2652,7 @@ describe("AgentService", () => {
       );
 
       await service.chat("delete my note", "test-conversation", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         actor: {
           identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2684,12 +2684,12 @@ describe("AgentService", () => {
       ]);
       expect(deleteHandler).not.toHaveBeenCalled();
 
-      const anchorResponse = await service.confirmPendingAction(
+      const adminResponse = await service.confirmPendingAction(
         "test-conversation",
         true,
         "approval:call-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
           actor: {
             identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2699,9 +2699,7 @@ describe("AgentService", () => {
         },
       );
 
-      expect(anchorResponse.text).toBe(
-        "Completed: Delete note 'Meeting Notes'",
-      );
+      expect(adminResponse.text).toBe("Completed: Delete note 'Meeting Notes'");
       expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
@@ -2713,11 +2711,11 @@ describe("AgentService", () => {
         name: "delete_note",
         description: "Delete note",
         inputSchema: { noteId: z.string() },
-        visibility: "anchor",
+        visibility: "admin",
         handler: deleteHandler,
       };
       mockMCPService.listToolsForPermissionLevel = mock((level) =>
-        level === "anchor" ? [{ pluginId: "test", tool: deleteTool }] : [],
+        level === "admin" ? [{ pluginId: "test", tool: deleteTool }] : [],
       );
 
       const service = AgentService.createFresh(
@@ -2730,7 +2728,7 @@ describe("AgentService", () => {
       );
 
       await service.chat("delete my note", "test-conversation", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         actor: {
           identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2741,7 +2739,7 @@ describe("AgentService", () => {
 
       // A public bystander sends an arbitrary (non-yes/no) message while a
       // confirmation is pending. It must not block the serialized queue while
-      // waiting for the anchor to resolve the pending action.
+      // waiting for the Admin to resolve the pending action.
       const bystander = service.chat(
         "what's the weather?",
         "test-conversation",
@@ -2778,13 +2776,13 @@ describe("AgentService", () => {
       ).toEqual(["approval:call-1"]);
       expect(deleteHandler).not.toHaveBeenCalled();
 
-      // The anchor can still confirm afterward through the serialized queue.
-      const anchorResponse = await service.confirmPendingAction(
+      // The Admin can still confirm afterward through the serialized queue.
+      const adminResponse = await service.confirmPendingAction(
         "test-conversation",
         true,
         "approval:call-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
           actor: {
             identity: { kind: "user", userId: "alice", canonicalId: "alice" },
@@ -2794,9 +2792,7 @@ describe("AgentService", () => {
         },
       );
 
-      expect(anchorResponse.text).toBe(
-        "Completed: Delete note 'Meeting Notes'",
-      );
+      expect(adminResponse.text).toBe("Completed: Delete note 'Meeting Notes'");
       expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
@@ -2884,7 +2880,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
@@ -2985,7 +2981,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe('Completed: Update "Untitled"');
@@ -3088,7 +3084,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.cards).toEqual([
@@ -3208,7 +3204,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-generate-post",
-        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
       );
 
       expect(response.text).toContain("Completed: Generate post outline");
@@ -3242,7 +3238,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe('Completed: Create "download"');
@@ -3288,7 +3284,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toContain("Completed: Delete note 'Meeting Notes'");
@@ -3392,7 +3388,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update-note",
-        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
       );
 
       expect(mockGenerate).toHaveBeenCalledTimes(2);
@@ -3459,7 +3455,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBe(
@@ -3538,7 +3534,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).not.toContain('"success": false');
@@ -3580,7 +3576,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toBeDefined();
@@ -3661,7 +3657,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update-profile",
-        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
       );
 
       expect(response.text).toBe("Completed: Updated anchor profile.");
@@ -3781,7 +3777,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
       expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'");
       expect(updateHandler).toHaveBeenCalledWith(
@@ -3794,7 +3790,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-delete",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
       expect(deleteResponse.text).toBe(
         "Completed: Delete note 'Meeting Notes'",
@@ -3825,7 +3821,7 @@ describe("AgentService", () => {
         "test-conversation",
         false,
         "approval:call-1",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toContain("cancelled");
@@ -3927,7 +3923,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:noop",
-        anchorConfirmationContext,
+        adminConfirmationContext,
       );
 
       expect(response.text).toContain("No pending");
@@ -4018,7 +4014,7 @@ describe("AgentService", () => {
       );
 
       await service.chat("delete my note", "test-conversation", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
       });
       await delay(25);
@@ -4164,7 +4160,7 @@ describe("AgentService", () => {
                 toolCallId: "call1",
                 input: {
                   playbookId: "rover-onboarding",
-                  lifecycle: "first-anchor-web-chat",
+                  lifecycle: "first-admin-web-chat",
                 },
               },
             ],

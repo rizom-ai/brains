@@ -937,11 +937,13 @@ describe("StreamableHTTPServer", () => {
       let capturedSubject: unknown;
       let capturedActor: unknown;
       let capturedDisplayName: unknown;
+      let capturedIsAnchor: unknown;
 
       beforeEach(async () => {
         verifyBearerToken = mock(async (_request: Request) => ({
           subject: "single-operator",
           scope: ["openid", "mcp"],
+          isAnchor: true,
           actor: {
             kind: "user" as const,
             userId: "single-operator",
@@ -968,6 +970,7 @@ describe("StreamableHTTPServer", () => {
           capturedSubject = extra.authInfo?.extra?.["subject"];
           capturedActor = extra.authInfo?.extra?.["actor"];
           capturedDisplayName = extra.authInfo?.extra?.["displayName"];
+          capturedIsAnchor = extra.authInfo?.extra?.["isAnchor"];
           return { content: [{ type: "text", text: "ok" }] };
         });
         server.connectMCPServer(mcpServer);
@@ -1012,6 +1015,7 @@ describe("StreamableHTTPServer", () => {
           canonicalId: "user:operator",
         });
         expect(capturedDisplayName).toBe("Mira");
+        expect(capturedIsAnchor).toBe(true);
       });
 
       test("should reject invalid OAuth bearer tokens", async () => {
@@ -1116,12 +1120,12 @@ describe("StreamableHTTPServer", () => {
 
       test("should reject another principal reusing an initialized session", async () => {
         verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_anchor",
+          subject: "usr_admin",
           scope: ["mcp"],
-          permissionLevel: "anchor",
+          permissionLevel: "admin",
         }));
         const sessionId = await initializeSession(port, {
-          Authorization: "Bearer anchor-token",
+          Authorization: "Bearer admin-token",
         });
 
         verifyBearerToken.mockImplementation(async () => ({
@@ -1153,7 +1157,7 @@ describe("StreamableHTTPServer", () => {
         verifyBearerToken.mockImplementation(async () => ({
           subject: "usr_operator",
           scope: ["mcp"],
-          permissionLevel: "anchor",
+          permissionLevel: "admin",
         }));
         const sessionId = await initializeSession(port, {
           Authorization: "Bearer operator-token",

@@ -6,7 +6,7 @@ description: >-
   search per entity type.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - search

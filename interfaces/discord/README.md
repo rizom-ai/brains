@@ -42,10 +42,11 @@ new DiscordInterface({
 });
 ```
 
-Add your Discord user ID to the brain's `permissions.anchors` to get full access:
+Add your Discord user ID to `permissions.admins` for administrative access. Also list it under `permissions.anchors` only when that Discord identity represents the brain's owner/subject in chat:
 
 ```typescript
 permissions: {
+  admins: ["discord:YOUR_DISCORD_USER_ID"],
   anchors: ["discord:YOUR_DISCORD_USER_ID"],
   rules: [
     { pattern: "discord:*", level: "public" },

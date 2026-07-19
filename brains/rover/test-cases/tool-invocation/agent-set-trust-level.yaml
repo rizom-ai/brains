@@ -3,7 +3,7 @@ name: Set Agent Inbound Trust Level
 description: Verifies that inbound A2A trust revocation uses the dedicated trust tool instead of editing agent metadata.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

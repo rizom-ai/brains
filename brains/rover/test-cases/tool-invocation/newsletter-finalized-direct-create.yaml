@@ -3,7 +3,7 @@ name: Finalized Newsletter Uses Direct Create
 description: Verifies finalized newsletter copy is persisted with content, not regenerated via prompt.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - newsletter
   - finalized-content

@@ -210,7 +210,7 @@ describe("cms plugin", () => {
     expect(parsed.backend.auth_endpoint).toBe("auth");
   });
 
-  it("serves a pre-authorized CMS shell for logged-in passkey CMS anchors", async () => {
+  it("serves a pre-authorized CMS shell for logged-in passkey CMS Admins", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
@@ -297,7 +297,7 @@ describe("cms plugin", () => {
     });
   });
 
-  it("does not release the passkey PAT to a non-Anchor session", async () => {
+  it("does not release the passkey PAT to a non-Admin session", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
@@ -328,7 +328,7 @@ describe("cms plugin", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Anchor access required" });
+    expect(await response.json()).toEqual({ error: "Admin access required" });
   });
 
   it("returns the passkey PAT with a valid auth session", async () => {

@@ -3,7 +3,7 @@ name: Add Agent After Refusal Without Separate Approval Gate
 description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, an explicit add follow-up uses the typed candidate to connect the same agent without telling the user they still need a separate approval step
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

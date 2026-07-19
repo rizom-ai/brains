@@ -3,7 +3,7 @@ name: Search With Results
 description: Tests that the agent searches for content and references actual results in its response
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - search

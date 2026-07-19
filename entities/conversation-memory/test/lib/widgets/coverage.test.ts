@@ -193,7 +193,7 @@ describe("buildSummaryCoverageData", () => {
 });
 
 describe("registerSummaryCoverageWidget", () => {
-  it("registers an Anchor-only coverage widget", async () => {
+  it("registers an Admin-only coverage widget", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
     const send = mock(async (request: { type: string; payload: unknown }) => {
@@ -234,7 +234,7 @@ describe("registerSummaryCoverageWidget", () => {
       section: "secondary",
       priority: 80,
       rendererName: "ListWidget",
-      visibility: "anchor",
+      visibility: "admin",
     });
   });
 });

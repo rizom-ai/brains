@@ -3,7 +3,7 @@ name: Regenerate Deck Carousel Document
 description: "Verifies regenerate requests force replacement of a saved deck carousel document"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - decks

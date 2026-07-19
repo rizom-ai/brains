@@ -324,7 +324,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       actor?: ToolContext["actor"];
       conversationId?: string;
       channelId?: string;
-      userPermissionLevel?: "anchor" | "trusted" | "public";
+      userPermissionLevel?: "admin" | "trusted" | "public";
     },
   ): Promise<ToolResponse> {
     if (!this.capabilities) {
@@ -347,7 +347,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         kind: "service",
         serviceId: "plugin-test-harness",
       },
-      userPermissionLevel: context?.userPermissionLevel ?? "anchor",
+      userPermissionLevel: context?.userPermissionLevel ?? "admin",
     };
     if (context?.conversationId) {
       toolContext.conversationId = context.conversationId;

@@ -3,7 +3,7 @@ name: Web chat multiple upload follow-up selects named filename
 description: Verifies a follow-up that names one prior upload uses that upload ref, not another prior upload.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-multiple-upload-filename
   channelName: Web Chat Eval

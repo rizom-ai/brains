@@ -27,7 +27,7 @@ class TestPlugin extends ServicePlugin<
         name: "test_tool1",
         description: "Test tool 1",
         inputSchema: {},
-        visibility: "anchor",
+        visibility: "admin",
         handler: async () => ({ success: true, formatted: "Success" }),
       },
       {

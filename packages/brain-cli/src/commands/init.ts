@@ -282,6 +282,7 @@ domain: ${domain}
 preset: core
 
 ${siteBlock}# Permissions
+admins: []
 anchors: []
 
 # Plugin overrides

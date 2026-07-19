@@ -3,7 +3,7 @@ name: System Search Invocation
 description: Verifies that the agent uses system_search scoped to blog posts
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - search

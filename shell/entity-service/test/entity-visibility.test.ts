@@ -110,7 +110,7 @@ describe("entity visibility scope utilities", () => {
   });
 
   test("permissionToVisibilityScope maps permission levels and fails closed", () => {
-    expect(permissionToVisibilityScope("anchor")).toBe("restricted");
+    expect(permissionToVisibilityScope("admin")).toBe("restricted");
     expect(permissionToVisibilityScope("trusted")).toBe("shared");
     expect(permissionToVisibilityScope("public")).toBe("public");
     expect(permissionToVisibilityScope(undefined)).toBe("public");
@@ -125,9 +125,9 @@ describe("entity visibility scope utilities", () => {
     expect(canWriteVisibility("trusted", "shared")).toBe(true);
     expect(canWriteVisibility("trusted", "restricted")).toBe(false);
 
-    expect(canWriteVisibility("anchor", "public")).toBe(true);
-    expect(canWriteVisibility("anchor", "shared")).toBe(true);
-    expect(canWriteVisibility("anchor", "restricted")).toBe(true);
+    expect(canWriteVisibility("admin", "public")).toBe(true);
+    expect(canWriteVisibility("admin", "shared")).toBe(true);
+    expect(canWriteVisibility("admin", "restricted")).toBe(true);
 
     expect(canWriteVisibility(undefined, "public")).toBe(true);
     expect(canWriteVisibility(undefined, "shared")).toBe(false);
@@ -259,7 +259,7 @@ describe("entity visibility", () => {
       entityType: "visibility-note",
       options: { filter: { visibilityScope: "shared" } },
     });
-    const anchorScope = await ctx.entityService.listEntities<VisibilityNote>({
+    const adminScope = await ctx.entityService.listEntities<VisibilityNote>({
       entityType: "visibility-note",
       options: { filter: { visibilityScope: "restricted" } },
     });
@@ -269,7 +269,7 @@ describe("entity visibility", () => {
       "public-doc",
       "shared-doc",
     ]);
-    expect(anchorScope.map((entity) => entity.id).sort()).toEqual([
+    expect(adminScope.map((entity) => entity.id).sort()).toEqual([
       "public-doc",
       "restricted-doc",
       "shared-doc",
@@ -317,7 +317,7 @@ describe("entity visibility", () => {
       query: "Visibility filtering keyword",
       options: { types: ["visibility-note"], visibilityScope: "shared" },
     });
-    const anchorResults = await ctx.entityService.search<VisibilityNote>({
+    const adminResults = await ctx.entityService.search<VisibilityNote>({
       query: "Visibility filtering keyword",
       options: { types: ["visibility-note"], visibilityScope: "restricted" },
     });
@@ -329,7 +329,7 @@ describe("entity visibility", () => {
       "public-search-doc",
       "shared-search-doc",
     ]);
-    expect(anchorResults.map((result) => result.entity.id).sort()).toEqual([
+    expect(adminResults.map((result) => result.entity.id).sort()).toEqual([
       "public-search-doc",
       "restricted-search-doc",
       "shared-search-doc",

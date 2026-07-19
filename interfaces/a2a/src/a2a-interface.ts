@@ -175,6 +175,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     body: string,
   ): Promise<{
     permissionLevel: UserPermissionLevel;
+    isAnchor: boolean;
     callerDomain: string | null;
   }> {
     const internalUrl = new URL(request.url);
@@ -203,11 +204,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
       return {
         permissionLevel,
+        isAnchor: this.getContext().permissions.isAnchor(
+          "a2a",
+          verified.domain,
+        ),
         callerDomain: verified.domain,
       };
     }
 
-    return { permissionLevel: "public", callerDomain: null };
+    return { permissionLevel: "public", isAnchor: false, callerDomain: null };
   }
 
   private withCors(response: Response): Response {
@@ -279,6 +284,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       const bodyText = await c.req.text();
       let caller: {
         permissionLevel: UserPermissionLevel;
+        isAnchor: boolean;
         callerDomain: string | null;
       };
       try {
@@ -337,6 +343,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
             turnSupervisor: this.turnSupervisor,
             agentService: this.agentService,
             callerPermissionLevel: caller.permissionLevel,
+            callerIsAnchor: caller.isAnchor,
             callerDomain: caller.callerDomain,
           },
         );
@@ -363,6 +370,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         turnSupervisor: this.turnSupervisor,
         agentService: this.agentService,
         callerPermissionLevel: caller.permissionLevel,
+        callerIsAnchor: caller.isAnchor,
         callerDomain: caller.callerDomain,
       });
 

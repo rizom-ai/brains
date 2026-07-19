@@ -3,7 +3,7 @@ name: Relay link capture via system_create
 description: Verifies that Relay saves shared team links through system_create with entityType link.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - core

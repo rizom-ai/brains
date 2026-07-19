@@ -3,7 +3,7 @@ name: List Essays (entity type mapping)
 description: Tests that the agent maps "essays" to entity type "post"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - list

@@ -31,7 +31,7 @@ describe("admin console plugin", () => {
         pluginId: "admin",
         label: "Admin",
         url: "/admin",
-        visibility: "anchor",
+        visibility: "admin",
       }),
     );
   });
@@ -80,6 +80,7 @@ describe("admin console plugin", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('data-climate="instrument"');
     expect(html).toContain('data-people-role="trusted"');
+    expect(html).toContain("data-people-brain-name=");
     expect(html).toContain('data-people-interfaces="discord"');
     expect(html).toContain("Mira Reyes");
     expect(html).toContain('src="/admin/assets/app.js"');

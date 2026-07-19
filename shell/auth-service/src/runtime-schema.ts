@@ -131,6 +131,53 @@ export const authPeople: AuthPeopleTable = sqliteTable(
   }),
 );
 
+type AuthBrainAnchorTable = AuthTable<
+  "auth_brain_anchor",
+  {
+    id: AuthTextColumn<"auth_brain_anchor", "id", true, true>;
+    kind: AuthTextColumn<
+      "auth_brain_anchor",
+      "kind",
+      true,
+      false,
+      "person" | "collective",
+      ["person", "collective"]
+    >;
+    subjectId: AuthTextColumn<"auth_brain_anchor", "subject_id", true>;
+    displayName: AuthTextColumn<"auth_brain_anchor", "display_name", true>;
+    profileEntityId: AuthTextColumn<
+      "auth_brain_anchor",
+      "profile_entity_id",
+      false
+    >;
+    createdAt: AuthIntegerColumn<"auth_brain_anchor", "created_at", true>;
+    updatedAt: AuthIntegerColumn<"auth_brain_anchor", "updated_at", true>;
+  }
+>;
+
+export const authBrainAnchor: AuthBrainAnchorTable = sqliteTable(
+  "auth_brain_anchor",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: ["person", "collective"] }).notNull(),
+    subjectId: text("subject_id").notNull(),
+    displayName: text("display_name").notNull(),
+    profileEntityId: text("profile_entity_id"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => ({
+    singletonCheck: check(
+      "auth_brain_anchor_singleton_check",
+      sql`${table.id} = 'brain'`,
+    ),
+    kindCheck: check(
+      "auth_brain_anchor_kind_check",
+      sql`${table.kind} IN ('person', 'collective')`,
+    ),
+  }),
+);
+
 type AuthUsersTable = AuthTable<
   "auth_users",
   {
@@ -142,8 +189,8 @@ type AuthUsersTable = AuthTable<
       "role",
       true,
       false,
-      "anchor" | "trusted" | "public",
-      ["anchor", "trusted", "public"]
+      "admin" | "trusted" | "public",
+      ["admin", "trusted", "public"]
     >;
     status: AuthTextColumn<
       "auth_users",
@@ -169,7 +216,7 @@ export const authUsers: AuthUsersTable = sqliteTable(
         onDelete: "restrict",
       }),
     displayName: text("display_name").notNull(),
-    role: text("role", { enum: ["anchor", "trusted", "public"] }).notNull(),
+    role: text("role", { enum: ["admin", "trusted", "public"] }).notNull(),
     status: text("status", {
       enum: ["active", "invited", "suspended"],
     }).notNull(),
@@ -184,7 +231,7 @@ export const authUsers: AuthUsersTable = sqliteTable(
     personIdIdx: uniqueIndex("idx_auth_users_person_id").on(table.personId),
     roleCheck: check(
       "auth_users_role_check",
-      sql`${table.role} IN ('anchor', 'trusted', 'public')`,
+      sql`${table.role} IN ('admin', 'trusted', 'public')`,
     ),
     statusCheck: check(
       "auth_users_status_check",
@@ -827,6 +874,7 @@ export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
   agentPersonLinks: AgentPersonLinksTable;
   authAuditEvents: AuthAuditEventsTable;
+  authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
   authIdentityEvidence: AuthIdentityEvidenceTable;
   authLegacyImports: AuthLegacyImportsTable;
@@ -845,6 +893,7 @@ export const authRuntimeSchema: {
   a2aPeerTrust,
   agentPersonLinks,
   authAuditEvents,
+  authBrainAnchor,
   authIdentities,
   authIdentityEvidence,
   authLegacyImports,
@@ -863,6 +912,8 @@ export const authRuntimeSchema: {
 
 export type AgentPersonLink = typeof agentPersonLinks.$inferSelect;
 export type InsertAgentPersonLink = typeof agentPersonLinks.$inferInsert;
+export type AuthBrainAnchor = typeof authBrainAnchor.$inferSelect;
+export type InsertAuthBrainAnchor = typeof authBrainAnchor.$inferInsert;
 export type AuthPerson = typeof authPeople.$inferSelect;
 export type InsertAuthPerson = typeof authPeople.$inferInsert;
 export type AuthUser = typeof authUsers.$inferSelect;

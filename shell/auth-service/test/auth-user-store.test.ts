@@ -50,20 +50,20 @@ afterEach(async () => {
 });
 
 describe("AuthUserStore", () => {
-  it("creates the first active anchor user once", async () => {
+  it("creates the first active admin as the personal brain anchor once", async () => {
     await withUserStore(async (store) => {
-      const first = await store.ensureFirstAnchorUser({
-        displayName: "Alex Anchor",
+      const first = await store.ensureFirstAdminUser({
+        displayName: "Alex Admin",
       });
-      const second = await store.ensureFirstAnchorUser({
+      const second = await store.ensureFirstAdminUser({
         displayName: "Ignored",
       });
 
       expect(first.id).toStartWith("usr_");
       expect(first.personId).toStartWith("prsn_");
       expect(first).toMatchObject({
-        displayName: "Alex Anchor",
-        role: "anchor",
+        displayName: "Alex Admin",
+        role: "admin",
         status: "active",
         canonicalId: `user:${first.id.slice("usr_".length)}`,
       });
@@ -71,17 +71,22 @@ describe("AuthUserStore", () => {
       expect(await store.listUsers()).toHaveLength(1);
       expect(await store.getPerson(first.personId)).toMatchObject({
         id: first.personId,
-        displayName: "Alex Anchor",
+        displayName: "Alex Admin",
         profileEntityId: null,
+      });
+      expect(await store.getBrainAnchor()).toMatchObject({
+        kind: "person",
+        subjectId: first.personId,
+        displayName: "Alex Admin",
       });
     });
   });
 
-  it("creates only one first anchor during concurrent initialization", async () => {
+  it("creates only one first admin during concurrent initialization", async () => {
     await withUserStore(async (store) => {
       const users = await Promise.all([
-        store.ensureFirstAnchorUser({ displayName: "First" }),
-        store.ensureFirstAnchorUser({ displayName: "Second" }),
+        store.ensureFirstAdminUser({ displayName: "First" }),
+        store.ensureFirstAdminUser({ displayName: "Second" }),
       ]);
 
       expect(users[0].id).toBe(users[1].id);
@@ -318,48 +323,82 @@ describe("AuthUserStore", () => {
     });
   });
 
-  it("protects the last active anchor", async () => {
+  it("protects the personal anchor and the last active admin", async () => {
     await withUserStore(async (store) => {
-      const anchor = await store.ensureFirstAnchorUser({
-        displayName: "Anchor",
+      const first = await store.ensureFirstAdminUser({
+        displayName: "First Admin",
       });
 
       await expectRejectsWithMessage(
-        store.updateUserRole(anchor.id, "trusted"),
-        "Cannot remove the last active anchor user",
+        store.updateUserRole(first.id, "trusted"),
+        "Cannot remove the personal brain anchor's admin access",
       );
       await expectRejectsWithMessage(
-        store.updateUserStatus(anchor.id, "suspended"),
-        "Cannot remove the last active anchor user",
+        store.updateUserStatus(first.id, "suspended"),
+        "Cannot remove the personal brain anchor's admin access",
       );
 
-      const secondAnchor = await store.createUser({
-        displayName: "Second Anchor",
-        role: "anchor",
+      const second = await store.createUser({
+        displayName: "Second Admin",
+        role: "admin",
       });
-      await store.updateUserRole(anchor.id, "trusted");
       await expectRejectsWithMessage(
-        store.updateUserStatus(secondAnchor.id, "suspended"),
-        "Cannot remove the last active anchor user",
+        store.updateUserRole(first.id, "trusted"),
+        "Cannot remove the personal brain anchor's admin access",
       );
 
-      expect(await store.getUser(anchor.id)).toMatchObject({
+      await store.updateBrainAnchor({
+        kind: "collective",
+        displayName: "Example Collective",
+      });
+      await store.updateUserRole(first.id, "trusted");
+      await expectRejectsWithMessage(
+        store.updateUserStatus(second.id, "suspended"),
+        "Cannot remove the last active admin user",
+      );
+
+      expect(await store.getUser(first.id)).toMatchObject({
         role: "trusted",
         status: "active",
       });
-      expect(await store.getUser(secondAnchor.id)).toMatchObject({
-        role: "anchor",
+      expect(await store.getUser(second.id)).toMatchObject({
+        role: "admin",
         status: "active",
       });
     });
   });
 
-  it("atomically preserves an active anchor during concurrent demotions", async () => {
+  it("atomically keeps a newly selected personal Anchor active", async () => {
     await withUserStore(async (store) => {
-      const first = await store.ensureFirstAnchorUser({ displayName: "First" });
+      const first = await store.ensureFirstAdminUser({ displayName: "First" });
       const second = await store.createUser({
         displayName: "Second",
-        role: "anchor",
+        role: "admin",
+      });
+
+      await Promise.allSettled([
+        store.updateBrainAnchor({ kind: "person", userId: second.id }),
+        store.updateUserStatus(second.id, "suspended"),
+      ]);
+
+      const anchor = await store.getBrainAnchor();
+      if (!anchor) throw new Error("Expected a brain Anchor");
+      const selectedUser = await store.getUserByPersonId(anchor.subjectId);
+      expect(selectedUser).toMatchObject({ role: "admin", status: "active" });
+      expect([first.personId, second.personId]).toContain(anchor.subjectId);
+    });
+  });
+
+  it("atomically preserves an active admin during concurrent demotions", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.ensureFirstAdminUser({ displayName: "First" });
+      const second = await store.createUser({
+        displayName: "Second",
+        role: "admin",
+      });
+      await store.updateBrainAnchor({
+        kind: "collective",
+        displayName: "Example Collective",
       });
 
       const results = await Promise.allSettled([
@@ -375,7 +414,7 @@ describe("AuthUserStore", () => {
       ).toHaveLength(1);
       expect(
         (await store.listUsers()).filter(
-          (user) => user.role === "anchor" && user.status === "active",
+          (user) => user.role === "admin" && user.status === "active",
         ),
       ).toHaveLength(1);
     });

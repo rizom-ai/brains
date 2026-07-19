@@ -211,7 +211,7 @@ describe("agent_scan_directories", () => {
       {
         interfaceType: "test",
         actor: { kind: "user", userId: "operator" },
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         signal: controller.signal,
       },
     );

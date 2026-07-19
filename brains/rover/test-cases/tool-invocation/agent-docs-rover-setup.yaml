@@ -3,7 +3,7 @@ name: Ask Saved Docs Agent for Rover Setup
 description: Tests that a direct request to ask docs.rizom.ai is handled by contacting the saved agent instead of answering from local memory or docs.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

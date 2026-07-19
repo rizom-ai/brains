@@ -3,7 +3,7 @@ name: Playbook Blocks Partial Identity Name Only
 description: Verifies that Rover does not update the anchor profile or advance onboarding after receiving only the operator name during Anchor profile.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: web-chat-eval-playbook-partial-identity
   channelName: Web Chat Eval

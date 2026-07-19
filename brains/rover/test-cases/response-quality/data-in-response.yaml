@@ -3,7 +3,7 @@ name: Agent Shows Actual Data
 description: Tests that the agent includes actual data from tool results in its response
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - quality
   - formatted-output

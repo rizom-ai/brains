@@ -46,10 +46,10 @@ describe("TestRunner", () => {
       expect(result.failures).toHaveLength(0);
     });
 
-    it("should default eval callers to anchor permission", async () => {
+    it("should default eval callers to admin permission", async () => {
       const testCase: TestCase = {
-        id: "test-default-anchor",
-        name: "Default Anchor Permission Test",
+        id: "test-default-admin",
+        name: "Default Admin Permission Test",
         type: "response_quality",
         turns: [{ userMessage: "Hello" }],
         successCriteria: {},
@@ -61,7 +61,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
       });
     });
@@ -73,6 +73,7 @@ describe("TestRunner", () => {
         type: "response_quality",
         setup: {
           permissionLevel: "trusted",
+          isAnchor: true,
           interfaceType: "discord",
           channelId: "relay-poc",
           channelName: "Relay POC",
@@ -88,6 +89,7 @@ describe("TestRunner", () => {
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "trusted",
+        isAnchor: true,
         interfaceType: "discord",
         channelId: "relay-poc",
         channelName: "Relay POC",
@@ -100,7 +102,7 @@ describe("TestRunner", () => {
         name: "Multi-user Context Test",
         type: "multi_turn",
         setup: {
-          permissionLevel: "anchor",
+          permissionLevel: "admin",
           interfaceType: "evaluation",
           channelId: "shared-thread",
         },
@@ -108,7 +110,8 @@ describe("TestRunner", () => {
           {
             userMessage: "Save this private note",
             context: {
-              userPermissionLevel: "anchor",
+              userPermissionLevel: "admin",
+              isAnchor: false,
               actor: {
                 identity: {
                   kind: "user",
@@ -130,6 +133,7 @@ describe("TestRunner", () => {
             userMessage: "What private note did Alice save?",
             context: {
               userPermissionLevel: "public",
+              isAnchor: true,
               actor: {
                 identity: {
                   kind: "user",
@@ -159,7 +163,8 @@ describe("TestRunner", () => {
       expect(calls).toHaveLength(2);
       expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: false,
         interfaceType: "evaluation",
         channelId: "shared-thread",
         actor: {
@@ -180,6 +185,7 @@ describe("TestRunner", () => {
       });
       expect(calls[1]?.[2]).toEqual({
         userPermissionLevel: "public",
+        isAnchor: true,
         interfaceType: "evaluation",
         channelId: "shared-thread",
         actor: {
@@ -229,7 +235,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         attachments: [
           {
@@ -346,7 +352,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[1]?.[2]).toEqual({
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
         attachments: [
           {
@@ -402,7 +408,7 @@ describe("TestRunner", () => {
         true,
         "approval:system_update",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
         },
       );
@@ -455,7 +461,7 @@ describe("TestRunner", () => {
         true,
         "approval:create-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
         },
       );
@@ -512,7 +518,7 @@ describe("TestRunner", () => {
         true,
         "approval:delete",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
           interfaceType: "evaluation",
         },
       );
@@ -583,7 +589,7 @@ describe("TestRunner", () => {
             userMessage: "Alice approves",
             confirmPendingAction: true,
             context: {
-              userPermissionLevel: "anchor",
+              userPermissionLevel: "admin",
               actor: {
                 identity: { kind: "external", externalActorId: "alice" },
                 interfaceType: "evaluation",
@@ -612,7 +618,7 @@ describe("TestRunner", () => {
         expect.any(String),
         true,
         "approval:delete",
-        expect.objectContaining({ userPermissionLevel: "anchor" }),
+        expect.objectContaining({ userPermissionLevel: "admin" }),
       );
       expect(result.turnResults[1]?.toolCalls).toEqual([]);
     });
@@ -697,10 +703,10 @@ describe("TestRunner", () => {
 
     it("should use explicit eval permission when provided", async () => {
       const testCase: TestCase = {
-        id: "test-explicit-anchor",
-        name: "Explicit Anchor Permission Test",
+        id: "test-explicit-admin",
+        name: "Explicit Admin Permission Test",
         type: "tool_invocation",
-        setup: { permissionLevel: "anchor" },
+        setup: { permissionLevel: "admin" },
         turns: [{ userMessage: "Hello" }],
         successCriteria: {},
       };
@@ -711,7 +717,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
       });
     });

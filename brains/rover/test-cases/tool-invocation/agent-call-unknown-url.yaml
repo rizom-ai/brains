@@ -3,7 +3,7 @@ name: Call Unknown Agent by HTTPS URL
 description: Tests that an HTTPS agent URL can be canonicalized to its hostname for agent_call, with runtime verification/contact over HTTPS and no auto-save.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a
@@ -27,7 +27,12 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: false
   responseContainsAny:
-    - ["could not verify", "couldn’t verify", "could not contact", "couldn’t contact"]
+    - [
+        "could not verify",
+        "couldn’t verify",
+        "could not contact",
+        "couldn’t contact",
+      ]
     - ["unknown-agent.io"]
   responseNotContains:
     - "I called"

@@ -3,7 +3,7 @@ name: Agent Expertise Recommendation Handles Please Follow-up
 description: Regression for vague affirmative follow-ups after an agent-network recommendation request; the assistant must stay on the agent-discovery task and not answer an unrelated prior topic.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - multi-turn

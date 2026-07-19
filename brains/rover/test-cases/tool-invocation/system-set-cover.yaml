@@ -3,7 +3,7 @@ name: Set Cover with Existing Image
 description: Verifies that the agent correctly uses system_update to attach an existing image to an entity
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - image

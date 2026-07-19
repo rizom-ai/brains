@@ -3,7 +3,7 @@ name: Playbook Retrieval Uses Saved Seed
 description: Verifies that Rover does not answer from playbook runtime evidence alone in the first knowledge loop; when asked to find the saved seed, Rover must use normal retrieval tools before saying it found it.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: web-chat-eval-playbook-show
   channelName: Web Chat Eval

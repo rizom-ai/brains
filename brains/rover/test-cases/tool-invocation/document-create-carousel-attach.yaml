@@ -3,7 +3,7 @@ name: Generate Deck Carousel PDF from Deck Source
 description: "Verifies system_generate renders the carousel from a resolved deck source"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - decks

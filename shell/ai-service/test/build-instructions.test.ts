@@ -10,17 +10,36 @@ const identity = {
 
 describe("buildInstructions", () => {
   it("includes identity and permission context", () => {
-    const instructions = buildInstructions(identity, "anchor");
+    const instructions = buildInstructions(identity, "admin");
 
     expect(instructions).toContain("# Rover");
     expect(instructions).toContain("Knowledge assistant");
     expect(instructions).toContain("Help organize knowledge");
     expect(instructions).toContain("clarity");
-    expect(instructions).toContain("anchor-level operator permissions");
+    expect(instructions).toContain("administrator permissions");
+    expect(instructions).toContain(
+      "not established as the brain's configured Anchor identity",
+    );
+  });
+
+  it("keeps Anchor identity independent from permission role", () => {
+    const instructions = buildInstructions(
+      identity,
+      "trusted",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(instructions).toContain("trusted user");
+    expect(instructions).toContain("is the brain's configured Anchor identity");
+    expect(instructions).toContain("does not grant administrator permissions");
   });
 
   it("includes profile when provided", () => {
-    const instructions = buildInstructions(identity, "anchor", undefined, {
+    const instructions = buildInstructions(identity, "admin", undefined, {
       name: "Jan Hein",
       kind: "professional",
       email: "jan@yeehaa.io",
@@ -36,7 +55,7 @@ describe("buildInstructions", () => {
   });
 
   it("does not include routing instruction sections", () => {
-    const instructions = buildInstructions(identity, "anchor");
+    const instructions = buildInstructions(identity, "admin");
 
     expect(instructions).not.toContain("### Core Tools");
     expect(instructions).not.toContain("### Image, OG & Cover Operations");
@@ -48,7 +67,7 @@ describe("buildInstructions", () => {
   });
 
   it("describes the generic tool-first lifecycle for durable actions", () => {
-    const instructions = buildInstructions(identity, "anchor");
+    const instructions = buildInstructions(identity, "admin");
 
     expect(instructions).toContain(
       'For direct identity/profile requests, phrase the brain identity as "I am {identity name}" or "I\'m {identity name}"',
@@ -67,7 +86,10 @@ describe("buildInstructions", () => {
       kind: "professional" as const,
     });
 
-    expect(instructions).toContain("Public users are not the anchor");
+    expect(instructions).toContain("public user");
+    expect(instructions).toContain(
+      "not established as the brain's configured Anchor identity",
+    );
     expect(instructions).toContain(
       "Do not name, volunteer, or disclose the configured anchor/profile identity in that answer",
     );
@@ -79,7 +101,7 @@ describe("buildInstructions", () => {
   it("appends brain, plugin, and retrieved-memory instructions", () => {
     const instructions = buildInstructions(
       identity,
-      "anchor",
+      "admin",
       ["Plugin rule"],
       undefined,
       ["Brain rule"],

@@ -236,9 +236,9 @@ export class DirectorySyncWorkspaceProvider {
       dataProvider: () => this.getSnapshot(),
       actionHandler: async (request, actor) => {
         if (
-          !PermissionService.hasPermission(actor.userPermissionLevel, "anchor")
+          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
         ) {
-          throw new Error("Directory sync requires anchor permission");
+          throw new Error("Directory sync requires admin permission");
         }
         const action = directorySyncWorkspaceActionSchema.safeParse(request);
         if (!action.success) {

@@ -37,7 +37,7 @@ permissions:
     responseNotContains:
       - "setup?token="
       - "setup_"
-  anchor:
+  admin:
     expectedTools:
       - toolName: auth-service_get_passkey_setup_url
         shouldBeCalled: true

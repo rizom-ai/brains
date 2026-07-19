@@ -10,7 +10,7 @@ Parked — demand-gated. The `team` bundle ([brain-model-unification.md](./brain
 
 A team brain that only captures notes/links and summarizes conversations is "rover minus the personal stuff." To differentiate, the collective posture needs artifacts and workflows that are _inherently_ about multiple people co-authoring understanding. These are deferred deliberately: each should be designed as a dedicated plugin with a Brains-native shape, not by reusing the publishing/newsletter stack.
 
-These capabilities assume the §3 trust/identity substrate ([multi-user.md](./multi-user.md)) for real per-person attribution; until that lands they operate on the single-anchor + trusted-collaborator model.
+These capabilities assume the §3 trust/identity substrate ([multi-user.md](./multi-user.md)) for real per-person attribution; until that lands they operate on the single-Admin + trusted-collaborator permission model with separate Anchor identity.
 
 ## Distinctive capabilities (prioritized)
 

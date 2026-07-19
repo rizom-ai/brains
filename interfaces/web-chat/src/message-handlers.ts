@@ -5,7 +5,7 @@ import {
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
-type PermissionResolver = (request: Request) => Promise<"anchor" | "public">;
+type PermissionResolver = (request: Request) => Promise<"admin" | "public">;
 type ConversationService = InterfacePluginContext["conversations"];
 
 interface MessageHandlerDeps {
@@ -19,7 +19,7 @@ export async function handleMessagesRequest(
   deps: MessageHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "anchor") {
+  if (permissionLevel !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 

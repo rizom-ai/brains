@@ -38,7 +38,7 @@ const bundledPlaybooks: BundledPlaybook[] = [
     fileName: "rover-onboarding.md",
     starter: {
       id: "onboarding",
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       playbookId: "rover-onboarding",
       once: true,
       starterText: "Set up Rover",

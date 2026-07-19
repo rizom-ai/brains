@@ -83,7 +83,7 @@ describe("dashboard widget registration", () => {
       section: "primary",
       priority: 100,
       rendererName: "PipelineWidget",
-      visibility: "anchor",
+      visibility: "admin",
     });
     expect(widgetPayload?.dataProvider).toBeFunction();
     expect(widgetPayload?.digestProvider).toBeFunction();

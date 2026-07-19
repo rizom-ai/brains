@@ -152,7 +152,7 @@ describe("content-pipeline CMS workspace registration", () => {
     const actor = {
       interfaceType: "cms" as const,
       userId: "operator",
-      userPermissionLevel: "anchor" as const,
+      userPermissionLevel: "admin" as const,
     };
 
     await act?.(
@@ -281,7 +281,7 @@ describe("content-pipeline CMS workspace registration", () => {
     const actor = {
       interfaceType: "cms" as const,
       userId: "operator",
-      userPermissionLevel: "anchor" as const,
+      userPermissionLevel: "admin" as const,
     };
     const first = (await registration?.actionHandler?.(
       { type: "publish", entityType: "social-post", entityId: "draft-post" },

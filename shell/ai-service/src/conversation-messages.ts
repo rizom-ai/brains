@@ -81,18 +81,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const PERMISSION_RANK: Record<UserPermissionLevel, number> = {
   public: 0,
   trusted: 1,
-  anchor: 2,
+  admin: 2,
 };
 
 /**
  * Keep model history within the current caller's permission scope.
- * Legacy messages have no provenance, so only anchors may receive them.
+ * Legacy messages have no provenance, so only admins may receive them.
  */
 export function filterConversationHistoryForPermission(
   messages: Message[],
   currentLevel: UserPermissionLevel,
 ): Message[] {
-  if (currentLevel === "anchor") return messages;
+  if (currentLevel === "admin") return messages;
 
   return messages.filter((message) => {
     const metadata = parseMessageMetadata(message.metadata);
@@ -100,7 +100,7 @@ export function filterConversationHistoryForPermission(
     if (
       storedLevel !== "public" &&
       storedLevel !== "trusted" &&
-      storedLevel !== "anchor"
+      storedLevel !== "admin"
     ) {
       return false;
     }

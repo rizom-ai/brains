@@ -44,7 +44,7 @@ permissions:
       - "saved it"
       - "successfully saved"
       - "done"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true

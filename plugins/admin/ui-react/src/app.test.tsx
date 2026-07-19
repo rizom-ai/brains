@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -13,24 +14,38 @@ import {
   type PeopleBootstrap,
 } from "./App";
 import { runWithFeedback as executeWithFeedback } from "./feedback";
+import { createAdminQueryClient } from "./query-client";
 import type {
   AuthAdminUserSummary,
   AuthAgentPersonReconciliationResponse,
+  AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
 
-const anchor: PeopleBootstrap = {
+const admin: PeopleBootstrap = {
+  userId: "usr_yeehaa",
   displayName: "Yeehaa",
-  role: "anchor",
+  role: "admin",
+  isAnchor: true,
+  brainName: "smoke-rover",
   routePath: "/admin",
+};
+
+const brainAnchor: AuthBrainAnchorSummary = {
+  kind: "person",
+  subjectId: "per_yeehaa",
+  displayName: "Yeehaa",
+  personId: "per_yeehaa",
+  administeredBy: 2,
 };
 
 const user: AuthAdminUserSummary = {
   userId: "usr_mira",
   personId: "per_mira",
   displayName: "Mira Reyes",
-  role: "trusted",
+  role: "admin",
   status: "active",
-  permissionLevel: "trusted",
+  permissionLevel: "admin",
+  isAnchor: false,
   identities: [
     {
       id: "idn_discord",
@@ -68,38 +83,57 @@ if (!representation || !identity) {
   throw new Error("People test fixture is incomplete");
 }
 
-describe("People surface", () => {
-  it("renders the anchor access ledger without dashboard markup", () => {
-    const html = renderToStaticMarkup(
-      createElement(PeopleApp, { bootstrap: anchor, initialUsers: [user] }),
-    );
+function renderPeople(props: Parameters<typeof PeopleApp>[0]): string {
+  const queryClient = createAdminQueryClient();
+  return renderToStaticMarkup(
+    createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      createElement(PeopleApp, props),
+    ),
+  );
+}
 
-    expect(html).toContain("Administration");
-    expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Access roster");
+describe("People surface", () => {
+  it("renders the anchor and member model without dashboard markup", () => {
+    const html = renderPeople({
+      bootstrap: admin,
+      initialAnchor: brainAnchor,
+      initialUsers: [user],
+    });
+
+    expect(html).toContain("Admin");
+    expect(html).toContain("Anchor");
+    expect(html).toContain("person");
+    expect(html).toContain("Members");
+    expect(html).toContain("smoke-rover");
+    expect(html).toContain("1 member · 1 admin");
     expect(html).toContain("Mira Reyes");
-    expect(html).toContain("Linked agents");
+    expect(html).toContain("Brain");
+    expect(html).toContain("Anchor?");
+    expect(html).toContain("No");
     expect(html).toContain("Asserted — cannot authenticate");
-    expect(html).toContain("Add person");
+    expect(html).toContain("Add member");
     expect(html).not.toContain("dashboard-tab-panel");
   });
 
   it("explains that linked agents are external representatives", () => {
-    const html = renderToStaticMarkup(
-      createElement(PeopleApp, {
-        bootstrap: anchor,
-        initialUsers: [{ ...user, agents: [] }],
-      }),
-    );
+    const html = renderPeople({
+      bootstrap: admin,
+      initialAnchor: brainAnchor,
+      initialUsers: [{ ...user, agents: [] }],
+    });
 
     expect(html).toContain("No external representatives linked");
     expect(html).toContain("built-in agent is");
   });
 
   it("demotes manual identity attachment behind an advanced warning", () => {
-    const html = renderToStaticMarkup(
-      createElement(PeopleApp, { bootstrap: anchor, initialUsers: [user] }),
-    );
+    const html = renderPeople({
+      bootstrap: admin,
+      initialAnchor: brainAnchor,
+      initialUsers: [user],
+    });
 
     expect(html).toContain("Advanced identity tools");
     expect(html).toContain("Attach unverified identity");
@@ -114,17 +148,20 @@ describe("People surface", () => {
     expect(manualIdentityTypes(["email-resend"])).toEqual(["oauth", "email"]);
   });
 
-  it("shows only self-service representation consent to non-Anchors", () => {
-    const html = renderToStaticMarkup(
-      createElement(PeopleApp, {
-        bootstrap: { ...anchor, displayName: "Mira", role: "trusted" },
-        initialRepresentations: [representation],
-      }),
-    );
+  it("shows only self-service representation consent to non-Admins", () => {
+    const html = renderPeople({
+      bootstrap: {
+        ...admin,
+        displayName: "Mira",
+        role: "trusted",
+        isAnchor: false,
+      },
+      initialRepresentations: [representation],
+    });
 
     expect(html).toContain("My agents");
     expect(html).not.toContain("Access roster");
-    expect(html).not.toContain("Add person");
+    expect(html).not.toContain("Add member");
   });
 
   it("preselects the only exact independently verified person", () => {
@@ -211,7 +248,7 @@ describe("People surface", () => {
   });
 
   it("uses canonical auth vocabulary and evidence labels", () => {
-    expect(roleLabel("anchor")).toBe("Anchor");
+    expect(roleLabel("admin")).toBe("Admin");
     expect(initials("Mira Reyes")).toBe("MR");
     expect(assuranceLabel(identity)).toBe("Asserted — cannot authenticate");
   });

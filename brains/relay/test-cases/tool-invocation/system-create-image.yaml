@@ -5,7 +5,7 @@ description: >-
   preset path without falling back to unsupported publishing or attachment tools.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - image

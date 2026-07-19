@@ -3,7 +3,7 @@ name: Helpful Guidance on Capabilities
 description: Tests that agent helpfully explains what it can do
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - quality

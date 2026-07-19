@@ -424,8 +424,8 @@ describe("publish_queue tool", () => {
       expect(tool.description).toContain("all entity types");
     });
 
-    it("should have anchor visibility", () => {
-      expect(tool.visibility).toBe("anchor");
+    it("should have admin visibility", () => {
+      expect(tool.visibility).toBe("admin");
     });
 
     it("should declare write side effects", () => {

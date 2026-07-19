@@ -3,7 +3,7 @@ name: Approve Then Call Uses Approved Status Immediately
 description: Verifies that approving a discovered agent goes through confirmation, then an immediate follow-up call sees the approved status and proceeds to agent_call.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

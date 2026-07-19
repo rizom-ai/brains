@@ -40,7 +40,7 @@ System tools such as create, update, search, extract, and status are framework-l
 Relay separates collaborator writes from owner/operator writes:
 
 - trusted teammates can create and update normal team-authored memory such as notes, links, decisions, action items, images, docs, and decks;
-- deletes default to owner/operator (`anchor`) permission;
+- deletes default to `admin` permission;
 - derived/system-maintained or identity/config records (`summary`, `topic`, `agent`, `skill`, `swot`, `prompt`, `site-info`, `site-content`, `anchor-profile`, `brain-character`) are owner/operator-only by default;
 - extraction/rebuild actions for derived records such as `topic`, `summary`, `skill`, and `swot` require owner/operator permission.
 
@@ -136,7 +136,7 @@ Relay includes `auth-service`, so first boot prints a one-shot `/setup` URL for 
 
 ### Permissions UX
 
-Relay treats people in configured shared spaces as collaborators (`trusted`) while anchors remain owners. By default, collaborators can create/update normal team memory, but deletes and system-maintained records stay owner-only.
+Relay treats people in configured shared spaces as collaborators (`trusted`) while Anchors remain the represented owners/subjects. By default, collaborators can create/update normal team memory, but deletes and system-maintained records require Admin permission.
 
 ```yaml
 anchors:
@@ -146,7 +146,7 @@ spaces:
   - "discord:TEAM_CHANNEL_ID"
 ```
 
-Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require owner/anchor permission. Protected entities such as prompts, site content, topics, summaries, agents, skills, and SWOTs require owner/anchor permission for create/update/delete. Singleton identity/config entities — site-info, anchor-profile, and brain-character — cannot be deleted through system tools at all; reset them through plugin or directory-sync paths.
+Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require Admin permission. Protected entities such as prompts, site content, topics, summaries, agents, skills, and SWOTs require Admin permission for create/update/delete. Singleton identity/config entities — site-info, anchor-profile, and brain-character — cannot be deleted through system tools at all; reset them through plugin or directory-sync paths.
 
 Instances can override individual actions in `brain.yaml`:
 
@@ -159,7 +159,7 @@ permissions:
       update: trusted
 ```
 
-Denials are explicit, for example: `Update summary requires Anchor permission; your current permission is Trusted.`
+Denials are explicit, for example: `Update summary requires Admin permission; your current permission is Trusted.`
 
 ### 4. Run the instance
 

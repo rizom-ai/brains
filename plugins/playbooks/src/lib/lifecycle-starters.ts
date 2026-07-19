@@ -167,11 +167,11 @@ export class LifecycleStarterRegistry {
   public async resolveStarters(input: {
     lifecycle?: string | undefined;
     interfaceType: string;
-    userPermissionLevel: "anchor" | "trusted" | "public";
+    userPermissionLevel: "admin" | "trusted" | "public";
   }): Promise<PlaybookStarter[]> {
     if (
       input.interfaceType !== "web-chat" ||
-      input.userPermissionLevel !== "anchor"
+      input.userPermissionLevel !== "admin"
     ) {
       return [];
     }
@@ -208,7 +208,7 @@ export class LifecycleStarterRegistry {
 
     for (const playbook of await this.deps.listPlaybooks()) {
       const metadata = playbook.entity.metadata;
-      if (metadata.status !== "active" || metadata.audience !== "anchor") {
+      if (metadata.status !== "active" || metadata.audience !== "admin") {
         continue;
       }
       const trigger = metadata.trigger;

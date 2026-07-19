@@ -59,7 +59,7 @@ permissions:
       level: public
 ```
 
-Use `anchor` access for identities that can administer the brain. Use `public` for surfaces that should be able to ask ordinary questions but not perform privileged actions.
+Use `admin` access for identities that can administer the brain. Configure `anchors` separately for caller identities that represent the brain's owner/subject in chat. Use `public` for surfaces that should be able to ask ordinary questions but not perform privileged actions.
 
 ## MCP
 
@@ -90,7 +90,7 @@ https://your-domain.com/mcp
 When `auth-service` is enabled, HTTP MCP is protected by the brain's built-in OAuth provider:
 
 1. First boot prints a one-shot `/setup` URL.
-2. The first Anchor opens that URL locally and registers a passkey.
+2. The first Admin opens that URL locally and registers a passkey; on a personal brain, that person's subject becomes the Anchor.
 3. OAuth-capable MCP clients discover metadata from the brain, open a browser authorization flow, and request the `mcp` scope.
 4. The brain verifies the passkey-backed auth session and issues MCP-scoped bearer tokens.
 
@@ -113,7 +113,7 @@ MCP defaults to `basic` mode. In `basic`, clients see:
 
 Raw write tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; use `system_get` or `system_job_status` to observe those results.
 
-Use `debug` mode only for local/operator inspection when you intentionally need raw tool access. It requires `anchor` permissions and is refused for unauthenticated HTTP.
+Use `debug` mode only for local/operator inspection when you intentionally need raw tool access. It requires `admin` permissions and is refused for unauthenticated HTTP.
 
 ```yaml
 plugins:
@@ -277,7 +277,7 @@ Recommended production settings:
 - keep `requireMention: true` unless all channel messages should reach the brain;
 - restrict `allowedChannels` where appropriate;
 - disable `allowDMs` unless direct messages are intentional;
-- grant `trusted` or `anchor` only to users who may supply reusable uploads or perform writes.
+- grant `trusted` or `admin` only to users who may supply reusable uploads or perform writes.
 
 Public users can chat, but their platform attachments are not downloaded or passed to the agent. Discord and Slack keep subscriptions and uploads in separate runtime namespaces.
 

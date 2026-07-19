@@ -2,29 +2,29 @@
 
 ## Status
 
-Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/admin` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent Anchor administration API. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/admin` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-model-visible Admin API with independent Anchor ownership management. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
-Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-anchor/self-hosted path.
+Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-Admin/self-hosted path.
 
-The first version should stay small: coarse permission levels, explicit anchor-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed.
+The first version should stay small: coarse permission levels, explicit Admin-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed.
 
 ## Source of truth
 
-This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, anchor management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, Admin and Anchor management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
 
 ## Current baseline
 
-- Permission levels are `public`, `trusted`, and `anchor`; active auth users are authoritative before legacy rule fallback.
+- Permission levels are `public`, `trusted`, and `admin`; Anchor identity is exposed independently through `isAnchor`. Active auth users are authoritative before configured rule fallback.
 - Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
 - Fresh setup and migrated installations use durable `usr_<uuid>` subjects; legacy files remain immutable migration backups.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
-- A same-origin anchor-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
-- The standalone admin console (React, implemented by `@brains/admin` at `/admin` with People as its first section) provides Anchor-only roster administration and authenticated self-service representation consent. A local CLI remains optional.
+- A same-origin Admin-session API manages users, Anchor ownership, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
+- The standalone admin console (React, implemented by `@brains/admin` at `/admin` with People as its first section) provides Admin-only roster administration and authenticated self-service representation consent. A local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -34,67 +34,67 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - They are not synced/exported with `brain-data`.
    - Optional public/person profile content can link to a user id later, but it is not the source of auth truth.
 2. **Keep coarse permission levels for v1.**
-   - `anchor` = highest human authority for administration and restricted workflows.
+   - `admin` = highest human authority for administration and restricted workflows.
    - `trusted` = trusted-user authority for safe collaborative write workflows.
    - `public` = unauthenticated or minimal access.
    - Full RBAC is explicitly out of scope for the first multi-user slice.
 3. **User lookup precedes rule fallback.**
    - If an interface caller maps to an auth user, use that user role.
    - If no user matches, fall back to existing `brain.yaml` permission rules.
-   - Existing single-anchor configs continue working unchanged.
+   - `admins`, `anchors`, and `trusted` have clean, independent configured semantics; no deprecated Anchor-role alias remains.
 4. **Real user ids replace `single-operator` as the canonical subject.**
    - Fresh setups use `usr_<uuid>` as the passkey/session/OAuth subject.
    - Existing `single-operator` installs migrate lazily to a real user id.
    - `single-operator` remains only a compatibility/migration alias, not new canonical state.
 5. **First passkey setup creates the first admin, who is the anchor on a personal brain.**
-   - First setup creates one active **`admin`** user (the `anchor` role, renamed per decision 12) and binds the passkey to that user.
+   - First setup creates one active **`admin`** user, binds the passkey to that user, and configures that person's subject as the personal Anchor.
    - On a **personal** brain that first admin is also the **anchor/owner** (admin _is_ anchor). On a **collective** brain the anchor is the team/org; the first admin runs it but is not the anchor.
    - The data model supports multiple active admins from the start.
-6. **Multiple anchors are allowed, but the last active anchor is protected.**
-   - Anchors can promote other users to `anchor`.
-   - The system must reject demoting, suspending, or deleting the last active admin (the last-active-anchor invariant, renamed under decision 12).
+6. **Multiple Admins are allowed, but the last active Admin is protected.**
+   - Admins can promote other users to `admin`.
+   - The system atomically rejects demoting, suspending, or deleting the last active Admin. A personal Anchor must also remain an active Admin.
    - ~~User-facing copy must use **Anchor**, never Owner or Operator, for this role.~~ **Superseded by decision 12:** the permission role is **Admin**; **Anchor** now names the brain's owner/subject, not the role.
-7. **Per-request/session permissions must replace global HTTP MCP anchor.**
+7. **Per-request/session permissions must replace global HTTP MCP Admin authority.**
    - OAuth-authenticated MCP should use the token subject's user role.
-   - Static `MCP_AUTH_TOKEN` can continue to grant anchor as a deprecated fallback.
+   - Static `MCP_AUTH_TOKEN` can continue to grant Admin permission as a deprecated fallback, but never establishes Anchor identity.
 8. **Do not reshuffle existing tool visibility in the plumbing phase.**
    - Multi-user v1 makes roles enforceable.
-   - A later tool-permission audit decides which existing anchor tools can safely become trusted.
-9. **Anchor-managed onboarding first; invitations later.**
-   - Anchors create users and explicitly attach identities.
+   - A later tool-permission audit decides which existing Admin tools can safely become trusted.
+9. **Admin-managed onboarding first; invitations later.**
+   - Admins create users and explicitly attach identities.
    - Email/self-signup/invite delivery is deferred until real workflows need it.
 10. **Auth-user administration is not agent-visible.**
     - User, identity, role, status, and user-specific credential management stay outside the model tool surface.
-    - Use a dedicated authenticated admin surface or local CLI with explicit anchor confirmation.
-    - This reduces prompt-injection and accidental privilege-management risk even for anchor sessions.
+    - Use a dedicated authenticated admin surface or local CLI with explicit Admin confirmation.
+    - This reduces prompt-injection and accidental privilege-management risk even for Admin sessions.
 11. **Administration is its own console surface — an admin console, not a dashboard tab. People is its first section.**
     - User administration is a _mutating management_ surface, structurally like CMS (`/cms`), not a read-mostly monitoring widget. It belongs beside the dashboard, chat, and CMS as a peer console surface, wearing `@brains/console-theme` and reachable by the cross-surface ⌘K jump — not special-cased into the dashboard SSR page.
     - **Scope it as an admin console at `/admin`, with People as its first section — not a single-purpose `/people` surface.** The surface is administration, and this plan's own roadmap already names its next sections (invitations, an audit-log viewer). Naming the console generously now means those land as sections, not as a second rename. People renders as the roster/promotion section of that console.
     - **`auth` stays `auth`; `admin` is the surface, not the service.** `shell/auth-service` remains a tightly-scoped, security-critical auth domain — it does **not** become an "admin-service." The admin console federates over service admin APIs: `/auth/admin/*` for user/identity/role management today, other services' admin APIs later (operator runtime, ops). Renaming auth → admin would invite the durable operator/ops concerns that `operator-runtime-db.md` and `@rizom/ops` deliberately keep separate to accrete into a security-critical service; keep that boundary.
     - It is a React SPA like CMS and chat, not the dashboard's SSR + progressive-enhancement vanilla JS. The surface is app-shaped (dialog-driven mutation flows, confirmations, live refresh, the promotion/claim-link flow), so it sits on the React side of the repo's Preact-SSR / React-SPA split.
-    - `shell/auth-service` remains the sole owner of the admin HTTP endpoints, schema, permission policy, last-anchor invariant, and audit. The surface is a thin same-origin client over `/auth/admin/*` and **imports auth-service's exported role/mutation contract types** rather than re-declaring the role list or mutation-action names — so the vocabulary cannot drift.
-    - The dashboard stays pure monitoring: no People tab, no inline admin script, no hand-rolled anchor-visibility branch.
+    - `shell/auth-service` remains the sole owner of the admin HTTP endpoints, schema, permission policy, last-Admin invariant, and audit. The surface is a thin same-origin client over `/auth/admin/*` and **imports auth-service's exported role/mutation contract types** rather than re-declaring the role list or mutation-action names — so the vocabulary cannot drift.
+    - The dashboard stays pure monitoring: no People tab, no inline admin script, no hand-rolled Admin-visibility branch.
     - **Console integration lives here now.** Console unification shipped and its plan retired, so the surface-registration work it defined is owned by this decision: register the admin console as a web route so the shared console strip renders its nav link (route-derived nav via `getWebRoutes()`), extend the `GET /api/console/jump` contract with an admin surface door so ⌘K reaches it, and default the surface to the `instrument` climate like the other operator surfaces. The strip, palette, and climate CSS come from `@brains/console-theme` unchanged; its route-derived surface registry adds the Admin consumer.
     - **Current state:** implemented as the standalone `@brains/admin` package (React SPA, runtime plugin id `admin`, own plugin identity outside the dashboard's Preact SSR package) with a configurable `routePath` defaulting to `/admin`. People is the first section in the console shell; future invitations and audit sections can join it without another route rename.
-12. **`Anchor` is the owner (an identity), `Admin` is the permission role.** _(Adopted 2026-07-18; supersedes the "Anchor is the role" naming in decision 6 and the Terminology contract. Propagation through code and the rest of this plan is a tracked follow-on, not yet done.)_
+12. **`Anchor` is the owner (an identity), `Admin` is the permission role.** _(Adopted 2026-07-18 and implemented; supersedes the "Anchor is the role" naming in decision 6.)_
     - **Anchor = the brain's owner/subject — a person, team, or organization.** It is an _identity/profile_ concept, not an authenticator: an org never logs in, so "anchor" names _what the brain is anchored to / represents_, not a login. This is already the meaning in the identity code (`agent.ts:83` `anchorDid` = "ATProto anchor DID"; the `anchor-profile` entity = the owner's profile), so this reframe **realigns** those names rather than renaming them — `anchor-profile`/`anchorDid` are now correctly named and stay.
-    - **Admin = the human permission role** that administers the brain. The permission levels become **`admin` / `trusted` / `public`**; the `anchor` _level_ is what moves. Admins work in the `/admin` console (decision 11), so role and surface line up.
+    - **Admin = the human permission role** that administers the brain. The permission levels are **`admin` / `trusted` / `public`**; the former Anchor role has been removed. Admins work in the `/admin` console (decision 11), so role and surface line up.
     - **`admin`, not `operator`.** `operator` is already the _infrastructure_ operator (`operator-runtime-db.md`, `@rizom/ops`) and `single-operator` is the retired legacy subject decision 4 is migrating away from; reusing `operator` for a role recollides both. `admin` matches the console.
     - **The owner subject is not an auth principal.** Humans (users/persons) authenticate and hold roles; the person/team/org that a brain is anchored to is a profile subject that never signs in. See the companion profile-on-subjects model (profile is first-class, subject = person/team/org; members have profiles; a member's own brain is optional and never provisioned) — to be captured as its own design doc.
     - **Two anchor kinds: `person` or `collective`. No nesting.** Team and organization are the _same_ kind — a collective anchor — differing only in profile flavor, not in mechanics; "team" is a label/profile-shape choice, not a separate model. A brain has exactly **one** anchor, so a collective anchor is never nested (no team-within-org): a brain is anchored to a person or to a collective, full stop.
     - **Ownership rule.** A **person** anchor is owned by that one human, who is also its admin — so on a personal brain "admin _is_ anchor" (1:1). A **collective** anchor is owned by the collective and run by **any** admin — ownership is impersonal, there is no designated owner-admin, and the last-active-admin invariant (decision 6) is the only protection. On a collective brain no single user is the anchor; admins act on the collective's behalf.
     - **`isAnchor` is identity, not permission.** Because ownership grants nothing an admin lacks (personal: owner == admin; collective: impersonal), interfaces **authorize on the `admin` role only** and never gate on ownership. The resolved principal carries two independent facets: `permissionLevel: admin | trusted | public` (authorization) and `isAnchor` (identity — true for the person on a personal brain, false for everyone on a collective brain). Chat and other interfaces read `isAnchor` **only** for representation/voice ("this is your brain"), never for access. Migrating existing `anchor` checks is triage: authorization checks → `admin`; any "is this the owner" check → the `isAnchor` facet.
-    - **Migration is compatibility-safe and rides existing machinery.** The `anchor` role → `admin` rename reuses the same ordered, release-gated approach as the shipped Operator→Anchor session/role migration: retain `anchor` as a read-compat role alias behind the release gate, flip user-facing copy, remove the alias only once CI confirms no deprecated consumers and the minimum supported upgrade version already issues `admin`. Honest cost: the role is renamed twice in one arc (Operator→Anchor→Admin) — accepted, because it frees `anchor` for the ownership concept the profile/identity model needs.
+    - **Migration is bounded and clean.** Generated Drizzle migration `0002_superb_firebrand.sql` converts historical persisted role rows once and backfills the personal Anchor. Runtime roles and configuration accept only `admin | trusted | public`; no deprecated `anchor` role/config alias remains.
 
 ## Terminology contract
 
-- **Admin**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy _(per decision 12; the `anchor` role is renamed to `admin`, `anchor` retained as a read-compat alias behind the release gate)_. **Anchor** is reserved for the brain's owner/subject (person, team, or organization) — an identity concept, not a role.
+- **Admin**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy. **Anchor** is reserved for the brain's owner/subject (person, team, or organization) — an identity concept, not a role.
 - **Operator is not a role.** Existing names such as `operator_sessions`, `OperatorSessionStore`, `getOperatorSession`, `brains_operator_session`, and “Operator access” are legacy single-user terminology and must be migrated to authenticated/browser-session naming.
 - Rename the persisted session table to `auth_sessions` in an ordered auth DB migration. Preserve existing sessions during the rename.
 - Use `AuthSession`/`BrowserSession` service names; the private workspace API keeps no deprecated session wrappers.
 - Move the cookie to `brains_auth_session`; accept the legacy cookie during a bounded compatibility window and clear both names on logout.
 - Remove the legacy cookie reader only after CI confirms there are no deprecated source consumers and the recorded minimum supported upgrade version already issues `brains_auth_session`.
-- Rename first-setup types and copy from “operator setup” to “first anchor setup” or generic “passkey setup.”
+- Rename first-setup types and copy from “operator setup” to generic “passkey setup.”
 - `single-operator` remains only as a historical migration subject and must not appear in newly created state or user-facing copy.
 - The separate “Operator runtime database” plan may retain its infrastructure meaning; it does not define a human auth role.
 
@@ -106,7 +106,7 @@ The canonical schema lives in [Auth runtime database](./auth-runtime-db.md). Thi
 interface AuthUserRecord {
   id: string; // stable user id, e.g. usr_<uuid>
   displayName: string;
-  role: "anchor" | "trusted" | "public";
+  role: "admin" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
   identities: AuthUserIdentity[];
   createdAt: number;
@@ -140,7 +140,7 @@ Add `shell/auth-service` user-store support rather than a separate content entit
 
 - `AuthUserStore`
   - uses the auth runtime DB user/identity tables
-  - creates first anchor user
+  - creates first admin user
   - lists users
   - finds user by id
   - finds user by normalized identity key
@@ -148,7 +148,7 @@ Add `shell/auth-service` user-store support rather than a separate content entit
   - updates role/status
   - rejects changes that would leave zero active anchors
 - `AuthService`
-  - creates/reuses first anchor user during setup
+  - creates/reuses first admin user during setup
   - passkey registration stores credential with `subject = user.id`
   - passkey login creates an authenticated browser session with `subject = user.id`
   - OAuth access-token `sub` becomes user id
@@ -174,14 +174,14 @@ Current HTTP MCP sets the whole transport to `anchor` when auth is configured. M
 - `StreamableHTTPServer.authenticate()` should retain verified identity for the request/session.
 - When creating a new MCP session, call `mcpTransport.createMcpServer(permissionLevel)` for that session.
 - Existing session id should continue with the permission level established at initialize time.
-- Static `MCP_AUTH_TOKEN` fallback remains anchor-only and deprecated.
+- Static `MCP_AUTH_TOKEN` fallback remains admin-only and deprecated.
 
 ### Dashboard visibility
 
-- Widget visibility already uses the same levels as tools (`public` / `trusted` / `anchor`) — verified 2026-07-07; no `operator` alias exists in the schema or is needed.
+- Widget visibility already uses the same levels as tools (`public` / `trusted` / `admin`) — verified 2026-07-07; no `operator` alias exists in the schema or is needed.
 - Dashboard login/logout use authenticated browser sessions carrying a real user id and role; no session is elevated merely because it exists.
-- Signed-in masthead must display the user's name and canonical role label, e.g. `Alex · Anchor · Sign out`.
-- Use role labels consistently in UI: `anchor` → **Anchor**, `trusted` → **Trusted**, `public` → **Public**.
+- Signed-in masthead must display the user's name and canonical role label, e.g. `Alex · Admin · Sign out`.
+- Use role labels consistently in UI: `admin` → **Admin**, `trusted` → **Trusted**, `public` → **Public**. Show Anchor as a separate yes/no ownership facet.
 - Remove user-facing “Operator access” and “Operator” session labels.
 
 ### Conversations, jobs, and audit attribution
@@ -212,13 +212,13 @@ Avoid writing auth-sensitive identity bindings into content markdown.
 
 ### Non-agent administration
 
-Do not register user or user-specific credential administration as model-visible tools. The runtime exposes `GET /auth/admin/users` and `POST /auth/admin/mutations` to active anchor sessions. Mutations require same-origin JSON plus an action-matching `confirmation` value, preserve last-anchor invariants, revoke affected grants, and append actor-attributed audit events. Responses redact identity lookup hashes, raw identity subjects, and passkey public keys. The existing first-anchor bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
+Do not register user or user-specific credential administration as model-visible tools. The runtime exposes `GET /auth/admin/users` and `POST /auth/admin/mutations` to active Admin sessions. Mutations require same-origin JSON plus an action-matching `confirmation` value, preserve last-Admin invariants, revoke affected grants, and append actor-attributed audit events. Responses redact identity lookup hashes, raw identity subjects, and passkey public keys. The existing first-passkey bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
 
 Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus`, `attachIdentity`, `detachIdentity`, `startPasskeyRegistration`, `revokePasskey`, and `revokeUserSessions`.
 
 ### Admin console (People is its first section)
 
-The administration UX is its own console surface (see decision 11), a peer to `/cms` and `/chat` — a React SPA at `/admin` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*` and `/auth/representations`. It is an **admin console**, with People as its first section; invitations and an audit-log viewer can follow as further sections. Roster administration and promotion controls are Anchor-only; authenticated non-Anchors receive only the self-service representation-consent view. It is **not** a dashboard tab.
+The administration UX is its own console surface (see decision 11), a peer to `/cms` and `/chat` — a React SPA at `/admin` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*` and `/auth/representations`. It is an **admin console**, with People as its first section; invitations and an audit-log viewer can follow as further sections. Roster administration and promotion controls are Admin-only; authenticated non-Admins receive only the self-service representation-consent view. It is **not** a dashboard tab.
 
 #### Admin package naming
 
@@ -248,20 +248,20 @@ Add wrappers where useful:
 ```bash
 brain user:list
 brain user:create --display-name "Jane" --role trusted
-brain user:update-role usr_... --role anchor
+brain user:update-role usr_... --role admin
 brain user:suspend usr_...
 brain user:attach-identity usr_... --type discord --subject 123456789
 ```
 
 Keep `brain auth reset-passkeys --yes` as the break-glass reset for all passkeys and active OAuth state. It remains local/destructive and is not a replacement for normal multi-anchor recovery.
 
-### Anchor-managed onboarding
+### Admin-managed onboarding
 
-For v1, onboarding is explicit and anchor managed:
+For v1, onboarding is explicit and Admin managed:
 
-1. An anchor creates a user through the admin API.
+1. An Admin creates a user through the Admin API.
 2. The anchor attaches one or more known identities.
-3. For passkeys, the anchor requests a short-lived registration URL for that specific user.
+3. For passkeys, the Admin requests a short-lived registration URL for that specific user.
 4. The user opens the URL and registers a passkey; the credential binds to that user id.
 
 There is no public registration, email invitation, or self-signup in the first slice.
@@ -271,7 +271,7 @@ There is no public registration, email invitation, or self-signup in the first s
 ### Fresh installs
 
 1. No passkeys and no users.
-2. First `/setup` creates `usr_<uuid>` with role `anchor`.
+2. First `/setup` creates `usr_<uuid>` with role `admin` and configures that person's subject as the personal Anchor.
 3. Passkey credential stores `subject = usr_<uuid>`.
 4. Authenticated browser sessions and OAuth tokens use `sub = usr_<uuid>`.
 
@@ -280,25 +280,25 @@ There is no public registration, email invitation, or self-signup in the first s
 On startup or first successful login:
 
 1. Detect passkeys or sessions with `subject = "single-operator"`.
-2. If no users exist, create first anchor user.
+2. If no users exist, create first admin user.
 3. Rebind passkey credentials from `single-operator` to that user id.
 4. Future sessions/tokens use the real user id.
 5. Revoke old `single-operator` refresh tokens during migration for safety and force affected OAuth clients through a clean one-time re-auth.
 
 ## Phased implementation
 
-### Phase 1 — Real anchor user and `single-operator` migration
+### Phase 1 — Real admin user and `single-operator` migration
 
 **Status: implemented.**
 
 This is the safest first slice: real users without trusted-user management yet.
 
 - Add the auth runtime DB foundation / `AuthUserStore` from [Auth runtime database](./auth-runtime-db.md) and tests.
-- Create first active `anchor` user during setup.
+- Create the first active `admin` user during setup and bind the personal Anchor independently.
 - Let setup collect an optional display name; use `Anchor` only as a temporary fallback.
 - Bind new passkey credentials to `usr_<uuid>` instead of `single-operator`.
 - Login sessions and OAuth tokens use user-id `sub`.
-- Lazily migrate old `single-operator` passkey credentials/sessions to the first anchor user.
+- Lazily migrate old `single-operator` passkey credentials/sessions to the first admin user.
 - Revoke old `single-operator` refresh tokens during migration.
 
 Validation:
@@ -327,27 +327,27 @@ Validation:
 - a known trusted user receives trusted tools only
 - unknown callers still use `brain.yaml` rules where applicable
 - suspended users are denied authentication/session use rather than downgraded to public
-- trusted OAuth user cannot call anchor-only tools
-- anchor OAuth user can call anchor tools
+- trusted OAuth user cannot call admin-only tools
+- Admin OAuth user can call Admin tools
 - static token behavior remains backward compatible
 
 ### Phase 3 — Non-agent administration API
 
 **Status: backend and admin console (People section, at `/admin`) implemented; CLI wrappers remain optional.**
 
-- Add a same-origin, anchor-session admin API; do not register model-visible user-management tools.
+- Add a same-origin, Admin-session API; do not register model-visible user-management tools.
 - Require explicit action confirmation for every mutation.
 - Keep local CLI wrappers optional and implement the required People console in phase 5.
 - Add attach/detach identity flows.
-- Add passkey registration for a specific user through an anchor-generated, short-lived setup URL.
-- Support multiple active anchors.
-- Reject role/status changes that would leave zero active anchors.
+- Add passkey registration for a specific user through an Admin-generated, short-lived setup URL.
+- Support multiple active Admins and one independent person/collective Anchor.
+- Reject role/status changes that would leave zero active Admins or deactivate a personal Anchor.
 
 Validation:
 
-- anchor can create trusted user
-- anchor can promote another active user to anchor
-- system refuses to demote/suspend the last active anchor
+- Admin can create a trusted user
+- Admin can promote another active user to Admin
+- system refuses to demote/suspend the last active Admin or personal Anchor
 - trusted user cannot manage users
 - identity attach enables login/permission mapping
 
@@ -370,29 +370,29 @@ Validation:
 **Status: implemented as the standalone admin console (People section, at `/admin`) per decision 11. Bounded legacy-cookie compatibility remains active.**
 
 - [x] Approve the People-section design (now the [admin console mockup — current](../design/admin-console-current-mockup.html); the [target mockup](../design/admin-console-target-mockup.html) shows the decisions 11–12 end state).
-- [x] Add Anchor-only roster administration and authenticated self-service representation consent over the existing auth APIs.
+- [x] Add Admin-only roster administration and authenticated self-service representation consent over the existing auth APIs.
 - [x] Move People off the dashboard SSR page into the standalone `@brains/admin` React admin console (decision 11), importing auth-service's browser-safe contract types and constants instead of literal role/mutation vocabularies. Dashboard is pure monitoring again.
   - The console is a registered route-derived surface using the `instrument` climate.
-  - `GET /api/console/jump` includes an admin surface door for authenticated Anchors.
+  - `GET /api/console/jump` includes an admin surface door for authenticated Admins.
   - The surface consumes `@brains/console-theme`; the shared surface registry recognizes the new consumer.
 - [x] Generalize the surface to `/admin` with People as its first section (decision 11), retaining a configurable `routePath` for deployments and leaving room for invitations and an audit-log viewer.
 - [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
-- [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
-- [x] Show `Name · Anchor|Trusted|Public · Sign out` in the console masthead.
+- [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-Admin elevation.
+- [x] Show `Name · Admin|Trusted|Public · Sign out`, with Anchor shown separately in the console masthead.
 - [x] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
 - [x] Update tests, docs, and shared auth UI copy so Operator and Owner are never presented as permission roles.
 - [x] Enforce compatibility removal with `bun run auth-session:compat-check` and release metadata in `shell/auth-service/auth-session-compat.json`.
 
 Validation:
 
-- trusted and public sessions never receive anchor dashboard visibility
-- only anchors can see or use People management
+- trusted and public sessions never receive Admin dashboard visibility
+- only Admins can see or use People management
 - existing browser sessions survive the table/code/cookie terminology migration
-- dashboard and setup/login copy use Anchor/Trusted/Public consistently
+- dashboard and setup/login copy use Admin/Trusted/Public consistently and show Anchor independently
 
 ### Phase 6 — Person-centered identity and agent promotion
 
-**Status: complete.** Runtime person backfill, normalized person-owned claims with independent evidence, and consent-bearing agent/person links are implemented. The pre-Drizzle bridge preserves existing person, user, session, link, and claim ids. Agent assertions remain non-authenticating and provider/admin verification is retained as separate evidence. The Anchor-confirmed admin API can atomically promote an agent's represented person into an invited user or link an agent to an existing user's person. Targeted passkey registration activates invited users and accepts their representation before creating a session; existing users review pending links in the authenticated **My agents** view in the People section at `/admin`. People lists linked-agent status, and approved Agent Network entries expose both invitation and existing-person linking. Agent-carried represented-person DID assertions flow into private claim/evidence storage: exact claims on the selected person reuse their claim ids, assertions remain non-authenticating, and cross-person conflicts atomically block the link. The promotion dialog now asks the private Anchor-only reconciliation endpoint to compare exact hashes without exposing subjects or hashes, preselects only one independently verified person, refuses to infer from asserted-only ownership, and blocks cross-person claims with the affected People records named for explicit Anchor correction. The [admin console mockup (current)](../design/admin-console-current-mockup.html) explores the profile, access, representation, and consent states. Promotion runs from an existing agent to an authenticated user; creating an agent for an existing user is a secondary linking flow, not promotion.
+**Status: complete.** Runtime person backfill, normalized person-owned claims with independent evidence, and consent-bearing agent/person links are implemented. The pre-Drizzle bridge preserves existing person, user, session, link, and claim ids. Agent assertions remain non-authenticating and provider/admin verification is retained as separate evidence. The Admin-authorized API can atomically promote an agent's represented person into an invited user or link an agent to an existing user's person. Targeted passkey registration activates invited users and accepts their representation before creating a session; existing users review pending links in the authenticated **My agents** view in the People section at `/admin`. People lists linked-agent status, and approved Agent Network entries expose both invitation and existing-person linking. Agent-carried represented-person DID assertions flow into private claim/evidence storage: exact claims on the selected person reuse their claim ids, assertions remain non-authenticating, and cross-person conflicts atomically block the link. The promotion dialog now asks the private Admin-only reconciliation endpoint to compare exact hashes without exposing subjects or hashes, preselects only one independently verified person, refuses to infer from asserted-only ownership, and blocks cross-person claims with the affected People records named for explicit administrator correction. The [admin console mockup (current)](../design/admin-console-current-mockup.html) explores the profile, access, representation, and consent states. Promotion runs from an existing agent to an authenticated user; creating an agent for an existing user is a secondary linking flow, not promotion.
 
 Introduce a stable person subject between auth users and agents:
 
@@ -418,7 +418,7 @@ Promotion flow:
 
 1. Open an existing agent dossier and choose **Grant represented person access**.
 2. Reuse or create the agent's represented person and existing canonical claims.
-3. Select the initial `public`, `trusted`, or `anchor` role.
+3. Select the initial `public`, `trusted`, or `admin` role.
 4. Create an invited auth-user facet linked to that person.
 5. Deliver a targeted setup/claim link through an approved channel.
 6. Activate authentication bindings only after passkey or provider verification.
@@ -469,10 +469,10 @@ Build delivery convenience on top of the targeted setup/claim mechanism only whe
 
 - Auth-user records are runtime auth state and should use `0600` file permissions.
 - Never store passkey private material; public credential keys stay in passkey store.
-- Role changes and identity attach/detach require `anchor`.
+- Role changes and identity attach/detach require `admin`.
 - Suspended users are denied auth/session use.
 - Role downgrades, suspension, and identity detach revoke that user's sessions and refresh tokens immediately.
-- Demoting, suspending, or deleting the last active anchor must be rejected.
+- Demoting, suspending, or deleting the last active Admin must be rejected; a personal Anchor must remain an active Admin.
 - Identity binding must be explicit; do not auto-link two identities just because display names match.
 
 ## Non-goals for first slice
@@ -491,9 +491,9 @@ Build delivery convenience on top of the targeted setup/claim mechanism only whe
 2. Existing single-operator installs migrate safely.
 3. Permission resolution uses auth users before falling back to rules.
 4. MCP OAuth sessions receive per-user permissions.
-5. Anchors can manage users through a dedicated authenticated admin surface, never through model-visible tools.
-6. Multiple active anchors are supported, with last-active-anchor protection.
+5. Admins can manage users through a dedicated authenticated admin surface, never through model-visible tools.
+6. Multiple active Admins are supported, with atomic last-active-Admin protection.
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.
-9. Dashboard permissions use the authenticated user's actual role, People roster management is Anchor-only in the standalone admin console (decision 11), self-service representation consent is available to authenticated users, and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
+9. Dashboard permissions use the authenticated user's actual role, People roster management is Admin-only in the standalone admin console (decision 11), self-service representation consent is available to authenticated users, and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
 10. An agent's represented person can be promoted to an invited auth user without copying canonical identity claims, and existing users can link to agents through the same person subject.

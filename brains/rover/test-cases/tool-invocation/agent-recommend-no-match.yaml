@@ -3,7 +3,7 @@ name: Agent Expertise Recommendation With No Clear Match
 description: Verifies that expertise recommendations search saved agents and honestly report no clear match instead of inventing a generic consultant.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - tool-invocation
@@ -20,7 +20,15 @@ successCriteria:
         scope.kind: type
         scope.entityType: "agent"
   responseContainsAny:
-    - ["clear marine", "clear network", "couldn’t find a clear", "couldn't find a clear", "couldn’t find any", "couldn't find any", "no clear"]
+    - [
+        "clear marine",
+        "clear network",
+        "couldn’t find a clear",
+        "couldn't find a clear",
+        "couldn’t find any",
+        "couldn't find any",
+        "no clear",
+      ]
   responseNotContains:
     - "marine biologist, oceanographer, or ecologist"
     - "If you want, I can help narrow it down"

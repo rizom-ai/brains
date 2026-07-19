@@ -1,12 +1,24 @@
 import { sha256Hex } from "@brains/utils/hash";
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  exists,
+  isNotNull,
+  isNull,
+  ne,
+  notExists,
+  or,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
+  authBrainAnchor,
   authIdentities,
   authIdentityEvidence,
   authPeople,
   authUsers,
+  type AuthBrainAnchor,
   type AuthIdentity,
   type AuthIdentityEvidence,
   type AuthPerson,
@@ -26,6 +38,13 @@ export interface AuthIdentityRecord extends AuthIdentity {
 
 export interface CreateAuthPersonInput {
   displayName: string;
+  profileEntityId?: string;
+}
+
+export interface UpdateBrainAnchorInput {
+  kind: AuthBrainAnchor["kind"];
+  userId?: string;
+  displayName?: string;
   profileEntityId?: string;
 }
 
@@ -62,53 +81,76 @@ export type AuthIdentityLookupResult =
 
 export class AuthUserStore {
   private readonly db: AuthRuntimeDB;
-  private firstAnchorInitialization: Promise<AuthUser> | undefined;
+  private firstAdminInitialization: Promise<AuthUser> | undefined;
 
   constructor(db: AuthRuntimeDB) {
     this.db = db;
   }
 
-  async ensureFirstAnchorUser(
+  async ensureFirstAdminUser(
     input: { displayName?: string } = {},
   ): Promise<AuthUser> {
-    if (this.firstAnchorInitialization) return this.firstAnchorInitialization;
+    if (this.firstAdminInitialization) return this.firstAdminInitialization;
 
-    const initialization = this.ensureFirstAnchorUserTransaction(input);
-    this.firstAnchorInitialization = initialization;
+    const initialization = this.ensureFirstAdminUserTransaction(input);
+    this.firstAdminInitialization = initialization;
     try {
       return await initialization;
     } finally {
-      if (this.firstAnchorInitialization === initialization) {
-        this.firstAnchorInitialization = undefined;
+      if (this.firstAdminInitialization === initialization) {
+        this.firstAdminInitialization = undefined;
       }
     }
   }
 
-  private ensureFirstAnchorUserTransaction(input: {
+  private ensureFirstAdminUserTransaction(input: {
     displayName?: string;
   }): Promise<AuthUser> {
     return this.db.transaction(async (tx) => {
-      const [existingAnchor] = await tx
+      const [existingAdmin] = await tx
         .select()
         .from(authUsers)
-        .where(
-          and(eq(authUsers.role, "anchor"), eq(authUsers.status, "active")),
-        )
+        .where(and(eq(authUsers.role, "admin"), eq(authUsers.status, "active")))
         .orderBy(authUsers.createdAt)
         .limit(1);
-      if (existingAnchor) return existingAnchor;
+      if (existingAdmin) {
+        const [existingAnchor] = await tx
+          .select()
+          .from(authBrainAnchor)
+          .limit(1);
+        if (!existingAnchor) {
+          const [person] = await tx
+            .select()
+            .from(authPeople)
+            .where(eq(authPeople.id, existingAdmin.personId))
+            .limit(1);
+          if (!person) {
+            throw new Error(`Auth person not found: ${existingAdmin.personId}`);
+          }
+          await tx.insert(authBrainAnchor).values({
+            id: "brain",
+            kind: "person",
+            subjectId: person.id,
+            displayName: person.displayName,
+            profileEntityId: person.profileEntityId,
+            createdAt: existingAdmin.createdAt,
+            updatedAt: existingAdmin.updatedAt,
+          });
+        }
+        return existingAdmin;
+      }
 
       const [existingUser] = await tx.select().from(authUsers).limit(1);
       if (existingUser) {
         throw new Error(
-          "Auth users already exist but no active anchor user was found",
+          "Auth users already exist but no active admin user was found",
         );
       }
 
       const now = Date.now();
       const id = createPrefixedId("usr");
       const personId = createPrefixedId("prsn");
-      const displayName = input.displayName ?? "Anchor";
+      const displayName = input.displayName ?? "Admin";
       await tx.insert(authPeople).values({
         id: personId,
         displayName,
@@ -120,15 +162,121 @@ export class AuthUserStore {
         id,
         personId,
         displayName,
-        role: "anchor",
+        role: "admin",
         status: "active",
         canonicalId: canonicalIdForUserId(id),
         createdAt: now,
         updatedAt: now,
       } satisfies typeof authUsers.$inferInsert;
       await tx.insert(authUsers).values(user);
+      await tx.insert(authBrainAnchor).values({
+        id: "brain",
+        kind: "person",
+        subjectId: personId,
+        displayName,
+        profileEntityId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
       return user;
     });
+  }
+
+  async getBrainAnchor(): Promise<AuthBrainAnchor | undefined> {
+    const [anchor] = await this.db.select().from(authBrainAnchor).limit(1);
+    return anchor;
+  }
+
+  async updateBrainAnchor(
+    input: UpdateBrainAnchorInput,
+  ): Promise<AuthBrainAnchor> {
+    const current = await this.getBrainAnchor();
+    const personAnchorUserId =
+      input.kind === "person" ? input.userId : undefined;
+    const now = Date.now();
+    let subjectId: string;
+    let displayName: string;
+    let profileEntityId: string | null;
+
+    if (input.kind === "person") {
+      if (!personAnchorUserId) {
+        throw new Error("Select an admin as the person anchor");
+      }
+      const user = await this.requireUser(personAnchorUserId);
+      if (user.role !== "admin" || user.status !== "active") {
+        throw new Error("The person anchor must be an active admin");
+      }
+      const person = await this.getPerson(user.personId);
+      if (!person) throw new Error(`Auth person not found: ${user.personId}`);
+      subjectId = person.id;
+      displayName = person.displayName;
+      profileEntityId = person.profileEntityId;
+    } else {
+      displayName = input.displayName?.trim() ?? "";
+      if (!displayName) throw new Error("Collective anchor name is required");
+      subjectId =
+        current?.kind === "collective"
+          ? current.subjectId
+          : createPrefixedId("coll");
+      profileEntityId = input.profileEntityId ?? null;
+    }
+
+    if (!current && input.kind === "collective") {
+      const [created] = await this.db
+        .insert(authBrainAnchor)
+        .values({
+          id: "brain",
+          kind: input.kind,
+          subjectId,
+          displayName,
+          profileEntityId,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing({ target: authBrainAnchor.id })
+        .returning();
+      if (created) return created;
+    }
+
+    const selectedUserStillActiveAdmin = personAnchorUserId
+      ? this.db
+          .select({ id: authUsers.id })
+          .from(authUsers)
+          .where(
+            and(
+              eq(authUsers.id, personAnchorUserId),
+              eq(authUsers.personId, subjectId),
+              eq(authUsers.role, "admin"),
+              eq(authUsers.status, "active"),
+            ),
+          )
+      : undefined;
+    const [updated] = await this.db
+      .update(authBrainAnchor)
+      .set({
+        kind: input.kind,
+        subjectId,
+        displayName,
+        profileEntityId,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(authBrainAnchor.id, "brain"),
+          selectedUserStillActiveAdmin
+            ? exists(selectedUserStillActiveAdmin)
+            : undefined,
+        ),
+      )
+      .returning();
+
+    if (!updated) {
+      if (input.kind === "person") {
+        throw new Error("The person anchor must be an active admin");
+      }
+      throw new Error("Brain anchor update failed");
+    }
+    return updated;
   }
 
   async createPerson(input: CreateAuthPersonInput): Promise<AuthPerson> {
@@ -196,6 +344,10 @@ export class AuthUserStore {
     return this.db.select().from(authUsers).orderBy(authUsers.createdAt);
   }
 
+  async listPeople(): Promise<AuthPerson[]> {
+    return this.db.select().from(authPeople).orderBy(authPeople.createdAt);
+  }
+
   async getUser(userId: string): Promise<AuthUser | undefined> {
     const [user] = await this.db
       .select()
@@ -215,30 +367,50 @@ export class AuthUserStore {
   }
 
   async updateUserRole(userId: string, role: AuthUserRole): Promise<AuthUser> {
-    await this.requireUser(userId);
+    const existing = await this.requireUser(userId);
+    if (existing.role === role) return existing;
+    const otherUsers = alias(authUsers, "other_admin_users");
+    const isPersonalAnchor = this.db
+      .select({ subjectId: authBrainAnchor.subjectId })
+      .from(authBrainAnchor)
+      .where(
+        and(
+          eq(authBrainAnchor.id, "brain"),
+          eq(authBrainAnchor.kind, "person"),
+          eq(authBrainAnchor.subjectId, authUsers.personId),
+        ),
+      );
+    const hasOtherActiveAdmin = this.db
+      .select({ id: otherUsers.id })
+      .from(otherUsers)
+      .where(
+        and(
+          ne(otherUsers.id, userId),
+          eq(otherUsers.role, "admin"),
+          eq(otherUsers.status, "active"),
+        ),
+      );
+
     await this.db
       .update(authUsers)
       .set({ role, updatedAt: Date.now() })
       .where(
         and(
           eq(authUsers.id, userId),
-          sql`NOT (
-            ${authUsers.role} = 'anchor'
-            AND ${authUsers.status} = 'active'
-            AND ${role} <> 'anchor'
-            AND NOT EXISTS (
-              SELECT 1 FROM ${authUsers} AS other
-              WHERE other.id <> ${userId}
-                AND other.role = 'anchor'
-                AND other.status = 'active'
-            )
-          )`,
+          role === "admin" ? undefined : notExists(isPersonalAnchor),
+          role === "admin"
+            ? undefined
+            : or(
+                ne(authUsers.role, "admin"),
+                ne(authUsers.status, "active"),
+                exists(hasOtherActiveAdmin),
+              ),
         ),
       );
 
     const updated = await this.requireUser(userId);
     if (updated.role !== role) {
-      throw new Error("Cannot remove the last active anchor user");
+      await this.throwAdminInvariantError(existing);
     }
     return updated;
   }
@@ -247,30 +419,50 @@ export class AuthUserStore {
     userId: string,
     status: AuthUserStatus,
   ): Promise<AuthUser> {
-    await this.requireUser(userId);
+    const existing = await this.requireUser(userId);
+    if (existing.status === status) return existing;
+    const otherUsers = alias(authUsers, "other_active_admin_users");
+    const isPersonalAnchor = this.db
+      .select({ subjectId: authBrainAnchor.subjectId })
+      .from(authBrainAnchor)
+      .where(
+        and(
+          eq(authBrainAnchor.id, "brain"),
+          eq(authBrainAnchor.kind, "person"),
+          eq(authBrainAnchor.subjectId, authUsers.personId),
+        ),
+      );
+    const hasOtherActiveAdmin = this.db
+      .select({ id: otherUsers.id })
+      .from(otherUsers)
+      .where(
+        and(
+          ne(otherUsers.id, userId),
+          eq(otherUsers.role, "admin"),
+          eq(otherUsers.status, "active"),
+        ),
+      );
+
     await this.db
       .update(authUsers)
       .set({ status, updatedAt: Date.now() })
       .where(
         and(
           eq(authUsers.id, userId),
-          sql`NOT (
-            ${authUsers.role} = 'anchor'
-            AND ${authUsers.status} = 'active'
-            AND ${status} <> 'active'
-            AND NOT EXISTS (
-              SELECT 1 FROM ${authUsers} AS other
-              WHERE other.id <> ${userId}
-                AND other.role = 'anchor'
-                AND other.status = 'active'
-            )
-          )`,
+          status === "active" ? undefined : notExists(isPersonalAnchor),
+          status === "active"
+            ? undefined
+            : or(
+                ne(authUsers.role, "admin"),
+                ne(authUsers.status, "active"),
+                exists(hasOtherActiveAdmin),
+              ),
         ),
       );
 
     const updated = await this.requireUser(userId);
     if (updated.status !== status) {
-      throw new Error("Cannot remove the last active anchor user");
+      await this.throwAdminInvariantError(existing);
     }
     return updated;
   }
@@ -475,6 +667,14 @@ export class AuthUserStore {
       .where(eq(authIdentities.identityKeyHash, identityKeyHash))
       .limit(1);
     return knownBinding ? { state: "denied" } : { state: "unbound" };
+  }
+
+  private async throwAdminInvariantError(user: AuthUser): Promise<never> {
+    const anchor = await this.getBrainAnchor();
+    if (anchor?.kind === "person" && anchor.subjectId === user.personId) {
+      throw new Error("Cannot remove the personal brain anchor's admin access");
+    }
+    throw new Error("Cannot remove the last active admin user");
   }
 
   private async identityRecord(

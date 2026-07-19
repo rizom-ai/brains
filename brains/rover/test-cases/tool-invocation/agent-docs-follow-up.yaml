@@ -3,7 +3,7 @@ name: Repeated Docs Agent Request Uses Fresh A2A Call
 description: Tests that follow-up requests to ask the same saved docs agent make a fresh agent_call and do not reconnect the agent or answer from memory.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a

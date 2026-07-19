@@ -43,7 +43,7 @@ interface Tool<TOutput = ToolResponse> {
   description: string;
   inputSchema: ZodRawShape;
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
-  visibility?: ToolVisibility; // "public" | "trusted" | "anchor"
+  visibility?: ToolVisibility; // "public" | "trusted" | "admin"
 }
 ```
 
@@ -62,13 +62,13 @@ plugin.register() → PluginCapabilities
 ### Listing by permission level
 
 At runtime, tools are filtered by the caller's permission level. Default
-visibility is the most restrictive (`anchor`), so a tool is private unless it
+visibility is the most restrictive (`admin`), so a tool is private unless it
 deliberately opts down to `trusted`/`public`.
 
 - `Shell.listToolsForPermissionLevel(level)` — `shell/core/src/shell.ts`
 - `McpService.listToolsForPermissionLevel(userLevel)` — `shell/mcp-service/src/mcp-service.ts`
 - `canExposeTool(permissionLevel, tool)` — `shell/mcp-service/src/mcp-registration.ts`
-  (defaults missing `visibility` to `anchor`)
+  (defaults missing `visibility` to `admin`)
 
 ---
 

@@ -123,6 +123,7 @@ brain: rover
 domain: mybrain.example.com
 preset: core
 
+admins: []
 anchors: []
 
 plugins:

@@ -56,7 +56,7 @@ export function subscribeToPublishExecute(
       context.permissions.assertEntityActionAllowed(
         entityType,
         "publish",
-        authContext ?? { userPermissionLevel: "anchor" },
+        authContext ?? { userPermissionLevel: "admin" },
       );
       const post = await context.entityService.getEntity<BlogPost>({
         entityType: "post",

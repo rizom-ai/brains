@@ -3,7 +3,7 @@ name: No Hallucinated Data
 description: Tests that agent doesn't make up content that doesn't exist in the system
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - quality

@@ -3,7 +3,7 @@ name: List social media publish queue
 description: Tests that the agent uses the content pipeline queue tool to show queued social posts
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - social-media
   - queue

@@ -634,6 +634,10 @@ export class ChatInterface extends MessageInterfacePlugin<
         },
       }),
     );
+    const isAnchor = this.context.permissions.isAnchor(
+      platform,
+      event.user.userId,
+    );
     const conversationId = this.getConversationId(platform, thread.id);
     const channelId = thread.id;
 
@@ -649,7 +653,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           conversationId,
           currentAttachments: [],
           canRestore:
-            userPermissionLevel === "anchor" ||
+            userPermissionLevel === "admin" ||
             userPermissionLevel === "trusted",
         });
         const response = await this.context.agent.chat(
@@ -657,6 +661,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           conversationId,
           {
             userPermissionLevel,
+            isAnchor,
             interfaceType: platform,
             channelId,
             channelName: getChannelName(thread),
@@ -710,6 +715,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       approvalId: event.value,
       confirmed: event.actionId === APPROVAL_CONFIRM_ACTION,
       userPermissionLevel,
+      isAnchor: this.context.permissions.isAnchor(platform, event.user.userId),
       metadata: this.buildActionEventMetadata(platform, thread, event),
     });
   }
@@ -797,6 +803,10 @@ export class ChatInterface extends MessageInterfacePlugin<
       message.author.userId,
       permissionContext,
     );
+    const isAnchor = this.context.permissions.isAnchor(
+      platform,
+      message.author.userId,
+    );
     const agentInput = await this.chatInputBuilder.build(
       platform,
       thread,
@@ -830,6 +840,7 @@ export class ChatInterface extends MessageInterfacePlugin<
             thread,
             pendingApprovalIds,
             userPermissionLevel,
+            isAnchor,
             this.buildUserMessageMetadata(platform, thread, message),
           );
           if (handledConfirmation) return;
@@ -844,6 +855,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           conversationId,
           {
             userPermissionLevel,
+            isAnchor,
             interfaceType: platform,
             channelId,
             channelName: getChannelName(thread),
@@ -1102,6 +1114,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     thread: ChatThread,
     approvalIds: Set<string>,
     userPermissionLevel: UserPermissionLevel,
+    isAnchor: boolean,
     metadata?: Record<string, unknown>,
   ): Promise<boolean> {
     if (!parseConfirmationIntent(message, approvalIds)) return false;
@@ -1136,6 +1149,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       approvalId: routed.approvalId,
       confirmed: routed.confirmed,
       userPermissionLevel,
+      isAnchor,
       ...(metadata ? { metadata } : {}),
     });
     return true;
@@ -1147,6 +1161,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     approvalId: string;
     confirmed: boolean;
     userPermissionLevel: UserPermissionLevel;
+    isAnchor: boolean;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     const platform = this.getPlatform(input.thread);
@@ -1161,6 +1176,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         input.approvalId,
         {
           userPermissionLevel: input.userPermissionLevel,
+          isAnchor: input.isAnchor,
           interfaceType: platform,
           channelId: input.thread.id,
           channelName: getChannelName(input.thread),
@@ -1545,7 +1561,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     ].selectPriorUploads({
       conversationId,
       currentAttachments: agentInput.attachments,
-      canRestore: userLevel === "anchor" || userLevel === "trusted",
+      canRestore: userLevel === "admin" || userLevel === "trusted",
     });
   }
 

@@ -3,7 +3,7 @@ name: Social Post Generation via system_generate
 description: Verifies the agent uses system_generate for newly generated social-post content
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - social-media

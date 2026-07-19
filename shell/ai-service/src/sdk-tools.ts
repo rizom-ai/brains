@@ -13,6 +13,7 @@ export interface ToolContextInfo {
   actor?: ActorRef | undefined;
   displayName?: string | undefined;
   userPermissionLevel?: UserPermissionLevel;
+  isAnchor?: boolean | undefined;
   enableCreateUpload?: boolean | undefined;
   enableCreateTransform?: boolean | undefined;
 }
@@ -192,6 +193,9 @@ export function convertToSDKTools(
           }),
           ...(contextInfo.userPermissionLevel && {
             userPermissionLevel: contextInfo.userPermissionLevel,
+          }),
+          ...(contextInfo.isAnchor !== undefined && {
+            isAnchor: contextInfo.isAnchor,
           }),
         };
         if (t.sideEffects !== "none") {

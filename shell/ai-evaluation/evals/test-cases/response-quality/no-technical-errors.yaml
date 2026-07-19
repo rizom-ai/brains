@@ -7,7 +7,7 @@ description: >-
   errors and explains the unsupported request clearly.
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - quality

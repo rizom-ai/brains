@@ -3,7 +3,7 @@ name: Generate Deck OG Image
 description: "Verifies system_generate renders a deck OG/social preview image through the attachment provider"
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - decks

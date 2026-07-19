@@ -3,7 +3,7 @@ name: Web chat PDF upload summarize action is read-only
 description: Verifies the suggested Summarize PDF action reads the prior uploaded PDF without creating a note, document, or generated artifact.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-pdf-upload-summarize-action
   channelName: Web Chat Eval

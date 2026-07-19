@@ -2,7 +2,7 @@ import { z } from "@brains/utils/zod";
 
 export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
 
-export type AgentContextPermissionLevel = "anchor" | "trusted" | "public";
+export type AgentContextPermissionLevel = "admin" | "trusted" | "public";
 
 export interface AgentContextRequest {
   conversationId: string;
@@ -32,7 +32,7 @@ export interface AgentContextResponseInput {
 export const agentContextPermissionLevelSchema: z.ZodType<
   AgentContextPermissionLevel,
   AgentContextPermissionLevel
-> = z.enum(["anchor", "trusted", "public"]);
+> = z.enum(["admin", "trusted", "public"]);
 
 export const agentContextRequestSchema: z.ZodType<
   AgentContextRequest,

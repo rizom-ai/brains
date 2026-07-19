@@ -103,6 +103,8 @@ export interface JsonRpcHandlerContext {
   turnSupervisor: A2ATurnSupervisor;
   agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
+  /** Whether the verified caller is configured as the brain's Anchor identity. */
+  callerIsAnchor?: boolean;
   /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
   callerDomain?: string | null;
 }
@@ -205,6 +207,7 @@ function processInBackground(
           conversationId,
           {
             userPermissionLevel: context.callerPermissionLevel,
+            isAnchor: context.callerIsAnchor ?? false,
             interfaceType: "a2a",
           },
           signal,
@@ -399,6 +402,7 @@ export function handleStreamMessage(
               record.conversationId,
               {
                 userPermissionLevel: context.callerPermissionLevel,
+                isAnchor: context.callerIsAnchor ?? false,
                 interfaceType: "a2a",
               },
               signal,

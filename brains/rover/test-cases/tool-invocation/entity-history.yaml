@@ -3,7 +3,7 @@ name: Entity History Lookup
 description: Tests that the agent uses the history tool with correct entity type when asked about version history
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - history

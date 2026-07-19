@@ -5,7 +5,7 @@ description: >-
   retrieve it with related Relay context for triage.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

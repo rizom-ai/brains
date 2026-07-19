@@ -11,6 +11,7 @@ import type { AgentResponse } from "@brains/plugins";
 import { keyFingerprint, signRequest } from "@brains/http-signatures";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
+import { PermissionService } from "@brains/templates";
 import { A2AInterface } from "../src/a2a-interface";
 
 describe("A2A HTTP routes", () => {
@@ -378,9 +379,14 @@ describe("A2A HTTP routes", () => {
     );
 
     let capturedLevel = "";
+    let capturedIsAnchor: boolean | undefined;
+    harness.setPermissionService(
+      new PermissionService({ anchors: ["a2a:remote.example"] }),
+    );
     harness.setAgentService({
       chat: async (_message, _conversationId, context) => {
         capturedLevel = context?.userPermissionLevel ?? "public";
+        capturedIsAnchor = context?.isAnchor;
         return {
           text: "ok",
           usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
@@ -448,6 +454,7 @@ describe("A2A HTTP routes", () => {
 
     expect(response.status).toBe(200);
     expect(capturedLevel).toBe("trusted");
+    expect(capturedIsAnchor).toBe(true);
   });
 
   it("rejects signed inbound requests with a bad digest", async () => {

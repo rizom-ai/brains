@@ -43,13 +43,13 @@ permissions:
   entityActions:
     post:
       update: trusted
-      publish: anchor
+      publish: admin
     social-post:
       update: trusted
-      publish: anchor
+      publish: admin
     newsletter:
       update: trusted
-      publish: anchor
+      publish: admin
 
 plugins:
   rover-onboarding:

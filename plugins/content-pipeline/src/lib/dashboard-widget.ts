@@ -34,7 +34,7 @@ export async function registerDashboardWidget(
       section: "primary",
       priority: 100,
       rendererName: "PipelineWidget",
-      visibility: "anchor",
+      visibility: "admin",
       dataProvider: async (): Promise<PipelineWidgetData> => ({
         ...(await getPublicationPipelineSnapshot(
           context,

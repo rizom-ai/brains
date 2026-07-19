@@ -62,6 +62,7 @@ function getChatContext(
 ): ChatContext {
   return {
     userPermissionLevel: toolContext.userPermissionLevel ?? "public",
+    isAnchor: toolContext.isAnchor ?? false,
     interfaceType: "mcp",
     ...(toolContext.channelId ? { channelId: toolContext.channelId } : {}),
     ...(toolContext.channelName

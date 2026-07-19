@@ -107,7 +107,7 @@ export function createAgentSetTrustLevelTool(
     description:
       "Grant or revoke inbound A2A trust for a saved contact; this is the only tool for inbound trust changes. To revoke, call directly with level public—no key fingerprint or preliminary lookup is needed. To grant, use level trusted; the tool resolves and pins the peer key. This does not add or remove directory contacts or change outbound calling. Requires confirmation.",
     inputSchema: agentSetTrustLevelInputSchema.shape,
-    visibility: "anchor",
+    visibility: "admin",
     sideEffects: "external",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
       const parsed = agentSetTrustLevelInputSchema.safeParse(rawInput);

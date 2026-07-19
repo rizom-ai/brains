@@ -35,13 +35,13 @@ describe("RoverOnboardingPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       { starters: Array<{ id: string }> }
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(setup).toBeNull();
@@ -68,7 +68,7 @@ describe("RoverOnboardingPlugin", () => {
 
     expect(setup?.metadata).toMatchObject({
       title: "Rover Onboarding",
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
     });
     expect(firstLoop?.metadata).toMatchObject({
@@ -114,7 +114,7 @@ describe("RoverOnboardingPlugin", () => {
       {
         lifecycle: string;
         interfaceType: string;
-        userPermissionLevel: "anchor";
+        userPermissionLevel: "admin";
       },
       {
         starters: Array<{
@@ -129,7 +129,7 @@ describe("RoverOnboardingPlugin", () => {
     >("playbooks:lifecycle-starters", {
       lifecycle: "onboarding",
       interfaceType: "web-chat",
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     expect(response?.starters).toEqual([

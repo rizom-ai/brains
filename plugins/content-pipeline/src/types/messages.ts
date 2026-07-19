@@ -13,7 +13,7 @@ export interface PublishAuthContext {
 export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
   interfaceType: "system",
   actor: { kind: "service", serviceId: "content-pipeline" },
-  userPermissionLevel: "anchor",
+  userPermissionLevel: "admin",
   authorization: "system",
 };
 

@@ -17,12 +17,12 @@ add:
   # resolves empty.
   - site-content
 
-# Local test app: anchor tools (build-site etc.) available over the MCP
+# Local test app: Admin tools (build-site etc.) available over MCP
 # http transport.
 permissions:
   rules:
     - pattern: "mcp:http"
-      level: anchor
+      level: admin
 
 site:
   package: "@rizom/site-rizom-ai"

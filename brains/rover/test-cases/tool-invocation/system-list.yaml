@@ -3,7 +3,7 @@ name: System List Entities
 description: Verifies that the agent correctly uses system_list to list blog posts
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - list

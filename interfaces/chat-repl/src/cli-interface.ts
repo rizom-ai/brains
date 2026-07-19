@@ -206,12 +206,13 @@ export class CLIInterface extends MessageInterfacePlugin<
         if (handledConfirmation) return;
       }
 
-      // Route message to AgentService with anchor permissions (CLI is local)
+      // Route message to AgentService with administrator permissions (CLI is local).
       const response = await this.getAgentService().chat(
         input,
         conversationId,
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: this.getContext().permissions.isAnchor("cli", "local"),
           interfaceType: "cli",
           channelId: "cli",
           channelName: "CLI Terminal",
@@ -380,7 +381,8 @@ export class CLIInterface extends MessageInterfacePlugin<
       approvalSelection.confirmed,
       approvalSelection.approvalId,
       {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: this.getContext().permissions.isAnchor("cli", "local"),
         interfaceType: "cli",
       },
     );

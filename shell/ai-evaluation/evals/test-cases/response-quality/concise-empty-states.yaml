@@ -3,7 +3,7 @@ name: Concise Empty State Responses
 description: Tests that empty states are communicated concisely without verbose internal formatting
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - quality

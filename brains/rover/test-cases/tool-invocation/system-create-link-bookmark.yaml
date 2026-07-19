@@ -3,7 +3,7 @@ name: Bookmark Link via system_create
 description: Verifies that bookmark phrasing still maps to system_create with entityType link
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - system

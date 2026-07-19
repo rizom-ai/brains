@@ -3,7 +3,7 @@ name: Generate cover image for previously created post
 description: Tests that a prompt-created social post returns an addressable entity id, and the follow-up cover-image request uses that id directly instead of searching for a still-generating entity
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - social-media
   - image

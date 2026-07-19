@@ -29,7 +29,7 @@ permissions:
         shouldBeCalled: true
     responseNotContains:
       - "done"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_update
         shouldBeCalled: true

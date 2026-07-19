@@ -126,7 +126,7 @@ permissions:
         shouldBeCalled: false
     responseContains:
       - denied
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
@@ -139,7 +139,7 @@ permissions:
       const agentService: IAgentService = {
         chat: mock(async (_message: string, _options, context) => {
           seenPermissionLevels.push(context?.userPermissionLevel);
-          if (context?.userPermissionLevel === "anchor") {
+          if (context?.userPermissionLevel === "admin") {
             return {
               ...createResponse("created"),
               toolResults: [{ toolName: "system_create" }],
@@ -167,9 +167,9 @@ permissions:
       expect(summary.passedTests).toBe(2);
       expect(summary.results.map((result) => result.testCaseId)).toEqual([
         "permission-matrix@public",
-        "permission-matrix@anchor",
+        "permission-matrix@admin",
       ]);
-      expect(seenPermissionLevels).toEqual(["public", "anchor"]);
+      expect(seenPermissionLevels).toEqual(["public", "admin"]);
     } finally {
       await rm(testCaseDirectory, { recursive: true, force: true });
     }
@@ -191,9 +191,9 @@ permissions:
   public:
     responseContains:
       - public
-  anchor:
+  admin:
     responseContains:
-      - anchor
+      - admin
 `,
       );
 

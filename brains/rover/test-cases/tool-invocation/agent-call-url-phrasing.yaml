@@ -3,7 +3,7 @@ name: Call Agent from HTTPS URL Phrasing
 description: Tests that URL-style HTTPS agent contact requests are canonicalized to the hostname for agent_call without auto-saving.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - a2a
@@ -27,7 +27,12 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: false
   responseContainsAny:
-    - ["could not verify", "couldn’t verify", "could not contact", "couldn’t contact"]
+    - [
+        "could not verify",
+        "couldn’t verify",
+        "could not contact",
+        "couldn’t contact",
+      ]
     - ["unknown-agent.io"]
   responseNotContains:
     - "I called"
@@ -35,7 +40,6 @@ successCriteria:
     - "wish"
     - "saved"
     - "connected"
-
 
 efficiency:
   maxToolCalls: 3

@@ -1,7 +1,7 @@
 ---
 title: Rover First Knowledge Loop
 status: active
-audience: anchor
+audience: admin
 lifecycle: onboarding
 starterText: Save a first idea
 description: Learn Rover by saving a first idea and seeing how your knowledge becomes reusable.

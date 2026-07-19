@@ -114,7 +114,7 @@ describe("read tool model contracts", () => {
 
     const defaultRaw = await tool.handler(
       { query: "body", scope: { kind: "all" } },
-      baseContext("anchor"),
+      baseContext("admin"),
     );
     expect(
       expectSuccess(defaultRaw, searchDataSchema).results.map(
@@ -124,7 +124,7 @@ describe("read tool model contracts", () => {
 
     const overrideRaw = await tool.handler(
       { query: "body", scope: { kind: "all" }, minScore: 0.3 },
-      baseContext("anchor"),
+      baseContext("admin"),
     );
     expect(
       expectSuccess(overrideRaw, searchDataSchema).results.map(
@@ -216,8 +216,8 @@ describe("read tools enforce caller visibility scope", () => {
       expect(await runSearch("trusted")).toEqual(["doc-public", "doc-shared"]);
     });
 
-    it("returns all visibility levels for anchor callers", async () => {
-      expect(await runSearch("anchor")).toEqual([
+    it("returns all visibility levels for Admin callers", async () => {
+      expect(await runSearch("admin")).toEqual([
         "doc-public",
         "doc-restricted",
         "doc-shared",
@@ -231,7 +231,7 @@ describe("read tools enforce caller visibility scope", () => {
     it("uses structured all scope as broad search", async () => {
       const raw = await getTool("system_search").handler(
         { query: "body", scope: { kind: "all" } },
-        baseContext("anchor"),
+        baseContext("admin"),
       );
       const data = expectSuccess(raw, searchDataSchema);
       expect(data.results.map((r) => r.entity.id).sort()).toEqual([
@@ -257,7 +257,7 @@ describe("read tools enforce caller visibility scope", () => {
 
       const raw = await getTool("system_search").handler(
         { query: "body", scope: { kind: "type", entityType: "note" } },
-        baseContext("anchor"),
+        baseContext("admin"),
       );
       const data = expectSuccess(raw, searchDataSchema);
       expect(data.results.map((r) => r.entity.id)).toEqual(["note-public"]);
@@ -273,8 +273,8 @@ describe("read tools enforce caller visibility scope", () => {
       expect(await runList("trusted")).toEqual(["doc-public", "doc-shared"]);
     });
 
-    it("returns all visibility levels for anchor callers", async () => {
-      expect(await runList("anchor")).toEqual([
+    it("returns all visibility levels for Admin callers", async () => {
+      expect(await runList("admin")).toEqual([
         "doc-public",
         "doc-restricted",
         "doc-shared",
@@ -282,7 +282,7 @@ describe("read tools enforce caller visibility scope", () => {
     });
 
     it("treats status any as no status filter", async () => {
-      expect(await runList("anchor", "any")).toEqual([
+      expect(await runList("admin", "any")).toEqual([
         "doc-public",
         "doc-restricted",
         "doc-shared",
@@ -323,7 +323,7 @@ describe("read tools enforce caller visibility scope", () => {
 
       const raw = await getTool("system_list").handler(
         { entityType: "post" },
-        baseContext("anchor"),
+        baseContext("admin"),
       );
       const data = expectSuccess(raw, listDataSchema);
       expect(data.entities.map((entity) => entity.id)).toEqual([
@@ -355,9 +355,9 @@ describe("read tools enforce caller visibility scope", () => {
       expectError(await runGet("doc-shared", "public"));
     });
 
-    it("returns a restricted entity to an anchor caller", async () => {
+    it("returns a restricted entity to an Admin caller", async () => {
       const data = expectSuccess(
-        await runGet("doc-restricted", "anchor"),
+        await runGet("doc-restricted", "admin"),
         getDataSchema,
       );
       expect(data.entity.id).toBe("doc-restricted");

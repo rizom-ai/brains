@@ -3,7 +3,7 @@ name: Web chat image upload bare label follow-up stays inert
 description: Verifies a short label-only follow-up after a bare image upload asks for clarification instead of generating or saving a new image entity.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-file-upload
   channelName: Web Chat Eval

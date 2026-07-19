@@ -3,7 +3,7 @@ name: Recommend Agent Contacts By Expertise
 description: Verifies that network/expertise recommendations search saved agent contacts instead of asking for exact agent ids.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - agent-discovery
   - tool-invocation

@@ -3,7 +3,7 @@ name: Generate and refine LinkedIn post flow
 description: Tests multi-turn flow where user generates a post then asks for changes
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - social-media
   - linkedin

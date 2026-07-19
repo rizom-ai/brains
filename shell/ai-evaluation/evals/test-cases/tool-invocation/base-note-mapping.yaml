@@ -3,7 +3,7 @@ name: Base/Note Mapping for Capture Flows
 description: Tests that note-like language and Discord-style uploaded text content map to the note entity type.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - tool-invocation

@@ -58,7 +58,7 @@ describe("ensure-assets tool", () => {
       preflight,
     );
 
-    expect(tool.visibility).toBe("anchor");
+    expect(tool.visibility).toBe("admin");
     expect(tool.sideEffects).toBe("writes");
 
     const result = await tool.handler(
@@ -66,7 +66,7 @@ describe("ensure-assets tool", () => {
       {
         interfaceType: "test",
         actor: { kind: "user", userId: "test-user" },
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
 

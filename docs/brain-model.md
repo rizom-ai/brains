@@ -84,7 +84,8 @@ plugins:
 | `port`     | number   | Production server port (sets `deployment.ports.production`)                                          |
 | `domain`   | string   | Production domain (sets `deployment.domain`)                                                         |
 | `database` | string   | Database URL                                                                                         |
-| `anchors`  | string[] | Anchor users (full admin access)                                                                     |
+| `admins`   | string[] | Callers with administrative permission                                                               |
+| `anchors`  | string[] | Caller identities that represent the brain's owner/subject                                           |
 | `trusted`  | string[] | Trusted users (elevated access)                                                                      |
 | `plugins`  | object   | Per-plugin config overrides (see below)                                                              |
 
@@ -188,8 +189,8 @@ export default defineBrain({
   permissions: {
     anchors: ["discord:123456789"],
     rules: [
-      { pattern: "cli:*", level: "anchor" },
-      { pattern: "mcp:stdio", level: "anchor" },
+      { pattern: "cli:*", level: "admin" },
+      { pattern: "mcp:stdio", level: "admin" },
     ],
   },
 

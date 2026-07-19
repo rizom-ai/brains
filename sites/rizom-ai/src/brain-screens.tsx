@@ -25,8 +25,8 @@ export const SCREEN_STYLES = `
 .brain-screen .ifc-strip .snav { display: flex; gap: 4px; font-family: var(--scr-ui); font-size: 12px; }
 .brain-screen .ifc-strip .snav span { padding: 4px 10px; border-radius: 6px; color: rgba(241,234,221,.4); }
 .brain-screen .ifc-strip .snav span.on { color: #f1eadd; background: rgba(241,234,221,.08); }
-.brain-screen .ifc-strip .anchor { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(104,204,139,.13); color: #68cc8b; font-size: 10px; }
-.brain-screen .ifc-strip .anchor::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #68cc8b; }
+.brain-screen .ifc-strip .admin { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(104,204,139,.13); color: #68cc8b; font-size: 10px; }
+.brain-screen .ifc-strip .admin::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #68cc8b; }
 .brain-screen .ifc-tabs { display: flex; gap: 2px; padding: 8px 16px 0; border-bottom: 1px solid rgba(241,234,221,.12); font-family: var(--scr-mono); font-size: 10.5px; }
 .brain-screen .ifc-tabs span { padding: 6px 12px 8px; color: rgba(241,234,221,.38); border-bottom: 2px solid transparent; transform: translateY(1px); }
 .brain-screen .ifc-tabs span.on { color: #f1eadd; border-bottom-color: #ff8b3d; }
@@ -198,7 +198,7 @@ export function ChatScreen(): JSX.Element {
           <span>mira.studio/chat</span>
         </div>
         <div class="body">
-          <span class="ifc-eyebrow">connected · anchor session</span>
+          <span class="ifc-eyebrow">connected · Admin session</span>
           <h6>
             Talk to <em>your brain</em>
           </h6>
@@ -332,7 +332,7 @@ export function DashboardScreen(): JSX.Element {
             <span>Chat</span>
             <span>Library</span>
           </div>
-          <span class="anchor">anchor</span>
+          <span class="admin">Admin</span>
         </div>
         <div class="ifc-tabs">
           <span class="on">overview</span>

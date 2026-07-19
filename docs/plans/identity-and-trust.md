@@ -25,8 +25,8 @@ Three kinds of subject talk to a brain, over five kinds of channel:
 | Platform users                   | Discord (and future platform adapters)        | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
 
 Everything downstream of identity is the same: the resolved subject maps
-into the single permission model (`anchor` / `trusted` / `public`) through
-`permissionService`, and the agent enforces tool visibility per level. No
+into the single permission model (`admin` / `trusted` / `public`) through
+`permissionService`, while Anchor ownership remains an independent identity facet. The agent enforces tool visibility per permission level. No
 channel gets its own authorization scheme — channels differ only in how
 they _prove_ who the caller is.
 
@@ -35,7 +35,7 @@ they _prove_ who the caller is.
 ### 1. The permission model is the single authority
 
 Already true in code and restated here so no plan re-litigates it: every
-channel resolves its caller to `anchor`/`trusted`/`public` and hands off.
+channel resolves its caller to `admin`/`trusted`/`public` and hands off.
 A2A signing changes what feeds the identity column, not the model.
 Multi-user changes who the subjects are, not the levels. MCP's CQRS
 redesign gates commands behind the agent, which filters by the same
@@ -94,7 +94,7 @@ discovered → approved lifecycle:
 Approval is one anchor-confirmed action covering **both directions**: the
 entity becomes `approved` (directory UX, outbound calling), and a
 peer-trust record — **domain + pinned key fingerprint + granted inbound
-level** (`trusted`/`public`; `anchor` is never grantable to a peer) — is
+level** (`trusted`/`public`; `admin` is never grantable to a peer) — is
 written to runtime auth storage. The runtime record, not the entity, is
 what inbound verification consults. This is the same content/runtime
 split as decision 3 in reverse: agent entities are git-synced brain-data
@@ -119,7 +119,7 @@ The person owns canonical human identity claims such as Discord, email, and huma
 
 Promotion runs from an existing agent dossier to a represented person's invited auth-user facet. Agent-asserted contact data retains its provenance but cannot authenticate the new user until a passkey or provider proves control. Linking an existing user follows the same person path, reuses exact verified claims, and requires explicit reconciliation for conflicts.
 
-Actors remain distinct after linking: an autonomous or delegated action is attributed to the agent, while the initiating or represented user is retained separately as delegation/`onBehalfOf` provenance. The link does not inherit `anchor` authority, alter peer trust, publish private claims, or make auth administration model-visible.
+Actors remain distinct after linking: an autonomous or delegated action is attributed to the agent, while the initiating or represented user is retained separately as delegation/`onBehalfOf` provenance. The link does not inherit `admin` authority, alter peer trust, publish private claims, or make auth administration model-visible.
 
 ## What this settles in the execution plans
 

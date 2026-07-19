@@ -121,10 +121,10 @@ export const toolInfoSchema: z.ZodObject<{
  * can render them without knowing about individual plugins.
  */
 const userPermissionLevelSchema: z.ZodEnum<{
-  anchor: "anchor";
+  admin: "admin";
   trusted: "trusted";
   public: "public";
-}> = z.enum(["anchor", "trusted", "public"]);
+}> = z.enum(["admin", "trusted", "public"]);
 
 export const endpointInfoSchema: z.ZodObject<{
   label: z.ZodString;

@@ -43,7 +43,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
       authContext: {
         interfaceType: "cms",
         actor: { kind: "user", userId: "operator" },
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         authorization: "user" as const,
       },
     });
@@ -134,7 +134,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
       {
         interfaceType: "cms",
         actor: { kind: "user", userId: "operator" },
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
       },
     );
 

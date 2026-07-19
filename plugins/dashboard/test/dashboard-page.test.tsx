@@ -83,7 +83,7 @@ describe("renderDashboardPageHtml", () => {
   });
 
   it("keeps People administration out of the monitoring dashboard", () => {
-    const anchorInput: DashboardRenderInput = {
+    const adminInput: DashboardRenderInput = {
       title: "Test Brain",
       baseUrl: "https://brain.test",
       character: { role: "", purpose: "", values: [] },
@@ -94,8 +94,8 @@ describe("renderDashboardPageHtml", () => {
       authAccess: {
         principal: {
           displayName: "Yeehaa",
-          role: "anchor",
-          permissionLevel: "anchor",
+          role: "admin",
+          permissionLevel: "admin",
         },
         hiddenWidgetCount: 0,
         loginUrl: "/login",
@@ -103,7 +103,7 @@ describe("renderDashboardPageHtml", () => {
       },
     };
 
-    const html = renderDashboardPageHtml(anchorInput);
+    const html = renderDashboardPageHtml(adminInput);
 
     expect(html).not.toContain('href="#people"');
     expect(html).not.toContain('href="#my-agents"');
@@ -510,8 +510,8 @@ describe("renderDashboardPageHtml", () => {
       authAccess: {
         principal: {
           displayName: "Yeehaa",
-          role: "anchor",
-          permissionLevel: "anchor",
+          role: "admin",
+          permissionLevel: "admin",
         },
         hiddenWidgetCount: 0,
         loginUrl: "/login?return_to=%2Fconsole",
@@ -526,7 +526,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/chat"');
     expect(html).toContain('href="/cms"');
     expect(html).toContain("Yeehaa");
-    expect(html).toContain("Anchor");
+    expect(html).toContain("Admin");
     // Mockup strip chrome: brandmark, command palette hint, session chip.
     expect(html).toContain("Console");
     expect(html).toContain("<kbd>⌘K</kbd>");
@@ -617,8 +617,8 @@ describe("renderDashboardPageHtml", () => {
       authAccess: {
         principal: {
           displayName: "Yeehaa",
-          role: "anchor",
-          permissionLevel: "anchor",
+          role: "admin",
+          permissionLevel: "admin",
         },
         hiddenWidgetCount: 0,
         loginUrl: "/login?return_to=%2Fdashboard",

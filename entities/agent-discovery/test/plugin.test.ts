@@ -274,7 +274,7 @@ describe("AgentDiscoveryPlugin", () => {
     const tool = harness
       .getCapabilities()
       .tools.find((candidate) => candidate.name === "agent_set_trust_level");
-    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("inbound A2A trust");
     expect(tool?.description).toContain("does not add or remove");
@@ -324,7 +324,7 @@ describe("AgentDiscoveryPlugin", () => {
     if (!activeAuth) throw new Error("Expected active auth service");
     const owner = await activeAuth.createUser({
       displayName: "Owner",
-      role: "anchor",
+      role: "admin",
     });
     const result = await harness.executeTool(
       "agent_set_trust_level",

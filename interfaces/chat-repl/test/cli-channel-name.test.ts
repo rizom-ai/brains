@@ -64,7 +64,7 @@ describe("CLI Interface - Agent Context Integration", () => {
     expect(context).toBeDefined();
     expect(context.channelName).toBe("CLI Terminal");
     expect(context.interfaceType).toBe("cli");
-    expect(context.userPermissionLevel).toBe("anchor");
+    expect(context.userPermissionLevel).toBe("admin");
   });
 
   it("should use same conversation ID for all messages in session", async () => {

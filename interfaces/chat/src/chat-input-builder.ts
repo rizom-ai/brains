@@ -58,7 +58,7 @@ export class ChatInputBuilder {
     };
     if (message.attachments.length === 0) return agentInput;
 
-    const canUpload = userLevel === "anchor" || userLevel === "trusted";
+    const canUpload = userLevel === "admin" || userLevel === "trusted";
     if (!canUpload) return agentInput;
 
     const uploadStore = this.deps.getUploadStore(platform);

@@ -10,7 +10,7 @@ remove:
 permissions:
   rules:
     - pattern: "discord:1442828818493735015"
-      level: anchor
+      level: admin
     - pattern: "discord:*"
       level: public
 

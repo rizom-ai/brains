@@ -50,7 +50,7 @@ afterEach(async () => {
 describe("PersonAgentStore", () => {
   it("atomically promotes an agent person into an invited user", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
 
@@ -79,9 +79,9 @@ describe("PersonAgentStore", () => {
     });
   });
 
-  it("creates a pending representation when an anchor links another person", async () => {
+  it("creates a pending representation when an Admin links another person", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
       const person = await users.createPerson({ displayName: "Mira Reyes" });
@@ -121,7 +121,7 @@ describe("PersonAgentStore", () => {
 
   it("lets the represented person accept a pending link", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
       const person = await users.createPerson({ displayName: "Mira Reyes" });
@@ -150,7 +150,7 @@ describe("PersonAgentStore", () => {
 
   it("rejects consent from a user representing another person", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
       const person = await users.createPerson({ displayName: "Mira Reyes" });
@@ -170,7 +170,7 @@ describe("PersonAgentStore", () => {
 
   it("atomically blocks agent claims owned by another person", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
       const first = await users.createUser({ displayName: "First" });
@@ -205,7 +205,7 @@ describe("PersonAgentStore", () => {
 
   it("does not let one agent silently switch represented people", async () => {
     await withStores(async (users, links) => {
-      const anchor = await users.ensureFirstAnchorUser({
+      const anchor = await users.ensureFirstAdminUser({
         displayName: "Anchor",
       });
       const first = await users.createPerson({ displayName: "First" });

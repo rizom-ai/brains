@@ -3,7 +3,7 @@ name: Git Sync Status Check
 description: Tests that agent calls directory-sync status tool when user asks about sync state
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - directory-sync

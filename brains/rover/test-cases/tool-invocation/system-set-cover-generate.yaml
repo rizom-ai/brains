@@ -3,7 +3,7 @@ name: Generate Cover Image for Entity
 description: Verifies that the agent uses system_generate operation.kind cover-image with target.entityType/target.entityId when asked to generate a cover image
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - image

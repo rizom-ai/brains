@@ -1,6 +1,7 @@
 export {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
+  AUTH_BRAIN_ANCHOR_KINDS,
   AUTH_REPRESENTATION_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
@@ -16,6 +17,9 @@ export type {
   AuthAdminUserSummary,
   AuthAdminUsersResponse,
   AuthAgentPersonSummary,
+  AuthBrainAnchorKind,
+  AuthBrainAnchorResponse,
+  AuthBrainAnchorSummary,
   AuthIdentitySourceKind as AuthAdminIdentitySourceKind,
   AuthIdentitySummary,
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
@@ -80,7 +84,11 @@ export type {
 } from "./peer-trust-store";
 export { AuthRuntimeDatabase } from "./runtime-db";
 export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
-export type { AgentPersonLink, AuthPerson } from "./runtime-schema";
+export type {
+  AgentPersonLink,
+  AuthBrainAnchor,
+  AuthPerson,
+} from "./runtime-schema";
 export {
   InvalidClientMetadataError,
   OAuthClientStore,
@@ -170,6 +178,7 @@ export type {
   CreateAuthPersonInput,
   CreateAuthUserInput,
   ResolveAuthIdentityInput,
+  UpdateBrainAnchorInput,
 } from "./user-store";
 export type {
   A2APrivateJwk,

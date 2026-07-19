@@ -3,7 +3,7 @@ name: List Then Get Details
 description: Tests context retention - list posts then ask about a specific one
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - multi-turn

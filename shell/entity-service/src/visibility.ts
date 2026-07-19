@@ -62,15 +62,15 @@ export function isVisibleWithinScope(
  * Map a caller's permission level to the content-visibility scope they may see.
  * public  → public         (only public content)
  * trusted → shared         (public + shared)
- * anchor  → restricted     (public + shared + restricted)
+ * admin   → restricted     (public + shared + restricted)
  *
  * Defaults to "public" when no permission level is provided, so missing
  * context fails closed.
  */
 export function permissionToVisibilityScope(
-  level: "anchor" | "trusted" | "public" | undefined,
+  level: "admin" | "trusted" | "public" | undefined,
 ): ContentVisibility {
-  if (level === "anchor") return "restricted";
+  if (level === "admin") return "restricted";
   if (level === "trusted") return "shared";
   return "public";
 }
@@ -83,10 +83,10 @@ export function permissionToVisibilityScope(
  *
  *  public  → may write "public"
  *  trusted → may write "public" | "shared"
- *  anchor  → may write "public" | "shared" | "restricted"
+ *  admin   → may write "public" | "shared" | "restricted"
  */
 export function canWriteVisibility(
-  level: "anchor" | "trusted" | "public" | undefined,
+  level: "admin" | "trusted" | "public" | undefined,
   visibility: ContentVisibility,
 ): boolean {
   return isVisibleWithinScope(visibility, permissionToVisibilityScope(level));

@@ -3,7 +3,7 @@ name: Image generate uses target entity params for cover image
 description: Tests that when asked to generate a cover image for a specific entity, the agent uses system_generate operation.kind cover-image with target.entityType/target.entityId
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - image
   - cover

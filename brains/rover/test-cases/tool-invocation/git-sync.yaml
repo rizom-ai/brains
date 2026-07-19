@@ -3,7 +3,7 @@ name: Git Sync Backup Request
 description: Tests that agent treats backing up the brain to git as a sync action
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - directory-sync

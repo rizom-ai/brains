@@ -90,8 +90,8 @@ export default defineBrain({
   permissions: {
     anchors: ["discord:123456789"],
     rules: [
-      { pattern: "cli:*", level: "anchor" },
-      { pattern: "mcp:stdio", level: "anchor" },
+      { pattern: "cli:*", level: "admin" },
+      { pattern: "mcp:stdio", level: "admin" },
     ],
   },
 });

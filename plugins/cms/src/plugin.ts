@@ -65,7 +65,7 @@ export class CmsPlugin extends ServicePlugin<
       label: "CMS",
       url: this.config.routePath,
       priority: 40,
-      visibility: "anchor",
+      visibility: "admin",
     });
     context.interactions.register({
       id: "cms",
@@ -74,7 +74,7 @@ export class CmsPlugin extends ServicePlugin<
       href: this.config.routePath,
       kind: "admin",
       priority: 40,
-      visibility: "anchor",
+      visibility: "admin",
     });
 
     context.messaging.subscribe<
@@ -102,7 +102,7 @@ export class CmsPlugin extends ServicePlugin<
     return createEditorRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
-      resolveAuthSession: hasAnchorAuthSession,
+      resolveAuthSession: hasAdminAuthSession,
       getEntityDisplay: () =>
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
@@ -115,7 +115,7 @@ export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
 }
 
-async function hasAnchorAuthSession(request: Request): Promise<boolean> {
+async function hasAdminAuthSession(request: Request): Promise<boolean> {
   const principal = await getActiveAuthService()?.resolveSession(request);
-  return principal?.permissionLevel === "anchor";
+  return principal?.permissionLevel === "admin";
 }

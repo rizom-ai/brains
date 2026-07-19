@@ -404,7 +404,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
         message.author.id,
         permissionContext,
       );
-      const canUpload = userLevel === "anchor" || userLevel === "trusted";
+      const canUpload = userLevel === "admin" || userLevel === "trusted";
 
       if (canUpload) {
         for (const attachment of message.attachments.values()) {
@@ -530,6 +530,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
     );
     return {
       userPermissionLevel: auth.permissionLevel,
+      isAnchor:
+        auth.principal?.isAnchor === true ||
+        this.context.permissions.isAnchor("discord", interaction.user.id),
       interfaceType: "discord",
       channelId: interaction.channelId,
       actor: {
@@ -669,6 +672,12 @@ export class DiscordInterface extends MessageInterfacePlugin<
         conversationId,
         {
           userPermissionLevel,
+          isAnchor:
+            authResolution.principal?.isAnchor === true ||
+            this.context.permissions.isAnchor(
+              "discord",
+              discordMessage.author.id,
+            ),
           interfaceType: "discord",
           ...this.buildUserMessageMetadata(
             discordMessage,
@@ -1009,17 +1018,21 @@ export class DiscordInterface extends MessageInterfacePlugin<
       return true;
     }
     const channelName = this.getChannelName(discordMessage);
-    const userPermissionLevel = await this.resolveDiscordUserPermissionLevel(
+    const authResolution = await this.resolveDiscordAuth(
       context,
       discordMessage.author.id,
       permissionContext,
     );
+    const userPermissionLevel = authResolution.permissionLevel;
     const response = await context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       approvalId,
       {
         userPermissionLevel,
+        isAnchor:
+          authResolution.principal?.isAnchor === true ||
+          context.permissions.isAnchor("discord", discordMessage.author.id),
         interfaceType: "discord",
         channelId,
         channelName,
@@ -1027,6 +1040,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
           discordMessage,
           channelId,
           channelName,
+          authResolution.principal
+            ? { principal: authResolution.principal }
+            : undefined,
         ),
       },
       signal,

@@ -5,7 +5,7 @@ description: >-
   and expects grounded claims, not generic product marketing.
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - scenario

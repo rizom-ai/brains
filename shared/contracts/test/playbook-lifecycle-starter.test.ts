@@ -16,7 +16,7 @@ describe("playbook lifecycle starter contract", () => {
     const registration: LifecycleStarterRegistration =
       lifecycleStarterRegistrationSchema.parse({
         id: "onboarding",
-        trigger: "first-anchor-web-chat",
+        trigger: "first-admin-web-chat",
         playbookId: "rover-onboarding",
         starterText: "Set up Rover",
         starterPrompt: "Start playbook rover-onboarding.",
@@ -24,7 +24,7 @@ describe("playbook lifecycle starter contract", () => {
 
     expect(registration).toEqual({
       id: "onboarding",
-      trigger: "first-anchor-web-chat",
+      trigger: "first-admin-web-chat",
       playbookId: "rover-onboarding",
       once: true,
       starterText: "Set up Rover",

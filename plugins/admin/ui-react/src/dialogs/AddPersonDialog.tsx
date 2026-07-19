@@ -51,7 +51,7 @@ export function AddPersonDialog(props: {
         </select>
       </label>
       <p className="people-warning">
-        Adding an Anchor grants full administration and restricted-content
+        Adding an Admin grants full administration and restricted-content
         access.
       </p>
     </ModalFrame>

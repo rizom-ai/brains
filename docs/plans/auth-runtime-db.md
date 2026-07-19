@@ -39,13 +39,13 @@ Implemented on `feature/auth-runtime-db`:
 - Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, generated Drizzle Kit migration assets, and a release-gated one-time bridge for pre-Drizzle schemas.
 - Database-backed users, identities, passkeys, WebAuthn challenges, sessions, OAuth clients/codes/refresh tokens, setup tokens, OAuth and A2A signing keys, A2A peer trust, and structured audit events.
 - Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
-- Transactional first-anchor creation and last-active-anchor protection with concurrent mutation coverage.
+- Transactional first-Admin creation, personal-Anchor binding, and last-active-Admin protection with concurrent mutation coverage.
 - Session, bearer, and linked-identity principal APIs with role/status revocation behavior.
 - Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and explicit `resolved`/`denied`/`unbound` identity handling so inactive or revoked bindings cannot fall through to static rules.
 - High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
 - Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
-- Same-origin, session-authenticated anchor API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
+- Same-origin, session-authenticated Admin API for user, Anchor, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
 - Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
@@ -55,14 +55,14 @@ A local CLI and invitation delivery remain optional. Cross-consumer validation c
 
 ## Review findings — 2026-07-16
 
-High-effort multi-agent review of the full `main...HEAD` branch diff (8 finder angles, per-candidate adversarial verification). 17 findings confirmed against the code. The dominant theme: **this branch makes non-anchor users possible for the first time (person promotion → invited user → passkey login), but several surfaces still equate "has a session cookie" with "is the anchor operator," turning previously-safe single-operator gates into privilege escalations.** A second cluster is that legacy JSON→DB migrations re-run unconditionally on every `initialize()`, so one bad or orphaned legacy row bricks startup or resurrects revoked state.
+High-effort multi-agent review of the full `main...HEAD` branch diff (8 finder angles, per-candidate adversarial verification). 17 findings confirmed against the code. The dominant theme: **this branch makes non-admin users possible for the first time (person promotion → invited user → passkey login), but several surfaces still equate "has a session cookie" with "is an Admin," turning previously-safe single-operator gates into privilege escalations.** A second cluster is that legacy JSON→DB migrations re-run unconditionally on every `initialize()`, so one bad or orphaned legacy row bricks startup or resurrects revoked state.
 
 Each item is `file:line — problem → fix`. Verified severity in brackets.
 
 ### P0 — Privilege escalation (fix before merge)
 
-- [x] **CMS editor accepted any session** [fixed] — the editor shell and every editor API route now resolve the active principal and require `permissionLevel === "anchor"`; trusted-session denial is covered.
-- [x] **Sveltia token endpoint released the content-repo PAT to any session** [fixed] — passkey CMS shell/login gates and `/auth/cms-token` resolve the active principal and require Anchor; non-Anchor token requests return 403.
+- [x] **CMS editor accepted any session** [fixed] — the editor shell and every editor API route now resolve the active principal and require `permissionLevel === "admin"`; trusted-session denial is covered.
+- [x] **Sveltia token endpoint released the content-repo PAT to any session** [fixed] — passkey CMS shell/login gates and `/auth/cms-token` resolve the active principal and require Admin permission; non-Admin token requests return 403.
 - [x] **MCP trusted client-supplied `_meta.userId`** [fixed] — tool registration derives user identity only from the server-verified auth subject. Unauthenticated metadata receives the non-user `mcp-user` sentinel, with spoofing coverage.
 
 ### P0 — Boot crash-loop / integrity (legacy migrations re-run every `initialize()`)
@@ -89,13 +89,13 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 - [x] **People-admin endpoint is ~4N+1 queries** [fixed] — the runtime admin adapter now bulk-loads users, identity claims plus evidence, passkeys, and agent links, then groups them in memory. The exported endpoint contract retains its per-user compatibility fallback, but the production `/auth/admin/users` path no longer fans out by roster size.
 - [x] **JWT verified twice per MCP request** [fixed] — `resolveBearerGrant()` now returns verified token claims and the current active principal from one signature verification; the MCP hook consumes that grant instead of calling both verification paths.
 - [x] **Session resolved twice per web-chat request** [fixed] — web chat now resolves one browser-access result per guarded request. The test override seam remains available as a fallback when no principal resolver succeeds, while the default path no longer repeats cookie, session, and user lookups.
-- [x] **`/api/console/jump` lost its Anchor gate** [fixed] — the endpoint now returns 403 unless the resolved active principal has Anchor permission; trusted-session coverage prevents hidden widget-group disclosure.
+- [x] **`/api/console/jump` lost its Admin gate** [fixed] — the endpoint now returns 403 unless the resolved active principal has Admin permission; trusted-session coverage prevents hidden widget-group disclosure.
 
 ### P3 — Altitude / cleanup
 
 - [x] **ActorRef is flattened back to a stringly-typed `userId`** [fixed] — `ToolContext`, AI call options, tool events, MCP routing, create interceptors, and job metadata now carry a required discriminated `ActorRef`. The flattened `userId`/`canonicalId` context fields and agent/MCP sentinels were removed rather than deprecated. `authenticatedUserId(context)` is the only user projection policy; jobs retain `requestedByActor` for every actor kind and set `requestedByUserId` only for a user actor.
 - [x] **Divergent auth migration stack** [fixed] — the current schema is defined once in Drizzle, migration SQL/journal/snapshots are generated by Drizzle Kit, runtime startup uses the standard Drizzle migrator, and the CLI bundles the generated assets. A marker-detected pre-Drizzle bridge remains only until the compatibility release gate permits removal.
-- [x] **People administration is a management surface miscast as a dashboard tab** [fixed] — People now lives as the first section of the standalone `@brains/admin` React admin console at `/admin`, consuming browser-safe auth-service role and mutation contracts. The monitoring dashboard no longer embeds People markup, styles, scripts, or tab branches; the route-derived console strip and Anchor-gated ⌘K response expose the Admin door. Authenticated non-Anchors receive only their self-service representation-consent view, while roster administration remains enforced by the Anchor-only auth API.
+- [x] **People administration is a management surface miscast as a dashboard tab** [fixed] — People now lives as the first section of the standalone `@brains/admin` React admin console at `/admin`, consuming browser-safe auth-service role and mutation contracts. The monitoring dashboard no longer embeds People markup, styles, scripts, or tab branches; the route-derived console strip and Admin-gated ⌘K response expose the Admin door. Authenticated non-Admins receive only their self-service representation-consent view, while roster administration remains enforced by the Admin-only auth API.
 - [x] **Duplicated migration/hash scaffolding** [fixed] — legacy record imports now share one ordered `migrateLegacyRecords(lister, importer, label)` path for counting and structured logging while retaining record-specific validation. The former handwritten runtime migration runners were already removed by the generated Drizzle migration work. Persisted hex and base64url SHA-256 keys now use pinned shared utilities, preventing store-specific encoding drift.
 
 ### Refactoring follow-ups (2026-07-18 post-merge review)
@@ -109,7 +109,7 @@ Non-blocking cleanup surfaced by the merge-readiness pass over the six hardening
 
 ### OAuth surface — endpoint hardening (2026-07-16 endpoint audit)
 
-A follow-up audit of the full HTTP surface confirmed the admin/session/identity/representation/WebAuthn endpoints are well-gated (`resolveSession` → anchor/active, same-origin + action-matched `confirmation`, thorough secret redaction; `acceptRepresentation` enforces `user.personId === link.personId`). The lower-severity OAuth authorization-server findings were defense-in-depth rather than access holes and are now fixed.
+A follow-up audit of the full HTTP surface confirmed the admin/session/identity/representation/WebAuthn endpoints are well-gated (`resolveSession` → active Admin, same-origin + action-matched `confirmation`, thorough secret redaction; `acceptRepresentation` enforces `user.personId === link.personId`). The lower-severity OAuth authorization-server findings were defense-in-depth rather than access holes and are now fixed.
 
 - [x] **`GET/POST /authorize` gates on bare session existence, not `resolveSession`** [fixed] — both authorization methods now use the same active-user session resolver as the rest of auth. Regression coverage creates a surviving session for a suspended user and verifies that page and approval requests both return 401.
 - [x] **`POST /revoke` skips client auth when `client_id` is omitted** [fixed] — revocation now requires a registered `client_id`, authenticates confidential clients, and scopes the token update to that client. Public clients remain secretless by design but can no longer submit an unbound revocation.
@@ -117,7 +117,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Duplicated request helpers across admin/representation endpoints** [fixed, cleanup] — same-origin checks, tolerant JSON reading, and private no-store JSON responses now share the auth HTTP response module.
 - [x] **`resolveIdentity` collapses `denied` into `undefined`** [fixed] — `resolveIdentity` is retained only as an explicitly deprecated compatibility projection for non-authorizing enrichment; its contract warns that denied and unbound both return `undefined`. Authorization guidance and APIs use the discriminated `resolveIdentityAccess` result so denied bindings cannot fall through to static rules.
 
-**Resolved — open dynamic client registration stays open; bound it, don't gate it.** Exposure model: this is an **internet-facing** OAuth authorization server — external MCP clients (Claude.ai, IDEs) connect over the public internet (`identity-and-trust.md:22`). Open DCR (`POST /register`, `oauth-endpoints.ts:248-268`, RFC 7591) is therefore _required_ for MCP client auto-registration and must **not** be gated behind an anchor/setup-token, which would break onboarding. It is not an access hole: `/token` supports only `authorization_code` and `refresh_token` — no `client_credentials` grant (`oauth-endpoints.ts:294-304`) — so a self-registered client is inert until a human completes anchor consent at `/authorize`, and the code is bound to that session's subject. The residual risk is storage/DoS (unbounded client rows) and consent-phishing, so:
+**Resolved — open dynamic client registration stays open; bound it, don't gate it.** Exposure model: this is an **internet-facing** OAuth authorization server — external MCP clients (Claude.ai, IDEs) connect over the public internet (`identity-and-trust.md:22`). Open DCR (`POST /register`, `oauth-endpoints.ts:248-268`, RFC 7591) is therefore _required_ for MCP client auto-registration and must **not** be gated behind an Admin/setup token, which would break onboarding. It is not an access hole: `/token` supports only `authorization_code` and `refresh_token` — no `client_credentials` grant (`oauth-endpoints.ts:294-304`) — so a self-registered client is inert until a human completes consent at `/authorize`, and the code is bound to that session's subject. The residual risk is storage/DoS (unbounded client rows) and consent-phishing, so:
 
 - [x] **Rate-limit and prune `/register`** [fixed] — registration stays open, but each caller receives a 30-attempt-per-minute budget and each runtime retains a higher 300-attempt circuit breaker, returning `429` with `Retry-After` beyond either bound. Pruning removes registrations older than seven days only when no authorization code or refresh token records consent, preserving approved clients (consumed auth codes are soft-deleted, so a consented client keeps a permanent protecting row).
 
@@ -125,26 +125,27 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 
   - [x] **Rate limiter was global, not per-caller** [fixed] — proxy-canonicalized caller IPs now have independent bounded in-memory windows, with a conservative shared bucket when no valid source header is available. The active source map is bounded by a higher per-runtime circuit breaker that also limits distributed abuse. State intentionally remains ephemeral and address-free outside process memory; multi-instance coordination belongs at the deployment edge.
   - [x] **Pruning was lazy, not scheduled** [fixed] — auth startup now runs stale-client maintenance immediately and starts an unreferenced hourly timer, independent of registration traffic. Shutdown clears the timer, failed maintenance is logged without taking authentication offline, and interval coverage verifies long-running cleanup.
+  - [ ] **Supervise OAuth client maintenance through the private Effect lifecycle** — first characterize the shutdown race with a deferred prune: the current interval callback is detached, so clearing the timer does not stop `AuthService.close()` from closing the database beneath an admitted prune. After this branch integrates the canonical `@brains/utils/effect` boundary from `main`, replace the raw timer with a package-private, non-overlapping schedule; preserve the immediate first prune, unreferenced/process-neutral timing, Promise APIs, and existing error reporting; use `TestClock` for deterministic cadence coverage; make repeated shutdown calls join; interrupt only the pending delay; and drain an admitted prune before `AuthRuntimeDatabase.stop()`. This bounded supervisor does not justify a public Effect API or a Layer.
 
 ### Cleared — do not re-litigate
 
 - **Refresh-token `single-operator` drop** (`auth-service.ts:507`) — **not a bug.** Deliberate, documented (plan lines 39/249, `multi-user.md:251`), logged as `skippedLegacy`. Forced one-time re-auth is the intended behavior.
-- **MCP access tokens with `single-operator` subject rejected post-migration** (`mcp-interface.ts:136`) — **intended one-time re-auth**, not a lockout: 15-min access-token TTL, and the operator's passkey is migrated to the anchor, so it's a one-time OAuth re-consent.
+- **MCP access tokens with `single-operator` subject rejected post-migration** (`mcp-interface.ts:136`) — **intended one-time re-auth**, not a lockout: 15-min access-token TTL, and the operator's passkey is migrated to the first Admin user, so it's a one-time OAuth re-consent.
 - **Drizzle `.notNull()` vs nullable `ALTER` on `person_id`** (`runtime-schema.ts:164`) — **refuted.** Migration 6 backfills every row and all insert paths set `person_id`; no NULL row is constructible.
 
-### Downstream: anchor/admin terminology + `isAnchor` (from multi-user decision 12)
+### Completed: Admin permission + Anchor identity (multi-user decision 12)
 
-`multi-user.md` decision 12 (adopted 2026-07-18) splits **`Anchor`** (the brain's owner/subject — an identity) from **`Admin`** (the human permission role). Auth owns the role enum and the principal, so the following land here as a **follow-on migration, not part of the current merge** — the shipped `anchor`-as-role state is coherent and renames later behind the release gate. Recommendation: do this as a dedicated migration _after_ this branch merges, riding the same compat machinery as the shipped Operator→Anchor rename — do **not** stack a second terminology rename into this already-verified diff.
+`multi-user.md` decision 12 (adopted 2026-07-18) splits **Anchor** (the brain's owner/subject identity) from **Admin** (the permission role). The migration is complete:
 
-- [ ] **Role rename `anchor` → `admin`** — `AUTH_USER_ROLES`, `permissionLevel`, `principalFromUser`, admin-endpoint gates, and `@brains/admin` console copy move from `anchor` to `admin`. Retain `anchor` as a read-compat role alias behind the release gate; remove only once CI confirms no deprecated consumers and the minimum supported upgrade version already issues `admin`. This is the branch's **second** terminology migration (Operator→Anchor→Admin) — accepted cost, tracked so it isn't a surprise.
-- [ ] **`AuthPrincipal` gains an `isAnchor` facet** — separate from `permissionLevel`. Interfaces authorize on `admin` only; `isAnchor` is identity, read solely for representation/voice. Resolving it requires the principal resolver to know the brain's anchor subject (below).
-- [ ] **Persist the anchor kind + subject** — a brain is anchored to a `person` or a `collective` (team/org; same kind, no nesting). Something must record which, and for a person anchor, which user, so `isAnchor` resolves (person brain → that one admin is the anchor; collective brain → `isAnchor` is false for everyone, admins act for the collective). Decide whether this small bit of runtime state lives in auth storage or is sourced from the profile subject.
-- [ ] **`profileEntityId` is the profile-generalization seam** — the person↔profile link already in the admin contract (`admin-contracts.ts:140`) is where the companion profile-on-subjects model (first-class profiles; subject = person/team/org; members carry profiles) attaches. Forward-referenced here so it is reused, not reinvented; the profile model itself is captured separately, not in the auth plan.
+- [x] **Canonical role is `admin`** — `AUTH_USER_ROLES`, `permissionLevel`, endpoint gates, entity policy, interface configuration, evaluation fixtures, and console copy use only `admin | trusted | public`. There is no runtime role/config alias for `anchor`; generated migration `0002_superb_firebrand.sql` performs the bounded historical row conversion.
+- [x] **`AuthPrincipal.isAnchor` is independent** — interfaces authorize only on `admin`, while authenticated/configured callers propagate `isAnchor` through chat and model instructions solely for identity/voice.
+- [x] **Anchor kind and subject are persisted** — `auth_brain_anchor` stores one person or collective subject. A personal Anchor must remain an active Admin; a collective is administered by any active Admin, and no user has `isAnchor`.
+- [x] **`profileEntityId` remains the profile-generalization seam** — person and Anchor summaries reuse the profile reference for the companion profile-on-subjects model rather than inventing a second linkage.
 
 ## Consumers to satisfy
 
-- **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple anchors, last-anchor protection.
-- **MCP OAuth**: per-session permissions from the authenticated user instead of global anchor authority.
+- **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple Admins, one person/collective Anchor subject, and last-Admin protection.
+- **MCP OAuth**: per-session permissions from the authenticated user instead of global Admin authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
 - **CMS passkey login**: a valid authenticated browser session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
@@ -161,11 +162,11 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
    - Users, roles, identities, passkeys, sessions, OAuth grants, refresh tokens, setup tokens, and auth audit live here.
    - Content entities may reference safe public/person labels later, but never become the source of auth truth.
 3. **`usr_<uuid>` replaces `single-operator`.**
-   - Fresh setup creates the first active anchor user.
+   - Fresh setup creates the first active admin user.
    - Existing stores migrate lazily and revoke old `single-operator` refresh tokens.
 4. **Identity binding is explicit.**
    - No display-name matching or inferred cross-platform linking.
-   - Anchors attach identities such as Discord ids, emails, OAuth subjects, DIDs, or MCP subjects.
+   - Admins attach identities such as Discord ids, emails, OAuth subjects, DIDs, or MCP subjects.
 5. **Avoid raw account ids where lookup hashes are enough.**
    - Store a normalized identity key hash for lookup.
    - Store type/issuer/label metadata for management UI.
@@ -185,7 +186,7 @@ interface AuthUserRow {
   id: string; // usr_<uuid>
   person_id: string; // stable person subject
   display_name: string;
-  role: "anchor" | "trusted" | "public";
+  role: "admin" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
   canonical_id?: string; // generated `user:<id-suffix>` by default; administratively renameable later
   created_at: number;
@@ -249,7 +250,7 @@ Delivery model: the auth DB does not store user emails on `auth_users`. When a p
 
 ### A2A peer trust
 
-- `a2a_peer_trust`: normalized peer domain, pinned key fingerprint, granted inbound level (`public` or `trusted`), and timestamps. Anchor-level peer grants are forbidden.
+- `a2a_peer_trust`: normalized peer domain, pinned key fingerprint, granted inbound level (`public` or `trusted`), and timestamps. Admin-level peer grants are forbidden.
 
 ### Audit
 
@@ -277,7 +278,7 @@ Add an auth runtime storage layer inside `shell/auth-service`, not a content plu
   - owns file permissions
 - `AuthUserStore`
   - create/list/update users
-  - enforce last-active-anchor protection
+  - enforce last-active-Admin protection
   - resolve active users and identities
 - `AuthCredentialStore`
   - passkeys, WebAuthn challenges, setup tokens
@@ -292,9 +293,9 @@ Add an auth runtime storage layer inside `shell/auth-service`, not a content plu
 interface AuthPrincipal {
   userId: string;
   displayName: string;
-  role: "anchor" | "trusted" | "public";
+  role: "admin" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
-  permissionLevel: "anchor" | "trusted" | "public";
+  permissionLevel: "admin" | "trusted" | "public";
   canonicalId?: string;
 }
 ```
@@ -336,7 +337,7 @@ The auth DB becomes the private canonical identity backend. Do not add a separat
 ### Fresh installs
 
 1. DB starts empty.
-2. First setup creates `usr_<uuid>` with role `anchor`, status `active`, and `canonical_id = user:<id-suffix>` generated from the user id.
+2. First setup creates `usr_<uuid>` with role `admin`, status `active`, and `canonical_id = user:<id-suffix>` generated from the user id; that person's subject becomes the personal Anchor.
 3. Passkey registration binds the credential to that user.
 4. Sessions, auth codes, access tokens, and refresh tokens use `sub = usr_<uuid>`.
 
@@ -347,7 +348,7 @@ Run an idempotent migration on auth-service startup:
 1. Create/open `auth.db` and record migration version.
 2. Import the current JWK signing key.
 3. Import OAuth clients.
-4. If passkeys or sessions use `single-operator` and no users exist, create the first active anchor user.
+4. If passkeys or sessions use `single-operator` and no users exist, create the first active admin user.
 5. Import passkeys, rebinding `single-operator` to that user id.
 6. Import active sessions and auth codes where safe.
 7. Import refresh tokens except `single-operator` tokens; revoke/skip those and force one-time re-auth.
@@ -369,13 +370,13 @@ Validation: migrations are idempotent; file permissions are private; DB opens in
 
 ### Phase 2 — Users and passkeys
 
-**Status: implemented.** Users, identities, first-anchor setup, passkey credentials/challenges, legacy subject rebinding, and transactional anchor invariants use the runtime database.
+**Status: implemented.** Users, identities, first-Admin/passkey setup, passkey credentials/challenges, legacy subject rebinding, and transactional anchor invariants use the runtime database.
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
-- First setup creates an anchor user.
+- First setup creates an admin user and, for a personal brain, binds that person's Anchor identity.
 - New passkeys bind to user ids.
 - Migrate `single-operator` passkeys.
-- Add last-active-anchor protection.
+- Add atomic last-active-Admin and personal-Anchor protection.
 
 Validation: fresh setup, login, and old passkey migration all produce `usr_<uuid>` subjects.
 
@@ -400,18 +401,18 @@ Validation: OAuth code flow, refresh rotation, logout, setup-token flow, and cli
 - Add identity lookup before rule fallback for Discord/MCP/chat interfaces.
 - Keep static `MCP_AUTH_TOKEN` as deprecated anchor fallback.
 
-Validation: trusted users cannot call anchor-only tools; suspended users are denied; MCP session ids cannot be reused by another user or retain a superseded role; legacy rule fallback still works.
+Validation: trusted users cannot call admin-only tools; suspended users are denied; MCP session ids cannot be reused by another user or retain a superseded role; legacy rule fallback still works.
 
 ### Phase 5 — Management surface
 
-**Status: implemented, including the People client completed in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin anchor-session API and remain deliberately absent from model tools.
+**Status: implemented, including the People client completed in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin Admin-session API and remain deliberately absent from model tools.
 
-- Add an authenticated, anchor-driven admin API/console and optional local CLI wrappers for user/identity/passkey management.
-- Require explicit anchor interaction and confirmation for role, status, identity, and credential mutations.
+- Add an authenticated, Admin-authorized API/console and optional local CLI wrappers for user/identity/passkey management.
+- Require explicit Admin interaction and confirmation for role, status, identity, and credential mutations.
 - Do not expose auth-user records or management mutations as agent tools.
 - Add audit events for every management mutation.
 
-Validation: anchors can create/promote/suspend users; trusted users cannot manage users; the last anchor cannot be demoted or suspended.
+Validation: Admins can create/promote/suspend users; trusted users cannot manage users; the last active Admin and a personal Anchor cannot be demoted or suspended.
 
 ### Phase 6 — Consumers
 
@@ -436,14 +437,14 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
   - Remove either the legacy cookie reader or pre-Drizzle database bridge only when the recorded minimum supported upgrade version is at least that compatibility path's introduction version.
 - [x] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to generic passkey/authenticated-session language.
 - [x] Keep `single-operator` only as an immutable historical migration alias.
-- [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
-- [x] Add the `/admin` React console with People as its first section, Anchor-only roster administration, authenticated self-service representation consent, canonical `Anchor`/`Trusted`/`Public` labels, route-derived console navigation, and a ⌘K Admin door.
+- [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as Admin.
+- [x] Add the `/admin` React console with People as its first section, Admin-only roster administration, authenticated self-service representation consent, canonical `Admin`/`Trusted`/`Public` role labels plus a separate Anchor facet, route-derived console navigation, and a ⌘K Admin door.
 
-Validation: existing sessions survive migration; trusted sessions stay trusted in the dashboard; only anchors can use People administration; no user-facing role copy says Owner or Operator.
+Validation: existing sessions survive migration; trusted sessions stay trusted in the dashboard; only Admins can use People administration; no user-facing role copy says Owner or Operator.
 
 ### Phase 8 — Person subjects and canonical identity claims
 
-**Status: complete.** The generated schema stores normalized person claims and independent evidence; the bounded bridge preserves legacy claim ids while backfilling migration evidence. Agent assertions cannot authenticate, while provider/admin verification remains separate. Stable person backfill, consent-bearing agent/person links, promotion, targeted registration, existing-user linking, self-service consent, `/admin` People-section linked-agent state, and the approved-agent entry point are implemented. Agent-carried human DID assertions import as non-authenticating evidence, exact claims on the selected person reuse claim ids, and cross-person conflicts roll back for reconciliation. Before promotion, the private Anchor-only reconciliation endpoint compares exact claim hashes without returning subjects or hashes: one independently verified person is safely preselected, asserted-only ownership never selects automatically, and cross-person ownership is named in a blocking review state for explicit correction through People administration. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
+**Status: complete.** The generated schema stores normalized person claims and independent evidence; the bounded bridge preserves legacy claim ids while backfilling migration evidence. Agent assertions cannot authenticate, while provider/admin verification remains separate. Stable person backfill, consent-bearing agent/person links, promotion, targeted registration, existing-user linking, self-service consent, `/admin` People-section linked-agent state, and the approved-agent entry point are implemented. Agent-carried human DID assertions import as non-authenticating evidence, exact claims on the selected person reuse claim ids, and cross-person conflicts roll back for reconciliation. Before promotion, the private Admin-only reconciliation endpoint compares exact claim hashes without returning subjects or hashes: one independently verified person is safely preselected, asserted-only ownership never selects automatically, and cross-person ownership is named in a blocking review state for explicit correction through People administration. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
 
 - Add stable runtime person records and link every auth user to one person through an ordered migration.
 - Preserve user ids, passkeys, sessions, roles, statuses, and existing identity row ids during backfill.

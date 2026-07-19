@@ -26,9 +26,9 @@ const MCP_SERVER_INFO = {
   version: "1.0.0",
 };
 
-const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "anchor";
-const RESOURCE_VISIBILITY: UserPermissionLevel = "anchor";
-const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "anchor";
+const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "admin";
+const RESOURCE_VISIBILITY: UserPermissionLevel = "admin";
+const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "admin";
 
 export interface RegisteredTool {
   pluginId: string;
@@ -91,7 +91,7 @@ export function canExposeResource(
 /**
  * Resource templates expose entity listing/completion that can leak entity
  * existence even when handler output is filtered by visibility. Pin them to
- * the same anchor-only policy as plain resources.
+ * the same admin-only policy as plain resources.
  */
 export function canExposeResourceTemplate(
   permissionLevel: UserPermissionLevel,
@@ -100,7 +100,7 @@ export function canExposeResourceTemplate(
 }
 
 /**
- * Prompts ship as anchor-only by default because their bodies can reference
+ * Prompts ship as admin-only by default because their bodies can reference
  * restricted workflows, entity names, or operator instructions. Plugins can
  * opt a prompt down to "trusted" / "public" if its template is safe to share.
  */
@@ -174,6 +174,7 @@ export function registerToolOnServer(
   messageBus: IMessageBus,
   logger: Logger,
   permissionLevel: UserPermissionLevel,
+  configuredIsAnchor = false,
 ): void {
   server.tool(
     tool.name,
@@ -194,6 +195,11 @@ export function registerToolOnServer(
         verifiedDisplayName.length > 0
           ? verifiedDisplayName
           : undefined;
+      const verifiedIsAnchor = extra.authInfo?.extra?.["isAnchor"];
+      const isAnchor =
+        typeof verifiedIsAnchor === "boolean"
+          ? verifiedIsAnchor
+          : configuredIsAnchor;
       const conversationId = extra._meta?.["conversationId"];
       const channelId = extra._meta?.["channelId"];
       const channelName = extra._meta?.["channelName"];
@@ -226,6 +232,7 @@ export function registerToolOnServer(
             channelId,
             channelName,
             userPermissionLevel: permissionLevel,
+            isAnchor,
             signal: extra.signal,
           },
           sender: "MCPService",

@@ -83,7 +83,7 @@ function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
     description:
       "Search for stock photos. Returns photo candidates with preview URLs and metadata. Use stock-photo_select to materialize a chosen photo into an image entity.",
     inputSchema: searchInputSchema,
-    visibility: "anchor",
+    visibility: "admin",
     sideEffects: "none",
     handler: async (input): Promise<ToolResponse> => {
       const parsed = searchInputParserSchema.safeParse(input);
@@ -114,7 +114,7 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
     description:
       "Select a stock photo from search results and materialize it as an image entity. Triggers provider download tracking per ToS. Optionally sets as cover image on a target entity.",
     inputSchema: selectInputSchema,
-    visibility: "anchor",
+    visibility: "admin",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
       const parsed = selectInputParserSchema.safeParse(input);

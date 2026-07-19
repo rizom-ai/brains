@@ -9,6 +9,7 @@ import type { BrainCallOptions } from "./brain-agent";
 export function buildBrainCallOptions(params: {
   hasAccessibleUploads: boolean;
   userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  isAnchor?: boolean;
   conversationId: string;
   channelId: string | undefined;
   channelName: string;
@@ -19,6 +20,7 @@ export function buildBrainCallOptions(params: {
 }): BrainCallOptions {
   return {
     userPermissionLevel: params.userPermissionLevel,
+    ...(params.isAnchor !== undefined ? { isAnchor: params.isAnchor } : {}),
     conversationId: params.conversationId,
     ...(params.channelId ? { channelId: params.channelId } : {}),
     channelName: params.channelName,

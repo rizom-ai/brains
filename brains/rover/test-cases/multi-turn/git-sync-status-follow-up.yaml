@@ -3,7 +3,7 @@ name: Git sync status follow-up is not captured
 description: Verifies that after a git sync request, a bare status follow-up checks sync/job status instead of creating a note from the phrase.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - directory-sync

@@ -7,6 +7,7 @@
     "@brains/console-theme": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

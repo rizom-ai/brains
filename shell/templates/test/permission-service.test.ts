@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { PermissionService } from "../src/permission-service";
+import {
+  PermissionService,
+  UserPermissionLevelSchema,
+} from "../src/permission-service";
 import type {
   PermissionConfig,
   UserPermissionLevel,
@@ -9,21 +12,37 @@ import type {
 describe("PermissionService", () => {
   let permissionService: PermissionService;
 
+  it("keeps admin permission separate from anchor identity", () => {
+    expect(UserPermissionLevelSchema.parse("admin")).toBe("admin");
+    expect(UserPermissionLevelSchema.safeParse("anchor").success).toBe(false);
+
+    const service = new PermissionService({
+      admins: ["cli:admin"],
+      anchors: ["cli:owner"],
+      rules: [{ pattern: "mcp:*", level: "admin" }],
+    });
+    expect(service.determineUserLevel("cli", "admin")).toBe("admin");
+    expect(service.determineUserLevel("cli", "owner")).toBe("public");
+    expect(service.determineUserLevel("mcp", "stdio")).toBe("admin");
+    expect(service.isAnchor("cli", "owner")).toBe(true);
+    expect(service.isAnchor("cli", "admin")).toBe(false);
+  });
+
   describe("Explicit user lists", () => {
     beforeEach(() => {
       const config: PermissionConfig = {
-        anchors: ["matrix:@admin:example.org", "cli:admin-user"],
+        admins: ["matrix:@admin:example.org", "cli:admin-user"],
         trusted: ["matrix:@helper:example.org", "discord:helper#1234"],
       };
       permissionService = new PermissionService(config);
     });
 
-    it("should identify anchor users correctly", () => {
+    it("should identify admin users correctly", () => {
       expect(
         permissionService.determineUserLevel("matrix", "@admin:example.org"),
-      ).toBe("anchor");
+      ).toBe("admin");
       expect(permissionService.determineUserLevel("cli", "admin-user")).toBe(
-        "anchor",
+        "admin",
       );
     });
 
@@ -59,9 +78,9 @@ describe("PermissionService", () => {
   describe("Pattern-based rules", () => {
     beforeEach(() => {
       const config: PermissionConfig = {
-        anchors: ["matrix:@owner:example.org"], // Explicit anchor
+        admins: ["matrix:@owner:example.org"], // Explicit admin
         rules: [
-          { pattern: "cli:*", level: "anchor" }, // All CLI users are anchors
+          { pattern: "cli:*", level: "admin" }, // All CLI users are Admins
           { pattern: "matrix:@*:admin.org", level: "trusted" }, // Domain-based trust
           { pattern: "discord:*", level: "public" }, // Explicit public (redundant but valid)
         ],
@@ -71,10 +90,10 @@ describe("PermissionService", () => {
 
     it("should apply CLI wildcard rule", () => {
       expect(permissionService.determineUserLevel("cli", "any-user")).toBe(
-        "anchor",
+        "admin",
       );
       expect(permissionService.determineUserLevel("cli", "another-user")).toBe(
-        "anchor",
+        "admin",
       );
     });
 
@@ -88,17 +107,17 @@ describe("PermissionService", () => {
     });
 
     it("should prioritize explicit lists over patterns", () => {
-      // @owner:example.org is explicitly an anchor, not matched by domain rule
+      // @owner:example.org is explicitly an Admin, not matched by domain rule
       expect(
         permissionService.determineUserLevel("matrix", "@owner:example.org"),
-      ).toBe("anchor");
+      ).toBe("admin");
     });
 
     it("should apply first matching rule", () => {
       const config: PermissionConfig = {
         rules: [
           { pattern: "test:user*", level: "trusted" },
-          { pattern: "test:*", level: "anchor" }, // Would match but comes second
+          { pattern: "test:*", level: "admin" }, // Would match but comes second
         ],
       };
       const service = new PermissionService(config);
@@ -121,9 +140,9 @@ describe("PermissionService", () => {
       const config: PermissionConfig = {
         rules: [
           { pattern: "matrix:@*:*.admin.org", level: "trusted" }, // Multi-level wildcard
-          { pattern: "cli:admin-*", level: "anchor" }, // Prefix matching
+          { pattern: "cli:admin-*", level: "admin" }, // Prefix matching
           { pattern: "discord:*#1234", level: "trusted" }, // Suffix matching
-          { pattern: "exact:match", level: "anchor" }, // Exact matching
+          { pattern: "exact:match", level: "admin" }, // Exact matching
         ],
       };
       permissionService = new PermissionService(config);
@@ -143,10 +162,10 @@ describe("PermissionService", () => {
 
     it("should handle prefix wildcards", () => {
       expect(permissionService.determineUserLevel("cli", "admin-user1")).toBe(
-        "anchor",
+        "admin",
       );
       expect(permissionService.determineUserLevel("cli", "admin-user2")).toBe(
-        "anchor",
+        "admin",
       );
       expect(permissionService.determineUserLevel("cli", "user-admin")).toBe(
         "public",
@@ -167,7 +186,7 @@ describe("PermissionService", () => {
 
     it("should handle exact matches", () => {
       expect(permissionService.determineUserLevel("exact", "match")).toBe(
-        "anchor",
+        "admin",
       );
       expect(permissionService.determineUserLevel("exact", "no-match")).toBe(
         "public",
@@ -178,14 +197,14 @@ describe("PermissionService", () => {
       const config: PermissionConfig = {
         rules: [
           { pattern: "test:user.123", level: "trusted" }, // . should be literal, not wildcard
-          { pattern: "test:user+123", level: "anchor" }, // + should be literal
+          { pattern: "test:user+123", level: "admin" }, // + should be literal
         ],
       };
       const service = new PermissionService(config);
 
       expect(service.determineUserLevel("test", "user.123")).toBe("trusted");
       expect(service.determineUserLevel("test", "userX123")).toBe("public"); // . is literal
-      expect(service.determineUserLevel("test", "user+123")).toBe("anchor");
+      expect(service.determineUserLevel("test", "user+123")).toBe("admin");
     });
   });
 
@@ -207,10 +226,10 @@ describe("PermissionService", () => {
   describe("Complex scenarios", () => {
     beforeEach(() => {
       const config: PermissionConfig = {
-        anchors: ["matrix:@superadmin:example.org"],
+        admins: ["matrix:@superadmin:example.org"],
         trusted: ["cli:trusted-user"],
         rules: [
-          { pattern: "cli:*", level: "anchor" }, // This would conflict with trusted user above
+          { pattern: "cli:*", level: "admin" }, // This would conflict with trusted user above
           { pattern: "matrix:@*:example.org", level: "trusted" }, // Domain rule
           { pattern: "*:guest*", level: "public" }, // Cross-interface guest pattern
         ],
@@ -218,17 +237,17 @@ describe("PermissionService", () => {
       permissionService = new PermissionService(config);
     });
 
-    it("should prioritize explicit anchors over rules", () => {
+    it("should prioritize explicit Admins over rules", () => {
       expect(
         permissionService.determineUserLevel(
           "matrix",
           "@superadmin:example.org",
         ),
-      ).toBe("anchor");
+      ).toBe("admin");
     });
 
     it("should prioritize explicit trusted over rules", () => {
-      // trusted-user is explicitly trusted, even though cli:* rule would make it anchor
+      // trusted-user is explicitly trusted, even though cli:* would grant Admin permission
       expect(permissionService.determineUserLevel("cli", "trusted-user")).toBe(
         "trusted",
       );
@@ -242,7 +261,7 @@ describe("PermissionService", () => {
 
     it("should apply CLI rule for other CLI users", () => {
       expect(permissionService.determineUserLevel("cli", "other-user")).toBe(
-        "anchor",
+        "admin",
       );
     });
 
@@ -294,15 +313,15 @@ describe("PermissionService", () => {
       ).toBe("public");
     });
 
-    it("should prioritize explicit anchor and trusted users over spaces", () => {
+    it("should prioritize explicit Admin and trusted users over spaces", () => {
       const service = makeService(["discord:123"], {
-        anchors: ["discord:owner"],
+        admins: ["discord:owner"],
         trusted: ["discord:helper"],
       });
 
       expect(
         service.determineUserLevel("discord", "owner", { channelId: "123" }),
-      ).toBe("anchor");
+      ).toBe("admin");
       expect(
         service.determineUserLevel("discord", "helper", { channelId: "123" }),
       ).toBe("trusted");
@@ -311,14 +330,14 @@ describe("PermissionService", () => {
     it("should preserve elevated pattern rules over spaces", () => {
       const service = makeService(["discord:123"], {
         rules: [
-          { pattern: "discord:admin-*", level: "anchor" },
+          { pattern: "discord:admin-*", level: "admin" },
           { pattern: "discord:member-*", level: "trusted" },
         ],
       });
 
       expect(
         service.determineUserLevel("discord", "admin-1", { channelId: "123" }),
-      ).toBe("anchor");
+      ).toBe("admin");
       expect(
         service.determineUserLevel("discord", "member-1", { channelId: "123" }),
       ).toBe("trusted");
@@ -351,17 +370,17 @@ describe("PermissionService", () => {
       ).toBe("public");
     });
 
-    it("should keep explicit anchor precedence over isBot/isGuest gating", () => {
+    it("should keep explicit Admin precedence over isBot/isGuest gating", () => {
       const service = makeService(["discord:123"], {
-        anchors: ["discord:bot-anchor"],
+        admins: ["discord:bot-admin"],
       });
 
       expect(
-        service.determineUserLevel("discord", "bot-anchor", {
+        service.determineUserLevel("discord", "bot-admin", {
           channelId: "123",
           isBot: true,
         }),
-      ).toBe("anchor");
+      ).toBe("admin");
     });
   });
 
@@ -374,31 +393,29 @@ describe("PermissionService", () => {
       it("should allow everyone access to public content", () => {
         expect(permissionService.hasPermission("public", "public")).toBe(true);
         expect(permissionService.hasPermission("trusted", "public")).toBe(true);
-        expect(permissionService.hasPermission("anchor", "public")).toBe(true);
+        expect(permissionService.hasPermission("admin", "public")).toBe(true);
       });
 
-      it("should allow trusted and anchor access to trusted content", () => {
+      it("should allow trusted and admin access to trusted content", () => {
         expect(permissionService.hasPermission("public", "trusted")).toBe(
           false,
         );
         expect(permissionService.hasPermission("trusted", "trusted")).toBe(
           true,
         );
-        expect(permissionService.hasPermission("anchor", "trusted")).toBe(true);
+        expect(permissionService.hasPermission("admin", "trusted")).toBe(true);
       });
 
-      it("should allow only anchor access to anchor content", () => {
-        expect(permissionService.hasPermission("public", "anchor")).toBe(false);
-        expect(permissionService.hasPermission("trusted", "anchor")).toBe(
-          false,
-        );
-        expect(permissionService.hasPermission("anchor", "anchor")).toBe(true);
+      it("should allow only Admin access to Admin content", () => {
+        expect(permissionService.hasPermission("public", "admin")).toBe(false);
+        expect(permissionService.hasPermission("trusted", "admin")).toBe(false);
+        expect(permissionService.hasPermission("admin", "admin")).toBe(true);
       });
     });
 
     describe("static hasPermission method", () => {
       it("should work identically to instance method", () => {
-        const levels: UserPermissionLevel[] = ["public", "trusted", "anchor"];
+        const levels: UserPermissionLevel[] = ["public", "trusted", "admin"];
 
         for (const userLevel of levels) {
           for (const requiredLevel of levels) {
@@ -417,11 +434,11 @@ describe("PermissionService", () => {
             "*": {
               create: "trusted",
               update: "trusted",
-              delete: "anchor",
-              extract: "anchor",
-              publish: "anchor",
+              delete: "admin",
+              extract: "admin",
+              publish: "admin",
             },
-            summary: { create: "anchor", update: "anchor" },
+            summary: { create: "admin", update: "admin" },
           },
         });
 
@@ -430,16 +447,16 @@ describe("PermissionService", () => {
         ).toBe("trusted");
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "create"),
-        ).toBe("anchor");
+        ).toBe("admin");
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "delete"),
-        ).toBe("anchor");
+        ).toBe("admin");
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "extract"),
-        ).toBe("anchor");
+        ).toBe("admin");
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "publish"),
-        ).toBe("anchor");
+        ).toBe("admin");
       });
 
       it("should allow entity actions only when the caller meets the required level", () => {
@@ -447,11 +464,11 @@ describe("PermissionService", () => {
           entityActions: {
             "*": {
               create: "trusted",
-              delete: "anchor",
-              extract: "anchor",
-              publish: "anchor",
+              delete: "admin",
+              extract: "admin",
+              publish: "admin",
             },
-            summary: { update: "anchor" },
+            summary: { update: "admin" },
           },
         });
 
@@ -484,7 +501,7 @@ describe("PermissionService", () => {
         ).toBe(false);
         expect(
           permissionService.canPerformEntityAction(
-            "anchor",
+            "admin",
             "summary",
             "update",
           ),
@@ -521,8 +538,8 @@ describe("PermissionService", () => {
         permissionService = new PermissionService({
           entityActions: {
             "anchor-profile": {
-              create: "anchor",
-              update: "anchor",
+              create: "admin",
+              update: "admin",
               delete: "never",
             },
           },
@@ -530,7 +547,7 @@ describe("PermissionService", () => {
 
         expect(
           permissionService.canPerformEntityAction(
-            "anchor",
+            "admin",
             "anchor-profile",
             "delete",
           ),
@@ -552,7 +569,7 @@ describe("PermissionService", () => {
         // unrelated actions still resolve normally
         expect(
           permissionService.canPerformEntityAction(
-            "anchor",
+            "admin",
             "anchor-profile",
             "update",
           ),
@@ -569,14 +586,14 @@ describe("PermissionService", () => {
     const createMockItems = (): WithVisibility[] => [
       { visibility: "public" },
       { visibility: "trusted" },
-      { visibility: "anchor" },
+      { visibility: "admin" },
       {}, // No visibility = treated as public
     ];
 
     describe("filterByPermission", () => {
-      it("should return all items for anchor users", () => {
+      it("should return all items for admin users", () => {
         const items = createMockItems();
-        const filtered = permissionService.filterByPermission(items, "anchor");
+        const filtered = permissionService.filterByPermission(items, "admin");
         expect(filtered).toHaveLength(4);
         expect(filtered).toEqual(items);
       });
@@ -603,7 +620,7 @@ describe("PermissionService", () => {
       });
 
       it("should handle empty arrays", () => {
-        expect(permissionService.filterByPermission([], "anchor")).toEqual([]);
+        expect(permissionService.filterByPermission([], "admin")).toEqual([]);
         expect(permissionService.filterByPermission([], "trusted")).toEqual([]);
         expect(permissionService.filterByPermission([], "public")).toEqual([]);
       });
@@ -616,7 +633,7 @@ describe("PermissionService", () => {
         const commands: MockCommand[] = [
           { name: "help", visibility: "public" },
           { name: "status", visibility: "trusted" },
-          { name: "admin", visibility: "anchor" },
+          { name: "admin", visibility: "admin" },
           { name: "basic" }, // No visibility = public
         ];
 
@@ -639,11 +656,11 @@ describe("PermissionService", () => {
           "basic",
         ]);
 
-        const anchorFiltered = permissionService.filterByPermission(
+        const adminFiltered = permissionService.filterByPermission(
           commands,
-          "anchor",
+          "admin",
         );
-        expect(anchorFiltered.map((cmd) => cmd.name)).toEqual([
+        expect(adminFiltered.map((cmd) => cmd.name)).toEqual([
           "help",
           "status",
           "admin",
@@ -669,27 +686,27 @@ describe("PermissionService", () => {
           "*": {
             create: "trusted",
             update: "trusted",
-            delete: "anchor",
-            extract: "anchor",
-            publish: "anchor",
+            delete: "admin",
+            extract: "admin",
+            publish: "admin",
           },
-          summary: { create: "anchor" },
+          summary: { create: "admin" },
         },
       });
 
       expect(service.getResolvedEntityActionPolicy("note")).toEqual({
         create: "trusted",
         update: "trusted",
-        delete: "anchor",
-        extract: "anchor",
-        publish: "anchor",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
       });
       expect(service.getResolvedEntityActionPolicy("summary")).toEqual({
-        create: "anchor",
+        create: "admin",
         update: "trusted",
-        delete: "anchor",
-        extract: "anchor",
-        publish: "anchor",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
       });
     });
 
@@ -699,9 +716,9 @@ describe("PermissionService", () => {
           "*": {
             create: "trusted",
             update: "trusted",
-            delete: "anchor",
-            extract: "anchor",
-            publish: "anchor",
+            delete: "admin",
+            extract: "admin",
+            publish: "admin",
           },
         },
       });
@@ -710,37 +727,37 @@ describe("PermissionService", () => {
         service.assertEntityActionAllowed("note", "create", "trusted"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("note", "delete", "anchor"),
+        service.assertEntityActionAllowed("note", "delete", "admin"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("note", "extract", "anchor"),
+        service.assertEntityActionAllowed("note", "extract", "admin"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("note", "publish", "anchor"),
+        service.assertEntityActionAllowed("note", "publish", "admin"),
       ).not.toThrow();
     });
 
     it("throws a denial message with action, type, caller, and required level", () => {
       const service = new PermissionService({
         entityActions: {
-          summary: { update: "anchor", extract: "anchor", publish: "anchor" },
+          summary: { update: "admin", extract: "admin", publish: "admin" },
         },
       });
 
       expect(() =>
         service.assertEntityActionAllowed("summary", "update", "trusted"),
       ).toThrow(
-        "Updating `summary` requires Anchor permission; your current permission is Trusted.",
+        "Updating `summary` requires Admin permission; your current permission is Trusted.",
       );
       expect(() =>
         service.assertEntityActionAllowed("summary", "extract", "trusted"),
       ).toThrow(
-        "Extracting `summary` requires Anchor permission; your current permission is Trusted.",
+        "Extracting `summary` requires Admin permission; your current permission is Trusted.",
       );
       expect(() =>
         service.assertEntityActionAllowed("summary", "publish", "trusted"),
       ).toThrow(
-        "Publishing `summary` requires Anchor permission; your current permission is Trusted.",
+        "Publishing `summary` requires Admin permission; your current permission is Trusted.",
       );
     });
   });

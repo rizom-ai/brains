@@ -46,7 +46,7 @@ describe("playbookAdapter", () => {
     const markdown = `---
 title: Choice Playbook
 status: active
-audience: anchor
+audience: admin
 completionMode: agent-confirmed
 ---
 
@@ -166,7 +166,7 @@ Say: You're set up.
     const markdown = `---
 title: Required Details Playbook
 status: active
-audience: anchor
+audience: admin
 completionMode: agent-confirmed
 ---
 
@@ -212,7 +212,7 @@ Say: Done.
     const markdown = `---
 title: Broken
 status: active
-audience: anchor
+audience: admin
 completionMode: agent-confirmed
 ---
 
@@ -243,8 +243,8 @@ Say: Done.
       {
         title: "Rover Onboarding",
         status: "active",
-        audience: "anchor",
-        trigger: "first-anchor-web-chat",
+        audience: "admin",
+        trigger: "first-admin-web-chat",
         completionMode: "agent-confirmed",
       },
       body,
@@ -257,8 +257,8 @@ Say: Done.
     expect(entity.metadata).toEqual({
       title: "Rover Onboarding",
       status: "active",
-      audience: "anchor",
-      trigger: "first-anchor-web-chat",
+      audience: "admin",
+      trigger: "first-admin-web-chat",
       completionMode: "agent-confirmed",
     });
     expect(parsed.body).toEqual(body);
@@ -322,7 +322,7 @@ Say: Done.
       {
         title: "Broken",
         status: "active",
-        audience: "anchor",
+        audience: "admin",
         completionMode: "agent-confirmed",
       },
       {

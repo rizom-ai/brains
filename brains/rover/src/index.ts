@@ -272,18 +272,18 @@ const roverBrain: BrainDefinition = defineBrain({
 
   permissions: {
     rules: [
-      { pattern: "cli:*", level: "anchor" },
-      { pattern: "mcp:stdio", level: "anchor" },
+      { pattern: "cli:*", level: "admin" },
+      { pattern: "mcp:stdio", level: "admin" },
       { pattern: "mcp:http", level: "public" },
       { pattern: "discord:*", level: "public" },
-      { pattern: "web-chat:*", level: "anchor" },
+      { pattern: "web-chat:*", level: "admin" },
     ],
     entityActions: {
       "*": {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
+        create: "admin",
+        update: "admin",
+        delete: "admin",
+        extract: "admin",
       },
     },
   },

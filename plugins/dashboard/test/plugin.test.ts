@@ -119,7 +119,7 @@ describe("DashboardPlugin", () => {
       expect(response?.status).toBe(401);
     });
 
-    it("should require Anchor access for the console jump", async () => {
+    it("should require Admin access for the console jump", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-jump-trusted-${Date.now()}`,
       });
@@ -342,7 +342,7 @@ describe("DashboardPlugin", () => {
         kind: "admin",
         pluginId: "cms",
         priority: 40,
-        visibility: "anchor",
+        visibility: "admin",
       });
 
       const routes = plugin.getWebRoutes();
@@ -368,7 +368,7 @@ describe("DashboardPlugin", () => {
         section: "primary",
         priority: 10,
         rendererName: "PipelineWidget",
-        visibility: "anchor",
+        visibility: "admin",
         dataProvider: async () => ({ summary: {}, items: [] }),
       });
 
@@ -479,7 +479,7 @@ describe("DashboardPlugin", () => {
         url: "/cms",
         pluginId: "cms",
         priority: 40,
-        visibility: "anchor",
+        visibility: "admin",
       });
 
       const routes = plugin.getWebRoutes();
@@ -497,19 +497,19 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain('href="#people"');
     });
 
-    it("should show anchor endpoints and interactions without embedding People", async () => {
+    it("should show Admin endpoints and interactions without embedding People", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-auth-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const anchorUser = await authPlugin.getService().createUser({
+      const adminUser = await authPlugin.getService().createUser({
         displayName: "Yeehaa",
-        role: "anchor",
+        role: "admin",
         status: "active",
       });
       const session = await authPlugin
         .getService()
-        .createAuthSession(anchorUser.userId);
+        .createAuthSession(adminUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({
@@ -524,7 +524,7 @@ describe("DashboardPlugin", () => {
         url: "/cms",
         pluginId: "cms",
         priority: 40,
-        visibility: "anchor",
+        visibility: "admin",
       });
       shell.registerInteraction({
         id: "cms",
@@ -533,7 +533,7 @@ describe("DashboardPlugin", () => {
         kind: "admin",
         pluginId: "cms",
         priority: 40,
-        visibility: "anchor",
+        visibility: "admin",
       });
 
       const routes = plugin.getWebRoutes();
@@ -545,7 +545,7 @@ describe("DashboardPlugin", () => {
       const html = await response?.text();
 
       expect(html).toContain("Yeehaa");
-      expect(html).toContain("Anchor");
+      expect(html).toContain("Admin");
       expect(html).toContain("MCP");
       expect(html).toContain("CMS");
       expect(html).not.toContain('href="#people"');

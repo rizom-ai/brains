@@ -33,7 +33,7 @@ permissions:
           id: green-software-foundation
     responseNotContains:
       - "done"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_update
         shouldBeCalled: true

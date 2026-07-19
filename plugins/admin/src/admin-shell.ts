@@ -11,8 +11,11 @@ import type { AuthAdminRole } from "@brains/auth-service/admin-contracts";
 export interface AdminShellOptions {
   assetPath: string;
   routePath: string;
+  userId: string;
   displayName: string;
   role: AuthAdminRole;
+  isAnchor: boolean;
+  brainName: string;
   registeredInterfaces: string[];
   surfaces: ConsoleSurface[];
   sessionHref: string;
@@ -74,7 +77,10 @@ ${CONSOLE_THEME_CSS}
     <main
       id="root"
       data-people-root
+      data-people-user-id="${escapeAttribute(options.userId)}"
       data-people-role="${options.role}"
+      data-people-is-anchor="${String(options.isAnchor)}"
+      data-people-brain-name="${escapeAttribute(options.brainName)}"
       data-people-interfaces="${escapeAttribute(options.registeredInterfaces.join(","))}"
       data-people-name="${escapeAttribute(options.displayName)}"
       data-people-route="${escapeAttribute(options.routePath)}"

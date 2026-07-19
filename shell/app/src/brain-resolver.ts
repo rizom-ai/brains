@@ -46,20 +46,20 @@ import { getPackage, hasPackage } from "./package-registry";
 
 const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
   "*": {
-    create: "anchor",
-    update: "anchor",
-    delete: "anchor",
-    extract: "anchor",
-    publish: "anchor",
+    create: "admin",
+    update: "admin",
+    delete: "admin",
+    extract: "admin",
+    publish: "admin",
   },
   "anchor-profile": {
     create: "never",
-    update: "anchor",
+    update: "admin",
     delete: "never",
   },
   "brain-character": {
     create: "never",
-    update: "anchor",
+    update: "admin",
     delete: "never",
   },
 };
@@ -634,7 +634,7 @@ export function resolve(
 /**
  * Build the permissions config by merging definition defaults with yaml overrides.
  *
- * Priority: yaml `permissions` section > yaml top-level `anchors`/`trusted` > definition defaults
+ * Priority: yaml `permissions` section > yaml top-level `admins`/`anchors`/`trusted` > definition defaults
  */
 function buildPermissions(
   definitionPerms: BrainDefinition["permissions"],
@@ -655,10 +655,12 @@ function buildPermissions(
   return {
     permissions: {
       ...(definitionPerms ?? {}),
-      // Top-level anchors/trusted (legacy path)
+      // Top-level values remain a compatibility input path.
+      ...(overrides?.admins && { admins: overrides.admins }),
       ...(overrides?.anchors && { anchors: overrides.anchors }),
       ...(overrides?.trusted && { trusted: overrides.trusted }),
-      // yaml permissions section takes priority
+      // The nested permissions section takes priority.
+      ...(yamlPerms?.admins && { admins: yamlPerms.admins }),
       ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
       ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
@@ -709,7 +711,7 @@ const ENTITY_ACTION_RESTRICTIVENESS: Record<EntityActionRequiredLevel, number> =
   {
     public: 0,
     trusted: 1,
-    anchor: 2,
+    admin: 2,
     never: 3,
   };
 

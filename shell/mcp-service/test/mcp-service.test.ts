@@ -194,18 +194,18 @@ describe("MCPService", () => {
   });
 
   describe("tool registration", () => {
-    it("should register a tool with anchor permission", () => {
+    it("should register a tool with admin permission", () => {
       const tool: Tool = {
         name: "test_tool",
         description: "Test tool",
         inputSchema: {
           input: z.string(),
         },
-        visibility: "anchor",
+        visibility: "admin",
         handler: async () => ({ success: true, data: "Test success" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("test-plugin", tool);
 
       const tools = mcpService.listTools();
@@ -247,12 +247,13 @@ describe("MCPService", () => {
         inputSchema: {
           input: z.string(),
         },
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "none",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
+      mcpService.setAnchorStatus(true);
       mcpService.registerTool("metadata-plugin", tool);
 
       await callProtocolTool(
@@ -284,7 +285,8 @@ describe("MCPService", () => {
           },
           channelId: "room-1",
           channelName: "Room One",
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: true,
         },
         sender: "MCPService",
       });
@@ -295,12 +297,12 @@ describe("MCPService", () => {
         name: "verified_subject_tool",
         description: "Verified subject tool",
         inputSchema: {},
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "none",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("metadata-plugin", tool);
 
       await callProtocolTool(
@@ -321,6 +323,7 @@ describe("MCPService", () => {
                 canonicalId: "user:verified-operator",
               },
               displayName: "Mira",
+              isAnchor: true,
             },
           },
         },
@@ -335,6 +338,7 @@ describe("MCPService", () => {
               canonicalId: "user:verified-operator",
             },
             displayName: "Mira",
+            isAnchor: true,
           }),
         }),
       );
@@ -438,7 +442,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "Plugin 2 success" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("plugin1", tool1);
       mcpService.registerTool("plugin2", tool2);
 
@@ -468,7 +472,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: {} }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("system", toolWithCli);
       mcpService.registerTool("system", toolWithoutCli);
 
@@ -486,7 +490,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: {} }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("internal", tool);
 
       expect(mcpService.getCliTools()).toHaveLength(0);
@@ -505,7 +509,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResource("test-plugin", resource);
 
       const resources = mcpService.listResources();
@@ -535,7 +539,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResource("plugin1", resource1);
       mcpService.registerResource("plugin2", resource2);
 
@@ -571,25 +575,25 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
-      const anchorTool: Tool = {
-        name: "anchor_tool",
-        description: "Anchor tool",
+      const adminTool: Tool = {
+        name: "admin_tool",
+        description: "Admin tool",
         inputSchema: {},
-        visibility: "anchor",
-        handler: async () => ({ success: true, data: "Anchor success" }),
+        visibility: "admin",
+        handler: async () => ({ success: true, data: "Admin success" }),
       };
 
       // Even with public permission, all tools are in the internal registry
       mcpService.setPermissionLevel("public");
       mcpService.registerTool("plugin", publicTool);
       mcpService.registerTool("plugin", trustedTool);
-      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", adminTool);
 
       const tools = mcpService.listTools();
       expect(tools.map((t) => t.tool.name)).toEqual([
         "public_tool",
         "trusted_tool",
-        "anchor_tool",
+        "admin_tool",
       ]);
 
       // Per-call filtering still works correctly
@@ -604,10 +608,8 @@ describe("MCPService", () => {
           .map((t) => t.tool.name),
       ).toEqual(["public_tool", "trusted_tool"]);
       expect(
-        mcpService
-          .listToolsForPermissionLevel("anchor")
-          .map((t) => t.tool.name),
-      ).toEqual(["public_tool", "trusted_tool", "anchor_tool"]);
+        mcpService.listToolsForPermissionLevel("admin").map((t) => t.tool.name),
+      ).toEqual(["public_tool", "trusted_tool", "admin_tool"]);
     });
   });
 
@@ -649,14 +651,14 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("system", readTool);
       mcpService.registerTool("system", writeTool);
       mcpService.registerTool("mcp", chatTool);
       mcpService.registerTool("mcp", confirmTool);
 
       expect(
-        listProtocolToolNames(mcpService.createMcpServer("anchor")),
+        listProtocolToolNames(mcpService.createMcpServer("admin")),
       ).toEqual(["search", "chat", "confirm"]);
       expect(
         getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
@@ -713,14 +715,14 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerTool("system", readTool);
       mcpService.registerTool("system", writeTool);
       mcpService.registerTool("mcp", chatTool);
       mcpService.registerTool("mcp", confirmTool);
 
       const client = new Client({ name: "mcp-test", version: "1.0.0" });
-      const mcpServer = mcpService.createMcpServer("anchor");
+      const mcpServer = mcpService.createMcpServer("admin");
       const [clientTransport, serverTransport] =
         InMemoryTransport.createLinkedPair();
 
@@ -774,12 +776,12 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "trusted" }),
       };
 
-      const anchorTool: Tool = {
-        name: "fresh_anchor_tool",
-        description: "Anchor tool",
+      const adminTool: Tool = {
+        name: "fresh_admin_tool",
+        description: "Admin tool",
         inputSchema: {},
-        visibility: "anchor",
-        handler: async () => ({ success: true, data: "anchor" }),
+        visibility: "admin",
+        handler: async () => ({ success: true, data: "admin" }),
       };
 
       const defaultTool: Tool = {
@@ -791,7 +793,7 @@ describe("MCPService", () => {
 
       mcpService.registerTool("plugin", publicTool);
       mcpService.registerTool("plugin", trustedTool);
-      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", adminTool);
       mcpService.registerTool("plugin", defaultTool);
 
       expect(
@@ -801,11 +803,11 @@ describe("MCPService", () => {
         listProtocolToolNames(mcpService.createMcpServer("trusted")),
       ).toEqual(["fresh_public_tool", "fresh_trusted_tool"]);
       expect(
-        listProtocolToolNames(mcpService.createMcpServer("anchor")),
+        listProtocolToolNames(mcpService.createMcpServer("admin")),
       ).toEqual([
         "fresh_public_tool",
         "fresh_trusted_tool",
-        "fresh_anchor_tool",
+        "fresh_admin_tool",
         "fresh_default_tool",
       ]);
     });
@@ -820,17 +822,17 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "public" }),
       };
 
-      const anchorTool: Tool = {
-        name: "current_anchor_tool",
-        description: "Anchor tool",
+      const adminTool: Tool = {
+        name: "current_admin_tool",
+        description: "Admin tool",
         inputSchema: {},
-        visibility: "anchor",
-        handler: async () => ({ success: true, data: "anchor" }),
+        visibility: "admin",
+        handler: async () => ({ success: true, data: "admin" }),
       };
 
       mcpService.setPermissionLevel("public");
       mcpService.registerTool("plugin", publicTool);
-      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", adminTool);
 
       expect(listProtocolToolNames(mcpService.createMcpServer())).toEqual([
         "current_public_tool",
@@ -840,10 +842,10 @@ describe("MCPService", () => {
 
   describe("listToolsForPermissionLevel", () => {
     beforeEach(() => {
-      // Register all tools with anchor permission (full access)
+      // Register all tools with admin permission (full access)
       MCPService.resetInstance();
       mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
 
       const publicTool: Tool = {
         name: "public_tool",
@@ -861,15 +863,15 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
-      const anchorTool: Tool = {
-        name: "anchor_tool",
-        description: "Anchor tool",
+      const adminTool: Tool = {
+        name: "admin_tool",
+        description: "Admin tool",
         inputSchema: {},
-        visibility: "anchor",
-        handler: async () => ({ success: true, data: "Anchor success" }),
+        visibility: "admin",
+        handler: async () => ({ success: true, data: "Admin success" }),
       };
 
-      // Tool with default visibility (should be anchor)
+      // Tool with default visibility (should be admin)
       const defaultTool: Tool = {
         name: "default_tool",
         description: "Tool with default visibility",
@@ -879,7 +881,7 @@ describe("MCPService", () => {
 
       mcpService.registerTool("plugin", publicTool);
       mcpService.registerTool("plugin", trustedTool);
-      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", adminTool);
       mcpService.registerTool("plugin", defaultTool);
     });
 
@@ -896,13 +898,13 @@ describe("MCPService", () => {
       ]);
     });
 
-    it("should return all tools for anchor users", () => {
-      const tools = mcpService.listToolsForPermissionLevel("anchor");
+    it("should return all tools for admin users", () => {
+      const tools = mcpService.listToolsForPermissionLevel("admin");
       expect(tools.map((t) => t.tool.name)).toEqual([
         "public_tool",
         "trusted_tool",
-        "anchor_tool",
-        "default_tool", // Default visibility is anchor
+        "admin_tool",
+        "default_tool", // Default visibility is admin
       ]);
     });
 
@@ -912,9 +914,9 @@ describe("MCPService", () => {
       const publicUserTools = mcpService.listToolsForPermissionLevel("public");
       expect(publicUserTools.length).toBe(1);
 
-      // User 2: anchor permission (same room, different message)
-      const anchorUserTools = mcpService.listToolsForPermissionLevel("anchor");
-      expect(anchorUserTools.length).toBe(4);
+      // User 2: admin permission (same room, different message)
+      const adminUserTools = mcpService.listToolsForPermissionLevel("admin");
+      expect(adminUserTools.length).toBe(4);
 
       // User 1 again: still only sees public tools
       const publicUserToolsAgain =
@@ -941,7 +943,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
 
       // Should not throw (URI is valid, description is not used as URI)
       expect(() =>
@@ -966,7 +968,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResource("system", resource);
 
       // Verify handler returns raw text, not JSON-wrapped text
@@ -1114,8 +1116,8 @@ describe("MCPService", () => {
       ).not.toContain("entity-detail");
     });
 
-    it("exposes templates on the default server when service permission is anchor", () => {
-      mcpService.setPermissionLevel("anchor");
+    it("exposes templates on the default server when service permission is admin", () => {
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResourceTemplate(
         "system",
         makeTemplate("entity-list"),
@@ -1127,7 +1129,7 @@ describe("MCPService", () => {
     });
 
     it("filters templates per-session in createMcpServer based on requested permission", () => {
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResourceTemplate(
         "system",
         makeTemplate("entity-list"),
@@ -1144,12 +1146,12 @@ describe("MCPService", () => {
         ),
       ).not.toContain("entity-list");
       expect(
-        listProtocolResourceTemplateNames(mcpService.createMcpServer("anchor")),
+        listProtocolResourceTemplateNames(mcpService.createMcpServer("admin")),
       ).toContain("entity-list");
     });
 
     it("removes resource templates from the default server when permission is lowered", () => {
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResourceTemplate(
         "system",
         makeTemplate("entity-list"),
@@ -1172,10 +1174,10 @@ describe("MCPService", () => {
 
       // Internal listResources doesn't return templates today, but the lower-
       // permission session must not expose them. If we later add a list API
-      // for templates, it should still surface them so anchor sessions can
-      // re-expose them via createMcpServer("anchor").
-      const anchorServer = mcpService.createMcpServer("anchor");
-      expect(listProtocolResourceTemplateNames(anchorServer)).toContain(
+      // for templates, it should still surface them so Admin sessions can
+      // re-expose them via createMcpServer("admin").
+      const adminServer = mcpService.createMcpServer("admin");
+      expect(listProtocolResourceTemplateNames(adminServer)).toContain(
         "entity-list",
       );
     });
@@ -1193,7 +1195,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResource("system", resource);
 
       expect(
@@ -1203,7 +1205,7 @@ describe("MCPService", () => {
         listProtocolResourceUris(mcpService.createMcpServer("trusted")),
       ).not.toContain("entity://types");
       expect(
-        listProtocolResourceUris(mcpService.createMcpServer("anchor")),
+        listProtocolResourceUris(mcpService.createMcpServer("admin")),
       ).toContain("entity://types");
     });
 
@@ -1218,7 +1220,7 @@ describe("MCPService", () => {
         }),
       };
 
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerResource("system", resource);
       expect(listProtocolResourceUris(mcpService.getMcpServer())).toContain(
         "entity://types",
@@ -1304,33 +1306,33 @@ describe("MCPService", () => {
 
     it("does not expose prompts on the default server when service permission is public", () => {
       mcpService.setPermissionLevel("public");
-      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+      mcpService.registerPrompt("system", makePrompt("admin-prompt"));
 
       expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
-        "anchor-prompt",
+        "admin-prompt",
       );
     });
 
-    it("does not expose anchor-default prompts on the default server when service permission is trusted", () => {
+    it("does not expose admin-default prompts on the default server when service permission is trusted", () => {
       mcpService.setPermissionLevel("trusted");
-      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+      mcpService.registerPrompt("system", makePrompt("admin-prompt"));
 
       expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
-        "anchor-prompt",
+        "admin-prompt",
       );
     });
 
-    it("exposes prompts on the default server when service permission is anchor", () => {
-      mcpService.setPermissionLevel("anchor");
-      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+    it("exposes prompts on the default server when service permission is admin", () => {
+      mcpService.setPermissionLevel("admin");
+      mcpService.registerPrompt("system", makePrompt("admin-prompt"));
 
       expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
-        "anchor-prompt",
+        "admin-prompt",
       );
     });
 
     it("exposes explicitly public prompts to public sessions", () => {
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerPrompt(
         "system",
         makePrompt("public-prompt", "public"),
@@ -1342,7 +1344,7 @@ describe("MCPService", () => {
     });
 
     it("filters prompts per-session in createMcpServer based on requested permission", () => {
-      mcpService.setPermissionLevel("anchor");
+      mcpService.setPermissionLevel("admin");
       mcpService.registerPrompt(
         "system",
         makePrompt("public-prompt", "public"),
@@ -1351,7 +1353,7 @@ describe("MCPService", () => {
         "system",
         makePrompt("trusted-prompt", "trusted"),
       );
-      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+      mcpService.registerPrompt("system", makePrompt("admin-prompt"));
 
       expect(
         listProtocolPromptNames(mcpService.createMcpServer("public")),
@@ -1360,29 +1362,29 @@ describe("MCPService", () => {
         listProtocolPromptNames(mcpService.createMcpServer("trusted")),
       ).toEqual(["public-prompt", "trusted-prompt"]);
       expect(
-        listProtocolPromptNames(mcpService.createMcpServer("anchor")),
-      ).toEqual(["public-prompt", "trusted-prompt", "anchor-prompt"]);
+        listProtocolPromptNames(mcpService.createMcpServer("admin")),
+      ).toEqual(["public-prompt", "trusted-prompt", "admin-prompt"]);
     });
 
-    it("removes anchor prompts from the default server when permission is lowered", () => {
-      mcpService.setPermissionLevel("anchor");
-      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+    it("removes admin prompts from the default server when permission is lowered", () => {
+      mcpService.setPermissionLevel("admin");
+      mcpService.registerPrompt("system", makePrompt("admin-prompt"));
       expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
-        "anchor-prompt",
+        "admin-prompt",
       );
 
       mcpService.setPermissionLevel("public");
 
       expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
-        "anchor-prompt",
+        "admin-prompt",
       );
     });
   });
 
   describe("tool registration ordering", () => {
-    it("should not drop anchor tools registered after setPermissionLevel(public)", () => {
+    it("should not drop admin tools registered after setPermissionLevel(public)", () => {
       // Regression: MCP interface calls setPermissionLevel("public") during daemon
-      // start (no auth token). System tools are registered after that. Anchor tools
+      // start (no auth token). System tools are registered after that. Admin tools
       // were silently dropped from the internal registry, breaking the agent.
       const publicTool: Tool = {
         name: "system_search",
@@ -1392,22 +1394,22 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      const anchorTool: Tool = {
+      const adminTool: Tool = {
         name: "system_create",
         description: "Create entity",
         inputSchema: {},
-        visibility: "anchor",
+        visibility: "admin",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
-      // Simulate: tools registered at anchor level during plugin init
+      // Simulate: tools registered at admin level during plugin init
       mcpService.registerTool("system", publicTool);
 
       // Simulate: MCP interface sets permission to public (no auth token)
       mcpService.setPermissionLevel("public");
 
       // Simulate: system tools registered after MCP interface starts
-      mcpService.registerTool("system", anchorTool);
+      mcpService.registerTool("system", adminTool);
 
       // The internal registry should have both tools — agent needs them
       const allTools = mcpService.listTools();
@@ -1418,9 +1420,9 @@ describe("MCPService", () => {
       const publicTools = mcpService.listToolsForPermissionLevel("public");
       expect(publicTools.map((t) => t.tool.name)).toEqual(["system_search"]);
 
-      const anchorTools = mcpService.listToolsForPermissionLevel("anchor");
-      expect(anchorTools.map((t) => t.tool.name)).toContain("system_search");
-      expect(anchorTools.map((t) => t.tool.name)).toContain("system_create");
+      const adminTools = mcpService.listToolsForPermissionLevel("admin");
+      expect(adminTools.map((t) => t.tool.name)).toContain("system_search");
+      expect(adminTools.map((t) => t.tool.name)).toContain("system_create");
     });
   });
 });

@@ -13,6 +13,7 @@ tags:
 
 setup:
   permissionLevel: public
+  isAnchor: false
 
 turns:
   - userMessage: "Am I your anchor?"

@@ -8,11 +8,11 @@ describe("Relay entity action policy", () => {
     const policy = config.permissions?.entityActions;
 
     expect(policy?.["*"]).toEqual({
-      create: "anchor",
-      update: "anchor",
-      delete: "anchor",
-      extract: "anchor",
-      publish: "anchor",
+      create: "admin",
+      update: "admin",
+      delete: "admin",
+      extract: "admin",
+      publish: "admin",
     });
 
     for (const entityType of [
@@ -27,7 +27,7 @@ describe("Relay entity action policy", () => {
       expect(policy?.[entityType]).toEqual({
         create: "trusted",
         update: "trusted",
-        delete: "anchor",
+        delete: "admin",
       });
     }
 

@@ -45,7 +45,7 @@ interface StreamDeps {
 async function deniedArtifactCardIds(
   deps: StreamDeps,
   response: Pick<AgentResponse, "cards">,
-  userLevel: "anchor" | "public",
+  userLevel: "admin" | "public",
 ): Promise<Set<string>> {
   return collectDeniedArtifactCardIds({
     cards: response.cards,
@@ -61,13 +61,14 @@ interface WebChatPrincipalAttribution {
   userId: string;
   canonicalId?: string;
   displayName: string;
+  isAnchor: boolean;
 }
 
 interface StreamedChatInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   message: string;
-  permissionLevel: "anchor" | "public";
+  permissionLevel: "admin" | "public";
   principal?: WebChatPrincipalAttribution;
   attachments: ChatAttachment[];
   messageId?: string;
@@ -125,7 +126,7 @@ interface StreamedConfirmationsInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   approvalResponses: ApprovalResponse[];
-  permissionLevel: "anchor" | "public";
+  permissionLevel: "admin" | "public";
   principal?: WebChatPrincipalAttribution;
   interfaceType: string;
   signal?: AbortSignal;
@@ -184,7 +185,7 @@ function buildWebChatContext(
   input: {
     conversationId: string;
     interfaceType: string;
-    permissionLevel: "anchor" | "public";
+    permissionLevel: "admin" | "public";
     principal?: WebChatPrincipalAttribution;
     messageId?: string;
   },
@@ -192,6 +193,7 @@ function buildWebChatContext(
 ): ChatContext {
   return {
     userPermissionLevel: input.permissionLevel,
+    isAnchor: input.principal?.isAnchor ?? false,
     interfaceType: input.interfaceType,
     channelId: input.conversationId,
     channelName: "Web Chat",

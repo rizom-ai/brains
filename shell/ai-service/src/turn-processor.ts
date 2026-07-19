@@ -92,6 +92,7 @@ export class TurnProcessor {
       channelId,
       channelName,
       userPermissionLevel,
+      isAnchor,
       actor,
       source,
       attachments,
@@ -235,6 +236,7 @@ export class TurnProcessor {
     const callOptions = buildBrainCallOptions({
       hasAccessibleUploads,
       userPermissionLevel,
+      isAnchor,
       conversationId,
       channelId,
       channelName,
@@ -327,6 +329,7 @@ export class TurnProcessor {
       channelId,
       channelName,
       userPermissionLevel,
+      isAnchor,
       actor,
     } = input;
     const attributedActor = await this.enrichActor(actor);
@@ -372,6 +375,7 @@ export class TurnProcessor {
           channelId,
           channelName,
           userPermissionLevel,
+          isAnchor,
           signal,
         });
     const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
@@ -454,6 +458,7 @@ export class TurnProcessor {
     channelId: string | undefined;
     channelName: string;
     userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+    isAnchor: boolean;
     signal: AbortSignal | undefined;
   }): Promise<AgentResponse | undefined> {
     params.signal?.throwIfAborted();
@@ -486,6 +491,7 @@ export class TurnProcessor {
       messages,
       options: {
         userPermissionLevel: params.userPermissionLevel,
+        isAnchor: params.isAnchor,
         conversationId: params.conversationId,
         ...(params.channelId ? { channelId: params.channelId } : {}),
         channelName: params.channelName,

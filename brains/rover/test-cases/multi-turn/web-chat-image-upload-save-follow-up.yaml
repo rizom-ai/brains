@@ -3,7 +3,7 @@ name: Web chat image upload follow-up promotes image
 description: Verifies a bare web-chat image upload is inert, then an explicit save-as-image follow-up uses system_create upload preserve with the prior upload ref instead of generating a new image.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-image-upload-save
   channelName: Web Chat Eval

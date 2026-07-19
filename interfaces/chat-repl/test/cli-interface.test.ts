@@ -156,7 +156,8 @@ describe("CLIInterface", () => {
         expect.stringContaining("Please reply with **yes**"),
       );
       expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1", {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
+        isAnchor: false,
         interfaceType: "cli",
       });
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete note?");
@@ -216,7 +217,8 @@ describe("CLIInterface", () => {
         false,
         "approval:call-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: false,
           interfaceType: "cli",
         },
       );
@@ -278,7 +280,8 @@ describe("CLIInterface", () => {
         "actually tell me about Rover",
         "cli",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: false,
           interfaceType: "cli",
           channelId: "cli",
           channelName: "CLI Terminal",
@@ -360,7 +363,8 @@ describe("CLIInterface", () => {
         true,
         "approval:call-2",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: false,
           interfaceType: "cli",
         },
       );
@@ -370,7 +374,8 @@ describe("CLIInterface", () => {
         false,
         "approval:call-1",
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
+          isAnchor: false,
           interfaceType: "cli",
         },
       );

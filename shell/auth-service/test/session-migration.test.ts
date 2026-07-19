@@ -69,7 +69,7 @@ describe("legacy browser session migration", () => {
         ),
       ).toMatchObject({
         userId: expect.stringMatching(/^usr_/),
-        permissionLevel: "anchor",
+        permissionLevel: "admin",
       });
     } finally {
       await second.close();

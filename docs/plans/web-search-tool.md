@@ -127,7 +127,7 @@ Example brain/app config:
 webSearch:
   enabled: true
   provider: tavily # tavily (first) | brave | searxng | native
-  visibility: trusted # anchor | trusted | public
+  visibility: trusted # admin | trusted | public
   maxResults: 5
   maxQueriesPerTurn: 3
   apiKey: ${WEB_SEARCH_API_KEY}
@@ -202,7 +202,7 @@ Minimum first-slice safeguards:
 - Query argument is generated explicitly by the model; no automatic history forwarding.
 - Tool logs include query/provider/result URLs, but not full page content.
 - Configurable max results and max queries per turn.
-- Conservative default visibility, preferably `anchor` unless a brain opts down to `trusted` or `public`.
+- Conservative default visibility, preferably `admin` unless a brain opts down to `trusted` or `public`.
 
 The structural guarantee — the tool receives only the model-generated `query` argument, never conversation history — is what makes the first slice safe, and it comes for free from the tool contract. Heuristic secret/PII detection that rejects or redacts suspicious queries is **later hardening**, not a first-slice requirement: the detector is itself error-prone, and nothing private is forwarded without it. Defer it (and its validation test) to Phase 3 or beyond rather than blocking the walking skeleton on it.
 
@@ -283,7 +283,7 @@ Manual checks:
 ## Open questions
 
 1. ~~Should the first real provider be Brave, Tavily, Exa, or SearXNG?~~ **Decided: Tavily first** (built for agents, citation-ready content, free tier to validate quality), Brave as the planned second adapter.
-2. Should default visibility be `anchor` or `trusted` when enabled?
+2. Should default visibility be `admin` or `trusted` when enabled?
 3. Should `web_fetch` ship in the same plugin later, or remain a separate capability?
 4. Where should hosted deployments store per-tenant search budget and usage counters?
 

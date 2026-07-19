@@ -1,29 +1,55 @@
 import type { AuthAdminUserSummary } from "@brains/auth-service/admin-contracts";
-import type { ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { initials, roleLabel } from "../format";
 
 export function Roster(props: {
   users: AuthAdminUserSummary[];
   selectedUserId: string | undefined;
+  currentUserId: string;
   onSelect: (userId: string) => void;
 }): ReactElement {
+  const [query, setQuery] = useState("");
+  const visibleUsers = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return props.users;
+    return props.users.filter((user) =>
+      [user.displayName, user.role, user.status].some((value) =>
+        value.toLowerCase().includes(normalized),
+      ),
+    );
+  }, [props.users, query]);
+
   return (
-    <section className="card people-roster" aria-label="People list">
-      <header className="people-card-head">
-        <span className="people-card-title">Access roster</span>
-        <span className="people-count">
-          {props.users.length} {props.users.length === 1 ? "person" : "people"}
-        </span>
-      </header>
+    <section className="card people-roster" aria-label="Members list">
+      <label className="people-roster-search">
+        <span aria-hidden="true">⌕</span>
+        <input
+          value={query}
+          placeholder="Search members…"
+          aria-label="Search members"
+          onChange={(event) => setQuery(event.currentTarget.value)}
+        />
+      </label>
       <div className="people-list" aria-live="polite">
-        {props.users.length === 0 ? (
-          <p className="people-empty">No people have been added.</p>
+        {visibleUsers.length === 0 ? (
+          <p className="people-empty">
+            {props.users.length === 0
+              ? "No members have been added."
+              : "No members match this search."}
+          </p>
         ) : (
-          props.users.map((user) => {
-            const agentCount = user.agents.filter(
-              (agent) => agent.status !== "revoked",
-            ).length;
+          visibleUsers.map((user) => {
             const selected = user.userId === props.selectedUserId;
+            const identityKinds = [
+              ...(user.userId === props.currentUserId ? ["you"] : []),
+              ...new Set(
+                user.identities
+                  .filter((identity) => identity.revokedAt === undefined)
+                  .map((identity) => roleLabel(identity.type).toLowerCase()),
+              ),
+              ...(user.passkeys.length > 0 ? ["passkey"] : []),
+              ...(user.status === "invited" ? ["invited"] : []),
+            ];
             return (
               <button
                 key={user.userId}
@@ -34,24 +60,25 @@ export function Roster(props: {
               >
                 <span className="people-avatar">
                   {initials(user.displayName)}
+                  {user.isAnchor && (
+                    <span className="people-anchor-pin" title="Brain Anchor">
+                      ⚓
+                    </span>
+                  )}
                 </span>
                 <span className="people-row-identity">
                   <span className="people-row-name">{user.displayName}</span>
                   <span className="people-row-meta">
-                    {agentCount} linked {agentCount === 1 ? "agent" : "agents"}
-                    {" · "}
-                    {user.identities.length} identities
+                    {identityKinds.length > 0
+                      ? identityKinds.join(" · ")
+                      : roleLabel(user.status)}
                   </span>
                 </span>
                 <span className="people-row-access">
                   <span className={`people-role people-role--${user.role}`}>
                     {roleLabel(user.role)}
                   </span>
-                  <span
-                    className={`people-status people-status--${user.status}`}
-                  >
-                    {roleLabel(user.status)}
-                  </span>
+                  <span className="people-host-chip">Hosted</span>
                 </span>
               </button>
             );

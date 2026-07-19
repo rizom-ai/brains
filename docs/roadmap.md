@@ -104,7 +104,7 @@ Current state of the collective posture:
 - conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval;
 - speaker attribution first pass is implemented: messages preserve actor/source metadata and summaries track participants; deeper identity-link management remains deferred to §3;
 - the shared-space trust first slice is implemented: configured spaces grant collaborator/trusted access, with Discord channel context and bot/guest exclusions;
-- multi-user turn context and permission boundaries are under eval: the core suite replays anchor/trusted/public conversations in one thread and guards approval-hijack and shared-thread write denials.
+- multi-user turn context and permission boundaries are under eval: the core suite replays admin/trusted/public conversations in one thread and guards approval-hijack and shared-thread write denials.
 
 The collective posture validates when:
 
@@ -112,7 +112,7 @@ The collective posture validates when:
 - summaries, decisions, and action items are referenced back by participants as the canonical record;
 - the rough edges in trust and identity are visible enough to drive §3 prioritization rather than blocking adoption.
 
-Until then it remains an internal experiment owned by `rizom-foundation`. Note the hard line: the `team` posture ships a _permission posture_ (trusted-collaborator writes), which is collaboration on the single-anchor model — **not** true multi-user. That substrate is §3.
+Until then it remains an internal experiment owned by `rizom-foundation`. The runtime now provides true multi-user identities and Admin/Anchor separation; the remaining validation is sustained team use of that substrate, not a missing authorization model.
 
 To differentiate as more than "the personal posture minus publishing," the collective posture needs team-native capabilities that don't exist yet — meeting notes, decision records, conversational Q&A over the brain ("ask the team"), and a scheduled team digest — built as dedicated plugins rather than reused publishing stack.
 
@@ -122,7 +122,7 @@ Plans:
 
 ### 3. Trust & identity — the frontier
 
-This is now **the** open problem. Once posture is configuration (§1), the only thing that setting cannot fake is real multi-user: distinct people, each a first-class runtime identity with their own auth, roles, per-user state, and cross-interface identity linking. The `team` posture ships a permission _tier_ (trusted-collaborator) on the single-anchor model; turning that tier into an actual roster of people is the substrate work here.
+The runtime substrate is implemented: distinct people have private auth users, roles, per-user state, canonical attribution, and cross-interface identity links. Admin permission and Anchor ownership are independent facets. The frontier now moves to real-world trust calibration, profile-on-subjects, and sustained collective-brain validation.
 
 It carries a genuine architectural puzzle: content is markdown/git-synced and shareable, but user identity and auth **must not** be git-synced — so multi-user needs a second data plane (a runtime DB) beside the content plane. This is **not posture-specific**: every brain runs on the same auth, runtime-user, and signing layer. The bar is enough identity and provenance to support real collaboration without prematurely becoming a full SaaS account system.
 
@@ -138,13 +138,13 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — database-backed auth, People administration, Admin/Anchor invariants, session migration, normalized identity evidence, and the standalone Admin console are implemented on `feature/auth-runtime-db`; final validation precedes merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 - [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
 ### 4. Hosting & operations
 
-Making brains installable, maintainable, and recoverable by operators: fleet/hosting shape, onboarding, and safe offboarding. Driven today by the **hosted personal-brain pilot** (most plans here are pilot ops), but the same machinery hosts the collective posture later. The multi-user admin surfaces depend on the runtime-user model from §3 and cannot land before it; first-passkey bootstrap, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have already shipped, so operator onboarding is no longer a standing plan.
+Making brains installable, maintainable, and recoverable by operators: fleet/hosting shape, onboarding, and safe offboarding. Driven today by the **hosted personal-brain pilot** (most plans here are pilot ops), but the same machinery hosts the collective posture later. The multi-user admin surfaces depend on the runtime-user model from §3 and cannot land before it; first-passkey bootstrap, Admin-only setup URL retrieval, auth-service plugin bridging, and setup-email delivery have already shipped, so operator onboarding is no longer a standing plan.
 
 This includes:
 

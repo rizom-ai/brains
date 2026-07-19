@@ -131,8 +131,8 @@ describe("directory-sync_history tool", () => {
       expect(tool.name).toBe("directory-sync_history");
     });
 
-    it("declares anchor-only read semantics", () => {
-      expect(tool.visibility).toBe("anchor");
+    it("declares admin-only read semantics", () => {
+      expect(tool.visibility).toBe("admin");
       expect(tool.sideEffects).toBe("none");
     });
 

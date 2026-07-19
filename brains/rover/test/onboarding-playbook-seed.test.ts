@@ -21,7 +21,7 @@ describe("Rover onboarding playbook bundle", () => {
 
     expect(frontmatter).toEqual(
       expect.objectContaining({
-        trigger: "first-anchor-web-chat",
+        trigger: "first-admin-web-chat",
         lifecycle: "onboarding",
         starterText: "Set up Rover",
         description:

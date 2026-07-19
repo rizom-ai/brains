@@ -6,7 +6,7 @@ description: >-
   the original upload again under a duplicate name.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-text-upload-edit-save-note
   channelName: Web Chat Eval

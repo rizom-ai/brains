@@ -4,7 +4,7 @@ summary: Newer image upload should be the referent for "the uploaded image" even
 description: Verifies that after multiple uploads, including a previous image and a PDF, a singular "Describe the uploaded image" follow-up resolves to the latest image upload instead of asking which prior image is meant.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-latest-image-upload-describe
   channelName: Web Chat Eval

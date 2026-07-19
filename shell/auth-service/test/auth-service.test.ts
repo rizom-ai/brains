@@ -169,7 +169,7 @@ describe("AuthService", () => {
     });
   });
 
-  it("does not allow A2A peer trust grants to confer anchor permission", async () => {
+  it("does not allow A2A peer trust grants to confer admin permission", async () => {
     const service = new AuthService({ storageDir: await tempStorageDir() });
 
     let caught: unknown;
@@ -177,7 +177,7 @@ describe("AuthService", () => {
       await service.grantA2APeerTrust({
         domain: "remote.example",
         keyFingerprint: "fingerprint-1",
-        grantedLevel: "anchor",
+        grantedLevel: "admin",
       });
     } catch (error) {
       caught = error;
@@ -336,7 +336,7 @@ describe("AuthService", () => {
     const options = await optionsResponse.json();
     expect(options).toMatchObject({
       rp: { name: "Brain", id: "localhost" },
-      user: { name: "Anchor", displayName: "Anchor" },
+      user: { name: "Admin", displayName: "Admin" },
       attestation: "none",
     });
     expect(typeof options.challenge).toBe("string");
@@ -425,7 +425,7 @@ describe("AuthService", () => {
     expect(log).not.toContain("setup_");
   });
 
-  it("registers an anchor-visible tool to retrieve the active passkey setup URL", async () => {
+  it("registers an Admin-only tool to retrieve the active passkey setup URL", async () => {
     const storageDir = await tempStorageDir();
     const harness = new PluginTestHarness({ domain: "brain.example.com" });
     await harness.installPlugin(
@@ -441,7 +441,7 @@ describe("AuthService", () => {
         candidate.name.includes("get_passkey_setup_url"),
       );
     expect(tool).toBeDefined();
-    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("none");
 
     const response = await harness.executeTool(tool?.name ?? "", {});
@@ -1470,7 +1470,7 @@ describe("AuthService", () => {
           headers: { cookie: legacyCookie },
         }),
       ),
-    ).toMatchObject({ permissionLevel: "anchor" });
+    ).toMatchObject({ permissionLevel: "admin" });
   });
 
   it("prefers the current cookie when both browser cookie names are present", async () => {

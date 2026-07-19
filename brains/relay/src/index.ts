@@ -197,31 +197,31 @@ const relayBrain: BrainDefinition = defineBrain({
 
   permissions: {
     rules: [
-      { pattern: "cli:*", level: "anchor" },
-      { pattern: "mcp:stdio", level: "anchor" },
-      { pattern: "mcp:http", level: "anchor" },
+      { pattern: "cli:*", level: "admin" },
+      { pattern: "mcp:stdio", level: "admin" },
+      { pattern: "mcp:http", level: "admin" },
       { pattern: "discord:*", level: "public" },
-      { pattern: "web-chat:*", level: "anchor" },
+      { pattern: "web-chat:*", level: "admin" },
     ],
     // Only team-authored entity types are loosened to trusted create/update.
     // Derived/system-maintained types (summary, topic, agent, skill, swot,
     // site-info, prompt, brain-character, anchor-profile, ...) are
-    // intentionally absent — they inherit the anchor-only platform fallback
+    // intentionally absent — they inherit the admin-only platform fallback
     // from PLATFORM_ENTITY_ACTION_DEFAULTS. Adding a new derived type does
     // not require a relay-side change; adding a new collaborator-authored
     // type does.
     entityActions: {
-      note: { create: "trusted", update: "trusted", delete: "anchor" },
-      link: { create: "trusted", update: "trusted", delete: "anchor" },
-      doc: { create: "trusted", update: "trusted", delete: "anchor" },
-      deck: { create: "trusted", update: "trusted", delete: "anchor" },
-      decision: { create: "trusted", update: "trusted", delete: "anchor" },
+      note: { create: "trusted", update: "trusted", delete: "admin" },
+      link: { create: "trusted", update: "trusted", delete: "admin" },
+      doc: { create: "trusted", update: "trusted", delete: "admin" },
+      deck: { create: "trusted", update: "trusted", delete: "admin" },
+      decision: { create: "trusted", update: "trusted", delete: "admin" },
       "action-item": {
         create: "trusted",
         update: "trusted",
-        delete: "anchor",
+        delete: "admin",
       },
-      image: { create: "trusted", update: "trusted", delete: "anchor" },
+      image: { create: "trusted", update: "trusted", delete: "admin" },
     },
   },
 

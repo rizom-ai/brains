@@ -3,7 +3,7 @@ name: Cross-Reference Content
 description: Tests that the agent can find connections between different content types
 type: response_quality
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - search

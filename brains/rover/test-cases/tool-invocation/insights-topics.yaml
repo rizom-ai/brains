@@ -3,7 +3,7 @@ name: Content Insights — Topics
 description: Tests that the agent uses system_insights when asked about topic distribution
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - system

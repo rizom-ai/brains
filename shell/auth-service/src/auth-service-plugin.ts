@@ -183,9 +183,9 @@ export class AuthServicePlugin extends ServicePlugin<
       {
         name: `${this.id}_get_passkey_setup_url`,
         description:
-          "Get the first-passkey setup URL when passkey setup is required. Anchor-only.",
+          "Get the first-passkey setup URL when passkey setup is required. Admin-only.",
         inputSchema: {},
-        visibility: "anchor",
+        visibility: "admin",
         handler: async (): Promise<PasskeySetupToolResponse> => {
           const service = this.getService();
           if (await service.hasPasskeyCredentials()) {
@@ -330,6 +330,12 @@ export class AuthServicePlugin extends ServicePlugin<
       {
         path: "/revoke",
         method: "OPTIONS",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/admin/anchor",
+        method: "GET",
         public: true,
         handler,
       },

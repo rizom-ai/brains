@@ -66,7 +66,7 @@ describe("cms plugin", () => {
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
   });
 
-  it("does not grant CMS access to a non-Anchor session", async () => {
+  it("does not grant CMS access to a non-Admin session", async () => {
     const shell = createCmsTestShell();
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),

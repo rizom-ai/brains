@@ -30,7 +30,7 @@ describe("RemoteAgentService", () => {
       "conversation-1",
       true,
       "approval:delete",
-      { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+      { userPermissionLevel: "admin", interfaceType: "evaluation" },
     );
 
     const call = fetchMock.mock.calls[0];
@@ -108,7 +108,7 @@ describe("RemoteAgentService", () => {
       "hello",
       "conversation-1",
       {
-        userPermissionLevel: "anchor",
+        userPermissionLevel: "admin",
         interfaceType: "evaluation",
       },
       controller.signal,

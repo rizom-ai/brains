@@ -1,11 +1,11 @@
 id: relay-tool-passkey-setup-url
 name: Passkey setup URL retrieval
 description: >-
-  Verifies that an anchor can retrieve the generated first-passkey setup URL
+  Verifies that an Admin can retrieve the generated first-passkey setup URL
   through the auth-service tool instead of relying on logs or static env tokens.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - auth-service
@@ -16,7 +16,7 @@ tags:
 turns:
   - userMessage: >-
       I am the operator setting up this fresh brain. Get me the passkey setup
-      link so I can register the first operator passkey.
+      link so I can register the first Admin passkey.
 
 successCriteria:
   expectedTools:

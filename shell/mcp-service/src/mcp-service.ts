@@ -49,7 +49,8 @@ export class MCPService implements IMCPService {
   private readonly pluginInstructions = new Map<string, string>();
 
   // Default permission level and external protocol mode for the service
-  private permissionLevel: UserPermissionLevel = "anchor";
+  private permissionLevel: UserPermissionLevel = "admin";
+  private isAnchor = false;
   private protocolMode: MCPProtocolMode = "basic";
 
   /**
@@ -127,6 +128,20 @@ export class MCPService implements IMCPService {
   }
 
   /**
+   * Set whether the configured transport caller is the brain Anchor.
+   */
+  public setAnchorStatus(isAnchor: boolean): void {
+    this.isAnchor = isAnchor;
+    this.mcpServer = createMcpServerInstance();
+    this.registerEntriesOnServer(
+      this.mcpServer,
+      this.permissionLevel,
+      this.protocolMode,
+    );
+    this.logger.debug(`Anchor status set to ${isAnchor}`);
+  }
+
+  /**
    * Select which tools are exposed on the external MCP protocol server.
    */
   public setProtocolMode(mode: MCPProtocolMode): void {
@@ -153,7 +168,7 @@ export class MCPService implements IMCPService {
     // Always store in the internal registry. The agent reads from here via
     // listToolsForPermissionLevel() which filters per-call. Without this,
     // setPermissionLevel("public") called by an interface before system tools
-    // are registered would silently drop anchor tools from the registry.
+    // are registered would silently drop Admin tools from the registry.
     this.registeredTools.set(validatedTool.name, {
       pluginId,
       tool: validatedTool,
@@ -197,7 +212,7 @@ export class MCPService implements IMCPService {
    * Register a resource template with parameterized URI.
    *
    * Always stores in the internal registry so that per-session servers
-   * (createMcpServer(anchor)) can re-expose the template even when the
+   * (createMcpServer(admin)) can re-expose the template even when the
    * default service permission is lower. The protocol server only sees the
    * template if the current permission allows it, matching plain resources.
    */
@@ -220,7 +235,7 @@ export class MCPService implements IMCPService {
    * Register an MCP prompt.
    *
    * Mirrors registerTool: always store in the internal registry so per-session
-   * servers (createMcpServer(anchor)) can re-expose the prompt even when the
+   * servers (createMcpServer(admin)) can re-expose the prompt even when the
    * default service permission is lower. The protocol server only sees the
    * prompt if the current permission allows it.
    */
@@ -344,6 +359,7 @@ export class MCPService implements IMCPService {
       this.messageBus,
       this.logger,
       permissionLevel,
+      this.isAnchor,
     );
   }
 }

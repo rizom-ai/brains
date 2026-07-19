@@ -30,7 +30,7 @@ describe("AuthCredentialStore", () => {
     await database.start();
 
     try {
-      const user = await new AuthUserStore(database.db).ensureFirstAnchorUser();
+      const user = await new AuthUserStore(database.db).ensureFirstAdminUser();
       const store = new AuthCredentialStore(database.db);
       await store.addPasskey({
         id: "credential-id",
@@ -70,7 +70,7 @@ describe("AuthCredentialStore", () => {
     await database.start();
 
     try {
-      const user = await new AuthUserStore(database.db).ensureFirstAnchorUser();
+      const user = await new AuthUserStore(database.db).ensureFirstAdminUser();
       const store = new AuthCredentialStore(database.db);
       const now = Date.now();
 

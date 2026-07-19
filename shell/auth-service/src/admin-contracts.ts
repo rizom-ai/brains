@@ -1,6 +1,7 @@
 /** Browser-safe auth administration vocabulary and response contracts. */
-export const AUTH_USER_ROLES = ["anchor", "trusted", "public"] as const;
+export const AUTH_USER_ROLES = ["admin", "trusted", "public"] as const;
 export const AUTH_USER_STATUSES = ["active", "invited", "suspended"] as const;
+export const AUTH_BRAIN_ANCHOR_KINDS = ["person", "collective"] as const;
 export const AUTH_ADMIN_IDENTITY_TYPES = [
   "discord",
   "mcp",
@@ -14,6 +15,7 @@ export const AUTH_REPRESENTATION_MUTATION_ACTIONS = {
 } as const;
 export const AUTH_ADMIN_MUTATION_ACTIONS = {
   createUser: "createUser",
+  updateBrainAnchor: "updateBrainAnchor",
   promoteAgentPerson: "promoteAgentPerson",
   linkAgentPerson: "linkAgentPerson",
   updateUserRole: "updateUserRole",
@@ -27,6 +29,7 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
 
 export type AuthAdminRole = (typeof AUTH_USER_ROLES)[number];
 export type AuthAdminStatus = (typeof AUTH_USER_STATUSES)[number];
+export type AuthBrainAnchorKind = (typeof AUTH_BRAIN_ANCHOR_KINDS)[number];
 export type AuthAdminIdentityType =
   "passkey" | (typeof AUTH_ADMIN_IDENTITY_TYPES)[number];
 export type AuthAdminMutationAction =
@@ -42,6 +45,7 @@ export interface AuthAdminPrincipal {
   role: AuthAdminRole;
   status: AuthAdminStatus;
   permissionLevel: AuthAdminRole;
+  isAnchor: boolean;
   canonicalId?: string;
 }
 
@@ -85,9 +89,23 @@ export interface AuthAgentPersonSummary {
 }
 
 export interface AuthAdminUserSummary extends AuthAdminPrincipal {
+  profileEntityId?: string;
   identities: AuthIdentitySummary[];
   passkeys: AuthPasskeySummary[];
   agents: AuthAgentPersonSummary[];
+}
+
+export interface AuthBrainAnchorSummary {
+  kind: AuthBrainAnchorKind;
+  subjectId: string;
+  displayName: string;
+  personId?: string;
+  profileEntityId?: string;
+  administeredBy: number;
+}
+
+export interface AuthBrainAnchorResponse {
+  anchor: AuthBrainAnchorSummary;
 }
 
 export interface AgentPersonClaimInput {
@@ -125,6 +143,19 @@ export interface AuthAgentPersonReconciliationResponse {
 }
 
 export type AuthAdminMutation =
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
+      kind: "person";
+      userId: string;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
+      kind: "collective";
+      displayName: string;
+      profileEntityId?: string;
+    }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;

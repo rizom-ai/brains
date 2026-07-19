@@ -57,7 +57,7 @@ You stay in control of what's in the brain. They get access to a knowledgeable c
 
 ## Two Modes
 
-**As the owner (anchor)**, you have full access. You can:
+**As an Admin**, you have full access. A personal brain's owner is independently identified as its Anchor. Admins can:
 
 - Add notes, essays, and other content
 - Organize and connect your ideas
@@ -98,7 +98,7 @@ Your brain isn't just a knowledge base — it's your professional website. A fas
 
 No separate CMS to manage. No deployment pipelines to figure out. Write an essay, mark it as published, and it's live. Add a case study to your portfolio, and it appears. Your brain and your website are the same thing.
 
-Publishing is treated as a separate commitment from editing. Instance owners can let trusted collaborators draft or revise content with `update: trusted` while keeping `publish: anchor` for posts, social posts, and newsletters. Queueing, scheduling, direct publishing, and send handlers all use the `publish` action.
+Publishing is treated as a separate commitment from editing. Instance owners can let trusted collaborators draft or revise content with `update: trusted` while keeping `publish: admin` for posts, social posts, and newsletters. Queueing, scheduling, direct publishing, and send handlers all use the `publish` action.
 
 This is what independent professionals actually need: a web presence that grows with their thinking, not a static brochure they have to manually update.
 

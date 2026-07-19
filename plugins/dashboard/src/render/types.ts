@@ -22,8 +22,8 @@ export interface RenderableWidgetData extends WidgetData {
 
 export interface DashboardSessionPrincipal {
   displayName: string;
-  role: "anchor" | "trusted" | "public";
-  permissionLevel: "anchor" | "trusted" | "public";
+  role: "admin" | "trusted" | "public";
+  permissionLevel: "admin" | "trusted" | "public";
 }
 
 export interface DashboardAuthAccess {

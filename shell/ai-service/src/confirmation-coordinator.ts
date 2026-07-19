@@ -32,6 +32,7 @@ export interface ConfirmationContext {
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  isAnchor: boolean;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
 }
@@ -43,7 +44,7 @@ function actorKey(
 }
 
 /**
- * Whether the caller may resolve this pending confirmation: the anchor
+ * Whether the caller may resolve this pending confirmation: an administrator
  * always may; otherwise the caller must be the pinned requester (when
  * one is recorded) and meet the requester's permission level.
  */
@@ -54,7 +55,7 @@ export function canConfirmPendingAction(
     actor: ConversationMessageActor | null;
   },
 ): boolean {
-  if (context.userPermissionLevel === "anchor") return true;
+  if (context.userPermissionLevel === "admin") return true;
 
   const requesterActorKey = pendingConfirmation.requester.actorKey;
   if (requesterActorKey) {
@@ -84,6 +85,7 @@ export function resolveConfirmationContext(
     channelId: context.channelId ?? previousContext.channelId,
     channelName: context.channelName ?? previousContext.channelName,
     userPermissionLevel: context.userPermissionLevel,
+    isAnchor: context.isAnchor ?? false,
     actor: context.actor ?? null,
     source: context.source ?? null,
   };
@@ -192,6 +194,7 @@ export class ConfirmationCoordinator {
         channelId: confirmationContext.channelId,
         channelName: confirmationContext.channelName,
         userPermissionLevel: confirmationContext.userPermissionLevel,
+        isAnchor: confirmationContext.isAnchor,
         actor: confirmationContext.actor,
         source: confirmationContext.source,
         ...(signal ? { signal } : {}),

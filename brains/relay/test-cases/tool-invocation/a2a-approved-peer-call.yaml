@@ -8,7 +8,7 @@ description: >-
   reporting the tool result honestly.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - agent-discovery

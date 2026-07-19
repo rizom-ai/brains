@@ -37,6 +37,8 @@ export interface IPermissionsNamespace extends IBasePermissionsNamespace {
     userId: string,
     context?: PermissionLookupContext,
   ) => UserPermissionLevel;
+  /** Whether the caller represents the brain's person anchor. */
+  isAnchor: (interfaceType: string, userId: string) => boolean;
 }
 
 /**
@@ -224,6 +226,8 @@ export function createInterfacePluginContext(
           context,
         );
       },
+      isAnchor: (interfaceType, userId): boolean =>
+        permissionService.isAnchor(interfaceType, userId),
     },
 
     // Daemons namespace

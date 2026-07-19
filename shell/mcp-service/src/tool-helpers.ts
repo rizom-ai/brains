@@ -113,7 +113,7 @@ export function createTool<
   } = {},
 ): Tool {
   const {
-    visibility = "anchor",
+    visibility = "admin",
     sideEffects,
     annotations,
     debug = false,

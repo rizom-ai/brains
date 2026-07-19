@@ -6,7 +6,7 @@ import type {
 import { z } from "@brains/utils/zod";
 
 const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
-  z.enum(["public", "trusted", "anchor"]);
+  z.enum(["public", "trusted", "admin"]);
 
 export interface WidgetDigestLine {
   label: string;

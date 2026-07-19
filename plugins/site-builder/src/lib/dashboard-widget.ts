@@ -219,7 +219,7 @@ export async function registerSiteHealthWidget(
       section: "sidebar",
       priority: 50,
       rendererName: "SiteHealthWidget",
-      visibility: "anchor",
+      visibility: "admin",
       component: SiteHealthWidget,
       clientStyles: siteHealthWidgetStyles,
       dataProvider: async (): Promise<SiteHealthWidgetData> => ({

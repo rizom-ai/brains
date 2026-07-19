@@ -2,7 +2,7 @@ import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 export type PlaybookStatus = "draft" | "active" | "archived";
-export type PlaybookAudience = "anchor" | "trusted" | "public";
+export type PlaybookAudience = "admin" | "trusted" | "public";
 export type PlaybookCompletionMode = "agent-confirmed" | "manual";
 
 export const playbookStatusSchema: z.ZodType<PlaybookStatus, PlaybookStatus> =
@@ -10,7 +10,7 @@ export const playbookStatusSchema: z.ZodType<PlaybookStatus, PlaybookStatus> =
 export const playbookAudienceSchema: z.ZodType<
   PlaybookAudience,
   PlaybookAudience
-> = z.enum(["anchor", "trusted", "public"]);
+> = z.enum(["admin", "trusted", "public"]);
 export const playbookCompletionModeSchema: z.ZodType<
   PlaybookCompletionMode,
   PlaybookCompletionMode
@@ -21,7 +21,7 @@ const playbookStatusParserSchema: z.ZodType<PlaybookStatus, PlaybookStatus> =
 const playbookAudienceParserSchema: z.ZodType<
   PlaybookAudience,
   PlaybookAudience
-> = z.enum(["anchor", "trusted", "public"]);
+> = z.enum(["admin", "trusted", "public"]);
 const playbookCompletionModeParserSchema: z.ZodType<
   PlaybookCompletionMode,
   PlaybookCompletionMode
@@ -132,7 +132,7 @@ type PlaybookFrontmatterSchema = z.ZodObject<{
 export const playbookFrontmatterSchema: PlaybookFrontmatterSchema = z.object({
   title: z.string(),
   status: playbookStatusSchema.default("active"),
-  audience: playbookAudienceSchema.default("anchor"),
+  audience: playbookAudienceSchema.default("admin"),
   trigger: optionalTextSchema.optional(),
   lifecycle: optionalTextSchema.optional(),
   once: z.boolean().optional(),

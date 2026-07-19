@@ -3,7 +3,7 @@ name: Wishlist persists unfulfillable request across turns
 description: Verifies that an explicit request to save an unfulfillable physical-world outcome is saved as a wish via system_create and can be listed on the next turn.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - wishlist
   - multi-turn

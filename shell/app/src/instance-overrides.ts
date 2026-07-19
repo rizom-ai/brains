@@ -1,5 +1,9 @@
 import { interpolateEnv } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
+import {
+  EntityActionRequiredLevelSchema,
+  UserPermissionLevelSchema,
+} from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { reasoningEffortSchema, type ReasoningEffort } from "./types";
 
@@ -27,17 +31,8 @@ const overrideLogLevelSchema: z.ZodEnum<{
   warn: "warn";
   error: "error";
 }> = z.enum(["debug", "info", "warn", "error"]);
-const overridePermissionLevelSchema: z.ZodEnum<{
-  anchor: "anchor";
-  trusted: "trusted";
-  public: "public";
-}> = z.enum(["anchor", "trusted", "public"]);
-const overrideEntityActionRequiredLevelSchema: z.ZodEnum<{
-  never: "never";
-  anchor: "anchor";
-  trusted: "trusted";
-  public: "public";
-}> = z.enum(["never", "anchor", "trusted", "public"]);
+const overridePermissionLevelSchema = UserPermissionLevelSchema;
+const overrideEntityActionRequiredLevelSchema = EntityActionRequiredLevelSchema;
 const overrideEntityActionPolicyRuleSchema: z.ZodObject<{
   create: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
   update: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
@@ -111,29 +106,31 @@ export interface InstanceOverrides {
   mode?: "eval" | undefined;
   add?: string[] | undefined;
   remove?: string[] | undefined;
+  admins?: string[] | undefined;
   anchors?: string[] | undefined;
   trusted?: string[] | undefined;
   spaces?: string[] | undefined;
   plugins?: Record<string, PluginOverrideEntry> | undefined;
   permissions?:
     | {
+        admins?: string[] | undefined;
         anchors?: string[] | undefined;
         trusted?: string[] | undefined;
         rules?:
           | Array<{
               pattern: string;
-              level: "anchor" | "trusted" | "public";
+              level: "admin" | "trusted" | "public";
             }>
           | undefined;
         entityActions?:
           | Record<
               string,
               {
-                create?: "never" | "anchor" | "trusted" | "public" | undefined;
-                update?: "never" | "anchor" | "trusted" | "public" | undefined;
-                delete?: "never" | "anchor" | "trusted" | "public" | undefined;
-                extract?: "never" | "anchor" | "trusted" | "public" | undefined;
-                publish?: "never" | "anchor" | "trusted" | "public" | undefined;
+                create?: "never" | "admin" | "trusted" | "public" | undefined;
+                update?: "never" | "admin" | "trusted" | "public" | undefined;
+                delete?: "never" | "admin" | "trusted" | "public" | undefined;
+                extract?: "never" | "admin" | "trusted" | "public" | undefined;
+                publish?: "never" | "admin" | "trusted" | "public" | undefined;
               }
             >
           | undefined;
@@ -206,7 +203,10 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** Plugin/interface IDs to remove from the preset */
   remove: z.array(z.string()).optional(),
 
-  /** Anchor users (full admin access) */
+  /** Admin users (full access) */
+  admins: z.array(z.string()).optional(),
+
+  /** Identities that represent this personal brain's anchor in chat. */
   anchors: z.array(z.string()).optional(),
 
   /** Trusted users (elevated access) */
@@ -230,6 +230,7 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** Permission rules */
   permissions: z
     .object({
+      admins: z.array(z.string()).optional(),
       anchors: z.array(z.string()).optional(),
       trusted: z.array(z.string()).optional(),
       rules: z

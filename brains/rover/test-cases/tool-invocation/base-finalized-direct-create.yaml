@@ -3,7 +3,7 @@ name: Exact Note Uses Direct Create
 description: Verifies exact note/base content is persisted directly, not regenerated via prompt.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - shell
   - base

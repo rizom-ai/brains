@@ -38,7 +38,7 @@ permissions:
       - "permission"
     responseNotContains:
       - "status set to approved"
-  anchor:
+  admin:
     expectedTools:
       - toolName: system_update
         shouldBeCalled: true

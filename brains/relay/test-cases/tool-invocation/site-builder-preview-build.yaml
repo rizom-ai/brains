@@ -6,7 +6,7 @@ description: >-
   knowledge surface rather than a Rover publishing workflow.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - relay
   - site-builder

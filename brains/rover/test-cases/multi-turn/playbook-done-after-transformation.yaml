@@ -6,7 +6,7 @@ priority: high
 description: Verifies Rover finishes the first knowledge loop after the first note has been retrieved and transformed, instead of leaving the run in Make something.
 type: multi_turn
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: web-chat-eval-playbook-done-after-transform
   channelName: Web Chat Eval

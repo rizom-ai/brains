@@ -64,7 +64,7 @@ export class WebserverInterface extends InterfacePlugin<
         label: "Preview",
         url: this.previewUrl,
         priority: 20,
-        visibility: "anchor",
+        visibility: "admin",
       });
       context.interactions.register({
         id: "preview",
@@ -73,7 +73,7 @@ export class WebserverInterface extends InterfacePlugin<
         href: this.previewUrl,
         kind: "admin",
         priority: 20,
-        visibility: "anchor",
+        visibility: "admin",
       });
     }
 

@@ -3,7 +3,7 @@ name: Bare web chat PDF upload is inert
 description: Verifies an attachment-only PDF handoff is acknowledged without invoking model tools or creating document/deck entities.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
   interfaceType: web-chat
   channelId: eval-web-chat-file-upload
   channelName: Web Chat Eval

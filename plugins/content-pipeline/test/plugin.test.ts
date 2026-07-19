@@ -132,7 +132,7 @@ describe("ContentPipelinePlugin", () => {
       });
       localHarness.setPermissionService(
         new PermissionService({
-          entityActions: { "social-post": { publish: "anchor" } },
+          entityActions: { "social-post": { publish: "admin" } },
         }),
       );
       const localPlugin = new ContentPipelinePlugin({});
@@ -161,8 +161,8 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
         authContext: {
           interfaceType: "test",
-          actor: { kind: "user", userId: "anchor-user" },
-          userPermissionLevel: "anchor",
+          actor: { kind: "user", userId: "admin-user" },
+          userPermissionLevel: "admin",
           authorization: "user",
         },
       });
@@ -170,8 +170,8 @@ describe("ContentPipelinePlugin", () => {
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue[0]?.authContext).toEqual({
         interfaceType: "test",
-        actor: { kind: "user", userId: "anchor-user" },
-        userPermissionLevel: "anchor",
+        actor: { kind: "user", userId: "admin-user" },
+        userPermissionLevel: "admin",
         authorization: "user",
       });
     });
@@ -225,8 +225,8 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
         authContext: {
           interfaceType: "test",
-          actor: { kind: "user", userId: "anchor-user" },
-          userPermissionLevel: "anchor",
+          actor: { kind: "user", userId: "admin-user" },
+          userPermissionLevel: "admin",
           authorization: "user",
         },
       });
@@ -396,7 +396,7 @@ Post body`,
       });
       localHarness.setPermissionService(
         new PermissionService({
-          entityActions: { "social-post": { publish: "anchor" } },
+          entityActions: { "social-post": { publish: "admin" } },
         }),
       );
       const localPlugin = new ContentPipelinePlugin({});

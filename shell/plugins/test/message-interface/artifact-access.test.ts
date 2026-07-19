@@ -58,8 +58,8 @@ describe("resolveMessageArtifactAccess", () => {
 });
 
 describe("canReceiveNativeArtifactFile", () => {
-  it("allows anchor and trusted callers only", () => {
-    expect(canReceiveNativeArtifactFile("anchor")).toBe(true);
+  it("allows Admin and trusted callers only", () => {
+    expect(canReceiveNativeArtifactFile("admin")).toBe(true);
     expect(canReceiveNativeArtifactFile("trusted")).toBe(true);
     expect(canReceiveNativeArtifactFile("public")).toBe(false);
   });

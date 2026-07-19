@@ -129,10 +129,10 @@ describe("AuthService principals", () => {
 
     expect(principal).toMatchObject({
       userId: session.subject,
-      displayName: "Anchor",
-      role: "anchor",
+      displayName: "Admin",
+      role: "admin",
       status: "active",
-      permissionLevel: "anchor",
+      permissionLevel: "admin",
       canonicalId: `user:${session.subject.slice("usr_".length)}`,
     });
   });
@@ -221,7 +221,7 @@ describe("AuthService principals", () => {
 
     expect(grant?.principal).toMatchObject({
       userId: session.subject,
-      permissionLevel: "anchor",
+      permissionLevel: "admin",
     });
     expect(grant?.token).toMatchObject({
       subject: session.subject,
@@ -246,10 +246,10 @@ describe("AuthService principals", () => {
 
     expect(principal).toMatchObject({
       userId: session.subject,
-      displayName: "Anchor",
-      role: "anchor",
+      displayName: "Admin",
+      role: "admin",
       status: "active",
-      permissionLevel: "anchor",
+      permissionLevel: "admin",
     });
   });
 

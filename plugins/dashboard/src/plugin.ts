@@ -65,7 +65,7 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
+    visibility: z.enum(["public", "trusted", "admin"]).default("public"),
     needsAttention: z.number().int().nonnegative().optional(),
     needsOperator: z.number().int().nonnegative().optional(),
     digest: z
@@ -415,7 +415,7 @@ export class DashboardPlugin extends ServicePlugin<
           const permissionLevel: WidgetVisibility =
             principal?.permissionLevel ?? "public";
           const anchorWidgets =
-            this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? [];
+            this.widgetRegistry?.list({ permissionLevel: "admin" }) ?? [];
           const visibleWidgets = anchorWidgets.filter((widget) =>
             PermissionService.hasPermission(permissionLevel, widget.visibility),
           );
@@ -533,9 +533,9 @@ export class DashboardPlugin extends ServicePlugin<
               { status: 401 },
             );
           }
-          if (principal.permissionLevel !== "anchor") {
+          if (principal.permissionLevel !== "admin") {
             return Response.json(
-              { error: "Anchor access required" },
+              { error: "Admin access required" },
               { status: 403 },
             );
           }
@@ -567,7 +567,7 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const widgetGroups = (
-            this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? []
+            this.widgetRegistry?.list({ permissionLevel: "admin" }) ?? []
           ).map((widget) => widget.group);
           const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",

@@ -102,9 +102,9 @@ export class SiteWorkspaceProvider {
       dataProvider: () => this.getSnapshot(),
       actionHandler: async (request, actor) => {
         if (
-          !PermissionService.hasPermission(actor.userPermissionLevel, "anchor")
+          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
         ) {
-          throw new Error("Site build requires anchor permission");
+          throw new Error("Site build requires admin permission");
         }
         const action = siteWorkspaceActionSchema.safeParse(request);
         if (!action.success) throw new Error("Invalid site workspace action");

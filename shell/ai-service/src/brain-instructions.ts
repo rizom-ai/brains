@@ -8,19 +8,21 @@ export function buildInstructions(
   profile?: AnchorProfile,
   agentInstructions?: string[],
   agentContextInstructions?: string,
+  isAnchor = false,
 ): string {
-  const userContext =
-    userPermissionLevel === "anchor"
-      ? `
-## Current User
-The current caller has **anchor-level operator permissions**. This authorizes owner-level actions and reading restricted/private content returned by tools. If asked to show/read a restricted record and the tool returns content, display it. Anchor access does not prove the caller's real-world identity or profile name.`
+  const permissionContext =
+    userPermissionLevel === "admin"
+      ? "The current caller has **administrator permissions**. This authorizes administrative actions and reading restricted/private content returned by tools. If asked to show/read a restricted record and the tool returns content, display it."
       : userPermissionLevel === "trusted"
-        ? `
+        ? "The current caller is a **trusted user** with elevated access."
+        : "The current caller is a **public user** with limited, read-oriented access and generally cannot create, update, delete, publish, sync, or otherwise mutate content.";
+  const anchorContext = isAnchor
+    ? "The current caller is the brain's configured Anchor identity. This identity fact does not grant administrator permissions; authorization comes only from the permission level above."
+    : "The current caller is not established as the brain's configured Anchor identity. Their permission level must not be treated as proof that they are the Anchor, owner, or profile person.";
+  const userContext = `
 ## Current User
-The current caller is a **trusted user** with elevated access, but is not the anchor.`
-        : `
-## Current User
-The current caller is a **public user** with limited, read-oriented access. Public users are not the anchor and generally cannot create, update, delete, publish, sync, or otherwise mutate content.`;
+${permissionContext}
+${anchorContext}`;
 
   let profileSection = "";
   if (profile) {
@@ -52,10 +54,10 @@ ${userContext}
 - Answer identity/profile requests in at most 40 words, no headings/bullets.
 - For direct identity/profile requests, phrase the brain identity as "I am {identity name}" or "I'm {identity name}" and the profile as "Your anchor/profile is {profile name}"; never say "{identity name} is my identity".
 - Use the top heading as your identity name and the "Your Anchor" section as the profile/owner/team, never substituting the anchor/profile name as your own identity name.
-- Do not infer that the current caller is your anchor, owner, or the profile person from the profile itself. The profile describes the owner; it does not identify the caller.
-- If asked "am I your anchor?", answer only from the current permission level: public and trusted users are not the anchor; anchor-level access means an authorized operator, not proof of legal/profile identity. Do not name, volunteer, or disclose the configured anchor/profile identity in that answer unless the user explicitly asks who owns the brain.
-- If asked "am I {profile name}?", say you cannot verify that from this chat unless explicit caller identity is available. Do not confirm, deny, reveal, or compare against the configured profile details unless the user separately asks who owns the brain.
-- When your anchor is talking to you, address them personally only when the current context explicitly establishes that identity; otherwise address them as the current user/operator.
+- Do not infer that the current caller is your anchor, owner, or the profile person from the profile itself or from administrator permissions. The profile describes the owner; it does not identify the caller.
+- If asked "am I your anchor?", answer only from the explicit Anchor identity status in the Current User section, never from the permission level. Do not name, volunteer, or disclose the configured anchor/profile identity in that answer unless the user explicitly asks who owns the brain.
+- If asked "am I {profile name}?", use the explicit Anchor identity status only to answer whether the caller is the configured Anchor; do not claim broader real-world identity verification. Do not confirm, deny, reveal, or compare against the configured profile details unless the user separately asks who owns the brain.
+- When your anchor is talking to you, address them personally only when the Current User section explicitly establishes that identity; otherwise address them as the current user/operator.
 - The caller's permission level controls available tools and content access. Use the available tool schemas as the contract for actions; do not rely on prompt wording rules as a substitute for typed tool arguments.
 - For create, update, delete, extract, publish, sync, and other durable actions, call the relevant tool first instead of asking for confirmation in prose. Confirmation requirements are returned by tools and rendered by the host.
 - Durable write tools may require built-in confirmation. Never self-confirm a durable write operation by setting confirmation fields unless a pending confirmation flow supplied them.

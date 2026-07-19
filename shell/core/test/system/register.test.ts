@@ -57,7 +57,7 @@ describe("registerSystemCapabilities message bus wiring", () => {
   });
 
   const callSystemList = async (
-    userPermissionLevel?: "anchor" | "trusted" | "public",
+    userPermissionLevel?: "admin" | "trusted" | "public",
   ): Promise<string[]> => {
     const response = await messageBus.send({
       type: "plugin:system:tool:execute",
@@ -76,8 +76,8 @@ describe("registerSystemCapabilities message bus wiring", () => {
     return entities.map((e) => e.id).sort();
   };
 
-  it("propagates anchor userPermissionLevel from message payload to tool context", async () => {
-    expect(await callSystemList("anchor")).toEqual([
+  it("propagates admin userPermissionLevel from message payload to tool context", async () => {
+    expect(await callSystemList("admin")).toEqual([
       "doc-public",
       "doc-restricted",
       "doc-shared",

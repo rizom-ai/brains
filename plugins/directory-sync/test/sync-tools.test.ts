@@ -129,7 +129,7 @@ describe("sync tool", () => {
     context = createMockServicePluginContext();
   });
 
-  it("declares anchor-only external side effects", () => {
+  it("declares admin-only external side effects", () => {
     const { directorySync } = createMockDirectorySync();
 
     const tools = createDirectorySyncTools(
@@ -139,7 +139,7 @@ describe("sync tool", () => {
     );
     const syncTool = findTool(tools, "directory-sync_sync");
 
-    expect(syncTool.visibility).toBe("anchor");
+    expect(syncTool.visibility).toBe("admin");
     expect(syncTool.sideEffects).toBe("external");
   });
 
@@ -385,7 +385,7 @@ describe("status tool", () => {
     context = createMockServicePluginContext();
   });
 
-  it("declares anchor-only read semantics", () => {
+  it("declares admin-only read semantics", () => {
     const { directorySync } = createMockDirectorySync();
 
     const tools = createDirectorySyncTools(
@@ -395,7 +395,7 @@ describe("status tool", () => {
     );
     const statusTool = findTool(tools, "directory-sync_status");
 
-    expect(statusTool.visibility).toBe("anchor");
+    expect(statusTool.visibility).toBe("admin");
     expect(statusTool.sideEffects).toBe("none");
   });
 

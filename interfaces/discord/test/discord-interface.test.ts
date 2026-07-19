@@ -108,9 +108,10 @@ let mockActiveAuthService:
               principal: {
                 userId: string;
                 displayName: string;
-                role: "anchor" | "trusted" | "public";
+                role: "admin" | "trusted" | "public";
                 status: "active" | "invited" | "suspended";
-                permissionLevel: "anchor" | "trusted" | "public";
+                permissionLevel: "admin" | "trusted" | "public";
+                isAnchor: boolean;
                 canonicalId?: string;
               };
             }
@@ -276,6 +277,7 @@ describe("DiscordInterface", () => {
 
     harness.setPermissionService(
       new PermissionService({
+        admins: ["discord:anchor-user"],
         anchors: ["discord:anchor-user"],
         trusted: ["discord:trusted-user"],
       }),
@@ -300,6 +302,7 @@ describe("DiscordInterface", () => {
     harness.setPermissionService(
       new PermissionService(
         {
+          admins: ["discord:anchor-user"],
           anchors: ["discord:anchor-user"],
           trusted: ["discord:trusted-user"],
         },
@@ -399,6 +402,7 @@ describe("DiscordInterface", () => {
           role: "trusted" as const,
           status: "active" as const,
           permissionLevel: "trusted" as const,
+          isAnchor: true,
           canonicalId: "user:mira",
         },
       }));
@@ -418,6 +422,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           interfaceType: "discord",
           userPermissionLevel: "trusted",
+          isAnchor: true,
           actor: expect.objectContaining({
             identity: {
               kind: "user",
@@ -711,6 +716,7 @@ describe("DiscordInterface", () => {
             role: "trusted" as const,
             status: "active" as const,
             permissionLevel: "trusted" as const,
+            isAnchor: false,
             canonicalId: "user:mira",
           },
         })),
@@ -1515,7 +1521,7 @@ describe("DiscordInterface", () => {
   });
 
   describe("File uploads", () => {
-    it("should pass text file content to agent for anchor users", async () => {
+    it("should pass text file content to agent for admin users", async () => {
       const attachment = {
         name: "notes.md",
         contentType: "text/markdown",

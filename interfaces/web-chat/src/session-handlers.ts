@@ -12,7 +12,7 @@ const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
 });
 
-type PermissionResolver = (request: Request) => Promise<"anchor" | "public">;
+type PermissionResolver = (request: Request) => Promise<"admin" | "public">;
 type ConversationService = InterfacePluginContext["conversations"];
 type WebChatConversation = NonNullable<
   Awaited<ReturnType<ConversationService["get"]>>
@@ -29,7 +29,7 @@ export async function handleSessionsRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "anchor") {
+  if (permissionLevel !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -56,7 +56,7 @@ export async function handleDeleteSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "anchor") {
+  if (permissionLevel !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -72,7 +72,7 @@ export async function handleRenameSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "anchor") {
+  if (permissionLevel !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -97,7 +97,7 @@ export async function handleArchiveSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "anchor") {
+  if (permissionLevel !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 

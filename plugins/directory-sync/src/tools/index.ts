@@ -75,7 +75,7 @@ export function createDirectorySyncTools(
         }
       },
       {
-        visibility: "anchor",
+        visibility: "admin",
         sideEffects: "external",
         cli: { name: "sync" },
       },
@@ -114,7 +114,7 @@ export function createDirectorySyncTools(
           );
         }
       },
-      { visibility: "anchor", sideEffects: "none" },
+      { visibility: "admin", sideEffects: "none" },
     ),
   ];
 

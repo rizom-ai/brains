@@ -595,7 +595,7 @@ const socketSlackConfig: SlackChatAdapterConfig = {
 };
 
 function expectDiscordConfirmationContext(
-  userPermissionLevel: "anchor" | "trusted" | "public" = "public",
+  userPermissionLevel: "admin" | "trusted" | "public" = "public",
 ): unknown {
   return expect.objectContaining({
     channelId: "discord:guild-123:channel-123:thread-456",
@@ -1235,6 +1235,21 @@ describe("ChatInterface", () => {
     const context = agentService.chat.mock.calls[0]?.[2];
     expect(context?.interfaceType).toBe("discord");
     expect(context?.userPermissionLevel).toBe("trusted");
+  });
+
+  it("propagates configured Anchor identity independently from permission", async () => {
+    harness.setPermissionService(
+      new PermissionService({ anchors: ["discord:user-789"] }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(createThread(), createMessage());
+
+    const context = agentService.chat.mock.calls[0]?.[2];
+    expect(context?.userPermissionLevel).toBe("public");
+    expect(context?.isAnchor).toBe(true);
   });
 
   it("chunks long Discord responses instead of letting the adapter truncate", async () => {

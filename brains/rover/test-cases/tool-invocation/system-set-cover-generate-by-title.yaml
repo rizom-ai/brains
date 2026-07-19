@@ -3,7 +3,7 @@ name: Generate Cover Image for Entity Resolved by Title
 description: Verifies that the agent resolves a quoted post title before generating a new cover image and uses the canonical target entity id without falling back to the wishlist
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - image
@@ -26,7 +26,6 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-
 
 efficiency:
   maxToolCalls: 4

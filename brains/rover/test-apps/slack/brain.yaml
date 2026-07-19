@@ -9,7 +9,7 @@ remove:
 permissions:
   rules:
     - pattern: "slack:U0BGKJ4MA5B"
-      level: anchor
+      level: admin
     - pattern: "slack:*"
       level: public
 

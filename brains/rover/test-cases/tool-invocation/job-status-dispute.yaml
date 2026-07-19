@@ -3,7 +3,7 @@ name: Job status dispute checks runtime status
 description: Verifies Rover checks runtime job status when the operator says logs disagree with the conversation.
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - jobs
   - tool-invocation

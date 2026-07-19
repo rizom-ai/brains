@@ -14,7 +14,8 @@ export interface AgentActionRequest {
   interfaceType: string;
   channelId?: string | undefined;
   channelName: string;
-  userPermissionLevel: "anchor" | "trusted" | "public";
+  userPermissionLevel: "admin" | "trusted" | "public";
+  isAnchor: boolean;
   action: AgentEventAction;
 }
 
@@ -36,6 +37,7 @@ export const agentActionRequestSchema: z.ZodType<
   interfaceType: z.string().min(1),
   channelId: z.string().min(1).optional(),
   channelName: z.string().min(1),
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
+  userPermissionLevel: z.enum(["admin", "trusted", "public"]),
+  isAnchor: z.boolean(),
   action: agentEventActionSchema,
 });

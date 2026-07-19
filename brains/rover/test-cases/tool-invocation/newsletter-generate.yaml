@@ -3,7 +3,7 @@ name: Newsletter Generation via system_generate
 description: Verifies that the agent uses system_generate to generate a newsletter
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - core
   - newsletter

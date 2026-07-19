@@ -209,7 +209,7 @@ Analytics must respect caller visibility:
 
 - public callers only see public aggregate data;
 - trusted callers may include shared data;
-- anchor callers may include restricted data.
+- Admin callers may include restricted data.
 
 Handlers must receive a derived `visibilityScope`; they should not compute visibility from raw user-auth data themselves.
 
@@ -230,6 +230,6 @@ Required checks:
 ## Open questions
 
 - Should the final name be `system_analytics` or `system_reports`? Current preference: `system_analytics`.
-- Should traffic analytics be public-visible, trusted-visible, or anchor-only by default?
+- Should traffic analytics be public-visible, trusted-visible, or admin-only by default?
 - Should `analytics_query` be removed cleanly once Cloudflare params are available via `system_analytics`, or kept as a non-agent/CLI tool?
 - Do report definitions need output schemas in the first typed-params phase, or can that come later?

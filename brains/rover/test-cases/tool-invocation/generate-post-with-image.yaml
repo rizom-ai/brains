@@ -3,7 +3,7 @@ name: Generate social post with cover image
 description: Tests that the agent starts social post generation without guessing a future cover-image target ID
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  permissionLevel: admin
 tags:
   - social-media
   - image

@@ -98,7 +98,7 @@ async function operateBuiltin(
     const result = await match.tool.handler(toolInput, {
       interfaceType: "cli",
       actor: { kind: "service", serviceId: "brain-cli" },
-      userPermissionLevel: "anchor",
+      userPermissionLevel: "admin",
     });
 
     if ("needsConfirmation" in result) {

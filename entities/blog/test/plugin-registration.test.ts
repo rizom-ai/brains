@@ -181,7 +181,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       });
       localHarness.setPermissionService(
         new PermissionService({
-          entityActions: { post: { publish: "anchor" } },
+          entityActions: { post: { publish: "admin" } },
         }),
       );
       const messages: Array<{ type: string; payload: unknown }> = [];
