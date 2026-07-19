@@ -1,5 +1,24 @@
 # @brains/plugins
 
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- [`998a786`](https://github.com/rizom-ai/brains/commit/998a78694a06c7796fefcca09e258cc90eb62ce9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop admission across all plugin-scoped message subscriptions before teardown, then drain handlers that were already admitted before invoking plugin shutdown. This prevents in-flight MessageBus callbacks from continuing against torn-down plugin state while preserving Promise-based handler APIs and synchronous unsubscribe handles.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.204
+  - @brains/contracts@0.2.0-alpha.204
+  - @brains/site-composition@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+  - @brains/conversation-service@0.2.0-alpha.204
+  - @brains/identity-service@0.2.0-alpha.204
+  - @brains/job-queue@0.2.0-alpha.204
+  - @brains/messaging-service@0.2.0-alpha.204
+  - @brains/recurring-checks@0.2.0-alpha.204
+  - @brains/runtime-state@0.2.0-alpha.204
+  - @brains/templates@0.2.0-alpha.204
+
 ## 0.2.0-alpha.203
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @brains/topics
 
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- [`9667781`](https://github.com/rizom-ai/brains/commit/9667781fe5d6a423b4893c82ae1b8cc970003c29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the knowledge map legible on real corpora: radial rank expansion spreads PCA knots across the field (order-preserving, outlier-proof) with short-axis centering and deterministic relaxation so no marks overlap; text discipline — only member territories are named (collision-aware, budgeted), published lights carry no titles; mist only where a zone holds knowledge; and the site section's CTAs ride the theme's button tokens so they match the page's Button component exactly.
+
+- Updated dependencies [[`998a786`](https://github.com/rizom-ai/brains/commit/998a78694a06c7796fefcca09e258cc90eb62ce9)]:
+  - @brains/plugins@0.2.0-alpha.204
+  - @brains/atproto-contracts@0.2.0-alpha.204
+  - @brains/content-formatters@0.2.0-alpha.204
+  - @brains/ui-library@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+
 ## 0.2.0-alpha.203
 
 ### Patch Changes
