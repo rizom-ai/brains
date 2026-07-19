@@ -119,7 +119,18 @@ every fleet member can carry a branded handle — `@jo.rizom.ai` — verified by
   the affiliation; the identity stays theirs.
 
 Scope: a small slice — the well-known route + config + pilot plumbing —
-independent of OAuth and shippable before it.
+independent of OAuth and shippable before it. Verified absent 2026-07-19:
+`rizom.ai/.well-known/atproto-did` returns 404 and the plugin has no such
+route.
+
+Sequencing (decided with the operator 2026-07-19): the **org account goes
+first through this same mechanism** — build the endpoint, configure the
+rizom-ai brain with the org account's DID, and verify the `@rizom.ai` handle
+via the HTTP method instead of a DNS TXT record. The org handle becomes the
+first dogfood of the member-handle flow; no `_atproto` DNS records anywhere.
+This rides the same release train as the publishing go-live (app password,
+task: wire `ATPROTO_APP_PASSWORD` + `identifier` into the rizom-ai pilot
+config).
 
 ## User Experience (today)
 
