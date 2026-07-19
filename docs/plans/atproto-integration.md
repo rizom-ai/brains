@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Phase 4's first bounded discovery slice is implemented: signed brain cards can enrich or create reviewable `agent` entities while preserving the approval lifecycle. Remaining active targets are outbound ATProto OAuth, configurable discovery filters / Jetstream candidate sourcing, and later Phase 3 inbound ingestion plus feed-generator work. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Phase 4's first bounded discovery slice is implemented: signed brain cards can enrich or create reviewable `agent` entities while preserving the approval lifecycle. Remaining active targets are outbound ATProto OAuth, member handle verification under the fleet domain (see Identity Model), configurable discovery filters / Jetstream candidate sourcing, and later Phase 3 inbound ingestion plus feed-generator work. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution.
 
 ## Context
 
@@ -95,6 +95,31 @@ For public DID documents, prefer `did:web`:
 - `did:plc` remains appropriate when domain-independent portability is needed.
 
 Key management: secrets live in environment variables or the app's secret configuration, not committed markdown. Rotation is a later identity-service concern.
+
+### Member handles under the fleet domain
+
+Because atproto handles are domains and handle verification has an HTTP option,
+every fleet member can carry a branded handle — `@jo.rizom.ai` — verified by
+**their own brain** (decided with the operator 2026-07-19):
+
+- The atproto plugin gains a config value for the member's _account_ DID (the
+  `did:plc` of their personal Bluesky/PDS account — distinct from `repoDid`,
+  which is the publishing repo, and from the brain's `did:web`).
+- When configured, the plugin serves `GET /.well-known/atproto-did` as
+  `text/plain` returning that DID. The member sets their handle via Bluesky's
+  "I have my own domain" (HTTP method) and their brain self-verifies it — no
+  per-user DNS records, no operator toil.
+- Pilot plumbing: the account DID is per-user desired state
+  (`users/<handle>.yaml`) flowing into the generated `brain.yaml` plugin
+  config. Later, the "connect Bluesky" console flow (outbound OAuth work)
+  captures the DID in the same gesture that grants publishing.
+- Semantics: the handle is org-tenured — it verifies only while the member's
+  subdomain serves their DID, so offboarding naturally retires the name while
+  the member's DID, repo, and followers survive on their account. The name is
+  the affiliation; the identity stays theirs.
+
+Scope: a small slice — the well-known route + config + pilot plumbing —
+independent of OAuth and shippable before it.
 
 ## User Experience (today)
 
