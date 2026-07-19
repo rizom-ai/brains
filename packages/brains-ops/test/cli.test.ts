@@ -591,7 +591,7 @@ members:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nadmins: []\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -611,9 +611,9 @@ members:
     });
 
     expect(result.success).toBe(true);
-    expect(
-      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
-    ).toContain('anchors: ["discord:123456789"]');
+    const config = await readFile(join(root, "users/bob/brain.yaml"), "utf8");
+    expect(config).toContain('admins: ["discord:123456789"]');
+    expect(config).toContain('anchors: ["discord:123456789"]');
   });
 
   it("uses injected operator runner for onboard", async () => {

@@ -96,7 +96,7 @@ describe("reconcile scripts", () => {
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nadmins: []\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -133,7 +133,7 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email-resend:\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nadmins: []\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email-resend:\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
     );
   });
 
@@ -151,7 +151,7 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  rover-onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nadmins: []\nanchors: []\n\nplugins:\n  rover-onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
   });
 
@@ -169,7 +169,7 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nadmins: []\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
     );
   });
 
@@ -181,9 +181,9 @@ discord:
 
     await onboardUser(root, "bob");
 
-    expect(
-      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
-    ).toContain('anchors: ["discord:123456789"]');
+    const config = await readFile(join(root, "users/bob/brain.yaml"), "utf8");
+    expect(config).toContain('admins: ["discord:123456789"]');
+    expect(config).toContain('anchors: ["discord:123456789"]');
   });
 
   it("reconcileCohort runs only users in target cohort, sorted by handle", async () => {

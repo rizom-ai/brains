@@ -21,7 +21,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     ...renderAddConfig(user),
     ...renderSiteConfig(user),
     "",
-    renderAnchors(user),
+    ...renderPermissions(user),
     "",
     "plugins:",
     ...(user.setup?.delivery === "email"
@@ -127,12 +127,16 @@ function renderSetupEmailConfig(email: string): string[] {
   ];
 }
 
-function renderAnchors(user: ResolvedUser): string {
+function renderPermissions(user: ResolvedUser): string[] {
   if (user.discordEnabled && user.discordAnchorUserId) {
-    return `anchors: ["discord:${user.discordAnchorUserId}"]`;
+    const ref = `"discord:${user.discordAnchorUserId}"`;
+    // Discord has no runtime auth session, so the owner's admin permission and
+    // anchor identity must both be declared statically. `admins` grants
+    // authority; `anchors` marks the brain's anchor identity.
+    return [`admins: [${ref}]`, `anchors: [${ref}]`];
   }
 
-  return "anchors: []";
+  return ["admins: []", "anchors: []"];
 }
 
 function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
