@@ -31,6 +31,25 @@ export interface LinkedInOAuthToken {
   tokenType?: string | undefined;
 }
 
+export const linkedinOAuthTokenSchema: z.ZodType<LinkedInOAuthToken> = z
+  .object({
+    accessToken: z.string().trim().min(1),
+    expiresIn: z.number().int().positive(),
+    scope: z.string().trim().min(1).optional(),
+    tokenType: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export function validateLinkedInOAuthToken(value: unknown): LinkedInOAuthToken {
+  const token = linkedinOAuthTokenSchema.parse(value);
+  if (token.scope && token.scope !== LINKEDIN_PORTABILITY_SCOPE) {
+    throw new Error(
+      "LinkedIn OAuth token omitted the requested portability scope",
+    );
+  }
+  return token;
+}
+
 export interface LinkedInOAuthConnectionStatus {
   connected: boolean;
   expiresAt?: number | undefined;
@@ -149,11 +168,11 @@ export class LinkedInOAuthClient {
       throw new Error("LinkedIn OAuth token response omitted required fields");
     }
 
-    return {
+    return validateLinkedInOAuthToken({
       accessToken: parsed.data.access_token,
       expiresIn: parsed.data.expires_in,
       ...(parsed.data.scope ? { scope: parsed.data.scope } : {}),
       ...(parsed.data.token_type ? { tokenType: parsed.data.token_type } : {}),
-    };
+    });
   }
 }

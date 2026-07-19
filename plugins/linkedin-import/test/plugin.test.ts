@@ -43,10 +43,12 @@ describe("LinkedInImportPlugin", () => {
   it("exposes direct OAuth routes only with complete config and injected boundaries", () => {
     const plugin = new LinkedInImportPlugin(
       {
-        oauthClientId: "client-id",
-        oauthClientSecret: "client-secret",
-        oauthRedirectUri:
-          "https://brain.example/linkedin/oauth/direct/callback",
+        oauth: {
+          mode: "direct",
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          redirectUri: "https://brain.example/linkedin/oauth/direct/callback",
+        },
       },
       {
         oauthTokenStore: {
@@ -72,11 +74,49 @@ describe("LinkedInImportPlugin", () => {
     expect(new LinkedInImportPlugin().getWebRoutes()).toEqual([]);
   });
 
-  it("rejects partial OAuth configuration", () => {
+  it("exposes managed OAuth routes from instance plugin config", () => {
+    const plugin = new LinkedInImportPlugin(
+      {
+        oauth: {
+          mode: "broker",
+          baseUrl: "https://connect.example",
+          instanceId: "brain-one",
+          instanceSecret: "instance-secret-000000000000000000000000",
+        },
+      },
+      {
+        oauthTokenStore: {
+          getAccessToken: async (): Promise<undefined> => undefined,
+          getStatus: async (): Promise<{ connected: false }> => ({
+            connected: false,
+          }),
+          storeToken: async (): Promise<void> => undefined,
+          clearToken: async (): Promise<void> => undefined,
+        },
+        resolveAnchorSession: async (): Promise<boolean> => true,
+      },
+    );
+
+    expect(
+      plugin.getWebRoutes().map((route) => [route.method, route.path]),
+    ).toEqual([
+      ["GET", "/linkedin/admin/status"],
+      ["POST", "/linkedin/admin/connect"],
+      ["GET", "/linkedin/oauth/broker/return"],
+      ["POST", "/linkedin/admin/disconnect"],
+    ]);
+  });
+
+  it("rejects invalid OAuth configuration", () => {
     expect(
       () =>
         new LinkedInImportPlugin({
-          oauthClientId: "client-id",
+          oauth: {
+            mode: "direct",
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            redirectUri: "not-a-url",
+          },
         }),
     ).toThrow("Invalid plugin config for linkedin-import");
   });

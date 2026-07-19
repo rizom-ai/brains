@@ -17,10 +17,10 @@ management page have been removed. The dedicated `/admin` console's Integrations
 is the intended import surface, and its LinkedIn UI plus preview/confirmation workflow
 remain pending. Phase 4B's provider-neutral broker walking skeleton is implemented with
 authenticated instances, exact return-URI lookup, expiring state, and one-time grants.
-LinkedIn's broker adapter, owner-side broker client/return route, central deployment
-wiring, and Admin UI remain pending; LinkedIn scopes, token exchange, and credential
-validation stay provider-specific. Rich-domain fixtures/mappers and Phase 5 are not yet
-started.
+The LinkedIn provider adapter, owner-side broker client, local return route, and reusable
+token handoff are implemented. Central deployment wiring and Admin UI remain pending;
+LinkedIn scopes, token exchange, and credential validation stay provider-specific.
+Rich-domain fixtures/mappers and Phase 5 are not yet started.
 
 ## Context
 
@@ -252,8 +252,9 @@ LinkedIn import must neither read nor write communication preferences.
 
 `plugins/linkedin-import` is a ServicePlugin templated on `stock-photo`:
 
-- `env-schema.ts` declares sensitive `LINKEDIN_ACCESS_TOKEN`; the plugin is inert without
-  it.
+- The plugin is inert without a configured static or dynamic access-token source. OAuth
+  and fallback-token settings come from instance-owned plugin config in `brain.yaml`, with
+  normal `${ENV_VAR}` interpolation for secrets; Rover does not enumerate plugin env vars.
 - `lib/linkedin-client.ts` calls the sanctioned Snapshot API with bearer auth and the
   endpoint's fixed `Linkedin-Version: 202312`, validates responses with Zod, follows
   pagination, and bounds surfaced error bodies.
@@ -270,8 +271,9 @@ LinkedIn import must neither read nor write communication preferences.
   when either input changed. The former agent tool surface has been removed; the Admin
   console's Integrations section will display the field-level merge preview and submit the
   reviewed digest through Anchor-gated LinkedIn routes before queuing the existing job.
-- Rover includes the inert capability in each preset and supplies the access token from
-  its declared environment schema.
+- Rover includes the inert capability in each preset and injects only runtime boundaries
+  such as Anchor session resolution and token persistence. Each instance owns the plugin's
+  operational config.
 
 Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
 mapping and merging, idempotent handler behavior, conflict handling, stale digest
@@ -336,11 +338,11 @@ validation, explicit disconnect, and expiry-aware reads.
 
 Direct mode is appropriate for self-hosted owners with their own approved LinkedIn
 application and for a small pilot with a fixed callback allowlist. It requires explicit
-`LINKEDIN_DIRECT_CLIENT_ID`, `LINKEDIN_DIRECT_CLIENT_SECRET`, and
-`LINKEDIN_DIRECT_REDIRECT_URI` configuration, with the redirect ending at
-`/linkedin/oauth/direct/callback`. It is not the managed rollout model because
-distributing the shared LinkedIn application secret and registering every dynamic brain
-callback would not scale safely.
+instance plugin config with `oauth.mode: direct`, `clientId`, `clientSecret`, and a
+`redirectUri` ending at `/linkedin/oauth/direct/callback`. Secret names remain
+instance-owned through normal `brain.yaml` environment interpolation. It is not the
+managed rollout model because distributing the shared LinkedIn application secret and
+registering every dynamic brain callback would not scale safely.
 
 ### `/admin` Integrations workflow (next)
 
@@ -419,7 +421,11 @@ revocable per-instance HTTP Basic credentials for HTTPS server-to-server calls, 
 configured return URIs, hashed in-memory lookup keys, bounded ten-minute authorization
 state, and bounded two-minute credential grants. State and grants are deliberately
 process-local: restart invalidates only an in-flight connection, which the user can retry.
-The broker never stores reusable provider credentials after grant redemption.
+The broker never stores reusable provider credentials after grant redemption. The
+LinkedIn adapter and owner-side `LinkedInBrokerClient` are also implemented: the adapter
+owns portability scope and token validation, while the brain consumes local state,
+redeems the bound grant server-to-server, validates the canonical credential again, and
+stores it through `LinkedInOAuthTokenStore`.
 
 The broker must:
 
@@ -462,18 +468,19 @@ Package boundaries:
 - `plugins/oauth-broker` — generic central `ServicePlugin`, Zod broker protocol, instance
   registry, state/grant stores, provider-adapter contract, and fixed callback routes;
 - the dedicated Admin console — Integrations navigation and the LinkedIn management UI;
-- `plugins/linkedin-import` — browser-safe admin API, `LinkedInBrokerClient`, LinkedIn
-  credential validation, local token storage, direct/self-hosted mode, and profile import;
-  and
+- `plugins/linkedin-import` — browser-safe admin API, implemented `LinkedInBrokerClient`,
+  LinkedIn provider adapter and credential validation, local token storage,
+  direct/self-hosted mode, and profile import; and
 - the first LinkedIn broker adapter may be composed with `oauth-broker` from the central
   brain model. Do not split provider adapters into a new package until a second upstream
   OAuth provider proves the boundary.
 
 Implemented broker tests cover cross-instance substitution, arbitrary return-URI
 rejection, expired/replayed state and grants, failed redemption authentication, provider
-denial, concurrent redemption, and confirmation that no provider credential appears in a
-browser redirect. Remaining integration tests must cover the LinkedIn adapter, local
-broker-return state, end-to-end log redaction, rate limits, and central deployment.
+denial, concurrent redemption, LinkedIn adapter scope/credential validation, local return
+state, and confirmation that no provider credential appears in browser redirects or
+status responses. Remaining integration tests must cover end-to-end log redaction, rate
+limits, and central deployment.
 
 ## Phase 4C — Refresh and Changelog synchronization (blocked)
 
@@ -517,6 +524,10 @@ _same_ transform + sink. Selected when the member is not EEA-eligible.
 - **Two OAuth deployment modes** — direct mode supports self-hosted applications and small
   fixed pilots; managed mode centralizes the shared application secret and callback without
   centralizing the reusable owner token.
+- **Instance-owned plugin configuration** — Rover injects runtime services but does not
+  know plugin environment-variable names. OAuth mode and connection settings live under
+  `plugins.linkedin-import` in `brain.yaml`; each instance chooses secret names through
+  normal environment interpolation, matching the external-plugin configuration model.
 - **Deterministic first, LLM second** — structured record is deterministic; only narrative
   fields use an LLM, as a separate optional pass.
 - **DMA API primary (EEA), export-ZIP fallback (rest)** — sanctioned and stable beats

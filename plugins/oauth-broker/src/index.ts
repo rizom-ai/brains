@@ -1,7 +1,9 @@
 export {
   oauthBrokerAuthorizationRequestSchema,
+  oauthBrokerAuthorizationResponseSchema,
   oauthBrokerCredentialSchema,
   oauthBrokerGrantRedemptionRequestSchema,
+  oauthBrokerGrantRedemptionResponseSchema,
   oauthBrokerProviderIdSchema,
   type OAuthBrokerAuthorizationRequest,
   type OAuthBrokerAuthorizationResponse,

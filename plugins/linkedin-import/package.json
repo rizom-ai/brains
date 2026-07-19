@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.186",
   "description": "Import an owner's professional profile through LinkedIn member data portability",
   "dependencies": {
+    "@brains/oauth-broker": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
@@ -16,8 +17,7 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./env-schema": "./src/env-schema.ts"
+    ".": "./src/index.ts"
   },
   "private": true,
   "scripts": {

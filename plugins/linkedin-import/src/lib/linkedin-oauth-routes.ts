@@ -1,16 +1,19 @@
 import type { WebRouteDefinition } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import type { LinkedInBrokerClient } from "./linkedin-broker-client";
 import {
   LINKEDIN_PORTABILITY_SCOPE,
-  type LinkedInOAuthTokenStore,
   type LinkedInOAuthClient,
+  type LinkedInOAuthTokenStore,
 } from "./linkedin-oauth-client";
+import { LINKEDIN_OAUTH_BROKER_PROVIDER_ID } from "./linkedin-oauth-broker-provider";
 import { LinkedInOAuthStateStore } from "./linkedin-oauth-state-store";
 
 export const LINKEDIN_ADMIN_STATUS_PATH = "/linkedin/admin/status";
 export const LINKEDIN_ADMIN_CONNECT_PATH = "/linkedin/admin/connect";
 export const LINKEDIN_ADMIN_DISCONNECT_PATH = "/linkedin/admin/disconnect";
 export const LINKEDIN_DIRECT_CALLBACK_PATH = "/linkedin/oauth/direct/callback";
+export const LINKEDIN_BROKER_RETURN_PATH = "/linkedin/oauth/broker/return";
 export const LINKEDIN_ADMIN_INTEGRATIONS_URL =
   "/admin?section=integrations&provider=linkedin";
 
@@ -23,8 +26,11 @@ export type LinkedInAnchorSessionResolver = (
   request: Request,
 ) => Promise<boolean>;
 
+export type LinkedInOAuthConnectionMode = "broker" | "direct";
+
 export interface LinkedInOAuthStatusResponse {
   connected: boolean;
+  connectionMode: LinkedInOAuthConnectionMode;
   requestedScope: typeof LINKEDIN_PORTABILITY_SCOPE;
   staticAccessTokenConfigured: boolean;
   expiresAt?: number | undefined;
@@ -39,15 +45,27 @@ export interface LinkedInAdminDisconnectResponse {
   disconnected: true;
 }
 
-export interface LinkedInOAuthRoutesOptions {
-  client: LinkedInOAuthClient;
+interface LinkedInOAuthRoutesBaseOptions {
   tokenStore: LinkedInOAuthTokenStore;
   stateStore?: LinkedInOAuthStateStore | undefined;
-  redirectUri: string;
   resolveAnchorSession: LinkedInAnchorSessionResolver;
   staticAccessTokenConfigured?: boolean | undefined;
-  reportError?: ((message: string, error: unknown) => void) | undefined;
+  reportError?: ((message: string) => void) | undefined;
 }
+
+export interface LinkedInDirectOAuthRoutesOptions extends LinkedInOAuthRoutesBaseOptions {
+  mode?: "direct" | undefined;
+  client: LinkedInOAuthClient;
+  redirectUri: string;
+}
+
+export interface LinkedInBrokerOAuthRoutesOptions extends LinkedInOAuthRoutesBaseOptions {
+  mode: "broker";
+  brokerClient: LinkedInBrokerClient;
+}
+
+export type LinkedInOAuthRoutesOptions =
+  LinkedInDirectOAuthRoutesOptions | LinkedInBrokerOAuthRoutesOptions;
 
 const privateHeaders = {
   "Cache-Control": "no-store",
@@ -79,6 +97,10 @@ function adminReturnUrl(status: "connected"): string {
 function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
   return origin !== null && origin === new URL(request.url).origin;
+}
+
+function isLoopback(url: URL): boolean {
+  return ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
 }
 
 function escapeHtml(value: string): string {
@@ -130,13 +152,15 @@ async function validateConfirmedAction(
       );
 }
 
-/** Legacy route declarations pending the normalized HTTP route registry. */
-export function createLinkedInOAuthRoutes(
-  options: LinkedInOAuthRoutesOptions,
-): WebRouteDefinition[] {
+function directRedirectUri(options: LinkedInDirectOAuthRoutesOptions): string {
   const redirectUri = new URL(options.redirectUri);
-  if (!["http:", "https:"].includes(redirectUri.protocol)) {
-    throw new Error("LinkedIn OAuth redirect URI must use HTTP or HTTPS");
+  if (
+    redirectUri.protocol !== "https:" &&
+    !(redirectUri.protocol === "http:" && isLoopback(redirectUri))
+  ) {
+    throw new Error(
+      "Direct LinkedIn OAuth redirect URI must use HTTPS outside loopback",
+    );
   }
   if (
     redirectUri.pathname !== LINKEDIN_DIRECT_CALLBACK_PATH ||
@@ -147,13 +171,33 @@ export function createLinkedInOAuthRoutes(
       `Direct LinkedIn OAuth redirect URI must end at ${LINKEDIN_DIRECT_CALLBACK_PATH}`,
     );
   }
-  const normalizedRedirectUri = redirectUri.toString();
+  return redirectUri.toString();
+}
+
+function invalidStatePage(): Response {
+  return errorPage(
+    "Authorization expired",
+    "This callback is invalid, expired, or already used. Start a new connection from Admin.",
+    400,
+  );
+}
+
+/** Legacy route declarations pending the normalized HTTP route registry. */
+export function createLinkedInOAuthRoutes(
+  options: LinkedInOAuthRoutesOptions,
+): WebRouteDefinition[] {
+  const connectionMode: LinkedInOAuthConnectionMode =
+    options.mode === "broker" ? "broker" : "direct";
+  const stateRedirectUri =
+    options.mode === "broker"
+      ? LINKEDIN_BROKER_RETURN_PATH
+      : directRedirectUri(options);
   const stateStore = options.stateStore ?? new LinkedInOAuthStateStore();
-  const reportError = (message: string, error: unknown): void => {
-    options.reportError?.(message, error);
+  const reportError = (message: string): void => {
+    options.reportError?.(message);
   };
 
-  return [
+  const routes: WebRouteDefinition[] = [
     {
       path: LINKEDIN_ADMIN_STATUS_PATH,
       method: "GET",
@@ -166,6 +210,7 @@ export function createLinkedInOAuthRoutes(
           const status = await options.tokenStore.getStatus();
           const response: LinkedInOAuthStatusResponse = {
             connected: status.connected,
+            connectionMode,
             requestedScope: LINKEDIN_PORTABILITY_SCOPE,
             staticAccessTokenConfigured:
               options.staticAccessTokenConfigured ?? false,
@@ -173,8 +218,8 @@ export function createLinkedInOAuthRoutes(
             ...(status.scope ? { scope: status.scope } : {}),
           };
           return privateJson(response);
-        } catch (error) {
-          reportError("Failed to read LinkedIn OAuth status", error);
+        } catch {
+          reportError("Failed to read LinkedIn OAuth status");
           return privateJson({ error: "LinkedIn status unavailable" }, 500);
         }
       },
@@ -193,22 +238,84 @@ export function createLinkedInOAuthRoutes(
         );
         if (invalidAction) return invalidAction;
 
+        let state: string | undefined;
         try {
-          const state = stateStore.issue(normalizedRedirectUri);
-          const authorizationUrl = options.client.createAuthorizationUrl({
-            redirectUri: normalizedRedirectUri,
-            state,
-          });
+          state = stateStore.issue(stateRedirectUri);
+          const authorizationUrl =
+            options.mode === "broker"
+              ? await options.brokerClient.createAuthorizationUrl(state)
+              : options.client.createAuthorizationUrl({
+                  redirectUri: stateRedirectUri,
+                  state,
+                });
           return privateJson({
             authorizationUrl: authorizationUrl.toString(),
           } satisfies LinkedInAdminConnectResponse);
-        } catch (error) {
-          reportError("Failed to start LinkedIn OAuth", error);
+        } catch {
+          if (state) stateStore.consume(state);
+          reportError("Failed to start LinkedIn OAuth");
           return privateJson({ error: "LinkedIn connection unavailable" }, 500);
         }
       },
     },
-    {
+  ];
+
+  if (options.mode === "broker") {
+    routes.push({
+      path: LINKEDIN_BROKER_RETURN_PATH,
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const callbackUrl = new URL(request.url);
+        const state = callbackUrl.searchParams.get("state") ?? "";
+        const pending = stateStore.consume(state);
+        if (pending?.redirectUri !== LINKEDIN_BROKER_RETURN_PATH) {
+          return invalidStatePage();
+        }
+
+        if (
+          callbackUrl.searchParams.get("provider") !==
+          LINKEDIN_OAUTH_BROKER_PROVIDER_ID
+        ) {
+          return errorPage(
+            "Authorization invalid",
+            "The broker returned an unexpected provider. No credential was stored.",
+            400,
+          );
+        }
+        if (callbackUrl.searchParams.has("error")) {
+          return errorPage(
+            "Authorization declined",
+            "LinkedIn did not grant the requested portability permission. No credential was stored.",
+            400,
+          );
+        }
+
+        const grant = callbackUrl.searchParams.get("grant")?.trim();
+        if (!grant) {
+          return errorPage(
+            "Authorization incomplete",
+            "The broker returned no credential grant. Start a new connection from Admin.",
+            400,
+          );
+        }
+
+        try {
+          const token = await options.brokerClient.redeemGrant(grant);
+          await options.tokenStore.storeToken(token);
+          return redirect(adminReturnUrl("connected"));
+        } catch {
+          reportError("Managed LinkedIn OAuth callback failed");
+          return errorPage(
+            "Connection failed",
+            "Rover could not redeem the credential grant. No usable connection was established.",
+            502,
+          );
+        }
+      },
+    });
+  } else {
+    routes.push({
       path: LINKEDIN_DIRECT_CALLBACK_PATH,
       method: "GET",
       public: true,
@@ -216,13 +323,7 @@ export function createLinkedInOAuthRoutes(
         const callbackUrl = new URL(request.url);
         const state = callbackUrl.searchParams.get("state") ?? "";
         const pending = stateStore.consume(state);
-        if (!pending) {
-          return errorPage(
-            "Authorization expired",
-            "This callback is invalid, expired, or already used. Start a new connection from Admin.",
-            400,
-          );
-        }
+        if (!pending) return invalidStatePage();
 
         if (callbackUrl.searchParams.has("error")) {
           return errorPage(
@@ -248,8 +349,8 @@ export function createLinkedInOAuthRoutes(
           });
           await options.tokenStore.storeToken(token);
           return redirect(adminReturnUrl("connected"));
-        } catch (error) {
-          reportError("Direct LinkedIn OAuth callback failed", error);
+        } catch {
+          reportError("Direct LinkedIn OAuth callback failed");
           return errorPage(
             "Connection failed",
             "Rover could not complete the credential exchange. No usable connection was established.",
@@ -257,31 +358,34 @@ export function createLinkedInOAuthRoutes(
           );
         }
       },
-    },
-    {
-      path: LINKEDIN_ADMIN_DISCONNECT_PATH,
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        if (!(await options.resolveAnchorSession(request))) {
-          return privateJson({ error: "Anchor session required" }, 403);
-        }
-        const invalidAction = await validateConfirmedAction(
-          request,
-          LINKEDIN_ADMIN_MUTATION_ACTIONS.disconnectLinkedIn,
-        );
-        if (invalidAction) return invalidAction;
+    });
+  }
 
-        try {
-          await options.tokenStore.clearToken();
-          return privateJson({
-            disconnected: true,
-          } satisfies LinkedInAdminDisconnectResponse);
-        } catch (error) {
-          reportError("Failed to disconnect LinkedIn OAuth", error);
-          return privateJson({ error: "LinkedIn disconnect failed" }, 500);
-        }
-      },
+  routes.push({
+    path: LINKEDIN_ADMIN_DISCONNECT_PATH,
+    method: "POST",
+    public: true,
+    handler: async (request): Promise<Response> => {
+      if (!(await options.resolveAnchorSession(request))) {
+        return privateJson({ error: "Anchor session required" }, 403);
+      }
+      const invalidAction = await validateConfirmedAction(
+        request,
+        LINKEDIN_ADMIN_MUTATION_ACTIONS.disconnectLinkedIn,
+      );
+      if (invalidAction) return invalidAction;
+
+      try {
+        await options.tokenStore.clearToken();
+        return privateJson({
+          disconnected: true,
+        } satisfies LinkedInAdminDisconnectResponse);
+      } catch {
+        reportError("Failed to disconnect LinkedIn OAuth");
+        return privateJson({ error: "LinkedIn disconnect failed" }, 500);
+      }
     },
-  ];
+  });
+
+  return routes;
 }

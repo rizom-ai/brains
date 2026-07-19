@@ -7,6 +7,7 @@ import {
   type LinkedInAccessTokenProvider,
   type LinkedInFetch,
 } from "./lib/linkedin-client";
+import { LinkedInBrokerClient } from "./lib/linkedin-broker-client";
 import {
   LinkedInOAuthClient,
   type LinkedInOAuthTokenStore,
@@ -18,14 +19,54 @@ import {
 import type { LinkedInOAuthStateStore } from "./lib/linkedin-oauth-state-store";
 import packageJson from "../package.json" with { type: "json" };
 
+export interface LinkedInBrokerOAuthConfig {
+  mode: "broker";
+  baseUrl: string;
+  instanceId: string;
+  instanceSecret: string;
+}
+
+export interface LinkedInDirectOAuthConfig {
+  mode: "direct";
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
+
+export type LinkedInOAuthConfig =
+  LinkedInBrokerOAuthConfig | LinkedInDirectOAuthConfig;
+
 export interface LinkedInImportConfig {
   accessToken?: string | undefined;
-  oauthClientId?: string | undefined;
-  oauthClientSecret?: string | undefined;
-  oauthRedirectUri?: string | undefined;
+  oauth?: LinkedInOAuthConfig | undefined;
 }
 
 export type LinkedInImportConfigInput = LinkedInImportConfig;
+
+const linkedinOAuthConfigSchema: z.ZodType<
+  LinkedInOAuthConfig,
+  LinkedInOAuthConfig
+> = z.discriminatedUnion("mode", [
+  z
+    .object({
+      mode: z.literal("broker"),
+      baseUrl: z.url(),
+      instanceId: z
+        .string()
+        .trim()
+        .regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/),
+      instanceSecret: z.string().trim().min(32),
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal("direct"),
+      clientId: z.string().trim().min(1),
+      clientSecret: z.string().trim().min(1),
+      redirectUri: z.url(),
+    })
+    .strict(),
+]);
 
 const linkedinImportConfigSchema: z.ZodType<
   LinkedInImportConfig,
@@ -38,46 +79,16 @@ const linkedinImportConfigSchema: z.ZodType<
       .min(1)
       .optional()
       .describe("LinkedIn member data portability access token"),
-    oauthClientId: z
-      .string()
-      .trim()
-      .min(1)
-      .optional()
-      .describe("LinkedIn OAuth application client ID"),
-    oauthClientSecret: z
-      .string()
-      .trim()
-      .min(1)
-      .optional()
-      .describe("LinkedIn OAuth application client secret"),
-    oauthRedirectUri: z
-      .url()
-      .optional()
-      .describe(
-        "Direct LinkedIn callback URL ending in /linkedin/oauth/direct/callback",
-      ),
+    oauth: linkedinOAuthConfigSchema.optional(),
   })
-  .superRefine((config, context) => {
-    const oauthFields = [
-      config.oauthClientId,
-      config.oauthClientSecret,
-      config.oauthRedirectUri,
-    ];
-    const configuredFields = oauthFields.filter(Boolean).length;
-    if (configuredFields > 0 && configuredFields < oauthFields.length) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Direct LinkedIn OAuth requires oauthClientId, oauthClientSecret, and oauthRedirectUri together",
-      });
-    }
-  });
+  .strict();
 
 export interface LinkedInImportDeps {
   fetch?: LinkedInFetch | undefined;
   accessTokenProvider?: LinkedInAccessTokenProvider | undefined;
   oauthTokenStore?: LinkedInOAuthTokenStore | undefined;
   oauthStateStore?: LinkedInOAuthStateStore | undefined;
+  brokerClient?: LinkedInBrokerClient | undefined;
   resolveAnchorSession?: LinkedInAnchorSessionResolver | undefined;
 }
 
@@ -88,6 +99,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   private readonly deps: LinkedInImportDeps;
   private cachedClient: LinkedInClient | null = null;
   private cachedOAuthClient: LinkedInOAuthClient | null = null;
+  private cachedBrokerClient: LinkedInBrokerClient | null = null;
   private cachedOAuthRoutes: WebRouteDefinition[] | null = null;
 
   constructor(
@@ -103,20 +115,35 @@ export class LinkedInImportPlugin extends ServicePlugin<
     if (!routeConfig) return [];
     if (this.cachedOAuthRoutes) return this.cachedOAuthRoutes;
 
-    this.cachedOAuthRoutes = createLinkedInOAuthRoutes({
-      client: this.getOAuthClient(
-        routeConfig.oauthClientId,
-        routeConfig.oauthClientSecret,
-      ),
+    const commonOptions = {
       tokenStore: routeConfig.tokenStore,
       ...(this.deps.oauthStateStore
         ? { stateStore: this.deps.oauthStateStore }
         : {}),
-      redirectUri: routeConfig.oauthRedirectUri,
       resolveAnchorSession: routeConfig.resolveAnchorSession,
       staticAccessTokenConfigured: Boolean(this.config.accessToken),
-      reportError: (message, error): void => this.logger.error(message, error),
-    });
+      reportError: (message: string): void => this.logger.error(message),
+    };
+    this.cachedOAuthRoutes =
+      routeConfig.mode === "broker"
+        ? createLinkedInOAuthRoutes({
+            ...commonOptions,
+            mode: "broker",
+            brokerClient: this.getBrokerClient(
+              routeConfig.baseUrl,
+              routeConfig.instanceId,
+              routeConfig.instanceSecret,
+            ),
+          })
+        : createLinkedInOAuthRoutes({
+            ...commonOptions,
+            mode: "direct",
+            client: this.getOAuthClient(
+              routeConfig.clientId,
+              routeConfig.clientSecret,
+            ),
+            redirectUri: routeConfig.redirectUri,
+          });
     return this.cachedOAuthRoutes;
   }
 
@@ -145,32 +172,36 @@ export class LinkedInImportPlugin extends ServicePlugin<
   }
 
   private getOAuthRouteConfig():
-    | {
-        oauthClientId: string;
-        oauthClientSecret: string;
-        oauthRedirectUri: string;
+    | (LinkedInOAuthConfig & {
         tokenStore: LinkedInOAuthTokenStore;
         resolveAnchorSession: LinkedInAnchorSessionResolver;
-      }
+      })
     | undefined {
-    const { oauthClientId, oauthClientSecret, oauthRedirectUri } = this.config;
     const { oauthTokenStore, resolveAnchorSession } = this.deps;
-    if (
-      !oauthClientId ||
-      !oauthClientSecret ||
-      !oauthRedirectUri ||
-      !oauthTokenStore ||
-      !resolveAnchorSession
-    ) {
+    if (!oauthTokenStore || !resolveAnchorSession || !this.config.oauth) {
       return undefined;
     }
     return {
-      oauthClientId,
-      oauthClientSecret,
-      oauthRedirectUri,
+      ...this.config.oauth,
       tokenStore: oauthTokenStore,
       resolveAnchorSession,
     };
+  }
+
+  private getBrokerClient(
+    baseUrl: string,
+    instanceId: string,
+    instanceSecret: string,
+  ): LinkedInBrokerClient {
+    this.cachedBrokerClient ??=
+      this.deps.brokerClient ??
+      new LinkedInBrokerClient({
+        baseUrl,
+        instanceId,
+        instanceSecret,
+        fetch: this.deps.fetch ?? globalThis.fetch,
+      });
+    return this.cachedBrokerClient;
   }
 
   private getOAuthClient(

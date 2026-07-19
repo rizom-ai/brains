@@ -182,24 +182,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
     ["rover-onboarding", roverOnboardingPlugin, {}],
-    [
-      "linkedin-import",
-      roverLinkedInImportPlugin,
-      (env): PluginConfig => ({
-        ...(env["LINKEDIN_ACCESS_TOKEN"]
-          ? { accessToken: env["LINKEDIN_ACCESS_TOKEN"] }
-          : {}),
-        ...(env["LINKEDIN_DIRECT_CLIENT_ID"]
-          ? { oauthClientId: env["LINKEDIN_DIRECT_CLIENT_ID"] }
-          : {}),
-        ...(env["LINKEDIN_DIRECT_CLIENT_SECRET"]
-          ? { oauthClientSecret: env["LINKEDIN_DIRECT_CLIENT_SECRET"] }
-          : {}),
-        ...(env["LINKEDIN_DIRECT_REDIRECT_URI"]
-          ? { oauthRedirectUri: env["LINKEDIN_DIRECT_REDIRECT_URI"] }
-          : {}),
-      }),
-    ],
+    ["linkedin-import", roverLinkedInImportPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

@@ -212,6 +212,7 @@ describe("LinkedIn OAuth routes", () => {
     expect(await store.getAccessToken()).toBe("secret-access-token");
     expect(JSON.parse(statusBody)).toMatchObject({
       connected: true,
+      connectionMode: "direct",
       requestedScope: LINKEDIN_PORTABILITY_SCOPE,
       staticAccessTokenConfigured: false,
     });

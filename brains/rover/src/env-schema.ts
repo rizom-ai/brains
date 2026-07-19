@@ -7,7 +7,6 @@ import { newsletterEnvSchema } from "@brains/newsletter/env-schema";
 import { emailResendEnvSchema } from "@brains/email-resend/env-schema";
 import { analyticsEnvSchema } from "@brains/analytics/env-schema";
 import { stockPhotoEnvSchema } from "@brains/stock-photo/env-schema";
-import { linkedinDirectOAuthEnvSchema } from "@brains/linkedin-import/env-schema";
 import type { EnvVarDecl } from "@brains/utils/env-schema";
 
 /**
@@ -20,7 +19,6 @@ export const roverEnvSchema: EnvVarDecl[] = [
   ...discordEnvSchema,
   ...atprotoEnvSchema,
   ...socialMediaEnvSchema,
-  ...linkedinDirectOAuthEnvSchema,
   ...newsletterEnvSchema,
   ...emailResendEnvSchema,
   ...analyticsEnvSchema,

@@ -46,27 +46,13 @@ describe("rover presets", () => {
     }
   });
 
-  it("configures LinkedIn import from the declared secret", () => {
-    const config = resolve(
-      rover,
-      { LINKEDIN_ACCESS_TOKEN: "linkedin-token" },
-      { preset: "core" },
-    );
-    const linkedinImport = config.plugins?.find(
-      (plugin) => plugin.id === "linkedin-import",
-    );
-
-    expect(linkedinImport?.config).toMatchObject({
-      accessToken: "linkedin-token",
-    });
-  });
-
-  it("wires explicit direct LinkedIn OAuth routes from declared credentials", () => {
+  it("does not derive LinkedIn import config from model-owned env names", () => {
     const config = resolve(
       rover,
       {
-        LINKEDIN_DIRECT_CLIENT_ID: "client-id",
-        LINKEDIN_DIRECT_CLIENT_SECRET: "client-secret",
+        LINKEDIN_ACCESS_TOKEN: "legacy-token",
+        LINKEDIN_DIRECT_CLIENT_ID: "legacy-client",
+        LINKEDIN_DIRECT_CLIENT_SECRET: "legacy-secret",
         LINKEDIN_DIRECT_REDIRECT_URI:
           "https://brain.example/linkedin/oauth/direct/callback",
       },
@@ -75,19 +61,69 @@ describe("rover presets", () => {
     const linkedinImport = config.plugins?.find(
       (plugin) => plugin.id === "linkedin-import",
     );
-    const routeProvider = getWebRouteProvider(linkedinImport);
 
-    expect(linkedinImport?.config).toMatchObject({
-      oauthClientId: "client-id",
-      oauthClientSecret: "client-secret",
-      oauthRedirectUri: "https://brain.example/linkedin/oauth/direct/callback",
-    });
-    expect(routeProvider?.getWebRoutes().map((route) => route.path)).toEqual([
-      "/linkedin/admin/status",
-      "/linkedin/admin/connect",
-      "/linkedin/oauth/direct/callback",
-      "/linkedin/admin/disconnect",
-    ]);
+    expect(linkedinImport?.config).not.toHaveProperty("accessToken");
+    expect(linkedinImport?.config).not.toHaveProperty("oauth");
+  });
+
+  it("configures LinkedIn import through instance-owned plugin config", () => {
+    process.env["OWNER_PORTABILITY_TOKEN"] = "linkedin-token";
+    try {
+      const overrides = parseInstanceOverrides(`brain: rover
+preset: core
+plugins:
+  linkedin-import:
+    accessToken: \${OWNER_PORTABILITY_TOKEN}
+`);
+      const config = resolve(rover, {}, overrides);
+      const linkedinImport = config.plugins?.find(
+        (plugin) => plugin.id === "linkedin-import",
+      );
+
+      expect(linkedinImport?.config).toMatchObject({
+        accessToken: "linkedin-token",
+      });
+    } finally {
+      delete process.env["OWNER_PORTABILITY_TOKEN"];
+    }
+  });
+
+  it("wires direct OAuth from instance config without model-owned env names", () => {
+    process.env["SELF_HOSTED_LINKEDIN_SECRET"] = "client-secret";
+    try {
+      const overrides = parseInstanceOverrides(`brain: rover
+preset: core
+plugins:
+  linkedin-import:
+    oauth:
+      mode: direct
+      clientId: client-id
+      clientSecret: \${SELF_HOSTED_LINKEDIN_SECRET}
+      redirectUri: https://brain.example/linkedin/oauth/direct/callback
+`);
+      const config = resolve(rover, {}, overrides);
+      const linkedinImport = config.plugins?.find(
+        (plugin) => plugin.id === "linkedin-import",
+      );
+      const routeProvider = getWebRouteProvider(linkedinImport);
+
+      expect(linkedinImport?.config).toMatchObject({
+        oauth: {
+          mode: "direct",
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          redirectUri: "https://brain.example/linkedin/oauth/direct/callback",
+        },
+      });
+      expect(routeProvider?.getWebRoutes().map((route) => route.path)).toEqual([
+        "/linkedin/admin/status",
+        "/linkedin/admin/connect",
+        "/linkedin/oauth/direct/callback",
+        "/linkedin/admin/disconnect",
+      ]);
+    } finally {
+      delete process.env["SELF_HOSTED_LINKEDIN_SECRET"];
+    }
   });
 
   it("keeps site-content opt-in for hosted custom site packages", () => {

@@ -55,10 +55,25 @@ export interface OAuthBrokerAuthorizationResponse {
   authorizationUrl: string;
 }
 
+export const oauthBrokerAuthorizationResponseSchema: z.ZodType<OAuthBrokerAuthorizationResponse> =
+  z
+    .object({
+      authorizationUrl: z.url(),
+    })
+    .strict();
+
 export interface OAuthBrokerGrantRedemptionResponse {
   provider: string;
   credential: OAuthBrokerCredential;
 }
+
+export const oauthBrokerGrantRedemptionResponseSchema: z.ZodType<OAuthBrokerGrantRedemptionResponse> =
+  z
+    .object({
+      provider: oauthBrokerProviderIdSchema,
+      credential: oauthBrokerCredentialSchema,
+    })
+    .strict();
 
 export interface OAuthBrokerProvider {
   readonly id: string;

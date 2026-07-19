@@ -1,9 +1,12 @@
 export {
   LinkedInImportPlugin,
   linkedinImportPlugin,
+  type LinkedInBrokerOAuthConfig,
+  type LinkedInDirectOAuthConfig,
   type LinkedInImportConfig,
   type LinkedInImportConfigInput,
   type LinkedInImportDeps,
+  type LinkedInOAuthConfig,
 } from "./plugin";
 export {
   LinkedInClient,
@@ -25,16 +28,26 @@ export {
   type LinkedInSnapshotMapper,
 } from "./lib/transform/registry";
 export {
+  LinkedInBrokerClient,
+  type LinkedInBrokerClientOptions,
+} from "./lib/linkedin-broker-client";
+export {
   LINKEDIN_ACCESS_TOKEN_URL,
   LINKEDIN_AUTHORIZATION_URL,
   LINKEDIN_PORTABILITY_SCOPE,
   LinkedInOAuthClient,
+  linkedinOAuthTokenSchema,
+  validateLinkedInOAuthToken,
   type LinkedInAuthorizationRequest,
   type LinkedInOAuthConnectionStatus,
   type LinkedInCodeExchangeRequest,
   type LinkedInOAuthToken,
   type LinkedInOAuthTokenStore,
 } from "./lib/linkedin-oauth-client";
+export {
+  LINKEDIN_OAUTH_BROKER_PROVIDER_ID,
+  LinkedInOAuthBrokerProvider,
+} from "./lib/linkedin-oauth-broker-provider";
 export {
   FileLinkedInOAuthTokenStore,
   type FileLinkedInOAuthTokenStoreOptions,
@@ -46,10 +59,14 @@ export {
   LINKEDIN_ADMIN_INTEGRATIONS_URL,
   LINKEDIN_ADMIN_MUTATION_ACTIONS,
   LINKEDIN_ADMIN_STATUS_PATH,
+  LINKEDIN_BROKER_RETURN_PATH,
   LINKEDIN_DIRECT_CALLBACK_PATH,
   type LinkedInAdminConnectResponse,
   type LinkedInAdminDisconnectResponse,
   type LinkedInAnchorSessionResolver,
+  type LinkedInBrokerOAuthRoutesOptions,
+  type LinkedInDirectOAuthRoutesOptions,
+  type LinkedInOAuthConnectionMode,
   type LinkedInOAuthRoutesOptions,
   type LinkedInOAuthStatusResponse,
 } from "./lib/linkedin-oauth-routes";

@@ -43,8 +43,7 @@ Only set these when you need the corresponding integration:
 
 - `MCP_AUTH_TOKEN` — deprecated static fallback for MCP HTTP auth. Prefer the built-in OAuth/passkey provider; when `auth-service` is enabled, `/mcp` accepts brain-issued OAuth bearer tokens without this env var.
 - `DISCORD_BOT_TOKEN` — enable the Discord interface
-- `LINKEDIN_DIRECT_CLIENT_ID`, `LINKEDIN_DIRECT_CLIENT_SECRET`, and `LINKEDIN_DIRECT_REDIRECT_URI` — together enable explicit direct/self-hosted LinkedIn OAuth; the redirect URI must end in `/linkedin/oauth/direct/callback`
-- `LINKEDIN_ACCESS_TOKEN` — optional static portability fallback
+- LinkedIn portability OAuth/import settings belong under `plugins.linkedin-import` in the instance's `brain.yaml`; interpolated secret variable names are chosen by the instance
 - `BUTTONDOWN_API_KEY`
 - `UNSPLASH_ACCESS_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
