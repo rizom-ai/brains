@@ -224,6 +224,116 @@ describe("Plugin shutdown lifecycle", () => {
     );
   });
 
+  test("scoped MessageBus.unsubscribe removes wrapped subscriptions", async () => {
+    let messageCalls = 0;
+    let unsubscribeViaBus: (() => void) | undefined;
+    const handler = async (): Promise<{ success: true }> => {
+      messageCalls++;
+      return { success: true };
+    };
+    const plugin: Plugin = {
+      id: "message-unsubscribe-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Test",
+      packageName: "@test/message-unsubscribe",
+      register: async (shell): Promise<PluginCapabilities> => {
+        const bus = shell.getMessageBus();
+        bus.subscribe("message-unsubscribe:event", handler);
+        unsubscribeViaBus = (): void =>
+          bus.unsubscribe("message-unsubscribe:event", handler);
+        return { tools: [], resources: [] };
+      },
+    };
+
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+    await mockShell.getMessageBus().send({
+      type: "message-unsubscribe:event",
+      payload: {},
+      sender: "test",
+    });
+    unsubscribeViaBus?.();
+    await mockShell.getMessageBus().send({
+      type: "message-unsubscribe:event",
+      payload: {},
+      sender: "test",
+    });
+
+    expect(messageCalls).toBe(1);
+    await pluginManager.disablePlugin("message-unsubscribe-plugin");
+  });
+
+  test("stops message admission and drains an admitted handler before plugin shutdown", async () => {
+    const handlerStarted = deferred();
+    const releaseHandler = deferred();
+    let messageCalls = 0;
+    let lateMessageCalls = 0;
+    let handlerFinished = false;
+    let shutdownCalled = false;
+    let shutdownSawFinishedHandler = false;
+
+    const plugin: Plugin = {
+      id: "message-drain-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Test",
+      packageName: "@test/message-drain",
+      register: async (shell): Promise<PluginCapabilities> => {
+        shell.getMessageBus().subscribe("message-drain:late", async () => {
+          lateMessageCalls++;
+          return { success: true };
+        });
+        shell.getMessageBus().subscribe("message-drain:event", async () => {
+          messageCalls++;
+          handlerStarted.resolve();
+          await releaseHandler.promise;
+          handlerFinished = true;
+          return { success: true };
+        });
+        return { tools: [], resources: [] };
+      },
+      shutdown: async (): Promise<void> => {
+        shutdownCalled = true;
+        shutdownSawFinishedHandler = handlerFinished;
+      },
+    };
+
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    const sending = mockShell.getMessageBus().send({
+      type: "message-drain:event",
+      payload: {},
+      sender: "test",
+    });
+    await handlerStarted.promise;
+
+    const disabling = pluginManager.disablePlugin("message-drain-plugin");
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await Promise.resolve();
+    }
+    const shutdownBeforeHandlerSettled = shutdownCalled;
+
+    await mockShell.getMessageBus().send({
+      type: "message-drain:event",
+      payload: {},
+      sender: "test",
+    });
+    await mockShell.getMessageBus().send({
+      type: "message-drain:late",
+      payload: {},
+      sender: "test",
+    });
+    releaseHandler.resolve();
+    await Promise.all([sending, disabling]);
+
+    expect(shutdownBeforeHandlerSettled).toBe(false);
+    expect(shutdownSawFinishedHandler).toBe(true);
+    expect(messageCalls).toBe(1);
+    expect(lateMessageCalls).toBe(0);
+  });
+
   test("failed registration should roll back scoped resources", async () => {
     const registrationError = new Error("registration failed");
     const shutdownMock = mock(async () => {});
