@@ -113,6 +113,92 @@ export interface KnowledgeMapDataContext {
   };
 }
 
+/**
+ * How close two marks may sit in the unit box before relaxation pushes
+ * them apart. Chosen against the render size: ~0.04 of a 1000px field is
+ * a comfortable two dot-diameters.
+ */
+const MIN_MARK_DISTANCE = 0.04;
+
+/** Order-preserving spread of a raw projection into the unit box. */
+function spreadLayout(
+  raw: { x: number; y: number }[],
+): { x: number; y: number }[] {
+  if (raw.length === 0) return [];
+
+  // 1. radial rank expansion around the centroid: each point keeps its
+  // angle but takes an evenly spaced radius by rank. Monotone along every
+  // ray, so radial ordering and angular neighborhoods survive — and a
+  // 100x outlier can no longer crush the knot into a corner.
+  const cx = raw.reduce((sum, p) => sum + p.x, 0) / raw.length;
+  const cy = raw.reduce((sum, p) => sum + p.y, 0) / raw.length;
+  const byRadius = raw
+    .map((p, index) => ({ index, radius: Math.hypot(p.x - cx, p.y - cy) }))
+    .sort((a, b) => a.radius - b.radius || a.index - b.index);
+  const rankRadius = new Array<number>(raw.length);
+  byRadius.forEach((entry, rank) => {
+    rankRadius[entry.index] = (rank + 1) / raw.length;
+  });
+  const expanded = raw.map((p, index) => {
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const radius = Math.hypot(dx, dy);
+    const scaled = rankRadius[index] ?? 0;
+    if (radius === 0) return { x: 0, y: 0 };
+    return { x: (dx / radius) * scaled, y: (dy / radius) * scaled };
+  });
+
+  // 2. fit to the unit box with a uniform scale, centering the short axis
+  const minX = Math.min(...expanded.map((p) => p.x));
+  const minY = Math.min(...expanded.map((p) => p.y));
+  const spanX = Math.max(...expanded.map((p) => p.x)) - minX;
+  const spanY = Math.max(...expanded.map((p) => p.y)) - minY;
+  const span = Math.max(spanX, spanY, Number.EPSILON);
+  const offsetX = (1 - spanX / span) / 2;
+  const offsetY = (1 - spanY / span) / 2;
+  const fitted = expanded.map((p) => ({
+    x: offsetX + (p.x - minX) / span,
+    y: offsetY + (p.y - minY) / span,
+  }));
+
+  // 3. deterministic relaxation: push apart anything closer than the
+  // minimum mark distance, clamped to the box
+  for (let iteration = 0; iteration < 60; iteration++) {
+    let moved = false;
+    for (let i = 0; i < fitted.length; i++) {
+      for (let j = i + 1; j < fitted.length; j++) {
+        const a = fitted[i];
+        const b = fitted[j];
+        if (!a || !b) continue;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance >= MIN_MARK_DISTANCE) continue;
+        if (distance === 0) {
+          // identical coordinates: separate along a stable index-derived angle
+          const angle = ((i * 7 + j * 13) % 360) * (Math.PI / 180);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          distance = 1;
+        }
+        const push =
+          (MIN_MARK_DISTANCE - Math.min(distance, MIN_MARK_DISTANCE)) / 2 ||
+          MIN_MARK_DISTANCE / 2;
+        const ux = dx / distance;
+        const uy = dy / distance;
+        a.x = Math.min(1, Math.max(0, a.x - ux * push));
+        a.y = Math.min(1, Math.max(0, a.y - uy * push));
+        b.x = Math.min(1, Math.max(0, b.x + ux * push));
+        b.y = Math.min(1, Math.max(0, b.y + uy * push));
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+
+  return fitted;
+}
+
 /** First markdown heading, or the id with its dashes opened up. */
 function displayTitle(content: string | undefined, id: string): string {
   const heading = content?.match(/^#\s+(.+)$/m);
@@ -142,37 +228,39 @@ export async function buildKnowledgeMapData(
     }),
   );
 
-  // Normalize coordinates to the unit box with a uniform scale, so the
-  // projection's aspect (near means near) survives.
-  const xs = projection.points.map((point) => point.coordinates[0]);
-  const ys = projection.points.map((point) => point.coordinates[1]);
-  const minX = Math.min(...xs, 0);
-  const minY = Math.min(...ys, 0);
-  const span = Math.max(
-    Math.max(...xs, 0) - minX,
-    Math.max(...ys, 0) - minY,
-    Number.EPSILON,
+  // Layout: PCA output is outlier-heavy — a dense knot plus a few far
+  // points, which raw min/max normalization would crush into a corner.
+  // Spread it in three order-preserving steps: (1) radial square-root
+  // expansion around the centroid (expands the knot, reins in outliers,
+  // keeps neighborhoods along every ray), (2) fit to the unit box with a
+  // uniform scale, (3) a deterministic relaxation that separates
+  // near-identical points so nothing renders on top of anything else.
+  const spread = spreadLayout(
+    projection.points.map((point) => ({
+      x: point.coordinates[0],
+      y: point.coordinates[1],
+    })),
   );
-  const norm = (point: ProjectedPoint): { x: number; y: number } => ({
-    x: (point.coordinates[0] - minX) / span,
-    y: (point.coordinates[1] - minY) / span,
-  });
+  const norm = (index: number): { x: number; y: number } =>
+    spread[index] ?? { x: 0.5, y: 0.5 };
 
-  const zones: KnowledgeMapZone[] = projection.points
-    .filter((point) => point.entityType === TOPIC_TYPE)
-    .map((point) => ({
+  const indexed = projection.points.map((point, index) => ({ point, index }));
+
+  const zones: KnowledgeMapZone[] = indexed
+    .filter(({ point }) => point.entityType === TOPIC_TYPE)
+    .map(({ point, index }) => ({
       id: point.entityId,
       name:
         titleById.get(`${TOPIC_TYPE}:${point.entityId}`) ??
         displayTitle(undefined, point.entityId),
-      ...norm(point),
+      ...norm(index),
       memberIds: [],
     }));
 
-  const points: KnowledgeMapPoint[] = projection.points
-    .filter((point) => point.entityType !== TOPIC_TYPE)
-    .map((point) => {
-      const { x, y } = norm(point);
+  const points: KnowledgeMapPoint[] = indexed
+    .filter(({ point }) => point.entityType !== TOPIC_TYPE)
+    .map(({ point, index }) => {
+      const { x, y } = norm(index);
       let zoneId: string | null = null;
       let best = ZONE_RADIUS;
       for (const zone of zones) {

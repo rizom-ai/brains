@@ -144,6 +144,83 @@ describe("buildKnowledgeMapData", () => {
     expect(data.counts).toEqual({ entities: 6, topics: 2 });
   });
 
+  test("clumped projections spread across the field", async () => {
+    // Real PCA output: a dense knot plus one outlier. Raw min/max
+    // normalization would crush the knot into a corner; the builder must
+    // spread it while keeping neighborhoods intact.
+    const context = makeContext();
+    const clump = [
+      {
+        entityId: "future-of-work",
+        entityType: "topic",
+        coordinates: [0.01, 0.02] as [number, number],
+        distanceToOrigin: 0.2,
+      },
+      {
+        entityId: "workshops",
+        entityType: "topic",
+        coordinates: [0.03, 0.01] as [number, number],
+        distanceToOrigin: 0.2,
+      },
+      {
+        entityId: "play-essay",
+        entityType: "post",
+        coordinates: [0.02, 0.03] as [number, number],
+        distanceToOrigin: 0.2,
+      },
+      {
+        entityId: "team-assessment",
+        entityType: "skill",
+        coordinates: [0.04, 0.04] as [number, number],
+        distanceToOrigin: 0.2,
+      },
+      {
+        entityId: "blog-excerpt",
+        entityType: "prompt",
+        coordinates: [0.02, 0.01] as [number, number],
+        distanceToOrigin: 0.2,
+      },
+      {
+        entityId: "cococo",
+        entityType: "deck",
+        coordinates: [8, 9] as [number, number],
+        distanceToOrigin: 0.9,
+      },
+    ];
+    context.semantic = {
+      project: (): ReturnType<KnowledgeMapDataContext["semantic"]["project"]> =>
+        Promise.resolve({ points: clump }),
+    };
+    const data = await buildKnowledgeMapData(context);
+
+    const positions = data.points
+      .map((point) => ({ x: point.x, y: point.y }))
+      .concat(data.zones.map((zone) => ({ x: zone.x, y: zone.y })));
+
+    // no two marks sit on top of each other
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const a = positions[i];
+        const b = positions[j];
+        if (!a || !b) continue;
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(0.03);
+      }
+    }
+
+    // the knot occupies real space instead of a corner: its five members
+    // span a meaningful part of the box
+    const knot = positions.slice(0, positions.length - 1);
+    const spanX =
+      Math.max(...knot.map((p) => p.x)) - Math.min(...knot.map((p) => p.x));
+    const spanY =
+      Math.max(...knot.map((p) => p.y)) - Math.min(...knot.map((p) => p.y));
+    expect(Math.max(spanX, spanY)).toBeGreaterThan(0.2);
+
+    // determinism: the same projection always lands the same layout
+    const again = await buildKnowledgeMapData(context);
+    expect(again).toEqual(data);
+  });
+
   test("an empty corpus yields an empty map, not an error", async () => {
     const context = makeContext();
     context.semantic = {
