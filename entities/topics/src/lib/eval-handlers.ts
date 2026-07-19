@@ -180,7 +180,7 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed: MergeTestInput = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
-      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
+      const threshold = parsed.threshold ?? config.semanticMergeDistance;
 
       const [topicsA, topicsB] = await Promise.all([
         extractTopics(parsed.contentA, minScore, "-a"),
@@ -193,6 +193,8 @@ export function registerTopicEvalHandlers(params: {
         const created = await topicService.createTopic(topic);
         if (created) seededA.push(created);
       }
+      await waitForEmbeddingsToDrain(context);
+
       const mergeCandidates = (
         await Promise.all(
           topicsB.map(async (topic) => {
@@ -238,7 +240,7 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed: DetectMergeCandidateInput =
         detectMergeCandidateSchema.parse(input);
-      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
+      const threshold = parsed.threshold ?? config.semanticMergeDistance;
 
       const topicService = new TopicService(context.entityService, logger);
       const seeded: TopicEntity[] = [];
@@ -247,8 +249,13 @@ export function registerTopicEvalHandlers(params: {
         if (created) seeded.push(created);
       }
 
+      await waitForEmbeddingsToDrain(context);
+
       const candidate = await topicService.findMergeCandidate({
-        incoming: { title: parsed.incomingTopic.title },
+        incoming: {
+          title: parsed.incomingTopic.title,
+          content: parsed.incomingTopic.content,
+        },
         threshold,
         additionalCandidates: seeded,
       });
@@ -293,8 +300,8 @@ export function registerTopicEvalHandlers(params: {
         {
           minRelevanceScore: 0,
           autoMerge: true,
-          mergeSimilarityThreshold:
-            parsed.threshold ?? config.mergeSimilarityThreshold,
+          semanticMergeDistance:
+            parsed.threshold ?? config.semanticMergeDistance,
         },
       );
 
@@ -341,7 +348,10 @@ export function registerTopicEvalHandlers(params: {
       const parsed: SequentialInput = sequentialInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
       const topicService = new TopicService(context.entityService, logger);
-      const perEntity: Array<{ extractedTitles: string[] }> = [];
+      const perEntity: Array<{
+        extractedTitles: string[];
+        extractedCount: number;
+      }> = [];
 
       for (const [index, entityInput] of parsed.entities.entries()) {
         const entity = createEntityFromInput(
@@ -359,6 +369,7 @@ export function registerTopicEvalHandlers(params: {
 
         perEntity.push({
           extractedTitles: extracted.map((topic) => topic.title),
+          extractedCount: extracted.length,
         });
       }
 

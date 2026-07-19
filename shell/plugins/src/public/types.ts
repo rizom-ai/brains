@@ -2,6 +2,7 @@ import type {
   ContentVisibility,
   CountEntitiesRequest,
   EntitySearchRequest,
+  SearchWithDistancesRequest,
   GetEntityRequest,
   ICoreEntityService,
   IEntitiesNamespace,
@@ -257,6 +258,7 @@ type PublicEntityServiceMethods =
   | "getEntity"
   | "listEntities"
   | "search"
+  | "searchWithDistances"
   | "getEntityTypes"
   | "hasEntityType"
   | "countEntities"
@@ -271,6 +273,7 @@ export type IEntityService = Pick<
 export type {
   CountEntitiesRequest,
   EntitySearchRequest,
+  SearchWithDistancesRequest,
   GetEntityRequest,
   IEntitiesNamespace,
   ProjectSemanticSpaceRequest,

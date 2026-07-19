@@ -424,6 +424,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return results;
     },
     search: async () => [],
+    searchWithDistances: async () => [],
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),

@@ -14,6 +14,7 @@ export interface TopicsPluginConfig {
   includeEntityTypes: string[];
   minRelevanceScore: number;
   mergeSimilarityThreshold: number;
+  semanticMergeDistance: number;
   autoMerge: boolean;
   extractableStatuses: string[];
   enableAutoExtraction: boolean;
@@ -25,6 +26,7 @@ export interface TopicsPluginConfigInput {
   includeEntityTypes?: string[] | undefined;
   minRelevanceScore?: number | undefined;
   mergeSimilarityThreshold?: number | undefined;
+  semanticMergeDistance?: number | undefined;
   autoMerge?: boolean | undefined;
   extractableStatuses?: string[] | undefined;
   enableAutoExtraction?: boolean | undefined;
@@ -48,9 +50,15 @@ export const topicsPluginConfigSchema: z.ZodType<
   minRelevanceScore: z.number().min(0).max(1).default(0.5),
 
   /**
-   * Similarity threshold for automatic merging
+   * Deprecated lexical similarity threshold retained for config compatibility.
+   * Semantic merge distance is used for new automatic merge decisions.
    */
   mergeSimilarityThreshold: z.number().min(0).max(1).default(0.85),
+
+  /**
+   * Maximum cosine distance for automatic semantic merging. Lower is closer.
+   */
+  semanticMergeDistance: z.number().min(0).max(1).default(0.35),
 
   /**
    * Enable automatic merging of similar topics

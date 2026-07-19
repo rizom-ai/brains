@@ -1,7 +1,6 @@
 # Topics Derivation
 
-**Status:** Planned — decisions 1–8 reviewed with the operator 2026-07-19,
-build not started
+**Status:** Phase 1 implemented; Phase 2 reconciliation next
 
 The topic system produces near-duplicates and operational residue. Root
 causes, verified in code:
@@ -80,10 +79,7 @@ causes, verified in code:
 
 ## Phases (thin slices, tests first)
 
-1. **Semantic candidacy** — distance-arbitrated `findMergeCandidate`
-   (+ config, + exact-title fast path); merge-synthesis template gains the
-   distinct/merge verdict. Unit tests use the live duplicate pairs as
-   fixtures with stubbed distances.
+1. **Semantic candidacy** — implemented. `findMergeCandidate` is distance-arbitrated, `semanticMergeDistance` is config, exact-title remains a fast path for in-batch writes, lexical scoring is retired, and the merge-synthesis template can return `merge` or `distinct`. Unit tests use live duplicate-style pairs with stubbed distances.
 2. **Reconciliation** — pairwise scan + merge loop as job handler and
    `topics:reconcile` tool; post-wave trigger. Test: the 16-topic live list
    collapses to its canonical set under stubbed distances/synthesis.

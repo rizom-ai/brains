@@ -47,6 +47,7 @@ function createCapturedService(): CapturedService {
     ): Promise<SearchResult<T>[]> {
       return [];
     },
+    searchWithDistances: async () => [],
     projectSemanticSpace: async () => ({
       origin: { kind: "centroid" },
       points: [],

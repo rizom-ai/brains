@@ -70,6 +70,7 @@ export type {
   ListEntitiesRequest,
   CountEntitiesRequest,
   EntitySearchRequest,
+  SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
   ICoreEntityService,

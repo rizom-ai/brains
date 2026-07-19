@@ -135,8 +135,7 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/eval-handlers.ts` — eval harness handlers
 - `src/lib/topic-extractor.ts` — single-entity extraction
 - `src/lib/topic-batch-extractor.ts` — token-budget-aware batch extraction
-- `src/lib/topic-merge.ts` — similarity and normalization heuristics
-- `src/lib/topic-merge-synthesizer.ts` — AI synthesis for merges
+- `src/lib/topic-merge-synthesizer.ts` — AI merge/distinct verdicts and synthesis
 - `src/lib/topic-service.ts` — topic CRUD + merge helpers
 
 ## Validation

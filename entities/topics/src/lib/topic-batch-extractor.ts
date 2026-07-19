@@ -41,6 +41,7 @@ export interface ExtractTopicsBatchedOptions {
   minRelevanceScore?: number;
   autoMerge?: boolean;
   mergeSimilarityThreshold?: number;
+  semanticMergeDistance?: number;
   targetVisibility?: ContentVisibility;
   /** Injected for tests. Constructed from context when omitted. */
   topicMergeSynthesizer?: ITopicMergeSynthesizer;
@@ -84,7 +85,8 @@ export async function extractTopicsBatched(
 
   const minRelevanceScore = options.minRelevanceScore ?? 0;
   const autoMerge = options.autoMerge ?? false;
-  const threshold = options.mergeSimilarityThreshold ?? 0.85;
+  const threshold =
+    options.semanticMergeDistance ?? options.mergeSimilarityThreshold ?? 0.35;
   const targetVisibility = options.targetVisibility ?? "public";
 
   const batches = batchEntities(entities);
@@ -142,19 +144,24 @@ export async function extractTopicsBatched(
                 incomingTopic: topic,
               });
 
-              const mergedTopic = await topicService.applySynthesizedMerge({
-                existingId: candidate.topic.id,
-                synthesized: { ...synthesized, title: candidate.title },
-                visibility: targetVisibility,
-              });
+              if (synthesized.verdict === "distinct") {
+                // The semantic index found a close neighbor, but the final
+                // merge judge ruled this is a separate durable domain.
+              } else {
+                const mergedTopic = await topicService.applySynthesizedMerge({
+                  existingId: candidate.topic.id,
+                  synthesized: { ...synthesized, title: candidate.title },
+                  visibility: targetVisibility,
+                });
 
-              if (!mergedTopic) {
-                throw new Error(`Failed to merge topic: ${topic.title}`);
+                if (!mergedTopic) {
+                  throw new Error(`Failed to merge topic: ${topic.title}`);
+                }
+
+                inBatch.set(mergedTopic.id, mergedTopic);
+                merged++;
+                continue;
               }
-
-              inBatch.set(mergedTopic.id, mergedTopic);
-              merged++;
-              continue;
             }
           }
 
