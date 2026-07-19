@@ -142,6 +142,14 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Anchor kind and subject are persisted** — `auth_brain_anchor` stores one person or collective subject. A personal Anchor must remain an active Admin; a collective is administered by any active Admin, and no user has `isAnchor`.
 - [x] **`profileEntityId` remains the profile-generalization seam** — person and Anchor summaries reuse the profile reference for the companion profile-on-subjects model rather than inventing a second linkage.
 
+### Correction: anchor kind is configuration, not a console mutation (multi-user decision 13)
+
+`multi-user.md` decision 13 (adopted 2026-07-19) corrects the shipped in-console anchor editor: the anchor kind is declared in `brain.yaml` (`anchor: person | team | organization`, where `team`/`organization` both resolve to the collective kind) and the console is read-only over both kind and profile. The runtime still projects the config-declared kind into the `auth_brain_anchor` singleton so `isAnchor` resolution and audit are unchanged, but the write path is removed:
+
+- [ ] **Remove the console anchor write path** — drop the `updateBrainAnchor` mutation, the `person/collective` toggle in `AnchorPanel`, the `GET/POST /auth/admin/anchor` write handler, and the `updateBrainAnchor` entry in `AUTH_ADMIN_MUTATION_ACTIONS`. Retain read-for-display of the resolved anchor.
+- [ ] **Source the anchor kind from `brain.yaml`** — resolve `anchor: person | team | organization` at startup and project it into the `auth_brain_anchor` singleton (`team`/`organization` → `collective`); the singleton becomes a config-derived projection, not console-mutable state.
+- [ ] **Resolve the displayed anchor/member name from the CMS profile** (via `profileEntityId`), treating auth `displayName` as an internal fallback so a CMS rename cannot drift from the console.
+
 ## Consumers to satisfy
 
 - **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple Admins, one person/collective Anchor subject, and last-Admin protection.
@@ -428,7 +436,7 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 **Status: implemented; bounded legacy-cookie compatibility remains active.**
 
-- [x] Approve the People-section design (now the [admin console mockup — current](../design/admin-console-current-mockup.html); the [target mockup](../design/admin-console-target-mockup.html) shows the decisions 11–12 end state).
+- [x] Approve the People-section design (now the [admin console mockup — current](../design/admin-console-current-mockup.html)). The decision-13 end state is captured per anchor kind: [person](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [organization](../design/admin-console-org-mockup.html).
 - [x] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
 - [x] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; no deprecated wrappers remain in the private workspace API.
 - [x] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.

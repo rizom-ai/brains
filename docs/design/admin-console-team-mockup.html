@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en" data-climate="instrument">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin console — team (collective brain)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0819; --bg-deep: #05040f; --frame: #100d24; --card: #15112d;
+        --card-raised: #1b1638; --text: #f1eadd; --text-dim: #bfb7a6;
+        --text-muted: #7a7289; --rule: rgba(241, 234, 221, 0.08);
+        --rule-strong: rgba(241, 234, 221, 0.15); --accent: #ff8b3d;
+        --accent-soft: rgba(255, 139, 61, 0.12); --ok: #68cc8b;
+        --ok-soft: rgba(104, 204, 139, 0.11); --warn: #f5c158;
+        --warn-soft: rgba(245, 193, 88, 0.11); --danger: #e26d6d;
+        --danger-soft: rgba(226, 109, 109, 0.1); --info: #7db4e6;
+        --info-soft: rgba(125, 180, 230, 0.12); --glow: rgba(255, 139, 61, 0.07);
+        --display: "Fraunces", Georgia, serif; --ui: "IBM Plex Sans", sans-serif;
+        --mono: "JetBrains Mono", monospace;
+      }
+      [data-climate="paper"] {
+        --bg: #ece3cd; --bg-deep: #d4c8a8; --frame: #f7efdd; --card: #fff9eb;
+        --card-raised: #f3ead6; --text: #1a1528; --text-dim: #4a4257;
+        --text-muted: #7a7180; --rule: rgba(26, 21, 40, 0.1);
+        --rule-strong: rgba(26, 21, 40, 0.2); --accent: #b8410c;
+        --accent-soft: rgba(184, 65, 12, 0.08); --ok: #2f7b4d;
+        --ok-soft: rgba(47, 123, 77, 0.08); --warn: #8f5a10;
+        --warn-soft: rgba(143, 90, 16, 0.08); --danger: #932f2f;
+        --danger-soft: rgba(147, 47, 47, 0.08); --info: #245b86;
+        --info-soft: rgba(36, 91, 134, 0.08); --glow: rgba(184, 65, 12, 0.05);
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--text); font-family: var(--ui); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+      body::after { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 0%, transparent 0 45%, var(--bg-deep) 115%); opacity: 0.55; }
+      button, input, select { font: inherit; }
+      @keyframes rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+      @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 var(--ok-soft), 0 0 0 3px var(--ok-soft); } 70% { box-shadow: 0 0 0 6px transparent, 0 0 0 3px var(--ok-soft); } 100% { box-shadow: 0 0 0 0 transparent, 0 0 0 3px var(--ok-soft); } }
+
+      .console-strip { height: 48px; border-bottom: 1px solid var(--rule-strong); display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 22px; padding: 0 24px; position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(18px); }
+      .console-mark { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); }
+      .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse-ring 2.6s ease-out infinite; }
+      .surface-nav { display: flex; gap: 18px; }
+      .surface-nav a { color: var(--text-muted); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: color 0.15s ease; }
+      .surface-nav a:hover { color: var(--text-dim); } .surface-nav a.active { color: var(--text); }
+      .chip { border: 1px solid var(--rule-strong); background: transparent; color: var(--text-dim); min-height: 30px; border-radius: 7px; }
+      .command-chip { width: 196px; display: flex; align-items: center; justify-content: space-between; padding: 0 9px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
+      .command-chip kbd { font-family: var(--mono); font-size: 9px; }
+      .climate-chip { width: 32px; cursor: pointer; transition: color 0.15s ease, transform 0.3s ease; }
+      .climate-chip:hover { color: var(--accent); transform: rotate(180deg); }
+      .session-chip { display: flex; align-items: baseline; gap: 7px; padding: 5px 10px; font-size: 11px; text-decoration: none; }
+      .session-chip span { color: var(--text); } .session-chip em { color: var(--accent); font-style: normal; font-family: var(--mono); font-size: 9px; text-transform: uppercase; } .session-chip strong { color: var(--text-muted); font-weight: 400; }
+
+      .note-banner { width: min(1560px, 100%); margin: 20px auto -8px; padding: 0 32px; display: flex; align-items: center; gap: 14px; }
+      .note-banner .badge { font: 600 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--bg-deep); background: var(--ok); padding: 4px 9px; border-radius: 5px; }
+      .note-banner p { margin: 0; color: var(--text-muted); font-size: 12px; }
+      .note-banner b { color: var(--text-dim); font-weight: 500; }
+
+      .console { width: min(1560px, 100%); margin: 0 auto; padding: clamp(24px, 4vw, 40px) 32px 72px; }
+      .frame { position: relative; background: radial-gradient(640px 220px at 18% -4%, var(--glow), transparent 70%), var(--frame); border: 1px solid var(--rule-strong); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8); }
+      .frame::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent) 0, color-mix(in srgb, var(--accent) 35%, transparent) 34%, transparent 72%); opacity: 0.85; }
+      .masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px 28px 0; animation: rise 0.5s ease-out both; }
+      .masthead-lockup { display: flex; align-items: flex-end; gap: 20px; }
+      .brand { margin: 0; font: 560 40px/1 var(--display); font-variation-settings: "SOFT" 80, "opsz" 72; letter-spacing: -0.01em; }
+      .tagline { margin: 0 0 5px; color: var(--text-muted); }
+      .masthead-meta { padding-bottom: 5px; color: var(--text-muted); font: 400 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; text-align: right; white-space: nowrap; }
+      .masthead-meta b { color: var(--text-dim); font-weight: 500; }
+      .tabs { display: flex; gap: 2px; padding: 20px 28px 0; border-bottom: 1px solid var(--rule-strong); }
+      .tab { position: relative; color: var(--text-muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; padding: 9px 16px 11px; border-bottom: 2px solid transparent; text-decoration: none; cursor: pointer; }
+      .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+      .tab.ghost { color: color-mix(in srgb, var(--text-muted) 55%, transparent); }
+      .tab.ghost::after { content: " soon"; font-size: 8px; opacity: 0.7; }
+
+      .canvas { padding: 26px 28px 34px; }
+      .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.17em; text-transform: uppercase; margin-bottom: 6px; }
+      .eyebrow::before { content: ""; display: inline-block; width: 14px; height: 1px; background: var(--accent); vertical-align: 3px; margin-right: 8px; }
+      h2 { margin: 0; font: 520 30px/1.05 var(--display); font-variation-settings: "SOFT" 55; letter-spacing: -0.01em; }
+      .button { border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--card-raised); color: var(--text); padding: 8px 13px; cursor: pointer; font-size: 12px; }
+      .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-deep); font-weight: 600; }
+      .text-action { background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; padding: 0; text-decoration: none; }
+      .text-action.muted { color: var(--text-muted); }
+      .cms-link { color: var(--accent); text-decoration: none; font: 600 9px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+      .cms-link:hover { text-decoration: underline; }
+
+      /* Anchor panel — READ-ONLY kind (declared in brain.yaml, not here) */
+      .anchor-panel { border: 1px solid var(--rule-strong); border-radius: 12px; background: radial-gradient(520px 160px at 12% -20%, var(--accent-soft), transparent 70%), var(--card); padding: 22px 24px; margin-bottom: 16px; animation: rise 0.5s ease-out 0.04s both; }
+      .anchor-top { display: flex; align-items: center; gap: 18px; }
+      .anchor-crest { width: 56px; height: 56px; border-radius: 13px 13px 4px 13px; display: grid; place-items: center; font: 600 16px var(--mono); color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); flex-shrink: 0; }
+      .anchor-id h3 { margin: 0; font: 500 24px/1.05 var(--display); }
+      .anchor-id .kindline { color: var(--text-muted); font-size: 12px; margin-top: 4px; max-width: 56ch; }
+      .anchor-id .kindline b { color: var(--text-dim); font-weight: 500; }
+      .config-chip { margin-left: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; border: 1px dashed var(--rule-strong); border-radius: 8px; padding: 8px 12px; font: 600 9px var(--mono); letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+      .config-chip .cog { color: var(--accent); font-size: 12px; } .config-chip b { color: var(--text-dim); font-weight: 600; }
+      .anchor-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--rule); }
+      .field .k { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+      .field .v { font-size: 13px; }
+      .field .subnote { color: var(--text-muted); font-size: 11px; margin-top: 5px; line-height: 1.4; }
+      .cms-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+      .yaml-card { border: 1px solid var(--rule); border-radius: 10px; background: var(--bg-deep); overflow: hidden; margin-bottom: 24px; }
+      .yaml-card .yhead { padding: 9px 14px; border-bottom: 1px solid var(--rule); font: 600 8px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+      .yaml-card .yhead b { color: var(--text-dim); }
+      .yaml-card pre { margin: 0; padding: 14px 16px; font: 400 12.5px/1.7 var(--mono); color: var(--text-dim); overflow-x: auto; }
+      .yaml-card .yk { color: var(--info); } .yaml-card .yv { color: var(--accent); } .yaml-card .yc { color: var(--text-muted); font-style: italic; }
+
+      .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
+      .section-head p { margin: 7px 0 0; color: var(--text-muted); max-width: 60ch; }
+      .split { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+      .roster { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); overflow: hidden; }
+      .roster-search { padding: 12px 14px; border-bottom: 1px solid var(--rule); color: var(--text-muted); font-size: 12px; display: flex; gap: 8px; }
+      .roster-search input { flex: 1; background: transparent; border: none; color: var(--text); outline: none; }
+      .roster-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--rule); cursor: pointer; transition: background 0.12s ease; }
+      .roster-row:last-child { border-bottom: none; }
+      .roster-row:hover { background: var(--card-raised); }
+      .roster-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+      .avatar { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font: 600 12px var(--mono); color: var(--text); background: var(--card-raised); border: 1px solid var(--rule-strong); flex-shrink: 0; }
+      .who { flex: 1; min-width: 0; }
+      .who b { font-weight: 500; display: block; }
+      .who small { color: var(--text-muted); font-size: 11px; }
+      .rowtags { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+      .badge { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; white-space: nowrap; }
+      .b-admin { color: var(--accent); background: var(--accent-soft); } .b-trusted { color: var(--ok); background: var(--ok-soft); } .b-public { color: var(--text-muted); background: var(--rule); }
+      .host-chip { font: 600 8px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); border: 1px solid var(--rule-strong); }
+      .host-chip.own { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); background: var(--info-soft); }
+
+      .detail { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); padding: 24px 26px; }
+      .detail-head { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+      .detail-head .avatar { width: 48px; height: 48px; font-size: 15px; }
+      .detail-head h3 { margin: 0; font: 500 22px/1.1 var(--display); }
+      .detail-head small { color: var(--text-muted); font-family: var(--mono); font-size: 10px; }
+      .facets { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+      .facet { text-align: right; }
+      .facet .k { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+      .facet .v { font-size: 12px; }
+      .facet .v.role { color: var(--accent); font-weight: 600; } .facet .v.notanchor { color: var(--text-muted); }
+      .d-section { padding: 20px 0; border-bottom: 1px solid var(--rule); }
+      .d-section:last-child { border-bottom: none; padding-bottom: 0; }
+      .d-section .label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+      .d-section h4 { margin: 0; font: 500 13px var(--ui); }
+      .d-section .label p { margin: 2px 0 0; color: var(--text-muted); font-size: 11px; }
+      .item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 8px; background: var(--card-raised); }
+      .item .kind { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); width: 62px; }
+      .item .val { flex: 1; font-size: 12.5px; } .item .val small { color: var(--text-muted); }
+      .verified { color: var(--ok); }
+      .cms-ref { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-dim); font-size: 12.5px; }
+      .cms-ref b { font-weight: 500; } .cms-ref .spacer { margin-left: auto; }
+      .brain-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); border-radius: 8px; background: var(--info-soft); color: var(--text-dim); font-size: 12px; }
+
+      @media (max-width: 940px) { .split { grid-template-columns: 1fr; } .anchor-fields { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } }
+    </style>
+  </head>
+  <body>
+    <div class="console-strip">
+      <a class="console-mark" href="#"><span class="pulse"></span>◆ ADMIN</a>
+      <nav class="surface-nav">
+        <a href="#">Dashboard</a><a href="#">Chat</a><a href="#">CMS</a>
+        <a href="#" class="active">Admin</a>
+      </nav>
+      <button class="chip command-chip">Jump to… <kbd>⌘K</kbd></button>
+      <button class="chip climate-chip" onclick="document.documentElement.dataset.climate = document.documentElement.dataset.climate === 'paper' ? 'instrument' : 'paper'">◐</button>
+      <a class="chip session-chip" href="#"><span>Alice</span><em>Admin</em> · <strong>sign out</strong></a>
+    </div>
+
+    <div class="note-banner">
+      <span class="badge">Case 2 · team</span>
+      <p>Collective brain, <b>team</b> feel. Anchor kind is declared in <b>brain.yaml</b> — not chosen here. Ownership is impersonal: no one is the anchor. Team name &amp; profile are <b>CMS content</b>. Warm, flat vocabulary; same structure as the org.</p>
+    </div>
+
+    <div class="console">
+      <div class="frame">
+        <div class="masthead">
+          <div class="masthead-lockup">
+            <h1 class="brand">Admin</h1>
+            <p class="tagline">members · anchor · access</p>
+          </div>
+          <div class="masthead-meta">brain <b>the-peppers</b><br />4 members · 2 admins</div>
+        </div>
+        <nav class="tabs">
+          <a class="tab">Anchor</a>
+          <a class="tab active">Members</a>
+          <a class="tab ghost">Invitations</a>
+          <a class="tab ghost">Audit</a>
+        </nav>
+
+        <div class="canvas">
+          <!-- ANCHOR: the team. Impersonal. Read-only kind. -->
+          <div class="anchor-panel">
+            <div class="anchor-top">
+              <div class="anchor-crest">TP</div>
+              <div class="anchor-id">
+                <h3>The Peppers</h3>
+                <div class="kindline">Anchor · <b>team</b> — this brain belongs to the team and is run together. It speaks as the team; no one person is the anchor.</div>
+              </div>
+              <div class="config-chip"><span class="cog">⚙</span> kind: <b>team</b> · brain.yaml</div>
+            </div>
+            <div class="anchor-fields">
+              <div class="field">
+                <div class="k">Team profile</div>
+                <div class="cms-line">
+                  <div class="v">The Peppers · Ship weird software</div>
+                  <a class="cms-link" href="#">Edit in CMS →</a>
+                </div>
+                <div class="subnote">Name, mission, brand — CMS content. The profile name is authoritative.</div>
+              </div>
+              <div class="field">
+                <div class="k">Ownership</div>
+                <div class="v">The team · run together</div>
+                <div class="subnote">Impersonal — isAnchor is false for everyone. No owner-admin.</div>
+              </div>
+              <div class="field">
+                <div class="k">Administered by</div>
+                <div class="v">2 active admins</div>
+                <div class="subnote">Any admin runs it. The last active admin is protected.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="yaml-card">
+            <div class="yhead"><span>declared in <b>brain.yaml</b></span><span>read-only here</span></div>
+<pre><span class="yc"># who this brain belongs to</span>
+<span class="yk">anchor</span>: <span class="yv">team</span>   <span class="yc"># name &amp; profile live in the CMS</span></pre>
+          </div>
+
+          <!-- MEMBERS -->
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Roster</div>
+              <h2>Members</h2>
+              <p>Everyone on the team. Each carries their own profile; some also run their own brain, linked in as a peer — we never provision one.</p>
+            </div>
+            <button class="button primary">+ Add member</button>
+          </div>
+
+          <div class="split">
+            <div class="roster">
+              <div class="roster-search">⌕ <input placeholder="Search members…" /></div>
+              <div class="roster-row active">
+                <div class="avatar">AM</div>
+                <div class="who"><b>Alice Morgan</b><small>you · passkey</small></div>
+                <div class="rowtags"><span class="badge b-admin">Admin</span><span class="host-chip">Hosted</span></div>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">BO</div>
+                <div class="who"><b>Ben Ok</b><small>discord · passkey</small></div>
+                <div class="rowtags"><span class="badge b-admin">Admin</span><span class="host-chip">Hosted</span></div>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">CV</div>
+                <div class="who"><b>Cara Vale</b><small>own brain · verified peer</small></div>
+                <div class="rowtags"><span class="badge b-trusted">Trusted</span><span class="host-chip own">Own brain</span></div>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">DW</div>
+                <div class="who"><b>Dana Web</b><small>invited · setup sent</small></div>
+                <div class="rowtags"><span class="badge b-public">Public</span><span class="host-chip">Hosted</span></div>
+              </div>
+            </div>
+
+            <div class="detail">
+              <div class="detail-head">
+                <div class="avatar">CV</div>
+                <div>
+                  <h3>Cara Vale</h3>
+                  <small>usr_7f2c… · on the team since 2026-05-02</small>
+                </div>
+                <div class="facets">
+                  <div class="facet"><div class="k">Role</div><div class="v role">Trusted</div></div>
+                  <div class="facet"><div class="k">Anchor?</div><div class="v notanchor">No — collective</div></div>
+                </div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Profile</h4><p>How Cara presents. Lives with the member, edited in the CMS.</p></div><a class="cms-link" href="#">Edit in CMS →</a></div>
+                <div class="cms-ref">◆ <b>Cara Vale</b> · Designer, spatial interfaces<span class="spacer"></span><span class="host-chip">member profile</span></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Brain</h4><p>Optional. A member may bring their own brain — linked as a verified peer.</p></div></div>
+                <div class="brain-link">◆ <b>cara.rizom.ai</b> · verified peer (did:web) · trusted inbound<span style="margin-left:auto"><button class="text-action muted">Unlink</button></span></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Access</h4><p>Permission role — the only thing gates check.</p></div></div>
+                <div class="item"><span class="kind">Role</span><span class="val">Trusted · <small>safe collaborative writes</small></span><button class="text-action">Change</button></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><div><h4>Sign-in</h4><p>Verified ways this member signs in.</p></div></div>
+                <div class="item"><span class="kind">Passkey</span><span class="val">Laptop · <small class="verified">✓ verified</small></span></div>
+                <div class="item"><span class="kind">Discord</span><span class="val">cara · <small class="verified">✓ verified via oauth</small></span><button class="text-action muted">Detach</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
