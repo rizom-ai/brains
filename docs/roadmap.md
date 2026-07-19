@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-17
+Last updated: 2026-07-19
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.192` is published, `alpha.189` is live on `yeehaa.io` and the hosted canary cohort, the wider pilot fleet remains on `alpha.172`, and `new.rizom.ai` remains on `alpha.186`. Production Rizom and docs still use their standalone deployments. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain@0.2.0-alpha.204` is published and healthy on the hosted `jo` and `smoke` canaries. The consolidated Rover deployment now serves production `rizom.ai` at alpha.204; `new.rizom.ai` has been retired. The remaining structural release gate is replacing the three-model/preset authoring contract with one canonical brain composed from explicit capability bundles. "Launch" means validating that unified contract and graduating it to stable `v0.2.0`, not a repo-rename ceremony.
 
 What already exists today:
 
@@ -24,16 +24,17 @@ What already exists today:
 
 ### What stable `v0.2.0` means
 
-`v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. The release candidate is ready when:
+`v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. It should not, however, certify model/preset contracts already scheduled for deletion. The release candidate is ready when:
 
+- the canonical `@rizom/brain` definition and `core` / `site` / `publishing` / `team` bundle resolver have replaced the built-in Rover/Relay/Ranger model registry and runtime presets;
+- checked-in standalone apps and hosted pilot desired state use explicit bundles, and a second reconcile produces no generated drift;
 - the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` have an explicit compatibility sign-off;
 - the `public` / `shared` / `restricted` visibility model is accepted as the baseline contract;
-- personal-publishing eval coverage, packed external-plugin smokes, and package-boundary checks are green on one nominated alpha;
-- documented init and deploy flows reconcile against standalone and hosted Rover paths;
-- the console dynamic-state tail is merged and its changeset released;
-- that alpha is healthy on the hosted Rover canaries and `yeehaa.io` before Changesets exits prerelease mode.
+- personal-publishing and team-posture eval coverage, packed external-plugin smokes, and package-boundary checks are green on one nominated unified alpha;
+- documented init and deploy flows reconcile against standalone and hosted paths;
+- that alpha is healthy on the hosted canaries and `yeehaa.io` before Changesets exits prerelease mode.
 
-Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. Collective-posture validation (§2), multi-user completion (§3), brain-model unification (§1), and Rizom consolidation (§4) do **not** gate stable `v0.2.0`.
+Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. Collective-posture field validation (§2), multi-user completion (§3), and optional capabilities do **not** gate stable `v0.2.0`; brain-model unification (§1) now does.
 
 ### Current execution focus
 
@@ -41,10 +42,10 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 
 | Priority | Outcome                            | Current execution                                                                                                                                                                                                                |
 | -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                      |
+| **P0**   | One brain composed from bundles    | Implement the refreshed unification plan on the alpha line, migrate standalone and hosted configuration, and keep every supported posture green before deleting model/preset compatibility.                                      |
+| **P0**   | Stable `v0.2.0` release candidate  | Publish and deploy a unified alpha, complete the release-candidate gates above, then exit prerelease mode.                                                                                                                       |
 | **P1**   | Real runtime identity boundary     | Finish final hardening on `feature/auth-runtime-db`; the database cutover, People admin surface, role invariants, and P0 security findings are implemented, while compatibility gates and lower-priority review findings remain. |
-| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                        |
-| **P1**   | One production Rizom brain/site    | Refresh `new.rizom.ai` from `alpha.186` to the published consolidated package, validate state migration and rollback, then cut production over and retire redundant deployments.                                                 |
+| **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.                                |
 | **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                        |
 
 Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
@@ -55,7 +56,7 @@ The central product bet is now explicit:
 
 > **One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.**
 
-This is a deliberate change from the previous "two product tracks" framing. There is one product. **Posture is configuration, not a separate product:** `core` + `publishing` is the personal-publishing setting; `core` + `team` is the collective setting; both are the same brain. So the roadmap is organized as: **§1 the brain and its bundles** (what the product is), **§2 the postures we have proven** (the personal→collective validation arc), and **§3–§7 the shared substrate** every brain runs on — grouped by capability, never attributed to one posture.
+This is a deliberate change from the previous "two product tracks" framing. There is one product. **Posture is configuration, not a separate product:** `core` + `site` + `publishing` is the personal-publishing setting; `core` + `site` + `team` is the collective setting; both are the same brain. So the roadmap is organized as: **§1 the brain and its bundles** (what the product is), **§2 the postures we have proven** (the personal→collective validation arc), and **§3–§7 the shared substrate** every brain runs on — grouped by capability, never attributed to one posture.
 
 The frontier moved with the framing. Once posture is just configuration, the open problem is no longer "prove the team product" — it is **multi-user** (§3), the one thing posture-as-config cannot fake. Implementation plans remain in [docs/plans](./plans/README.md); the roadmap should answer what the work supports.
 
@@ -63,12 +64,12 @@ The frontier moved with the framing. Once posture is just configuration, the ope
 
 The product is one brain, composed from **capability bundles** — named, posture-carrying groups of plugins (plugins + their config defaults + permission posture). A brain is `core` plus whichever bundles its posture needs:
 
-- **`core`** — the posture-independent foundation every brain wants: infra (prompt, directory-sync, auth, notifications, mcp, webserver, a2a, dashboard, cms, email) + universal capture (note, link, topics, image, document, wishlist, decks) + peer discovery (`agents`, `assessment`, atproto discovery).
-- **`site`** — a public web presence (site-info, site-builder, site-content, themes, web analytics, OG).
-- **`publishing`** — content production and distribution (post/blog, series, content-pipeline, social-media, newsletter, stock-photo, portfolio, outbound atproto).
-- **`team`** — shared team memory (conversation-memory `shared`, docs) plus the trusted-collaborator permission posture.
+- **`core`** — posture-independent infrastructure, universal capture, profile/playbook/onboarding workflows, one dashboard capability, MCP/webserver/web-chat/Discord/A2A, and peer discovery including the ATProto registry.
+- **`site`** — site-info, site-content, site-builder, analytics, and the dashboard route override used when the site owns `/`; site package and theme remain instance choices.
+- **`publishing`** — blog/post, series, portfolio, content-pipeline, social-media, newsletter, stock-photo, outbound ATProto, and publishing instruction/config defaults.
+- **`team`** — conversation-memory `shared`, docs, team topic/instruction defaults, and member-scoped trusted collaborator permissions.
 
-Posture is then `brain.yaml` configuration: personal publishing is `core + site + publishing`; a collective is `core + site + team`; both are the same brain. `site` and `publishing` are independent (publishing can target external channels with no website), and instances tune at the edges with `add`/`remove` rather than configurable bundles.
+Posture is then explicit `brain.yaml` configuration: personal publishing is `core + site + publishing`; a collective is `core + site + team`; commerce is `core + site` plus `products`. `site` and `publishing` are independent (publishing can target external channels with no website), and instances tune at the edges with visible `add`/`remove` plus plugin config rather than configurable bundles. `brain init` recipes expand to this explicit configuration and have no runtime meaning.
 
 **The structural bet that makes this true** is collapsing the three model packages into one and introducing the bundle primitive. Until it lands, the three `defineBrain` packages still exist; the work is sequenced as thin vertical slices that keep every posture eval-green.
 
@@ -156,8 +157,7 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
-- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — hosted package/image/TLS machinery is released and proven by `new.rizom.ai`; remaining scope is the `docs.rizom.ai` hosted cutover.
-- [rizom-consolidation.md](./plans/rizom-consolidation.md) — the consolidated site and composition are merged and published; refresh `new.rizom.ai` from alpha.186, migrate runtime state, cut production over, redirect legacy domains, and retire redundant deployments.
+- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — hosted package/image/TLS machinery now serves production `rizom.ai`; remaining scope is the `docs.rizom.ai` hosted cutover.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
 

@@ -9,13 +9,13 @@ Partial. The shared platform work is implemented and released; the docs cutover 
 - generated user config carries `siteOverride` and optional capabilities;
 - custom-domain TLS/DNS support is available;
 - packed boot/render smokes cover the published-package path;
-- `new.rizom.ai` is live on Rover with runtime and `@rizom/site-rizom-ai` pinned to
-  `0.2.0-alpha.186`, plus the AT Protocol registry capability.
+- the same path now serves production `rizom.ai` on Rover; the former
+  `new.rizom.ai` staging deployment has been retired.
 
-[`rizom-consolidation.md`](./rizom-consolidation.md) now owns the `rizom.ai`,
-`rizom.work`, and `rizom.foundation` cutover. This plan retains only the hosted
-`docs.rizom.ai` migration and its shared package-path validation. Architecture and package
-history remain in git and changelogs; delete this file after the docs cutover and soak.
+The consolidated `rizom.ai`, `rizom.work`, and `rizom.foundation` cutover is complete;
+architecture and package history remain in git and changelogs. This plan retains only the
+hosted `docs.rizom.ai` migration and its shared package-path validation. Delete this file
+after the docs cutover and soak.
 
 ## Goal
 
@@ -83,8 +83,6 @@ After a successful soak:
 
 ## Related
 
-- [`rizom-consolidation.md`](./rizom-consolidation.md) — preferred end-state: one Rizom
-  brain and one site, with old domains redirected at the edge.
 - `packages/site` — public site authoring boundary.
 - `packages/brains-ops` — hosted fleet desired-state and image tooling.
 - `sites/rizom*`, `sites/docs` — published site packages.
