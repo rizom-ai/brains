@@ -2,15 +2,27 @@
 
 ## Status
 
-Partial. Cutover preparation is active. The consolidated home, `/work`, `/foundation`, `/writing`, and
-`/network` implementation is merged into `main`, and `@rizom/site-rizom-ai` is published
-at `0.2.0-alpha.192`. The schema-first content model, merged `rizom-content` corpus, and
-Rover composition are complete.
+Cutover done; tail remains (verified against live 2026-07-19). Production `rizom.ai`
+serves the consolidated Rover brain at `0.2.0-alpha.204` through the rover-pilot
+`rizom-ai` production cohort (custom-domain TLS path): the rev-11 home (live agent-map
+hero, withered problem trio, organism/stages, mission, knowledge-map proof section,
+faces), `/work`, `/foundation`, `/writing`, `/network`, passkey auth, the AT Protocol
+lexicon registry, and the console dashboard (with the knowledge-map widget). `GET
+/health` reports `rover 0.2.0-alpha.204`.
 
-`new.rizom.ai` still runs runtime and site package `0.2.0-alpha.186`; production
-`rizom.ai` still runs Ranger `0.1.0`. This plan now tracks the staging refresh, runtime
-state migration, production cutover, redirects, soak, and retirement. Delete it when one
-production Rizom deployment remains.
+Remaining, in order:
+
+1. **Edge redirects are not applied** — `rizom.work` and `rizom.foundation` both still
+   return `200` from their old origins (checked 2026-07-19). The two zone rules below
+   are written but never executed.
+2. **Foundation memory migration is unverified** — the cutover ran via the pilot path
+   without evidence that the foundation brain's conversation/team-memory was copied
+   (§3 backup/copy steps unchecked). This gates retiring the old foundation origin;
+   until verified, retirement would lose that memory.
+3. **Staging still runs** — `new.rizom.ai` is up at `0.2.0-alpha.195` and should retire
+   after the soak window.
+4. Retire old Work/Foundation origins, archive superseded repos, remove Ranger/Relay
+   deployment paths, then delete this plan.
 
 ## Goal
 
@@ -54,10 +66,13 @@ Protocol registry and collective memory, then retire the redundant deployments.
 
 ### 2. Stage the actual consolidated brain
 
+✅ Done — `new.rizom.ai` staged the consolidated composition and now runs
+`0.2.0-alpha.195` (2026-07-19); production cut over from it via the pilot path.
+Retire the staging deployment after the soak window (Status item 3).
+
 The rover-pilot `new` desired state already selects the consolidated site package,
 `rizom-ai/rizom-content`, `@rizom/theme-rizom-ai`, `web-chat`, `atproto-registry`,
-`rizom-ecosystem`, `newsletter`, and `site-content`. Update its runtime and exact site
-package pins from `0.2.0-alpha.186` to the chosen release.
+`rizom-ecosystem`, `newsletter`, and `site-content`.
 
 Build the exact hash-tagged image, deploy to `new.rizom.ai`, trigger the preview rebuild
 through the running app, and review the consolidated home/rooms/indexes against the
@@ -119,9 +134,11 @@ Cutover is a rover-pilot desired-state change plus DNS; rollback is the inverse,
 
 ### 4. Cut over and retire
 
-- Deploy the consolidated brain at `rizom.ai`.
+- ✅ Deploy the consolidated brain at `rizom.ai` (live at `0.2.0-alpha.204`,
+  2026-07-19).
 - Apply `rizom.work/* → rizom.ai/work` and
-  `rizom.foundation/* → rizom.ai/foundation` redirects.
+  `rizom.foundation/* → rizom.ai/foundation` redirects (not applied — both
+  domains still `200` from old origins, checked 2026-07-19).
 - Soak while monitoring health, TLS, MCP auth, site rebuilds, registry routes, Discord, and
   representative content.
 - Retire the old Work/Foundation origins only after the rollback window closes.
