@@ -57,6 +57,8 @@ export interface ResolvedSetupDelivery {
 
 export interface ResolvedAtprotoConfig {
   identifier: string;
+  /** Owner account DID served at /.well-known/atproto-did for handle verification. */
+  accountDid?: string | undefined;
 }
 
 export interface ResolvedPlaybooksConfig {

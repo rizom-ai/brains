@@ -167,11 +167,17 @@ Notes:
 
 Use this when enabling AT Protocol publishing for a single pilot user.
 
-1. Add the public PDS identifier to the user file:
+1. Add the public PDS identifier to the user file. Prefer the account DID as
+   the identifier — it survives handle changes. Add `accountDid` too when the
+   member wants their handle verified against their subdomain
+   (`@<handle>.<domainSuffix>`): the brain then serves it at
+   `/.well-known/atproto-did` and Bluesky's "I have my own domain" HTTP
+   verification passes with no DNS records.
 
    ```yaml
    atproto:
-     identifier: rizom-test.bsky.social
+     identifier: did:plc:example123
+     accountDid: did:plc:example123
    ```
 
 2. Put the app password in `users/<handle>.secrets.yaml`:
@@ -185,7 +191,7 @@ Use this when enabling AT Protocol publishing for a single pilot user.
 4. Reconcile/deploy the user or cohort:
    - `bunx brains-ops onboard . <handle>`
    - or `bunx brains-ops reconcile-cohort . <cohort>`
-5. Verify the generated `users/<handle>/brain.yaml` contains `plugins.atproto.identifier` and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+5. Verify the generated `users/<handle>/brain.yaml` contains `plugins.atproto.identifier` (plus `accountDid` when configured) and `appPassword: ${ATPROTO_APP_PASSWORD}`.
 
 Notes:
 

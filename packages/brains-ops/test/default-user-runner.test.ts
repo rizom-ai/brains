@@ -48,4 +48,39 @@ describe("createDefaultUserRunner", () => {
       "CONTENT_REPO=rizom-ai/rizom-work-content",
     );
   });
+
+  it("renders the atproto block with the owner's account DID for handle verification", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      atproto: {
+        identifier: "did:plc:oehciuqunzskplljt3qnnncw",
+        accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
+      },
+    });
+
+    expect(result.brainYaml).toContain(
+      "  atproto:\n" +
+        "    identifier: did:plc:oehciuqunzskplljt3qnnncw\n" +
+        "    accountDid: did:plc:oehciuqunzskplljt3qnnncw\n" +
+        "    appPassword: ${ATPROTO_APP_PASSWORD}",
+    );
+  });
+
+  it("renders the atproto block without accountDid when not configured", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      atproto: { identifier: "rizom.bsky.social" },
+    });
+
+    expect(result.brainYaml).toContain(
+      "  atproto:\n" +
+        "    identifier: rizom.bsky.social\n" +
+        "    appPassword: ${ATPROTO_APP_PASSWORD}",
+    );
+    expect(result.brainYaml).not.toContain("accountDid");
+  });
 });

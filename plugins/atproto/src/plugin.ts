@@ -148,7 +148,7 @@ export class AtprotoPlugin extends ServicePlugin<
       ]),
     ];
 
-    return paths.map((path) => ({
+    const routes: WebRouteDefinition[] = paths.map((path) => ({
       path,
       method: "GET",
       public: true,
@@ -167,6 +167,24 @@ export class AtprotoPlugin extends ServicePlugin<
         });
       },
     }));
+
+    // Member handles under the fleet domain: when the owner's account DID
+    // is configured, serve it as plain text so the owner's atproto handle
+    // verifies against this domain (the HTTP method — no DNS records).
+    const accountDid = this.config.accountDid;
+    if (accountDid) {
+      routes.push({
+        path: "/.well-known/atproto-did",
+        method: "GET",
+        public: true,
+        handler: (): Response =>
+          new Response(accountDid, {
+            headers: { "Content-Type": "text/plain" },
+          }),
+      });
+    }
+
+    return routes;
   }
 
   async publishBrainCard(
