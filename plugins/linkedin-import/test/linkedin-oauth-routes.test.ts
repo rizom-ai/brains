@@ -17,6 +17,7 @@ import {
 import { LinkedInOAuthStateStore } from "../src/lib/linkedin-oauth-state-store";
 
 const origin = "https://brain.example";
+const anchorSession = { id: "session-one", subject: "anchor" };
 const redirectUri = `${origin}${LINKEDIN_DIRECT_CALLBACK_PATH}`;
 
 class MemoryTokenStore implements LinkedInOAuthTokenStore {
@@ -91,8 +92,10 @@ describe("LinkedIn OAuth routes", () => {
       client: new LinkedInOAuthClient("client-id", "client-secret"),
       tokenStore: new MemoryTokenStore(),
       redirectUri,
-      resolveAnchorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-anchor") === "true",
+      resolveAnchorSession: async (request) =>
+        request.headers.get("x-test-anchor") === "true"
+          ? anchorSession
+          : undefined,
     });
     const status = findRoute(routes, LINKEDIN_ADMIN_STATUS_PATH);
     const connect = findRoute(routes, LINKEDIN_ADMIN_CONNECT_PATH);
@@ -136,7 +139,7 @@ describe("LinkedIn OAuth routes", () => {
         generateState: (): string => "single-use-state",
       }),
       redirectUri,
-      resolveAnchorSession: async (): Promise<boolean> => true,
+      resolveAnchorSession: async () => anchorSession,
     });
 
     const response = await findRoute(
@@ -183,8 +186,10 @@ describe("LinkedIn OAuth routes", () => {
         generateState: (): string => "callback-state",
       }),
       redirectUri,
-      resolveAnchorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-anchor") === "true",
+      resolveAnchorSession: async (request) =>
+        request.headers.get("x-test-anchor") === "true"
+          ? anchorSession
+          : undefined,
     });
 
     await findRoute(routes, LINKEDIN_ADMIN_CONNECT_PATH).handler(
@@ -232,7 +237,7 @@ describe("LinkedIn OAuth routes", () => {
       ),
       tokenStore: new MemoryTokenStore(),
       redirectUri,
-      resolveAnchorSession: async (): Promise<boolean> => true,
+      resolveAnchorSession: async () => anchorSession,
     });
 
     const response = await findRoute(
@@ -251,8 +256,10 @@ describe("LinkedIn OAuth routes", () => {
       client: new LinkedInOAuthClient("client-id", "client-secret"),
       tokenStore: store,
       redirectUri,
-      resolveAnchorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-anchor") === "true",
+      resolveAnchorSession: async (request) =>
+        request.headers.get("x-test-anchor") === "true"
+          ? anchorSession
+          : undefined,
     });
     const disconnect = findRoute(routes, LINKEDIN_ADMIN_DISCONNECT_PATH);
 

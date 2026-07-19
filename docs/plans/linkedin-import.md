@@ -14,8 +14,8 @@ dormant. Phase 4A's sanctioned OAuth authorization-code client, direct/self-host
 routes, expiring single-use state, dynamic importer token provider, private-file token
 store, and Rover wiring are implemented. LinkedIn agent tools and the interim standalone
 management page have been removed. The dedicated `/admin` console's Integrations section
-is the intended import surface, and its LinkedIn UI plus preview/confirmation workflow
-remain pending. Phase 4B's provider-neutral broker walking skeleton is implemented with
+is the intended import surface. Its LinkedIn UI remains pending, while the headless
+field-level preview and session-bound reviewed-import workflow is implemented. Phase 4B's provider-neutral broker walking skeleton is implemented with
 authenticated instances, exact return-URI lookup, expiring state, and one-time grants.
 The LinkedIn provider adapter, owner-side broker client, local return route, and reusable
 token handoff are implemented. Central deployment wiring and Admin UI remain pending;
@@ -277,8 +277,8 @@ LinkedIn import must neither read nor write communication preferences.
 
 Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
 mapping and merging, idempotent handler behavior, conflict handling, stale digest
-rejection, absence of agent tools, and inert/configured plugin wiring. Panel preview and
-confirmation-route tests are required when that workflow lands.
+rejection, absence of agent tools, inert/configured plugin wiring, field-level preview,
+and session-bound single-use review consumption. Admin UI tests remain pending.
 
 ## Phase 2B — Rich professional domains
 
@@ -344,13 +344,14 @@ instance-owned through normal `brain.yaml` environment interpolation. It is not 
 managed rollout model because distributing the shared LinkedIn application secret and
 registering every dynamic brain callback would not scale safely.
 
-### `/admin` Integrations workflow (next)
+### `/admin` Integrations workflow (backend implemented; UI next)
 
 Use the dedicated admin console from the auth workstream, not a plugin-owned page, CMS,
 dashboard, or agent tools. Add Integrations as a sibling of People and render a LinkedIn
 card/wizard there. The LinkedIn plugin remains the sole backend owner and exposes
 browser-safe service routes; `auth-service` only resolves the current principal and enforces
-Anchor access. After rebasing onto the auth workstream, replace the temporary boolean
+Anchor access. The current resolver supplies a stable operator session ID so import reviews
+are session-bound. After rebasing onto the auth workstream, replace the compatibility
 operator-session resolver with role-aware session resolution and require `anchor` for every
 status/connect/disconnect/preview/import action.
 
@@ -358,11 +359,11 @@ The deterministic import wizard is:
 
 1. **Connected state** — show credential status/expiry and an `Inspect import` action.
 2. **Preview** — fetch the registered Snapshot domains, compute the normal merge, and show
-   current value, imported value, and outcome (`fill`, `append`, or `preserve owner value`)
-   for every proposed field. Do not run AI.
+   current value, imported value, and outcome (`fill`, `append`, `append-and-preserve`,
+   `preserve`, or `unchanged`) for every proposed field. Do not run AI.
 3. **Review binding** — create a short-lived, single-use review ID bound server-side to the
-   mapped patch digest and current anchor-profile baseline. Do not trust a browser-submitted
-   patch or digest by itself.
+   operator session, mapped patch digest, and current anchor-profile baseline. Do not trust
+   a browser-submitted patch or digest by itself.
 4. **Confirm import** — an operator-authenticated POST consumes the review ID and queues the
    existing import job. The job refetches source/profile data and rejects stale review just
    as the existing handler already does.

@@ -8,6 +8,8 @@ import {
   type LinkedInFetch,
 } from "./lib/linkedin-client";
 import { LinkedInBrokerClient } from "./lib/linkedin-broker-client";
+import { createLinkedInImportRoutes } from "./lib/linkedin-import-routes";
+import type { LinkedInImportReviewStore } from "./lib/linkedin-import-review-store";
 import {
   LinkedInOAuthClient,
   type LinkedInOAuthTokenStore,
@@ -89,6 +91,7 @@ export interface LinkedInImportDeps {
   oauthTokenStore?: LinkedInOAuthTokenStore | undefined;
   oauthStateStore?: LinkedInOAuthStateStore | undefined;
   brokerClient?: LinkedInBrokerClient | undefined;
+  importReviewStore?: LinkedInImportReviewStore | undefined;
   resolveAnchorSession?: LinkedInAnchorSessionResolver | undefined;
 }
 
@@ -100,7 +103,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   private cachedClient: LinkedInClient | null = null;
   private cachedOAuthClient: LinkedInOAuthClient | null = null;
   private cachedBrokerClient: LinkedInBrokerClient | null = null;
-  private cachedOAuthRoutes: WebRouteDefinition[] | null = null;
+  private cachedWebRoutes: WebRouteDefinition[] | null = null;
 
   constructor(
     config: LinkedInImportConfigInput = {},
@@ -111,40 +114,65 @@ export class LinkedInImportPlugin extends ServicePlugin<
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
+    if (this.cachedWebRoutes) return this.cachedWebRoutes;
+    const routes: WebRouteDefinition[] = [];
     const routeConfig = this.getOAuthRouteConfig();
-    if (!routeConfig) return [];
-    if (this.cachedOAuthRoutes) return this.cachedOAuthRoutes;
 
-    const commonOptions = {
-      tokenStore: routeConfig.tokenStore,
-      ...(this.deps.oauthStateStore
-        ? { stateStore: this.deps.oauthStateStore }
-        : {}),
-      resolveAnchorSession: routeConfig.resolveAnchorSession,
-      staticAccessTokenConfigured: Boolean(this.config.accessToken),
-      reportError: (message: string): void => this.logger.error(message),
-    };
-    this.cachedOAuthRoutes =
-      routeConfig.mode === "broker"
-        ? createLinkedInOAuthRoutes({
-            ...commonOptions,
-            mode: "broker",
-            brokerClient: this.getBrokerClient(
-              routeConfig.baseUrl,
-              routeConfig.instanceId,
-              routeConfig.instanceSecret,
-            ),
-          })
-        : createLinkedInOAuthRoutes({
-            ...commonOptions,
-            mode: "direct",
-            client: this.getOAuthClient(
-              routeConfig.clientId,
-              routeConfig.clientSecret,
-            ),
-            redirectUri: routeConfig.redirectUri,
-          });
-    return this.cachedOAuthRoutes;
+    if (routeConfig) {
+      const commonOptions = {
+        tokenStore: routeConfig.tokenStore,
+        ...(this.deps.oauthStateStore
+          ? { stateStore: this.deps.oauthStateStore }
+          : {}),
+        resolveAnchorSession: routeConfig.resolveAnchorSession,
+        staticAccessTokenConfigured: Boolean(this.config.accessToken),
+        reportError: (message: string): void => this.logger.error(message),
+      };
+      routes.push(
+        ...(routeConfig.mode === "broker"
+          ? createLinkedInOAuthRoutes({
+              ...commonOptions,
+              mode: "broker",
+              brokerClient: this.getBrokerClient(
+                routeConfig.baseUrl,
+                routeConfig.instanceId,
+                routeConfig.instanceSecret,
+              ),
+            })
+          : createLinkedInOAuthRoutes({
+              ...commonOptions,
+              mode: "direct",
+              client: this.getOAuthClient(
+                routeConfig.clientId,
+                routeConfig.clientSecret,
+              ),
+              redirectUri: routeConfig.redirectUri,
+            })),
+      );
+    }
+
+    if (this.deps.resolveAnchorSession && this.hasAccessTokenSource()) {
+      routes.push(
+        ...createLinkedInImportRoutes({
+          source: this.getClient(),
+          getAnchorProfile: async () =>
+            this.getContext().entityService.getEntity({
+              entityType: "anchor-profile",
+              id: "anchor-profile",
+            }),
+          enqueueImport: async (data): Promise<string> =>
+            this.enqueueJob({ type: "linkedin-import", data }),
+          resolveAnchorSession: this.deps.resolveAnchorSession,
+          ...(this.deps.importReviewStore
+            ? { reviewStore: this.deps.importReviewStore }
+            : {}),
+          reportError: (message): void => this.logger.error(message),
+        }),
+      );
+    }
+
+    this.cachedWebRoutes = routes;
+    return routes;
   }
 
   protected override async registerJobHandlers(): Promise<void> {

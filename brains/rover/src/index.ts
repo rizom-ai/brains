@@ -77,11 +77,12 @@ const roverLinkedInImportPlugin: PluginFactory = (config) => {
   });
   return linkedinImportPlugin(config as LinkedInImportConfigInput, {
     oauthTokenStore,
-    resolveAnchorSession: async (request): Promise<boolean> => {
+    resolveAnchorSession: async (request) => {
       const authService = getActiveAuthService();
-      return authService
-        ? (await authService.getOperatorSession(request)) !== undefined
-        : false;
+      const session = authService
+        ? await authService.getOperatorSession(request)
+        : undefined;
+      return session ? { id: session.id, subject: session.subject } : undefined;
     },
   });
 };

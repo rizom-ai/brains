@@ -17,14 +17,26 @@ export const LINKEDIN_BROKER_RETURN_PATH = "/linkedin/oauth/broker/return";
 export const LINKEDIN_ADMIN_INTEGRATIONS_URL =
   "/admin?section=integrations&provider=linkedin";
 
-export const LINKEDIN_ADMIN_MUTATION_ACTIONS = {
+export const LINKEDIN_ADMIN_MUTATION_ACTIONS: {
+  readonly connectLinkedIn: "connectLinkedIn";
+  readonly disconnectLinkedIn: "disconnectLinkedIn";
+  readonly previewLinkedInImport: "previewLinkedInImport";
+  readonly importLinkedInProfile: "importLinkedInProfile";
+} = {
   connectLinkedIn: "connectLinkedIn",
   disconnectLinkedIn: "disconnectLinkedIn",
-} as const;
+  previewLinkedInImport: "previewLinkedInImport",
+  importLinkedInProfile: "importLinkedInProfile",
+};
+
+export interface LinkedInAnchorSession {
+  id: string;
+  subject: string;
+}
 
 export type LinkedInAnchorSessionResolver = (
   request: Request,
-) => Promise<boolean>;
+) => Promise<LinkedInAnchorSession | undefined>;
 
 export type LinkedInOAuthConnectionMode = "broker" | "direct";
 

@@ -32,6 +32,24 @@ export {
   type LinkedInBrokerClientOptions,
 } from "./lib/linkedin-broker-client";
 export {
+  createLinkedInImportRoutes,
+  LINKEDIN_ADMIN_IMPORT_PATH,
+  LINKEDIN_ADMIN_PREVIEW_PATH,
+  type LinkedInImportPreviewField,
+  type LinkedInImportPreviewOutcome,
+  type LinkedInImportPreviewRequest,
+  type LinkedInImportPreviewResponse,
+  type LinkedInImportPreviewValue,
+  type LinkedInImportRequest,
+  type LinkedInImportResponse,
+  type LinkedInImportRoutesOptions,
+} from "./lib/linkedin-import-routes";
+export {
+  LinkedInImportReviewStore,
+  type IssuedLinkedInImportReview,
+  type LinkedInImportReviewStoreOptions,
+} from "./lib/linkedin-import-review-store";
+export {
   LINKEDIN_ACCESS_TOKEN_URL,
   LINKEDIN_AUTHORIZATION_URL,
   LINKEDIN_PORTABILITY_SCOPE,
@@ -63,6 +81,7 @@ export {
   LINKEDIN_DIRECT_CALLBACK_PATH,
   type LinkedInAdminConnectResponse,
   type LinkedInAdminDisconnectResponse,
+  type LinkedInAnchorSession,
   type LinkedInAnchorSessionResolver,
   type LinkedInBrokerOAuthRoutesOptions,
   type LinkedInDirectOAuthRoutesOptions,

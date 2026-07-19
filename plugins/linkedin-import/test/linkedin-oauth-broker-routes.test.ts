@@ -17,6 +17,7 @@ import {
 import { LinkedInOAuthStateStore } from "../src/lib/linkedin-oauth-state-store";
 
 const origin = "https://brain.example";
+const anchorSession = { id: "session-one", subject: "anchor" };
 const localState = "local-state-000000000000000000000000";
 const grant = "grant-00000000000000000000000000000000000";
 
@@ -103,8 +104,10 @@ describe("managed LinkedIn OAuth routes", () => {
       stateStore: new LinkedInOAuthStateStore({
         generateState: (): string => localState,
       }),
-      resolveAnchorSession: async (request): Promise<boolean> =>
-        request.headers.get("x-test-anchor") === "true",
+      resolveAnchorSession: async (request) =>
+        request.headers.get("x-test-anchor") === "true"
+          ? anchorSession
+          : undefined,
     });
 
     const connectResponse = await findRoute(
@@ -172,7 +175,7 @@ describe("managed LinkedIn OAuth routes", () => {
       stateStore: new LinkedInOAuthStateStore({
         generateState: (): string => localState,
       }),
-      resolveAnchorSession: async (): Promise<boolean> => true,
+      resolveAnchorSession: async () => anchorSession,
     });
     await findRoute(routes, LINKEDIN_ADMIN_CONNECT_PATH).handler(
       connectRequest(),

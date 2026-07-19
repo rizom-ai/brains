@@ -120,6 +120,8 @@ plugins:
         "/linkedin/admin/connect",
         "/linkedin/oauth/direct/callback",
         "/linkedin/admin/disconnect",
+        "/linkedin/admin/preview",
+        "/linkedin/admin/import",
       ]);
     } finally {
       delete process.env["SELF_HOSTED_LINKEDIN_SECRET"];

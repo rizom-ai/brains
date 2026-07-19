@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import type { LinkedInAnchorSession } from "../src/lib/linkedin-oauth-routes";
 import { LinkedInImportPlugin } from "../src/plugin";
+
+async function resolveAnchorSession(): Promise<LinkedInAnchorSession> {
+  return { id: "session-one", subject: "anchor" };
+}
 
 describe("LinkedInImportPlugin", () => {
   it("is inert without an access token", async () => {
@@ -59,7 +64,7 @@ describe("LinkedInImportPlugin", () => {
           storeToken: async (): Promise<void> => undefined,
           clearToken: async (): Promise<void> => undefined,
         },
-        resolveAnchorSession: async (): Promise<boolean> => true,
+        resolveAnchorSession,
       },
     );
 
@@ -70,6 +75,8 @@ describe("LinkedInImportPlugin", () => {
       ["POST", "/linkedin/admin/connect"],
       ["GET", "/linkedin/oauth/direct/callback"],
       ["POST", "/linkedin/admin/disconnect"],
+      ["POST", "/linkedin/admin/preview"],
+      ["POST", "/linkedin/admin/import"],
     ]);
     expect(new LinkedInImportPlugin().getWebRoutes()).toEqual([]);
   });
@@ -93,7 +100,7 @@ describe("LinkedInImportPlugin", () => {
           storeToken: async (): Promise<void> => undefined,
           clearToken: async (): Promise<void> => undefined,
         },
-        resolveAnchorSession: async (): Promise<boolean> => true,
+        resolveAnchorSession,
       },
     );
 
@@ -104,6 +111,8 @@ describe("LinkedInImportPlugin", () => {
       ["POST", "/linkedin/admin/connect"],
       ["GET", "/linkedin/oauth/broker/return"],
       ["POST", "/linkedin/admin/disconnect"],
+      ["POST", "/linkedin/admin/preview"],
+      ["POST", "/linkedin/admin/import"],
     ]);
   });
 
