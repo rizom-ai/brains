@@ -4,9 +4,10 @@ Last updated: 2026-07-19
 
 ## Status
 
-Phase 0 complete; Phase 1 is next and remains a **pre-`v0.2.0`
-release-candidate gate**. No bundle runtime has been implemented. The alpha.204 model and
-preset contract is frozen in
+Phase 0 complete; Phase 1A's pure bundle kernel is next and remains a **pre-`v0.2.0`
+release-candidate gate**. Phase 1A can proceed while `feature/auth-runtime-db` finishes;
+Phase 1B's parser, resolver, and permission integration waits for that branch. No bundle
+runtime has been implemented. The alpha.204 model and preset contract is frozen in
 `packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
 catalog IDs, selected members, sanitized resolved config, instruction text, effective
 permissions, site/theme identity, and the consolidated Rizom additions.
@@ -322,9 +323,10 @@ an explicit override; do not silently use YAML order. Identical contributions ma
 coexist.
 
 The contract covers transport rules and every entity action currently supported:
-`create`, `update`, `delete`, `extract`, and `publish`. Phase 1 starts from the auth
-branch's `admin` / `anchor` / `trusted` / `public` subject model rather than introducing a
-second transitional bundle permission vocabulary.
+`create`, `update`, `delete`, `extract`, and `publish`. Phase 1A may define the
+member-scoped contribution shape but does not merge policy values. Phase 1B starts from
+the auth branch's `admin` / `anchor` / `trusted` / `public` subject model rather than
+introducing a second transitional bundle permission vocabulary.
 
 ### Instructions, site, and seed content
 
@@ -344,9 +346,9 @@ Phase 0 assigns every overlapping worktree an explicit disposition:
 
 | Branch                             | Disposition                                                                                                                                                                                                                                                              |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `feature/auth-runtime-db`          | Merge before Phase 1. Bundles use its Admin capability and four-level permission model; do not build bundle policy merging against the obsolete alpha.204 anchor/admin conflation.                                                                                       |
+| `feature/auth-runtime-db`          | Merge before Phase 1B, not Phase 1A. The pure kernel avoids its files and does not merge policy values. Resolver integration then uses its Admin capability and four-level permission model rather than the obsolete alpha.204 anchor/admin conflation.                  |
 | `work/professional-profile-v2`     | Rebase/port after auth and before Phase 2 catalog freeze. Keep the provider-neutral profile extension/migration in `core`; LinkedIn import and the OAuth broker remain explicit opt-ins even though the current worktree temporarily adds LinkedIn import to Rover core. |
-| `work/topics-derivation`           | Keep independent and port before Phase 3 finalizes posture-sensitive topics config. Its reviewed source tiers/weights replace generic array union; Phase 1 only supplies deterministic bundle context and conflict handling.                                             |
+| `work/topics-derivation`           | Keep independent and port before Phase 3 finalizes posture-sensitive topics config. Its reviewed source tiers/weights replace generic array union; Phase 1A only supplies deterministic bundle context and conflict handling.                                            |
 | `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                                       |
 
 Do not edit generated/scaffolded pilot files to work around branch conflicts. Pilot changes
@@ -359,22 +361,57 @@ working until the migration phase. The Phase 0 characterization fixture remains 
 until a canonical bundle profile is compared against it; intentional deltas are asserted
 separately rather than silently regenerating the baseline.
 
-### Phase 1 — Add the bundle primitive behind presets
+### Phase 1A — Build the pure bundle kernel
 
-Prerequisite: merge/rebase `feature/auth-runtime-db` and rerun the baseline test to record
-its expected permission/Admin delta separately from the immutable alpha.204 fixture.
+This slice deliberately avoids `brain-resolver.ts`, `instance-overrides.ts`, model
+packages, permission schemas, and every file currently changed by the auth branch. Put the
+new contracts and pure resolution logic in isolated `shell/app` modules with direct unit
+tests; do not expose or call the kernel from production resolution yet.
 
-- Add Zod/TypeScript contracts, `defineBundle`, definition validation, and deterministic
-  bundle selection.
+- Add the TypeScript/Zod bundle definition and `defineBundle` validation contract.
+- Validate unique bundle IDs, unique members, known catalog members, contribution
+  ownership, and explicit override references.
+- Resolve selected bundle IDs in canonical definition order, independent of YAML order.
+- Union members, apply eval exclusions, then `add`, then `remove` last.
+- Compose member-scoped config contributions with explicit cross-bundle overrides;
+  reject undeclared conflicts and generic array merging.
+- Compose instruction fragments and eval contributions deterministically.
+- Keep every call immutable so repeated/concurrent resolution cannot leak selected IDs,
+  config, or instructions.
+- Define the member-scoped permission contribution shape, but treat its config as opaque;
+  do not validate levels, compare policy strength, or merge permission values in this
+  slice.
+
+Tests first: unknown/duplicate bundles and members, canonical ordering, YAML-order
+independence, contribution ownership, config conflicts and explicit overrides, array
+rejection, eval/add/remove precedence, instruction composition, permission contribution
+filtering by active member, and repeated-resolution isolation.
+
+Exit gate: the pure kernel has no import from auth-service and no production caller;
+alpha.204's preset path and baseline fixture remain byte-for-byte unchanged.
+
+### Phase 1B — Integrate bundles behind presets
+
+Prerequisite: merge/rebase `feature/auth-runtime-db`. Preserve the immutable alpha.204
+fixture as migration evidence and assert its expected Admin/permission delta separately.
+
 - Parse `bundles:` and reject `bundles` + `preset` together.
-- Extend `CapabilityContext` with active bundles while preserving transitional `preset`.
-- Implement member-scoped config, instruction, eval, and permission contributions.
-- Preserve external plugins, `add`/`remove`, package refs, local site conventions, and
-  fresh plugin construction.
+- Extend `BrainDefinition` and `CapabilityContext` with active bundles while preserving
+  transitional `preset`.
+- Connect the Phase 1A kernel to `brain-resolver` without adding a second resolution path.
+- Validate and merge member-scoped permission contributions using the final four-level
+  subject/permission contracts and documented precedence.
+- Preserve external plugins, package refs, local site conventions, fresh plugin
+  construction, and existing no-bundle behavior.
+- Keep legacy model+preset inputs translating into the same kernel used by explicit
+  bundles.
 
-Tests first: unknown members/bundles, duplicate members, YAML-order independence, config
-conflicts/explicit overrides, array handling, permission precedence, remove semantics,
-external plugins, and repeated resolve isolation.
+Tests first: parser mutual exclusion, permission precedence/conflicts, member removal,
+external plugins, local site/theme/content conventions, config callback context, legacy
+preset parity, and fresh repeated resolve behavior.
+
+Exit gate: explicit bundles and transitional presets use one resolver; all Phase 0
+baseline differences are either preserved or asserted as intentional auth deltas.
 
 ### Phase 2 — Establish the canonical catalog and migrate `core`
 
