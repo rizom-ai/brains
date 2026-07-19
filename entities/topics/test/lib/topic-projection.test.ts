@@ -29,6 +29,7 @@ const config: TopicsPluginConfig = {
   includeEntityTypes: ["post"],
   minRelevanceScore: 0.5,
   mergeSimilarityThreshold: 0.85,
+  semanticMergeDistance: 0.35,
   autoMerge: true,
   extractableStatuses: ["published"],
   enableAutoExtraction: true,

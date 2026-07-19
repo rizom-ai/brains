@@ -733,6 +733,11 @@ export interface ICoreEntityService {
     request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
 
+  /** Return embedded entities with raw cosine distance to a query. */
+  searchWithDistances(
+    request: SearchWithDistancesRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,

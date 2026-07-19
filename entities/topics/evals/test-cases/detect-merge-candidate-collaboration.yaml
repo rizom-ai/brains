@@ -14,7 +14,7 @@ plugin: topics
 handler: detectMergeCandidate
 
 input:
-  threshold: 0.85
+  threshold: 0.35
   existingTopics:
     - title: Human-AI Collaboration
       content: |

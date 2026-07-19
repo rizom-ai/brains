@@ -88,65 +88,123 @@ describe("TopicService", () => {
   });
 
   describe("findMergeCandidate", () => {
-    it("returns search-result candidate above threshold", async () => {
+    it("uses semantic distance as the merge arbiter", async () => {
+      const logger = createSilentLogger();
+      const existing = makeTopic(
+        "messaging-validation",
+        "Messaging Validation",
+        "Validating message resonance and audience understanding.",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: existing },
+      });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: existing.id,
+          entityType: "topic",
+          distance: 0.2,
+        },
+      ]);
+      const service = new TopicService(entityService, logger);
+
+      const candidate = await service.findMergeCandidate({
+        incoming: {
+          title: "Message Testing",
+          content: "Testing whether positioning language works for readers.",
+        },
+        threshold: 0.35,
+      });
+
+      expect(candidate?.topic.id).toBe("messaging-validation");
+      expect(candidate?.score).toBe(0.8);
+    });
+
+    it("does not merge lexical near matches when semantic distance is too high", async () => {
+      const logger = createSilentLogger();
+      const existing = makeTopic("ai-collaboration", "AI Collaboration");
+      const entityService = createMockEntityService({
+        returns: {
+          search: [{ entity: existing, score: 0.9, excerpt: "" }],
+          getEntity: existing,
+        },
+      });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: existing.id,
+          entityType: "topic",
+          distance: 0.7,
+        },
+      ]);
+      const service = new TopicService(entityService, logger);
+
+      const candidate = await service.findMergeCandidate({
+        incoming: { title: "Human-AI Collaboration" },
+        threshold: 0.35,
+      });
+
+      expect(candidate).toBeNull();
+    });
+
+    it("returns distance-result candidate within threshold", async () => {
       const logger = createSilentLogger();
       const existing = makeTopic(
         "human-ai-collaboration",
         "Human-AI Collaboration",
       );
       const entityService = createMockEntityService({
-        returns: {
-          search: [{ entity: existing, score: 0.9, excerpt: "" }],
-        },
+        returns: { getEntity: existing },
       });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: existing.id, entityType: "topic", distance: 0.2 },
+      ]);
       const service = new TopicService(entityService, logger);
 
       const candidate = await service.findMergeCandidate({
         incoming: { title: "Human-Agent Collaboration" },
-        threshold: 0.85,
+        threshold: 0.35,
       });
 
       expect(candidate?.topic.id).toBe("human-ai-collaboration");
       expect(candidate?.title).toBe("Human-AI Collaboration");
     });
 
-    it("returns additionalCandidates hit when search is empty", async () => {
+    it("keeps exact-title additionalCandidates as a fast path", async () => {
       const logger = createSilentLogger();
       const existing = makeTopic(
         "human-ai-collaboration",
         "Human-AI Collaboration",
       );
-      const entityService = createMockEntityService({
-        returns: { search: [] },
-      });
+      const entityService = createMockEntityService();
       const service = new TopicService(entityService, logger);
 
       const candidate = await service.findMergeCandidate({
-        incoming: { title: "Human-Agent Collaboration" },
-        threshold: 0.85,
+        incoming: { title: "Human-AI Collaboration" },
+        threshold: 0.35,
         additionalCandidates: [existing],
       });
 
       expect(candidate?.topic.id).toBe("human-ai-collaboration");
+      expect(entityService.searchWithDistances).toHaveBeenCalled();
     });
 
-    it("dedupes a topic appearing in both search and additionalCandidates", async () => {
+    it("dedupes a topic appearing in both distance search and additionalCandidates", async () => {
       const logger = createSilentLogger();
       const existing = makeTopic(
         "human-ai-collaboration",
         "Human-AI Collaboration",
       );
       const entityService = createMockEntityService({
-        returns: {
-          search: [{ entity: existing, score: 0.9, excerpt: "" }],
-        },
+        returns: { getEntity: existing },
       });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: existing.id, entityType: "topic", distance: 0.2 },
+      ]);
       const service = new TopicService(entityService, logger);
       const adapterSpy = spyOn(TopicAdapter.prototype, "parseTopicBody");
 
       const candidate = await service.findMergeCandidate({
-        incoming: { title: "Human-Agent Collaboration" },
-        threshold: 0.85,
+        incoming: { title: "Human-AI Collaboration" },
+        threshold: 0.35,
         additionalCandidates: [existing],
       });
 
@@ -155,19 +213,20 @@ describe("TopicService", () => {
       adapterSpy.mockRestore();
     });
 
-    it("returns null when no candidate clears the threshold", async () => {
+    it("returns null when no distance candidate clears the threshold", async () => {
       const logger = createSilentLogger();
       const unrelated = makeTopic("biomimicry", "Biomimicry");
       const entityService = createMockEntityService({
-        returns: {
-          search: [{ entity: unrelated, score: 0.1, excerpt: "" }],
-        },
+        returns: { getEntity: unrelated },
       });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: unrelated.id, entityType: "topic", distance: 0.7 },
+      ]);
       const service = new TopicService(entityService, logger);
 
       const candidate = await service.findMergeCandidate({
         incoming: { title: "Human-Agent Collaboration" },
-        threshold: 0.85,
+        threshold: 0.35,
       });
 
       expect(candidate).toBeNull();
@@ -188,18 +247,17 @@ describe("TopicService", () => {
         "restricted",
       );
       const entityService = createMockEntityService({
-        returns: {
-          search: [
-            { entity: publicTopic, score: 0.9, excerpt: "" },
-            { entity: restrictedTopic, score: 0.9, excerpt: "" },
-          ],
-        },
+        returns: { getEntity: restrictedTopic },
       });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: publicTopic.id, entityType: "topic", distance: 0.1 },
+        { entityId: restrictedTopic.id, entityType: "topic", distance: 0.2 },
+      ]);
       const service = new TopicService(entityService, logger);
 
       const candidate = await service.findMergeCandidate({
         incoming: { title: "Human-Agent Collaboration" },
-        threshold: 0.85,
+        threshold: 0.35,
         targetVisibility: "restricted",
         additionalCandidates: [publicTopic],
       });

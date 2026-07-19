@@ -197,7 +197,7 @@ async function processSourceBatch(params: {
     {
       minRelevanceScore: params.minRelevanceScore,
       autoMerge: params.config.autoMerge,
-      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
     },
   );
@@ -260,7 +260,7 @@ export async function extractAllTopics(
     {
       minRelevanceScore: params.config.minRelevanceScore,
       autoMerge: params.config.autoMerge,
-      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
     },
   );
@@ -312,7 +312,7 @@ export async function replaceAllTopics(
   const result = await extractTopicsBatched(entities, context, logger, {
     minRelevanceScore: config.minRelevanceScore,
     autoMerge: config.autoMerge,
-    mergeSimilarityThreshold: config.mergeSimilarityThreshold,
+    semanticMergeDistance: config.semanticMergeDistance,
     targetVisibility: config.extractionVisibility,
   });
   return {
