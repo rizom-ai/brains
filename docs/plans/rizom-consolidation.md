@@ -12,9 +12,9 @@ lexicon registry, and the console dashboard (with the knowledge-map widget). `GE
 
 Remaining, in order:
 
-1. **Edge redirects are not applied** — `rizom.work` and `rizom.foundation` both still
-   return `200` from their old origins (checked 2026-07-19). The two zone rules below
-   are written but never executed.
+1. ✅ **Edge redirects applied and verified** (2026-07-19): `rizom.work` and
+   `rizom.foundation` return `301` to their rooms from root and deep paths (query
+   stripped per plan), landing `200`.
 2. **Foundation memory migration is unverified** — the cutover ran via the pilot path
    without evidence that the foundation brain's conversation/team-memory was copied
    (§3 backup/copy steps unchecked). This gates retiring the old foundation origin;
@@ -136,9 +136,10 @@ Cutover is a rover-pilot desired-state change plus DNS; rollback is the inverse,
 
 - ✅ Deploy the consolidated brain at `rizom.ai` (live at `0.2.0-alpha.204`,
   2026-07-19).
-- Apply `rizom.work/* → rizom.ai/work` and
-  `rizom.foundation/* → rizom.ai/foundation` redirects (not applied — both
-  domains still `200` from old origins, checked 2026-07-19).
+- ✅ Apply `rizom.work/* → rizom.ai/work` and
+  `rizom.foundation/* → rizom.ai/foundation` redirects (applied via dashboard,
+  verified 2026-07-19: `301` from root and deep paths, query stripped, rooms
+  land `200`).
 - Soak while monitoring health, TLS, MCP auth, site rebuilds, registry routes, Discord, and
   representative content.
 - Retire the old Work/Foundation origins only after the rollback window closes.
