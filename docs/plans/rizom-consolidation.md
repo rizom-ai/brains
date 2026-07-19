@@ -18,8 +18,13 @@ Remaining, in order:
 2. ✅ **Foundation memory migration waived** — operator decision 2026-07-19: the old
    foundation brain's conversation/team-memory is not needed on the consolidated
    deployment. Retirement is ungated.
-3. **Staging still runs** — `new.rizom.ai` is up at `0.2.0-alpha.195` and should retire
-   after the soak window.
+3. **Staging retirement in progress** (2026-07-19) — repo state for handle `new`
+   removed from rover-pilot (desired state, generated config, secrets, cohort;
+   commit `52cef6c`; one expected red Deploy run failed at secret decrypt, before
+   provisioning). Server `rover-new` and the `new.rizom.ai` /
+   `preview.new.rizom.ai` DNS records are deleted manually by the operator.
+   The offboarding workflow (docs/plans/user-offboarding-plan.md) is assigned
+   to a colleague for future retirements.
 4. Retire old Work/Foundation origins, archive superseded repos, remove Ranger/Relay
    deployment paths, then delete this plan.
 
