@@ -1,6 +1,6 @@
 # Topics Derivation
 
-**Status:** Phases 1–2 implemented; Phase 3 mint economics next
+**Status:** Phases 1–3 implemented; Phase 4 calibration next
 
 The topic system produces near-duplicates and operational residue. Root
 causes, verified in code:
@@ -85,10 +85,11 @@ causes, verified in code:
    internal `reconcile` projection job mode, and post-wave trigger. Existing
    duplicate topics merge through the same synthesizer; distinct verdicts,
    visibility partitions, and scan budgets are covered by tests.
-3. **Mint economics** — source tiers, weights, two-tier cutoffs, soft
-   ceiling; granularity contract in the extraction prompt. Extraction flow
-   tests cover: reinforce-only sources never mint, ceiling forces
-   merge-first, weighted cutoffs gate creation.
+3. **Mint economics** — implemented. Source weights, mintable source types,
+   two-tier weighted relevance cutoffs, a corpus-proportional soft ceiling,
+   and the extraction prompt granularity contract are in place. Tests cover
+   reinforce-only sources never minting, reinforce-only sources merging,
+   weighted creation cutoffs, and ceiling-forced merge-first behavior.
 4. **Calibration on yeehaa.io** — run the derivation against the yeehaa.io
    corpus through the topics eval harness; tune weights, cutoffs, and
    `semanticMergeDistance`; lock the defaults from evidence.

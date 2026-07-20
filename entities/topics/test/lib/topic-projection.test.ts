@@ -28,6 +28,18 @@ if (!progressReporter) {
 const config: TopicsPluginConfig = {
   includeEntityTypes: ["post"],
   minRelevanceScore: 0.5,
+  createRelevanceThreshold: 0.7,
+  reinforceRelevanceThreshold: 0.5,
+  sourceWeights: {
+    "anchor-profile": 1,
+    post: 1,
+    summary: 1,
+    deck: 0.85,
+    project: 0.8,
+    link: 0.6,
+    note: 0.6,
+  },
+  mintableEntityTypes: ["anchor-profile", "post", "summary", "deck", "project"],
   mergeSimilarityThreshold: 0.85,
   semanticMergeDistance: 0.35,
   reconciliationMaxPairs: 100,
