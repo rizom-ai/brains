@@ -64,6 +64,7 @@ brain search "typescript" --remote mybrain.example.com --token $TOKEN
 
 ```yaml
 brain: rover
+anchor: person
 model: gpt-4o-mini
 preset: default
 ```

@@ -100,6 +100,7 @@ apps/my-team/
 
 ```yaml
 brain: relay
+anchor: team
 preset: default
 
 plugins:

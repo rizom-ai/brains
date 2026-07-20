@@ -212,6 +212,15 @@ function getPinnedSiteTheme(
   return undefined;
 }
 
+function defaultAnchorKind(
+  model: string,
+): "person" | "team" | "organization" | undefined {
+  if (model === "rover") return "person";
+  if (model === "relay") return "team";
+  if (model === "ranger") return "organization";
+  return undefined;
+}
+
 function writeBrainYaml(
   dir: string,
   model: string,
@@ -274,8 +283,9 @@ site:
 `
     : "";
 
+  const anchorKind = defaultAnchorKind(model);
   const content = `brain: ${model}
-domain: ${domain}
+${anchorKind ? `anchor: ${anchorKind}\n` : ""}domain: ${domain}
 
 # Plugin preset — "core" is the minimal on-ramp. Use "default" or "full"
 # for richer presets, or list capability ids in add: / remove: to fine-tune.

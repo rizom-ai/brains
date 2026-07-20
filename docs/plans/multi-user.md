@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/admin` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-model-visible Admin API with independent Anchor ownership management. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the standalone admin console (People is its first section; implemented by `@brains/admin` at `/admin` per decision 11), role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-model-visible Admin API with config-derived, CMS-profiled Anchor ownership. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -12,7 +12,7 @@ The first version should stay small: coarse permission levels, explicit Admin-ma
 
 ## Source of truth
 
-This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, Admin and Anchor management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, Admin management and Anchor display UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
 
 ## Current baseline
 
@@ -23,7 +23,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
-- A same-origin Admin-session API manages users, Anchor ownership, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
+- A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
 - The standalone admin console (React, implemented by `@brains/admin` at `/admin` with People as its first section) provides Admin-only roster administration and authenticated self-service representation consent. A local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 

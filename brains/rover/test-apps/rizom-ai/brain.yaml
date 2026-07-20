@@ -1,4 +1,5 @@
 brain: rover
+anchor: organization
 preset: default
 
 # The consolidated rizom.ai composition (docs/plans/rizom-consolidation.md

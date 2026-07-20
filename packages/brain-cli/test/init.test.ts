@@ -131,6 +131,29 @@ describe("brain init", () => {
       expect(yaml).toContain("domain: mybrain.rizom.ai");
     });
 
+    it("should declare each built-in model's Anchor profile flavor", () => {
+      for (const [model, anchor] of [
+        ["rover", "person"],
+        ["relay", "team"],
+        ["ranger", "organization"],
+      ] as const) {
+        const dir = join(testDir, model);
+        scaffold(dir, { model });
+        expect(readFileSync(join(dir, "brain.yaml"), "utf-8")).toContain(
+          `anchor: ${anchor}`,
+        );
+      }
+
+      const customDir = join(testDir, "custom");
+      scaffold(customDir, {
+        model: "@acme/custom-brain",
+        domain: "custom.example.com",
+      });
+      expect(
+        readFileSync(join(customDir, "brain.yaml"), "utf-8"),
+      ).not.toContain("anchor:");
+    });
+
     it("should default domain to {model}.rizom.ai", () => {
       scaffold(testDir, { model: "rover" });
 

@@ -114,6 +114,7 @@ const agentInstructions = [
 const relayBrain: BrainDefinition = defineBrain({
   name: "relay",
   version: packageJson.version,
+  anchor: "team",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: relaySite,

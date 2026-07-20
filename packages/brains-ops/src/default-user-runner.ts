@@ -16,6 +16,7 @@ export function createDefaultUserRunner(
 function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   const lines = [
     `brain: ${user.model}`,
+    "anchor: person",
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
     ...renderAddConfig(user),

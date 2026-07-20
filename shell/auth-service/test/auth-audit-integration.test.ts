@@ -81,22 +81,11 @@ describe("AuthService audit integration", () => {
     );
     await service.detachIdentity(identity.id, context);
     await service.suspendUser(user.userId, context);
-    await service.updateBrainAnchor(
-      { kind: "collective", displayName: "Rizom" },
-      context,
-    );
 
     const actorEvents = (await service.listAuditEvents()).filter(
       (event) => event.targetId !== anchor.userId,
     );
-    expect(actorEvents).toHaveLength(6);
-    expect(actorEvents).toContainEqual(
-      expect.objectContaining({
-        action: "auth.brain_anchor.updated",
-        actorUserId: anchor.userId,
-        metadata: { kind: "collective" },
-      }),
-    );
+    expect(actorEvents).toHaveLength(5);
     expect(
       actorEvents.every((event) => event.actorUserId === anchor.userId),
     ).toBe(true);

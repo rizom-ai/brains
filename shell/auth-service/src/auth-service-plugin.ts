@@ -14,6 +14,10 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
+  type AuthBrainAnchorConfigKind,
+} from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
@@ -44,6 +48,7 @@ const setupEmailSchema: z.ZodType<SetupEmailConfig, SetupEmailConfig> = z.union(
 
 export interface AuthServiceConfig {
   issuer?: string | undefined;
+  anchor: AuthBrainAnchorConfigKind;
   trustedIssuers: string[];
   allowLocalhostIssuers?: boolean | undefined;
   storageDir?: string | undefined;
@@ -53,6 +58,7 @@ export interface AuthServiceConfig {
 
 export interface AuthServiceConfigInput {
   issuer?: string | undefined;
+  anchor?: AuthBrainAnchorConfigKind | undefined;
   trustedIssuers?: string[] | undefined;
   allowLocalhostIssuers?: boolean | undefined;
   storageDir?: string | undefined;
@@ -66,6 +72,8 @@ const authServiceConfigSchema: z.ZodType<
 > = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
+  /** Config-declared Anchor profile flavor. Team and organization are collective. */
+  anchor: z.enum(AUTH_BRAIN_ANCHOR_CONFIG_KINDS).default("person"),
   /** Additional trusted issuer origins, for example a preview host. */
   trustedIssuers: z.array(z.string()).default([]),
   /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
@@ -102,6 +110,28 @@ export function resolveAuthStorageDir(configured: string | undefined): string {
   return configured ?? join(".", "data", "auth");
 }
 
+async function resolveProfileDisplayName(
+  context: ServicePluginContext,
+  profileEntityId: string,
+): Promise<string | undefined> {
+  if (profileEntityId === "anchor-profile/anchor-profile") {
+    const name = context.identity.getProfile().name.trim();
+    return name && name !== "Unknown" ? name : undefined;
+  }
+
+  const separator = profileEntityId.indexOf("/");
+  if (separator <= 0 || separator === profileEntityId.length - 1) {
+    return undefined;
+  }
+  const entity = await context.entityService.getEntity({
+    entityType: profileEntityId.slice(0, separator),
+    id: profileEntityId.slice(separator + 1),
+    visibilityScope: "restricted",
+  });
+  const name = entity?.metadata["name"];
+  return typeof name === "string" ? name : undefined;
+}
+
 export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfig,
   AuthServiceConfigInput
@@ -125,6 +155,12 @@ export class AuthServicePlugin extends ServicePlugin<
         : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
       storageDir: resolveAuthStorageDir(this.config.storageDir),
+      anchor: this.config.anchor,
+      anchorProfileEntityId: "anchor-profile/anchor-profile",
+      resolveProfileDisplayName: (
+        profileEntityId,
+      ): Promise<string | undefined> =>
+        resolveProfileDisplayName(context, profileEntityId),
       ...(issuer ? { issuer } : {}),
       trustedIssuers: this.config.trustedIssuers,
       ...(this.config.allowLocalhostIssuers !== undefined

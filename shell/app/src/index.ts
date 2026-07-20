@@ -23,7 +23,7 @@ export {
 export type { LogLevel } from "./types";
 
 // Brain definition / resolver API
-export { defineBrain } from "./brain-definition";
+export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
 export { registerPackage, getPackage, hasPackage } from "./package-registry";
 export { collectOverridePackageRefs } from "./override-package-refs";
@@ -43,6 +43,7 @@ export type { ExternalPluginDeclaration } from "./instance-overrides";
 export { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 export type { InstanceOverrides } from "./instance-overrides";
 export type {
+  BrainAnchorConfigKind,
   BrainDefinition,
   BrainIdentity,
   BrainEnvironment,

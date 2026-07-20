@@ -90,6 +90,16 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   const users = usersQuery.data ?? [];
   const representations = representationsQuery.data ?? [];
   const anchor = anchorQuery.data;
+  const configuredAnchorKind = anchor?.configuredKind ?? "person";
+  const organization = configuredAnchorKind === "organization";
+  const rosterLabel = organization ? "People" : "Members";
+  const rosterSingular = organization ? "person" : "member";
+  const heroTagline =
+    configuredAnchorKind === "person"
+      ? "your brain · access"
+      : organization
+        ? "people · anchor · access"
+        : "members · anchor · access";
   const activeAdminCount = users.filter(
     (user) => user.role === "admin" && user.status === "active",
   ).length;
@@ -185,7 +195,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         <header className="admin-hero">
           <div>
             <h1>Admin</h1>
-            <p>members · anchor · access</p>
+            <p>{heroTagline}</p>
           </div>
           <div className="admin-hero-meta">
             <span>
@@ -207,7 +217,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               type="button"
               onClick={() => setView("roster")}
             >
-              Members
+              {rosterLabel}
             </button>
           )}
           <button
@@ -250,30 +260,24 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         ) : (
           <>
             <div id="brain-anchor">
-              <AnchorPanel
-                anchor={anchor}
-                users={users}
-                currentUserId={props.bootstrap.userId}
-                onMutation={(mutation) =>
-                  runMutation(mutation, undefined, "Brain anchor updated")
-                }
-              />
+              <AnchorPanel anchor={anchor} />
             </div>
             <section className="people-panel">
               <header className="people-head">
                 <div>
                   <div className="eyebrow">Roster</div>
-                  <h2>Members</h2>
+                  <h2>{rosterLabel}</h2>
                   <p>
-                    Everyone with a profile on this brain, their access, and any
-                    linked brain representatives.
+                    {organization
+                      ? "Everyone with a profile at this organization, their access, and any linked brain representatives."
+                      : "Everyone with a profile on this brain, their access, and any linked brain representatives."}
                   </p>
                 </div>
                 <Button
                   tone="primary"
                   onClick={() => setModal({ kind: "add" })}
                 >
-                  Add member
+                  Add {rosterSingular}
                 </Button>
               </header>
               <div className="people-layout">
@@ -281,6 +285,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                   users={users}
                   selectedUserId={selectedUserId}
                   currentUserId={props.bootstrap.userId}
+                  label={rosterLabel}
                   onSelect={setSelectedUserId}
                 />
                 <PersonDetail

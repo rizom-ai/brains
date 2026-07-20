@@ -8,7 +8,6 @@ import {
 import {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
-  AUTH_BRAIN_ANCHOR_KINDS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
   type AgentPersonClaimInput,
@@ -29,16 +28,6 @@ export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
   listUsers(): Promise<AuthAdminPrincipal[]>;
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
-  updateBrainAnchor(
-    input:
-      | { kind: "person"; userId: string }
-      | {
-          kind: "collective";
-          displayName: string;
-          profileEntityId?: string;
-        },
-    actorUserId: string,
-  ): Promise<AuthBrainAnchorSummary>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   reconcileAgentPersonClaims(
     claims: AgentPersonClaimInput[],
@@ -159,24 +148,7 @@ const agentPersonClaimSchema = z.strictObject({
   visibility: z.enum(["private", "trusted", "public"]).optional(),
 });
 
-const brainAnchorMutationSchema = z.discriminatedUnion("kind", [
-  z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
-    kind: z.literal(AUTH_BRAIN_ANCHOR_KINDS[0]),
-    userId: z.string().min(1),
-  }),
-  z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor),
-    kind: z.literal(AUTH_BRAIN_ANCHOR_KINDS[1]),
-    displayName: z.string().trim().min(1).max(200),
-    profileEntityId: z.string().trim().min(1).max(500).optional(),
-  }),
-]);
-
 const adminMutationSchema = z.union([
-  brainAnchorMutationSchema,
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
@@ -346,32 +318,6 @@ async function executeMutation(
   operations: AuthAdminOperations,
 ): Promise<Record<string, unknown>> {
   switch (mutation.action) {
-    case "updateBrainAnchor": {
-      if (mutation.kind === "person") {
-        if (!mutation.userId) throw new Error("Select a person anchor");
-        return {
-          anchor: await operations.updateBrainAnchor(
-            { kind: "person", userId: mutation.userId },
-            actorUserId,
-          ),
-        };
-      }
-      if (!mutation.displayName) {
-        throw new Error("Collective anchor name is required");
-      }
-      return {
-        anchor: await operations.updateBrainAnchor(
-          {
-            kind: "collective",
-            displayName: mutation.displayName,
-            ...(mutation.profileEntityId
-              ? { profileEntityId: mutation.profileEntityId }
-              : {}),
-          },
-          actorUserId,
-        ),
-      };
-    }
     case "createUser":
       return {
         user: await operations.createUser(

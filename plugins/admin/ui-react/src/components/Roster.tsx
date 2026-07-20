@@ -6,6 +6,7 @@ export function Roster(props: {
   users: AuthAdminUserSummary[];
   selectedUserId: string | undefined;
   currentUserId: string;
+  label: "Members" | "People";
   onSelect: (userId: string) => void;
 }): ReactElement {
   const [query, setQuery] = useState("");
@@ -19,14 +20,16 @@ export function Roster(props: {
     );
   }, [props.users, query]);
 
+  const memberLabel = props.label === "People" ? "people" : "members";
+
   return (
-    <section className="card people-roster" aria-label="Members list">
+    <section className="card people-roster" aria-label={`${props.label} list`}>
       <label className="people-roster-search">
         <span aria-hidden="true">⌕</span>
         <input
           value={query}
-          placeholder="Search members…"
-          aria-label="Search members"
+          placeholder={`Search ${memberLabel}…`}
+          aria-label={`Search ${memberLabel}`}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
       </label>
@@ -34,8 +37,8 @@ export function Roster(props: {
         {visibleUsers.length === 0 ? (
           <p className="people-empty">
             {props.users.length === 0
-              ? "No members have been added."
-              : "No members match this search."}
+              ? `No ${memberLabel} have been added.`
+              : `No ${memberLabel} match this search.`}
           </p>
         ) : (
           visibleUsers.map((user) => {

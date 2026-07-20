@@ -1,4 +1,5 @@
 brain: relay
+anchor: team
 preset: default
 add:
   - rizom-ecosystem

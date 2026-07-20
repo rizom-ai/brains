@@ -209,9 +209,10 @@ function applyPluginDefaults(
     siteBuilderEnabled: boolean;
     site: SitePackage | undefined;
     theme: string | undefined;
+    anchor: NonNullable<BrainDefinition["anchor"]>;
   },
 ): void {
-  const { webserverEnabled, siteBuilderEnabled, site, theme } = options;
+  const { webserverEnabled, siteBuilderEnabled, site, theme, anchor } = options;
 
   if (webserverEnabled) {
     const webserverExplicit = pluginOverrides["webserver"] ?? {};
@@ -242,6 +243,12 @@ function applyPluginDefaults(
       siteBuilderExplicit,
     );
   }
+
+  const authServiceExplicit = pluginOverrides["auth-service"] ?? {};
+  pluginOverrides["auth-service"] = {
+    ...authServiceExplicit,
+    anchor,
+  };
 
   if (theme !== undefined) {
     const dashboardDefaults: Record<string, unknown> = { themeCSS: theme };
@@ -548,6 +555,7 @@ export function resolve(
   const effectiveModel = overrides?.model ?? definition.model;
   const effectiveReasoningEffort =
     overrides?.reasoningEffort ?? definition.reasoningEffort;
+  const effectiveAnchor = overrides?.anchor ?? definition.anchor ?? "person";
   const webserverEnabled = hasActiveInterface(
     definition,
     activeIds,
@@ -570,6 +578,7 @@ export function resolve(
     siteBuilderEnabled,
     site,
     theme,
+    anchor: effectiveAnchor,
   });
 
   // Instantiate capabilities — each plugin gets only its own

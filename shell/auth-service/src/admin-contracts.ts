@@ -2,6 +2,11 @@
 export const AUTH_USER_ROLES = ["admin", "trusted", "public"] as const;
 export const AUTH_USER_STATUSES = ["active", "invited", "suspended"] as const;
 export const AUTH_BRAIN_ANCHOR_KINDS = ["person", "collective"] as const;
+export const AUTH_BRAIN_ANCHOR_CONFIG_KINDS = [
+  "person",
+  "team",
+  "organization",
+] as const;
 export const AUTH_ADMIN_IDENTITY_TYPES = [
   "discord",
   "mcp",
@@ -15,7 +20,6 @@ export const AUTH_REPRESENTATION_MUTATION_ACTIONS = {
 } as const;
 export const AUTH_ADMIN_MUTATION_ACTIONS = {
   createUser: "createUser",
-  updateBrainAnchor: "updateBrainAnchor",
   promoteAgentPerson: "promoteAgentPerson",
   linkAgentPerson: "linkAgentPerson",
   updateUserRole: "updateUserRole",
@@ -30,6 +34,8 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
 export type AuthAdminRole = (typeof AUTH_USER_ROLES)[number];
 export type AuthAdminStatus = (typeof AUTH_USER_STATUSES)[number];
 export type AuthBrainAnchorKind = (typeof AUTH_BRAIN_ANCHOR_KINDS)[number];
+export type AuthBrainAnchorConfigKind =
+  (typeof AUTH_BRAIN_ANCHOR_CONFIG_KINDS)[number];
 export type AuthAdminIdentityType =
   "passkey" | (typeof AUTH_ADMIN_IDENTITY_TYPES)[number];
 export type AuthAdminMutationAction =
@@ -96,7 +102,10 @@ export interface AuthAdminUserSummary extends AuthAdminPrincipal {
 }
 
 export interface AuthBrainAnchorSummary {
+  /** Mechanical ownership kind persisted in auth runtime state. */
   kind: AuthBrainAnchorKind;
+  /** Config/profile flavor declared by brain.yaml. */
+  configuredKind: AuthBrainAnchorConfigKind;
   subjectId: string;
   displayName: string;
   personId?: string;
@@ -143,19 +152,6 @@ export interface AuthAgentPersonReconciliationResponse {
 }
 
 export type AuthAdminMutation =
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
-      kind: "person";
-      userId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor;
-      kind: "collective";
-      displayName: string;
-      profileEntityId?: string;
-    }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;

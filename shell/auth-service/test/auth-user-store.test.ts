@@ -347,9 +347,10 @@ describe("AuthUserStore", () => {
         "Cannot remove the personal brain anchor's admin access",
       );
 
-      await store.updateBrainAnchor({
+      await store.configureBrainAnchor({
         kind: "collective",
         displayName: "Example Collective",
+        profileEntityId: "anchor-profile/anchor-profile",
       });
       await store.updateUserRole(first.id, "trusted");
       await expectRejectsWithMessage(
@@ -368,24 +369,45 @@ describe("AuthUserStore", () => {
     });
   });
 
-  it("atomically keeps a newly selected personal Anchor active", async () => {
+  it("projects collective config before setup without making the first Admin the Anchor", async () => {
     await withUserStore(async (store) => {
-      const first = await store.ensureFirstAdminUser({ displayName: "First" });
-      const second = await store.createUser({
-        displayName: "Second",
-        role: "admin",
+      await store.configureBrainAnchor({
+        kind: "collective",
+        displayName: "The Peppers",
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
+      const first = await store.ensureFirstAdminUser({ displayName: "Alice" });
+
+      expect(await store.getBrainAnchor()).toMatchObject({
+        kind: "collective",
+        displayName: "The Peppers",
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
+      expect((await store.getBrainAnchor())?.subjectId).not.toBe(
+        first.personId,
+      );
+    });
+  });
+
+  it("projects personal config onto the first active Admin and profile reference", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.ensureFirstAdminUser({ displayName: "Alice" });
+
+      await store.configureBrainAnchor({
+        kind: "person",
+        displayName: "Alice Morgan",
+        profileEntityId: "anchor-profile/anchor-profile",
       });
 
-      await Promise.allSettled([
-        store.updateBrainAnchor({ kind: "person", userId: second.id }),
-        store.updateUserStatus(second.id, "suspended"),
-      ]);
-
-      const anchor = await store.getBrainAnchor();
-      if (!anchor) throw new Error("Expected a brain Anchor");
-      const selectedUser = await store.getUserByPersonId(anchor.subjectId);
-      expect(selectedUser).toMatchObject({ role: "admin", status: "active" });
-      expect([first.personId, second.personId]).toContain(anchor.subjectId);
+      expect(await store.getBrainAnchor()).toMatchObject({
+        kind: "person",
+        subjectId: first.personId,
+        displayName: "Alice Morgan",
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
+      expect(await store.getPerson(first.personId)).toMatchObject({
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
     });
   });
 
@@ -396,9 +418,10 @@ describe("AuthUserStore", () => {
         displayName: "Second",
         role: "admin",
       });
-      await store.updateBrainAnchor({
+      await store.configureBrainAnchor({
         kind: "collective",
         displayName: "Example Collective",
+        profileEntityId: "anchor-profile/anchor-profile",
       });
 
       const results = await Promise.allSettled([

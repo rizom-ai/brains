@@ -49,6 +49,7 @@ describe("Admin server-state queries", () => {
         return Response.json({
           anchor: {
             kind: "collective",
+            configuredKind: "organization",
             subjectId: "collective:rizom",
             displayName: "Rizom",
             administeredBy: 2,
@@ -79,7 +80,7 @@ describe("Admin server-state queries", () => {
 });
 
 describe("Admin mutation invalidation", () => {
-  it("invalidates Anchor, roster, and representations after ownership changes", async () => {
+  it("keeps the config-derived Anchor cache stable after auth mutations", async () => {
     const client = createAdminQueryClient();
     client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
     client.setQueryData(adminKeys.users(), []);
@@ -87,10 +88,10 @@ describe("Admin mutation invalidation", () => {
 
     await invalidateAfterAdminMutation(
       client,
-      AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor,
+      AUTH_ADMIN_MUTATION_ACTIONS.createUser,
     );
 
-    expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(true);
+    expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(false);
     expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
     expect(
       client.getQueryState(adminKeys.representations())?.isInvalidated,

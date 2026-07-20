@@ -5,6 +5,10 @@ import {
   UserPermissionLevelSchema,
 } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import {
+  brainAnchorConfigKindSchema,
+  type BrainAnchorConfigKind,
+} from "./brain-definition";
 import { reasoningEffortSchema, type ReasoningEffort } from "./types";
 
 /**
@@ -86,6 +90,7 @@ export const pluginOverrideEntrySchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
 
 export interface InstanceOverrides {
   brain?: string | undefined;
+  anchor?: BrainAnchorConfigKind | undefined;
   site?:
     | {
         package?: string | undefined;
@@ -141,6 +146,9 @@ export interface InstanceOverrides {
 const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
+
+  /** Anchor profile flavor. Team and organization both use collective ownership. */
+  anchor: brainAnchorConfigKindSchema.optional(),
 
   /**
    * Site and theme overrides.

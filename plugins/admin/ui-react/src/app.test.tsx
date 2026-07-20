@@ -32,9 +32,11 @@ const admin: PeopleBootstrap = {
 
 const brainAnchor: AuthBrainAnchorSummary = {
   kind: "person",
+  configuredKind: "person",
   subjectId: "per_yeehaa",
-  displayName: "Yeehaa",
+  displayName: "Yeehaa Morgan",
   personId: "per_yeehaa",
+  profileEntityId: "anchor-profile/anchor-profile",
   administeredBy: 2,
 };
 
@@ -46,6 +48,7 @@ const user: AuthAdminUserSummary = {
   status: "active",
   permissionLevel: "admin",
   isAnchor: false,
+  profileEntityId: "person-profile/mira-reyes",
   identities: [
     {
       id: "idn_discord",
@@ -114,7 +117,46 @@ describe("People surface", () => {
     expect(html).toContain("No");
     expect(html).toContain("Asserted — cannot authenticate");
     expect(html).toContain("Add member");
+    expect(html).toContain("kind: person · brain.yaml");
+    expect(html).toContain("Edit in CMS");
+    expect(html).toContain("/cms#/person-profile/mira-reyes");
+    expect(html).toContain("Yeehaa Morgan");
+    expect(html).not.toContain("Save Anchor");
+    expect(html).not.toContain("anchor-kind-toggle");
     expect(html).not.toContain("dashboard-tab-panel");
+  });
+
+  it("uses team and organization vocabulary without changing collective mechanics", () => {
+    const { personId: _personId, ...collectiveAnchor } = brainAnchor;
+    const teamHtml = renderPeople({
+      bootstrap: { ...admin, isAnchor: false },
+      initialAnchor: {
+        ...collectiveAnchor,
+        kind: "collective",
+        configuredKind: "team",
+        subjectId: "coll_team",
+        displayName: "The Peppers",
+      },
+      initialUsers: [user],
+    });
+    const organizationHtml = renderPeople({
+      bootstrap: { ...admin, isAnchor: false },
+      initialAnchor: {
+        ...collectiveAnchor,
+        kind: "collective",
+        configuredKind: "organization",
+        subjectId: "coll_org",
+        displayName: "Rizom",
+      },
+      initialUsers: [user],
+    });
+
+    expect(teamHtml).toContain("members · anchor · access");
+    expect(teamHtml).toContain("Add member");
+    expect(teamHtml).toContain("run together");
+    expect(organizationHtml).toContain("people · anchor · access");
+    expect(organizationHtml).toContain("Add person");
+    expect(organizationHtml).toContain("administered on its behalf");
   });
 
   it("explains that linked agents are external representatives", () => {

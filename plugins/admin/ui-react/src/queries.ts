@@ -61,16 +61,10 @@ export async function invalidateAfterAdminMutation(
 ): Promise<void> {
   if (action === AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration) return;
 
-  const invalidations = [
+  await Promise.all([
     queryClient.invalidateQueries({ queryKey: adminKeys.users() }),
     queryClient.invalidateQueries({ queryKey: adminKeys.representations() }),
-  ];
-  if (action === AUTH_ADMIN_MUTATION_ACTIONS.updateBrainAnchor) {
-    invalidations.push(
-      queryClient.invalidateQueries({ queryKey: adminKeys.anchor() }),
-    );
-  }
-  await Promise.all(invalidations);
+  ]);
 }
 
 export async function invalidateAfterRepresentationMutation(

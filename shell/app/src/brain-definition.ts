@@ -20,6 +20,15 @@ export type PresetName = z.output<typeof presetNameSchema>;
 export const modeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
 export type BrainMode = z.output<typeof modeSchema>;
 
+export const brainAnchorConfigKindSchema: z.ZodEnum<{
+  person: "person";
+  team: "team";
+  organization: "organization";
+}> = z.enum(["person", "team", "organization"]);
+export type BrainAnchorConfigKind = z.output<
+  typeof brainAnchorConfigKindSchema
+>;
+
 /**
  * Environment record — the deployment-specific variables
  * passed to interface env mappers and the resolver.
@@ -106,6 +115,12 @@ export interface BrainDefinition {
   name: string;
   /** Semantic version */
   version: string;
+
+  /**
+   * Default Anchor profile flavor. Instances may override this in brain.yaml.
+   * Team and organization are both collective ownership mechanically.
+   */
+  anchor?: BrainAnchorConfigKind;
 
   /**
    * Default text model for this brain.

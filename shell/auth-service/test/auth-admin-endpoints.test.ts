@@ -8,7 +8,11 @@ const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
 
 async function createService(
-  options: { withPasskey?: boolean } = {},
+  options: {
+    withPasskey?: boolean;
+    anchor?: "person" | "team" | "organization";
+    profileName?: string;
+  } = {},
 ): Promise<AuthService> {
   const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-admin-"));
   tempDirs.push(storageDir);
@@ -26,7 +30,17 @@ async function createService(
       updated_at: now,
     });
   }
-  const service = new AuthService({ storageDir, issuer: ISSUER });
+  const service = new AuthService({
+    storageDir,
+    issuer: ISSUER,
+    ...(options.anchor ? { anchor: options.anchor } : {}),
+    ...(options.profileName
+      ? {
+          resolveProfileDisplayName: async (): Promise<string | undefined> =>
+            options.profileName,
+        }
+      : {}),
+  });
   await service.initialize();
   return service;
 }
@@ -111,100 +125,72 @@ describe("auth admin API", () => {
     expect(anchor.permissionLevel).toBe("admin");
   });
 
-  it("manages Anchor identity independently from Admin permission", async () => {
-    const service = await createService();
-    const firstSession = await service.createAuthSession();
-    const [first] = await service.listUsers();
-    if (!first) throw new Error("Expected the first Admin user");
-    const second = await service.createUser({
-      displayName: "Mira",
-      role: "admin",
+  it("reads the config-declared Anchor with its CMS profile name", async () => {
+    const service = await createService({
+      anchor: "organization",
+      profileName: "Rizom",
     });
+    const firstSession = await service.createAuthSession();
+    await service.createUser({ displayName: "Mira", role: "admin" });
 
-    const initial = await service.handleRequest(
+    const response = await service.handleRequest(
       adminRequest("/auth/admin/anchor", firstSession.cookie),
     );
-    expect(initial.status).toBe(200);
-    expect(await initial.json()).toMatchObject({
-      anchor: {
-        kind: "person",
-        personId: first.personId,
-        displayName: first.displayName,
-        administeredBy: 2,
-      },
-    });
 
-    const collective = await service.handleRequest(
-      adminRequest("/auth/admin/mutations", firstSession.cookie, {
-        action: "updateBrainAnchor",
-        confirmation: "updateBrainAnchor",
-        kind: "collective",
-        displayName: "Rizom Collective",
-      }),
-    );
-    expect(collective.status).toBe(200);
-    expect(await collective.json()).toMatchObject({
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
       anchor: {
         kind: "collective",
-        displayName: "Rizom Collective",
+        configuredKind: "organization",
+        displayName: "Rizom",
+        profileEntityId: "anchor-profile/anchor-profile",
         administeredBy: 2,
       },
     });
     expect((await service.listUsers()).map((user) => user.isAnchor)).toEqual([
       false,
       false,
-    ]);
-
-    const personal = await service.handleRequest(
-      adminRequest("/auth/admin/mutations", firstSession.cookie, {
-        action: "updateBrainAnchor",
-        confirmation: "updateBrainAnchor",
-        kind: "person",
-        userId: second.userId,
-      }),
-    );
-    expect(personal.status).toBe(200);
-    expect(await personal.json()).toMatchObject({
-      anchor: {
-        kind: "person",
-        personId: second.personId,
-        displayName: "Mira",
-        administeredBy: 2,
-      },
-    });
-    expect((await service.listUsers()).map((user) => user.isAnchor)).toEqual([
-      false,
-      true,
     ]);
   });
 
-  it("rejects fields from the other Anchor mutation variant", async () => {
-    const service = await createService();
+  it("uses the CMS profile name for the personal Anchor roster entry", async () => {
+    const service = await createService({
+      anchor: "person",
+      profileName: "Alice Morgan",
+    });
     const session = await service.createAuthSession();
-    const [admin] = await service.listUsers();
-    if (!admin) throw new Error("Expected the first Admin user");
 
-    const personWithCollectiveFields = await service.handleRequest(
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/users", session.cookie),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      users: [
+        {
+          displayName: "Alice Morgan",
+          isAnchor: true,
+          profileEntityId: "anchor-profile/anchor-profile",
+        },
+      ],
+    });
+  });
+
+  it("rejects runtime Anchor ownership mutations", async () => {
+    const service = await createService({ anchor: "team" });
+    const session = await service.createAuthSession();
+
+    const response = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
         action: "updateBrainAnchor",
         confirmation: "updateBrainAnchor",
         kind: "person",
-        userId: admin.userId,
-        displayName: "Unexpected collective name",
-      }),
-    );
-    const collectiveWithPersonFields = await service.handleRequest(
-      adminRequest("/auth/admin/mutations", session.cookie, {
-        action: "updateBrainAnchor",
-        confirmation: "updateBrainAnchor",
-        kind: "collective",
-        displayName: "Rizom Collective",
-        userId: admin.userId,
+        userId: session.subject,
       }),
     );
 
-    expect(personWithCollectiveFields.status).toBe(400);
-    expect(collectiveWithPersonFields.status).toBe(400);
+    expect(response.status).toBe(400);
+    expect((await service.getBrainAnchor()).configuredKind).toBe("team");
   });
 
   it("requires same-origin JSON and explicit action confirmation", async () => {

@@ -6,7 +6,13 @@ import {
   type AuthAdminUserSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
-import { assuranceLabel, formatDate, initials, roleLabel } from "../format";
+import {
+  assuranceLabel,
+  cmsEntityHref,
+  formatDate,
+  initials,
+  roleLabel,
+} from "../format";
 import type { Confirmation } from "../people-types";
 import { AccessItem, Button, DetailSection, TextAction } from "./primitives";
 
@@ -96,7 +102,21 @@ export function PersonDetail(props: {
           <AccessItem kind="Display name" value={user.displayName} />
           <AccessItem
             kind="Profile record"
-            value={user.profileEntityId ?? "Role, bio, and expertise not set"}
+            value={
+              user.profileEntityId
+                ? "CMS-managed profile"
+                : "Role, bio, and expertise not set"
+            }
+            action={
+              user.profileEntityId && cmsEntityHref(user.profileEntityId) ? (
+                <a
+                  className="people-text-action"
+                  href={cmsEntityHref(user.profileEntityId)}
+                >
+                  Edit in CMS →
+                </a>
+              ) : undefined
+            }
           />
         </DetailSection>
 

@@ -45,7 +45,7 @@ Implemented on `feature/auth-runtime-db`:
 - High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
 - Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
-- Same-origin, session-authenticated Admin API for user, Anchor, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
+- Same-origin, session-authenticated Admin API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration, plus read-only config-derived Anchor display; every mutation requires an explicit action confirmation and remains absent from model tools.
 - Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
@@ -146,9 +146,9 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 
 `multi-user.md` decision 13 (adopted 2026-07-19) corrects the shipped in-console anchor editor: the anchor kind is declared in `brain.yaml` (`anchor: person | team | organization`, where `team`/`organization` both resolve to the collective kind) and the console is read-only over both kind and profile. The runtime still projects the config-declared kind into the `auth_brain_anchor` singleton so `isAnchor` resolution and audit are unchanged, but the write path is removed:
 
-- [ ] **Remove the console anchor write path** — drop the `updateBrainAnchor` mutation, the `person/collective` toggle in `AnchorPanel`, the `GET/POST /auth/admin/anchor` write handler, and the `updateBrainAnchor` entry in `AUTH_ADMIN_MUTATION_ACTIONS`. Retain read-for-display of the resolved anchor.
-- [ ] **Source the anchor kind from `brain.yaml`** — resolve `anchor: person | team | organization` at startup and project it into the `auth_brain_anchor` singleton (`team`/`organization` → `collective`); the singleton becomes a config-derived projection, not console-mutable state.
-- [ ] **Resolve the displayed anchor/member name from the CMS profile** (via `profileEntityId`), treating auth `displayName` as an internal fallback so a CMS rename cannot drift from the console.
+- [x] **Remove the console anchor write path** — the `updateBrainAnchor` mutation, `person/collective` toggle, and mutation action are gone; `GET /auth/admin/anchor` remains read-only for display.
+- [x] **Source the anchor kind from `brain.yaml`** — `anchor: person | team | organization` resolves at startup and projects into `auth_brain_anchor` (`team`/`organization` → `collective`); brain definitions provide compatibility defaults and generated instance configs declare the flavor explicitly.
+- [x] **Resolve the displayed anchor/member name from the CMS profile** — `profileEntityId` points at CMS content, Admin responses resolve its current name with auth `displayName` only as fallback, and the console deep-links profiles to `/cms`.
 
 ## Consumers to satisfy
 

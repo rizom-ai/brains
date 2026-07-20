@@ -847,7 +847,8 @@
   background: var(--console-accent-soft);
   color: var(--console-accent);
   font: 600 15px var(--console-mono);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--console-accent) 6%, transparent);
+  box-shadow: 0 0 0 5px
+    color-mix(in srgb, var(--console-accent) 6%, transparent);
 }
 .anchor-crest--collective {
   border-radius: 10px;
@@ -874,28 +875,23 @@
   font-family: var(--console-mono);
   font-size: 10px;
 }
-.anchor-kind-toggle {
+.anchor-config-chip {
+  align-self: start;
   display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--console-rule-strong);
+  align-items: center;
+  gap: 7px;
+  border: 1px dashed var(--console-rule-strong);
   border-radius: 7px;
-  background: var(--console-bg-deep);
-}
-.anchor-kind-toggle button {
-  border: 0;
-  background: transparent;
-  color: var(--console-text-muted);
   padding: 7px 10px;
-  cursor: pointer;
-  font: 9px var(--console-mono);
+  color: var(--console-text-muted);
+  font: 600 8px var(--console-mono);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
-.anchor-kind-toggle button + button {
-  border-left: 1px solid var(--console-rule);
-}
-.anchor-kind-toggle button.is-active {
-  background: var(--console-accent-soft);
+.anchor-config-chip span {
   color: var(--console-accent);
+  font-size: 11px;
 }
 .anchor-fields {
   display: grid;
@@ -925,21 +921,20 @@
   font-size: 12px;
   font-weight: 500;
 }
-.anchor-field select,
-.anchor-field input {
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--console-rule-strong);
-  background: transparent;
-  color: var(--console-text);
-  padding: 5px 0;
-  font: 500 13px var(--console-ui);
+.anchor-field small {
+  color: var(--console-text-muted);
+  font-size: 10px;
 }
-.anchor-field--admin {
-  grid-template-columns: minmax(0, 1fr) auto;
+.anchor-cms-link {
+  width: fit-content;
+  color: var(--console-accent);
+  font: 600 8px var(--console-mono);
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
 }
-.anchor-field--admin > span {
-  grid-column: 1 / -1;
+.anchor-cms-link:hover {
+  text-decoration: underline;
 }
 
 .people-roster-search {
@@ -1077,12 +1072,9 @@
     width: 48px;
     height: 48px;
   }
-  .anchor-kind-toggle {
+  .anchor-config-chip {
     grid-column: 1 / -1;
-    justify-self: stretch;
-  }
-  .anchor-kind-toggle button {
-    flex: 1;
+    justify-self: start;
   }
   .people-facets {
     width: 100%;

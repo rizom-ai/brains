@@ -43,6 +43,7 @@ import rizomTheme from "@brains/theme-rizom";
 const rangerBrain: BrainDefinition = defineBrain({
   name: "ranger",
   version: "0.1.0",
+  anchor: "organization",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: rizomSite,

@@ -117,6 +117,21 @@ describe("parseInstanceOverrides", () => {
     expect(result.name).toBe("team-staging");
   });
 
+  test("should parse the configured Anchor profile flavor", () => {
+    expect(parseInstanceOverrides("brain: rover\nanchor: person").anchor).toBe(
+      "person",
+    );
+    expect(parseInstanceOverrides("brain: relay\nanchor: team").anchor).toBe(
+      "team",
+    );
+    expect(
+      parseInstanceOverrides("brain: ranger\nanchor: organization").anchor,
+    ).toBe("organization");
+    expect(() =>
+      parseInstanceOverrides("brain: relay\nanchor: collective"),
+    ).toThrow(InstanceOverridesParseError);
+  });
+
   test("should parse logLevel", () => {
     const result = parseInstanceOverrides(
       'brain: "@brains/rover"\nlogLevel: debug',
@@ -724,6 +739,38 @@ describe("resolve with instance overrides", () => {
 
     const config = resolve(def, {}, { port: 9090 });
     expect(config.deployment.ports.production).toBe(9090);
+  });
+
+  test("should pass the effective Anchor flavor to auth-service", () => {
+    const [factory] = createMockFactory("auth-service");
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      anchor: "team",
+      capabilities: [["auth-service", factory, {}]],
+      interfaces: [],
+    });
+
+    const fromDefinition = resolve(def, {});
+    expect(
+      getConfig(
+        fromDefinition.plugins?.find((plugin) => plugin.id === "auth-service"),
+      ),
+    ).toMatchObject({ anchor: "team" });
+
+    const fromInstance = resolve(
+      def,
+      {},
+      {
+        anchor: "organization",
+        plugins: { "auth-service": { anchor: "person" } },
+      },
+    );
+    expect(
+      getConfig(
+        fromInstance.plugins?.find((plugin) => plugin.id === "auth-service"),
+      ),
+    ).toMatchObject({ anchor: "organization" });
   });
 
   test("should apply plugin config overrides to capabilities", () => {

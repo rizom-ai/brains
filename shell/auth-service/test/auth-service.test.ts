@@ -414,6 +414,48 @@ describe("AuthService", () => {
     expect(setup.expiresAt).toBeLessThanOrEqual(after + 2 * 60 * 60);
   });
 
+  it("projects the configured Anchor flavor and CMS profile through the plugin", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        anchor: "team",
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+    const service = harness.getPlugin().getService();
+    await service.createAuthSession();
+
+    expect(await service.getBrainAnchor()).toMatchObject({
+      kind: "collective",
+      configuredKind: "team",
+      displayName: "Test Owner",
+      profileEntityId: "anchor-profile/anchor-profile",
+    });
+    expect((await service.listUsers())[0]?.isAnchor).toBe(false);
+  });
+
+  it("reprojects persisted ownership when brain configuration changes", async () => {
+    const storageDir = await tempStorageDir();
+    const collective = new AuthService({ storageDir, anchor: "team" });
+    await collective.initialize();
+    await collective.createAuthSession();
+    expect((await collective.getBrainAnchor()).kind).toBe("collective");
+    await collective.close();
+
+    const personal = new AuthService({ storageDir, anchor: "person" });
+    await personal.initialize();
+    expect(await personal.getBrainAnchor()).toMatchObject({
+      kind: "person",
+      configuredKind: "person",
+      profileEntityId: "anchor-profile/anchor-profile",
+    });
+    expect((await personal.listUsers())[0]?.isAnchor).toBe(true);
+    await personal.close();
+  });
+
   it("does not log token-bearing setup URLs for hosted issuers", async () => {
     const storageDir = await tempStorageDir();
     const logFile = join(storageDir, "auth.log");

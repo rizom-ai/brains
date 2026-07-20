@@ -5,6 +5,7 @@ import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
   AuthAgentPersonReconciliationResponse,
+  AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
   AuthPasskeySummary,
@@ -108,6 +109,7 @@ import type {
 export type { PasskeySetupRequired } from "./setup-flow";
 
 const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
+const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
 
 export interface AuthPrincipal {
   userId: string;
@@ -165,6 +167,14 @@ export interface AuthBearerGrant {
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
   storageDir: string;
+  /** Anchor profile flavor declared by brain configuration. */
+  anchor?: AuthBrainAnchorConfigKind;
+  /** CMS profile reference projected into auth runtime state. */
+  anchorProfileEntityId?: string;
+  /** Resolve the current CMS profile name without copying profile content into auth. */
+  resolveProfileDisplayName?: (
+    profileEntityId: string,
+  ) => Promise<string | undefined>;
   /** Public issuer origin, for example https://brain.example.com. */
   issuer?: string;
   /** Additional trusted issuer origins, for example a preview host. */
@@ -182,6 +192,10 @@ export class AuthService {
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
   private readonly allowLocalhostIssuers: boolean;
+  private readonly anchor: AuthBrainAnchorConfigKind;
+  private readonly anchorProfileEntityId: string;
+  private readonly resolveProfileDisplayName:
+    ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
   private personAgentStore: PersonAgentStore | undefined;
@@ -221,6 +235,10 @@ export class AuthService {
     ]);
     this.allowLocalhostIssuers =
       options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer);
+    this.anchor = options.anchor ?? "person";
+    this.anchorProfileEntityId =
+      options.anchorProfileEntityId ?? DEFAULT_ANCHOR_PROFILE_ENTITY_ID;
+    this.resolveProfileDisplayName = options.resolveProfileDisplayName;
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
     });
@@ -342,6 +360,7 @@ export class AuthService {
 
   private async initializeInternal(): Promise<void> {
     await this.ensureUserStoreStarted();
+    await this.projectConfiguredBrainAnchor();
     const legacyImportComplete = await this.legacyImportStore.isComplete(
       LEGACY_AUTH_FILES_IMPORT,
     );
@@ -630,6 +649,43 @@ export class AuthService {
     return this.credentialStore;
   }
 
+  private async profileDisplayName(
+    profileEntityId: string | null,
+  ): Promise<string | undefined> {
+    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
+    try {
+      const displayName = await this.resolveProfileDisplayName(profileEntityId);
+      const trimmed = displayName?.trim();
+      return trimmed && trimmed.length > 0 ? trimmed : undefined;
+    } catch (error) {
+      this.logger?.warn("Failed to resolve CMS profile display name", {
+        profileEntityId,
+        error: errorMessage(error, "Profile lookup failed"),
+      });
+      return undefined;
+    }
+  }
+
+  private async projectConfiguredBrainAnchor(): Promise<void> {
+    const current = await this.getUserStore().getBrainAnchor();
+    const profileDisplayName = await this.profileDisplayName(
+      this.anchorProfileEntityId,
+    );
+    const displayName =
+      profileDisplayName ??
+      current?.displayName ??
+      (this.anchor === "person"
+        ? "Admin"
+        : this.anchor === "team"
+          ? "Team"
+          : "Organization");
+    await this.getUserStore().configureBrainAnchor({
+      kind: this.anchor === "person" ? "person" : "collective",
+      displayName,
+      profileEntityId: this.anchorProfileEntityId,
+    });
+  }
+
   private async ensureFirstAdminUser(): Promise<AuthUser> {
     if (this.firstAdminInitialization) {
       return this.firstAdminInitialization;
@@ -638,6 +694,7 @@ export class AuthService {
     const initialization = (async (): Promise<AuthUser> => {
       const existingUsers = await this.getUserStore().listUsers();
       const user = await this.getUserStore().ensureFirstAdminUser();
+      await this.projectConfiguredBrainAnchor();
       if (!existingUsers.some((existing) => existing.id === user.id)) {
         await this.getAuditStore().append({
           action: "auth.user.created",
@@ -900,30 +957,12 @@ export class AuthService {
       this.getUserStore().listUsers(),
     ]);
     if (!anchor) throw new Error("Brain anchor is not configured");
-    return brainAnchorSummary(anchor, users);
-  }
-
-  async updateBrainAnchor(
-    input:
-      | { kind: "person"; userId: string }
-      | {
-          kind: "collective";
-          displayName: string;
-          profileEntityId?: string;
-        },
-    context: AuthMutationContext = {},
-  ): Promise<AuthBrainAnchorSummary> {
-    await this.ensureUserStoreStarted();
-    const anchor = await this.getUserStore().updateBrainAnchor(input);
-    const users = await this.getUserStore().listUsers();
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.brain_anchor.updated",
-      targetType: "brain_anchor",
-      targetId: anchor.subjectId,
-      metadata: { kind: anchor.kind },
-    });
-    return brainAnchorSummary(anchor, users);
+    return brainAnchorSummary(
+      anchor,
+      users,
+      this.anchor,
+      await this.profileDisplayName(anchor.profileEntityId),
+    );
   }
 
   async listUsers(): Promise<AuthPrincipal[]> {
@@ -951,18 +990,25 @@ export class AuthService {
     const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
     const agentsByPersonId = groupBy(agents, (item) => item.personId);
 
-    return users.map((user) => {
-      const profileEntityId = peopleById.get(user.personId)?.profileEntityId;
-      return {
-        ...principalFromUser(user, anchor),
-        ...(profileEntityId ? { profileEntityId } : {}),
-        identities: (identitiesByPersonId.get(user.personId) ?? []).map(
-          (identity) => identitySummary(identity, user.id),
-        ),
-        passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
-        agents: agentsByPersonId.get(user.personId) ?? [],
-      };
-    });
+    return Promise.all(
+      users.map(async (user) => {
+        const profileEntityId = peopleById.get(user.personId)?.profileEntityId;
+        const principal = principalFromUser(user, anchor);
+        const profileDisplayName = profileEntityId
+          ? await this.profileDisplayName(profileEntityId)
+          : undefined;
+        return {
+          ...principal,
+          displayName: profileDisplayName ?? principal.displayName,
+          ...(profileEntityId ? { profileEntityId } : {}),
+          identities: (identitiesByPersonId.get(user.personId) ?? []).map(
+            (identity) => identitySummary(identity, user.id),
+          ),
+          passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
+          agents: agentsByPersonId.get(user.personId) ?? [],
+        };
+      }),
+    );
   }
 
   async reconcileAgentPersonClaims(
@@ -1528,8 +1574,6 @@ export class AuthService {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
       getBrainAnchor: () => this.getBrainAnchor(),
-      updateBrainAnchor: (input, actorUserId) =>
-        this.updateBrainAnchor(input, { actorUserId }),
       listAdminUsers: () => this.listAdminUsers(),
       reconcileAgentPersonClaims: (claims) =>
         this.reconcileAgentPersonClaims(claims),
@@ -1632,11 +1676,14 @@ function legacyTimestampToMilliseconds(timestamp: number): number {
 function brainAnchorSummary(
   anchor: AuthBrainAnchor,
   users: AuthUser[],
+  configuredKind: AuthBrainAnchorConfigKind,
+  profileDisplayName?: string,
 ): AuthBrainAnchorSummary {
   return {
     kind: anchor.kind,
+    configuredKind,
     subjectId: anchor.subjectId,
-    displayName: anchor.displayName,
+    displayName: profileDisplayName ?? anchor.displayName,
     ...(anchor.kind === "person" ? { personId: anchor.subjectId } : {}),
     ...(anchor.profileEntityId
       ? { profileEntityId: anchor.profileEntityId }

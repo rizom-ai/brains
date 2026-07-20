@@ -8,6 +8,7 @@ Secrets should live in `.env` and be referenced with `${ENV_VAR}` interpolation.
 
 ```yaml
 brain: rover
+anchor: person
 domain: mybrain.example.com
 preset: core
 
@@ -32,6 +33,7 @@ plugins:
 
 ```yaml
 brain: rover
+anchor: person
 site:
   package: "@acme/brain-site"
   theme: "@acme/brain-theme"
@@ -89,6 +91,20 @@ Accepted forms:
 - bare built-in name, such as `rover`, `relay`, or `ranger`
 - scoped package name, such as `@my-org/my-brain`
 - legacy `@brains/rover`-style refs are still accepted for compatibility
+
+### `anchor`
+
+The Anchor profile flavor—the person, team, or organization this brain represents.
+
+```yaml
+anchor: person # person | team | organization
+```
+
+- `person` uses personal ownership. The represented person is also an active Admin.
+- `team` and `organization` both use collective, impersonal ownership. No member has `isAnchor`; any active Admin administers the brain.
+- `team` and `organization` differ only in profile shape and Admin-console vocabulary.
+
+The value is configuration, not an Admin-console mutation. The Anchor's public name and profile remain CMS content in `anchor-profile/anchor-profile`; `/admin` displays that profile read-only and links to its CMS editor. Brain models provide backward-compatible defaults (`rover` → `person`, `relay` → `team`, `ranger` → `organization`), while generated instance configs declare the value explicitly.
 
 ### `site`
 

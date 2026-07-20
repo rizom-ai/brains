@@ -41,11 +41,10 @@ export interface CreateAuthPersonInput {
   profileEntityId?: string;
 }
 
-export interface UpdateBrainAnchorInput {
+export interface ConfigureBrainAnchorInput {
   kind: AuthBrainAnchor["kind"];
-  userId?: string;
-  displayName?: string;
-  profileEntityId?: string;
+  displayName: string;
+  profileEntityId: string;
 }
 
 export interface CreateAuthUserInput {
@@ -147,6 +146,11 @@ export class AuthUserStore {
         );
       }
 
+      const [configuredAnchor] = await tx
+        .select({ id: authBrainAnchor.id })
+        .from(authBrainAnchor)
+        .where(eq(authBrainAnchor.id, "brain"))
+        .limit(1);
       const now = Date.now();
       const id = createPrefixedId("usr");
       const personId = createPrefixedId("prsn");
@@ -169,15 +173,17 @@ export class AuthUserStore {
         updatedAt: now,
       } satisfies typeof authUsers.$inferInsert;
       await tx.insert(authUsers).values(user);
-      await tx.insert(authBrainAnchor).values({
-        id: "brain",
-        kind: "person",
-        subjectId: personId,
-        displayName,
-        profileEntityId: null,
-        createdAt: now,
-        updatedAt: now,
-      });
+      if (!configuredAnchor) {
+        await tx.insert(authBrainAnchor).values({
+          id: "brain",
+          kind: "person",
+          subjectId: personId,
+          displayName,
+          profileEntityId: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       return user;
     });
   }
@@ -187,96 +193,72 @@ export class AuthUserStore {
     return anchor;
   }
 
-  async updateBrainAnchor(
-    input: UpdateBrainAnchorInput,
-  ): Promise<AuthBrainAnchor> {
-    const current = await this.getBrainAnchor();
-    const personAnchorUserId =
-      input.kind === "person" ? input.userId : undefined;
-    const now = Date.now();
-    let subjectId: string;
-    let displayName: string;
-    let profileEntityId: string | null;
+  /** Project the config-declared ownership kind into the runtime singleton. */
+  async configureBrainAnchor(
+    input: ConfigureBrainAnchorInput,
+  ): Promise<AuthBrainAnchor | undefined> {
+    const displayName = input.displayName.trim();
+    if (!displayName) throw new Error("Brain anchor display name is required");
 
-    if (input.kind === "person") {
-      if (!personAnchorUserId) {
-        throw new Error("Select an admin as the person anchor");
-      }
-      const user = await this.requireUser(personAnchorUserId);
-      if (user.role !== "admin" || user.status !== "active") {
-        throw new Error("The person anchor must be an active admin");
-      }
-      const person = await this.getPerson(user.personId);
-      if (!person) throw new Error(`Auth person not found: ${user.personId}`);
-      subjectId = person.id;
-      displayName = person.displayName;
-      profileEntityId = person.profileEntityId;
-    } else {
-      displayName = input.displayName?.trim() ?? "";
-      if (!displayName) throw new Error("Collective anchor name is required");
-      subjectId =
-        current?.kind === "collective"
-          ? current.subjectId
-          : createPrefixedId("coll");
-      profileEntityId = input.profileEntityId ?? null;
-    }
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(authBrainAnchor)
+        .where(eq(authBrainAnchor.id, "brain"))
+        .limit(1);
+      const now = Date.now();
+      let subjectId: string;
 
-    if (!current && input.kind === "collective") {
-      const [created] = await this.db
+      if (input.kind === "person") {
+        const currentPersonId =
+          current?.kind === "person" ? current.subjectId : undefined;
+        const activeAdmins = await tx
+          .select()
+          .from(authUsers)
+          .where(
+            and(eq(authUsers.role, "admin"), eq(authUsers.status, "active")),
+          )
+          .orderBy(authUsers.createdAt);
+        const anchorAdmin =
+          activeAdmins.find((user) => user.personId === currentPersonId) ??
+          activeAdmins[0];
+        if (!anchorAdmin) return undefined;
+        subjectId = anchorAdmin.personId;
+        await tx
+          .update(authPeople)
+          .set({ profileEntityId: input.profileEntityId, updatedAt: now })
+          .where(eq(authPeople.id, subjectId));
+      } else {
+        subjectId =
+          current?.kind === "collective"
+            ? current.subjectId
+            : createPrefixedId("coll");
+      }
+
+      const [anchor] = await tx
         .insert(authBrainAnchor)
         .values({
           id: "brain",
           kind: input.kind,
           subjectId,
           displayName,
-          profileEntityId,
-          createdAt: now,
+          profileEntityId: input.profileEntityId,
+          createdAt: current?.createdAt ?? now,
           updatedAt: now,
         })
-        .onConflictDoNothing({ target: authBrainAnchor.id })
+        .onConflictDoUpdate({
+          target: authBrainAnchor.id,
+          set: {
+            kind: input.kind,
+            subjectId,
+            displayName,
+            profileEntityId: input.profileEntityId,
+            updatedAt: now,
+          },
+        })
         .returning();
-      if (created) return created;
-    }
-
-    const selectedUserStillActiveAdmin = personAnchorUserId
-      ? this.db
-          .select({ id: authUsers.id })
-          .from(authUsers)
-          .where(
-            and(
-              eq(authUsers.id, personAnchorUserId),
-              eq(authUsers.personId, subjectId),
-              eq(authUsers.role, "admin"),
-              eq(authUsers.status, "active"),
-            ),
-          )
-      : undefined;
-    const [updated] = await this.db
-      .update(authBrainAnchor)
-      .set({
-        kind: input.kind,
-        subjectId,
-        displayName,
-        profileEntityId,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(authBrainAnchor.id, "brain"),
-          selectedUserStillActiveAdmin
-            ? exists(selectedUserStillActiveAdmin)
-            : undefined,
-        ),
-      )
-      .returning();
-
-    if (!updated) {
-      if (input.kind === "person") {
-        throw new Error("The person anchor must be an active admin");
-      }
-      throw new Error("Brain anchor update failed");
-    }
-    return updated;
+      return anchor;
+    });
   }
 
   async createPerson(input: CreateAuthPersonInput): Promise<AuthPerson> {

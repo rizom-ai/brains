@@ -1,6 +1,7 @@
 export {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
+  AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
   AUTH_BRAIN_ANCHOR_KINDS,
   AUTH_REPRESENTATION_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
@@ -17,6 +18,7 @@ export type {
   AuthAdminUserSummary,
   AuthAdminUsersResponse,
   AuthAgentPersonSummary,
+  AuthBrainAnchorConfigKind,
   AuthBrainAnchorKind,
   AuthBrainAnchorResponse,
   AuthBrainAnchorSummary,
@@ -175,10 +177,10 @@ export type {
   AuthIdentityVisibility,
   AuthUserRole,
   AuthUserStatus,
+  ConfigureBrainAnchorInput,
   CreateAuthPersonInput,
   CreateAuthUserInput,
   ResolveAuthIdentityInput,
-  UpdateBrainAnchorInput,
 } from "./user-store";
 export type {
   A2APrivateJwk,
