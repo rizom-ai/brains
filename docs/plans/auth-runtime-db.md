@@ -149,6 +149,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Remove the console anchor write path** — the `updateBrainAnchor` mutation, `person/collective` toggle, and mutation action are gone; `GET /auth/admin/anchor` remains read-only for display.
 - [x] **Source the anchor kind from `brain.yaml`** — `anchor: person | team | organization` resolves at startup and projects into `auth_brain_anchor` (`team`/`organization` → `collective`); brain definitions provide compatibility defaults and generated instance configs declare the flavor explicitly.
 - [x] **Resolve the displayed anchor/member name from the CMS profile** — `profileEntityId` points at CMS content, Admin responses resolve its current name with auth `displayName` only as fallback, and the console deep-links profiles to `/cms`.
+- [ ] **Unify the anchor-kind vocabulary on `professional | team | collective`** _(2026-07-19)_ — the shipped code uses `anchor: person | team | organization` (config) and `person | collective` (`AUTH_BRAIN_ANCHOR_KINDS`), a third spelling of the same axis the `anchor-profile` schema already names `professional | team | collective`. Rename config and the auth enum to the profile schema's vocabulary (the canonical one), keeping the binary behavior: `professional` personal, `team`/`collective` impersonal. Optionally rename `collective → organization` in the same pass. Provide a bounded read-compat for the persisted `person`/`collective` rows.
 
 ### Direction: access is runtime state, with a libSQL backup destination (multi-user decision 14)
 
