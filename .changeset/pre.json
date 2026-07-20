@@ -339,6 +339,7 @@
     "runtime-state-effect-layer",
     "schema-first-site-sections",
     "scope-conversation-history",
+    "secrets-encrypt-roundtrip",
     "setup-email-onboarding-copy",
     "setup-email-ready-lifecycle",
     "setup-token-ttl",

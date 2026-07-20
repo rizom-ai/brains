@@ -1,5 +1,15 @@
 # @brains/doc
 
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.206
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/plugins@0.2.0-alpha.206
+  - @brains/templates@0.2.0-alpha.206
+
 ## 0.2.0-alpha.205
 
 ### Patch Changes

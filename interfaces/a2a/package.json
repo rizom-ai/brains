@@ -1,6 +1,6 @@
 {
   "name": "@brains/a2a",
-  "version": "0.2.0-alpha.205",
+  "version": "0.2.0-alpha.206",
   "dependencies": {
     "@a2a-js/sdk": "^0.3.13",
     "@brains/auth-service": "workspace:*",
