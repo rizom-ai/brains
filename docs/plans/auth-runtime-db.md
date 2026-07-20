@@ -150,6 +150,14 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Source the anchor kind from `brain.yaml`** — `anchor: person | team | organization` resolves at startup and projects into `auth_brain_anchor` (`team`/`organization` → `collective`); brain definitions provide compatibility defaults and generated instance configs declare the flavor explicitly.
 - [x] **Resolve the displayed anchor/member name from the CMS profile** — `profileEntityId` points at CMS content, Admin responses resolve its current name with auth `displayName` only as fallback, and the console deep-links profiles to `/cms`.
 
+### Direction: access is runtime state, with a libSQL backup destination (multi-user decision 14)
+
+`multi-user.md` decision 14 folds the interface allowlist into the auth runtime DB so access has a single source of truth; `brain.yaml` retains only pre-admin bootstrap. This is a post-merge follow-on — it does not expand the current branch — but the storage/durability shape is owned here:
+
+- [ ] **Move the interface allowlist into `auth.db`.** Store `interface:userId` grants (today's config `admins`/`trusted`/`anchors`) as runtime rows; permission lookup reads them; the admin API/console gets allowlist CRUD. Non-login channels remain supported — the row is an allowlist keyed by raw provider id, not a session.
+- [ ] **Add a libSQL backup destination for `auth.db`.** Because access becomes runtime-only, configure a sync/backup target (embedded replica → remote primary, or scheduled encrypted snapshots) for durability and point-in-time recovery. The target is a private durable store and **never git** — the "`auth.db` never syncs through git" rule is unchanged. This is the durability answer to the reproducibility concern that previously justified config-declared access.
+- [ ] **Sequence and keep the bridge.** Land the DB allowlist + read path + console CRUD, migrate config grants, then drop config `admins`/`trusted`/`anchors`. Retain the transitional `brain.yaml` allowlist (incl. the `admins: ["discord:…"]` provisioner seed) until the console path exists, so no non-login channel loses its way in mid-migration.
+
 ## Consumers to satisfy
 
 - **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple Admins, one person/collective Anchor subject, and last-Admin protection.
