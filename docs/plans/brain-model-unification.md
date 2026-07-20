@@ -1,13 +1,14 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-07-19
+Last updated: 2026-07-20
 
 ## Status
 
-Phase 0 complete; Phase 1A's pure bundle kernel is next and remains a **pre-`v0.2.0`
-release-candidate gate**. Phase 1A can proceed while `feature/auth-runtime-db` finishes;
-Phase 1B's parser, resolver, and permission integration waits for that branch. No bundle
-runtime has been implemented. The alpha.204 model and preset contract is frozen in
+Phases 0 and 1A are complete; Phase 1B remains a **pre-`v0.2.0` release-candidate
+gate** and waits for `feature/auth-runtime-db`. The resource-free bundle kernel now lives
+in isolated `shell/app` definition and resolution modules, but no production resolver,
+parser, model package, or permission policy path calls it yet. The alpha.204 model and
+preset contract remains frozen in
 `packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
 catalog IDs, selected members, sanitized resolved config, instruction text, effective
 permissions, site/theme identity, and the consolidated Rizom additions.
@@ -361,7 +362,11 @@ working until the migration phase. The Phase 0 characterization fixture remains 
 until a canonical bundle profile is compared against it; intentional deltas are asserted
 separately rather than silently regenerating the baseline.
 
-### Phase 1A — Build the pure bundle kernel
+### Phase 1A — Build the pure bundle kernel (complete)
+
+Implemented in `shell/app/src/bundle-definition.ts` and
+`shell/app/src/bundle-resolution.ts`, with direct characterization in
+`shell/app/test/bundle-resolution.test.ts`.
 
 This slice deliberately avoids `brain-resolver.ts`, `instance-overrides.ts`, model
 packages, permission schemas, and every file currently changed by the auth branch. Put the
