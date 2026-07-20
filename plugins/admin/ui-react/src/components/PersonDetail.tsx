@@ -18,6 +18,8 @@ import { AccessItem, Button, DetailSection, TextAction } from "./primitives";
 
 export function PersonDetail(props: {
   user: AuthAdminUserSummary | undefined;
+  brainName: string;
+  activeAdminCount: number;
   onIdentity: () => void;
   onConfirm: (confirmation: Confirmation) => void;
   onMutation: (
@@ -36,6 +38,21 @@ export function PersonDetail(props: {
       </section>
     );
   }
+
+  const protectsActiveAdmin =
+    user.role === "admin" &&
+    user.status === "active" &&
+    props.activeAdminCount <= 1;
+  const roleProtection = user.isAnchor
+    ? "A personal Anchor must remain an active Admin."
+    : protectsActiveAdmin
+      ? "Add another active Admin before changing this role."
+      : undefined;
+  const suspensionProtection = user.isAnchor
+    ? "The personal Anchor cannot be suspended."
+    : protectsActiveAdmin
+      ? "Add another active Admin before suspending this person."
+      : undefined;
 
   const confirmRole = (role: AuthAdminRole): void => {
     if (role === user.role) return;
@@ -122,11 +139,15 @@ export function PersonDetail(props: {
 
         <DetailSection
           title="Brain"
-          description="Optional. A member may bring their own brain as a verified peer; this console never provisions one."
+          description="This account is hosted on the current brain. A separate verified peer brain is optional; this console never provisions one."
         >
           <AccessItem
-            kind="Linked brain"
-            value="No verified peer brain linked"
+            kind="Current brain"
+            value={`${props.brainName} · hosted member`}
+          />
+          <AccessItem
+            kind="External peer brain"
+            value="No verified external brain linked"
           />
         </DetailSection>
 
@@ -138,17 +159,19 @@ export function PersonDetail(props: {
             <span>
               <strong>{roleLabel(user.role)}</strong>
               <small>
-                {user.role === "admin"
-                  ? "Can administer members and access"
-                  : user.role === "trusted"
-                    ? "Elevated collaboration access"
-                    : "Limited read-oriented access"}
+                {roleProtection ??
+                  (user.role === "admin"
+                    ? "Can administer members and access"
+                    : user.role === "trusted"
+                      ? "Elevated collaboration access"
+                      : "Limited read-oriented access")}
               </small>
             </span>
             <label className="people-role-control">
               <span>Change role</span>
               <select
                 value={user.role}
+                disabled={roleProtection !== undefined}
                 onChange={(event) =>
                   confirmRole(event.currentTarget.value as AuthAdminRole)
                 }
@@ -359,14 +382,16 @@ export function PersonDetail(props: {
 
       <footer className="people-detail-footer">
         <small>
-          {user.isAnchor
-            ? "A personal Anchor must remain an active Admin."
-            : user.role === "admin" && user.status === "active"
+          {suspensionProtection ??
+            (user.role === "admin" && user.status === "active"
               ? "At least one active Admin must remain."
-              : "Access changes are audited."}
+              : "Access changes are audited.")}
         </small>
         <Button
           {...(user.status === "suspended" ? {} : { tone: "danger" as const })}
+          disabled={
+            user.status !== "suspended" && suspensionProtection !== undefined
+          }
           onClick={() => {
             const suspended = user.status === "suspended";
             props.onConfirm({

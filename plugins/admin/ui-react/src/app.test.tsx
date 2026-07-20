@@ -113,6 +113,8 @@ describe("People surface", () => {
     expect(html).toContain("1 member · 1 admin");
     expect(html).toContain("Mira Reyes");
     expect(html).toContain("Brain");
+    expect(html).toContain("smoke-rover · hosted member");
+    expect(html).toContain("No verified external brain linked");
     expect(html).toContain("Anchor?");
     expect(html).toContain("No");
     expect(html).toContain("Asserted — cannot authenticate");
@@ -157,6 +159,40 @@ describe("People surface", () => {
     expect(organizationHtml).toContain("people · anchor · access");
     expect(organizationHtml).toContain("Add person");
     expect(organizationHtml).toContain("administered on its behalf");
+  });
+
+  it("disables impossible last-Admin role and status changes", () => {
+    const html = renderPeople({
+      bootstrap: admin,
+      initialAnchor: brainAnchor,
+      initialUsers: [user],
+    });
+
+    expect(html).toContain(
+      "Add another active Admin before changing this role.",
+    );
+    expect(html).toContain(
+      "Add another active Admin before suspending this person.",
+    );
+    expect(html.match(/disabled=""/g)).toHaveLength(2);
+  });
+
+  it("keeps a personal Anchor active and Admin even when another Admin exists", () => {
+    const anchorUser: AuthAdminUserSummary = {
+      ...user,
+      userId: admin.userId,
+      personId: brainAnchor.personId ?? "per_yeehaa",
+      displayName: brainAnchor.displayName,
+      isAnchor: true,
+    };
+    const html = renderPeople({
+      bootstrap: admin,
+      initialAnchor: brainAnchor,
+      initialUsers: [anchorUser, user],
+    });
+
+    expect(html).toContain("A personal Anchor must remain an active Admin.");
+    expect(html).toContain("The personal Anchor cannot be suspended.");
   });
 
   it("explains that linked agents are external representatives", () => {

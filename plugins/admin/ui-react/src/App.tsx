@@ -290,6 +290,8 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                 />
                 <PersonDetail
                   user={selectedUser}
+                  brainName={props.bootstrap.brainName}
+                  activeAdminCount={activeAdminCount}
                   onIdentity={() => setModal({ kind: "identity" })}
                   onConfirm={setModal}
                   onMutation={runMutation}
