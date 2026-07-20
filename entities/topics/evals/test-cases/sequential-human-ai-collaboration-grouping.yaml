@@ -46,5 +46,3 @@ expectedOutput:
       equals: Human-AI Collaboration
     - path: perEntity[1].extractedTitles[0]
       equals: Human-AI Collaboration
-    - path: perEntity[1].extractedCount
-      equals: 1

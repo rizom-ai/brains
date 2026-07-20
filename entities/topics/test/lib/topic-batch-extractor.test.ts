@@ -328,6 +328,45 @@ describe("extractTopicsBatched", () => {
     expect(topics[0]?.id).toBe("high-relevance");
   });
 
+  it("splits large corpus runs by entity count", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const generateSpy = spyOn(context.ai, "generate");
+    generateSpy
+      .mockResolvedValueOnce({
+        topics: [
+          {
+            title: "Corpus Topic 1",
+            content: "Corpus batch 1.",
+            relevanceScore: 0.9,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        topics: [
+          {
+            title: "Corpus Topic 2",
+            content: "Corpus batch 2.",
+            relevanceScore: 0.9,
+          },
+        ],
+      });
+
+    const result = await extractTopicsBatched(
+      Array.from({ length: 9 }, (_, index) =>
+        makeEntity(`p${index}`, "post", `Post ${index}`, `Content ${index}`),
+      ),
+      context,
+      logger,
+      { maxEntitiesPerBatch: 8 },
+    );
+
+    expect(result.batches).toBe(2);
+    expect(result.created).toBe(2);
+    expect(generateSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("skips duplicate-slug extractions within the same run", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });

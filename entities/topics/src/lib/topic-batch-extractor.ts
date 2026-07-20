@@ -44,6 +44,8 @@ export interface ExtractTopicsBatchedOptions {
   sourceWeights?: Record<string, number>;
   mintableEntityTypes?: string[];
   sourceEntityCount?: number;
+  maxEntitiesPerBatch?: number;
+  topicSoftCeilingSourceRatio?: number;
   autoMerge?: boolean;
   mergeSimilarityThreshold?: number;
   semanticMergeDistance?: number;
@@ -121,8 +123,12 @@ export async function extractTopicsBatched(
   const threshold =
     options.semanticMergeDistance ?? options.mergeSimilarityThreshold ?? 0.35;
   const targetVisibility = options.targetVisibility ?? "public";
+  const maxEntitiesPerBatch = options.maxEntitiesPerBatch ?? 4;
 
-  const batches = batchEntities(entities);
+  const batches = splitBatchesByEntityCount(
+    batchEntities(entities),
+    maxEntitiesPerBatch,
+  );
   const topicService = new TopicService(context.entityService, logger);
   const synthesizer =
     options.topicMergeSynthesizer ?? new TopicMergeSynthesizer(context, logger);
@@ -133,7 +139,10 @@ export async function extractTopicsBatched(
     targetVisibility,
   );
   const sourceEntityCount = options.sourceEntityCount ?? entities.length;
-  const topicSoftCeiling = getTopicSoftCeiling(sourceEntityCount);
+  const topicSoftCeiling = getTopicSoftCeiling(
+    sourceEntityCount,
+    options.topicSoftCeilingSourceRatio ?? 5,
+  );
   const inBatch = new Map<string, TopicEntity>();
 
   let created = 0;
@@ -280,6 +289,20 @@ export async function extractTopicsBatched(
   return summary;
 }
 
+function splitBatchesByEntityCount(
+  batches: BaseEntity[][],
+  maxEntitiesPerBatch: number,
+): BaseEntity[][] {
+  if (maxEntitiesPerBatch <= 0) return batches;
+  return batches.flatMap((batch) => {
+    const chunks: BaseEntity[][] = [];
+    for (let index = 0; index < batch.length; index += maxEntitiesPerBatch) {
+      chunks.push(batch.slice(index, index + maxEntitiesPerBatch));
+    }
+    return chunks;
+  });
+}
+
 function getBatchSourcePolicy(
   batch: BaseEntity[],
   sourceWeights: Record<string, number>,
@@ -297,6 +320,9 @@ function getBatchSourcePolicy(
   );
 }
 
-function getTopicSoftCeiling(sourceEntityCount: number): number {
-  return Math.min(24, Math.max(5, Math.ceil(sourceEntityCount / 8)));
+function getTopicSoftCeiling(
+  sourceEntityCount: number,
+  sourceRatio: number,
+): number {
+  return Math.min(24, Math.max(5, Math.ceil(sourceEntityCount / sourceRatio)));
 }

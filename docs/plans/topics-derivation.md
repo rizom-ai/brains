@@ -40,8 +40,8 @@ causes, verified in code:
 5. **After shipping, the live brain runs a full topic rebuild**
    (`rebuildAllTopics` + `topics:reconcile`): derived topics are deleted and
    re-derived under the new rules. No hand curation.
-6. **A corpus-proportional soft ceiling.** `ceil(sourceEntities / 8)`
-   clamped to [5, 24]. At or above the ceiling, extraction may not create:
+6. **A corpus-proportional soft ceiling.** Calibrated to
+   `ceil(sourceEntities / 5)` clamped to [5, 24]. At or above the ceiling, extraction may not create:
    candidates must merge into an existing topic unless the synthesizer
    explicitly rules the domain novel.
 7. **Mint economics: creation tier + numeric weights, both.**
@@ -71,6 +71,8 @@ causes, verified in code:
   matches nothing is dropped, never minted.
 - Ceiling: computed from the count of entities across the configured source
   types at extraction time.
+- Corpus extraction batches are capped at four entities per AI call so full
+  rebuilds do not compress the entire corpus into only 1-3 topics.
 - Reconciliation: per topic, nearest neighbor over topics via
   `searchWithDistances` (excluding self); pairs under threshold merge
   (canonical = older/richer), loop until stable, budgeted per run,
@@ -107,10 +109,14 @@ corpus rebuild/acceptance eval remains the calibration gate before shipping.
    and the extraction prompt granularity contract are in place. Tests cover
    reinforce-only sources never minting, reinforce-only sources merging,
    weighted creation cutoffs, and ceiling-forced merge-first behavior.
-4. **Calibration on yeehaa.io** — in progress. Added corpus-derived evals for
+4. **Calibration on yeehaa.io** — complete. Added corpus-derived evals for
    electronic waste duplicate reconciliation, distributed/decentralized
-   collaboration reconciliation, and link reinforce-only mint prevention. Next
-   gate is a full corpus rebuild/acceptance eval before locking defaults.
+   collaboration reconciliation, link reinforce-only mint prevention, and full
+   corpus rebuild acceptance. Calibration found the original one-batch full
+   corpus rebuild collapsed 50 sources into three topics, so extraction now
+   caps AI batches at four entities and uses a softer `sourceEntities / 5`
+   ceiling. The full corpus acceptance gate passes with bounded canonical
+   coverage and no known duplicate/artifact topics.
 5. **Ship + rebuild** — release train, deploy rizom-ai, run
    `rebuildAllTopics` then `topics:reconcile` on the live brain; verify the
    knowledge map's territories reflect the re-derived set.
