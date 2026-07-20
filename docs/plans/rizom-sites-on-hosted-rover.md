@@ -2,7 +2,14 @@
 
 ## Status
 
-Partial. The shared platform work is implemented and released; the docs cutover remains:
+Cutover complete, soaking. `docs.rizom.ai` DNS was flipped to the hosted Rover
+deployment (server `rover-docs`, brain 0.2.0-alpha.206, `@rizom/site-docs`,
+`sites` cohort alongside `rizom-ai`) on 2026-07-20 after all acceptance checks
+passed publicly: health/version, doc routes, MCP 401, preview host, TLS. The
+old standalone relay deployment stays reachable by IP for rollback until the
+soak closes; then run Retirement below and delete this plan.
+
+The shared platform work is implemented and released:
 
 - `@rizom/site` and the Rizom/docs site packages are public;
 - hosted Rover resolves exact site package refs into hash-tagged fleet images;
