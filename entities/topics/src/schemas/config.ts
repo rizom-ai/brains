@@ -17,6 +17,8 @@ export interface TopicsPluginConfig {
   reinforceRelevanceThreshold: number;
   sourceWeights: Record<string, number>;
   mintableEntityTypes: string[];
+  maxEntitiesPerBatch: number;
+  topicSoftCeilingSourceRatio: number;
   mergeSimilarityThreshold: number;
   semanticMergeDistance: number;
   reconciliationMaxPairs: number;
@@ -34,6 +36,8 @@ export interface TopicsPluginConfigInput {
   reinforceRelevanceThreshold?: number | undefined;
   sourceWeights?: Record<string, number> | undefined;
   mintableEntityTypes?: string[] | undefined;
+  maxEntitiesPerBatch?: number | undefined;
+  topicSoftCeilingSourceRatio?: number | undefined;
   mergeSimilarityThreshold?: number | undefined;
   semanticMergeDistance?: number | undefined;
   reconciliationMaxPairs?: number | undefined;
@@ -89,6 +93,17 @@ export const topicsPluginConfigSchema: z.ZodType<
   mintableEntityTypes: z
     .array(z.string())
     .default(["anchor-profile", "post", "summary", "deck", "project"]),
+
+  /**
+   * Maximum entities in one AI extraction prompt. This prevents large corpus
+   * rebuilds from compressing the whole corpus into only 1-3 topics.
+   */
+  maxEntitiesPerBatch: z.number().int().min(1).default(4),
+
+  /**
+   * One new topic is allowed per N source entities, clamped to [5, 24].
+   */
+  topicSoftCeilingSourceRatio: z.number().min(1).default(5),
 
   /**
    * Deprecated lexical similarity threshold retained for config compatibility.

@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -71,6 +73,25 @@ const reconcileExistingTopicsSchema = z.object({
   maxPairs: z.number().int().min(0).optional(),
 });
 
+const corpusFixtureEntitySchema = entityInputSchema.extend({
+  id: z.string(),
+});
+
+const corpusFixtureSchema = z.object({
+  entities: z.array(corpusFixtureEntitySchema).min(1),
+});
+
+const corpusAcceptanceSchema = z.object({
+  fixture: z.string(),
+  minTopicCount: z.number().int().min(0).default(5),
+  maxTopicCount: z.number().int().min(0).default(14),
+  requiredTitleMatches: z.array(z.string()).default([]),
+  forbiddenTitleMatches: z.array(z.string()).default([]),
+  forbiddenTitlePairs: z
+    .array(z.object({ left: z.string(), right: z.string() }))
+    .default([]),
+});
+
 const batchInputSchema = z.object({
   entities: z.array(entityInputSchema),
 });
@@ -84,6 +105,7 @@ type ReconcileExistingTopicsInput = z.output<
   typeof reconcileExistingTopicsSchema
 >;
 type SequentialInput = z.output<typeof sequentialInputSchema>;
+type CorpusAcceptanceInput = z.output<typeof corpusAcceptanceSchema>;
 type BatchInput = z.output<typeof batchInputSchema>;
 
 function createEntityFromInput(input: EntityInput, idSuffix = ""): BaseEntity {
@@ -112,6 +134,48 @@ function summarizeExtractedTopic(topic: ExtractedTopic): {
 function getSourceTitle(entity: BaseEntity): string {
   const metadataTitle = entity.metadata["title"];
   return typeof metadataTitle === "string" ? metadataTitle : entity.id;
+}
+
+function getCorpusAcceptanceIssues(
+  topicTitles: string[],
+  input: CorpusAcceptanceInput,
+): string[] {
+  const issues: string[] = [];
+  if (topicTitles.length < input.minTopicCount) {
+    issues.push(`too few topics: ${topicTitles.length}`);
+  }
+  if (topicTitles.length > input.maxTopicCount) {
+    issues.push(`too many topics: ${topicTitles.length}`);
+  }
+
+  for (const pattern of input.requiredTitleMatches) {
+    const regex = new RegExp(pattern, "i");
+    if (!topicTitles.some((title) => regex.test(title))) {
+      issues.push(`missing required title match: ${pattern}`);
+    }
+  }
+
+  for (const pattern of input.forbiddenTitleMatches) {
+    const regex = new RegExp(pattern, "i");
+    const match = topicTitles.find((title) => regex.test(title));
+    if (match) {
+      issues.push(`forbidden title matched ${pattern}: ${match}`);
+    }
+  }
+
+  for (const pair of input.forbiddenTitlePairs) {
+    const left = new RegExp(pair.left, "i");
+    const right = new RegExp(pair.right, "i");
+    const hasLeft = topicTitles.some((title) => left.test(title));
+    const hasRight = topicTitles.some((title) => right.test(title));
+    if (hasLeft && hasRight) {
+      issues.push(
+        `forbidden duplicate pair present: ${pair.left} / ${pair.right}`,
+      );
+    }
+  }
+
+  return issues;
 }
 
 function withSource(
@@ -437,6 +501,61 @@ export function registerTopicEvalHandlers(params: {
         totalTopics: topics.length,
         perEntity,
         topics: topics.map(toTopicContentProjection),
+      };
+    },
+  );
+
+  context.eval.registerHandler(
+    "rebuildCorpusFixture",
+    async (input: unknown) => {
+      await clearTopics(context);
+      const parsed: CorpusAcceptanceInput = corpusAcceptanceSchema.parse(input);
+      const fixture = corpusFixtureSchema.parse(
+        JSON.parse(
+          await readFile(resolve(process.cwd(), parsed.fixture), "utf8"),
+        ),
+      );
+      const entities: BaseEntity[] = fixture.entities.map((entity) => ({
+        id: entity.id,
+        entityType: entity.entityType,
+        content: entity.content,
+        contentHash: computeContentHash(entity.content),
+        visibility: "public",
+        metadata: entity.metadata ?? {},
+        created: "2026-01-01T00:00:00Z",
+        updated: "2026-01-01T00:00:00Z",
+      }));
+
+      const rebuildResult = await replaceAllTopics(
+        entities,
+        context,
+        logger,
+        config,
+      );
+      const reconciliationResult = await reconcileTopics({
+        context,
+        logger,
+        semanticMergeDistance: config.semanticMergeDistance,
+        targetVisibility: config.extractionVisibility,
+        maxPairs: config.reconciliationMaxPairs,
+      });
+      const topics = (
+        await context.entityService.listEntities({
+          entityType: TOPIC_ENTITY_TYPE,
+        })
+      ).map(toTopicContentProjectionWithMetadata);
+      const topicTitles = topics.map((topic) => topic.title);
+      const issues = getCorpusAcceptanceIssues(topicTitles, parsed);
+
+      return {
+        sourceCount: entities.length,
+        topicCount: topics.length,
+        topicTitles,
+        issueCount: issues.length,
+        issues,
+        rebuild: rebuildResult,
+        reconciliation: reconciliationResult,
+        topics,
       };
     },
   );

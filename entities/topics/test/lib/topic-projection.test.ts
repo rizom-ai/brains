@@ -40,6 +40,8 @@ const config: TopicsPluginConfig = {
     note: 0.6,
   },
   mintableEntityTypes: ["anchor-profile", "post", "summary", "deck", "project"],
+  maxEntitiesPerBatch: 4,
+  topicSoftCeilingSourceRatio: 5,
   mergeSimilarityThreshold: 0.85,
   semanticMergeDistance: 0.35,
   reconciliationMaxPairs: 100,
