@@ -185,6 +185,53 @@ describe("AtprotoPdsClient", () => {
     expect(calls[0]?.init?.method).toBe("GET");
   });
 
+  it("deletes records with an authenticated session", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: FetchLike = (input, init) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith("com.atproto.server.createSession")) {
+        return Promise.resolve(
+          jsonResponse({
+            did: "did:plc:repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          }),
+        );
+      }
+      return Promise.resolve(new Response(null, { status: 200 }));
+    };
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    await client.deleteRecord({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.post",
+      rkey: "post-123",
+    });
+
+    expect(calls[1]?.url).toBe(
+      "https://pds.example.com/xrpc/com.atproto.repo.deleteRecord",
+    );
+    expect(calls[1]?.init?.headers).toEqual({
+      Authorization: "Bearer access-token",
+      "Content-Type": "application/json",
+    });
+    expect(calls[1]?.init?.body).toBe(
+      JSON.stringify({
+        repo: "did:plc:repo",
+        collection: "ai.rizom.brain.post",
+        rkey: "post-123",
+      }),
+    );
+  });
+
   it("uploads blobs with an authenticated session", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: FetchLike = (input, init) => {

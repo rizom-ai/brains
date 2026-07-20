@@ -47,6 +47,12 @@ export interface GetRecordResult {
   value: Record<string, unknown>;
 }
 
+export interface DeleteRecordInput {
+  repo: string;
+  collection: string;
+  rkey: string;
+}
+
 export interface AtprotoBlobRef {
   $type?: "blob";
   ref: { $link: string };
@@ -115,25 +121,31 @@ async function parseJsonResponse<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   const text = await response.text();
-  let body: unknown;
+  const body = parseResponseBody(response, text);
+  assertResponseOk(response, body);
+  return schema.parse(body);
+}
+
+function parseResponseBody(response: Response, text: string): unknown {
   try {
-    body = text.length > 0 ? JSON.parse(text) : undefined;
+    return text.length > 0 ? JSON.parse(text) : undefined;
   } catch {
     if (!response.ok) {
       throw new Error(`AT Protocol request failed with ${response.status}`);
     }
     throw new Error("Failed to parse JSON");
   }
+}
 
-  if (!response.ok) {
-    const error = atprotoErrorResponseSchema.safeParse(body);
-    throw new Error(
-      error.success
-        ? error.data.message
-        : `AT Protocol request failed with ${response.status}`,
-    );
-  }
-  return schema.parse(body);
+function assertResponseOk(response: Response, body: unknown): void {
+  if (response.ok) return;
+
+  const error = atprotoErrorResponseSchema.safeParse(body);
+  throw new Error(
+    error.success
+      ? error.data.message
+      : `AT Protocol request failed with ${response.status}`,
+  );
 }
 
 export class AtprotoPdsClient {
@@ -229,6 +241,24 @@ export class AtprotoPdsClient {
     );
 
     return parseJsonResponse(response, getRecordResultSchema);
+  }
+
+  async deleteRecord(input: DeleteRecordInput): Promise<void> {
+    const session = await this.getSession();
+    const response = await this.fetchFn(
+      `${this.pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.accessJwt}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    const text = await response.text();
+    const body = parseResponseBody(response, text);
+    assertResponseOk(response, body);
   }
 
   async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {

@@ -7,8 +7,8 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 - `ServicePlugin` package skeleton
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
-- app-password PDS client wrapper for mocked authentication, record reads/writes, and blob upload tests
-- brain card publishing as `ai.rizom.brain.card`
+- app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
+- ambient brain card and projected-entity publishing
 - projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
 - candidate brain-card discovery via public `com.atproto.repo.getRecord` reads and internal message-bus events
 
@@ -59,98 +59,20 @@ Secrets should be supplied through environment variables or app secret configura
 - `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 
-## Tools
+## Ambient publishing
 
-### `atproto_validate_credentials`
+The plugin exposes no agent tools. When `identifier` and `appPassword` are configured, it publishes automatically:
 
-Checks whether the configured identifier/app-password can create a PDS session. It does not publish records.
+- `system:plugins:ready` upserts the public brain card as `ai.rizom.brain.card/self`.
+- `publish:completed` upserts the source entity when its entity package has registered an ATProto projection and the entity is public.
+- `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record.
+- `entity:deleted` deletes the projected record when the deleted entity was public.
 
-Input:
+Projection registration is the consent gate: entities without a registered projection are ignored. Custom records are validated locally before an idempotent PDS `putRecord`; source entity IDs become stable record keys. The local entity remains the source of truth.
 
-```json
-{}
-```
+A PDS outage never fails the local publish/update/delete operation. Failures are logged and broadcast as `atproto:publish:failed` with the operation, entity type/id, collection, and error. This scoped event deliberately does not use the publish pipeline's `publish:report:failure`, which belongs to the source publish provider.
 
-### `atproto_publish_card`
-
-Upserts this brain's public discovery card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
-
-Input:
-
-```json
-{ "dryRun": true }
-```
-
-Use `dryRun: true` to inspect the record without writing to the PDS.
-
-The card is intentionally not a full A2A Agent Card. It is the public ATProto listing for a Rizom brain and requires:
-
-- `siteUrl`
-- `brain`: `{ did, name, role, purpose, values }`
-- `anchor`: `{ did, name, kind }`
-- `skills`
-- `model`
-- `version`
-- `createdAt`
-
-The operational A2A Agent Card is derived conventionally from `siteUrl` at `/.well-known/agent-card.json`.
-
-### `atproto_publish_entity`
-
-Publishes any public local entity that has registered an ATProto projection.
-
-Input:
-
-```json
-{
-  "entityType": "post",
-  "entityId": "post-123",
-  "dryRun": true,
-  "topics": ["protocols"]
-}
-```
-
-Use this for generic projection-backed publishing. The entity plugin owns the record mapper; the canonical lexicon contract comes from `@brains/atproto-contracts`.
-
-### `atproto_discover_brain_cards`
-
-Reads public `ai.rizom.brain.card/self` records from candidate AT Protocol repo DIDs or handles, validates them against the canonical brain-card contract, and emits internal discovery events for the agent-discovery plugin.
-
-Input:
-
-```json
-{
-  "repos": ["did:plc:example", "brain.example.com"]
-}
-```
-
-Notes:
-
-- Discovery is bounded to 50 repos per call.
-- Invalid cards are skipped and reported in the result.
-- Duplicate card URI/CID pairs in the same batch are skipped.
-- New brains enter agent discovery as reviewable `status: discovered` agents; existing approved agents may be enriched but are not downgraded.
-
-### `atproto_publish_post`
-
-Convenience wrapper that publishes an existing local blog `post` entity as `ai.rizom.brain.post`.
-
-Input:
-
-```json
-{
-  "entityId": "post-123",
-  "dryRun": true,
-  "topics": ["protocols"]
-}
-```
-
-Notes:
-
-- The local `post` entity remains the source of truth.
-- Private posts are refused.
-- Successful publishes store the custom ATProto article URI in the blog post frontmatter as `atprotoUri`.
-- This tool publishes the semantic article record only. Bluesky feed posts should be handled later through the `social-post` workflow.
+The internal `publishBrainCard`, `publishEntity`, `publishPost`, and `validatePdsCredentials` methods remain available to trusted runtime code and tests. `discoverBrainCards` likewise remains an internal bounded discovery operation: it accepts at most 50 repo DIDs/handles, validates `ai.rizom.brain.card/self`, deduplicates within a batch, and emits discovery events for reviewable agent-directory candidates.
 
 ## Projection registration
 
@@ -187,25 +109,14 @@ Use a test PDS/Bluesky account, an app password, and a controlled public site do
 The committed Rover full test app uses the Alex example identity (`domain: alex.example.com`, `identifier: alex.example.com`) so it stays aligned with the eval content. `alex.example.com` is fixture data, not a live PDS handle/domain. For a real live smoke, use the matching deployed Alex domain/account and keep only the app password in the environment.
 
 1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities.
-2. Start a brain with the atproto plugin enabled.
+2. Start a brain with the ATProto plugin enabled. The ready event should upsert `ai.rizom.brain.card/self` automatically.
 3. Confirm DID documents if using `did:web`:
    - brain root DID: `GET https://<brain-domain>/.well-known/did.json`
    - same-domain anchor path DID: `GET https://<brain-domain>/anchor/did.json`
-4. Dry-run card publishing:
-   - `atproto_publish_card { "dryRun": true }`
-5. Validate credentials:
-   - `atproto_validate_credentials {}`
-6. Publish card:
-   - `atproto_publish_card { "dryRun": false }`
-7. Dry-run a public blog post:
-   - `atproto_publish_post { "entityId": "<post-id>", "dryRun": true }`
-8. Optionally dry-run the same projection through the generic entity path:
-   - `atproto_publish_entity { "entityType": "post", "entityId": "<post-id>", "dryRun": true }`
-9. Publish the post record:
-   - `atproto_publish_post { "entityId": "<post-id>", "dryRun": false }`
-10. Verify records in the PDS repo.
-11. Discover a known card from another repo:
-    - `atproto_discover_brain_cards { "repos": ["<repo-did-or-handle>"] }`
+4. Publish or update a public entity whose package registers a projection.
+5. Use `com.atproto.repo.listRecords`/`getRecord` against the test repo to verify the card and projected entity record.
+6. Turn that entity non-public or delete it, then verify its projected record is absent.
+7. Stop the PDS or use invalid test credentials and confirm the local source operation still succeeds while `atproto:publish:failed` is logged/emitted.
 
 ## Current limitations
 
