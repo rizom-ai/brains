@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- [`6bc26ff`](https://github.com/rizom-ai/brains/commit/6bc26ffeb782fef8eaae0aa444aa0e824141bbc1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Member handles under the fleet domain: the atproto plugin serves the owner's account DID at /.well-known/atproto-did when accountDid is configured, so a member's Bluesky handle (@<handle>.<domainSuffix>) verifies against their own brain via the HTTP method — no DNS records. Pilot plumbing: users/<handle>.yaml atproto.accountDid flows into the generated brain.yaml plugin config; operator playbook updated.
+
 ## 0.2.0-alpha.204
 
 ## 0.2.0-alpha.203

@@ -1,6 +1,6 @@
 {
   "name": "@brains/email-contracts",
-  "version": "0.2.0-alpha.204",
+  "version": "0.2.0-alpha.205",
   "description": "Shared email delivery message contracts",
   "dependencies": {
     "@brains/utils": "workspace:*"

@@ -1,6 +1,6 @@
 {
   "name": "@brains/test-utils",
-  "version": "0.2.0-alpha.204",
+  "version": "0.2.0-alpha.205",
   "dependencies": {
     "@brains/contracts": "workspace:*"
   },

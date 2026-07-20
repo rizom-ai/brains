@@ -135,6 +135,7 @@
     "align-preview-domain-routing",
     "atproto-contracts-lexicon-description",
     "atproto-discovery-agent-events",
+    "atproto-member-handles",
     "atproto-registry-contracts",
     "atproto-smoke-credentials-release",
     "auth-service-setup-email",
