@@ -280,6 +280,16 @@ For v1, onboarding is explicit and Admin managed:
 
 There is no public registration, email invitation, or self-signup in the first slice.
 
+### Adding a person (end state)
+
+Add-a-person is **agent-first**, with a hosted fallback (see the [person mockup](../design/admin-console-person-mockup.html) dialog):
+
+1. **Promote a known agent** — pick from the brain's existing agents (the Agent Network directory) in a dropdown. Identity and profile come from that agent's own brain (verified peer, `did:web`). Set a role.
+2. **Add a new peer** — paste a brain URL for an agent not yet known; same verified-peer linking.
+3. **Hosted fallback** — for a person with no brain of their own: create the member by name and issue a passkey setup link.
+
+In **every** path the member's human user still receives a **passkey setup email**, so the person can sign in directly — not only through their agent. Agent-based add resolves the user's email from their brain/profile and sends it; the passkey then grants direct human access alongside the agent's peer link. The admin never types the person's identity — the agent supplies it and the passkey proves the human.
+
 ## Migration strategy
 
 ### Fresh installs

@@ -115,7 +115,58 @@
       .invite-strip { display: flex; align-items: center; gap: 18px; padding: 18px 20px; border: 1px solid var(--rule); border-radius: 11px; background: var(--card); }
       .invite-strip .txt { color: var(--text-muted); font-size: 12px; max-width: 52ch; } .invite-strip .txt b { color: var(--text-dim); font-weight: 500; }
 
-      @media (max-width: 760px) { .anchor-fields { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } }
+      .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin: 6px 0 16px; }
+      .section-head .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.17em; text-transform: uppercase; margin-bottom: 6px; }
+      .section-head h2 { margin: 0; font: 520 26px/1.05 var(--display); letter-spacing: -0.01em; }
+      .section-head p { margin: 6px 0 0; color: var(--text-muted); font-size: 12px; max-width: 56ch; }
+      .roster { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); overflow: hidden; }
+      .roster-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+      .roster-row:last-child { border-bottom: none; }
+      .avatar { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font: 600 12px var(--mono); color: var(--text); background: var(--card-raised); border: 1px solid var(--rule-strong); flex-shrink: 0; position: relative; }
+      .avatar .anchor-pin { position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); color: var(--bg-deep); font-size: 8px; display: grid; place-items: center; border: 2px solid var(--card); }
+      .who { flex: 1; min-width: 0; } .who b { font-weight: 500; display: block; } .who small { color: var(--text-muted); font-size: 11px; }
+      .badge { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; white-space: nowrap; }
+      .b-admin { color: var(--accent); background: var(--accent-soft); } .b-trusted { color: var(--ok); background: var(--ok-soft); } .b-public { color: var(--text-muted); background: var(--rule); }
+      .roster-row { cursor: pointer; transition: background 0.12s ease; }
+      .roster-row:hover { background: var(--card-raised); }
+      .roster-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+      .host-chip { font: 600 8px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); border: 1px solid var(--rule-strong); }
+      .host-chip.own { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); background: var(--info-soft); }
+      .split { display: grid; grid-template-columns: 320px 1fr; gap: 22px; align-items: start; }
+      .detail { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); padding: 22px 24px; }
+      .detail-head { display: flex; align-items: center; gap: 15px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); }
+      .detail-head .avatar { width: 46px; height: 46px; font-size: 14px; }
+      .detail-head h3 { margin: 0; font: 500 21px/1.1 var(--display); }
+      .detail-head small { color: var(--text-muted); font-family: var(--mono); font-size: 10px; }
+      .facets { margin-left: auto; display: flex; gap: 14px; }
+      .facet { text-align: right; } .facet .k { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); } .facet .v { font-size: 12px; }
+      .facet .v.role { color: var(--accent); font-weight: 600; } .facet .v.notanchor { color: var(--text-muted); }
+      .d-section { padding: 18px 0; border-bottom: 1px solid var(--rule); }
+      .d-section:last-child { border-bottom: none; padding-bottom: 0; }
+      .d-section .label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 11px; }
+      .d-section h4 { margin: 0; font: 500 13px var(--ui); }
+      .item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 8px; background: var(--card-raised); }
+      .item .kind { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); width: 60px; }
+      .item .val { flex: 1; font-size: 12.5px; } .item .val small { color: var(--text-muted); } .item .verified { color: var(--ok); }
+      .cms-ref { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-dim); font-size: 12.5px; } .cms-ref b { font-weight: 500; } .cms-ref .spacer { margin-left: auto; }
+      .brain-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); border-radius: 8px; background: var(--info-soft); color: var(--text-dim); font-size: 12px; }
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 4, 15, 0.66); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; padding: 20px; }
+      .modal { width: min(440px, 100%); background: var(--card); border: 1px solid var(--rule-strong); border-radius: 14px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.85); overflow: hidden; animation: rise 0.35s ease-out both; }
+      .modal-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--rule); }
+      .modal-head h3 { margin: 0; font: 500 20px var(--display); }
+      .modal-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; }
+      .modal-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 15px; }
+      .mfield { display: flex; flex-direction: column; gap: 6px; }
+      .mfield > label { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+      .mfield select, .mfield input { background: var(--bg-deep); border: 1px solid var(--rule-strong); border-radius: 8px; padding: 9px 11px; color: var(--text); font-size: 13px; }
+      .mfield .resolved { font: 400 11px var(--mono); color: var(--ok); }
+      .mor { font: 600 8px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
+      .modal-foot { padding: 14px 22px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--rule); }
+      .modal-foot .hosted { font: 600 9px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); text-decoration: none; }
+      .modal-foot .hosted:hover { color: var(--text-dim); }
+      .modal-foot .actions { display: flex; gap: 8px; }
+      .button.ghost { background: transparent; }
+      @media (max-width: 860px) { .anchor-fields { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } .split { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -188,19 +239,117 @@
           </div>
 
           <!-- Where the kind actually lives -->
-          <div class="yaml-card">
-            <div class="yhead"><span>declared in <b>brain.yaml</b></span><span>read-only here</span></div>
-<pre><span class="yc"># who this brain belongs to</span>
-<span class="yk">anchor</span>: <span class="yv">professional</span>   <span class="yc"># professional | team | collective</span></pre>
+          <!-- Members: still your brain; others have access but aren't the anchor -->
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Roster</div>
+              <h2>Members</h2>
+              <p>Others can have access — it stays your brain. Only you are the anchor; everyone else just has a role.</p>
+            </div>
+            <button class="button primary" onclick="toggleAdd(true)">+ Add a person</button>
           </div>
+          <div class="split">
+            <div class="roster">
+              <div class="roster-row">
+                <div class="avatar">AM<span class="anchor-pin">⚓</span></div>
+                <div class="who"><b>Alice Morgan</b><small>you · passkey</small></div>
+                <span class="badge b-admin">Admin · Anchor</span>
+              </div>
+              <div class="roster-row active">
+                <div class="avatar">BV</div>
+                <div class="who"><b>Bob Vance</b><small>own brain · passkey</small></div>
+                <span class="badge b-trusted">Trusted</span>
+              </div>
+              <div class="roster-row">
+                <div class="avatar">CL</div>
+                <div class="who"><b>Cara Lee</b><small>invited · setup sent</small></div>
+                <span class="badge b-public">Public</span>
+              </div>
+            </div>
 
-          <!-- Growing beyond solo -->
-          <div class="invite-strip">
-            <button class="button primary">+ Add a person</button>
-            <div class="txt">Give someone access and they join the <b>Members</b> roster — this stays your personal brain. To make it a <b>team</b> or <b>collective</b> instead, change <b>anchor</b> in brain.yaml.</div>
+            <div class="detail">
+              <div class="detail-head">
+                <div class="avatar">BV</div>
+                <div>
+                  <h3>Bob Vance</h3>
+                  <small>usr_9c3e… · added 2026-06-20</small>
+                </div>
+                <div class="facets">
+                  <div class="facet"><div class="k">Role</div><div class="v role">Trusted</div></div>
+                  <div class="facet"><div class="k">Anchor?</div><div class="v notanchor">No</div></div>
+                </div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><h4>Profile</h4><a class="cms-link" href="#">Edit in CMS →</a></div>
+                <div class="cms-ref">◆ <b>Bob Vance</b> · Systems engineer<span class="spacer"></span><span class="host-chip">member profile</span></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><h4>Brain</h4></div>
+                <div class="brain-link">◆ <b>bob.rizom.ai</b> · verified peer (did:web)<span style="margin-left:auto"><button class="text-action muted">Unlink</button></span></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><h4>Access</h4></div>
+                <div class="item"><span class="kind">Role</span><span class="val">Trusted</span><button class="text-action">Change</button></div>
+              </div>
+
+              <div class="d-section">
+                <div class="label"><h4>Sign-in</h4><button class="text-action">Send setup link</button></div>
+                <div class="item"><span class="kind">Passkey</span><span class="val">Laptop · <small class="verified">✓ verified</small></span></div>
+                <div class="item"><span class="kind">Discord</span><span class="val">bob · <small class="verified">✓ verified</small></span><button class="text-action muted">Detach</button></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Add a person — dropdown-first (promote a known agent), URL for a new peer, hosted invite as fallback -->
+    <div class="modal-backdrop" id="addModal" style="display:none" onclick="if(event.target===this)toggleAdd(false)">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Add a person</h3>
+        </div>
+        <div class="modal-body">
+          <div class="mfield">
+            <label>From your agents</label>
+            <select>
+              <option>Bob Vance — bob.rizom.ai</option>
+              <option>Mira Reyes — mira.rizom.ai</option>
+              <option>Devin Kwan — devin.rizom.ai</option>
+            </select>
+            <span class="resolved">✓ verified peer · did:web · profile from their brain</span>
+          </div>
+          <div class="mor">— or —</div>
+          <div class="mfield">
+            <label>Add a new peer</label>
+            <input placeholder="paste brain URL — e.g. sam.rizom.ai" />
+          </div>
+          <div class="mfield">
+            <label>Role</label>
+            <select>
+              <option>Trusted</option>
+              <option>Public</option>
+              <option>Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <a class="hosted" href="#">No brain? Invite hosted →</a>
+          <div class="actions">
+            <button class="button ghost" onclick="toggleAdd(false)">Cancel</button>
+            <button class="button primary">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function toggleAdd(show) {
+        document.getElementById("addModal").style.display = show ? "grid" : "none";
+      }
+    </script>
   </body>
 </html>

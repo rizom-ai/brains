@@ -155,6 +155,21 @@
       .kv .k { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
       .kv .v { font-size: 12.5px; }
 
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 4, 15, 0.66); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; padding: 20px; }
+      .modal { width: min(440px, 100%); background: var(--card); border: 1px solid var(--rule-strong); border-radius: 14px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.85); overflow: hidden; animation: rise 0.35s ease-out both; }
+      .modal-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--rule); }
+      .modal-head h3 { margin: 0; font: 500 20px var(--display); }
+      .modal-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 15px; }
+      .mfield { display: flex; flex-direction: column; gap: 6px; }
+      .mfield > label { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+      .mfield select, .mfield input { background: var(--bg-deep); border: 1px solid var(--rule-strong); border-radius: 8px; padding: 9px 11px; color: var(--text); font-size: 13px; }
+      .mfield .resolved { font: 400 11px var(--mono); color: var(--ok); }
+      .mor { font: 600 8px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
+      .modal-foot { padding: 14px 22px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--rule); }
+      .modal-foot .hosted { font: 600 9px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); text-decoration: none; }
+      .modal-foot .hosted:hover { color: var(--text-dim); }
+      .modal-foot .actions { display: flex; gap: 8px; }
+      .button.ghost { background: transparent; }
       @media (max-width: 940px) { .split { grid-template-columns: 1fr; } .anchor-fields { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } }
     </style>
   </head>
@@ -224,12 +239,6 @@
             </div>
           </div>
 
-          <div class="yaml-card">
-            <div class="yhead"><span>declared in <b>brain.yaml</b></span><span>read-only here</span></div>
-<pre><span class="yc"># who this brain belongs to</span>
-<span class="yk">anchor</span>: <span class="yv">collective</span>   <span class="yc"># legal name &amp; brand live in the CMS</span></pre>
-          </div>
-
           <!-- PEOPLE -->
           <div class="section-head">
             <div>
@@ -237,7 +246,7 @@
               <h2>People</h2>
               <p>Everyone with a profile at Rizom, their title, and their access. Each person carries their own profile; some run their own brain, linked as a verified peer.</p>
             </div>
-            <button class="button primary">+ Add person</button>
+            <button class="button primary" onclick="toggleAdd(true)">+ Add person</button>
           </div>
 
           <div class="split">
@@ -307,5 +316,43 @@
         </div>
       </div>
     </div>
+    <div class="modal-backdrop" id="addModal" style="display:none" onclick="if(event.target===this)toggleAdd(false)">
+      <div class="modal">
+        <div class="modal-head"><h3>Add a person</h3></div>
+        <div class="modal-body">
+          <div class="mfield">
+            <label>From your agents</label>
+            <select>
+              <option>Cara Vale — cara.rizom.ai</option>
+              <option>Esa Niemi — esa.rizom.ai</option>
+              <option>Priya Anand — priya.rizom.ai</option>
+            </select>
+            <span class="resolved">✓ verified peer · did:web · profile from their brain</span>
+          </div>
+          <div class="mor">— or —</div>
+          <div class="mfield">
+            <label>Add a new peer</label>
+            <input placeholder="paste brain URL — e.g. sam.rizom.ai" />
+          </div>
+          <div class="mfield">
+            <label>Role</label>
+            <select><option>Trusted</option><option>Public</option><option>Admin</option></select>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <a class="hosted" href="#">No brain? Invite hosted →</a>
+          <div class="actions">
+            <button class="button ghost" onclick="toggleAdd(false)">Cancel</button>
+            <button class="button primary">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function toggleAdd(show) {
+        document.getElementById("addModal").style.display = show ? "grid" : "none";
+      }
+    </script>
   </body>
 </html>
