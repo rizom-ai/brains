@@ -9,12 +9,17 @@ import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
+import {
+  reconcileTopics as reconcileTopicsDefault,
+  type TopicReconciliationResult,
+} from "./topic-reconciliation";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
 
 export type TopicProjectionJobData =
   | { mode: "derive"; reason?: string | undefined }
   | { mode: "rebuild"; reason?: string | undefined }
-  | { mode: "source-batch"; minRelevanceScore?: number | undefined };
+  | { mode: "source-batch"; minRelevanceScore?: number | undefined }
+  | { mode: "reconcile"; reason?: string | undefined };
 
 export const topicProjectionJobDataSchema: z.ZodType<
   TopicProjectionJobData,
@@ -31,6 +36,10 @@ export const topicProjectionJobDataSchema: z.ZodType<
   z.object({
     mode: z.literal("source-batch"),
     minRelevanceScore: z.number().min(0).max(1).optional(),
+  }),
+  z.object({
+    mode: z.literal("reconcile"),
+    reason: z.string().optional(),
   }),
 ]);
 
@@ -94,22 +103,38 @@ export function createTopicProjectionHandler(params: {
   config: TopicsPluginConfig;
   extractAllTopics: () => Promise<void>;
   rebuildAllTopics: () => Promise<void>;
+  reconcileTopics?: (() => Promise<TopicReconciliationResult>) | undefined;
   sourceBatch: TopicSourceBatchStore;
   isEntityPublished: (entity: BaseEntity) => boolean;
 }): JobHandler<string, TopicProjectionJobData, unknown> {
   const { context, logger, config } = params;
+  const runReconciliation: () => Promise<TopicReconciliationResult> =
+    params.reconcileTopics ??
+    (async (): Promise<TopicReconciliationResult> =>
+      reconcileTopicsDefault({
+        context,
+        logger,
+        semanticMergeDistance: config.semanticMergeDistance,
+        targetVisibility: config.extractionVisibility,
+        maxPairs: config.reconciliationMaxPairs,
+      }));
 
   return {
     process: async (data): Promise<unknown> => {
       if (data.mode === "derive") {
         await params.extractAllTopics();
+        await runReconciliation();
         return { success: true };
       }
       if (data.mode === "rebuild") {
         await params.rebuildAllTopics();
+        await runReconciliation();
         return { success: true };
       }
-      return processSourceBatch({
+      if (data.mode === "reconcile") {
+        return runReconciliation();
+      }
+      const result = await processSourceBatch({
         context,
         logger,
         config,
@@ -117,6 +142,10 @@ export function createTopicProjectionHandler(params: {
         isEntityPublished: params.isEntityPublished,
         minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
       });
+      if (result.created > 0 || result.merged > 0) {
+        await runReconciliation();
+      }
+      return result;
     },
     validateAndParse: (data: unknown): TopicProjectionJobData | null => {
       const result = topicProjectionJobDataSchema.safeParse(data ?? {});

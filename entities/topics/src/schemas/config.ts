@@ -15,6 +15,7 @@ export interface TopicsPluginConfig {
   minRelevanceScore: number;
   mergeSimilarityThreshold: number;
   semanticMergeDistance: number;
+  reconciliationMaxPairs: number;
   autoMerge: boolean;
   extractableStatuses: string[];
   enableAutoExtraction: boolean;
@@ -27,6 +28,7 @@ export interface TopicsPluginConfigInput {
   minRelevanceScore?: number | undefined;
   mergeSimilarityThreshold?: number | undefined;
   semanticMergeDistance?: number | undefined;
+  reconciliationMaxPairs?: number | undefined;
   autoMerge?: boolean | undefined;
   extractableStatuses?: string[] | undefined;
   enableAutoExtraction?: boolean | undefined;
@@ -59,6 +61,11 @@ export const topicsPluginConfigSchema: z.ZodType<
    * Maximum cosine distance for automatic semantic merging. Lower is closer.
    */
   semanticMergeDistance: z.number().min(0).max(1).default(0.35),
+
+  /**
+   * Maximum topic pairs to examine in one reconciliation pass.
+   */
+  reconciliationMaxPairs: z.number().int().min(0).default(100),
 
   /**
    * Enable automatic merging of similar topics

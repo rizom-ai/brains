@@ -30,6 +30,7 @@ const config: TopicsPluginConfig = {
   minRelevanceScore: 0.5,
   mergeSimilarityThreshold: 0.85,
   semanticMergeDistance: 0.35,
+  reconciliationMaxPairs: 100,
   autoMerge: true,
   extractableStatuses: ["published"],
   enableAutoExtraction: true,
@@ -94,12 +95,24 @@ describe("topic projection helpers", () => {
     expect(handler.validateAndParse({ mode: "source-batch" })).toEqual({
       mode: "source-batch",
     });
+    expect(handler.validateAndParse({ mode: "reconcile" })).toEqual({
+      mode: "reconcile",
+    });
     expect(handler.validateAndParse({ mode: "unknown" })).toBeNull();
   });
 
-  it("dispatches derive and rebuild jobs to projection callbacks", async () => {
+  it("dispatches derive, rebuild, and reconcile jobs to projection callbacks", async () => {
     const extractAllTopics = mock(async (): Promise<void> => undefined);
     const rebuildAllTopics = mock(async (): Promise<void> => undefined);
+    const reconcileTopics = mock(async () => ({
+      success: true as const,
+      scannedTopics: 0,
+      scannedPairs: 0,
+      merged: 0,
+      distinct: 0,
+      skipped: 0,
+      deletedIds: [],
+    }));
     const context = {
       entityService: {
         getEntity: mock(async (): Promise<BaseEntity | null> => null),
@@ -111,6 +124,7 @@ describe("topic projection helpers", () => {
       config,
       extractAllTopics,
       rebuildAllTopics,
+      reconcileTopics,
       sourceBatch: new TopicSourceBatchBuffer(),
       isEntityPublished: () => true,
     });
@@ -125,12 +139,19 @@ describe("topic projection helpers", () => {
       "rebuild-job",
       progressReporter,
     );
+    const reconcileResult = await handler.process(
+      { mode: "reconcile" },
+      "reconcile-job",
+      progressReporter,
+    );
 
     expect(deriveResult).toEqual({ success: true });
     expect(rebuildResult).toEqual({ success: true });
+    expect(reconcileResult).toMatchObject({ success: true, merged: 0 });
 
     expect(extractAllTopics).toHaveBeenCalledTimes(1);
     expect(rebuildAllTopics).toHaveBeenCalledTimes(1);
+    expect(reconcileTopics).toHaveBeenCalledTimes(3);
   });
 
   it("drains source-change batches and skips stale, missing, and unpublished entities", async () => {
@@ -203,6 +224,15 @@ describe("topic projection helpers", () => {
         },
       ],
     });
+    const reconcileTopics = mock(async () => ({
+      success: true as const,
+      scannedTopics: 1,
+      scannedPairs: 0,
+      merged: 0,
+      distinct: 0,
+      skipped: 0,
+      deletedIds: [],
+    }));
 
     const handler = createTopicProjectionHandler({
       context,
@@ -214,6 +244,7 @@ describe("topic projection helpers", () => {
         entity.metadata["status"] === "published",
       extractAllTopics: mock(async (): Promise<void> => undefined),
       rebuildAllTopics: mock(async (): Promise<void> => undefined),
+      reconcileTopics,
     });
 
     const result = await handler.process(
@@ -233,6 +264,7 @@ describe("topic projection helpers", () => {
       unpublished: 1,
     });
     expect(context.ai.generate).toHaveBeenCalledTimes(1);
+    expect(reconcileTopics).toHaveBeenCalledTimes(1);
     expect(sourceBatch.drain()).toEqual([]);
   });
 
