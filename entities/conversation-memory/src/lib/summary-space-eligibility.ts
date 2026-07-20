@@ -2,9 +2,7 @@ import type { Conversation } from "@brains/plugins";
 import { matchSpaceSelector } from "@brains/templates";
 
 export type SummaryEligibilityReason =
-  | "configured-space"
-  | "no-spaces-configured"
-  | "space-not-configured";
+  "configured-space" | "no-spaces-configured" | "space-not-configured";
 
 export interface SummaryEligibilityResult {
   eligible: boolean;

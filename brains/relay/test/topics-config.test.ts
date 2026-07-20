@@ -9,8 +9,7 @@ describe("Relay topics config", () => {
 
     expect(topicsCapability).toBeDefined();
     const config = topicsCapability?.[2] as
-      | { includeEntityTypes?: readonly string[] }
-      | undefined;
+      { includeEntityTypes?: readonly string[] } | undefined;
 
     expect(config?.includeEntityTypes).toContain("summary");
     expect(config?.includeEntityTypes).not.toContain("skill");

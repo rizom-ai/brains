@@ -18,8 +18,8 @@ function makeRawEntity(): RawEntity {
 }
 
 function createMockDeps(): ImportPersistenceDeps {
-  const getEntity = mock(
-    (): Promise<BaseEntity | null> => Promise.resolve(null),
+  const getEntity = mock((): Promise<BaseEntity | null> =>
+    Promise.resolve(null),
   );
   const upsertEntity = mock(async (_request: { entity: BaseEntity }) => ({
     jobId: "j1",
