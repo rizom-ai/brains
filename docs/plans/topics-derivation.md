@@ -1,6 +1,6 @@
 # Topics Derivation
 
-**Status:** Phase 1 implemented; Phase 2 reconciliation next
+**Status:** Phases 1–2 implemented; Phase 3 mint economics next
 
 The topic system produces near-duplicates and operational residue. Root
 causes, verified in code:
@@ -25,10 +25,11 @@ causes, verified in code:
    candidacy; the LLM merge synthesizer confirms and writes the canonical
    topic. Exact-title match stays as a fast path. Lexical token scoring
    retires.
-2. **A reconciliation pass reconciles what already exists.** A
-   `topics:reconcile` job semantically scans existing topic pairs and merges
-   them through the same synthesizer; exposed as a tool and triggered after
-   each extraction wave.
+2. **A reconciliation pass reconciles what already exists.** An internal
+   `topics:reconcile` job mode semantically scans existing topic pairs and
+   merges them through the same synthesizer; it is triggered after each
+   extraction wave. No public tool is exposed unless an operator surface is
+   needed later.
 3. **The extraction prompt gains a granularity contract.** A topic is a
    durable knowledge domain expected to accumulate entities over time —
    never operational activities, deliverables, or one-off tasks; prefer
@@ -80,9 +81,10 @@ causes, verified in code:
 ## Phases (thin slices, tests first)
 
 1. **Semantic candidacy** — implemented. `findMergeCandidate` is distance-arbitrated, `semanticMergeDistance` is config, exact-title remains a fast path for in-batch writes, lexical scoring is retired, and the merge-synthesis template can return `merge` or `distinct`. Unit tests use live duplicate-style pairs with stubbed distances.
-2. **Reconciliation** — pairwise scan + merge loop as job handler and
-   `topics:reconcile` tool; post-wave trigger. Test: the 16-topic live list
-   collapses to its canonical set under stubbed distances/synthesis.
+2. **Reconciliation** — implemented as a bounded pairwise semantic scan,
+   internal `reconcile` projection job mode, and post-wave trigger. Existing
+   duplicate topics merge through the same synthesizer; distinct verdicts,
+   visibility partitions, and scan budgets are covered by tests.
 3. **Mint economics** — source tiers, weights, two-tier cutoffs, soft
    ceiling; granularity contract in the extraction prompt. Extraction flow
    tests cover: reinforce-only sources never mint, ceiling forces
