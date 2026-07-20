@@ -220,26 +220,22 @@
                   <div class="v">Alice Morgan · Climate-tech advisor</div>
                   <a class="cms-link" href="#">Edit in CMS →</a>
                 </div>
-                <div class="subnote">Public identity — name, bio, links. The CMS profile is the authoritative name.</div>
+                <div class="subnote">The brain's own profile. CMS name is authoritative.</div>
               </div>
               <div class="field">
-                <div class="k">Sign-in</div>
-                <div class="signin-list">
-                  <div class="row"><span class="g">passkey</span> this device <span class="verified">✓</span></div>
-                  <div class="row"><span class="g">discord</span> alice <span class="verified">✓</span></div>
-                  <div class="row"><a class="cms-link" href="#">+ Add a way to sign in</a></div>
-                </div>
+                <div class="k">Ownership</div>
+                <div class="v">Yours · personal</div>
+                <div class="subnote">You own it, administer it, and it speaks as you.</div>
               </div>
               <div class="field">
-                <div class="k">Your access</div>
-                <div class="v">Admin + Anchor</div>
-                <div class="subnote">On a personal brain these are the same person by design — and you can't lock yourself out (last-admin protected).</div>
+                <div class="k">Administered by</div>
+                <div class="v">You</div>
+                <div class="subnote">Add admins below; you can't lock yourself out (last-admin protected).</div>
               </div>
             </div>
           </div>
 
-          <!-- Where the kind actually lives -->
-          <!-- Members: still your brain; others have access but aren't the anchor -->
+          <!-- Members: everyone with access besides you (the anchor) -->
           <div class="section-head">
             <div>
               <div class="eyebrow">Roster</div>
@@ -250,20 +246,15 @@
           </div>
           <div class="split">
             <div class="roster">
-              <div class="roster-row">
-                <div class="avatar">AM<span class="anchor-pin">⚓</span></div>
-                <div class="who"><b>Alice Morgan</b><small>you · passkey</small></div>
-                <span class="badge b-admin">Admin · Anchor</span>
-              </div>
               <div class="roster-row active">
                 <div class="avatar">BV</div>
                 <div class="who"><b>Bob Vance</b><small>own brain · passkey</small></div>
                 <span class="badge b-trusted">Trusted</span>
               </div>
               <div class="roster-row">
-                <div class="avatar">CL</div>
-                <div class="who"><b>Cara Lee</b><small>invited · setup sent</small></div>
-                <span class="badge b-public">Public</span>
+                <div class="avatar">NR</div>
+                <div class="who"><b>Nadia Rue</b><small>invited · setup sent</small></div>
+                <span class="badge b-public">Invited</span>
               </div>
             </div>
 
@@ -281,8 +272,8 @@
               </div>
 
               <div class="d-section">
-                <div class="label"><h4>Profile</h4><a class="cms-link" href="#">Edit in CMS →</a></div>
-                <div class="cms-ref">◆ <b>Bob Vance</b> · Systems engineer<span class="spacer"></span><span class="host-chip">member profile</span></div>
+                <div class="label"><h4>Profile</h4><span class="host-chip">read-only · their brain</span></div>
+                <div class="cms-ref">◆ <b>Bob Vance</b> · Systems engineer<span class="spacer"></span>from bob.rizom.ai</div>
               </div>
 
               <div class="d-section">
@@ -298,7 +289,6 @@
               <div class="d-section">
                 <div class="label"><h4>Sign-in</h4><button class="text-action">Send setup link</button></div>
                 <div class="item"><span class="kind">Passkey</span><span class="val">Laptop · <small class="verified">✓ verified</small></span></div>
-                <div class="item"><span class="kind">Discord</span><span class="val">bob · <small class="verified">✓ verified</small></span><button class="text-action muted">Detach</button></div>
               </div>
             </div>
           </div>
@@ -331,7 +321,6 @@
             <label>Role</label>
             <select>
               <option>Trusted</option>
-              <option>Public</option>
               <option>Admin</option>
             </select>
           </div>
