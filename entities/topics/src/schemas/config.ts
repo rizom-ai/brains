@@ -13,6 +13,10 @@ const extractionVisibilitySchema: z.ZodType<
 export interface TopicsPluginConfig {
   includeEntityTypes: string[];
   minRelevanceScore: number;
+  createRelevanceThreshold: number;
+  reinforceRelevanceThreshold: number;
+  sourceWeights: Record<string, number>;
+  mintableEntityTypes: string[];
   mergeSimilarityThreshold: number;
   semanticMergeDistance: number;
   reconciliationMaxPairs: number;
@@ -26,6 +30,10 @@ export interface TopicsPluginConfig {
 export interface TopicsPluginConfigInput {
   includeEntityTypes?: string[] | undefined;
   minRelevanceScore?: number | undefined;
+  createRelevanceThreshold?: number | undefined;
+  reinforceRelevanceThreshold?: number | undefined;
+  sourceWeights?: Record<string, number> | undefined;
+  mintableEntityTypes?: string[] | undefined;
   mergeSimilarityThreshold?: number | undefined;
   semanticMergeDistance?: number | undefined;
   reconciliationMaxPairs?: number | undefined;
@@ -50,6 +58,37 @@ export const topicsPluginConfigSchema: z.ZodType<
    * Minimum relevance score for topic extraction
    */
   minRelevanceScore: z.number().min(0).max(1).default(0.5),
+
+  /**
+   * Minimum weighted relevance required to create a new topic.
+   */
+  createRelevanceThreshold: z.number().min(0).max(1).default(0.7),
+
+  /**
+   * Minimum weighted relevance required to reinforce an existing topic.
+   */
+  reinforceRelevanceThreshold: z.number().min(0).max(1).default(0.5),
+
+  /**
+   * Relevance multipliers by source entity type.
+   */
+  sourceWeights: z.record(z.string(), z.number().min(0).max(1)).default({
+    "anchor-profile": 1,
+    post: 1,
+    summary: 1,
+    deck: 0.85,
+    project: 0.8,
+    link: 0.6,
+    note: 0.6,
+  }),
+
+  /**
+   * Entity types allowed to mint new topics. Other source types can only
+   * reinforce existing topics.
+   */
+  mintableEntityTypes: z
+    .array(z.string())
+    .default(["anchor-profile", "post", "summary", "deck", "project"]),
 
   /**
    * Deprecated lexical similarity threshold retained for config compatibility.

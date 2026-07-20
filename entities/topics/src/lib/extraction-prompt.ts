@@ -56,6 +56,12 @@ ${existingTitles.map((title) => `- ${title}`).join("\n")}`
   return `Content Title: ${params.entityTitle}
 Content Type: ${params.entityType}
 
+TOPIC GRANULARITY CONTRACT:
+- A topic is a durable knowledge domain expected to accumulate multiple source entities over time.
+- Create topics for stable concepts, domains, practices, or enduring questions.
+- Create topics for durable domains, never operational activities, deliverables, launch steps, staging deployments, landing page copy, todos, action plans, or one-off tasks.
+- At small corpus sizes, prefer fewer broader topics over narrow artifacts.
+
 CANONICALIZATION RULES:
 - Prefer reusable umbrella topics over article-specific framings, arguments, or sub-angles.
 - Reuse an existing topic title exactly when the content clearly belongs to it.

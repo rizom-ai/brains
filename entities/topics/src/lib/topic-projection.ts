@@ -219,12 +219,21 @@ async function processSourceBatch(params: {
     };
   }
 
+  const sourceEntityCount = await countConfiguredSources(
+    params.context,
+    params.config,
+  );
   const result = await extractTopicsBatched(
     toExtract,
     params.context,
     params.logger,
     {
       minRelevanceScore: params.minRelevanceScore,
+      createRelevanceThreshold: params.config.createRelevanceThreshold,
+      reinforceRelevanceThreshold: params.config.reinforceRelevanceThreshold,
+      sourceWeights: params.config.sourceWeights,
+      mintableEntityTypes: params.config.mintableEntityTypes,
+      sourceEntityCount,
       autoMerge: params.config.autoMerge,
       semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
@@ -288,6 +297,11 @@ export async function extractAllTopics(
     params.logger,
     {
       minRelevanceScore: params.config.minRelevanceScore,
+      createRelevanceThreshold: params.config.createRelevanceThreshold,
+      reinforceRelevanceThreshold: params.config.reinforceRelevanceThreshold,
+      sourceWeights: params.config.sourceWeights,
+      mintableEntityTypes: params.config.mintableEntityTypes,
+      sourceEntityCount: toExtract.length,
       autoMerge: params.config.autoMerge,
       semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
@@ -340,6 +354,11 @@ export async function replaceAllTopics(
 
   const result = await extractTopicsBatched(entities, context, logger, {
     minRelevanceScore: config.minRelevanceScore,
+    createRelevanceThreshold: config.createRelevanceThreshold,
+    reinforceRelevanceThreshold: config.reinforceRelevanceThreshold,
+    sourceWeights: config.sourceWeights,
+    mintableEntityTypes: config.mintableEntityTypes,
+    sourceEntityCount: entities.length,
     autoMerge: config.autoMerge,
     semanticMergeDistance: config.semanticMergeDistance,
     targetVisibility: config.extractionVisibility,
@@ -375,4 +394,21 @@ async function getEntitiesToExtract(
 function getExtractableEntityTypes(params: ExtractionParams): string[] {
   const allTypes = params.context.entityService.getEntityTypes();
   return allTypes.filter((type) => params.shouldProcessEntityType(type));
+}
+
+async function countConfiguredSources(
+  context: EntityPluginContext,
+  config: TopicsPluginConfig,
+): Promise<number> {
+  const counts = await Promise.all(
+    config.includeEntityTypes.map((entityType) =>
+      context.entityService.countEntities({
+        entityType,
+        options: {
+          filter: { visibilityScope: config.extractionVisibility },
+        },
+      }),
+    ),
+  );
+  return counts.reduce((total, count) => total + count, 0);
 }

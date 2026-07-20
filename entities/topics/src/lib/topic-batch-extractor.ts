@@ -39,6 +39,11 @@ export function buildBatchPrompt(entities: BaseEntity[]): string {
 
 export interface ExtractTopicsBatchedOptions {
   minRelevanceScore?: number;
+  createRelevanceThreshold?: number;
+  reinforceRelevanceThreshold?: number;
+  sourceWeights?: Record<string, number>;
+  mintableEntityTypes?: string[];
+  sourceEntityCount?: number;
   autoMerge?: boolean;
   mergeSimilarityThreshold?: number;
   semanticMergeDistance?: number;
@@ -53,6 +58,24 @@ export interface ExtractTopicsBatchedResult {
   skipped: number;
   batches: number;
 }
+
+const DEFAULT_SOURCE_WEIGHTS: Record<string, number> = {
+  "anchor-profile": 1,
+  post: 1,
+  summary: 1,
+  deck: 0.85,
+  project: 0.8,
+  link: 0.6,
+  note: 0.6,
+};
+
+const DEFAULT_MINTABLE_ENTITY_TYPES = [
+  "anchor-profile",
+  "post",
+  "summary",
+  "deck",
+  "project",
+];
 
 /**
  * Extract topics from source entities in token-budget-aware batches.
@@ -84,6 +107,16 @@ export async function extractTopicsBatched(
   }
 
   const minRelevanceScore = options.minRelevanceScore ?? 0;
+  const createRelevanceThreshold = options.createRelevanceThreshold ?? 0.7;
+  const reinforceRelevanceThreshold =
+    options.reinforceRelevanceThreshold ?? 0.5;
+  const sourceWeights = {
+    ...DEFAULT_SOURCE_WEIGHTS,
+    ...(options.sourceWeights ?? {}),
+  };
+  const mintableEntityTypes = new Set(
+    options.mintableEntityTypes ?? DEFAULT_MINTABLE_ENTITY_TYPES,
+  );
   const autoMerge = options.autoMerge ?? false;
   const threshold =
     options.semanticMergeDistance ?? options.mergeSimilarityThreshold ?? 0.35;
@@ -99,6 +132,8 @@ export async function extractTopicsBatched(
     undefined,
     targetVisibility,
   );
+  const sourceEntityCount = options.sourceEntityCount ?? entities.length;
+  const topicSoftCeiling = getTopicSoftCeiling(sourceEntityCount);
   const inBatch = new Map<string, TopicEntity>();
 
   let created = 0;
@@ -109,6 +144,11 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const batchContent = buildBatchPrompt(batch);
+    const sourcePolicy = getBatchSourcePolicy(
+      batch,
+      sourceWeights,
+      mintableEntityTypes,
+    );
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
@@ -130,6 +170,13 @@ export async function extractTopicsBatched(
 
       for (const topic of topics) {
         try {
+          const weightedRelevance = topic.relevanceScore * sourcePolicy.weight;
+          if (weightedRelevance < reinforceRelevanceThreshold) {
+            skipped++;
+            continue;
+          }
+
+          let distinctFromCandidate = false;
           if (autoMerge) {
             const candidate = await topicService.findMergeCandidate({
               incoming: topic,
@@ -147,6 +194,7 @@ export async function extractTopicsBatched(
               if (synthesized.verdict === "distinct") {
                 // The semantic index found a close neighbor, but the final
                 // merge judge ruled this is a separate durable domain.
+                distinctFromCandidate = true;
               } else {
                 const mergedTopic = await topicService.applySynthesizedMerge({
                   existingId: candidate.topic.id,
@@ -163,6 +211,17 @@ export async function extractTopicsBatched(
                 continue;
               }
             }
+          }
+
+          const atSoftCeiling =
+            existingTopicTitles.length + inBatch.size >= topicSoftCeiling;
+          const mayCreate =
+            sourcePolicy.canMint &&
+            weightedRelevance >= createRelevanceThreshold &&
+            (!atSoftCeiling || distinctFromCandidate);
+          if (!mayCreate) {
+            skipped++;
+            continue;
           }
 
           const slug = topicService.getTopicIdForTitle(
@@ -219,4 +278,25 @@ export async function extractTopicsBatched(
   }
 
   return summary;
+}
+
+function getBatchSourcePolicy(
+  batch: BaseEntity[],
+  sourceWeights: Record<string, number>,
+  mintableEntityTypes: Set<string>,
+): { weight: number; canMint: boolean } {
+  return batch.reduce<{ weight: number; canMint: boolean }>(
+    (policy, entity) => {
+      const weight = sourceWeights[entity.entityType] ?? 1;
+      return {
+        weight: Math.max(policy.weight, weight),
+        canMint: policy.canMint || mintableEntityTypes.has(entity.entityType),
+      };
+    },
+    { weight: 0, canMint: false },
+  );
+}
+
+function getTopicSoftCeiling(sourceEntityCount: number): number {
+  return Math.min(24, Math.max(5, Math.ceil(sourceEntityCount / 8)));
 }
