@@ -203,6 +203,7 @@ export class AuthService {
   private credentialStore: AuthCredentialStore | undefined;
   private initialization: Promise<void> | undefined;
   private firstAdminInitialization: Promise<AuthUser> | undefined;
+  private closePromise: Promise<void> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
   private readonly legacyClientStore: OAuthClientStore;
@@ -342,6 +343,10 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
+    if (this.closePromise) {
+      await this.closePromise;
+      this.closePromise = undefined;
+    }
     if (this.initialization) {
       return this.initialization;
     }
@@ -406,8 +411,13 @@ export class AuthService {
     await this.oauthEndpoints.startClientMaintenance();
   }
 
-  async close(): Promise<void> {
-    this.oauthEndpoints.stopClientMaintenance();
+  close(): Promise<void> {
+    this.closePromise ??= this.closeInternal();
+    return this.closePromise;
+  }
+
+  private async closeInternal(): Promise<void> {
+    await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
     this.personAgentStore = undefined;
     this.auditStore = undefined;

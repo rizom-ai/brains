@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
+import type { Clock } from "@brains/utils/effect";
 import {
   InvalidGrantError,
   type AuthorizationCodePersistence,
@@ -24,6 +25,7 @@ import {
   stringEntries,
 } from "./http-responses";
 import { htmlResponse } from "./http-responses";
+import { OAuthClientMaintenanceSupervisor } from "./oauth-client-maintenance-supervisor";
 import { renderAuthorizePage, unauthorizedHtmlResponse } from "./pages";
 import type { ValidAuthorizationRequest } from "./types";
 
@@ -53,6 +55,8 @@ export interface OAuthEndpointsOptions {
   resolveSession: (request: Request) => Promise<AuthSessionRecord | undefined>;
   keyStore: AuthKeyStore;
   clientMaintenanceIntervalMs?: number;
+  /** Package-private deterministic clock for maintenance lifecycle tests. */
+  clientMaintenanceClock?: Clock.Clock | undefined;
   onClientMaintenanceError?: (error: unknown) => void;
 }
 
@@ -84,6 +88,7 @@ export class OAuthEndpoints {
   ) => Promise<AuthSessionRecord | undefined>;
   private readonly keyStore: AuthKeyStore;
   private readonly clientMaintenanceIntervalMs: number;
+  private readonly clientMaintenanceClock: Clock.Clock | undefined;
   private readonly onClientMaintenanceError: (error: unknown) => void;
   private readonly authorizationApprovalTokens = new Map<
     string,
@@ -91,7 +96,9 @@ export class OAuthEndpoints {
   >();
   private readonly clientRegistrationAttempts = new Map<string, number[]>();
   private globalClientRegistrationAttempts: number[] = [];
-  private clientMaintenanceTimer: ReturnType<typeof setInterval> | undefined;
+  private clientMaintenanceSupervisor:
+    OAuthClientMaintenanceSupervisor | undefined;
+  private clientMaintenanceStopPromise: Promise<void> | undefined;
 
   constructor(options: OAuthEndpointsOptions) {
     this.clientStore = options.clientStore;
@@ -105,6 +112,7 @@ export class OAuthEndpoints {
       options.clientMaintenanceIntervalMs > 0
         ? options.clientMaintenanceIntervalMs
         : DEFAULT_CLIENT_PRUNE_INTERVAL_MS;
+    this.clientMaintenanceClock = options.clientMaintenanceClock;
     this.onClientMaintenanceError =
       options.onClientMaintenanceError ?? ((): void => undefined);
   }
@@ -351,30 +359,45 @@ export class OAuthEndpoints {
   }
 
   async startClientMaintenance(): Promise<void> {
-    if (this.clientMaintenanceTimer) return;
-    await this.runClientMaintenance();
-    if (!this.clientStore.pruneStaleUnconsentedClients) return;
-
-    this.clientMaintenanceTimer = setInterval(() => {
-      void this.runClientMaintenance();
-    }, this.clientMaintenanceIntervalMs);
-    this.clientMaintenanceTimer.unref();
-  }
-
-  stopClientMaintenance(): void {
-    if (!this.clientMaintenanceTimer) return;
-    clearInterval(this.clientMaintenanceTimer);
-    this.clientMaintenanceTimer = undefined;
-  }
-
-  private async runClientMaintenance(): Promise<void> {
-    try {
-      await this.clientStore.pruneStaleUnconsentedClients?.(
-        Math.floor(Date.now() / 1000) - UNCONSENTED_CLIENT_RETENTION_SECONDS,
-      );
-    } catch (error) {
-      this.onClientMaintenanceError(error);
+    if (this.clientMaintenanceStopPromise) {
+      await this.clientMaintenanceStopPromise;
+      this.clientMaintenanceStopPromise = undefined;
     }
+
+    const pruneStaleClients =
+      this.clientStore.pruneStaleUnconsentedClients?.bind(this.clientStore);
+    if (!pruneStaleClients) return;
+
+    this.clientMaintenanceSupervisor ??= new OAuthClientMaintenanceSupervisor(
+      this.clientMaintenanceIntervalMs,
+      async (now) => {
+        await pruneStaleClients(
+          Math.floor(now / 1000) - UNCONSENTED_CLIENT_RETENTION_SECONDS,
+        );
+      },
+      {
+        ...(this.clientMaintenanceClock
+          ? { clock: this.clientMaintenanceClock }
+          : {}),
+        onError: this.onClientMaintenanceError,
+      },
+    );
+    await this.clientMaintenanceSupervisor.start();
+  }
+
+  stopClientMaintenance(): Promise<void> {
+    if (this.clientMaintenanceStopPromise) {
+      return this.clientMaintenanceStopPromise;
+    }
+    const supervisor = this.clientMaintenanceSupervisor;
+    if (!supervisor) return Promise.resolve();
+
+    this.clientMaintenanceStopPromise = supervisor.close().then(() => {
+      if (this.clientMaintenanceSupervisor === supervisor) {
+        this.clientMaintenanceSupervisor = undefined;
+      }
+    });
+    return this.clientMaintenanceStopPromise;
   }
 
   async handleTokenRequest(

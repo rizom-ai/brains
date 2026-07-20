@@ -88,6 +88,16 @@ describe("AuthService", () => {
     expect(resolveAuthStorageDir("/srv/brain-auth")).toBe("/srv/brain-auth");
   });
 
+  it("joins repeated shutdown calls", async () => {
+    const service = new AuthService({ storageDir: await tempStorageDir() });
+
+    const firstClose = service.close();
+    const secondClose = service.close();
+
+    expect(secondClose).toBe(firstClose);
+    await firstClose;
+  });
+
   it("generates and reuses public JWKS keys for OAuth and A2A", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({
