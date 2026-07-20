@@ -12,6 +12,8 @@ import {
 } from "./topic-presenter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
+import { TopicAdapter } from "./topic-adapter";
+import { reconcileTopics } from "./topic-reconciliation";
 import type { TopicEntity } from "../types";
 
 const entityInputSchema = z.object({
@@ -34,6 +36,7 @@ const mergeTestInputSchema = z.object({
 });
 
 const detectionTopicSchema = z.object({
+  id: z.string().optional(),
   title: z.string(),
   content: z.string(),
 });
@@ -62,6 +65,12 @@ const rebuildTopicsSchema = z.object({
   entities: z.array(entityInputSchema),
 });
 
+const reconcileExistingTopicsSchema = z.object({
+  existingTopics: z.array(detectionTopicSchema).min(2),
+  threshold: z.number().optional(),
+  maxPairs: z.number().int().min(0).optional(),
+});
+
 const batchInputSchema = z.object({
   entities: z.array(entityInputSchema),
 });
@@ -71,6 +80,9 @@ type MergeTestInput = z.output<typeof mergeTestInputSchema>;
 type DetectMergeCandidateInput = z.output<typeof detectMergeCandidateSchema>;
 type MergeProcessingInput = z.output<typeof mergeProcessingSchema>;
 type RebuildTopicsInput = z.output<typeof rebuildTopicsSchema>;
+type ReconcileExistingTopicsInput = z.output<
+  typeof reconcileExistingTopicsSchema
+>;
 type SequentialInput = z.output<typeof sequentialInputSchema>;
 type BatchInput = z.output<typeof batchInputSchema>;
 
@@ -155,6 +167,7 @@ export function registerTopicEvalHandlers(params: {
 }): void {
   const { context, logger, config } = params;
   const extractor = new TopicExtractor(context, logger);
+  const topicAdapter = new TopicAdapter();
 
   const extractTopics = async (
     input: EntityInput,
@@ -342,6 +355,50 @@ export function registerTopicEvalHandlers(params: {
   });
 
   context.eval.registerHandler(
+    "reconcileExistingTopics",
+    async (input: unknown) => {
+      await clearTopics(context);
+      const parsed: ReconcileExistingTopicsInput =
+        reconcileExistingTopicsSchema.parse(input);
+
+      for (const existingTopic of parsed.existingTopics) {
+        const body = topicAdapter.createTopicBody({
+          title: existingTopic.title,
+          content: existingTopic.content,
+        });
+        await context.entityService.createEntity({
+          entity: {
+            id: existingTopic.id ?? existingTopic.title,
+            entityType: TOPIC_ENTITY_TYPE,
+            content: body,
+            visibility: "public",
+            metadata: {},
+          },
+        });
+      }
+
+      await waitForEmbeddingsToDrain(context);
+
+      const result = await reconcileTopics({
+        context,
+        logger,
+        semanticMergeDistance: parsed.threshold ?? config.semanticMergeDistance,
+        targetVisibility: "public",
+        maxPairs: parsed.maxPairs ?? config.reconciliationMaxPairs,
+      });
+      const topics = await context.entityService.listEntities({
+        entityType: TOPIC_ENTITY_TYPE,
+      });
+
+      return {
+        ...result,
+        topicCount: topics.length,
+        topics: topics.map(toTopicContentProjectionWithMetadata),
+      };
+    },
+  );
+
+  context.eval.registerHandler(
     "extractSequentially",
     async (input: unknown) => {
       await clearTopics(context);
@@ -401,6 +458,7 @@ export function registerTopicEvalHandlers(params: {
     });
     return {
       ...result,
+      topicCount: topics.length,
       topics: topics.map(toTopicContentProjection),
     };
   });

@@ -1,0 +1,34 @@
+id: topics-corpus-link-reinforce-only-no-mint
+name: Corpus link source does not mint a new topic
+description: >
+  Regression case from the yeehaa.io source mix: links are useful evidence but
+  should not create new durable topics on their own.
+type: plugin
+tags:
+  - topics
+  - corpus
+  - mint-economics
+  - link
+plugin: topics
+handler: batchExtract
+
+input:
+  entities:
+    - entityType: link
+      content: |
+        # Offcourse Studio - Creative Technology & Ethical AI Design
+
+        Offcourse Studio helps teams design learning infrastructure, creative
+        technology, and ethical AI systems. The page mentions workshops,
+        product strategy, collaboration, and AI-enabled knowledge tools.
+      metadata:
+        title: Offcourse Studio - Creative Technology & Ethical AI Design
+
+expectedOutput:
+  validateEach:
+    - path: created
+      equals: 0
+    - path: merged
+      equals: 0
+    - path: topicCount
+      equals: 0

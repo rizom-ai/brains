@@ -78,6 +78,23 @@ causes, verified in code:
   rebuilds. Merging two saved topics = `applySynthesizedMerge` + deletion
   of the absorbed topic.
 
+## Corpus eval sufficiency
+
+The pre-calibration eval suite was useful but not sufficient for the yeehaa.io
+corpus. It covered generic extraction, human/agent collaboration grouping,
+fragmentation grouping, low-quality content, and rebuild replacement, but it did
+not exercise several corpus-specific failure modes found in live data:
+
+- Existing duplicate topic files such as `e-waste` / `electronic-waste`.
+- Near-duplicate corpus domains such as `distributed-collaboration` /
+  `decentralized-collaboration`.
+- Mint economics against the actual source mix, especially reinforce-only
+  `link` sources.
+- Full-corpus acceptance criteria for the expected canonical topic set.
+
+This phase adds targeted corpus-derived evals for the first three gaps. A full
+corpus rebuild/acceptance eval remains the calibration gate before shipping.
+
 ## Phases (thin slices, tests first)
 
 1. **Semantic candidacy** — implemented. `findMergeCandidate` is distance-arbitrated, `semanticMergeDistance` is config, exact-title remains a fast path for in-batch writes, lexical scoring is retired, and the merge-synthesis template can return `merge` or `distinct`. Unit tests use live duplicate-style pairs with stubbed distances.
@@ -90,9 +107,10 @@ causes, verified in code:
    and the extraction prompt granularity contract are in place. Tests cover
    reinforce-only sources never minting, reinforce-only sources merging,
    weighted creation cutoffs, and ceiling-forced merge-first behavior.
-4. **Calibration on yeehaa.io** — run the derivation against the yeehaa.io
-   corpus through the topics eval harness; tune weights, cutoffs, and
-   `semanticMergeDistance`; lock the defaults from evidence.
+4. **Calibration on yeehaa.io** — in progress. Added corpus-derived evals for
+   electronic waste duplicate reconciliation, distributed/decentralized
+   collaboration reconciliation, and link reinforce-only mint prevention. Next
+   gate is a full corpus rebuild/acceptance eval before locking defaults.
 5. **Ship + rebuild** — release train, deploy rizom-ai, run
    `rebuildAllTopics` then `topics:reconcile` on the live brain; verify the
    knowledge map's territories reflect the re-derived set.
