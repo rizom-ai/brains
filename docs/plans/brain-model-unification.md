@@ -1,20 +1,48 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-07-21
+Last updated: 2026-07-28
 
 ## Status
 
-Phase 0 complete; Phase 1A's pure bundle kernel is **in progress on
-`feature/brain-model-unification-phase-1a`** (bundle definition/resolution committed on
-the worktree; unmerged) and remains a **pre-`v0.2.0` release-candidate gate**. Phase 1A
-is no longer gated by auth-runtime work; the private auth DB and permission boundaries
-have shipped. No bundle runtime is on `main` yet. The alpha.204 model and preset contract is frozen in
-`packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
-catalog IDs, selected members, sanitized resolved config, instruction text, effective
-permissions, site/theme identity, and the consolidated Rizom additions. The fixture was
-refreshed to absorb the recorded topics-calibration and composition-owned profile-kind
-contract deltas (see the intentional-differences table); every other value remains the
-alpha.204 contract.
+Phases 0 through 6 are complete. Phase 7 is staged and under review on
+`feature/brain-model-unification-phase-7`; it has not been merged, published, reconciled,
+or deployed. Phase 7 now includes the enforced legacy-code inventory, removes the
+`.model-entrypoint.js` Docker fallback, old `@brains/theme-default` alias, and
+`brain.config.ts` build flow, and proves offline migration modules are outside runtime
+boot and active ops import graphs. Offline crossover staging preserves YAML comments, and
+`reconcile-all --dry-run` now reconciles an isolated copy twice with external content-repository
+access blocked. A clean private-pilot review snapshot had no first-pass drift and converged
+with zero second-pass drift; staging and evidence must be regenerated from the final clean
+pilot revision after ongoing pilot changes settle. Exact unified package/image versions and
+immutable image digests remain Phase 8 approval evidence that cannot be finalized before the
+reviewed artifacts are published. At the operator's request the implementation remains unmerged on layered
+`feature/brain-model-unification-phase-1a` through Phase 7 branches. Phase 1A owns the resource-free kernel;
+Phase 1B connects it to parsing and production resolution for bundle-aware definitions
+while keeping every existing model on the same preset behavior. Phase 2 adds the final
+package-owned catalog, `core` definition, and canonical env schema. Phase 3 adds `site`
+and `publishing` plus the personal posture. Phase 4 adds `team`, the parallel team
+instance fixture, and structural Relay core/default/docs/full migration comparisons.
+Phase 5 adds the explicit commerce posture, structural Ranger characterization, and
+opt-in independence coverage without exposing a mixed legacy/canonical runtime path.
+Phase 6 adds deterministic migration previews, recipe expansion, the typed canonical
+model subpath, dormant runner/registry/packed-consumer preparation, and an offline
+canonical ops preview while leaving legacy runtime and loader paths active. Phase 7
+activates the one canonical definition, recipe scaffolding, canonical eval suites, and
+one unversioned ops schema; moves test, seed, and onboarding ownership; removes the three
+model packages and preset runtime contract; and generates a secret-free private-pilot
+review copy through offline tooling without changing the source repository. Phase 7
+review is reopened to remove the preparation-only schema-version distinction and hosted
+site/theme version inference. The three existing real hosted sites will cross over with
+explicit, reviewed package versions. The earlier review snapshot predates this correction
+and is superseded; regenerate it after the implementation changes. Phase 8 executes
+one operator-approved crossover window: freeze deployments, publish the unified runtime
+and ops artifacts, apply the reviewed desired-state migration, deploy coherent
+config/image pairs, verify convergence, and only then remove the freeze. No released
+runtime or active ops loader supports both the legacy and canonical contracts. The auth
+runtime and distinct Admin permission work are on `main`. Unification remains a **pre-`v0.2.0` release-candidate gate**. The immutable alpha.204
+characterization gated Phases 0–6; Phase 7 removes that obsolete three-model fixture only
+after canonical bundle, posture, migration, package, and packed-consumer tests own the
+replacement contract.
 
 The known-good baseline is `@rizom/brain@0.2.0-alpha.204`, healthy on the hosted `jo` and
 `smoke` canaries and on the consolidated `rizom.ai` production deployment. Unification
@@ -44,8 +72,9 @@ Success means:
   deterministically and are independent of YAML list order;
 - `add`, `remove`, `plugins`, external package declarations, local site/theme/content
   conventions, and instance permission overrides retain their current behavior;
-- hosted pilot desired state and standalone apps migrate before legacy model/preset
-  support is deleted;
+- hosted pilot desired state and standalone apps have reviewed migration diffs before
+  legacy support is deleted, then switch with the canonical runtime in one coordinated
+  crossover window;
 - the unified alpha is validated on all supported posture fixtures and hosted canaries;
 - only then is a stable `0.2.0` release candidate nominated.
 
@@ -136,11 +165,31 @@ Removing model packages before these callers migrate would break working deploym
     member.
 11. **YAML order has no policy meaning.** Bundle definition order controls deterministic
     composition. User list order cannot change config or permissions.
-12. **Legacy support is transitional.** `brain:` and `preset:` remain readable for one
-    compatibility alpha while repository and fleet configs migrate. They are removed
-    before the release candidate, with a clear migration error rather than a silent
-    fallback.
-13. **Unification gates stable `v0.2.0`.** Collective validation, complete multi-user
+12. **The crossover is clean.** Existing models, presets, and the current ops format
+    remain unchanged while the canonical definition and replacement desired state are
+    tested offline. The replacement is a one-time clean crossover, not a numbered
+    successor or the start of a schema-version ladder. Phase 7 exposes one unversioned
+    `pilotSchema` with no active
+    version discriminator; the old format may remain only as a private offline staging
+    input. No runtime loader, registry, renderer, or reconciler accepts both formats.
+    Repository runtime selection, checked-in configs, published artifacts, and
+    private-pilot desired state cross over in one operator-approved window. A rolling
+    fleet may briefly contain old instances running old config and new instances running
+    new config, but no process receives a mismatched config/image pair. Rollback restores
+    the prior config revision and prior image together; it is not implemented as forward
+    dual-format compatibility. There is no model-ID alias layer or mixed
+    legacy/canonical resolution path, and a clear migration error replaces silent
+    fallback after the switch.
+13. **Hosted package versions are explicit at crossover.** There are only three existing
+    real hosted sites, so enumerate them and pin every external site and theme package to
+    an exact reviewed version in the staged desired state. The active schema does not
+    default a site version from the brain version, infer a theme version from a site
+    version, or retain a `resolveSiteOverride` compatibility normalizer. Missing pins
+    fail schema validation before registry loading. Offline staging materializes the
+    reviewed package refs without changing the source repository; it does not guess them.
+    Bundled `@brains/*` themes remain part of `@rizom/brain` and are not separately
+    installed or version-pinned.
+14. **Unification gates stable `v0.2.0`.** Collective validation, complete multi-user
     identity, and optional product features do not gate stable, but the obsolete
     model/preset authoring contract must not be the contract certified by the RC.
 
@@ -159,15 +208,19 @@ Posture-independent runtime foundation:
   decks;
 - discovery/trust: agents, assessment, ATProto registry;
 - interfaces: MCP, webserver, web chat, Discord, and A2A;
-- the shipped admin-only platform permission baseline; alpha.204's anchor-only baseline
-  remains frozen only as migration evidence.
+- the admin-only platform permission baseline now on `main`; alpha.204's anchor-only
+  baseline remains migration evidence.
 
 Model-specific capability IDs are normalized during migration:
 
-- `rover-profile` → `profile`;
-- `rover-onboarding` → `onboarding`;
-- `dashboard-root` / `dashboard` → one `dashboard` member with an explicit site config
-  override.
+- the current model-neutral `profile` ID remains `profile`;
+- `rover-onboarding` is replaced by `onboarding`;
+- `dashboard-root` / `dashboard` become one `dashboard` member with an explicit site
+  config override.
+
+There is no runtime capability-alias map. Existing model definitions keep their current
+IDs until the crossover; the migration command rewrites old `add`, `remove`, and `plugins`
+references before the canonical definition becomes the default.
 
 ### `site`
 
@@ -196,7 +249,7 @@ Shared-memory posture:
 - docs;
 - team-specific topic coverage and agent instruction fragments;
 - trusted create/update posture for note, link, image, doc, deck, decision, and
-  action-item, while destructive actions remain admin-only after the auth branch lands.
+  action-item, while destructive actions remain admin-only.
 
 ### Explicit opt-ins
 
@@ -227,14 +280,18 @@ additions must be visible in `brain.yaml`; recipes cannot create hidden runtime 
 
 | Alpha.204 behavior                                                                                               | Unified target                                                                                                                                                                                                                                                                                                |
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin is absent and `anchor` doubles as the administrative permission level                                      | Admin is a core capability; the auth branch's distinct `admin` level owns administrative routes and destructive defaults                                                                                                                                                                                      |
+| Admin is absent and `anchor` doubles as the administrative permission level                                      | Admin is a core capability; the distinct `admin` level now on `main` owns administrative routes and destructive defaults, while Anchor remains an independent identity facet                                                                                                                                  |
 | Decks are absent from Rover/Relay core                                                                           | Decks move to `core` as universal knowledge-work output                                                                                                                                                                                                                                                       |
 | Outbound ATProto is in Rover core; the registry is only a catalog/instance addition                              | ATProto registry moves to `core`; outbound ATProto moves to `publishing`                                                                                                                                                                                                                                      |
 | `dashboard-root` and `dashboard` are separate capability IDs selected by preset subtraction                      | One `dashboard` member defaults to `/`; `site` explicitly overrides it to `/dashboard`                                                                                                                                                                                                                        |
 | `rover-profile` and `rover-onboarding` expose model names in capability IDs                                      | Transitional aliases map to model-neutral `profile` and `onboarding` IDs                                                                                                                                                                                                                                      |
 | Rover default mixes blog, decks, analytics, Obsidian, and site infrastructure                                    | Blog belongs to `publishing`, decks to `core`, analytics/site infrastructure to `site`, and Obsidian remains opt-in                                                                                                                                                                                           |
+| Rover's definition applies personal-publishing instructions to every preset, including core                      | Canonical `core` is posture-neutral; those instructions move to `publishing`, while `team` later contributes its own non-contradictory posture                                                                                                                                                                |
+| Model packages select package-owned seed directories from hidden preset config                                   | Canonical directory sync uses instance-relative `./seed-content`; recipes and migrated instances own the actual seed content                                                                                                                                                                                  |
+| Rover's definition supplies a personal site and theme even when core does not select site-builder                | The canonical definition has no site or theme; personal/team/commerce recipes and instance YAML own those choices explicitly                                                                                                                                                                                  |
 | Rover does not select `site-content` by preset; production Rizom adds it manually                                | `site-content` belongs to `site` because entity-backed site sections require it                                                                                                                                                                                                                               |
 | Relay model defaults carry team instructions, permissions, topic config, site/theme, and seed paths together     | `team` owns instruction/config/permission posture; recipe/instance output owns site, theme, and seed content explicitly                                                                                                                                                                                       |
+| Ranger's default preset combines commerce, social distribution, capture, site identity, and seed content         | Commerce is `core + site + add: [products]`; social distribution remains an explicit opt-in, while site/theme/seed and Discord URL-capture choices move to instance output                                                                                                                                    |
 | Professional-profile work temporarily adds LinkedIn import to Rover core                                         | Provider-neutral profile ownership remains core; LinkedIn import and OAuth broker remain opt-in                                                                                                                                                                                                               |
 | Topics extraction ran with generic thresholds and no source weighting                                            | Calibrated derivation economics (per-source weights, create/reinforce relevance thresholds, semantic merge distance, reconciliation caps, mint ceilings) landed on the alpha line 2026-07-21; the baseline fixture was refreshed to include these additive defaults, with all critical topics flags unchanged |
 | Three `ai.rizom.brain.*` lexicons (`card`, `link`, `post`) declared nested objects inline in record properties   | Spec-valid documents: nested objects hoisted into named defs referenced via `type: "ref"` (2026-07-21, gated by the official-parser conformance test). Wire shape of records is unchanged; only the served lexicon config hashes in the fixture moved                                                         |
@@ -271,6 +328,7 @@ interface BundleConfigContribution {
 interface BundlePermissionContribution {
   member: string;
   config: PermissionConfig;
+  overrides?: string; // earlier bundle id explicitly being overridden
 }
 ```
 
@@ -290,9 +348,10 @@ only during the compatibility phase.
 7. Instantiate external plugin declarations through their current path unless explicitly
    removed.
 
-`preset` and `bundles` are mutually exclusive. During compatibility, legacy
-model+preset inputs translate to an explicit bundle/add/remove selection before normal
-resolution; there is no second resolver.
+`preset` and `bundles` are mutually exclusive. Before the crossover, existing model
+presets and bundle-aware definitions share the same resolver kernel but keep separate
+catalogs. They are compared structurally rather than translated through a runtime alias
+layer. At the crossover, migrated configs select only the canonical definition.
 
 ### Config composition
 
@@ -332,8 +391,8 @@ coexist.
 The contract covers transport rules and every entity action currently supported:
 `create`, `update`, `delete`, `extract`, and `publish`. Phase 1A may define the
 member-scoped contribution shape but does not merge policy values. Phase 1B starts from
-the auth branch's `admin` / `trusted` / `public` permission model plus independent
-Anchor identity facet rather than introducing a second transitional bundle permission
+the `admin` / `trusted` / `public` permission model now on `main`, plus the independent
+Anchor identity facet, rather than introducing a second transitional bundle permission
 vocabulary.
 
 ### Instructions, site, and seed content
@@ -352,11 +411,11 @@ vocabulary.
 
 Phase 0 assigns every overlapping worktree an explicit disposition:
 
-| Branch                             | Disposition                                                                                                                                                                                                                                               |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth runtime dependency            | Landed. Resolver integration uses the shipped Admin capability and permission model rather than the obsolete alpha.204 anchor/admin conflation.                                                                                                           |
-| `work/professional-profile-v2`     | Rebase/port before Phase 2 catalog freeze. Keep the provider-neutral profile extension/migration in `core`; LinkedIn import and the OAuth broker remain explicit opt-ins even though the current worktree temporarily adds LinkedIn import to Rover core. |
-| `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                        |
+| Branch                             | Disposition                                                                                                                                                                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `feature/auth-runtime-db`          | Integrated on `main` before Phase 1B. Resolver integration uses its Admin capability and `admin` / `trusted` / `public` permission model; Anchor is an independent identity facet, not a fourth permission level.                                     |
+| `work/professional-profile-v2`     | The model-neutral profile/kind architecture now on `main` supplies the canonical `profile` capability. Rebase/port the richer professional fields independently; LinkedIn import and the OAuth broker remain explicit opt-ins and never enter `core`. |
+| `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                    |
 
 Do not edit generated/scaffolded pilot files to work around branch conflicts. Pilot changes
 start upstream in `@rizom/ops` during Phase 6 and are regenerated after release.
@@ -364,15 +423,19 @@ start upstream in `@rizom/ops` during Phase 6 and are regenerated after release.
 ## Phasing
 
 Each remaining phase is independently reviewable and keeps the previous input format
-working until the migration phase. The Phase 0 characterization fixture remains unchanged
-until a canonical bundle profile is compared against it; intentional deltas are asserted
-separately rather than silently regenerating the baseline.
+working until the migration phase. The characterization fixture remains versioned
+migration evidence; every intentional delta is documented and inspected rather than
+silently regenerating the baseline.
 
-### Phase 1A — Build the pure bundle kernel
+### Phase 1A — Build the pure bundle kernel (complete)
+
+Implemented in `shell/app/src/bundle-definition.ts` and
+`shell/app/src/bundle-resolution.ts`, with direct characterization in
+`shell/app/test/bundle-resolution.test.ts`.
 
 This slice deliberately avoids `brain-resolver.ts`, `instance-overrides.ts`, model
-packages, and permission schemas. Put the new contracts and pure resolution logic in
-isolated `shell/app` modules with direct unit
+packages, permission schemas, and every file then changed by the auth branch. Put the
+new contracts and pure resolution logic in isolated `shell/app` modules with direct unit
 tests; do not expose or call the kernel from production resolution yet.
 
 - Add the TypeScript/Zod bundle definition and `defineBundle` validation contract.
@@ -395,19 +458,26 @@ rejection, eval/add/remove precedence, instruction composition, permission contr
 filtering by active member, and repeated-resolution isolation.
 
 Exit gate: the pure kernel has no import from auth-service and no production caller;
-alpha.204's preset path and baseline fixture remain byte-for-byte unchanged.
+Phase 1A does not modify the checked-in characterization fixture or preset runtime path.
 
-### Phase 1B — Integrate bundles behind presets
+### Phase 1B — Integrate bundles behind presets (complete, unmerged)
 
-The auth-runtime prerequisite has landed. Preserve the immutable alpha.204 fixture as
-migration evidence and assert its expected Admin/permission delta separately.
+Implemented on `feature/brain-model-unification-phase-1b` in the brain definition,
+instance parser, shared resolver, bundle-permission composer, public authoring contracts,
+and focused integration tests. Existing built-in definitions still select presets until
+Phase 2 introduces the canonical catalog and `core` bundle.
+
+Prerequisite satisfied: `feature/auth-runtime-db` is integrated on `main`. Preserve the
+checked-in characterization fixture as migration evidence and assert every expected
+Admin/permission delta explicitly.
 
 - Parse `bundles:` and reject `bundles` + `preset` together.
 - Extend `BrainDefinition` and `CapabilityContext` with active bundles while preserving
   transitional `preset`.
 - Connect the Phase 1A kernel to `brain-resolver` without adding a second resolution path.
-- Validate and merge member-scoped permission contributions using the final four-level
-  subject/permission contracts and documented precedence.
+- Validate and merge member-scoped permission contributions using the final
+  `admin` / `trusted` / `public` permission contract, independent Anchor identity facet,
+  and documented precedence.
 - Preserve external plugins, package refs, local site conventions, fresh plugin
   construction, and existing no-bundle behavior.
 - Keep legacy model+preset inputs translating into the same kernel used by explicit
@@ -420,83 +490,144 @@ preset parity, and fresh repeated resolve behavior.
 Exit gate: explicit bundles and transitional presets use one resolver; all Phase 0
 baseline differences are either preserved or asserted as intentional auth deltas.
 
-### Phase 2 — Establish the canonical catalog and migrate `core`
+### Phase 2 — Establish the canonical catalog and migrate `core` (complete)
+
+Implemented in `packages/brain-cli/src/model/canonical-brain.ts`, with the separate
+canonical env declarations beside it and direct characterization in
+`packages/brain-cli/test/canonical-brain.test.ts`. The source remains deliberately
+unregistered until the coordinated crossover.
 
 - Put the canonical catalog and bundle definitions in their final `@rizom/brain` source
-  location; the packaged build consumes that source directly.
-- Normalize the profile, onboarding, and dashboard capability IDs with transitional alias
-  mapping.
-- Express the current minimal personal posture through `core`.
-- Keep `brain: rover` + `preset: core` translating through the same bundle resolver.
+  location and typecheck that source with the packaged workspace.
+- Use only final model-neutral member IDs; do not expose transitional aliases.
+- Express the current minimal personal posture through `core` without hidden site, theme,
+  seed identity, or publishing instructions.
+- Keep every existing model definition and packaged registry selection unchanged while the
+  canonical definition is characterized in parallel.
 - Consolidate the first canonical env schema without deleting model schemas yet.
 
-Exit gate: legacy Rover core and explicit `bundles: [core]` match except for Phase 0's
-approved deltas, and packaged startup still works.
+Exit gate: legacy Rover core and direct canonical `bundles: [core]` resolution match
+except for Phase 0's approved deltas, the immutable baseline still passes, and packaged
+legacy startup remains unchanged.
 
-### Phase 3 — Add `site` and `publishing`; migrate personal posture
+### Phase 3 — Add `site` and `publishing`; migrate personal posture (complete)
+
+Implemented in the package-owned canonical definition, with the parallel
+`packages/brain-cli/test/fixtures/canonical-personal/brain.yaml` posture and direct
+characterization in `packages/brain-cli/test/canonical-personal.test.ts`. Tests were
+written and observed failing before the
+bundle definitions were added. The fixture remains deliberately unregistered.
 
 - Add site/publishing membership, dashboard route override, topics composition, and
   publishing instructions/config.
-- Make the personal recipe reproduce the supported personal-publishing posture.
-- Map Rover default/full inputs to explicit bundle selections plus visible additions where
-  exact legacy parity requires them.
-- Migrate Rover test apps and eval suite definitions from preset inheritance to explicit
-  bundle combinations while retaining compatibility tests for old YAML.
+- Define the personal recipe's future output through the parallel explicit-bundle fixture;
+  activate recipe scaffolding only in Phase 7.
+- Characterize Rover default/full against explicit bundle selections plus visible
+  additions where exact parity requires them.
+- Add parallel canonical posture fixtures while leaving existing Rover app/eval inputs
+  untouched until the single crossover.
 - Verify custom site package, local site/theme/content, docs capability, and consolidated
   Rizom additions.
 
-Exit gate: all Rover boot/composition tests and deterministic eval harness tests pass from
-the canonical definition.
+Exit gate: direct canonical personal composition preserves unchanged Rover default/full
+plugin config and permissions, records visible additions/removals, keeps the immutable
+baseline green, and leaves packaged legacy startup unchanged. Boot/eval inputs remain on
+the old definitions until the coordinated crossover.
 
-### Phase 4 — Add `team`; migrate Relay
+### Phase 4 — Add `team`; migrate Relay (complete)
+
+Implemented in the package-owned canonical definition, with the parallel
+`packages/brain-cli/test/fixtures/canonical-team/` instance posture and direct
+characterization in `packages/brain-cli/test/canonical-team.test.ts`. Tests were written
+and observed failing before `team` was exported. The canonical definition remains
+unregistered and Relay's production definition is unchanged.
 
 - Add conversation-memory/docs config, team topic composition, team instructions, and
-  member-scoped trusted policies including image and `publish`/`extract` defaults.
-- Move Relay seed content, site package/theme choice, and content definitions into the
-  team recipe/instance fixtures; bundles do not conceal these choices.
-- Run Relay test apps and permission/attribution/approval-hijack fixtures against the
-  canonical definition.
-- Keep `brain: relay` as a compatibility translation until Phase 7.
+  member-scoped trusted policies including image and explicit Admin-only
+  `publish`/`extract` defaults.
+- Keep the seed path, site package/theme choice, and site-content definitions visible in
+  the team instance fixture; the bundle conceals none of them.
+- Resolve migrated Relay core/default/docs/full test-app inputs from the canonical
+  definition and structurally validate the permission, attribution, and approval-hijack
+  fixtures. Model-backed eval execution remains deferred until explicitly authorized.
+- Characterize Relay's preserved topic, shared-memory, Discord, transport, and effective
+  entity-action posture plus the approved universal-core additions.
 
-Exit gate: personal and team postures boot side by side from one definition without
-instruction, permission, site, or seed-content leakage.
+Exit gate: personal and team postures resolve side by side from one definition without
+instruction, permission, site, or seed-content leakage; the immutable legacy baseline
+and packaged model selection remain unchanged.
 
-### Phase 5 — Migrate Ranger and explicit opt-ins
+### Phase 5 — Migrate Ranger and explicit opt-ins (complete)
+
+Implemented as characterization in
+`packages/brain-cli/test/canonical-commerce.test.ts` with the parallel
+`packages/brain-cli/test/fixtures/canonical-commerce/brain.yaml` posture. The canonical
+catalog already contained every required factory, so this phase required no production
+definition change. Ranger's production definition remains untouched.
 
 - Express commerce as `core + site + add: [products]`.
-- Migrate Ranger site/theme/seed fixtures and any still-live instance config.
+- Keep Ranger's site package, theme, seed path, and Discord URL-capture config visible in
+  the instance fixture. A repository scan found no additional live Ranger instance YAML
+  to migrate in this preparation phase.
+- Characterize unchanged Ranger plugin config and transport policy, plus the intentional
+  universal-core additions and removal of implicit social distribution.
 - Verify products, ATProto registry, social, wishlist, Rizom ecosystem, Obsidian, docs,
-  and external plugin additions remain independently selectable.
-- Keep `brain: ranger` as a compatibility translation until Phase 7.
+  and external package additions remain independently selectable and removable.
 
-Exit gate: no capability exists only because an archetype package still owns its factory
-or config.
+Exit gate: every Ranger runtime factory exists in the canonical catalog, all named
+opt-ins compose independently, and no capability exists only because the Ranger package
+owns its factory or config. The immutable baseline and legacy registration remain
+unchanged.
 
-### Phase 6 — Migrate authoring and hosted operations
+### Phase 6 — Prepare authoring and hosted migration (complete)
 
-- Change `brain init` to recipes that emit explicit `bundles`; keep `--model` only as a
-  deprecated compatibility input for one alpha.
-- Add `brain config:migrate` to rewrite model/preset YAML deterministically while
-  preserving comments where the YAML tooling permits and always showing a diff before
-  `--write`.
-- Update generated entrypoints, runner fallback, model registry, env schema generation,
-  CLI help/docs, packed fixtures, and public declarations.
-- Update `@rizom/ops` source schemas/templates/tests first, release it, then regenerate
-  Rover Pilot. Move pilot schema v1 `model`/`preset` to schema v2 explicit bundles without
-  renaming content repositories or mutating secrets.
+Implemented in the brain CLI migration/recipe modules, canonical model entrypoint,
+explicitly gated app package resolver, dormant registry metadata, packed-consumer fixture,
+and offline canonical ops preview. The private pilot and active legacy loaders remain untouched.
+
+- Implement and test recipe expansion to explicit `bundles` without activating it in the
+  existing `brain init` path.
+- Add `brain config:migrate` to preview model/preset YAML rewrites deterministically,
+  preserving comments where the YAML tooling permits. Do not switch runtime selection or
+  write repository/fleet configs in this preparation phase.
+- Prepare the generated-entrypoint, runner, registry, env-schema, CLI help/docs, packed
+  fixture, and public-declaration changes without activating the canonical path.
+- Add dormant `@rizom/ops` canonical migration/render tests without releasing them or
+  regenerating Rover Pilot. The active registry loader remains strictly on the current
+  model/preset format in this phase and no loader accepts both formats. The preview moves
+  `model`/`preset` to explicit bundles without renaming content repositories or mutating
+  secrets. Do not establish a schema-version ladder: Phase 7 removes preparation-only
+  version names and discriminators, exposes one unversioned `pilotSchema`, and keeps any
+  old-format reader private to offline staging.
 - Preserve existing image/tag identity through the compatibility alpha unless a tag
   migration is explicitly required; runtime composition and operator branding are
   separate concerns.
-- Reconcile the private pilot repo through the released ops command, never by hand-editing
-  generated workflow/deploy artifacts.
+- Do not edit or reconcile the private pilot repository in this preparation phase.
 
-Exit gate: all checked-in standalone/test apps and all hosted desired-state files use
-explicit bundles; generated config is stable on a second reconcile.
+Exit gate: every in-repository input and representative ops desired-state fixture has a
+reviewed deterministic preview, generated output is stable on a second dry run, and all
+active runtime/ops paths still use only the legacy contract. The private pilot is not
+edited in Phase 6.
 
-### Phase 7 — Remove presets and archetype packages
+### Phase 7 — Stage the single crossover and remove compatibility
 
-Only after repository and fleet migration:
+Build the complete crossover as reviewable, unmerged repository and private-pilot staging
+changes. Do not merge, publish, reconcile, or deploy either change without explicit
+operator authorization.
 
+Repository crossover change:
+
+- switch packaged and monorepo runtime selection to the canonical definition, activate
+  recipe-based init, and migrate all checked-in standalone/test/eval/ops inputs to
+  explicit bundles;
+- update generated entrypoints, runner fallback, the single bundled definition owner,
+  CLI help/docs, packed fixtures, and public declarations;
+- replace the current model/preset desired-state format with the sole exported and active,
+  unversioned `pilotSchema`; remove schema-version discriminators and the old format from
+  registry loading, rendering, reconciliation, and verification rather than adding a
+  union or version-dispatch path;
+- retain a legacy parser only inside the offline migration command if rollback tooling
+  requires it; it must not be exported as a second active contract;
 - remove `PresetName`, preset parsing/resolution, `{ preset }` config context, eval
   `--preset`, and preset documentation;
 - remove the static three-model registry and triplicated bundled model env schemas;
@@ -505,25 +636,121 @@ Only after repository and fleet migration:
 - make the canonical definition the packaged and monorepo default when `brain:` is absent;
 - retain explicit external brain package loading only if the Phase 0 public-API review
   confirms it as a supported advanced authoring surface;
-- reject legacy `brain: rover|relay|ranger` and `preset:` with a migration command in the
-  error message.
+- reject legacy `brain: rover|relay|ranger` with migration guidance and reject the removed
+  `preset:` field through strict instance validation;
+- require exact `siteOverride.version` values and exact versions for external theme
+  packages in the active ops schema. Remove loader-side site/theme version inference and
+  `resolveSiteOverride`; bundled themes remain unpinned because they ship with the brain.
 
-Exit gate: repository-wide architecture checks find no runtime model/preset dependency;
-only changelog/history text may retain the old names.
+Crossover staging and rollback preparation:
 
-### Phase 8 — Unified alpha and stable release candidate
+- generate the private-pilot desired-state diff with
+  `brains-ops crossover:stage <source-repo> <output-dir> <site-pins.yaml>` in a separate,
+  secret-free review copy; do not hand-edit generated user files or mutate the source
+  repository;
+- verify repository names, content repositories, server/domain identity, secret selectors,
+  image names, and tag identity are unchanged unless an explicit reviewed migration says
+  otherwise;
+- pin the exact unified runtime and ops artifact versions used by the staged desired state;
+- enumerate the three existing real hosted sites and materialize their exact site and
+  external-theme package versions from reviewed package, lockfile, and image evidence.
+  Staging fails rather than inferring a missing version;
+- prepare a rollback pair consisting of the prior private-pilot revision and prior image
+  tag/digest; never roll back only one side;
+- run package, packed-consumer, architecture, dependency, env-schema,
+  migration-idempotence, and `reconcile-all <review-copy> --dry-run` checks against the
+  complete staged diff; require zero first-pass drift and zero second-pass drift without
+  writing the review copy or contacting content repositories.
 
-- Add the release changeset and publish one unified alpha.
-- Run package build/declaration/public-API/architecture/dependency/workspace/env-schema
-  checks and packed external-plugin/startup smokes.
-- Run model-backed Rover/Relay eval suites only with explicit operator authorization;
-  deterministic composition and permission tests are mandatory regardless.
-- Deploy the unified alpha to `jo` and `smoke`; verify `/health` version/status and the
-  expected unauthenticated MCP `401`.
-- Validate the personal posture on `yeehaa.io`, then roll to the wider pilot only after
-  the canary soak.
-- Nominate that deployed alpha as the stable `0.2.0` release candidate and complete the
-  remaining compatibility sign-off.
+Exit gate: the repository crossover branch, isolated private-pilot review copy and diff,
+immutable artifacts, deployment order, health checks, and paired rollback are reviewed and
+ready.
+Repository-wide architecture checks find no active model/preset dependency, schema-version
+dispatch, or hosted package-version inference; only the private offline migration reader
+and changelog/history text may retain the old contract. No compatibility branch is merged
+merely to make staging easier.
+
+#### Legacy-tagged code retirement strategy
+
+Treat code explicitly named, commented, or tagged `legacy` as an owned migration
+inventory, not an informal cleanup list.
+
+1. Maintain the checked-in [legacy-code inventory](../legacy-code-inventory.json) for
+   every active-source `legacy` compatibility, migration,
+   or durable-data code path. Each entry records its file and symbol, owning subsystem,
+   whether it reads, writes, rejects, or migrates old state, current consumers, removal
+   prerequisite, rollback dependency, and target release. Historical terminology and
+   third-party naming are covered by a static exemption list, not per-occurrence
+   entries. A repository check fails when a `legacy` occurrence appears that is neither
+   manifested nor exempted.
+2. Classify every entry:
+   - **brain crossover compatibility** — the removed Docker runner fallback, old theme
+     alias, and `brain.config.ts` flow;
+   - **offline migration** — brain config migration, private-pilot schema migration, and
+     crossover staging;
+   - **rejection-only compatibility** — actionable errors for removed config;
+   - **durable-data compatibility** — auth databases/cookies, message metadata, workflow
+     snapshots, and stored entity schemas;
+   - **historical terminology** — tests, comments, plans, and changelogs;
+   - **third-party naming** — upstream paths such as `pdfjs-dist/legacy`, which require an
+     explicit exemption rather than local renaming.
+3. Before Phase 8, remove active brain crossover compatibility after proving canonical
+   consumers no longer require it: the `.model-entrypoint.js` fallback, old theme package
+   alias, `brain.config.ts` build fallback, and any other mixed canonical/legacy
+   resolution. All checked-in consumers use canonical `brain.yaml`. Legacy model and
+   preset knowledge remains only in offline migration modules and migration/rejection
+   tests. Dependency tests prove runtime boot and active ops loading cannot import those
+   offline modules.
+4. During Phase 8, old instances remain on their immutable old config/image pair until
+   their turn, while migrated instances use the canonical pair. Rollback restores the
+   prior Git revision and old image; the new runtime does not carry a compatibility path
+   for rollback. Record that no deployed config contains model, preset, or an old-format
+   schema discriminator, and that every external hosted package has an exact pin.
+5. The rollback horizon closes when the Phase 8 second reconcile converges with zero
+   drift and the hosted canaries plus `yeehaa.io` have soaked one week on the unified
+   alpha; then delete the private-pilot migration and crossover staging modules,
+   command, exports, tests, and documentation. Public `brain config migrate` remains
+   supported until stable `0.2.0` ships and is deleted with that release, along with
+   the corresponding legacy-name inventories and rejection messages.
+6. Retire unrelated durable-data compatibility independently through
+   **expand → backfill → stop old writes → observe zero old reads → contract**. It must
+   have its own owner and gate and must not be coupled mechanically to the brain
+   crossover.
+
+Legacy retirement exit gate: no active brain-crossover runtime or ops path is
+legacy-tagged; only explicitly time-bounded brain-crossover offline migration entries
+remain; every unrelated retained entry has an owner, exemption or deletion gate, and
+target release; and pre-commit/CI prevents untracked legacy compatibility from returning.
+
+### Phase 8 — Execute the clean crossover and certify the unified alpha
+
+Execute only in an explicitly authorized maintenance window:
+
+1. Freeze pilot reconciliation, deploy automation, and unrelated releases.
+2. Merge the reviewed repository crossover, publish one unified alpha plus its matching
+   `@rizom/ops` artifact, and verify package/declaration/packed-startup integrity.
+3. Merge the reviewed private-pilot desired-state revision with the exact new artifact
+   pins. The new ops loader reads only the canonical schema.
+4. Deploy each instance as one coherent config/image unit. Existing instances may remain
+   on the old config and old image until their turn, but never pair either side with the
+   other contract.
+5. Verify `/health` version/status, expected unauthenticated MCP `401`, identity,
+   repository/secret selectors, and application-managed site output after each deploy.
+6. Run a second reconcile and require zero generated drift before lifting the freeze.
+7. If any gate fails, restore the prior desired-state revision and prior image together,
+   then verify convergence with the prior ops release.
+
+After crossover convergence:
+
+- run model-backed canonical `core`, `personal`, `publishing`, `team`, and `commerce`
+  eval suites only with explicit operator authorization;
+  deterministic composition and permission tests remain mandatory regardless;
+- soak `jo` and `smoke`, validate the personal posture on `yeehaa.io`, then continue the
+  wider pilot rollout under the same coherent-pair rule;
+- confirm no active deployment or desired-state file uses model/preset or an old-format
+  schema discriminator, and no external hosted package version is implicit;
+- nominate the deployed unified alpha as the stable `0.2.0` release candidate only after
+  the fleet and repository are wholly on the canonical contract.
 
 ## Validation gates
 
@@ -537,7 +764,8 @@ checks when shared contracts move:
 - public API/declaration and Effect-import-boundary checks when package surfaces move;
 - architecture/dependency/workspace/env-schema checks when package ownership changes;
 - packaged consumer and external-plugin startup smokes before deleting compatibility;
-- generated pilot convergence and live app-managed site rebuilds for deployed postures.
+- generated pilot convergence, config/image pairing checks, paired rollback rehearsal,
+  and live app-managed site rebuilds for deployed postures.
 
 Composition parity is tested structurally. Model evals validate behavior at explicit
 checkpoints; they are not a substitute for deterministic resolver tests and are not run
@@ -554,6 +782,8 @@ The plan is complete when:
 - personal, team, commerce, docs, consolidated Rizom, and external-plugin fixtures resolve
   from explicit bundles/additions;
 - pilot and standalone configuration migration is documented and proven idempotent;
+- the active ops/runtime surface exposes only the canonical contract, with any legacy
+  reader isolated to offline migration tooling;
 - unified canaries and `yeehaa.io` are healthy on the nominated alpha;
 - the roadmap and authoring/deploy docs describe only the one-brain bundle model;
 - stable `0.2.0` is cut from that unified contract.
@@ -577,8 +807,11 @@ The plan is complete when:
   capabilities own typed composition.
 - **Deleting a model before its assets move:** package deletion is Phase 7, after fixture,
   seed, site, env, and deploy ownership checks.
-- **Hosted fleet split-brain:** ops migrates desired state through a released schema and
-  verifies second-reconcile convergence before compatibility removal.
+- **Hosted fleet contract mismatch:** deployments are frozen; the staged desired-state
+  revision pins the matching runtime/ops artifacts; each instance moves as one
+  config/image unit; second-reconcile convergence is required before unfreezing; rollback
+  restores the prior config revision and image together. The new loader never accepts
+  both desired-state formats and never infers external package versions.
 - **Active branch collision:** each overlapping worktree receives an explicit merge/port
   disposition in Phase 0.
 - **Release scope expansion:** only unification and defects found by its gates block the
