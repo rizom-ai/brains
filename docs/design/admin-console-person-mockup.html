@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin console — person (solo brain)</title>
+    <title>Admin console — professional (personal brain)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -72,12 +72,26 @@
       .masthead-meta { padding-bottom: 5px; color: var(--text-muted); font: 400 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; text-align: right; white-space: nowrap; }
       .masthead-meta b { color: var(--text-dim); font-weight: 500; }
       .tabs { display: flex; gap: 2px; padding: 20px 28px 0; border-bottom: 1px solid var(--rule-strong); }
-      .tab { position: relative; color: var(--text-muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; padding: 9px 16px 11px; border-bottom: 2px solid transparent; text-decoration: none; cursor: pointer; }
+      .tab { appearance: none; position: relative; color: var(--text-muted); background: none; border: 0; border-bottom: 2px solid transparent; font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; padding: 9px 16px 11px; text-decoration: none; cursor: pointer; }
       .tab.active { color: var(--text); border-bottom-color: var(--accent); }
       .tab.ghost { color: color-mix(in srgb, var(--text-muted) 55%, transparent); }
       .tab.ghost::after { content: " soon"; font-size: 8px; opacity: 0.7; }
 
       .canvas { padding: 26px 28px 34px; }
+      .panel[hidden], .invite-form[hidden] { display: none; }
+      .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .overview-card { border: 1px solid var(--rule); border-radius: 10px; background: var(--card); padding: 16px 18px; }
+      .overview-card .k { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+      .overview-card .metric { margin-top: 7px; font: 500 20px var(--display); }
+      .overview-card p { margin: 5px 0 0; color: var(--text-muted); font-size: 11px; }
+      .overview-card.attention { border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: var(--warn-soft); }
+      .list-card { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); overflow: hidden; }
+      .list-row { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; align-items: center; gap: 18px; padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+      .list-row:last-child { border-bottom: 0; }
+      .list-row b { font-weight: 500; } .list-row small { display: block; color: var(--text-muted); }
+      .audit-event { grid-template-columns: 110px minmax(260px, 1fr) auto; }
+      .audit-time { color: var(--text-muted); font: 500 9px var(--mono); text-transform: uppercase; }
+      .empty-profile { padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-muted); font-size: 12px; }
       .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.17em; text-transform: uppercase; margin-bottom: 6px; }
       .eyebrow::before { content: ""; display: inline-block; width: 14px; height: 1px; background: var(--accent); vertical-align: 3px; margin-right: 8px; }
       .button { border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--card-raised); color: var(--text); padding: 8px 13px; cursor: pointer; font-size: 12px; }
@@ -169,7 +183,7 @@
       .modal-foot .hosted:hover { color: var(--text-dim); }
       .modal-foot .actions { display: flex; gap: 8px; }
       .button.ghost { background: transparent; }
-      @media (max-width: 860px) { .anchor-fields { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } .split { grid-template-columns: 1fr; } }
+      @media (max-width: 860px) { .console-strip { grid-template-columns: auto 1fr auto; gap: 12px; padding: 0 14px; } .surface-nav, .command-chip { display: none; } .note-banner { padding: 0 16px; align-items: flex-start; } .console { padding: 22px 12px 48px; } .masthead { padding: 22px 18px 0; } .masthead-meta, .tagline { display: none; } .tabs { padding: 16px 10px 0; overflow-x: auto; } .tab { padding: 9px 10px 11px; } .canvas { padding: 20px 16px 26px; } .anchor-fields, .overview-grid { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } .section-head { align-items: flex-start; flex-direction: column; } .split { grid-template-columns: 1fr; } .detail { padding: 18px 16px; } .detail-head { align-items: flex-start; flex-wrap: wrap; } .facets { margin-left: 0; width: 100%; justify-content: flex-start; } .facet { text-align: left; } .item { align-items: flex-start; flex-wrap: wrap; } .cms-line { align-items: flex-start; flex-direction: column; } .list-row, .audit-event { grid-template-columns: 1fr; } .modal-foot { align-items: stretch; flex-direction: column; } .modal-foot .actions { justify-content: flex-end; } }
     </style>
   </head>
   <body>
@@ -180,13 +194,29 @@
         <a href="#" class="active">Admin</a>
       </nav>
       <button class="chip command-chip">Jump to… <kbd>⌘K</kbd></button>
-      <button class="chip climate-chip" onclick="document.documentElement.dataset.climate = document.documentElement.dataset.climate === 'paper' ? 'instrument' : 'paper'">◐</button>
-      <a class="chip session-chip" href="#"><span>Alice</span><em>Admin</em> · <strong>sign out</strong></a>
+      <button
+        class="chip climate-chip"
+        onclick="
+          document.documentElement.dataset.climate =
+            document.documentElement.dataset.climate === 'paper'
+              ? 'instrument'
+              : 'paper'
+        "
+      >
+        ◐
+      </button>
+      <a class="chip session-chip" href="#"
+        ><span>Alice</span><em>Admin</em> · <strong>sign out</strong></a
+      >
     </div>
 
     <div class="note-banner">
       <span class="badge">Case 1 · professional</span>
-      <p>Solo brain. Anchor kind <b>professional</b> is declared in <b>brain.yaml</b> — not chosen here. The console shows auth only; the profile (name, bio) is <b>content, edited in the CMS</b>.</p>
+      <p>
+        Solo brain. Anchor kind <b>professional</b> is declared in
+        <b>brain.yaml</b> — not chosen here. The console shows auth only; the
+        profile (name, bio) is <b>content, edited in the CMS</b>.
+      </p>
     </div>
 
     <div class="console">
@@ -196,157 +226,388 @@
             <h1 class="brand">Admin</h1>
             <p class="tagline">your brain · access</p>
           </div>
-          <div class="masthead-meta">brain <b>rover.alice</b><br />just you</div>
+          <div class="masthead-meta">
+            brain <b>rover.alice</b><br />2 members · 1 admin
+          </div>
         </div>
-        <nav class="tabs">
-          <a class="tab">Anchor</a>
-          <a class="tab active">Members</a>
-          <a class="tab ghost">Invitations</a>
-          <a class="tab ghost">Audit</a>
+        <nav class="tabs" aria-label="Admin sections">
+          <button
+            class="tab active"
+            data-tab="overview"
+            onclick="showPanel('overview')"
+          >
+            Overview
+          </button>
+          <button class="tab" data-tab="members" onclick="showPanel('members')">
+            Members
+          </button>
+          <button
+            class="tab"
+            data-tab="invitations"
+            onclick="showPanel('invitations')"
+          >
+            Invitations
+          </button>
+          <button class="tab" data-tab="audit" onclick="showPanel('audit')">
+            Audit
+          </button>
         </nav>
 
         <div class="canvas">
-          <!-- ANCHOR: you. Read-only kind. -->
-          <div class="anchor-panel">
-            <div class="anchor-top">
-              <div class="anchor-crest">AM</div>
-              <div class="anchor-id">
-                <h3>Alice Morgan</h3>
-                <div class="kindline">Anchor · <b>professional</b> — this brain is yours. You own it, administer it, and it speaks as you.</div>
-              </div>
-              <div class="config-chip"><span class="cog">⚙</span> kind: <b>professional</b> · brain.yaml</div>
-            </div>
-            <div class="anchor-fields">
-              <div class="field">
-                <div class="k">Profile</div>
-                <div class="cms-line">
-                  <div class="v">Alice Morgan · Climate-tech advisor</div>
-                  <a class="cms-link" href="#">Edit in CMS →</a>
+          <section class="panel" data-panel="overview">
+            <div class="anchor-panel">
+              <div class="anchor-top">
+                <div class="anchor-crest">AM</div>
+                <div class="anchor-id">
+                  <h3>Alice Morgan</h3>
+                  <div class="kindline">
+                    Anchor · <b>professional</b> — this brain is yours and
+                    speaks as you.
+                  </div>
                 </div>
-                <div class="subnote">The brain's own profile. CMS name is authoritative.</div>
+                <div class="config-chip">
+                  <span class="cog">⚙</span> kind: <b>professional</b> ·
+                  brain.yaml
+                </div>
               </div>
-              <div class="field">
-                <div class="k">Ownership</div>
-                <div class="v">Yours · personal</div>
-                <div class="subnote">You own it, administer it, and it speaks as you.</div>
-              </div>
-              <div class="field">
-                <div class="k">Administered by</div>
-                <div class="v">You</div>
-                <div class="subnote">Add admins below; you can't lock yourself out (last-admin protected).</div>
+              <div class="anchor-fields">
+                <div class="field">
+                  <div class="k">Profile</div>
+                  <div class="cms-line">
+                    <div class="v">Alice Morgan · Climate-tech advisor</div>
+                    <a class="cms-link" href="#">Edit in CMS →</a>
+                  </div>
+                  <div class="subnote">
+                    The brain's own profile. CMS name is authoritative.
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="k">Ownership</div>
+                  <div class="v">Alice · sole Anchor</div>
+                  <div class="subnote">
+                    Additional Admins are allowed; no one else becomes the
+                    Anchor.
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="k">Administered by</div>
+                  <div class="v">1 active Admin</div>
+                  <div class="subnote">
+                    Alice must remain active and cannot be locked out.
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+            <div class="overview-grid">
+              <div class="overview-card">
+                <div class="k">Members</div>
+                <div class="metric">2 active</div>
+                <p>Alice and Bob have local accounts on this brain.</p>
+              </div>
+              <div class="overview-card">
+                <div class="k">External brains</div>
+                <div class="metric">1 linked</div>
+                <p>Bob's peer brain is separate from his local account.</p>
+              </div>
+              <div class="overview-card attention">
+                <div class="k">Attention</div>
+                <div class="metric">1 invitation</div>
+                <p>Nadia's Trusted invitation is waiting to be claimed.</p>
+              </div>
+            </div>
+          </section>
 
-          <!-- Members: everyone with access besides you (the anchor) -->
-          <div class="section-head">
-            <div>
-              <div class="eyebrow">Roster</div>
-              <h2>Members</h2>
-              <p>Others can have access — it stays your brain. Only you are the anchor; everyone else just has a role.</p>
+          <section class="panel" data-panel="members" hidden>
+            <div class="section-head">
+              <div>
+                <div class="eyebrow">Roster</div>
+                <h2>Members</h2>
+                <p>
+                  Everyone with an active local account. External brains are
+                  optional links, not alternative accounts.
+                </p>
+              </div>
+              <button class="button primary" onclick="toggleAdd(true)">
+                + Add a person
+              </button>
             </div>
-            <button class="button primary" onclick="toggleAdd(true)">+ Add a person</button>
-          </div>
-          <div class="split">
-            <div class="roster">
-              <div class="roster-search">⌕ <input placeholder="Search members…" /></div>
-              <div class="roster-row">
-                <div class="avatar">AM<span class="anchor-pin">★</span></div>
-                <div class="who"><b>Alice Morgan</b><small>you · owner · passkey</small></div>
-                <span class="badge b-admin">Admin</span>
+            <div class="split">
+              <div class="roster">
+                <div class="roster-search">
+                  ⌕ <input placeholder="Search members…" />
+                </div>
+                <div class="roster-row">
+                  <div class="avatar">AM<span class="anchor-pin">★</span></div>
+                  <div class="who">
+                    <b>Alice Morgan</b><small>you · passkey · email</small>
+                  </div>
+                  <span class="badge b-admin">Admin</span>
+                </div>
+                <div class="roster-row active">
+                  <div class="avatar">BV</div>
+                  <div class="who">
+                    <b>Bob Vance</b><small>passkey · email · Discord</small>
+                  </div>
+                  <div class="rowtags">
+                    <span class="badge b-trusted">Trusted</span
+                    ><span class="host-chip own">Peer linked</span>
+                  </div>
+                </div>
               </div>
-              <div class="roster-row active">
-                <div class="avatar">BV</div>
-                <div class="who"><b>Bob Vance</b><small>own brain · passkey</small></div>
-                <span class="badge b-trusted">Trusted</span>
-              </div>
-              <div class="roster-row">
-                <div class="avatar">NR</div>
-                <div class="who"><b>Nadia Rue</b><small>invited · setup sent</small></div>
-                <span class="badge b-public">Invited</span>
+              <div class="detail">
+                <div class="detail-head">
+                  <div class="avatar">BV</div>
+                  <div>
+                    <h3>Bob Vance</h3>
+                    <small>Member since 2026-06-20</small>
+                  </div>
+                  <div class="facets">
+                    <div class="facet">
+                      <div class="k">Role</div>
+                      <div class="v role">Trusted</div>
+                    </div>
+                    <div class="facet">
+                      <div class="k">Status</div>
+                      <div class="v">Active</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="d-section">
+                  <div class="label">
+                    <h4>Profile</h4>
+                    <span class="host-chip">read-only · external</span>
+                  </div>
+                  <div class="cms-ref">
+                    ◆ <b>Bob Vance</b> · Systems engineer<span
+                      class="spacer"
+                    ></span
+                    >from bob.rizom.ai
+                  </div>
+                </div>
+                <div class="d-section">
+                  <div class="label"><h4>Brain</h4></div>
+                  <div class="item">
+                    <span class="kind">Local</span
+                    ><span class="val">rover.alice · member account</span>
+                  </div>
+                  <div class="brain-link">
+                    ◆ <b>bob.rizom.ai</b> · verified external peer<span
+                      style="margin-left: auto"
+                      ><button class="text-action muted">Unlink</button></span
+                    >
+                  </div>
+                </div>
+                <div class="d-section">
+                  <div class="label"><h4>Access</h4></div>
+                  <div class="item">
+                    <span class="kind">Role</span
+                    ><span class="val">Trusted</span
+                    ><button class="text-action">Change</button>
+                  </div>
+                  <div class="item">
+                    <span class="kind">Account</span
+                    ><span class="val">Active</span
+                    ><button class="text-action muted">Suspend</button>
+                  </div>
+                  <div class="item">
+                    <span class="kind">Sessions</span
+                    ><span class="val">Signed in on 2 devices</span
+                    ><button class="text-action muted">Revoke all</button>
+                  </div>
+                </div>
+                <div class="d-section">
+                  <div class="label">
+                    <h4>Sign-in</h4>
+                    <button class="text-action">Add passkey</button>
+                  </div>
+                  <div class="item">
+                    <span class="kind">Passkey</span
+                    ><span class="val"
+                      >Laptop · <small class="verified">✓ verified</small></span
+                    >
+                  </div>
+                </div>
+                <div class="d-section">
+                  <div class="label"><h4>Connected channels</h4></div>
+                  <div class="item">
+                    <span class="kind">Email</span
+                    ><span class="val"
+                      >bob@example.com ·
+                      <small class="verified">✓ verified</small></span
+                    ><button class="text-action muted">Disconnect</button>
+                  </div>
+                  <div class="item">
+                    <span class="kind">Discord</span
+                    ><span class="val"
+                      >@bobvance ·
+                      <small class="verified">✓ verified</small></span
+                    ><button class="text-action muted">Disconnect</button>
+                  </div>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div class="detail">
-              <div class="detail-head">
-                <div class="avatar">BV</div>
+          <section class="panel" data-panel="invitations" hidden>
+            <div class="section-head">
+              <div>
+                <div class="eyebrow">Pending access</div>
+                <h2>Invitations</h2>
+                <p>
+                  Invited is a status; every invitation retains its intended
+                  Trusted or Admin role.
+                </p>
+              </div>
+              <button class="button primary" onclick="toggleAdd(true)">
+                + Add a person
+              </button>
+            </div>
+            <div class="list-card">
+              <div class="list-row">
                 <div>
-                  <h3>Bob Vance</h3>
-                  <small>usr_9c3e… · added 2026-06-20</small>
+                  <b>Nadia Rue</b
+                  ><small
+                    >nadia@example.com · setup email sent 20 minutes ago · no
+                    profile</small
+                  >
                 </div>
-                <div class="facets">
-                  <div class="facet"><div class="k">Role</div><div class="v role">Trusted</div></div>
-                  <div class="facet"><div class="k">Anchor?</div><div class="v notanchor">No</div></div>
+                <span class="badge b-trusted">Trusted</span>
+                <div>
+                  <button class="text-action">Resend</button>&nbsp;&nbsp;<button
+                    class="text-action muted"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              </div>
-
-              <div class="d-section">
-                <div class="label"><h4>Profile</h4><span class="host-chip">read-only · their brain</span></div>
-                <div class="cms-ref">◆ <b>Bob Vance</b> · Systems engineer<span class="spacer"></span>from bob.rizom.ai</div>
-              </div>
-
-              <div class="d-section">
-                <div class="label"><h4>Brain</h4></div>
-                <div class="brain-link">◆ <b>bob.rizom.ai</b> · verified peer (did:web)<span style="margin-left:auto"><button class="text-action muted">Unlink</button></span></div>
-              </div>
-
-              <div class="d-section">
-                <div class="label"><h4>Access</h4></div>
-                <div class="item"><span class="kind">Role</span><span class="val">Trusted</span><button class="text-action">Change</button></div>
-              </div>
-
-              <div class="d-section">
-                <div class="label"><h4>Sign-in</h4><button class="text-action">Send setup link</button></div>
-                <div class="item"><span class="kind">Passkey</span><span class="val">Laptop · <small class="verified">✓ verified</small></span></div>
               </div>
             </div>
-          </div>
+          </section>
+
+          <section class="panel" data-panel="audit" hidden>
+            <div class="section-head">
+              <div>
+                <div class="eyebrow">Security history</div>
+                <h2>Audit</h2>
+                <p>Who changed access, what changed, and when.</p>
+              </div>
+            </div>
+            <div class="list-card">
+              <div class="list-row audit-event">
+                <span class="audit-time">Today · 10:42</span>
+                <div>
+                  <b>Alice invited Nadia Rue as Trusted</b
+                  ><small>Setup email sent to nadia@example.com</small>
+                </div>
+                <span class="verified">✓ delivered</span>
+              </div>
+              <div class="list-row audit-event">
+                <span class="audit-time">Jul 20 · 16:08</span>
+                <div>
+                  <b>Alice linked bob.rizom.ai to Bob Vance</b
+                  ><small
+                    >Verified external peer; no permission inherited</small
+                  >
+                </div>
+                <span>Peer link</span>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
 
-    <!-- Add a person — dropdown-first (promote a known agent), URL for a new peer, hosted invite as fallback -->
-    <div class="modal-backdrop" id="addModal" style="display:none" onclick="if(event.target===this)toggleAdd(false)">
+    <!-- Add a person — peer-first, with a no-profile fallback -->
+    <div
+      class="modal-backdrop"
+      id="addModal"
+      style="display: none"
+      onclick="if (event.target === this) toggleAdd(false);"
+    >
       <div class="modal">
         <div class="modal-head">
           <h3>Add a person</h3>
+          <p id="inviteModeCopy">
+            Choose a known external brain or verify a new peer.
+          </p>
         </div>
         <div class="modal-body">
-          <div class="mfield">
-            <label>From your agents</label>
-            <select>
-              <option>Bob Vance — bob.rizom.ai</option>
-              <option>Mira Reyes — mira.rizom.ai</option>
-              <option>Devin Kwan — devin.rizom.ai</option>
-            </select>
-            <span class="resolved">✓ verified peer · did:web · profile from their brain</span>
+          <div class="invite-form" id="peerInvite">
+            <div class="mfield">
+              <label>From known peer brains</label
+              ><select>
+                <option>Mira Reyes — mira.rizom.ai</option>
+                <option>Devin Kwan — devin.rizom.ai</option></select
+              ><span class="resolved"
+                >✓ Mira Reyes · mira@example.com · verified peer</span
+              >
+            </div>
+            <div class="mor">— or —</div>
+            <div class="mfield">
+              <label>Add a new peer</label
+              ><input placeholder="paste brain URL — e.g. sam.rizom.ai" />
+            </div>
           </div>
-          <div class="mor">— or —</div>
-          <div class="mfield">
-            <label>Add a new peer</label>
-            <input placeholder="paste brain URL — e.g. sam.rizom.ai" />
+          <div class="invite-form" id="localInvite" hidden>
+            <div class="mfield">
+              <label>Name</label><input placeholder="Nadia Rue" />
+            </div>
+            <div class="mfield">
+              <label>Email</label><input placeholder="nadia@example.com" />
+            </div>
+            <span class="resolved"
+              >No external brain · no profile will be created</span
+            >
           </div>
           <div class="mfield">
-            <label>Role</label>
-            <select>
+            <label>Role</label
+            ><select>
               <option>Trusted</option>
               <option>Admin</option>
             </select>
           </div>
         </div>
         <div class="modal-foot">
-          <a class="hosted" href="#">No brain? Invite hosted →</a>
+          <button
+            class="text-action muted"
+            id="inviteMode"
+            onclick="toggleInviteMode(true)"
+          >
+            No brain? Invite without profile →
+          </button>
           <div class="actions">
-            <button class="button ghost" onclick="toggleAdd(false)">Cancel</button>
-            <button class="button primary">Add</button>
+            <button class="button ghost" onclick="toggleAdd(false)">
+              Cancel</button
+            ><button class="button primary">Review &amp; send setup</button>
           </div>
         </div>
       </div>
     </div>
 
     <script>
+      function showPanel(name) {
+        document.querySelectorAll("[data-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.panel !== name;
+        });
+        document.querySelectorAll("[data-tab]").forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.tab === name);
+        });
+      }
       function toggleAdd(show) {
-        document.getElementById("addModal").style.display = show ? "grid" : "none";
+        document.getElementById("addModal").style.display = show
+          ? "grid"
+          : "none";
+      }
+      function toggleInviteMode(local) {
+        document.getElementById("peerInvite").hidden = local;
+        document.getElementById("localInvite").hidden = !local;
+        document.getElementById("inviteModeCopy").textContent = local
+          ? "Invite a person without creating a profile."
+          : "Choose a known external brain or verify a new peer.";
+        const toggle = document.getElementById("inviteMode");
+        toggle.textContent = local
+          ? "Use an external brain instead →"
+          : "No brain? Invite without profile →";
+        toggle.onclick = () => toggleInviteMode(!local);
       }
     </script>
   </body>
