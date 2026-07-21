@@ -1,7 +1,9 @@
 import type { ProgressCallback } from "@brains/utils/progress";
 import { ProgressReporter } from "@brains/utils/progress";
+import { getErrorMessage } from "@brains/utils/error";
 import type {
   BuildResult,
+  SiteBuildDiagnostic,
   SiteBuilderOptions,
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
@@ -16,6 +18,10 @@ import {
   createFailedBuildResult,
   createSuccessfulBuildResult,
 } from "./site-build-result";
+import {
+  formatSiteBuildDiagnostic,
+  preflightSiteBuild,
+} from "./preflight-site-build";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
 
 export interface RunSiteBuildOptions {
@@ -32,6 +38,7 @@ export async function runSiteBuild(
 
   const reporter = ProgressReporter.from(options.progress);
   const warnings: string[] = [];
+  const diagnostics: SiteBuildDiagnostic[] = [];
 
   try {
     await reporter?.report({
@@ -51,17 +58,34 @@ export async function runSiteBuild(
       publishedOnly: parsedOptions.environment === "production",
     });
 
-    const staticSiteBuilder = await createStaticSiteBuilder({
-      logger: options.pipelineContext.logger,
-      parsedOptions,
-      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-    });
-
     const buildRoutes = collectBuildRoutes(
       options.pipelineContext.routeRegistry,
     );
     warnings.push(...buildRoutes.warnings);
     const { routes } = buildRoutes;
+
+    const preflight = preflightSiteBuild({
+      routes,
+      layouts: parsedOptions.layouts,
+      getViewTemplate: options.pipelineContext.services.getViewTemplate,
+      staticAssets: options.buildOptions.staticAssets,
+    });
+    diagnostics.push(...preflight.diagnostics);
+    warnings.push(...preflight.warnings.map(formatSiteBuildDiagnostic));
+
+    if (preflight.errors.length > 0) {
+      return createFailedBuildResult({
+        outputDir: parsedOptions.outputDir,
+        errorMessages: preflight.errors.map(formatSiteBuildDiagnostic),
+        diagnostics,
+      });
+    }
+
+    const staticSiteBuilder = await createStaticSiteBuilder({
+      logger: options.pipelineContext.logger,
+      parsedOptions,
+      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+    });
 
     await reporter?.report({
       message: `Building ${routes.length} routes`,
@@ -105,9 +129,15 @@ export async function runSiteBuild(
       outputDir: parsedOptions.outputDir,
       routesBuilt: routes.length,
       warnings,
+      diagnostics,
     });
   } catch (error) {
-    const buildError = new Error("Site build process failed");
+    const diagnostic: SiteBuildDiagnostic = {
+      severity: "error",
+      code: "build-failed",
+      message: `Site build process failed: ${getErrorMessage(error)}`,
+    };
+    const buildError = new Error(diagnostic.message);
     options.pipelineContext.logger.error("Site build failed", {
       error: buildError,
       originalError: error,
@@ -115,7 +145,8 @@ export async function runSiteBuild(
 
     return createFailedBuildResult({
       outputDir: parsedOptions.outputDir,
-      errorMessage: buildError.message,
+      errorMessages: [formatSiteBuildDiagnostic(diagnostic)],
+      diagnostics: [...diagnostics, diagnostic],
     });
   }
 }

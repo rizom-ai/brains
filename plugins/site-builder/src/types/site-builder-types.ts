@@ -63,6 +63,48 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
 }
 
 /**
+ * Structured diagnostic emitted while validating or building a site.
+ * String errors/warnings remain on BuildResult for compatibility.
+ */
+export type SiteBuildDiagnosticCode =
+  | "build-failed"
+  | "unsafe-route-path"
+  | "missing-layout"
+  | "missing-template"
+  | "missing-web-renderer"
+  | "unsafe-static-asset-path";
+
+export interface SiteBuildDiagnostic {
+  severity: "warning" | "error";
+  code: SiteBuildDiagnosticCode;
+  message: string;
+  routeId?: string | undefined;
+  sectionId?: string | undefined;
+  template?: string | undefined;
+  path?: string | undefined;
+}
+
+export const SiteBuildDiagnosticSchema: z.ZodType<
+  SiteBuildDiagnostic,
+  SiteBuildDiagnostic
+> = z.object({
+  severity: z.enum(["warning", "error"]),
+  code: z.enum([
+    "build-failed",
+    "unsafe-route-path",
+    "missing-layout",
+    "missing-template",
+    "missing-web-renderer",
+    "unsafe-static-asset-path",
+  ]),
+  message: z.string(),
+  routeId: z.string().optional(),
+  sectionId: z.string().optional(),
+  template: z.string().optional(),
+  path: z.string().optional(),
+});
+
+/**
  * Build result schema
  */
 export interface BuildResult {
@@ -72,6 +114,7 @@ export interface BuildResult {
   routesBuilt: number;
   errors?: string[] | undefined;
   warnings?: string[] | undefined;
+  diagnostics?: SiteBuildDiagnostic[] | undefined;
 }
 
 export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
@@ -81,6 +124,7 @@ export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
   routesBuilt: z.number(),
   errors: z.array(z.string()).optional(),
   warnings: z.array(z.string()).optional(),
+  diagnostics: z.array(SiteBuildDiagnosticSchema).optional(),
 });
 
 /**
