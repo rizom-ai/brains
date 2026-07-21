@@ -114,28 +114,34 @@ describe("@rizom/site-rizom-ai", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
-    // The map is the hero; the text hero is gone. Rev-10 order: the system
+    // The map is the hero; the text hero is gone. Rev-11 order: the system
     // before the pitch — map → the pain (problem) → how it comes together
-    // (growth) → mission → the ask (one-light) → faces → colophon.
+    // (growth) → mission → the ask carried by proof (the knowledge map,
+    // which folds the alive-line in) → faces.
     expect(sectionIds).toEqual([
       "network",
       "problem",
       "growth",
       "mission",
-      "one-light",
+      "knowledge",
       "faces",
-      "alive",
     ]);
 
     // The opener is the agent-discovery datasource section; a dataQuery routes
     // it through the datasource (live map data) while its authored copy is
-    // merged over via the content overlay.
+    // merged over via the content overlay. The knowledge map works the same
+    // way through the topics plugin.
     const network = route?.sections?.[0];
     expect(network?.template).toBe("agent-discovery:proximity-map");
     expect(network?.dataQuery).toBeDefined();
+    const knowledge = route?.sections?.find(
+      (section) => section.id === "knowledge",
+    );
+    expect(knowledge?.template).toBe("topics:knowledge-map");
+    expect(knowledge?.dataQuery).toBeDefined();
   });
 
-  test("home body sections reference the home content namespace by string", () => {
+  test("home body sections reference their content namespaces by string", () => {
     const templates = site.routes[0]?.sections?.map(
       (section) => section.template,
     );
@@ -145,19 +151,8 @@ describe("@rizom/site-rizom-ai", () => {
       "home:problem",
       "home:growth",
       "home:mission",
-      "home:one-light",
+      "topics:knowledge-map",
       "home:faces",
-      "home:alive",
     ]);
-  });
-
-  test("home section group carries the one-light product hook", () => {
-    const groups = Array.isArray(site.sections)
-      ? site.sections
-      : site.sections
-        ? [site.sections]
-        : [];
-    const home = groups.find((group) => group.namespace === "home");
-    expect(home && Object.keys(home.sections)).toContain("one-light");
   });
 });

@@ -1,5 +1,147 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.210
+  - @brains/utils@0.2.0-alpha.210
+  - @brains/conversation-service@0.2.0-alpha.210
+  - @brains/entity-service@0.2.0-alpha.210
+  - @brains/identity-service@0.2.0-alpha.210
+  - @brains/mcp-service@0.2.0-alpha.210
+  - @brains/messaging-service@0.2.0-alpha.210
+  - @brains/templates@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.209
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/conversation-service@0.2.0-alpha.209
+  - @brains/entity-service@0.2.0-alpha.209
+  - @brains/identity-service@0.2.0-alpha.209
+  - @brains/mcp-service@0.2.0-alpha.209
+  - @brains/messaging-service@0.2.0-alpha.209
+  - @brains/templates@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.208
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/conversation-service@0.2.0-alpha.208
+  - @brains/entity-service@0.2.0-alpha.208
+  - @brains/identity-service@0.2.0-alpha.208
+  - @brains/mcp-service@0.2.0-alpha.208
+  - @brains/messaging-service@0.2.0-alpha.208
+  - @brains/templates@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.207
+  - @brains/utils@0.2.0-alpha.207
+  - @brains/conversation-service@0.2.0-alpha.207
+  - @brains/entity-service@0.2.0-alpha.207
+  - @brains/identity-service@0.2.0-alpha.207
+  - @brains/mcp-service@0.2.0-alpha.207
+  - @brains/messaging-service@0.2.0-alpha.207
+  - @brains/templates@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.206
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/conversation-service@0.2.0-alpha.206
+  - @brains/entity-service@0.2.0-alpha.206
+  - @brains/identity-service@0.2.0-alpha.206
+  - @brains/mcp-service@0.2.0-alpha.206
+  - @brains/messaging-service@0.2.0-alpha.206
+  - @brains/templates@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.205
+  - @brains/utils@0.2.0-alpha.205
+  - @brains/conversation-service@0.2.0-alpha.205
+  - @brains/entity-service@0.2.0-alpha.205
+  - @brains/identity-service@0.2.0-alpha.205
+  - @brains/mcp-service@0.2.0-alpha.205
+  - @brains/messaging-service@0.2.0-alpha.205
+  - @brains/templates@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+  - @brains/conversation-service@0.2.0-alpha.204
+  - @brains/entity-service@0.2.0-alpha.204
+  - @brains/identity-service@0.2.0-alpha.204
+  - @brains/mcp-service@0.2.0-alpha.204
+  - @brains/messaging-service@0.2.0-alpha.204
+  - @brains/templates@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- [`3e87ccf`](https://github.com/rizom-ai/brains/commit/3e87ccfea9e664c2f31fd8bfec8a1b9ce7f12e16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep resolved approval actions terminal when reopening web-chat history. Reloaded sessions now reconcile earlier approval requests with later result cards, while expired, declined, and failed approval outcomes are durably recorded so completed buttons do not reappear.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.203
+  - @brains/utils@0.2.0-alpha.203
+  - @brains/conversation-service@0.2.0-alpha.203
+  - @brains/entity-service@0.2.0-alpha.203
+  - @brains/identity-service@0.2.0-alpha.203
+  - @brains/mcp-service@0.2.0-alpha.203
+  - @brains/messaging-service@0.2.0-alpha.203
+  - @brains/templates@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.202
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/conversation-service@0.2.0-alpha.202
+  - @brains/entity-service@0.2.0-alpha.202
+  - @brains/identity-service@0.2.0-alpha.202
+  - @brains/mcp-service@0.2.0-alpha.202
+  - @brains/messaging-service@0.2.0-alpha.202
+  - @brains/templates@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/conversation-service@0.2.0-alpha.201
+  - @brains/entity-service@0.2.0-alpha.201
+  - @brains/identity-service@0.2.0-alpha.201
+  - @brains/mcp-service@0.2.0-alpha.201
+  - @brains/messaging-service@0.2.0-alpha.201
+  - @brains/templates@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

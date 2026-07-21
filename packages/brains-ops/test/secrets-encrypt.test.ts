@@ -9,6 +9,7 @@ import {
   generateIdentity,
   identityToRecipient,
 } from "age-encryption";
+import { fromYaml } from "@brains/utils/yaml";
 
 import { encryptPilotSecrets } from "../src/secrets-encrypt";
 
@@ -225,6 +226,153 @@ discord:
     );
     expect(decrypted).toContain("discordBotToken: discord-token");
     expect(decrypted).toContain("atprotoAppPassword: app-password");
+  });
+
+  it("round-trips long PEM secrets byte-identically through a merge", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    // Realistic single-line PEM with escaped newlines: long enough that a
+    // YAML dump folds it across physical lines, and with no spaces to fold on.
+    const certificatePem = `-----BEGIN CERTIFICATE-----\\n${"MIICmzCCAYMCBgGB".repeat(100)}\\n-----END CERTIFICATE-----\\n`;
+    const privateKeyPem = `-----BEGIN PRIVATE KEY-----\\n${"MIIEvQIBADANBg".repeat(100)}\\n-----END PRIVATE KEY-----\\n`;
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/rizom-ai.yaml": `handle: rizom-ai
+domainOverride: rizom.ai
+discord:
+  enabled: false
+`,
+      "cohorts/rizom-ai.yaml": `members:
+  - rizom-ai
+`,
+      "users/rizom-ai.secrets.yaml": [
+        `certificatePem: ${certificatePem}`,
+        `privateKeyPem: ${privateKeyPem}`,
+        "",
+      ].join("\n"),
+    });
+
+    await encryptPilotSecrets(root, "rizom-ai");
+    await writeFile(
+      join(root, "users/rizom-ai.secrets.yaml"),
+      "atprotoAppPassword: app-password\n",
+    );
+
+    const result = await encryptPilotSecrets(root, "rizom-ai", {
+      env: { AGE_SECRET_KEY: identity },
+    });
+
+    expect([...result.encryptedKeys].sort()).toEqual([
+      "atprotoAppPassword",
+      "certificatePem",
+      "privateKeyPem",
+    ]);
+
+    const decrypted = fromYaml<Record<string, string>>(
+      await decryptYamlFile(
+        join(root, "users/rizom-ai.secrets.yaml.age"),
+        identity,
+      ),
+    );
+    expect(decrypted["certificatePem"]).toBe(certificatePem);
+    expect(decrypted["privateKeyPem"]).toBe(privateKeyPem);
+    expect(decrypted["atprotoAppPassword"]).toBe("app-password");
+  });
+
+  it("keeps long PEM secrets byte-identical across repeated re-encryption", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const certificatePem = `-----BEGIN CERTIFICATE-----\\n${"MIICmzCCAYMCBgGB".repeat(100)}\\n-----END CERTIFICATE-----\\n`;
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/rizom-ai.yaml": `handle: rizom-ai
+domainOverride: rizom.ai
+discord:
+  enabled: false
+`,
+      "cohorts/rizom-ai.yaml": `members:
+  - rizom-ai
+`,
+      "users/rizom-ai.secrets.yaml": `certificatePem: ${certificatePem}\nprivateKeyPem: ${certificatePem}\n`,
+    });
+
+    await encryptPilotSecrets(root, "rizom-ai");
+    await encryptPilotSecrets(root, "rizom-ai", {
+      env: { AGE_SECRET_KEY: identity },
+    });
+    await encryptPilotSecrets(root, "rizom-ai", {
+      env: { AGE_SECRET_KEY: identity },
+    });
+
+    const decrypted = fromYaml<Record<string, string>>(
+      await decryptYamlFile(
+        join(root, "users/rizom-ai.secrets.yaml.age"),
+        identity,
+      ),
+    );
+    expect(decrypted["certificatePem"]).toBe(certificatePem);
+  });
+
+  it("fails loudly when an existing plaintext staging file cannot be parsed", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+      "users/alice.secrets.yaml": 'atprotoAppPassword: "unterminated\n',
+    });
+
+    try {
+      await encryptPilotSecrets(root, "alice");
+      expect.unreachable("expected encryptPilotSecrets to fail");
+    } catch (error) {
+      expect(String(error)).toContain("users/alice.secrets.yaml");
+      expect(String(error)).toContain("Unable to parse");
+    }
   });
 
   it("supports dry-run without writing files", async () => {

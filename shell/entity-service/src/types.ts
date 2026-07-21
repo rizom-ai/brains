@@ -505,6 +505,9 @@ export interface SearchOptions {
   minScore?: number;
 }
 
+export type ProjectionSourceRole =
+  "canonical" | "primary" | "supporting" | "ambient" | "excluded";
+
 /**
  * Configuration for entity type registration
  */
@@ -517,6 +520,9 @@ export interface EntityTypeConfig {
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
+  /** Default source authority role for derived projections. Entity types own
+   *  their durable/source character; consumers may map roles to local policy. */
+  projectionSourceRole?: ProjectionSourceRole;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */
@@ -733,6 +739,11 @@ export interface ICoreEntityService {
   search<T extends BaseEntity = BaseEntity>(
     request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
+
+  /** Return embedded entities with raw cosine distance to a query. */
+  searchWithDistances(
+    request: SearchWithDistancesRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(

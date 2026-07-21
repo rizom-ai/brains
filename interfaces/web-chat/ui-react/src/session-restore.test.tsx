@@ -12,6 +12,7 @@ const originalFetch = globalThis.fetch;
 let windowInstance: Window;
 let root: Root;
 let fetchCalls: string[];
+let historyMessages: unknown[];
 
 async function waitForRestoredMessage(): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
@@ -28,6 +29,9 @@ async function waitForRestoredMessage(): Promise<void> {
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/chat" });
   fetchCalls = [];
+  historyMessages = [
+    { id: "old-message", role: "user", content: "Before reload" },
+  ];
   const win = windowInstance as unknown as Window & Record<string, unknown>;
   Object.assign(globalThis, {
     window: windowInstance,
@@ -67,11 +71,7 @@ beforeEach(() => {
       });
     }
     if (url === "/api/chat/messages?id=web-persisted") {
-      return Response.json({
-        messages: [
-          { id: "old-message", role: "user", content: "Before reload" },
-        ],
-      });
+      return Response.json({ messages: historyMessages });
     }
     throw new Error(`Unexpected fetch: ${url}`);
   }) as typeof fetch;
@@ -108,6 +108,66 @@ describe("startup session restoration", () => {
     expect(
       windowInstance.document.querySelector("[data-web-chat-app]")?.textContent,
     ).toContain("Before reload");
+    queryClient.clear();
+  });
+
+  it("does not restore approval buttons after the action was resolved", async () => {
+    historyMessages = [
+      {
+        id: "approval-request",
+        role: "assistant",
+        content: "Before reload, this action needed approval.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:save-note",
+            toolCallId: "call:save-note",
+            toolName: "system_update",
+            input: { entityType: "note", id: "field-notes" },
+            summary: "Save field notes?",
+            state: "approval-requested",
+          },
+        ],
+      },
+      {
+        id: "approval-result",
+        role: "assistant",
+        content: "Saved the note.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:save-note",
+            toolCallId: "call:save-note",
+            toolName: "system_update",
+            input: { entityType: "note", id: "field-notes" },
+            summary: "Save field notes?",
+            state: "output-available",
+            output: { success: true },
+          },
+        ],
+      },
+    ];
+    const queryClient = createWebChatQueryClient();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(App),
+        ),
+      );
+    });
+    await waitForRestoredMessage();
+
+    expect(
+      windowInstance.document.querySelectorAll(
+        ".web-chat-confirmation-actions button",
+      ),
+    ).toHaveLength(0);
+    expect(windowInstance.document.body.textContent).toContain(
+      "Saved the note.",
+    );
     queryClient.clear();
   });
 });

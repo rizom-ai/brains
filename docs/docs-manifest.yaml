@@ -83,6 +83,12 @@ docs:
     order: 100
     source: docs/customization-guide.md
 
+  - id: site-mockup-migration
+    title: Site Mockup Migration
+    section: Customization
+    order: 105
+    source: docs/site-mockup-migration.md
+
   - id: theming-guide
     title: Theming Guide
     section: Customization

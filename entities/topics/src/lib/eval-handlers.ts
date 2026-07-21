@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -12,6 +14,8 @@ import {
 } from "./topic-presenter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
+import { TopicAdapter } from "./topic-adapter";
+import { reconcileTopics } from "./topic-reconciliation";
 import type { TopicEntity } from "../types";
 
 const entityInputSchema = z.object({
@@ -34,6 +38,7 @@ const mergeTestInputSchema = z.object({
 });
 
 const detectionTopicSchema = z.object({
+  id: z.string().optional(),
   title: z.string(),
   content: z.string(),
 });
@@ -62,6 +67,31 @@ const rebuildTopicsSchema = z.object({
   entities: z.array(entityInputSchema),
 });
 
+const reconcileExistingTopicsSchema = z.object({
+  existingTopics: z.array(detectionTopicSchema).min(2),
+  threshold: z.number().optional(),
+  maxPairs: z.number().int().min(0).optional(),
+});
+
+const corpusFixtureEntitySchema = entityInputSchema.extend({
+  id: z.string(),
+});
+
+const corpusFixtureSchema = z.object({
+  entities: z.array(corpusFixtureEntitySchema).min(1),
+});
+
+const corpusAcceptanceSchema = z.object({
+  fixture: z.string(),
+  minTopicCount: z.number().int().min(0).default(5),
+  maxTopicCount: z.number().int().min(0).default(14),
+  requiredTitleMatches: z.array(z.string()).default([]),
+  forbiddenTitleMatches: z.array(z.string()).default([]),
+  forbiddenTitlePairs: z
+    .array(z.object({ left: z.string(), right: z.string() }))
+    .default([]),
+});
+
 const batchInputSchema = z.object({
   entities: z.array(entityInputSchema),
 });
@@ -71,7 +101,11 @@ type MergeTestInput = z.output<typeof mergeTestInputSchema>;
 type DetectMergeCandidateInput = z.output<typeof detectMergeCandidateSchema>;
 type MergeProcessingInput = z.output<typeof mergeProcessingSchema>;
 type RebuildTopicsInput = z.output<typeof rebuildTopicsSchema>;
+type ReconcileExistingTopicsInput = z.output<
+  typeof reconcileExistingTopicsSchema
+>;
 type SequentialInput = z.output<typeof sequentialInputSchema>;
+type CorpusAcceptanceInput = z.output<typeof corpusAcceptanceSchema>;
 type BatchInput = z.output<typeof batchInputSchema>;
 
 function createEntityFromInput(input: EntityInput, idSuffix = ""): BaseEntity {
@@ -100,6 +134,48 @@ function summarizeExtractedTopic(topic: ExtractedTopic): {
 function getSourceTitle(entity: BaseEntity): string {
   const metadataTitle = entity.metadata["title"];
   return typeof metadataTitle === "string" ? metadataTitle : entity.id;
+}
+
+function getCorpusAcceptanceIssues(
+  topicTitles: string[],
+  input: CorpusAcceptanceInput,
+): string[] {
+  const issues: string[] = [];
+  if (topicTitles.length < input.minTopicCount) {
+    issues.push(`too few topics: ${topicTitles.length}`);
+  }
+  if (topicTitles.length > input.maxTopicCount) {
+    issues.push(`too many topics: ${topicTitles.length}`);
+  }
+
+  for (const pattern of input.requiredTitleMatches) {
+    const regex = new RegExp(pattern, "i");
+    if (!topicTitles.some((title) => regex.test(title))) {
+      issues.push(`missing required title match: ${pattern}`);
+    }
+  }
+
+  for (const pattern of input.forbiddenTitleMatches) {
+    const regex = new RegExp(pattern, "i");
+    const match = topicTitles.find((title) => regex.test(title));
+    if (match) {
+      issues.push(`forbidden title matched ${pattern}: ${match}`);
+    }
+  }
+
+  for (const pair of input.forbiddenTitlePairs) {
+    const left = new RegExp(pair.left, "i");
+    const right = new RegExp(pair.right, "i");
+    const hasLeft = topicTitles.some((title) => left.test(title));
+    const hasRight = topicTitles.some((title) => right.test(title));
+    if (hasLeft && hasRight) {
+      issues.push(
+        `forbidden duplicate pair present: ${pair.left} / ${pair.right}`,
+      );
+    }
+  }
+
+  return issues;
 }
 
 function withSource(
@@ -155,6 +231,7 @@ export function registerTopicEvalHandlers(params: {
 }): void {
   const { context, logger, config } = params;
   const extractor = new TopicExtractor(context, logger);
+  const topicAdapter = new TopicAdapter();
 
   const extractTopics = async (
     input: EntityInput,
@@ -180,7 +257,7 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed: MergeTestInput = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
-      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
+      const threshold = parsed.threshold ?? config.semanticMergeDistance;
 
       const [topicsA, topicsB] = await Promise.all([
         extractTopics(parsed.contentA, minScore, "-a"),
@@ -193,6 +270,8 @@ export function registerTopicEvalHandlers(params: {
         const created = await topicService.createTopic(topic);
         if (created) seededA.push(created);
       }
+      await waitForEmbeddingsToDrain(context);
+
       const mergeCandidates = (
         await Promise.all(
           topicsB.map(async (topic) => {
@@ -238,7 +317,7 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed: DetectMergeCandidateInput =
         detectMergeCandidateSchema.parse(input);
-      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
+      const threshold = parsed.threshold ?? config.semanticMergeDistance;
 
       const topicService = new TopicService(context.entityService, logger);
       const seeded: TopicEntity[] = [];
@@ -247,8 +326,13 @@ export function registerTopicEvalHandlers(params: {
         if (created) seeded.push(created);
       }
 
+      await waitForEmbeddingsToDrain(context);
+
       const candidate = await topicService.findMergeCandidate({
-        incoming: { title: parsed.incomingTopic.title },
+        incoming: {
+          title: parsed.incomingTopic.title,
+          content: parsed.incomingTopic.content,
+        },
         threshold,
         additionalCandidates: seeded,
       });
@@ -293,8 +377,8 @@ export function registerTopicEvalHandlers(params: {
         {
           minRelevanceScore: 0,
           autoMerge: true,
-          mergeSimilarityThreshold:
-            parsed.threshold ?? config.mergeSimilarityThreshold,
+          semanticMergeDistance:
+            parsed.threshold ?? config.semanticMergeDistance,
         },
       );
 
@@ -335,13 +419,60 @@ export function registerTopicEvalHandlers(params: {
   });
 
   context.eval.registerHandler(
+    "reconcileExistingTopics",
+    async (input: unknown) => {
+      await clearTopics(context);
+      const parsed: ReconcileExistingTopicsInput =
+        reconcileExistingTopicsSchema.parse(input);
+
+      for (const existingTopic of parsed.existingTopics) {
+        const body = topicAdapter.createTopicBody({
+          title: existingTopic.title,
+          content: existingTopic.content,
+        });
+        await context.entityService.createEntity({
+          entity: {
+            id: existingTopic.id ?? existingTopic.title,
+            entityType: TOPIC_ENTITY_TYPE,
+            content: body,
+            visibility: "public",
+            metadata: {},
+          },
+        });
+      }
+
+      await waitForEmbeddingsToDrain(context);
+
+      const result = await reconcileTopics({
+        context,
+        logger,
+        semanticMergeDistance: parsed.threshold ?? config.semanticMergeDistance,
+        targetVisibility: "public",
+        maxPairs: parsed.maxPairs ?? config.reconciliationMaxPairs,
+      });
+      const topics = await context.entityService.listEntities({
+        entityType: TOPIC_ENTITY_TYPE,
+      });
+
+      return {
+        ...result,
+        topicCount: topics.length,
+        topics: topics.map(toTopicContentProjectionWithMetadata),
+      };
+    },
+  );
+
+  context.eval.registerHandler(
     "extractSequentially",
     async (input: unknown) => {
       await clearTopics(context);
       const parsed: SequentialInput = sequentialInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
       const topicService = new TopicService(context.entityService, logger);
-      const perEntity: Array<{ extractedTitles: string[] }> = [];
+      const perEntity: Array<{
+        extractedTitles: string[];
+        extractedCount: number;
+      }> = [];
 
       for (const [index, entityInput] of parsed.entities.entries()) {
         const entity = createEntityFromInput(
@@ -359,6 +490,7 @@ export function registerTopicEvalHandlers(params: {
 
         perEntity.push({
           extractedTitles: extracted.map((topic) => topic.title),
+          extractedCount: extracted.length,
         });
       }
 
@@ -369,6 +501,61 @@ export function registerTopicEvalHandlers(params: {
         totalTopics: topics.length,
         perEntity,
         topics: topics.map(toTopicContentProjection),
+      };
+    },
+  );
+
+  context.eval.registerHandler(
+    "rebuildCorpusFixture",
+    async (input: unknown) => {
+      await clearTopics(context);
+      const parsed: CorpusAcceptanceInput = corpusAcceptanceSchema.parse(input);
+      const fixture = corpusFixtureSchema.parse(
+        JSON.parse(
+          await readFile(resolve(process.cwd(), parsed.fixture), "utf8"),
+        ),
+      );
+      const entities: BaseEntity[] = fixture.entities.map((entity) => ({
+        id: entity.id,
+        entityType: entity.entityType,
+        content: entity.content,
+        contentHash: computeContentHash(entity.content),
+        visibility: "public",
+        metadata: entity.metadata ?? {},
+        created: "2026-01-01T00:00:00Z",
+        updated: "2026-01-01T00:00:00Z",
+      }));
+
+      const rebuildResult = await replaceAllTopics(
+        entities,
+        context,
+        logger,
+        config,
+      );
+      const reconciliationResult = await reconcileTopics({
+        context,
+        logger,
+        semanticMergeDistance: config.semanticMergeDistance,
+        targetVisibility: config.extractionVisibility,
+        maxPairs: config.reconciliationMaxPairs,
+      });
+      const topics = (
+        await context.entityService.listEntities({
+          entityType: TOPIC_ENTITY_TYPE,
+        })
+      ).map(toTopicContentProjectionWithMetadata);
+      const topicTitles = topics.map((topic) => topic.title);
+      const issues = getCorpusAcceptanceIssues(topicTitles, parsed);
+
+      return {
+        sourceCount: entities.length,
+        topicCount: topics.length,
+        topicTitles,
+        issueCount: issues.length,
+        issues,
+        rebuild: rebuildResult,
+        reconciliation: reconciliationResult,
+        topics,
       };
     },
   );
@@ -390,6 +577,7 @@ export function registerTopicEvalHandlers(params: {
     });
     return {
       ...result,
+      topicCount: topics.length,
       topics: topics.map(toTopicContentProjection),
     };
   });

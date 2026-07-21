@@ -92,6 +92,38 @@ describe("atproto plugin", () => {
     ).toEqual(["/.well-known/did.json", "/anchor/did.json"]);
   });
 
+  it("serves the handle-verification DID when an account DID is configured", async () => {
+    // Member handles under the fleet domain (docs/plans/
+    // atproto-integration.md): the brain self-verifies its owner atproto
+    // handle by serving the account DID at /.well-known/atproto-did — the
+    // HTTP verification method, no per-user DNS records.
+    const plugin = atprotoPlugin({
+      accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
+    });
+
+    const route = plugin
+      .getWebRoutes()
+      .find((entry) => entry.path === "/.well-known/atproto-did");
+    expect(route?.method).toBe("GET");
+    expect(route?.public).toBe(true);
+
+    const response = await route?.handler(
+      new Request("https://rizom.ai/.well-known/atproto-did"),
+    );
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Content-Type")).toBe("text/plain");
+    expect(await response?.text()).toBe("did:plc:oehciuqunzskplljt3qnnncw");
+  });
+
+  it("does not serve atproto-did without an account DID", () => {
+    const plugin = atprotoPlugin();
+    expect(
+      plugin
+        .getWebRoutes()
+        .some((entry) => entry.path === "/.well-known/atproto-did"),
+    ).toBe(false);
+  });
+
   it("serves conventional did:web document routes when DIDs are omitted", async () => {
     const plugin = atprotoPlugin({
       pdsEndpoint: "https://pds.example.com",

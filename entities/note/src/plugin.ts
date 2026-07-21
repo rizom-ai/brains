@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
   JobHandler,
   Template,
   CreateInput,
@@ -50,6 +51,10 @@ export class NotePlugin extends EntityPlugin<
 
   constructor(config: NoteConfigInput = {}) {
     super("note", packageJson, config, noteConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "ambient" };
   }
 
   protected override async interceptCreate(

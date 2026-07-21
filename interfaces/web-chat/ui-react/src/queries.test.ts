@@ -131,6 +131,104 @@ describe("web-chat session-history query", () => {
     client.clear();
   });
 
+  it("reopens an approval that has no stored resolution", async () => {
+    mockFetch(async () =>
+      Response.json({
+        messages: [
+          {
+            id: "approval-request",
+            role: "assistant",
+            content: "This action needs approval.",
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:save-note",
+                toolCallId: "call:save-note",
+                toolName: "system_update",
+                input: { entityType: "note", id: "field-notes" },
+                summary: "Save field notes?",
+                state: "approval-requested",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const client = createWebChatQueryClient();
+
+    const messages = await client.fetchQuery(
+      sessionHistoryQueryOptions("pending-approval"),
+    );
+
+    expect(messages[0]?.parts).toContainEqual(
+      expect.objectContaining({
+        type: "dynamic-tool",
+        toolCallId: "call:save-note",
+        state: "approval-requested",
+      }),
+    );
+    client.clear();
+  });
+
+  it("does not reopen buttons for an approval resolved by a later card", async () => {
+    mockFetch(async () =>
+      Response.json({
+        messages: [
+          {
+            id: "approval-request",
+            role: "assistant",
+            content: "This action needs approval.",
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:save-note",
+                toolCallId: "call:save-note",
+                toolName: "system_update",
+                input: { entityType: "note", id: "field-notes" },
+                summary: "Save field notes?",
+                state: "approval-requested",
+              },
+            ],
+          },
+          {
+            id: "approval-result",
+            role: "assistant",
+            content: "Saved the note.",
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:save-note",
+                toolCallId: "call:save-note",
+                toolName: "system_update",
+                input: { entityType: "note", id: "field-notes" },
+                summary: "Save field notes?",
+                state: "output-available",
+                output: { success: true },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const client = createWebChatQueryClient();
+
+    const messages = await client.fetchQuery(
+      sessionHistoryQueryOptions("resolved-approval"),
+    );
+
+    expect(messages[0]?.parts).toEqual([
+      { type: "text", text: "This action needs approval." },
+    ]);
+    expect(messages[1]?.parts).toContainEqual(
+      expect.objectContaining({
+        type: "dynamic-tool",
+        toolCallId: "call:save-note",
+        state: "output-available",
+      }),
+    );
+    client.clear();
+  });
+
   it("surfaces malformed history without retrying", async () => {
     let requests = 0;
     mockFetch(async () => {

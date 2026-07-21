@@ -9,12 +9,17 @@ import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
+import {
+  reconcileTopics as reconcileTopicsDefault,
+  type TopicReconciliationResult,
+} from "./topic-reconciliation";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
 
 export type TopicProjectionJobData =
   | { mode: "derive"; reason?: string | undefined }
   | { mode: "rebuild"; reason?: string | undefined }
-  | { mode: "source-batch"; minRelevanceScore?: number | undefined };
+  | { mode: "source-batch"; minRelevanceScore?: number | undefined }
+  | { mode: "reconcile"; reason?: string | undefined };
 
 export const topicProjectionJobDataSchema: z.ZodType<
   TopicProjectionJobData,
@@ -31,6 +36,10 @@ export const topicProjectionJobDataSchema: z.ZodType<
   z.object({
     mode: z.literal("source-batch"),
     minRelevanceScore: z.number().min(0).max(1).optional(),
+  }),
+  z.object({
+    mode: z.literal("reconcile"),
+    reason: z.string().optional(),
   }),
 ]);
 
@@ -94,22 +103,38 @@ export function createTopicProjectionHandler(params: {
   config: TopicsPluginConfig;
   extractAllTopics: () => Promise<void>;
   rebuildAllTopics: () => Promise<void>;
+  reconcileTopics?: (() => Promise<TopicReconciliationResult>) | undefined;
   sourceBatch: TopicSourceBatchStore;
   isEntityPublished: (entity: BaseEntity) => boolean;
 }): JobHandler<string, TopicProjectionJobData, unknown> {
   const { context, logger, config } = params;
+  const runReconciliation: () => Promise<TopicReconciliationResult> =
+    params.reconcileTopics ??
+    (async (): Promise<TopicReconciliationResult> =>
+      reconcileTopicsDefault({
+        context,
+        logger,
+        semanticMergeDistance: config.semanticMergeDistance,
+        targetVisibility: config.extractionVisibility,
+        maxPairs: config.reconciliationMaxPairs,
+      }));
 
   return {
     process: async (data): Promise<unknown> => {
       if (data.mode === "derive") {
         await params.extractAllTopics();
+        await runReconciliation();
         return { success: true };
       }
       if (data.mode === "rebuild") {
         await params.rebuildAllTopics();
+        await runReconciliation();
         return { success: true };
       }
-      return processSourceBatch({
+      if (data.mode === "reconcile") {
+        return runReconciliation();
+      }
+      const result = await processSourceBatch({
         context,
         logger,
         config,
@@ -117,6 +142,10 @@ export function createTopicProjectionHandler(params: {
         isEntityPublished: params.isEntityPublished,
         minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
       });
+      if (result.created > 0 || result.merged > 0) {
+        await runReconciliation();
+      }
+      return result;
     },
     validateAndParse: (data: unknown): TopicProjectionJobData | null => {
       const result = topicProjectionJobDataSchema.safeParse(data ?? {});
@@ -190,14 +219,27 @@ async function processSourceBatch(params: {
     };
   }
 
+  const sourceEntityCount = await countConfiguredSources(
+    params.context,
+    params.config,
+  );
   const result = await extractTopicsBatched(
     toExtract,
     params.context,
     params.logger,
     {
       minRelevanceScore: params.minRelevanceScore,
+      createRelevanceThreshold: params.config.createRelevanceThreshold,
+      reinforceRelevanceThreshold: params.config.reinforceRelevanceThreshold,
+      sourceWeights: params.config.sourceWeights,
+      mintableEntityTypes: params.config.mintableEntityTypes,
+      sourceRolePolicies: params.config.sourceRolePolicies,
+      sourceRoleOverrides: params.config.sourceRoleOverrides,
+      sourceEntityCount,
+      maxEntitiesPerBatch: params.config.maxEntitiesPerBatch,
+      topicSoftCeilingSourceRatio: params.config.topicSoftCeilingSourceRatio,
       autoMerge: params.config.autoMerge,
-      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
     },
   );
@@ -259,8 +301,17 @@ export async function extractAllTopics(
     params.logger,
     {
       minRelevanceScore: params.config.minRelevanceScore,
+      createRelevanceThreshold: params.config.createRelevanceThreshold,
+      reinforceRelevanceThreshold: params.config.reinforceRelevanceThreshold,
+      sourceWeights: params.config.sourceWeights,
+      mintableEntityTypes: params.config.mintableEntityTypes,
+      sourceRolePolicies: params.config.sourceRolePolicies,
+      sourceRoleOverrides: params.config.sourceRoleOverrides,
+      sourceEntityCount: toExtract.length,
+      maxEntitiesPerBatch: params.config.maxEntitiesPerBatch,
+      topicSoftCeilingSourceRatio: params.config.topicSoftCeilingSourceRatio,
       autoMerge: params.config.autoMerge,
-      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      semanticMergeDistance: params.config.semanticMergeDistance,
       targetVisibility: params.config.extractionVisibility,
     },
   );
@@ -311,8 +362,17 @@ export async function replaceAllTopics(
 
   const result = await extractTopicsBatched(entities, context, logger, {
     minRelevanceScore: config.minRelevanceScore,
+    createRelevanceThreshold: config.createRelevanceThreshold,
+    reinforceRelevanceThreshold: config.reinforceRelevanceThreshold,
+    sourceWeights: config.sourceWeights,
+    mintableEntityTypes: config.mintableEntityTypes,
+    sourceRolePolicies: config.sourceRolePolicies,
+    sourceRoleOverrides: config.sourceRoleOverrides,
+    sourceEntityCount: entities.length,
+    maxEntitiesPerBatch: config.maxEntitiesPerBatch,
+    topicSoftCeilingSourceRatio: config.topicSoftCeilingSourceRatio,
     autoMerge: config.autoMerge,
-    mergeSimilarityThreshold: config.mergeSimilarityThreshold,
+    semanticMergeDistance: config.semanticMergeDistance,
     targetVisibility: config.extractionVisibility,
   });
   return {
@@ -346,4 +406,21 @@ async function getEntitiesToExtract(
 function getExtractableEntityTypes(params: ExtractionParams): string[] {
   const allTypes = params.context.entityService.getEntityTypes();
   return allTypes.filter((type) => params.shouldProcessEntityType(type));
+}
+
+async function countConfiguredSources(
+  context: EntityPluginContext,
+  config: TopicsPluginConfig,
+): Promise<number> {
+  const counts = await Promise.all(
+    config.includeEntityTypes.map((entityType) =>
+      context.entityService.countEntities({
+        entityType,
+        options: {
+          filter: { visibilityScope: config.extractionVisibility },
+        },
+      }),
+    ),
+  );
+  return counts.reduce((total, count) => total + count, 0);
 }

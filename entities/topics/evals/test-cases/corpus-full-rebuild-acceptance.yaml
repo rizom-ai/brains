@@ -1,0 +1,46 @@
+id: topics-corpus-full-rebuild-acceptance
+name: Full yeehaa.io corpus rebuild stays canonical and bounded
+description: >
+  Rebuilds topics from a yeehaa.io corpus snapshot and checks acceptance
+  properties that the smaller generic evals cannot cover: bounded topic count,
+  core domain coverage, no operational/link-only mint artifacts, and no known
+  duplicate topic pairs.
+type: plugin
+tags:
+  - topics
+  - corpus
+  - calibration
+  - full-corpus
+plugin: topics
+handler: rebuildCorpusFixture
+
+input:
+  fixture: fixtures/yeehaa-corpus.json
+  minTopicCount: 5
+  maxTopicCount: 14
+  requiredTitleMatches:
+    - "Knowledge|Memory|Infrastructure"
+    - "Ecosystem|Architecture"
+    - "Collaboration|Coordination"
+    - "AI|Intelligence|Learning|Hybrid Collaboration"
+    - "Trust|Governance|Institutions"
+  forbiddenTitleMatches:
+    - "Landing Page"
+    - "Staging"
+    - "Launch Checklist"
+    - "Action Plan"
+    - "Offcourse Studio"
+  forbiddenTitlePairs:
+    - left: "^E-?Waste$"
+      right: "Electronic Waste"
+    - left: "Distributed Collaboration"
+      right: "Decentralized Collaboration"
+    - left: "Internet Fragmentation"
+      right: "^Fragmentation$"
+
+expectedOutput:
+  validateEach:
+    - path: sourceCount
+      equals: 50
+    - path: issueCount
+      equals: 0

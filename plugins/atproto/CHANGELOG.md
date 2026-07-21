@@ -1,5 +1,101 @@
 # @brains/atproto
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.210
+  - @brains/utils@0.2.0-alpha.210
+  - @brains/plugins@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies [[`80ac02e`](https://github.com/rizom-ai/brains/commit/80ac02e00bfea91ae1495f1aab1dde97756be6a7)]:
+  - @brains/atproto-contracts@0.2.0-alpha.209
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/plugins@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`ba3dbab`](https://github.com/rizom-ai/brains/commit/ba3dbab5d25577c17259ebf05506ff1ff4b7f26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish canonical AT Protocol lexicon schema records from the DNS-designated authority account on startup.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.208
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/plugins@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- [#60](https://github.com/rizom-ai/brains/pull/60) [`2311745`](https://github.com/rizom-ai/brains/commit/2311745a5b07b4315eda2b7e963675a1703a0d5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire AT Protocol publishing to runtime events so configured brains refresh their card, mirror public projected entities, remove stale records, and isolate PDS failures from local operations.
+
+- Updated dependencies [[`2311745`](https://github.com/rizom-ai/brains/commit/2311745a5b07b4315eda2b7e963675a1703a0d5f)]:
+  - @brains/atproto-contracts@0.2.0-alpha.207
+  - @brains/utils@0.2.0-alpha.207
+  - @brains/plugins@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.206
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/plugins@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- [`6bc26ff`](https://github.com/rizom-ai/brains/commit/6bc26ffeb782fef8eaae0aa444aa0e824141bbc1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Member handles under the fleet domain: the atproto plugin serves the owner's account DID at /.well-known/atproto-did when accountDid is configured, so a member's Bluesky handle (@<handle>.<domainSuffix>) verifies against their own brain via the HTTP method — no DNS records. Pilot plumbing: users/<handle>.yaml atproto.accountDid flows into the generated brain.yaml plugin config; operator playbook updated.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.205
+  - @brains/utils@0.2.0-alpha.205
+  - @brains/plugins@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- Updated dependencies [[`998a786`](https://github.com/rizom-ai/brains/commit/998a78694a06c7796fefcca09e258cc90eb62ce9)]:
+  - @brains/plugins@0.2.0-alpha.204
+  - @brains/atproto-contracts@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.203
+  - @brains/atproto-contracts@0.2.0-alpha.203
+  - @brains/utils@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.202
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/plugins@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/plugins@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

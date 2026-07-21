@@ -1,5 +1,43 @@
 # @brains/ops
 
+## 0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`ba3dbab`](https://github.com/rizom-ai/brains/commit/ba3dbab5d25577c17259ebf05506ff1ff4b7f26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish canonical AT Protocol lexicon schema records from the DNS-designated authority account on startup.
+
+## 0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- [`b138421`](https://github.com/rizom-ai/brains/commit/b1384217bf155b0172c235d62077168d3b8d0586) Thanks [@yeehaa123](https://github.com/yeehaa123)! - secrets:encrypt no longer corrupts long secret values on merge. The merge
+  path parsed stored YAML with a flat line-based parser that truncated folded
+  scalars (destroying PEM cert pairs); it now uses a real YAML parser, verifies
+  the emitted plaintext round-trips byte-identically before encrypting, fails
+  loudly on unparseable plaintext or stored payloads, and the scaffolded
+  decrypt-user-secrets deploy script rejects non-PEM-shaped TLS values before
+  the deploy starts.
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- [`6bc26ff`](https://github.com/rizom-ai/brains/commit/6bc26ffeb782fef8eaae0aa444aa0e824141bbc1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Member handles under the fleet domain: the atproto plugin serves the owner's account DID at /.well-known/atproto-did when accountDid is configured, so a member's Bluesky handle (@<handle>.<domainSuffix>) verifies against their own brain via the HTTP method — no DNS records. Pilot plumbing: users/<handle>.yaml atproto.accountDid flows into the generated brain.yaml plugin config; operator playbook updated.
+
+## 0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ## 0.2.0-alpha.199

@@ -107,19 +107,13 @@ later change without overlap (no grace-window rotation via JWKS
 multi-key publishing), the peer drops back to discovered and requires
 re-approval. No secret is ever exchanged in any trust flow.
 
-### 5. Humans and brains stay distinct actors and link through a person subject
+### 5. Humans and brains stay distinct actors; peer association grants nothing
 
-Multi-user phases 1–5 deliberately kept auth users and peer agents separate. The approved phase 6 follow-on now introduces the missing person-centered link without collapsing attribution:
+Auth users attach to stable person subjects that own verified human identity claims such as Discord and email. External brains remain independent actors with their own DIDs, domains, keys, peer trust, and attribution.
 
-```text
-Auth user ─────► Person ◄───── Agent
-```
+A person may have an optional `person_external_peers` association for Admin-console discovery and profile display. That association is not representation or delegation: it never turns a brain into a human login identity, inherits no person role, changes no A2A trust, and creates no `onBehalfOf` attribution. Actions by the external brain remain attributed to that brain.
 
-The person owns canonical human identity claims such as Discord, email, and human DIDs. The auth user is the access/account facet; the agent is the acting representative. Linking them reuses the same person and claim ids rather than copying provider subjects. Agent-owned bot identities, brain DIDs, domains, and A2A keys remain attached to the agent/brain subject and never become human login identities.
-
-Promotion runs from an existing agent dossier to a represented person's invited auth-user facet. Agent-asserted contact data retains its provenance but cannot authenticate the new user until a passkey or provider proves control. Linking an existing user follows the same person path, reuses exact verified claims, and requires explicit reconciliation for conflicts.
-
-Actors remain distinct after linking: an autonomous or delegated action is attributed to the agent, while the initiating or represented user is retained separately as delegation/`onBehalfOf` provenance. The link does not inherit `admin` authority, alter peer trust, publish private claims, or make auth administration model-visible.
+Peer-first invitation may create an invited local account and the independent peer association atomically, but setup still requires human control of a verified delivery channel and passkey. Raw provider subjects and machine identifiers remain private runtime evidence, and auth administration remains non-model-visible.
 
 ## What this settles in the execution plans
 
@@ -131,21 +125,26 @@ requests only (response/stream signing is a separate future question);
 and directory approval writes the runtime peer-trust record — pinned
 fingerprint plus granted inbound level — per decision 4.
 
-**multi-user.md** — phase 6 owns person-centered canonical identity claims, agent-to-user promotion, existing-user linking, consent, and migration from user-only identity ownership. Brain/agent proof remains dependent on A2A/ATProto verification; an asserted agent profile alone cannot establish a human authentication binding.
+**multi-user.md** — decisions 14–15 own person-centered human claims, DB-backed access, invitations, and access-neutral external-peer associations. Brain/agent proof remains dependent on A2A/ATProto verification; a peer profile can never establish a human authentication binding.
 
 **atproto-integration.md** — the brain-DID convention
 (`did:web:<site-host>`) is ratified as the DID spelling of decision 2's
-domain identity; anchor DIDs relate to multi-user anchors under decision
-5's future linking; discovery stays pointed at the shared agent
-directory.
+domain identity; Anchor DIDs remain distinct from human auth identities;
+discovery stays pointed at the shared agent directory.
 
 ## Sequencing
 
-The two subject tracks are independent and can proceed in parallel:
+The two subject tracks can otherwise proceed in parallel, with one explicit
+provider-connection dependency:
 
 - **Humans**: auth-runtime-db → multi-user phases 1–2 (real users, roles,
   per-session MCP permissions).
 - **Brains**: a2a-request-signing phases 1–6 (keys, signing, verification,
-  task binding); ATProto OAuth hardening on its own track.
+  task binding); ATProto protocol work remains independent.
+- **Outbound ATProto OAuth**: auth-runtime-db must land first. Bluesky access
+  tokens, rotating refresh tokens, and DPoP key material are received provider
+  credentials and belong in a dedicated external-provider connection store on
+  the private auth runtime plane, not in the ATProto plugin or the brain's
+  existing issued-grant tables.
 
-Person-centered linking can land incrementally now that human auth and signed brain identity exist. Storage migration and exact-claim reuse come first; promotion/consent UX follows; public identity projection remains opt-in.
+Optional person-to-peer association can land only after both tracks can verify their own subjects; it never merges those subjects or their authorization.

@@ -34,6 +34,7 @@ If you are new, read these in order:
 ## Customization
 
 - [Customization Guide](./customization-guide.md) — change bundles, content, themes, sites, and plugins
+- [Site Mockup Migration](./site-mockup-migration.md) — prototype a site in an AI coding tool, then move it into Brain routes, sections, content, and themes
 - [Theming Guide](./theming-guide.md) — theme tokens, CSS layers, and custom themes
 - [Plugin System](./plugin-system.md) — how built-in and custom plugins are organized
 - [Plugin Quick Reference](./plugin-quick-reference.md) — concise plugin API reference

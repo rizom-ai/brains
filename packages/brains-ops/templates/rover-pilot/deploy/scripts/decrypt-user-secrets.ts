@@ -39,8 +39,26 @@ if (Boolean(certificatePem) !== Boolean(privateKeyPem)) {
     "Custom-domain TLS secrets require both certificatePem and privateKeyPem",
   );
 }
+// A corrupted stored value would otherwise only surface as a kamal-proxy
+// "unable to load certificate" failure after the container has already booted.
+assertPemShape("certificatePem", certificatePem);
+assertPemShape("privateKeyPem", privateKeyPem);
 writeSecretGitHubEnv("CERTIFICATE_PEM", certificatePem);
 writeSecretGitHubEnv("PRIVATE_KEY_PEM", privateKeyPem);
+
+function assertPemShape(name: string, value: string | undefined): void {
+  if (value === undefined || value.trim().length === 0) {
+    return;
+  }
+  if (
+    !/-----BEGIN [A-Z0-9 ]+-----/.test(value) ||
+    !/-----END [A-Z0-9 ]+-----/.test(value)
+  ) {
+    throw new Error(
+      `Secret ${name} is not PEM-shaped after unescaping; the stored value is corrupt`,
+    );
+  }
+}
 
 writeGitHubOutput(
   "shared_ai_api_key_secret_name",

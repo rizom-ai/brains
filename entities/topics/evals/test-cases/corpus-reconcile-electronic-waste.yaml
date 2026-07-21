@@ -1,0 +1,38 @@
+id: topics-corpus-reconcile-electronic-waste
+name: Corpus reconciliation merges duplicate electronic waste topics
+description: >
+  Regression case from the yeehaa.io corpus: old derivation produced both
+  e-waste and electronic-waste topic files with the same durable domain.
+type: plugin
+tags:
+  - topics
+  - corpus
+  - reconciliation
+  - electronic-waste
+plugin: topics
+handler: reconcileExistingTopics
+
+input:
+  threshold: 0.35
+  existingTopics:
+    - id: e-waste
+      title: Electronic Waste
+      content: |
+        Electronic waste is the material residue of disposable technology culture.
+        The corpus connects e-waste to global manufacturing, repair economies,
+        Shenzhen supply chains, and the hidden costs of rapid hardware churn.
+    - id: electronic-waste
+      title: Electronic Waste
+      content: |
+        E-waste appears as a durable concern about discarded devices, repair,
+        circular production, and the environmental consequences of electronic
+        consumption. It belongs to one canonical electronic waste topic.
+
+expectedOutput:
+  validateEach:
+    - path: merged
+      equals: 1
+    - path: topicCount
+      equals: 1
+    - path: topics[0].title
+      equals: Electronic Waste

@@ -432,6 +432,70 @@ describe("A2A Client", () => {
       expect(result).toHaveProperty("success", false);
     });
 
+    it("preserves caller cancellation through the outbound POST", async () => {
+      let markPostStarted: () => void = () => {};
+      const postStarted = new Promise<void>((resolve) => {
+        markPostStarted = resolve;
+      });
+      let reportPostAbort: (reason: unknown) => void = () => {};
+      const postAborted = new Promise<unknown>((resolve) => {
+        reportPostAbort = resolve;
+      });
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        markPostStarted();
+        return new Promise<Response>((_, reject) => {
+          const signal = init.signal;
+          if (!signal) return;
+          const rejectForAbort = (): void => {
+            reportPostAbort(signal.reason);
+            reject(signal.reason);
+          };
+          if (signal.aborted) {
+            rejectForAbort();
+            return;
+          }
+          signal.addEventListener("abort", rejectForAbort, { once: true });
+        });
+      };
+      const tool = createAgentCallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        requestTimeoutMs: 25,
+      });
+      const controller = new AbortController();
+      const reason = new Error("caller stopped the A2A request");
+
+      const pending = tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        {
+          ...testToolContext,
+          signal: controller.signal,
+        },
+      );
+      await postStarted;
+      controller.abort(reason);
+
+      expect(await postAborted).toBe(reason);
+      const rejection = await Promise.resolve(pending).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(rejection).toBe(reason);
+    });
+
     it("should not retry when the POST times out after it may have reached the peer", async () => {
       let postAttempts = 0;
       const fetchFn = async (
@@ -534,6 +598,79 @@ describe("A2A Client", () => {
         "error",
         "A2A stream stalled waiting for final event after 5ms",
       );
+    });
+
+    it("awaits stream cancellation after an idle timeout", async () => {
+      const encoder = new TextEncoder();
+      let markCancelStarted: () => void = () => {};
+      const cancelStarted = new Promise<void>((resolve) => {
+        markCancelStarted = resolve;
+      });
+      let releaseCancel: () => void = () => {};
+      const cancellation = new Promise<void>((resolve) => {
+        releaseCancel = resolve;
+      });
+      const stalledStream = new ReadableStream<Uint8Array>({
+        start(controller): void {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                result: {
+                  status: { state: "working" },
+                  final: false,
+                },
+              })}\n\n`,
+            ),
+          );
+        },
+        cancel(): Promise<void> {
+          markCancelStarted();
+          return cancellation;
+        },
+      });
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(stalledStream, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      };
+      const tool = createAgentCallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        streamIdleTimeoutMs: 5,
+      });
+
+      let callSettled = false;
+      const call = Promise.resolve(
+        tool.handler(
+          { agent: "remote.example.com", message: "hello" },
+          testToolContext,
+        ),
+      ).then((result) => {
+        callSettled = true;
+        return result;
+      });
+      await cancelStarted;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      try {
+        expect(callSettled).toBe(false);
+      } finally {
+        releaseCancel();
+        await call;
+      }
     });
 
     it("should not retry when the SSE stream errors after the response starts", async () => {

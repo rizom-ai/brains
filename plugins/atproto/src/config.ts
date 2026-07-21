@@ -8,6 +8,8 @@ export interface AtprotoConfig {
   appPassword?: string | undefined;
   anchorDid?: string | undefined;
   brainDid?: string | undefined;
+  accountDid?: string | undefined;
+  lexiconAuthority: boolean;
 }
 
 export interface AtprotoConfigInput {
@@ -18,6 +20,8 @@ export interface AtprotoConfigInput {
   appPassword?: string | undefined;
   anchorDid?: string | undefined;
   brainDid?: string | undefined;
+  accountDid?: string | undefined;
+  lexiconAuthority?: boolean | undefined;
 }
 
 export const atprotoConfigSchema: z.ZodType<AtprotoConfig, AtprotoConfigInput> =
@@ -52,5 +56,17 @@ export const atprotoConfigSchema: z.ZodType<AtprotoConfig, AtprotoConfigInput> =
       .optional()
       .describe(
         "Optional public brain DID referenced from records; defaults to did:web:<site-host> when omitted",
+      ),
+    accountDid: z
+      .string()
+      .optional()
+      .describe(
+        "Owner's atproto account DID (did:plc:…). When set, the brain serves it at /.well-known/atproto-did so the owner's handle can verify against this domain (HTTP method) — member handles under the fleet domain",
+      ),
+    lexiconAuthority: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Publish canonical ai.rizom.brain.* schemas from this PDS repo; enable only for the DNS-designated lexicon authority account",
       ),
   });

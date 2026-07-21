@@ -89,8 +89,12 @@ const setupDeliverySchema: z.ZodObject<{
 
 const atprotoSchema: z.ZodObject<{
   identifier: z.ZodString;
+  accountDid: z.ZodOptional<z.ZodString>;
+  lexiconAuthority: z.ZodOptional<z.ZodBoolean>;
 }> = z.strictObject({
   identifier: z.string().min(1),
+  accountDid: z.string().min(1).optional(),
+  lexiconAuthority: z.boolean().optional(),
 });
 
 const siteOverrideSchema: z.ZodObject<{

@@ -328,6 +328,45 @@ describe("extractTopicsBatched", () => {
     expect(topics[0]?.id).toBe("high-relevance");
   });
 
+  it("splits large corpus runs by entity count", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const generateSpy = spyOn(context.ai, "generate");
+    generateSpy
+      .mockResolvedValueOnce({
+        topics: [
+          {
+            title: "Corpus Topic 1",
+            content: "Corpus batch 1.",
+            relevanceScore: 0.9,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        topics: [
+          {
+            title: "Corpus Topic 2",
+            content: "Corpus batch 2.",
+            relevanceScore: 0.9,
+          },
+        ],
+      });
+
+    const result = await extractTopicsBatched(
+      Array.from({ length: 9 }, (_, index) =>
+        makeEntity(`p${index}`, "post", `Post ${index}`, `Content ${index}`),
+      ),
+      context,
+      logger,
+      { maxEntitiesPerBatch: 8 },
+    );
+
+    expect(result.batches).toBe(2);
+    expect(result.created).toBe(2);
+    expect(generateSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("skips duplicate-slug extractions within the same run", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
@@ -365,8 +404,10 @@ describe("extractTopicsBatched", () => {
     expect(topics[0]?.id).toBe("team-memory");
   });
 
-  describe("merge behavior", () => {
-    function makeSynthesizer(): ITopicMergeSynthesizer {
+  describe("mint economics", () => {
+    function makeSynthesizer(
+      verdict: TopicMergeSynthesisResult["verdict"] = "merge",
+    ): ITopicMergeSynthesizer {
       return {
         synthesize: async ({
           existingTopic,
@@ -374,6 +415,317 @@ describe("extractTopicsBatched", () => {
         }): Promise<TopicMergeSynthesisResult> => {
           const parsed = topicAdapter.parseTopicBody(existingTopic.content);
           return {
+            verdict,
+            title: parsed.title,
+            content: `${parsed.content}\n\n${incomingTopic.content}`,
+          };
+        },
+      };
+    }
+
+    it("does not mint new topics from reinforce-only source types", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "supporting",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Interesting Link",
+            content: "A link mentions an interesting domain.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("l1", "link", "Link 1", "Link content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("allows reinforce-only sources to merge into existing topics", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      await entityService.createEntity({
+        entity: {
+          id: "human-ai-collaboration",
+          entityType: "topic",
+          content: topicAdapter.createTopicBody({
+            title: "Human-AI Collaboration",
+            content: "Existing body.",
+          }),
+          visibility: "public",
+          metadata: {},
+        },
+      });
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: "human-ai-collaboration",
+          entityType: "topic",
+          distance: 0.2,
+        },
+      ]);
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Human-Agent Collaboration",
+            content: "A link reinforces collaboration patterns.",
+            relevanceScore: 0.9,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("l1", "link", "Link 1", "Link content")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          semanticMergeDistance: 0.35,
+          topicMergeSynthesizer: makeSynthesizer(),
+        },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(1);
+      expect(result.skipped).toBe(0);
+    });
+
+    it("applies source weights to the creation cutoff", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Project Operations",
+            content: "Project content with a moderate signal.",
+            relevanceScore: 0.8,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("pr1", "project", "Project 1", "Project content")],
+        context,
+        logger,
+        {
+          autoMerge: false,
+          sourceWeights: { project: 0.8 },
+          mintableEntityTypes: ["project"],
+        },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("does not create beyond the soft ceiling without a merge candidate", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      for (const title of ["A", "B", "C", "D", "E"]) {
+        await entityService.createEntity({
+          entity: {
+            id: `topic-${title.toLowerCase()}`,
+            entityType: "topic",
+            content: topicAdapter.createTopicBody({ title, content: title }),
+            visibility: "public",
+            metadata: {},
+          },
+        });
+      }
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Novel Topic",
+            content: "A novel topic with strong relevance.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Content 1")],
+        context,
+        logger,
+        { autoMerge: true, sourceEntityCount: 8 },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("uses entity source roles so primary custom sources can mint", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "primary",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Research Theme",
+            content: "A strong custom source theme.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("doc-1", "research-doc", "Research doc", "Content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(0);
+    });
+
+    it("uses entity source roles so supporting sources reinforce but do not mint", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "supporting",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Vendor Research",
+            content: "Strong but supporting evidence.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("link-1", "link", "Vendor link", "Link content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("lets source role overrides adapt mint authority per brain config", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "primary",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Project Delivery",
+            content: "Project content should reinforce in this brain.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("project-1", "project", "Project", "Project content")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          sourceRoleOverrides: { project: "supporting" },
+        },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("does not let a distinct merge verdict bypass the soft ceiling", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      for (const title of ["A", "B", "C", "D", "E"]) {
+        await entityService.createEntity({
+          entity: {
+            id: `topic-${title.toLowerCase()}`,
+            entityType: "topic",
+            content: topicAdapter.createTopicBody({ title, content: title }),
+            visibility: "public",
+            metadata: {},
+          },
+        });
+      }
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: "topic-a", entityType: "topic", distance: 0.2 },
+      ]);
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Novel Topic",
+            content: "A novel topic with strong relevance.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Content 1")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          sourceEntityCount: 8,
+          semanticMergeDistance: 0.35,
+          topicMergeSynthesizer: makeSynthesizer("distinct"),
+        },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+  });
+
+  describe("merge behavior", () => {
+    function makeSynthesizer(
+      verdict: TopicMergeSynthesisResult["verdict"] = "merge",
+    ): ITopicMergeSynthesizer {
+      return {
+        synthesize: async ({
+          existingTopic,
+          incomingTopic,
+        }): Promise<TopicMergeSynthesisResult> => {
+          const parsed = topicAdapter.parseTopicBody(existingTopic.content);
+          return {
+            verdict,
             title: parsed.title,
             content: `${parsed.content}\n\n${incomingTopic.content}`,
           };
@@ -452,7 +804,7 @@ describe("extractTopicsBatched", () => {
         logger,
         {
           autoMerge: true,
-          mergeSimilarityThreshold: 0.85,
+          semanticMergeDistance: 0.35,
           topicMergeSynthesizer: makeSynthesizer(),
         },
       );
@@ -480,13 +832,13 @@ describe("extractTopicsBatched", () => {
         },
       });
 
-      const existing = await entityService.getEntity({
-        entityType: "topic",
-        id: "human-ai-collaboration",
-      });
-      spyOn(entityService, "search").mockResolvedValue(
-        existing ? [{ entity: existing, score: 0.95, excerpt: "" }] : [],
-      );
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: "human-ai-collaboration",
+          entityType: "topic",
+          distance: 0.2,
+        },
+      ]);
 
       spyOn(context.ai, "generate").mockResolvedValue({
         topics: [
@@ -504,7 +856,7 @@ describe("extractTopicsBatched", () => {
         logger,
         {
           autoMerge: true,
-          mergeSimilarityThreshold: 0.85,
+          semanticMergeDistance: 0.35,
           topicMergeSynthesizer: makeSynthesizer(),
         },
       );
@@ -516,6 +868,64 @@ describe("extractTopicsBatched", () => {
       expect(topics).toHaveLength(1);
       expect(topics[0]?.id).toBe("human-ai-collaboration");
       expect(topics[0]?.content).toContain("Agents collaborate with humans.");
+    });
+
+    it("creates a new topic when the synthesizer rejects a semantic candidate", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      await entityService.createEntity({
+        entity: {
+          id: "messaging-validation",
+          entityType: "topic",
+          content: topicAdapter.createTopicBody({
+            title: "Messaging Validation",
+            content: "Existing body.",
+          }),
+          visibility: "public",
+          metadata: {},
+        },
+      });
+
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: "messaging-validation",
+          entityType: "topic",
+          distance: 0.2,
+        },
+      ]);
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Message Testing",
+            content: "Testing message resonance with readers.",
+            relevanceScore: 0.92,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Content 1")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          semanticMergeDistance: 0.35,
+          topicMergeSynthesizer: makeSynthesizer("distinct"),
+        },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.merged).toBe(0);
+
+      const topics = await entityService.listEntities({ entityType: "topic" });
+      expect(topics.map((topic) => topic.id).sort()).toEqual([
+        "message-testing",
+        "messaging-validation",
+      ]);
     });
 
     it("does not merge restricted extraction into matching public topic", async () => {
@@ -537,13 +947,13 @@ describe("extractTopicsBatched", () => {
         },
       });
 
-      const publicTopic = await entityService.getEntity({
-        entityType: "topic",
-        id: "human-ai-collaboration",
-      });
-      spyOn(entityService, "search").mockResolvedValue(
-        publicTopic ? [{ entity: publicTopic, score: 0.95, excerpt: "" }] : [],
-      );
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        {
+          entityId: "human-ai-collaboration",
+          entityType: "topic",
+          distance: 0.2,
+        },
+      ]);
       spyOn(context.ai, "generate").mockResolvedValue({
         topics: [
           {
@@ -561,7 +971,7 @@ describe("extractTopicsBatched", () => {
         {
           autoMerge: true,
           targetVisibility: "restricted",
-          mergeSimilarityThreshold: 0.85,
+          semanticMergeDistance: 0.35,
           topicMergeSynthesizer: makeSynthesizer(),
         },
       );
@@ -594,7 +1004,7 @@ describe("extractTopicsBatched", () => {
             relevanceScore: 0.9,
           },
           {
-            title: "Human-Agent Collaboration",
+            title: "Human-AI Collaboration",
             content: "Second, should merge with first.",
             relevanceScore: 0.9,
           },
@@ -607,7 +1017,7 @@ describe("extractTopicsBatched", () => {
         logger,
         {
           autoMerge: true,
-          mergeSimilarityThreshold: 0.85,
+          semanticMergeDistance: 0.35,
           topicMergeSynthesizer: makeSynthesizer(),
         },
       );

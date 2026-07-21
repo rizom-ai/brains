@@ -1,5 +1,119 @@
 # @brains/topics
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.210
+  - @brains/content-formatters@0.2.0-alpha.210
+  - @brains/ui-library@0.2.0-alpha.210
+  - @brains/utils@0.2.0-alpha.210
+  - @brains/plugins@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies [[`80ac02e`](https://github.com/rizom-ai/brains/commit/80ac02e00bfea91ae1495f1aab1dde97756be6a7)]:
+  - @brains/atproto-contracts@0.2.0-alpha.209
+  - @brains/content-formatters@0.2.0-alpha.209
+  - @brains/ui-library@0.2.0-alpha.209
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/plugins@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.208
+  - @brains/content-formatters@0.2.0-alpha.208
+  - @brains/ui-library@0.2.0-alpha.208
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/plugins@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- Updated dependencies [[`2311745`](https://github.com/rizom-ai/brains/commit/2311745a5b07b4315eda2b7e963675a1703a0d5f)]:
+  - @brains/atproto-contracts@0.2.0-alpha.207
+  - @brains/content-formatters@0.2.0-alpha.207
+  - @brains/ui-library@0.2.0-alpha.207
+  - @brains/utils@0.2.0-alpha.207
+  - @brains/plugins@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.206
+  - @brains/content-formatters@0.2.0-alpha.206
+  - @brains/ui-library@0.2.0-alpha.206
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/plugins@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.205
+  - @brains/content-formatters@0.2.0-alpha.205
+  - @brains/ui-library@0.2.0-alpha.205
+  - @brains/utils@0.2.0-alpha.205
+  - @brains/plugins@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- [`9667781`](https://github.com/rizom-ai/brains/commit/9667781fe5d6a423b4893c82ae1b8cc970003c29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the knowledge map legible on real corpora: radial rank expansion spreads PCA knots across the field (order-preserving, outlier-proof) with short-axis centering and deterministic relaxation so no marks overlap; text discipline — only member territories are named (collision-aware, budgeted), published lights carry no titles; mist only where a zone holds knowledge; and the site section's CTAs ride the theme's button tokens so they match the page's Button component exactly.
+
+- Updated dependencies [[`998a786`](https://github.com/rizom-ai/brains/commit/998a78694a06c7796fefcca09e258cc90eb62ce9)]:
+  - @brains/plugins@0.2.0-alpha.204
+  - @brains/atproto-contracts@0.2.0-alpha.204
+  - @brains/content-formatters@0.2.0-alpha.204
+  - @brains/ui-library@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- [`343a862`](https://github.com/rizom-ai/brains/commit/343a8629415c7016ead7fea00d8375147a8699d0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The knowledge map: a centerless 2D semantic projection of the brain's corpus where topics are soft-bounded territories holding what has been filed into them, published work glows, skills are moss, ops entities are ground spores, and unfiled knowledge sits visibly outside every border. Ships as a console dashboard widget and as the home page's proof section (topics:knowledge-map replaces home:one-light and folds the alive-line's proof links into its foot).
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.203
+  - @brains/atproto-contracts@0.2.0-alpha.203
+  - @brains/content-formatters@0.2.0-alpha.203
+  - @brains/ui-library@0.2.0-alpha.203
+  - @brains/utils@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.202
+  - @brains/content-formatters@0.2.0-alpha.202
+  - @brains/ui-library@0.2.0-alpha.202
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/plugins@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.201
+  - @brains/content-formatters@0.2.0-alpha.201
+  - @brains/ui-library@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/plugins@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

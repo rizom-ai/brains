@@ -21,6 +21,7 @@ import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
+  listCanonicalAtprotoLexicons,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
@@ -46,6 +47,18 @@ const didDocumentSchema = z.looseObject({
     )
     .optional(),
 });
+
+const entityTriggerPayloadSchema = z.looseObject({
+  entityType: z.string().min(1),
+  entityId: z.string().min(1),
+  entity: z
+    .looseObject({
+      visibility: z.string(),
+    })
+    .optional(),
+});
+
+type EntityTriggerPayload = z.infer<typeof entityTriggerPayloadSchema>;
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {
@@ -115,8 +128,23 @@ export interface DiscoverBrainCardsResult {
   results: DiscoverBrainCardResult[];
 }
 
+export type AtprotoPublishOperation =
+  "publish-card" | "upsert-record" | "delete-record";
+
+export interface AtprotoPublishFailedPayload {
+  operation: AtprotoPublishOperation;
+  entityType: string;
+  entityId: string;
+  collection: string;
+  error: string;
+}
+
+export const ATPROTO_PUBLISH_FAILED = "atproto:publish:failed";
+
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
+const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
+const PUBLISH_COMPLETED = "publish:completed";
 const MAX_DISCOVERY_REPOS = 50;
 
 export class AtprotoPlugin extends ServicePlugin<
@@ -125,12 +153,79 @@ export class AtprotoPlugin extends ServicePlugin<
 > {
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;
+  private readonly activePublishingTasks = new Set<Promise<void>>();
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
     this.deps = deps;
     this.projectionRegistry =
       deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
+  }
+
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    if (!this.config.enabled) return;
+
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      this.trackPublishingTask(() =>
+        this.runPublishingTrigger(
+          context,
+          {
+            operation: "publish-card",
+            entityType: "brain-card",
+            entityId: BRAIN_CARD_RKEY,
+            collection: BRAIN_CARD_COLLECTION,
+          },
+          () => this.publishBrainCard(context),
+        ),
+      );
+      if (this.config.lexiconAuthority) {
+        this.trackPublishingTask(() =>
+          this.publishCanonicalLexiconSchemas(context),
+        );
+      }
+      return { success: true };
+    });
+
+    // publish:report:success is a request-style message consumed by the
+    // publish pipeline. publish:completed is its broadcast fan-out event.
+    context.messaging.subscribe(PUBLISH_COMPLETED, async (message) => {
+      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
+      if (payload.success) {
+        this.trackPublishingTask(() =>
+          this.reconcileProjectedEntity(context, payload.data),
+        );
+      }
+      return { success: true };
+    });
+
+    context.messaging.subscribe("entity:updated", async (message) => {
+      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
+      if (payload.success) {
+        this.trackPublishingTask(() =>
+          this.reconcileProjectedEntity(context, payload.data),
+        );
+      }
+      return { success: true };
+    });
+
+    context.messaging.subscribe("entity:deleted", async (message) => {
+      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
+      if (payload.success) {
+        this.trackPublishingTask(() =>
+          this.deleteProjectedEntityFromTrigger(context, payload.data),
+        );
+      }
+      return { success: true };
+    });
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    while (this.activePublishingTasks.size > 0) {
+      await Promise.all(this.activePublishingTasks);
+    }
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -148,7 +243,7 @@ export class AtprotoPlugin extends ServicePlugin<
       ]),
     ];
 
-    return paths.map((path) => ({
+    const routes: WebRouteDefinition[] = paths.map((path) => ({
       path,
       method: "GET",
       public: true,
@@ -167,6 +262,24 @@ export class AtprotoPlugin extends ServicePlugin<
         });
       },
     }));
+
+    // Member handles under the fleet domain: when the owner's account DID
+    // is configured, serve it as plain text so the owner's atproto handle
+    // verifies against this domain (the HTTP method — no DNS records).
+    const accountDid = this.config.accountDid;
+    if (accountDid) {
+      routes.push({
+        path: "/.well-known/atproto-did",
+        method: "GET",
+        public: true,
+        handler: (): Response =>
+          new Response(accountDid, {
+            headers: { "Content-Type": "text/plain" },
+          }),
+      });
+    }
+
+    return routes;
   }
 
   async publishBrainCard(
@@ -433,6 +546,226 @@ export class AtprotoPlugin extends ServicePlugin<
       cid: result.cid,
       dryRun: false,
     };
+  }
+
+  private async publishCanonicalLexiconSchemas(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await this.runPublishingTrigger(
+      context,
+      {
+        operation: "upsert-record",
+        entityType: "lexicon-schema",
+        entityId: "*",
+        collection: LEXICON_SCHEMA_COLLECTION,
+      },
+      async () => {
+        const appPassword = this.resolveAppPassword();
+        if (!this.config.identifier || !appPassword) {
+          throw new Error(
+            "AT Protocol publishing requires identifier and app password configuration",
+          );
+        }
+
+        const client = this.createPdsClient(appPassword);
+        const session = await client.createSession();
+        const targetRepo = this.config.repoDid ?? session.did;
+        if (!client.putRecord) {
+          throw new Error(
+            "AT Protocol PDS client does not support record upserts",
+          );
+        }
+        const putRecord = client.putRecord.bind(client);
+
+        for (const lexicon of listCanonicalAtprotoLexicons()) {
+          await this.runPublishingTrigger(
+            context,
+            {
+              operation: "upsert-record",
+              entityType: "lexicon-schema",
+              entityId: lexicon.id,
+              collection: LEXICON_SCHEMA_COLLECTION,
+            },
+            () =>
+              putRecord({
+                repo: targetRepo,
+                collection: LEXICON_SCHEMA_COLLECTION,
+                rkey: lexicon.id,
+                record: {
+                  $type: LEXICON_SCHEMA_COLLECTION,
+                  ...lexicon,
+                },
+              }),
+          );
+        }
+      },
+    );
+  }
+
+  private async reconcileProjectedEntity(
+    context: ServicePluginContext,
+    payload: EntityTriggerPayload,
+  ): Promise<void> {
+    const projection = this.projectionRegistry.get(payload.entityType);
+    if (!projection || !this.hasPublishingCredentials()) return;
+
+    let entity: BaseEntity | null;
+    try {
+      entity = await context.entityService.getEntity({
+        entityType: payload.entityType,
+        id: payload.entityId,
+      });
+    } catch (error) {
+      await this.reportPublishingFailure(
+        context,
+        {
+          operation: "upsert-record",
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          collection: projection.collection,
+        },
+        error,
+      );
+      return;
+    }
+
+    if (entity?.visibility === "public") {
+      await this.runPublishingTrigger(
+        context,
+        {
+          operation: "upsert-record",
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          collection: projection.collection,
+        },
+        () =>
+          this.publishEntity(context, {
+            entityType: payload.entityType,
+            entityId: payload.entityId,
+          }),
+      );
+      return;
+    }
+
+    await this.runPublishingTrigger(
+      context,
+      {
+        operation: "delete-record",
+        entityType: payload.entityType,
+        entityId: payload.entityId,
+        collection: projection.collection,
+      },
+      () => this.deleteProjectedRecord(projection, payload.entityId),
+    );
+  }
+
+  private async deleteProjectedEntityFromTrigger(
+    context: ServicePluginContext,
+    payload: EntityTriggerPayload,
+  ): Promise<void> {
+    const projection = this.projectionRegistry.get(payload.entityType);
+    if (
+      !projection ||
+      !this.hasPublishingCredentials() ||
+      (payload.entity && payload.entity.visibility !== "public")
+    ) {
+      return;
+    }
+
+    await this.runPublishingTrigger(
+      context,
+      {
+        operation: "delete-record",
+        entityType: payload.entityType,
+        entityId: payload.entityId,
+        collection: projection.collection,
+      },
+      () => this.deleteProjectedRecord(projection, payload.entityId),
+    );
+  }
+
+  private async deleteProjectedRecord(
+    projection: AtprotoProjection,
+    entityId: string,
+  ): Promise<void> {
+    const appPassword = this.resolveAppPassword();
+    if (!this.config.identifier || !appPassword) {
+      throw new Error(
+        "AT Protocol publishing requires identifier and app password configuration",
+      );
+    }
+
+    const client = this.createPdsClient(appPassword);
+    const session = await client.createSession();
+    const targetRepo = this.config.repoDid ?? session.did;
+    if (!client.deleteRecord) {
+      throw new Error(
+        "AT Protocol PDS client does not support record deletion",
+      );
+    }
+    await client.deleteRecord({
+      repo: targetRepo,
+      collection: projection.collection,
+      rkey: deriveAtprotoRecordKey(entityId),
+    });
+  }
+
+  private trackPublishingTask(operation: () => Promise<void>): void {
+    const task = operation().catch((error: unknown) => {
+      this.logger.error("Unexpected AT Protocol publishing task failure", {
+        error: getErrorMessage(error),
+      });
+    });
+    this.activePublishingTasks.add(task);
+    void task.then(() => {
+      this.activePublishingTasks.delete(task);
+    });
+  }
+
+  private async runPublishingTrigger(
+    context: ServicePluginContext,
+    details: Omit<AtprotoPublishFailedPayload, "error">,
+    operation: () => Promise<unknown>,
+  ): Promise<void> {
+    if (!this.hasPublishingCredentials()) return;
+
+    try {
+      await operation();
+    } catch (error) {
+      await this.reportPublishingFailure(context, details, error);
+    }
+  }
+
+  private async reportPublishingFailure(
+    context: ServicePluginContext,
+    details: Omit<AtprotoPublishFailedPayload, "error">,
+    error: unknown,
+  ): Promise<void> {
+    const errorMessage = getErrorMessage(error);
+    this.logger.error("AT Protocol ambient publishing failed", {
+      ...details,
+      error: errorMessage,
+    });
+
+    try {
+      await context.messaging.send({
+        type: ATPROTO_PUBLISH_FAILED,
+        payload: { ...details, error: errorMessage },
+        broadcast: true,
+      });
+    } catch (reportError) {
+      this.logger.error("Failed to report AT Protocol publishing failure", {
+        error: getErrorMessage(reportError),
+      });
+    }
+  }
+
+  private hasPublishingCredentials(): boolean {
+    return Boolean(
+      this.config.enabled &&
+      this.config.identifier &&
+      this.resolveAppPassword(),
+    );
   }
 
   private async findPublishEntity(

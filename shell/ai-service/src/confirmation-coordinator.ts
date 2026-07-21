@@ -96,12 +96,25 @@ export class ConfirmationCoordinator {
     peek(conversationId: string): ConversationActor | undefined;
     scheduleEviction(conversationId: string): void;
   };
+  private readonly persistCancelledAction: (
+    conversationId: string,
+    response: AgentResponse,
+    context: ConfirmationContext,
+  ) => Promise<void>;
 
-  constructor(actors: {
-    peek(conversationId: string): ConversationActor | undefined;
-    scheduleEviction(conversationId: string): void;
-  }) {
+  constructor(
+    actors: {
+      peek(conversationId: string): ConversationActor | undefined;
+      scheduleEviction(conversationId: string): void;
+    },
+    persistCancelledAction: (
+      conversationId: string,
+      response: AgentResponse,
+      context: ConfirmationContext,
+    ) => Promise<void>,
+  ) {
     this.actors = actors;
+    this.persistCancelledAction = persistCancelledAction;
   }
 
   /**
@@ -213,14 +226,23 @@ export class ConfirmationCoordinator {
             (confirmation) => confirmation.id === pendingConfirmation.id,
           ),
       );
-      signal?.throwIfAborted();
+      if (confirmed) signal?.throwIfAborted();
 
-      return (
-        snapshot.context.response ?? {
-          text: "Action completed.",
-          usage: emptyUsage,
-        }
-      );
+      const response = snapshot.context.response ?? {
+        text: "Action completed.",
+        usage: emptyUsage,
+      };
+      if (!confirmed) {
+        // Cancellation has already left the pending set, so its durable
+        // terminal card must drain even if the requesting client disconnects.
+        await this.persistCancelledAction(
+          conversationId,
+          response,
+          confirmationContext,
+        );
+        signal?.throwIfAborted();
+      }
+      return response;
     } finally {
       this.actors.scheduleEviction(conversationId);
     }

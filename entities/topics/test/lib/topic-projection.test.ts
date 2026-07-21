@@ -28,7 +28,31 @@ if (!progressReporter) {
 const config: TopicsPluginConfig = {
   includeEntityTypes: ["post"],
   minRelevanceScore: 0.5,
+  createRelevanceThreshold: 0.7,
+  reinforceRelevanceThreshold: 0.5,
+  sourceWeights: {
+    "anchor-profile": 1,
+    post: 1,
+    summary: 1,
+    deck: 0.85,
+    project: 0.8,
+    link: 0.6,
+    note: 0.6,
+  },
+  mintableEntityTypes: ["anchor-profile", "post", "summary", "deck", "project"],
+  sourceRolePolicies: {
+    canonical: { weight: 1, canMint: true },
+    primary: { weight: 1, canMint: true },
+    supporting: { weight: 0.55, canMint: false },
+    ambient: { weight: 0.35, canMint: false },
+    excluded: { weight: 0, canMint: false },
+  },
+  sourceRoleOverrides: {},
+  maxEntitiesPerBatch: 4,
+  topicSoftCeilingSourceRatio: 5,
   mergeSimilarityThreshold: 0.85,
+  semanticMergeDistance: 0.35,
+  reconciliationMaxPairs: 100,
   autoMerge: true,
   extractableStatuses: ["published"],
   enableAutoExtraction: true,
@@ -93,12 +117,24 @@ describe("topic projection helpers", () => {
     expect(handler.validateAndParse({ mode: "source-batch" })).toEqual({
       mode: "source-batch",
     });
+    expect(handler.validateAndParse({ mode: "reconcile" })).toEqual({
+      mode: "reconcile",
+    });
     expect(handler.validateAndParse({ mode: "unknown" })).toBeNull();
   });
 
-  it("dispatches derive and rebuild jobs to projection callbacks", async () => {
+  it("dispatches derive, rebuild, and reconcile jobs to projection callbacks", async () => {
     const extractAllTopics = mock(async (): Promise<void> => undefined);
     const rebuildAllTopics = mock(async (): Promise<void> => undefined);
+    const reconcileTopics = mock(async () => ({
+      success: true as const,
+      scannedTopics: 0,
+      scannedPairs: 0,
+      merged: 0,
+      distinct: 0,
+      skipped: 0,
+      deletedIds: [],
+    }));
     const context = {
       entityService: {
         getEntity: mock(async (): Promise<BaseEntity | null> => null),
@@ -110,6 +146,7 @@ describe("topic projection helpers", () => {
       config,
       extractAllTopics,
       rebuildAllTopics,
+      reconcileTopics,
       sourceBatch: new TopicSourceBatchBuffer(),
       isEntityPublished: () => true,
     });
@@ -124,12 +161,19 @@ describe("topic projection helpers", () => {
       "rebuild-job",
       progressReporter,
     );
+    const reconcileResult = await handler.process(
+      { mode: "reconcile" },
+      "reconcile-job",
+      progressReporter,
+    );
 
     expect(deriveResult).toEqual({ success: true });
     expect(rebuildResult).toEqual({ success: true });
+    expect(reconcileResult).toMatchObject({ success: true, merged: 0 });
 
     expect(extractAllTopics).toHaveBeenCalledTimes(1);
     expect(rebuildAllTopics).toHaveBeenCalledTimes(1);
+    expect(reconcileTopics).toHaveBeenCalledTimes(3);
   });
 
   it("drains source-change batches and skips stale, missing, and unpublished entities", async () => {
@@ -202,6 +246,15 @@ describe("topic projection helpers", () => {
         },
       ],
     });
+    const reconcileTopics = mock(async () => ({
+      success: true as const,
+      scannedTopics: 1,
+      scannedPairs: 0,
+      merged: 0,
+      distinct: 0,
+      skipped: 0,
+      deletedIds: [],
+    }));
 
     const handler = createTopicProjectionHandler({
       context,
@@ -213,6 +266,7 @@ describe("topic projection helpers", () => {
         entity.metadata["status"] === "published",
       extractAllTopics: mock(async (): Promise<void> => undefined),
       rebuildAllTopics: mock(async (): Promise<void> => undefined),
+      reconcileTopics,
     });
 
     const result = await handler.process(
@@ -232,6 +286,7 @@ describe("topic projection helpers", () => {
       unpublished: 1,
     });
     expect(context.ai.generate).toHaveBeenCalledTimes(1);
+    expect(reconcileTopics).toHaveBeenCalledTimes(1);
     expect(sourceBatch.drain()).toEqual([]);
   });
 

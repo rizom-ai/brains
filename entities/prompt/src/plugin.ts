@@ -30,7 +30,11 @@ export class PromptPlugin extends EntityPlugin<
   }
 
   public override getEntityTypeConfig(): EntityTypeConfig {
-    return { embeddable: false };
+    return {
+      embeddable: false,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 }
 

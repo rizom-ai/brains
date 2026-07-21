@@ -1,5 +1,97 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.210
+  - @rizom/site-sections@0.2.0-alpha.210
+  - @rizom/site-rizom@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.209
+  - @rizom/site@0.2.0-alpha.209
+  - @rizom/site-sections@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.208
+  - @rizom/site-sections@0.2.0-alpha.208
+  - @rizom/site-rizom@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.207
+  - @rizom/site@0.2.0-alpha.207
+  - @rizom/site-sections@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.206
+  - @rizom/site-sections@0.2.0-alpha.206
+  - @rizom/site-rizom@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.205
+  - @rizom/site-sections@0.2.0-alpha.205
+  - @rizom/site-rizom@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.204
+  - @rizom/site@0.2.0-alpha.204
+  - @rizom/site-sections@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- [`343a862`](https://github.com/rizom-ai/brains/commit/343a8629415c7016ead7fea00d8375147a8699d0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The knowledge map: a centerless 2D semantic projection of the brain's corpus where topics are soft-bounded territories holding what has been filed into them, published work glows, skills are moss, ops entities are ground spores, and unfiled knowledge sits visibly outside every border. Ships as a console dashboard widget and as the home page's proof section (topics:knowledge-map replaces home:one-light and folds the alive-line's proof links into its foot).
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.203
+  - @rizom/site-sections@0.2.0-alpha.203
+  - @rizom/site-rizom@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.202
+  - @rizom/site-sections@0.2.0-alpha.202
+  - @rizom/site-rizom@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.201
+  - @rizom/site-sections@0.2.0-alpha.201
+  - @rizom/site-rizom@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

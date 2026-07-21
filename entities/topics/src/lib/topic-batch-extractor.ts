@@ -2,9 +2,11 @@ import type {
   BaseEntity,
   ContentVisibility,
   EntityPluginContext,
+  ProjectionSourceRole,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
+import type { TopicSourceRolePolicy } from "../schemas/config";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";
@@ -39,8 +41,18 @@ export function buildBatchPrompt(entities: BaseEntity[]): string {
 
 export interface ExtractTopicsBatchedOptions {
   minRelevanceScore?: number;
+  createRelevanceThreshold?: number;
+  reinforceRelevanceThreshold?: number;
+  sourceWeights?: Record<string, number>;
+  mintableEntityTypes?: string[];
+  sourceRolePolicies?: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
+  sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
+  sourceEntityCount?: number;
+  maxEntitiesPerBatch?: number;
+  topicSoftCeilingSourceRatio?: number;
   autoMerge?: boolean;
   mergeSimilarityThreshold?: number;
+  semanticMergeDistance?: number;
   targetVisibility?: ContentVisibility;
   /** Injected for tests. Constructed from context when omitted. */
   topicMergeSynthesizer?: ITopicMergeSynthesizer;
@@ -52,6 +64,17 @@ export interface ExtractTopicsBatchedResult {
   skipped: number;
   batches: number;
 }
+
+const DEFAULT_SOURCE_ROLE_POLICIES: Record<
+  ProjectionSourceRole,
+  TopicSourceRolePolicy
+> = {
+  canonical: { weight: 1, canMint: true },
+  primary: { weight: 1, canMint: true },
+  supporting: { weight: 0.55, canMint: false },
+  ambient: { weight: 0.35, canMint: false },
+  excluded: { weight: 0, canMint: false },
+};
 
 /**
  * Extract topics from source entities in token-budget-aware batches.
@@ -83,11 +106,25 @@ export async function extractTopicsBatched(
   }
 
   const minRelevanceScore = options.minRelevanceScore ?? 0;
+  const createRelevanceThreshold = options.createRelevanceThreshold ?? 0.7;
+  const reinforceRelevanceThreshold =
+    options.reinforceRelevanceThreshold ?? 0.5;
+  const sourceWeights = options.sourceWeights ?? {};
+  const mintableEntityTypes = new Set(options.mintableEntityTypes ?? []);
+  const sourceRolePolicies = {
+    ...DEFAULT_SOURCE_ROLE_POLICIES,
+    ...(options.sourceRolePolicies ?? {}),
+  };
   const autoMerge = options.autoMerge ?? false;
-  const threshold = options.mergeSimilarityThreshold ?? 0.85;
+  const threshold =
+    options.semanticMergeDistance ?? options.mergeSimilarityThreshold ?? 0.35;
   const targetVisibility = options.targetVisibility ?? "public";
+  const maxEntitiesPerBatch = options.maxEntitiesPerBatch ?? 4;
 
-  const batches = batchEntities(entities);
+  const batches = splitBatchesByEntityCount(
+    batchEntities(entities),
+    maxEntitiesPerBatch,
+  );
   const topicService = new TopicService(context.entityService, logger);
   const synthesizer =
     options.topicMergeSynthesizer ?? new TopicMergeSynthesizer(context, logger);
@@ -96,6 +133,11 @@ export async function extractTopicsBatched(
     context.entityService,
     undefined,
     targetVisibility,
+  );
+  const sourceEntityCount = options.sourceEntityCount ?? entities.length;
+  const topicSoftCeiling = getTopicSoftCeiling(
+    sourceEntityCount,
+    options.topicSoftCeilingSourceRatio ?? 5,
   );
   const inBatch = new Map<string, TopicEntity>();
 
@@ -107,6 +149,15 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const batchContent = buildBatchPrompt(batch);
+    const sourcePolicy = getBatchSourcePolicy({
+      batch,
+      getEntityTypeConfig: (entityType) =>
+        context.entityService.getEntityTypeConfig(entityType),
+      sourceWeights,
+      mintableEntityTypes,
+      sourceRolePolicies,
+      sourceRoleOverrides: options.sourceRoleOverrides ?? {},
+    });
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
@@ -128,6 +179,12 @@ export async function extractTopicsBatched(
 
       for (const topic of topics) {
         try {
+          const weightedRelevance = topic.relevanceScore * sourcePolicy.weight;
+          if (weightedRelevance < reinforceRelevanceThreshold) {
+            skipped++;
+            continue;
+          }
+
           if (autoMerge) {
             const candidate = await topicService.findMergeCandidate({
               incoming: topic,
@@ -142,20 +199,37 @@ export async function extractTopicsBatched(
                 incomingTopic: topic,
               });
 
-              const mergedTopic = await topicService.applySynthesizedMerge({
-                existingId: candidate.topic.id,
-                synthesized: { ...synthesized, title: candidate.title },
-                visibility: targetVisibility,
-              });
+              if (synthesized.verdict !== "distinct") {
+                const mergedTopic = await topicService.applySynthesizedMerge({
+                  existingId: candidate.topic.id,
+                  synthesized: { ...synthesized, title: candidate.title },
+                  visibility: targetVisibility,
+                });
 
-              if (!mergedTopic) {
-                throw new Error(`Failed to merge topic: ${topic.title}`);
+                if (!mergedTopic) {
+                  throw new Error(`Failed to merge topic: ${topic.title}`);
+                }
+
+                inBatch.set(mergedTopic.id, mergedTopic);
+                merged++;
+                continue;
               }
-
-              inBatch.set(mergedTopic.id, mergedTopic);
-              merged++;
-              continue;
+              // The semantic index found a close neighbor, but the final merge
+              // judge ruled this is a separate durable domain. Creation still
+              // must respect the corpus soft ceiling; above the ceiling we only
+              // reinforce/merge existing topics.
             }
+          }
+
+          const atSoftCeiling =
+            existingTopicTitles.length + inBatch.size >= topicSoftCeiling;
+          const mayCreate =
+            sourcePolicy.canMint &&
+            weightedRelevance >= createRelevanceThreshold &&
+            !atSoftCeiling;
+          if (!mayCreate) {
+            skipped++;
+            continue;
           }
 
           const slug = topicService.getTopicIdForTitle(
@@ -212,4 +286,68 @@ export async function extractTopicsBatched(
   }
 
   return summary;
+}
+
+function splitBatchesByEntityCount(
+  batches: BaseEntity[][],
+  maxEntitiesPerBatch: number,
+): BaseEntity[][] {
+  if (maxEntitiesPerBatch <= 0) return batches;
+  return batches.flatMap((batch) => {
+    const chunks: BaseEntity[][] = [];
+    for (let index = 0; index < batch.length; index += maxEntitiesPerBatch) {
+      chunks.push(batch.slice(index, index + maxEntitiesPerBatch));
+    }
+    return chunks;
+  });
+}
+
+function getBatchSourcePolicy(params: {
+  batch: BaseEntity[];
+  getEntityTypeConfig: (entityType: string) => {
+    projectionSource?: boolean;
+    projectionSourceRole?: ProjectionSourceRole;
+  };
+  sourceWeights: Record<string, number>;
+  mintableEntityTypes: Set<string>;
+  sourceRolePolicies: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
+  sourceRoleOverrides: Record<string, ProjectionSourceRole>;
+}): { weight: number; canMint: boolean } {
+  const hasLegacyPolicy =
+    Object.keys(params.sourceWeights).length > 0 ||
+    params.mintableEntityTypes.size > 0;
+
+  return params.batch.reduce<{ weight: number; canMint: boolean }>(
+    (policy, entity) => {
+      if (hasLegacyPolicy) {
+        return {
+          weight: Math.max(
+            policy.weight,
+            params.sourceWeights[entity.entityType] ?? 1,
+          ),
+          canMint:
+            policy.canMint || params.mintableEntityTypes.has(entity.entityType),
+        };
+      }
+
+      const config = params.getEntityTypeConfig(entity.entityType);
+      const role =
+        params.sourceRoleOverrides[entity.entityType] ??
+        config.projectionSourceRole ??
+        (config.projectionSource === false ? "excluded" : "primary");
+      const rolePolicy = params.sourceRolePolicies[role];
+      return {
+        weight: Math.max(policy.weight, rolePolicy.weight),
+        canMint: policy.canMint || rolePolicy.canMint,
+      };
+    },
+    { weight: 0, canMint: false },
+  );
+}
+
+function getTopicSoftCeiling(
+  sourceEntityCount: number,
+  sourceRatio: number,
+): number {
+  return Math.min(24, Math.max(5, Math.ceil(sourceEntityCount / sourceRatio)));
 }

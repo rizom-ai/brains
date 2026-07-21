@@ -22,9 +22,12 @@ import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-templat
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
+import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
+import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
+import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
 import {
   createTopicProjectionHandler,
@@ -72,7 +75,11 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 0.5, projectionSource: false };
+    return {
+      weight: 0.5,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 
   protected override getTemplates(): Record<string, Template> {
@@ -81,11 +88,15 @@ export class TopicsPlugin extends EntityPlugin<
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
+      "knowledge-map": getKnowledgeMapTemplate(),
     };
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
+    return [
+      new TopicsDataSource(this.logger.child("TopicsDataSource")),
+      new KnowledgeMapDataSource(),
+    ];
   }
 
   protected override getDerivedEntityProjections(
@@ -173,8 +184,9 @@ export class TopicsPlugin extends EntityPlugin<
       createTopicDistributionInsight(),
     );
 
-    // Dashboard widget
+    // Dashboard widgets: the topic list and the knowledge map
     registerTopicsDashboardWidget({ context, pluginId: this.id });
+    registerKnowledgeMapDashboardWidget({ context, pluginId: this.id });
 
     // Eval handlers
     registerTopicEvalHandlers({

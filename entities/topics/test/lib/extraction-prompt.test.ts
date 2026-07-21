@@ -40,6 +40,18 @@ Canonical fragmentation topic.`,
     expect(titles).toEqual(["Human-AI Collaboration", "Fragmentation"]);
   });
 
+  it("defines topics as durable knowledge domains, not operational artifacts", () => {
+    const prompt = buildTopicExtractionPrompt({
+      entityTitle: "Launch Checklist",
+      entityType: "post",
+      content: "Need staging deploy and landing page copy updates.",
+    });
+
+    expect(prompt).toContain("durable knowledge domain");
+    expect(prompt).toContain("never operational activities");
+    expect(prompt).toContain("one-off tasks");
+  });
+
   it("includes canonicalization guidance and existing titles in the prompt", () => {
     const prompt = buildTopicExtractionPrompt({
       entityTitle: "Human-Agent Collaboration",

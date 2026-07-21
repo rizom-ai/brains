@@ -11,7 +11,6 @@ import type { TopicMetadata } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { scoreTopicSimilarity } from "./topic-merge";
 import { TOPIC_ENTITY_TYPE } from "./constants";
 
 export interface TopicMergeCandidate {
@@ -237,52 +236,72 @@ export class TopicService {
   }
 
   /**
-   * Find an existing topic that should absorb the incoming title.
+   * Find an existing topic that should absorb the incoming topic.
    *
-   * Candidate pool = top-K vector search (semantic neighbors) ∪
-   * caller-provided `additionalCandidates` (in-batch state, freshly seeded
-   * topics whose embeddings aren't ready yet). Title-token similarity is
-   * the final arbiter — search just bounds the pool, it doesn't decide.
+   * Semantic distance is the arbiter: lower cosine distance means closer
+   * topics, and candidates at or below `threshold` are mergeable. Exact title
+   * matches stay as a fast path, mainly for in-batch writes whose embeddings
+   * may not be indexed yet.
    */
   public async findMergeCandidate(params: {
-    incoming: Pick<ExtractedTopicData, "title">;
+    incoming: Pick<ExtractedTopicData, "title"> &
+      Partial<Pick<ExtractedTopicData, "content">>;
     threshold: number;
     searchLimit?: number;
     additionalCandidates?: TopicEntity[];
     targetVisibility?: ContentVisibility;
   }): Promise<TopicMergeCandidate | null> {
-    const searchResults = await this.searchTopics(
+    const targetVisibility = params.targetVisibility ?? "public";
+    const incomingTopicId = this.getTopicIdForTitle(
       params.incoming.title,
-      params.searchLimit ?? 20,
-      params.targetVisibility,
+      targetVisibility,
     );
 
-    const candidates = new Map<string, TopicEntity>();
-    for (const result of searchResults) {
-      candidates.set(result.entity.id, result.entity);
-    }
-    for (const topic of params.additionalCandidates ?? []) {
-      candidates.set(topic.id, topic);
-    }
-
-    for (const [id, topic] of candidates) {
-      if (
-        params.targetVisibility !== undefined &&
-        topic.visibility !== params.targetVisibility
-      ) {
-        candidates.delete(id);
-      }
-    }
-
     let best: TopicMergeCandidate | null = null;
-    for (const topic of candidates.values()) {
+    const consideredIds = new Set<string>();
+    const consider = (
+      topic: TopicEntity,
+      score: number,
+    ): TopicMergeCandidate | null => {
+      if (topic.visibility !== targetVisibility) return null;
+      if (consideredIds.has(topic.id)) return best;
+      consideredIds.add(topic.id);
       const { title } = this.adapter.parseTopicBody(topic.content);
-      const score = scoreTopicSimilarity(params.incoming, { title });
-      if (score < params.threshold) continue;
-      if (!best || score > best.score) {
-        best = { topic, title, score };
+      const candidate = { topic, title, score };
+      if (!best || candidate.score > best.score) {
+        best = candidate;
+      }
+      return candidate;
+    };
+
+    for (const topic of params.additionalCandidates ?? []) {
+      if (topic.id === incomingTopicId) {
+        consider(topic, 1);
       }
     }
+
+    const query = [params.incoming.title, params.incoming.content]
+      .filter(
+        (part): part is string =>
+          typeof part === "string" && part.trim().length > 0,
+      )
+      .join("\n\n");
+    const distanceResults = await this.entityService.searchWithDistances({
+      query,
+    });
+
+    for (const result of distanceResults) {
+      if (result.entityType !== TOPIC_ENTITY_TYPE) continue;
+      const topic = await this.getTopic(result.entityId, targetVisibility);
+      if (!topic) continue;
+
+      const isExactTitle = topic.id === incomingTopicId;
+      if (!isExactTitle && result.distance > params.threshold) continue;
+
+      const score = isExactTitle ? 1 : 1 - result.distance;
+      consider(topic, score);
+    }
+
     return best;
   }
 

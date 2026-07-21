@@ -1,0 +1,40 @@
+id: topics-corpus-reconcile-decentralized-collaboration
+name: Corpus reconciliation collapses distributed and decentralized collaboration
+description: >
+  Regression case from the yeehaa.io corpus: distributed collaboration and
+  decentralized collaboration describe the same reusable coordination domain.
+type: plugin
+tags:
+  - topics
+  - corpus
+  - reconciliation
+  - collaboration
+plugin: topics
+handler: reconcileExistingTopics
+
+input:
+  threshold: 0.35
+  existingTopics:
+    - id: distributed-collaboration
+      title: Distributed Collaboration
+      content: |
+        Distributed collaboration responds to the limits of traditional
+        institutions and co-located teams. People coordinate across time,
+        geography, and role boundaries using shared values, mutual visibility,
+        reputation, transactive memory, and open standards.
+    - id: decentralized-collaboration
+      title: Decentralized Collaboration
+      content: |
+        Decentralized collaboration coordinates work across distributed people,
+        teams, and AI systems without rigid central control. It depends on
+        shared context, trust, modular roles, accountability, asynchronous work,
+        and adaptive human-AI coordination.
+
+expectedOutput:
+  validateEach:
+    - path: merged
+      equals: 1
+    - path: topicCount
+      equals: 1
+    - path: topics[0].title
+      matches: "(Distributed|Decentralized) Collaboration"

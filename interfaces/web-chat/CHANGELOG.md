@@ -1,5 +1,119 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.210
+  - @brains/contracts@0.2.0-alpha.210
+  - @brains/utils@0.2.0-alpha.210
+  - @brains/auth-service@0.2.0-alpha.210
+  - @brains/plugins@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.209
+  - @brains/contracts@0.2.0-alpha.209
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/auth-service@0.2.0-alpha.209
+  - @brains/plugins@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.208
+  - @brains/contracts@0.2.0-alpha.208
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/auth-service@0.2.0-alpha.208
+  - @brains/plugins@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.207
+  - @brains/contracts@0.2.0-alpha.207
+  - @brains/utils@0.2.0-alpha.207
+  - @brains/auth-service@0.2.0-alpha.207
+  - @brains/plugins@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.206
+  - @brains/contracts@0.2.0-alpha.206
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/auth-service@0.2.0-alpha.206
+  - @brains/plugins@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.205
+  - @brains/contracts@0.2.0-alpha.205
+  - @brains/utils@0.2.0-alpha.205
+  - @brains/auth-service@0.2.0-alpha.205
+  - @brains/plugins@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- Updated dependencies [[`998a786`](https://github.com/rizom-ai/brains/commit/998a78694a06c7796fefcca09e258cc90eb62ce9)]:
+  - @brains/plugins@0.2.0-alpha.204
+  - @brains/auth-service@0.2.0-alpha.204
+  - @brains/console-theme@0.2.0-alpha.204
+  - @brains/contracts@0.2.0-alpha.204
+  - @brains/utils@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- [`3e87ccf`](https://github.com/rizom-ai/brains/commit/3e87ccfea9e664c2f31fd8bfec8a1b9ce7f12e16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep resolved approval actions terminal when reopening web-chat history. Reloaded sessions now reconcile earlier approval requests with later result cards, while expired, declined, and failed approval outcomes are durably recorded so completed buttons do not reappear.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.203
+  - @brains/console-theme@0.2.0-alpha.203
+  - @brains/contracts@0.2.0-alpha.203
+  - @brains/utils@0.2.0-alpha.203
+  - @brains/auth-service@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- [`14aaeb7`](https://github.com/rizom-ai/brains/commit/14aaeb7665d0a26a52466f8675644472089e01dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve expired or otherwise stale web-chat approval responses with a terminal AI SDK tool error event. This prevents completed stale cards from repeatedly resubmitting themselves and emitting `No pending action to confirm.` in a loop.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.202
+  - @brains/contracts@0.2.0-alpha.202
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/auth-service@0.2.0-alpha.202
+  - @brains/plugins@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.201
+  - @brains/contracts@0.2.0-alpha.201
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/auth-service@0.2.0-alpha.201
+  - @brains/plugins@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

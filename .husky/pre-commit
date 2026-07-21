@@ -45,6 +45,19 @@ fi
 
 # Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
 if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
+  # The model baseline spans workspace model config, a script, and a JSON
+  # fixture. Check it directly in addition to Turbo so a stale cache result
+  # cannot hide model composition drift. Also reject an
+  # unstaged fixture update, which would make the working-tree check pass while
+  # leaving the committed snapshot stale.
+  BASELINE_FIXTURE="packages/brain-cli/test/fixtures/brain-model-unification-baseline.json"
+  if ! git diff --quiet -- "$BASELINE_FIXTURE"; then
+    echo "Brain model baseline fixture has unstaged changes. Stage it before committing."
+    exit 1
+  fi
+  echo "🧠 Checking brain model baseline..."
+  bun packages/brain-cli/scripts/brain-model-baseline.ts
+
   # Run linting on all packages (cached by turbo).
   # --continue: keep running sibling tasks after one fails so their successful
   # results still seal the turbo cache — avoids re-running the same packages

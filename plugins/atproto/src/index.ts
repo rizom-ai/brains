@@ -9,6 +9,9 @@ export {
   type PublishEntityResult,
   type PublishPostOptions,
   type PublishPostResult,
+  ATPROTO_PUBLISH_FAILED,
+  type AtprotoPublishOperation,
+  type AtprotoPublishFailedPayload,
   type DiscoverBrainCardsOptions,
   type DiscoverBrainCardResult,
   type DiscoverBrainCardsResult,
@@ -61,6 +64,7 @@ export {
   type PutRecordResult,
   type GetRecordInput,
   type GetRecordResult,
+  type DeleteRecordInput,
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";

@@ -1,5 +1,37 @@
 # @rizom/brain
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- [`a067fc5`](https://github.com/rizom-ai/brains/commit/a067fc55548595d8f057774c97278c583cc5cf01) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the knowledge map dashboard widget with the proximity-field visual treatment and remove hardcoded color fallbacks from its map styles.
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- [`9e3fe42`](https://github.com/rizom-ai/brains/commit/9e3fe420c252e1aecb929fc94872bd50f39b9adf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add generic projection source roles to entity type configuration and make topic extraction use role-based source authority policies instead of package-specific entity type defaults.
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`6b03c83`](https://github.com/rizom-ai/brains/commit/6b03c836ff153b56b52a37bf7198f4a22d032052) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Enforce the topic soft ceiling when semantic merge synthesis says an incoming topic is distinct, preventing corpus rebuilds from minting topics past the calibrated ceiling.
+
+## 0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ## 0.2.0-alpha.199

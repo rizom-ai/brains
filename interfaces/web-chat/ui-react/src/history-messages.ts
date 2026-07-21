@@ -144,7 +144,50 @@ function toToolApprovalPart(card: ToolApprovalCard): DynamicToolUIPart {
   }
 }
 
-export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
+interface ResolvedApprovalKeys {
+  ids: ReadonlySet<string>;
+  toolCallIds: ReadonlySet<string>;
+}
+
+function collectResolvedApprovalKeys(
+  messages: readonly WebChatHistoryMessage[],
+): ResolvedApprovalKeys {
+  const ids = new Set<string>();
+  const toolCallIds = new Set<string>();
+
+  for (const message of messages) {
+    for (const card of message.cards ?? []) {
+      if (
+        card.kind !== "tool-approval" ||
+        card.state === "approval-requested"
+      ) {
+        continue;
+      }
+      ids.add(card.id);
+      if (card.toolCallId) toolCallIds.add(card.toolCallId);
+    }
+  }
+
+  return { ids, toolCallIds };
+}
+
+function isResolvedApprovalRequest(
+  card: ToolApprovalCard,
+  resolved: ResolvedApprovalKeys | undefined,
+): boolean {
+  return Boolean(
+    resolved &&
+    card.state === "approval-requested" &&
+    (resolved.ids.has(card.id) ||
+      (card.toolCallId !== undefined &&
+        resolved.toolCallIds.has(card.toolCallId))),
+  );
+}
+
+function toUiMessageWithResolvedApprovals(
+  message: WebChatHistoryMessage,
+  resolved: ResolvedApprovalKeys | undefined,
+): UIMessage {
   const parts: UIMessage["parts"] = [];
   const displayContent = stripInternalEntityMemoryNote(message.content);
   if (displayContent.length > 0) {
@@ -156,6 +199,7 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   }
   for (const card of message.cards ?? []) {
     if (card.kind === "tool-approval") {
+      if (isResolvedApprovalRequest(card, resolved)) continue;
       parts.push(toToolApprovalPart(card));
       continue;
     }
@@ -175,6 +219,22 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
     role: message.role,
     parts,
   };
+}
+
+export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
+  return toUiMessageWithResolvedApprovals(message, undefined);
+}
+
+export function toUiMessages(
+  messages: readonly WebChatHistoryMessage[],
+): UIMessage[] {
+  // History is append-only: the request card remains on its original message
+  // and the terminal card is stored on a later message. Reconcile both before
+  // hydrating AI SDK state so the original buttons do not become active again.
+  const resolved = collectResolvedApprovalKeys(messages);
+  return messages.map((message) =>
+    toUiMessageWithResolvedApprovals(message, resolved),
+  );
 }
 
 function toUploadResponse(

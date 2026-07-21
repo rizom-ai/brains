@@ -3,9 +3,15 @@ import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import { Cause, Effect, Exit, Scope } from "@brains/utils/effect";
 import type { IShell } from "../interfaces";
 
+interface PluginIngress {
+  stopAdmission(): void;
+  drain(): Promise<void>;
+}
+
 /** Internal resource scope for one plugin registration. */
 export class PluginResourceScope {
   private readonly scope: Scope.CloseableScope;
+  private readonly ingress = new Set<PluginIngress>();
   private closePromise: Promise<void> | null = null;
   private closed = false;
 
@@ -27,6 +33,14 @@ export class PluginResourceScope {
     );
   }
 
+  /** Register Promise-based ingress that must stop admission and drain on close. */
+  public addIngress(ingress: PluginIngress): void {
+    if (this.closed) {
+      throw new Error("Cannot register ingress after plugin teardown");
+    }
+    this.ingress.add(ingress);
+  }
+
   public close(exit: Exit.Exit<unknown, unknown> = Exit.void): Promise<void> {
     this.closed = true;
     this.closePromise ??= this.closeScope(exit);
@@ -34,8 +48,38 @@ export class PluginResourceScope {
   }
 
   private async closeScope(exit: Exit.Exit<unknown, unknown>): Promise<void> {
-    const result = await Effect.runPromiseExit(Scope.close(this.scope, exit));
-    if (Exit.isFailure(result)) throw Cause.squash(result.cause);
+    let firstFailure: unknown;
+    let failed = false;
+    const ingress = [...this.ingress].reverse();
+    for (const entry of ingress) {
+      try {
+        entry.stopAdmission();
+      } catch (error) {
+        if (!failed) firstFailure = error;
+        failed = true;
+      }
+    }
+
+    const drainResults = await Promise.allSettled(
+      ingress.map((entry) => Promise.resolve().then(() => entry.drain())),
+    );
+    this.ingress.clear();
+    const drainFailure = drainResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (!failed && drainFailure) {
+      firstFailure = drainFailure.reason;
+      failed = true;
+    }
+
+    const scopeResult = await Effect.runPromiseExit(
+      Scope.close(this.scope, exit),
+    );
+    if (!failed && Exit.isFailure(scopeResult)) {
+      firstFailure = Cause.squash(scopeResult.cause);
+      failed = true;
+    }
+    if (failed) throw firstFailure;
   }
 }
 
@@ -48,6 +92,11 @@ export function createPluginScopedShell(
   resources: PluginResourceScope,
 ): IShell {
   const messageBus = shell.getMessageBus();
+  const messageSubscriptions = new Set<{
+    type: string;
+    originalHandler: unknown;
+    stopAdmission(): void;
+  }>();
   const scopedMessageBus: IMessageBus = {
     send: (request) => messageBus.send(request),
     subscribe: <T = unknown, R = unknown>(
@@ -55,17 +104,81 @@ export function createPluginScopedShell(
       handler: MessageHandler<T, R>,
       filter?: Parameters<IMessageBus["subscribe"]>[2],
     ): (() => void) => {
-      let active = true;
-      const unsubscribe = messageBus.subscribe(type, handler, filter);
-      const release = (): void => {
-        if (!active) return;
-        active = false;
-        unsubscribe();
+      let accepting = true;
+      const inFlight = new Set<Promise<void>>();
+      const scopedHandler: MessageHandler<T, R> = (message) => {
+        if (!accepting) return { noop: true };
+
+        // Message handlers have no cancellation contract. Track the admitted
+        // Promise so plugin teardown drains it instead of interrupting work
+        // that may already be mutating plugin-owned state.
+        let settleAdmitted!: () => void;
+        const admitted = new Promise<void>((resolve) => {
+          settleAdmitted = resolve;
+        });
+        inFlight.add(admitted);
+        const settle = (): void => {
+          inFlight.delete(admitted);
+          settleAdmitted();
+        };
+
+        let operation: Promise<Awaited<ReturnType<typeof handler>>>;
+        try {
+          operation = Promise.resolve(handler(message));
+        } catch (error) {
+          settle();
+          throw error;
+        }
+        return operation.then(
+          (result) => {
+            settle();
+            return result;
+          },
+          (error: unknown) => {
+            settle();
+            throw error;
+          },
+        );
       };
-      resources.addFinalizer(release);
-      return release;
+      const unsubscribe = messageBus.subscribe(type, scopedHandler, filter);
+      const subscription = {
+        type,
+        originalHandler: handler,
+        stopAdmission: (): void => {
+          if (!accepting) return;
+          accepting = false;
+          unsubscribe();
+          messageSubscriptions.delete(subscription);
+        },
+      };
+      messageSubscriptions.add(subscription);
+      try {
+        resources.addIngress({
+          stopAdmission: subscription.stopAdmission,
+          drain: async (): Promise<void> => {
+            await Promise.all(inFlight);
+          },
+        });
+      } catch (error) {
+        subscription.stopAdmission();
+        throw error;
+      }
+      return subscription.stopAdmission;
     },
-    unsubscribe: (type, handler) => messageBus.unsubscribe(type, handler),
+    unsubscribe: (type, handler): void => {
+      const subscriptions = [...messageSubscriptions].filter(
+        (subscription) =>
+          subscription.type === type &&
+          subscription.originalHandler === handler,
+      );
+      if (subscriptions.length === 0) {
+        messageBus.unsubscribe(type, handler);
+        return;
+      }
+      for (const subscription of subscriptions) {
+        subscription.stopAdmission();
+      }
+    },
   };
 
   const attachments = shell.getAttachmentRegistry();

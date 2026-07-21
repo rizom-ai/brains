@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rizom.ai — knowledge map · standalone mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #14132b;
+    --night-deep: #100f24;
+    --white: #faf8f3;
+    --w70: rgba(250,248,243,0.72);
+    --w45: rgba(250,248,243,0.48);
+    --w28: rgba(250,248,243,0.30);
+    --rule: rgba(250,248,243,0.14);
+    --rule-soft: rgba(250,248,243,0.07);
+    --brass: #d4af37;
+    --brass-soft: #e8cc6a;
+    --moss: #9caf88;
+    --purple: #8c82c8;
+    --cyan: #76c7d1;
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+  html[data-theme="light"] {
+    --night: #faf8f3;
+    --night-deep: #f1ede2;
+    --white: #23213a;
+    --w70: rgba(35,33,58,0.76);
+    --w45: rgba(35,33,58,0.52);
+    --w28: rgba(35,33,58,0.34);
+    --rule: rgba(35,33,58,0.18);
+    --rule-soft: rgba(35,33,58,0.09);
+    --brass: #a8821c;
+    --brass-soft: #8a6a12;
+    --moss: #5e7a4e;
+    --purple: #6b2fa0;
+    --cyan: #287c8c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--night); color: var(--white); font-family: var(--ui); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .4;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.025'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 52px 40px 90px; }
+  .kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--brass); display: flex; align-items: center; }
+  .kicker button { margin-left: auto; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 6px; background: transparent; color: var(--w45); font: 400 10.5px/1 var(--mono); cursor: pointer; }
+  h1 { max-width: 24em; margin-top: 12px; font-family: var(--display); font-variation-settings: "SOFT" 78, "opsz" 100; font-weight: 470; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.12; letter-spacing: -.015em; }
+  h1 em { font-style: italic; color: var(--brass-soft); font-weight: 420; }
+  .lede { max-width: 74ch; margin-top: 14px; color: var(--w70); font-size: 14.5px; }
+  .lede b { color: var(--white); font-weight: 500; }
+
+  .field-frame { margin-top: 34px; border: 1px solid var(--rule-soft); background: radial-gradient(900px 480px at 30% 20%, rgba(107,47,160,.13), transparent 62%), radial-gradient(800px 500px at 80% 75%, rgba(212,175,55,.05), transparent 66%), var(--night-deep); overflow: hidden; }
+  html[data-theme="light"] .field-frame { background: radial-gradient(900px 480px at 30% 20%, rgba(140,130,200,.12), transparent 62%), radial-gradient(800px 500px at 80% 75%, rgba(168,130,28,.06), transparent 66%), var(--night-deep); }
+  #field svg { display: block; width: 100%; height: auto; }
+
+  .foot { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: baseline; margin-top: 14px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--w45); }
+  .foot b { color: var(--brass); font-weight: 600; }
+  .foot .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-left: auto; color: var(--w28); }
+  .foot .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .foot .lg i { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* draw-in choreography: weaves draw, then dots bloom, then labels fade */
+  .kn-weave { stroke-dasharray: 1; stroke-dashoffset: 1; animation: kdraw 1.4s cubic-bezier(.3,.6,.3,1) forwards; animation-delay: var(--d, 0s); }
+  @keyframes kdraw { to { stroke-dashoffset: 0; } }
+  .kn-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: kbloom .7s cubic-bezier(.2,.9,.3,1.4) forwards; animation-delay: var(--d, 0s); }
+  @keyframes kbloom { to { transform: scale(1); } }
+  .kn-label { opacity: 0; animation: kfade .9s ease forwards; animation-delay: var(--d, 0s); }
+  @keyframes kfade { to { opacity: 1; } }
+  .kn-breathe { animation: kbreathe 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes kbreathe { 50% { opacity: .55; transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) {
+    .kn-weave { stroke-dashoffset: 0; animation: none; }
+    .kn-dot { transform: scale(1); animation: none; }
+    .kn-label { opacity: 1; animation: none; }
+    .kn-breathe { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">rizom.ai — the knowledge map · standalone mock · rev 12<button id="themeToggle">Light mode</button></div>
+  <h1>What this brain knows, as <em>a sky</em> — canonical territories, evidence-first labels.</h1>
+  <p class="lede">Every mark is a real entity from this brain's corpus, placed by a 2D
+  projection of its embedding — near things mean near meanings. <b>Topics are
+  territories</b>: soft-bounded zones of meaning that stretch only around filed
+  evidence. Labels are now <b>priority-aware</b>: high-evidence territories are
+  named first, then collision checks keep the sky quiet. Artifact topics from the
+  old map — landing pages, staging, action plans — are gone. <b>What's published
+  glows</b>; skills are moss; references are pearls; operational entities become
+  ground spores. Sources outside every border remain visible as <b>unfiled
+  knowledge</b>, not accidental new topics.</p>
+
+  <div class="field-frame"><div id="field"></div></div>
+  <div class="foot">
+    <span><b>50</b> sources · <b>10</b> canonical topics · labels by evidence</span>
+    <span class="legend">
+      <span class="lg"><i style="background:transparent;border:1.5px dashed var(--purple);border-radius:50%"></i>topic zones</span>
+      <span class="lg"><i style="background:var(--brass)"></i>published</span>
+      <span class="lg"><i style="background:var(--moss)"></i>skills</span>
+      <span class="lg"><i style="background:transparent;border:1.4px solid var(--w45)"></i>references</span>
+      <span class="lg"><i style="background:var(--cyan)"></i>unfiled</span>
+      <span class="lg"><i style="background:var(--w28);opacity:.5"></i>operational</span>
+    </span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(p, tag, attrs, text) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text) n.textContent = text;
+    p.appendChild(n);
+    return n;
+  }
+  function mulberry32(seed) { var a = seed >>> 0; return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  /* Rev 12: a corpus-calibrated mock. Labels are not hand-picked now: each
+     territory carries an evidence score, member count, and published count;
+     the renderer places the strongest labels first, then lets collision boxes
+     silence the rest. Artifact topics from the old mock (landing-page copy,
+     action plans, staging) are intentionally absent. */
+  var TOPICS = [
+    { name: "human-AI collaboration", x: 230, y: 150, evidence: 9 },
+    { name: "institutional memory",   x: 448, y: 132, evidence: 8 },
+    { name: "ecosystem architecture", x: 650, y: 242, evidence: 9 },
+    { name: "trust networks",         x: 760, y: 160, evidence: 7 },
+    { name: "reputation systems",     x: 844, y: 218, evidence: 5 },
+    { name: "decentralization",       x: 330, y: 292, evidence: 7 },
+    { name: "internet fragmentation", x: 198, y: 392, evidence: 6 },
+    { name: "data politics",          x: 560, y: 420, evidence: 5 },
+    { name: "digital tribalism",      x: 878, y: 384, evidence: 4 },
+    { name: "waste",                  x: 690, y: 474, evidence: 3 },
+  ];
+  var MEMBERS = [
+    { name: "working with agents",       kind: "published", x: 176, y: 196, r: 5.2, topic: 0 },
+    { name: "hybrid teams",              kind: "published", x: 296, y: 200, r: 4.8, topic: 0 },
+    { name: "shared context",            kind: "skill",     x: 248, y: 92,  r: 3.4, topic: 0 },
+    { name: "knowledge systems",         kind: "published", x: 414, y: 204, r: 4.8, topic: 1 },
+    { name: "institutional continuity",  kind: "pearl",     x: 492, y: 92,  r: 2.8, topic: 1 },
+    { name: "rizom model",               kind: "published", x: 610, y: 302, r: 5.0, topic: 2 },
+    { name: "ecosystem roles",           kind: "skill",     x: 708, y: 284, r: 3.4, topic: 2 },
+    { name: "interdependence",           kind: "pearl",     x: 612, y: 202, r: 2.8, topic: 2 },
+    { name: "trust propagation",         kind: "published", x: 792, y: 104, r: 4.6, topic: 3 },
+    { name: "credential chains",         kind: "pearl",     x: 710, y: 126, r: 2.8, topic: 3 },
+    { name: "portable reputation",       kind: "skill",     x: 890, y: 178, r: 3.4, topic: 4 },
+    { name: "local-first governance",    kind: "published", x: 282, y: 338, r: 4.4, topic: 5 },
+    { name: "protocol autonomy",         kind: "pearl",     x: 388, y: 260, r: 2.8, topic: 5 },
+    { name: "splinternet notes",         kind: "published", x: 130, y: 354, r: 4.4, topic: 6 },
+    { name: "fragmented publics",        kind: "pearl",     x: 236, y: 450, r: 2.8, topic: 6 },
+    { name: "big data",                  kind: "published", x: 520, y: 474, r: 4.2, topic: 7 },
+    { name: "model politics",            kind: "pearl",     x: 604, y: 382, r: 2.8, topic: 7 },
+    { name: "tribal platforms",          kind: "published", x: 942, y: 428, r: 4.0, topic: 8 },
+    { name: "ewaste brief",              kind: "pearl",     x: 748, y: 520, r: 2.8, topic: 9 },
+    // unfiled evidence: visible, but not allowed to mint a topic alone
+    { name: "offcourse link",            kind: "unfiled",   x: 980, y: 296, r: 3.2, topic: null },
+    { name: "archive note",              kind: "unfiled",   x: 70,  y: 270, r: 2.8, topic: null },
+  ];
+  var HAIRS = [
+    [230, 150, 448, 132, 350, 80],
+    [448, 132, 650, 242, 560, 170],
+    [650, 242, 760, 160, 710, 190],
+    [760, 160, 844, 218, 822, 174],
+    [330, 292, 198, 392, 260, 350],
+    [650, 242, 560, 420, 600, 332],
+    [560, 420, 690, 474, 630, 500],
+    [760, 160, 878, 384, 900, 260],
+  ];
+  var SPORES = [
+    [86, 128], [402, 232], [438, 368], [560, 178], [590, 60],
+    [760, 424], [812, 330], [960, 270], [1010, 128], [1030, 352], [300, 60],
+    [660, 470], [508, 54], [64, 452], [906, 488], [1044, 470], [368, 542],
+    [116, 510], [1002, 514], [724, 70], [472, 516], [118, 74],
+  ];
+
+  function pal() {
+    var light = document.documentElement.getAttribute("data-theme") === "light";
+    return light
+      ? { amber: "#a8821c", hot: "#3d2f08", purple: "#6b2fa0", moss: "#5e7a4e",
+          pearl: "rgba(35,33,58,.5)", pearlStroke: "rgba(35,33,58,.6)",
+          faint: "rgba(35,33,58,.2)", labelDim: "rgba(35,33,58,.54)", mistOp: [".13", ".05"], cyan: "#287c8c" }
+      : { amber: "#d4af37", hot: "#faf3dd", purple: "#8c82c8", moss: "#9caf88",
+          pearl: "rgba(250,248,243,.4)", pearlStroke: "rgba(250,248,243,.5)",
+          faint: "rgba(250,248,243,.16)", labelDim: "rgba(250,248,243,.48)", mistOp: [".25", ".09"], cyan: "#76c7d1" };
+  }
+
+  function memberStats(topicIndex) {
+    var members = MEMBERS.filter(function (m) { return m.topic === topicIndex; });
+    return {
+      members: members,
+      published: members.filter(function (m) { return m.kind === "published"; }).length,
+    };
+  }
+  function labelPriority(topic, index) {
+    var stats = memberStats(index);
+    return topic.evidence * 10 + stats.members.length * 4 + stats.published * 3;
+  }
+  function box(cx, cy, text) {
+    return { x: cx - text.length * 3.75, y: cy - 8, w: text.length * 7.5, h: 16 };
+  }
+  function intersects(a, b) {
+    return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  }
+
+  function draw() {
+    var mount = document.getElementById("field");
+    mount.innerHTML = "";
+    var p = pal();
+    var W = 1100, H = 560;
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-labelledby", "kmap-title kmap-desc");
+    el(svg, "title", { id: "kmap-title" }, "Corpus-calibrated knowledge map");
+    el(svg, "desc", { id: "kmap-desc" }, "Fifty corpus sources resolve to ten canonical topic territories. Labels are placed by evidence priority and collision checks; published work glows, skills are moss, references are pearls, and unfiled sources sit outside the borders.");
+
+    var defs = el(svg, "defs", {});
+    var blur = el(defs, "filter", { id: "kblur", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+    el(blur, "feGaussianBlur", { stdDeviation: "2.4" });
+    var mist = el(defs, "radialGradient", { id: "kmist" });
+    el(mist, "stop", { offset: "0%", "stop-color": p.purple, "stop-opacity": p.mistOp[0] });
+    el(mist, "stop", { offset: "70%", "stop-color": p.purple, "stop-opacity": p.mistOp[1] });
+    el(mist, "stop", { offset: "100%", "stop-color": p.purple, "stop-opacity": "0" });
+    var pulse = el(defs, "radialGradient", { id: "kunfiled" });
+    el(pulse, "stop", { offset: "0%", "stop-color": p.cyan, "stop-opacity": ".75" });
+    el(pulse, "stop", { offset: "100%", "stop-color": p.cyan, "stop-opacity": "0" });
+
+    SPORES.forEach(function (s, i) {
+      el(svg, "circle", { class: "kn-dot", cx: s[0], cy: s[1], r: 1.25, fill: p.faint,
+        style: "--d:" + (1.6 + i * 0.04) + "s" });
+    });
+
+    HAIRS.forEach(function (h, i) {
+      el(svg, "path", { class: "kn-weave", pathLength: 1,
+        d: "M " + h[0] + " " + h[1] + " Q " + h[4] + " " + h[5] + ", " + h[2] + " " + h[3],
+        fill: "none", stroke: p.amber, "stroke-opacity": 0.11, "stroke-width": 0.75,
+        style: "--d:" + (1.15 + i * 0.11) + "s" });
+    });
+
+    function blobPath(cx, cy, base, wobble, seed) {
+      var r2 = mulberry32(seed);
+      var n = 9, pts = [];
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * Math.PI * 2;
+        var rr = base * (0.82 + r2() * wobble);
+        pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.86]);
+      }
+      var d = "M " + ((pts[0][0] + pts[n - 1][0]) / 2) + " " + ((pts[0][1] + pts[n - 1][1]) / 2);
+      for (var j = 0; j < n; j++) {
+        var q = pts[j], nx = pts[(j + 1) % n];
+        d += " Q " + q[0] + " " + q[1] + ", " + ((q[0] + nx[0]) / 2) + " " + ((q[1] + nx[1]) / 2);
+      }
+      return d + " Z";
+    }
+
+    var layouts = TOPICS.map(function (t, ti) {
+      var stats = memberStats(ti);
+      var cx = t.x, cy = t.y;
+      stats.members.forEach(function (m) { cx += m.x; cy += m.y; });
+      cx /= stats.members.length + 1; cy /= stats.members.length + 1;
+      var base = stats.members.length
+        ? Math.max.apply(null, stats.members.map(function (m) { return Math.hypot(m.x - cx, m.y - cy); })) + 30
+        : 22 + (ti % 3) * 4;
+      return { topic: t, index: ti, cx: cx, cy: cy, base: base, members: stats.members,
+        published: stats.published, priority: labelPriority(t, ti) };
+    });
+
+    layouts.forEach(function (l) {
+      var d = blobPath(l.cx, l.cy, l.base, 0.4, 40 + l.index);
+      l.path = d;
+      el(svg, "path", { d: d, fill: "url(#kmist)" });
+      el(svg, "path", { class: "kn-weave", pathLength: 1, d: d,
+        fill: "none", stroke: p.purple, "stroke-opacity": 0.32, "stroke-width": 1,
+        "stroke-dasharray": "3 5", "stroke-linecap": "round",
+        style: "--d:" + (0.2 + l.index * 0.08) + "s" });
+    });
+
+    var placed = [];
+    layouts.slice().sort(function (a, b) { return b.priority - a.priority || a.index - b.index; })
+      .forEach(function (l, rank) {
+        if (placed.length >= 7) return;
+        if (l.members.length === 0) return;
+        var text = l.topic.name + " · " + l.members.length;
+        var b = box(l.cx, l.cy - l.base - 9, text);
+        if (placed.some(function (other) { return intersects(b, other); })) return;
+        placed.push(b);
+        el(svg, "text", { class: "kn-label", x: l.cx, y: l.cy - l.base - 9,
+          "text-anchor": "middle", fill: p.purple,
+          style: "--d:" + (0.95 + rank * 0.08) + "s;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase" },
+          text);
+      });
+
+    MEMBERS.forEach(function (e, i) {
+      var d = 0.5 + i * 0.06;
+      if (e.kind === "published") {
+        el(svg, "circle", { class: "kn-dot kn-breathe", cx: e.x, cy: e.y, r: e.r * 3.1, fill: p.amber,
+          opacity: 0.12, filter: "url(#kblur)", style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.amber, style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r * 0.42, fill: p.hot,
+          opacity: 0.9, style: "--d:" + (d + 0.05) + "s" });
+      } else if (e.kind === "skill") {
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.moss, style: "--d:" + d + "s" });
+      } else if (e.kind === "unfiled") {
+        el(svg, "circle", { class: "kn-dot kn-breathe", cx: e.x, cy: e.y, r: e.r * 3.2, fill: "url(#kunfiled)", opacity: 0.28, style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.cyan, opacity: 0.72, style: "--d:" + d + "s" });
+      } else {
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: "none",
+          stroke: p.pearlStroke, "stroke-width": 1.2, style: "--d:" + d + "s" });
+      }
+    });
+
+    // readable but restrained callouts: only unfiled evidence gets names here
+    MEMBERS.filter(function (e) { return e.kind === "unfiled"; }).forEach(function (e, i) {
+      var anchor = e.x > W - 150 ? "end" : "start";
+      var dx = anchor === "start" ? e.r + 8 : -(e.r + 8);
+      el(svg, "text", { class: "kn-label", x: e.x + dx, y: e.y + 3.5, "text-anchor": anchor,
+        fill: p.labelDim,
+        style: "--d:" + (1.3 + i * 0.05) + "s;font-family:var(--mono);font-size:9px;letter-spacing:.06em" },
+        e.name + " · unfiled");
+    });
+
+    [[1068, 218, 1102, 208], [-4, 342, 30, 352], [560, -4, 574, 22]].forEach(function (h, i) {
+      el(svg, "path", { class: "kn-weave", pathLength: 1,
+        d: "M " + h[0] + " " + h[1] + " L " + h[2] + " " + h[3],
+        fill: "none", stroke: p.faint, "stroke-width": 0.7, style: "--d:" + (2 + i * 0.1) + "s" });
+    });
+
+    mount.appendChild(svg);
+  }
+
+  draw();
+  var b = document.getElementById("themeToggle");
+  var r = document.documentElement;
+  function sync() { b.textContent = r.getAttribute("data-theme") === "light" ? "Dark mode" : "Light mode"; }
+  b.addEventListener("click", function () {
+    r.setAttribute("data-theme", r.getAttribute("data-theme") === "light" ? "dark" : "light");
+    sync(); draw();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

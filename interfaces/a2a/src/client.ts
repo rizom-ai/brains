@@ -6,6 +6,7 @@ import type {
   ParsedAgentCard,
 } from "@brains/plugins";
 import { internalFullScope, parseAgentCard } from "@brains/plugins";
+import { runWithInterruptibleTimeout } from "./client-lifecycle";
 
 interface A2ASuccess {
   success: true;
@@ -252,14 +253,24 @@ function validateCardEndpoint(
 async function fetchAgentCard(
   agentUrl: string,
   fetchFn: FetchFn,
+  requestTimeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<ParsedAgentCard | null> {
   const cardUrl = agentUrl.replace(/\/$/, "") + "/.well-known/agent-card.json";
   try {
-    const response = await fetchFn(cardUrl);
+    const response = await fetchWithTimeout(
+      fetchFn,
+      cardUrl,
+      {},
+      requestTimeoutMs,
+      signal,
+    );
     if (!response.ok) return null;
     const data: unknown = await response.json();
+    signal?.throwIfAborted();
     return parseAgentCard(data);
   } catch {
+    if (signal?.aborted) throw signal.reason;
     return null;
   }
 }
@@ -274,12 +285,14 @@ async function sendMessage(
   fetchFn: FetchFn,
   requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
+  signal?: AbortSignal,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
   const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    signal?.throwIfAborted();
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -305,6 +318,7 @@ async function sendMessage(
           headers,
           body,
         });
+        signal?.throwIfAborted();
       }
 
       const response = await fetchWithTimeout(
@@ -316,6 +330,7 @@ async function sendMessage(
           body,
         },
         options.requestTimeoutMs,
+        signal,
       );
 
       if (!response.ok) {
@@ -333,14 +348,17 @@ async function sendMessage(
         return await readStreamToCompletion(
           response.body,
           options.streamIdleTimeoutMs,
+          signal,
         );
       } catch (err) {
+        if (signal?.aborted) throw signal.reason;
         return {
           success: false,
           error: formatNetworkFailure(err, attempt),
         };
       }
     } catch (err) {
+      if (signal?.aborted) throw signal.reason;
       lastError = err;
       const shouldRetry = attempt < maxAttempts && isRetryableNetworkError(err);
       if (!shouldRetry) {
@@ -365,12 +383,17 @@ async function sendMessage(
 async function readStreamToCompletion(
   body: ReadableStream<Uint8Array>,
   streamIdleTimeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<ToolResponse> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
 
-  let chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs);
+  let chunk = await readChunkWithIdleTimeout(
+    reader,
+    streamIdleTimeoutMs,
+    signal,
+  );
   while (!chunk.done) {
     buffer += decoder.decode(chunk.value, { stream: true });
 
@@ -390,7 +413,7 @@ async function readStreamToCompletion(
         if (!parsedEvent.success) continue;
         event = parsedEvent.data;
       } catch {
-        reader.cancel().catch(() => {});
+        await cancelReader(reader);
         return {
           success: false,
           error: "Malformed SSE event from remote agent",
@@ -402,7 +425,7 @@ async function readStreamToCompletion(
       if (!result?.final) continue;
 
       // Terminal event — extract response
-      reader.cancel().catch(() => {});
+      await cancelReader(reader);
       const status = result.status;
 
       const state = status?.state ?? "unknown";
@@ -422,7 +445,7 @@ async function readStreamToCompletion(
       };
     }
 
-    chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs);
+    chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs, signal);
   }
 
   return { success: false, error: "Stream ended without a terminal event" };
@@ -451,56 +474,47 @@ async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<Response> {
-  const controller = new AbortController();
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      fetchFn(url, { ...init, signal: controller.signal }),
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => {
-          controller.abort();
-          reject(new A2ARequestTimeoutError(timeoutMs));
-        }, timeoutMs);
-      }),
-    ]);
-  } catch (error) {
-    if (error instanceof A2ARequestTimeoutError) {
-      throw error;
-    }
-    if (controller.signal.aborted) {
-      throw new A2ARequestTimeoutError(timeoutMs);
-    }
-    throw error;
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
+  return runWithInterruptibleTimeout(
+    (operationSignal) => fetchFn(url, { ...init, signal: operationSignal }),
+    {
+      timeoutMs,
+      onTimeout: () => new A2ARequestTimeoutError(timeoutMs),
+      signal,
+    },
+  );
 }
 
 async function readChunkWithIdleTimeout(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   timeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<
   Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]>>
 > {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await Promise.race([
-      reader.read(),
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new A2AStreamIdleTimeoutError(timeoutMs)),
-          timeoutMs,
-        );
-      }),
-    ]);
+    return await runWithInterruptibleTimeout(() => reader.read(), {
+      timeoutMs,
+      onTimeout: () => new A2AStreamIdleTimeoutError(timeoutMs),
+      signal,
+    });
   } catch (error) {
-    if (error instanceof A2AStreamIdleTimeoutError) {
-      reader.cancel().catch(() => {});
+    if (error instanceof A2AStreamIdleTimeoutError || signal?.aborted) {
+      await cancelReader(reader, error);
     }
     throw error;
-  } finally {
-    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function cancelReader(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  reason?: unknown,
+): Promise<void> {
+  try {
+    await reader.cancel(reason);
+  } catch {
+    // Preserve the stream result or original cancellation/timeout reason.
   }
 }
 
@@ -559,6 +573,8 @@ export interface A2AClientDeps extends A2ANetworkOptions {
 export interface ExecuteAgentCallOptions {
   /** Refuse unknown domains instead of allowing the tool's one-shot mode. */
   requireSaved?: boolean;
+  /** Cancellation for this outbound call. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -571,6 +587,8 @@ export async function executeAgentCall(
   options: ExecuteAgentCallOptions = {},
 ): Promise<ToolResponse> {
   const fetchFn = deps.fetch ?? globalThis.fetch;
+  const signal = options.signal;
+  signal?.throwIfAborted();
   const networkOptions: Required<A2ANetworkOptions> = {
     requestTimeoutMs: deps.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
     streamIdleTimeoutMs:
@@ -599,6 +617,7 @@ export async function executeAgentCall(
       "agent_call is admin-only and resolves saved remote agents at any visibility",
     ),
   });
+  signal?.throwIfAborted();
   if (!entity) {
     if (options.requireSaved) {
       return {
@@ -616,7 +635,12 @@ export async function executeAgentCall(
     }
 
     const cardBaseUrl = `https://${agentId}`;
-    const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+    const card = await fetchAgentCard(
+      cardBaseUrl,
+      fetchFn,
+      networkOptions.requestTimeoutMs,
+      signal,
+    );
     if (!card) {
       return {
         success: false,
@@ -636,6 +660,7 @@ export async function executeAgentCall(
       fetchFn,
       deps.requestSigner,
       networkOptions,
+      signal,
     );
     if ("success" in oneShotResult && oneShotResult.success === true) {
       const baseData =
@@ -673,7 +698,12 @@ export async function executeAgentCall(
   }
 
   const cardBaseUrl = `https://${agentId}`;
-  const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+  const card = await fetchAgentCard(
+    cardBaseUrl,
+    fetchFn,
+    networkOptions.requestTimeoutMs,
+    signal,
+  );
   if (!card) {
     return {
       success: false,
@@ -692,6 +722,7 @@ export async function executeAgentCall(
     fetchFn,
     deps.requestSigner,
     networkOptions,
+    signal,
   );
 }
 
@@ -704,7 +735,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
     inputSchema: a2aCallInputSchema,
     visibility: "trusted",
     sideEffects: "external",
-    handler: async (input): Promise<ToolResponse> => {
+    handler: async (input, context): Promise<ToolResponse> => {
       const parsed = a2aCallInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
@@ -712,7 +743,9 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           error: `Invalid input: ${parsed.error.message}`,
         };
       }
-      return executeAgentCall(parsed.data, deps);
+      return executeAgentCall(parsed.data, deps, {
+        ...(context.signal ? { signal: context.signal } : {}),
+      });
     },
   };
 }

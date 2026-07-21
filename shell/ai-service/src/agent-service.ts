@@ -189,7 +189,11 @@ export class AgentService implements IAgentService {
         config.conversationActorIdleTtlMs ??
         DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS,
     });
-    this.confirmations = new ConfirmationCoordinator(this.conversationActors);
+    this.confirmations = new ConfirmationCoordinator(
+      this.conversationActors,
+      (conversationId, response, context) =>
+        this.turns.persistCancelledAction(conversationId, response, context),
+    );
   }
 
   /**

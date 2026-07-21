@@ -46,6 +46,12 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
       ? [
           "  atproto:",
           `    identifier: ${user.atproto.identifier}`,
+          ...(user.atproto.accountDid
+            ? [`    accountDid: ${user.atproto.accountDid}`]
+            : []),
+          ...(user.atproto.lexiconAuthority !== undefined
+            ? [`    lexiconAuthority: ${String(user.atproto.lexiconAuthority)}`]
+            : []),
           "    appPassword: ${ATPROTO_APP_PASSWORD}",
         ]
       : []),

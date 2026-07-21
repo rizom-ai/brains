@@ -30,6 +30,11 @@ interface StreamDeps {
     conversationId: string,
   ): Promise<void>;
   createId(prefix: string): string;
+  persistUnmatchedApprovalTerminal(
+    conversationId: string,
+    approvalResponse: ApprovalResponse,
+    errorText: string,
+  ): Promise<void>;
   /** Resolve site URL for artifact entity-ref parsing (denial check). */
   displayBaseUrl: string | undefined;
   /** Backs the permission-denied artifact check so restricted cards are not streamed. */
@@ -62,6 +67,48 @@ interface WebChatPrincipalAttribution {
   canonicalId?: string;
   displayName: string;
   isAnchor: boolean;
+}
+
+function hasMatchingApprovalCard(
+  response: Pick<AgentResponse, "cards">,
+  approvalResponse: ApprovalResponse,
+): boolean {
+  return Boolean(
+    response.cards?.some(
+      (card) =>
+        card.kind === "tool-approval" &&
+        (card.id === approvalResponse.id ||
+          (approvalResponse.toolCallId !== undefined &&
+            card.toolCallId === approvalResponse.toolCallId)),
+    ),
+  );
+}
+
+async function writeUnmatchedApprovalTerminal(
+  writer: UIMessageStreamWriter<UIMessage>,
+  conversationId: string,
+  approvalResponse: ApprovalResponse,
+  response: Pick<AgentResponse, "cards" | "text">,
+  deps: StreamDeps,
+): Promise<void> {
+  if (hasMatchingApprovalCard(response, approvalResponse)) return;
+
+  // AI SDK automatically resubmits a trailing approval response until its
+  // tool part reaches a terminal state. A stale server-side approval has no
+  // result card, so close the client-side tool instead of replaying forever.
+  const responseText = stripInternalEntityMemoryNote(response.text).trim();
+  const errorText = responseText || "This approval is no longer pending.";
+  writer.write({
+    type: "tool-output-error",
+    toolCallId: approvalResponse.toolCallId ?? approvalResponse.id,
+    errorText,
+    dynamic: true,
+  });
+  await deps.persistUnmatchedApprovalTerminal(
+    conversationId,
+    approvalResponse,
+    errorText,
+  );
 }
 
 interface StreamedChatInput {
@@ -174,6 +221,13 @@ export async function handleStreamedConfirmations(
       const plan = buildResponsePlan(response, { deniedCardIds });
       writeText(input.writer, response.text, "text", deps.createId);
       writePlanCards(input.writer, plan);
+      await writeUnmatchedApprovalTerminal(
+        input.writer,
+        input.conversationId,
+        approvalResponse,
+        response,
+        deps,
+      );
     }
   } finally {
     deps.endProcessingInput();

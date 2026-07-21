@@ -15,7 +15,7 @@ describe("link ATProto lexicons", () => {
           record: {
             required: ["title", "url", "createdAt"],
             properties: {
-              source: { type: "object" },
+              source: { type: "ref", ref: "#source" },
               sourceEntityType: { type: "string" },
               sourceEntityId: { type: "string" },
             },

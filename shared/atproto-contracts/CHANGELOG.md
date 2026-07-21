@@ -1,5 +1,89 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.210
+  - @brains/entity-service@0.2.0-alpha.210
+
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- [`80ac02e`](https://github.com/rizom-ai/brains/commit/80ac02e00bfea91ae1495f1aab1dde97756be6a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restructure the card, link, and post lexicons to hoist inline nested objects into named defs referenced via `type: "ref"`, making every canonical lexicon valid under the official AT Protocol lexicon parser (third-party viewers rejected the published schemas as invalid), and gate spec validity with an `@atproto/lexicon` conformance test.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/entity-service@0.2.0-alpha.209
+
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/entity-service@0.2.0-alpha.208
+
+## 0.2.0-alpha.207
+
+### Patch Changes
+
+- [#60](https://github.com/rizom-ai/brains/pull/60) [`2311745`](https://github.com/rizom-ai/brains/commit/2311745a5b07b4315eda2b7e963675a1703a0d5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire AT Protocol publishing to runtime events so configured brains refresh their card, mirror public projected entities, remove stale records, and isolate PDS failures from local operations.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.207
+  - @brains/entity-service@0.2.0-alpha.207
+
+## 0.2.0-alpha.206
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.206
+  - @brains/entity-service@0.2.0-alpha.206
+
+## 0.2.0-alpha.205
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.205
+  - @brains/entity-service@0.2.0-alpha.205
+
+## 0.2.0-alpha.204
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.204
+  - @brains/entity-service@0.2.0-alpha.204
+
+## 0.2.0-alpha.203
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.203
+  - @brains/entity-service@0.2.0-alpha.203
+
+## 0.2.0-alpha.202
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.202
+  - @brains/entity-service@0.2.0-alpha.202
+
+## 0.2.0-alpha.201
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.201
+  - @brains/entity-service@0.2.0-alpha.201
+
 ## 0.2.0-alpha.200
 
 ### Patch Changes

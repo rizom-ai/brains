@@ -8,7 +8,7 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { toYaml } from "@brains/utils/yaml";
+import { fromYaml, toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
@@ -104,6 +104,7 @@ export async function encryptPilotSecrets(
   }
 
   const plaintext = `${toYaml(secrets).trimEnd()}\n`;
+  assertPlaintextRoundTrip(plaintext, secrets);
   const encryptedKeys = Object.keys(secrets) as Array<
     keyof EncryptedUserSecrets
   >;
@@ -354,10 +355,20 @@ function resolveSecretValue(
 function readPlaintextUserSecrets(
   plaintextPath: string,
 ): Partial<EncryptedUserSecrets> | undefined {
+  let contents: string;
   try {
-    return parseUserSecrets(readFileSync(plaintextPath, "utf8"));
+    contents = readFileSync(plaintextPath, "utf8");
   } catch {
     return undefined;
+  }
+
+  try {
+    return parseUserSecrets(contents);
+  } catch (error) {
+    throw new Error(
+      `Unable to parse plaintext secrets file ${plaintextPath}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
 }
 
@@ -376,15 +387,27 @@ async function readExistingEncryptedUserSecrets(
     return undefined;
   }
 
+  let plaintext: string;
   try {
     const armored = readFileSync(encryptedPath, "utf8");
     const decoded = armor.decode(armored);
     const decrypter = new Decrypter();
     decrypter.addIdentity(identity);
-    const plaintext = await decrypter.decrypt(decoded, "text");
-    return parseUserSecrets(plaintext);
+    plaintext = await decrypter.decrypt(decoded, "text");
   } catch {
     return undefined;
+  }
+
+  // The file decrypted, so we hold the right identity: a parse failure here
+  // means the stored payload is corrupt. Returning undefined would silently
+  // drop the existing secrets from the re-encrypted result.
+  try {
+    return parseUserSecrets(plaintext);
+  } catch (error) {
+    throw new Error(
+      `Unable to parse decrypted secrets from ${encryptedPath}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
 }
 
@@ -418,36 +441,40 @@ function readAgeIdentity(
   }
 }
 
-function parseUserSecrets(
-  contents: string,
-): Partial<EncryptedUserSecrets> | undefined {
-  return encryptedUserSecretsSchema.partial().parse(parseFlatYaml(contents));
-}
-
-function parseFlatYaml(contents: string): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  for (const rawLine of contents.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
+function parseUserSecrets(contents: string): Partial<EncryptedUserSecrets> {
+  const parsed = fromYaml<unknown>(contents);
+  const mapping: Record<string, string> = {};
+  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    for (const [key, value] of Object.entries(parsed)) {
+      // Tolerate template keys left blank (`key: ` parses to null).
+      if (typeof value === "string") {
+        mapping[key] = value;
+      }
     }
-
-    const match = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!match) {
-      continue;
-    }
-
-    const key = match[1];
-    const rawValue = match[2];
-    if (key === undefined || rawValue === undefined) {
-      continue;
-    }
-
-    result[key] = rawValue.replace(/^['"]|['"]$/g, "");
   }
 
-  return result;
+  return encryptedUserSecretsSchema.partial().parse(mapping);
+}
+
+// A writer/reader format mismatch here once truncated stored PEM secrets to
+// stubs, which only surfaced later as a failed deploy. Refuse to write any
+// payload whose emitted YAML does not parse back to the exact same values.
+function assertPlaintextRoundTrip(
+  plaintext: string,
+  secrets: EncryptedUserSecrets,
+): void {
+  const expected: Record<string, string | undefined> = { ...secrets };
+  const reread: Record<string, string | undefined> = {
+    ...parseUserSecrets(plaintext),
+  };
+  const keys = new Set([...Object.keys(expected), ...Object.keys(reread)]);
+  for (const key of keys) {
+    if (expected[key] !== reread[key]) {
+      throw new Error(
+        `secrets:encrypt round-trip verification failed for ${key}; refusing to write a corrupted encrypted payload`,
+      );
+    }
+  }
 }
 
 function listExpectedSecretKeys(options: {
