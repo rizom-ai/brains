@@ -149,7 +149,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Remove the console anchor write path** — the `updateBrainAnchor` mutation, `person/collective` toggle, and mutation action are gone; `GET /auth/admin/anchor` remains read-only for display.
 - [x] **Source the Anchor kind from `brain.yaml`** — the shipped `person | team | organization` values resolve at startup and project into the binary persisted ownership behavior.
 - [x] **Resolve the displayed Anchor name from the CMS profile** — `profileEntityId` points at CMS content and the console deep-links the brain's own profile to `/cms`.
-- [ ] **Unify configuration vocabulary on `professional | team | collective`** — generate and document only the canonical values. During a bounded compatibility window, read `person` as `professional` and `organization` as `collective`, emit a deprecation warning, and provide an automatic config migration. Preserve persisted rows through a generated migration/read bridge.
+- [x] **Retain the stable configuration vocabulary `person | team | organization`** — these values describe the Anchor subject clearly and remain backward compatible without aliases or migration machinery. Profile/UI flavor maps `person` to professional presentation and `organization` to collective presentation; that display vocabulary does not replace the config contract.
 - [ ] **Stop synthesizing local member profiles** — a linked external brain may supply a read-only published profile; a member without an external brain has no profile for now and uses only the auth display name.
 
 ### Direction: access is runtime state, with explicit bootstrap and recovery (multi-user decision 14)
@@ -466,7 +466,7 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 **Status: base console implemented; bounded legacy-cookie compatibility remains active; decision 15's redesign is planned.**
 
-- [x] Capture the end-state console design per Anchor kind: [professional](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [collective](../design/admin-console-org-mockup.html).
+- [x] Capture the end-state console design per Anchor profile flavor: [professional](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [collective](../design/admin-console-org-mockup.html).
 - [x] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
 - [x] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; no deprecated wrappers remain in the private workspace API.
 - [x] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
