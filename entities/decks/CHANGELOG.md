@@ -1,5 +1,21 @@
 # @brains/decks
 
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- Updated dependencies [[`80ac02e`](https://github.com/rizom-ai/brains/commit/80ac02e00bfea91ae1495f1aab1dde97756be6a7)]:
+  - @brains/atproto-contracts@0.2.0-alpha.209
+  - @brains/site-info@0.2.0-alpha.209
+  - @brains/content-formatters@0.2.0-alpha.209
+  - @brains/contracts@0.2.0-alpha.209
+  - @brains/image@0.2.0-alpha.209
+  - @brains/media-page-composer@0.2.0-alpha.209
+  - @brains/media-renderer@0.2.0-alpha.209
+  - @brains/ui-library@0.2.0-alpha.209
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/plugins@0.2.0-alpha.209
+
 ## 0.2.0-alpha.208
 
 ### Patch Changes

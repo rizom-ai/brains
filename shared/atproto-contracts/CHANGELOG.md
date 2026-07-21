@@ -1,5 +1,15 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- [`80ac02e`](https://github.com/rizom-ai/brains/commit/80ac02e00bfea91ae1495f1aab1dde97756be6a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restructure the card, link, and post lexicons to hoist inline nested objects into named defs referenced via `type: "ref"`, making every canonical lexicon valid under the official AT Protocol lexicon parser (third-party viewers rejected the published schemas as invalid), and gate spec validity with an `@atproto/lexicon` conformance test.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.209
+  - @brains/entity-service@0.2.0-alpha.209
+
 ## 0.2.0-alpha.208
 
 ### Patch Changes
