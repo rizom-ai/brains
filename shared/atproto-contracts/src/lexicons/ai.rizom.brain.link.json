@@ -17,12 +17,8 @@
           "domain": { "type": "string" },
           "capturedAt": { "type": "string", "format": "datetime" },
           "source": {
-            "type": "object",
-            "required": ["ref", "label"],
-            "properties": {
-              "ref": { "type": "string" },
-              "label": { "type": "string" }
-            }
+            "type": "ref",
+            "ref": "#source"
           },
           "brainDid": { "type": "string" },
           "anchorDid": { "type": "string" },
@@ -31,6 +27,15 @@
           "createdAt": { "type": "string", "format": "datetime" },
           "updatedAt": { "type": "string", "format": "datetime" }
         }
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "Attribution for where this link was captured.",
+      "required": ["ref", "label"],
+      "properties": {
+        "ref": { "type": "string" },
+        "label": { "type": "string" }
       }
     }
   }

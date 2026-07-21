@@ -44,23 +44,8 @@
             "maxLength": 50
           },
           "coverImage": {
-            "type": "object",
-            "required": ["blob"],
-            "properties": {
-              "blob": {
-                "type": "blob"
-              },
-              "alt": {
-                "type": "string",
-                "maxLength": 1000
-              },
-              "width": {
-                "type": "integer"
-              },
-              "height": {
-                "type": "integer"
-              }
-            }
+            "type": "ref",
+            "ref": "#coverImage"
           },
           "series": {
             "type": "string",
@@ -84,6 +69,26 @@
             "type": "string",
             "format": "datetime"
           }
+        }
+      }
+    },
+    "coverImage": {
+      "type": "object",
+      "description": "Cover image attached to the post.",
+      "required": ["blob"],
+      "properties": {
+        "blob": {
+          "type": "blob"
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
         }
       }
     }
