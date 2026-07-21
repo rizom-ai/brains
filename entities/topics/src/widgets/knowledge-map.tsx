@@ -12,11 +12,11 @@ import {
 export { knowledgeMapStyles };
 
 /**
- * The knowledge map renderer (docs/plans/knowledge-map.md, phase 2): the
- * corpus as a centerless sky. Topics are soft-bounded blob territories
- * (mist + dashed border + floating label), published work glows, skills
- * are moss, notes are pearls, operational entities are ground spores.
- * Deterministic by construction — static site builds must not churn.
+ * The knowledge map renderer: the corpus as a centerless sky. Topics are
+ * soft-bounded blob territories (mist + dashed border + floating label),
+ * published work glows, skills are moss, notes are pearls, operational
+ * entities are ground spores. Deterministic by construction — static site
+ * builds must not churn.
  */
 
 const WIDTH = 1000;
@@ -123,7 +123,15 @@ function layoutZones(data: KnowledgeMapData): {
   // live in the console.
   const placed: LabelBox[] = [];
   let budget = LABEL_BUDGET;
-  for (const layout of layouts) {
+  const labelCandidates = layouts
+    .map((layout, index) => ({
+      layout,
+      index,
+      priority: getZoneLabelPriority(layout.zone, pointById),
+    }))
+    .sort((a, b) => b.priority - a.priority || a.index - b.index);
+  for (const candidate of labelCandidates) {
+    const { layout } = candidate;
     if (layout.zone.memberIds.length === 0) continue;
     if (budget <= 0) break;
     const text = `${layout.zone.name} · ${layout.zone.memberIds.length}`;
@@ -138,6 +146,19 @@ function layoutZones(data: KnowledgeMapData): {
     budget--;
   }
   return { layouts, placed };
+}
+
+function getZoneLabelPriority(
+  zone: KnowledgeMapZone,
+  pointById: Map<string, KnowledgeMapPoint>,
+): number {
+  const members = zone.memberIds
+    .map((id) => pointById.get(id))
+    .filter((point): point is KnowledgeMapPoint => point !== undefined);
+  const published = members.filter(
+    (point) => point.kind === "published",
+  ).length;
+  return members.length * 10 + published * 3;
 }
 
 interface LabelBox {
@@ -289,6 +310,57 @@ function PointShape({
   );
 }
 
+function KnowledgeMapLegend(): JSX.Element {
+  const items = [
+    { label: "topic zones", kind: "zone" },
+    { label: "published", kind: "published" },
+    { label: "skills", kind: "skill" },
+    { label: "references", kind: "pearl" },
+    { label: "operational", kind: "ground" },
+  ] as const;
+  return (
+    <g class="kmap-legend" aria-hidden="true">
+      {items.map((item, index) => {
+        const x = 560 + index * 84;
+        const y = HEIGHT - 23;
+        return (
+          <g key={item.label} transform={`translate(${x} ${y})`}>
+            {item.kind === "zone" ? (
+              <circle
+                cx={0}
+                cy={0}
+                r={4}
+                fill="none"
+                stroke="var(--kmap-zone)"
+                stroke-width={1.1}
+                stroke-dasharray="2 2"
+              />
+            ) : item.kind === "published" ? (
+              <circle cx={0} cy={0} r={4} fill="var(--kmap-glow)" />
+            ) : item.kind === "skill" ? (
+              <circle cx={0} cy={0} r={3.4} fill="var(--kmap-skill)" />
+            ) : item.kind === "pearl" ? (
+              <circle
+                cx={0}
+                cy={0}
+                r={3.5}
+                fill="none"
+                stroke="var(--kmap-ink-dim)"
+                stroke-width={1.1}
+              />
+            ) : (
+              <circle cx={0} cy={0} r={2.2} fill="var(--kmap-ink-faint)" />
+            )}
+            <text x={9} y={3.5} class="kmap-label kmap-label--legend">
+              {item.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 export function KnowledgeMap({
   data,
   surface = "dashboard",
@@ -297,6 +369,13 @@ export function KnowledgeMap({
   surface?: "dashboard" | "site";
 }): JSX.Element {
   const { layouts: zones } = layoutZones(data);
+  const titleId = `kmap-title-${surface}`;
+  const descId = `kmap-desc-${surface}`;
+  const labeledZones = zones
+    .filter((layout) => layout.labeled)
+    .map((layout) => layout.zone.name)
+    .slice(0, 4);
+  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, and operational entities are ground spores.`;
   // Ground first so territories and lights paint over the spores.
   const points = [...data.points].sort(
     (a, b) => (a.kind === "ground" ? 0 : 1) - (b.kind === "ground" ? 0 : 1),
@@ -306,8 +385,10 @@ export function KnowledgeMap({
       class={`kmap kmap--${surface}`}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
-      aria-label="What this brain knows, mapped in semantic space"
+      aria-labelledby={`${titleId} ${descId}`}
     >
+      <title id={titleId}>Knowledge map</title>
+      <desc id={descId}>{desc}</desc>
       <defs>
         <filter
           id={`kmap-blur-${surface}`}
@@ -344,6 +425,7 @@ export function KnowledgeMap({
           surface={surface}
         />
       ))}
+      <KnowledgeMapLegend />
     </svg>
   );
 }

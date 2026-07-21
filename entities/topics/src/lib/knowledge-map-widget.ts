@@ -47,10 +47,9 @@ export interface KnowledgeMapWidgetContext extends KnowledgeMapDataContext {
 }
 
 /**
- * The knowledge map on the console dashboard (docs/plans/knowledge-map.md,
- * phase 3): the corpus as a sky, next to the agent network. Data comes from
- * the phase-1 builder against the live context; the digest carries the
- * honest counts.
+ * The knowledge map on the console dashboard: the corpus as a sky, next to
+ * the agent network. Data comes from the live semantic projection; the digest
+ * carries the honest counts.
  */
 export function knowledgeMapWidgetRegistration(
   context: KnowledgeMapDataContext,

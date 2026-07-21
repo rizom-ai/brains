@@ -4,10 +4,10 @@ import { render } from "preact-render-to-string";
 import { KnowledgeMap } from "../../src/widgets/knowledge-map";
 import type { KnowledgeMapData } from "../../src/lib/knowledge-map-data";
 
-/* Phase 2 of docs/plans/knowledge-map.md: the shared renderer. Topics are
-   soft-bounded blob zones (mist + dashed border + floating label), points
-   are kind-styled (published glows, skills are moss, ground is spores),
-   and the whole render is deterministic so static builds stay stable. */
+/* The shared knowledge-map renderer. Topics are soft-bounded blob zones
+   (mist + dashed border + floating label), points are kind-styled (published
+   glows, skills are moss, ground is spores), and the whole render is
+   deterministic so static builds stay stable. */
 
 const data: KnowledgeMapData = {
   zones: [
@@ -120,11 +120,17 @@ describe("KnowledgeMap", () => {
     expect(crowdedHtml).not.toContain("Topic 11");
   });
 
-  test("colliding zone labels are skipped — member zones win", () => {
+  test("colliding zone labels are skipped — priority zones win", () => {
     const collided: KnowledgeMapData = {
       zones: [
         { id: "a", name: "Alpha Systems", x: 0.5, y: 0.5, memberIds: ["p"] },
-        { id: "b", name: "Beta Systems", x: 0.52, y: 0.5, memberIds: [] },
+        {
+          id: "b",
+          name: "Beta Systems",
+          x: 0.52,
+          y: 0.5,
+          memberIds: ["q", "r", "s"],
+        },
       ],
       points: [
         {
@@ -136,12 +142,39 @@ describe("KnowledgeMap", () => {
           y: 0.52,
           zoneId: "a",
         },
+        {
+          id: "q",
+          entityType: "post",
+          title: "Q",
+          kind: "published",
+          x: 0.5,
+          y: 0.52,
+          zoneId: "b",
+        },
+        {
+          id: "r",
+          entityType: "skill",
+          title: "R",
+          kind: "skill",
+          x: 0.51,
+          y: 0.52,
+          zoneId: "b",
+        },
+        {
+          id: "s",
+          entityType: "link",
+          title: "S",
+          kind: "pearl",
+          x: 0.52,
+          y: 0.52,
+          zoneId: "b",
+        },
       ],
-      counts: { entities: 3, topics: 2 },
+      counts: { entities: 6, topics: 2 },
     };
     const html = render(<KnowledgeMap data={collided} />);
-    expect(html).toContain("Alpha Systems · 1");
-    expect(html).not.toContain("Beta Systems");
+    expect(html).toContain("Beta Systems · 3");
+    expect(html).not.toContain("Alpha Systems · 1");
   });
 
   test("only zones holding members carry the mist", () => {
@@ -151,11 +184,24 @@ describe("KnowledgeMap", () => {
     expect(mists).toHaveLength(1);
   });
 
+  test("includes accessible summary and an explanatory legend", () => {
+    const html = render(<KnowledgeMap data={data} />);
+    expect(html).toContain(
+      'aria-labelledby="kmap-title-dashboard kmap-desc-dashboard"',
+    );
+    expect(html).toContain("Knowledge map");
+    expect(html).toContain("7 entities and 2 topics");
+    expect(html).toContain("topic zones");
+    expect(html).toContain("published");
+    expect(html).toContain("references");
+  });
+
   test("renders byte-identically across builds and switches surfaces", () => {
     expect(render(<KnowledgeMap data={data} />)).toBe(
       render(<KnowledgeMap data={data} />),
     );
     const site = render(<KnowledgeMap data={data} surface="site" />);
     expect(site).toContain("kmap--site");
+    expect(site).toContain('aria-labelledby="kmap-title-site kmap-desc-site"');
   });
 });

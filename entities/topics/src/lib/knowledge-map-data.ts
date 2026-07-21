@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 
 /**
- * Knowledge map data (docs/plans/knowledge-map.md, phase 1).
+ * Knowledge map data.
  *
  * A centerless 2D projection of the whole corpus. Topics become zones —
  * territories that hold the entities filed into them — and every other

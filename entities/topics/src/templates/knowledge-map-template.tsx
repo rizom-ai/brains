@@ -9,11 +9,10 @@ import { knowledgeMapDataSchema } from "../lib/knowledge-map-data";
 import { KNOWLEDGE_MAP_DATASOURCE_ID } from "../lib/constants";
 
 /**
- * The knowledge map as a site section (docs/plans/knowledge-map.md, phase 4):
- * the home page's proof — authored copy beside the live map, honest counts
- * and the alive-line's proof links in the foot. Copy is overlay-authored
- * (flat markdown headings) and merged over the datasource payload; absent
- * fields fall back to the defaults below.
+ * The knowledge map as a site section: the home page's proof — authored copy
+ * beside the live map, honest counts and the alive-line's proof links in the
+ * foot. Copy is overlay-authored (flat markdown headings) and merged over the
+ * datasource payload; absent fields fall back to the defaults below.
  */
 
 const ctaSchema = z.object({ label: z.string(), href: z.string() });

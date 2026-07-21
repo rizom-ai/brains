@@ -41,6 +41,14 @@
   animation: kmap-fade 0.9s ease forwards;
   animation-delay: var(--d, 0s);
 }
+.kmap-label--legend {
+  fill: var(--kmap-ink-dim);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.kmap-legend {
+  opacity: 0.82;
+}
 @keyframes kmap-fade {
   to { opacity: 1; }
 }

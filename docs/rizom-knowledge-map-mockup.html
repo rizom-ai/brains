@@ -21,6 +21,7 @@
     --brass-soft: #e8cc6a;
     --moss: #9caf88;
     --purple: #8c82c8;
+    --cyan: #76c7d1;
     --display: "Fraunces", serif;
     --ui: "IBM Plex Sans", sans-serif;
     --mono: "IBM Plex Mono", monospace;
@@ -38,6 +39,7 @@
     --brass-soft: #8a6a12;
     --moss: #5e7a4e;
     --purple: #6b2fa0;
+    --cyan: #287c8c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--night); color: var(--white); font-family: var(--ui); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
@@ -83,25 +85,27 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="kicker">rizom.ai — the knowledge map · standalone mock<button id="themeToggle">Light mode</button></div>
-  <h1>What this brain knows, as <em>a sky</em> — the corpus in semantic space, no center.</h1>
+  <div class="kicker">rizom.ai — the knowledge map · standalone mock · rev 12<button id="themeToggle">Light mode</button></div>
+  <h1>What this brain knows, as <em>a sky</em> — canonical territories, evidence-first labels.</h1>
   <p class="lede">Every mark is a real entity from this brain's corpus, placed by a 2D
   projection of its embedding — near things mean near meanings. <b>Topics are
-  territories</b>: soft-bounded zones of meaning that hold what has been filed into
-  them, the way real constellations are regions of sky. A topic stretches to hold
-  its entities; an empty one is a small named clearing, ground prepared for
-  knowledge. <b>What's published glows</b> (the essay, the talks); skills are moss;
-  operational entities are spores in the ground. A light outside every border is
-  <b>unfiled knowledge</b> — visibly waiting for a topic. Destined for the console
-  dashboard and the home page's proof section.</p>
+  territories</b>: soft-bounded zones of meaning that stretch only around filed
+  evidence. Labels are now <b>priority-aware</b>: high-evidence territories are
+  named first, then collision checks keep the sky quiet. Artifact topics from the
+  old map — landing pages, staging, action plans — are gone. <b>What's published
+  glows</b>; skills are moss; references are pearls; operational entities become
+  ground spores. Sources outside every border remain visible as <b>unfiled
+  knowledge</b>, not accidental new topics.</p>
 
   <div class="field-frame"><div id="field"></div></div>
   <div class="foot">
-    <span><b>85</b> entities · <b>16</b> topics · index ready</span>
+    <span><b>50</b> sources · <b>10</b> canonical topics · labels by evidence</span>
     <span class="legend">
       <span class="lg"><i style="background:transparent;border:1.5px dashed var(--purple);border-radius:50%"></i>topic zones</span>
       <span class="lg"><i style="background:var(--brass)"></i>published</span>
       <span class="lg"><i style="background:var(--moss)"></i>skills</span>
+      <span class="lg"><i style="background:transparent;border:1.4px solid var(--w45)"></i>references</span>
+      <span class="lg"><i style="background:var(--cyan)"></i>unfiled</span>
       <span class="lg"><i style="background:var(--w28);opacity:.5"></i>operational</span>
     </span>
   </div>
@@ -123,56 +127,62 @@
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-  /* The real corpus, hand-projected. Topics are nuclei: ringed points that
-     gather their semantically nearest entities. All 16 topic names are real;
-     members attach to the nucleus they orbit. Lights far from every nucleus
-     are unfiled knowledge. */
+  /* Rev 12: a corpus-calibrated mock. Labels are not hand-picked now: each
+     territory carries an evidence score, member count, and published count;
+     the renderer places the strongest labels first, then lets collision boxes
+     silence the rest. Artifact topics from the old mock (landing-page copy,
+     action plans, staging) are intentionally absent. */
   var TOPICS = [
-    // work-philosophy region
-    { name: "future of work",           x: 250, y: 150, label: 1 },
-    { name: "decentralized work",       x: 352, y: 108, label: 1 },
-    { name: "workplace autonomy",       x: 168, y: 92 },
-    // knowledge region
-    { name: "knowledge system design",  x: 660, y: 268, label: 1 },
-    { name: "knowledge architecture",   x: 614, y: 308 },
-    { name: "knowledge mgmt platform",  x: 696, y: 230 },
-    // messaging / site region
-    { name: "landing page copy",        x: 868, y: 112, label: 1, float: 1 },
-    { name: "website landing page",     x: 924, y: 144 },
-    { name: "message testing",          x: 836, y: 166 },
-    { name: "messaging validation",     x: 898, y: 200 },
-    // workshop region
-    { name: "workshop design",          x: 478, y: 428, label: 1, float: 1 },
-    { name: "workshop planning",        x: 418, y: 468 },
-    { name: "outcome-based cooperation", x: 562, y: 398, label: 1 },
-    // operational region
-    { name: "action plans",             x: 322, y: 328 },
-    { name: "content initialization",   x: 238, y: 388 },
-    { name: "staging deployment",       x: 148, y: 458 },
+    { name: "human-AI collaboration", x: 230, y: 150, evidence: 9 },
+    { name: "institutional memory",   x: 448, y: 132, evidence: 8 },
+    { name: "ecosystem architecture", x: 650, y: 242, evidence: 9 },
+    { name: "trust networks",         x: 760, y: 160, evidence: 7 },
+    { name: "reputation systems",     x: 844, y: 218, evidence: 5 },
+    { name: "decentralization",       x: 330, y: 292, evidence: 7 },
+    { name: "internet fragmentation", x: 198, y: 392, evidence: 6 },
+    { name: "data politics",          x: 560, y: 420, evidence: 5 },
+    { name: "digital tribalism",      x: 878, y: 384, evidence: 4 },
+    { name: "waste",                  x: 690, y: 474, evidence: 3 },
   ];
   var MEMBERS = [
-    { name: "the future of work is play", kind: "published", x: 192, y: 196, r: 5.2, topic: 0, label: 1 },
-    { name: "declaration",                kind: "published", x: 302, y: 212, r: 4.4, topic: 0, label: 1 },
-    { name: "build knowledge systems",    kind: "skill",     x: 722, y: 314, r: 3.4, topic: 3, label: 1 },
-    { name: "team assessment",            kind: "skill",     x: 542, y: 466, r: 3.4, topic: 10 },
-    { name: "outcome-based collaboration", kind: "skill",    x: 622, y: 438, r: 3.4, topic: 12 },
-    { name: "swot",                       kind: "pearl",     x: 508, y: 500, r: 2.6, topic: null },
-    // unfiled lights: far from every nucleus, visibly waiting for a topic
-    { name: "2025",                       kind: "published", x: 952, y: 418, r: 4.4, topic: null, label: 1 },
-    { name: "cococo",                     kind: "published", x: 62,  y: 278, r: 4,   topic: null, label: 1 },
+    { name: "working with agents",       kind: "published", x: 176, y: 196, r: 5.2, topic: 0 },
+    { name: "hybrid teams",              kind: "published", x: 296, y: 200, r: 4.8, topic: 0 },
+    { name: "shared context",            kind: "skill",     x: 248, y: 92,  r: 3.4, topic: 0 },
+    { name: "knowledge systems",         kind: "published", x: 414, y: 204, r: 4.8, topic: 1 },
+    { name: "institutional continuity",  kind: "pearl",     x: 492, y: 92,  r: 2.8, topic: 1 },
+    { name: "rizom model",               kind: "published", x: 610, y: 302, r: 5.0, topic: 2 },
+    { name: "ecosystem roles",           kind: "skill",     x: 708, y: 284, r: 3.4, topic: 2 },
+    { name: "interdependence",           kind: "pearl",     x: 612, y: 202, r: 2.8, topic: 2 },
+    { name: "trust propagation",         kind: "published", x: 792, y: 104, r: 4.6, topic: 3 },
+    { name: "credential chains",         kind: "pearl",     x: 710, y: 126, r: 2.8, topic: 3 },
+    { name: "portable reputation",       kind: "skill",     x: 890, y: 178, r: 3.4, topic: 4 },
+    { name: "local-first governance",    kind: "published", x: 282, y: 338, r: 4.4, topic: 5 },
+    { name: "protocol autonomy",         kind: "pearl",     x: 388, y: 260, r: 2.8, topic: 5 },
+    { name: "splinternet notes",         kind: "published", x: 130, y: 354, r: 4.4, topic: 6 },
+    { name: "fragmented publics",        kind: "pearl",     x: 236, y: 450, r: 2.8, topic: 6 },
+    { name: "big data",                  kind: "published", x: 520, y: 474, r: 4.2, topic: 7 },
+    { name: "model politics",            kind: "pearl",     x: 604, y: 382, r: 2.8, topic: 7 },
+    { name: "tribal platforms",          kind: "published", x: 942, y: 428, r: 4.0, topic: 8 },
+    { name: "ewaste brief",              kind: "pearl",     x: 748, y: 520, r: 2.8, topic: 9 },
+    // unfiled evidence: visible, but not allowed to mint a topic alone
+    { name: "offcourse link",            kind: "unfiled",   x: 980, y: 296, r: 3.2, topic: null },
+    { name: "archive note",              kind: "unfiled",   x: 70,  y: 270, r: 2.8, topic: null },
   ];
-  /* the rhizome under the sky: faint hairs between related regions */
   var HAIRS = [
-    [352, 108, 660, 268, 510, 160],
-    [660, 268, 828, 168, 750, 240],
-    [598, 322, 478, 428, 530, 380],
-    [250, 150, 322, 328, 262, 250],
+    [230, 150, 448, 132, 350, 80],
+    [448, 132, 650, 242, 560, 170],
+    [650, 242, 760, 160, 710, 190],
+    [760, 160, 844, 218, 822, 174],
+    [330, 292, 198, 392, 260, 350],
+    [650, 242, 560, 420, 600, 332],
+    [560, 420, 690, 474, 630, 500],
+    [760, 160, 878, 384, 900, 260],
   ];
-  /* operational spores: the 16 prompts and site plumbing — ground texture */
   var SPORES = [
     [86, 128], [402, 232], [438, 368], [560, 178], [590, 60],
     [760, 424], [812, 330], [960, 270], [1010, 128], [1030, 352], [300, 60],
     [660, 470], [508, 54], [64, 452], [906, 488], [1044, 470], [368, 542],
+    [116, 510], [1002, 514], [724, 70], [472, 516], [118, 74],
   ];
 
   function pal() {
@@ -180,22 +190,41 @@
     return light
       ? { amber: "#a8821c", hot: "#3d2f08", purple: "#6b2fa0", moss: "#5e7a4e",
           pearl: "rgba(35,33,58,.5)", pearlStroke: "rgba(35,33,58,.6)",
-          faint: "rgba(35,33,58,.2)", labelDim: "rgba(35,33,58,.5)", mistOp: [".12", ".045"] }
+          faint: "rgba(35,33,58,.2)", labelDim: "rgba(35,33,58,.54)", mistOp: [".13", ".05"], cyan: "#287c8c" }
       : { amber: "#d4af37", hot: "#faf3dd", purple: "#8c82c8", moss: "#9caf88",
           pearl: "rgba(250,248,243,.4)", pearlStroke: "rgba(250,248,243,.5)",
-          faint: "rgba(250,248,243,.16)", labelDim: "rgba(250,248,243,.42)", mistOp: [".26", ".1"] };
+          faint: "rgba(250,248,243,.16)", labelDim: "rgba(250,248,243,.48)", mistOp: [".25", ".09"], cyan: "#76c7d1" };
+  }
+
+  function memberStats(topicIndex) {
+    var members = MEMBERS.filter(function (m) { return m.topic === topicIndex; });
+    return {
+      members: members,
+      published: members.filter(function (m) { return m.kind === "published"; }).length,
+    };
+  }
+  function labelPriority(topic, index) {
+    var stats = memberStats(index);
+    return topic.evidence * 10 + stats.members.length * 4 + stats.published * 3;
+  }
+  function box(cx, cy, text) {
+    return { x: cx - text.length * 3.75, y: cy - 8, w: text.length * 7.5, h: 16 };
+  }
+  function intersects(a, b) {
+    return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   }
 
   function draw() {
     var mount = document.getElementById("field");
     mount.innerHTML = "";
     var p = pal();
-    var rng = mulberry32(77);
     var W = 1100, H = 560;
     var svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "The brain's knowledge in semantic space");
+    svg.setAttribute("aria-labelledby", "kmap-title kmap-desc");
+    el(svg, "title", { id: "kmap-title" }, "Corpus-calibrated knowledge map");
+    el(svg, "desc", { id: "kmap-desc" }, "Fifty corpus sources resolve to ten canonical topic territories. Labels are placed by evidence priority and collision checks; published work glows, skills are moss, references are pearls, and unfiled sources sit outside the borders.");
 
     var defs = el(svg, "defs", {});
     var blur = el(defs, "filter", { id: "kblur", x: "-60%", y: "-60%", width: "220%", height: "220%" });
@@ -204,23 +233,22 @@
     el(mist, "stop", { offset: "0%", "stop-color": p.purple, "stop-opacity": p.mistOp[0] });
     el(mist, "stop", { offset: "70%", "stop-color": p.purple, "stop-opacity": p.mistOp[1] });
     el(mist, "stop", { offset: "100%", "stop-color": p.purple, "stop-opacity": "0" });
+    var pulse = el(defs, "radialGradient", { id: "kunfiled" });
+    el(pulse, "stop", { offset: "0%", "stop-color": p.cyan, "stop-opacity": ".75" });
+    el(pulse, "stop", { offset: "100%", "stop-color": p.cyan, "stop-opacity": "0" });
 
-    // ground texture first: operational spores
     SPORES.forEach(function (s, i) {
-      el(svg, "circle", { class: "kn-dot", cx: s[0], cy: s[1], r: 1.3, fill: p.faint,
-        style: "--d:" + (1.6 + i * 0.05) + "s" });
+      el(svg, "circle", { class: "kn-dot", cx: s[0], cy: s[1], r: 1.25, fill: p.faint,
+        style: "--d:" + (1.6 + i * 0.04) + "s" });
     });
 
-    // the rhizome under the sky: hairs between regions
     HAIRS.forEach(function (h, i) {
       el(svg, "path", { class: "kn-weave", pathLength: 1,
         d: "M " + h[0] + " " + h[1] + " Q " + h[4] + " " + h[5] + ", " + h[2] + " " + h[3],
-        fill: "none", stroke: p.amber, "stroke-opacity": 0.1, "stroke-width": 0.7,
-        style: "--d:" + (1.2 + i * 0.15) + "s" });
+        fill: "none", stroke: p.amber, "stroke-opacity": 0.11, "stroke-width": 0.75,
+        style: "--d:" + (1.15 + i * 0.11) + "s" });
     });
 
-    // topic zones: soft-edged territories of meaning. A topic with members
-    // stretches to hold them; an empty topic is a small named clearing.
     function blobPath(cx, cy, base, wobble, seed) {
       var r2 = mulberry32(seed);
       var n = 9, pts = [];
@@ -236,32 +264,46 @@
       }
       return d + " Z";
     }
-    TOPICS.forEach(function (t, ti) {
-      var members = MEMBERS.filter(function (m) { return m.topic === ti; });
+
+    var layouts = TOPICS.map(function (t, ti) {
+      var stats = memberStats(ti);
       var cx = t.x, cy = t.y;
-      members.forEach(function (m) { cx += m.x; cy += m.y; });
-      cx /= members.length + 1; cy /= members.length + 1;
-      var base = members.length
-        ? Math.max.apply(null, members.map(function (m) { return Math.hypot(m.x - cx, m.y - cy); })) + 30
-        : 26 + (ti % 3) * 4;
-      var d = blobPath(cx, cy, base, 0.4, 40 + ti);
-      el(svg, "path", { d: d, fill: "url(#kmist)" });
-      var border = el(svg, "path", { class: "kn-weave", id: "kz" + ti, pathLength: 1, d: d,
-        fill: "none", stroke: p.purple, "stroke-opacity": 0.32, "stroke-width": 1,
-        "stroke-dasharray": "3 5", "stroke-linecap": "round",
-        style: "--d:" + (0.2 + ti * 0.08) + "s" });
-      if (t.label) {
-        var count = members.length ? " · " + members.length : "";
-        el(svg, "text", { class: "kn-label", x: cx, y: cy - base - 7,
-          "text-anchor": "middle", fill: p.purple,
-          style: "--d:" + (1 + ti * 0.08) + "s;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase" },
-          t.name + count);
-      }
+      stats.members.forEach(function (m) { cx += m.x; cy += m.y; });
+      cx /= stats.members.length + 1; cy /= stats.members.length + 1;
+      var base = stats.members.length
+        ? Math.max.apply(null, stats.members.map(function (m) { return Math.hypot(m.x - cx, m.y - cy); })) + 30
+        : 22 + (ti % 3) * 4;
+      return { topic: t, index: ti, cx: cx, cy: cy, base: base, members: stats.members,
+        published: stats.published, priority: labelPriority(t, ti) };
     });
 
-    // the members and unfiled lights
+    layouts.forEach(function (l) {
+      var d = blobPath(l.cx, l.cy, l.base, 0.4, 40 + l.index);
+      l.path = d;
+      el(svg, "path", { d: d, fill: "url(#kmist)" });
+      el(svg, "path", { class: "kn-weave", pathLength: 1, d: d,
+        fill: "none", stroke: p.purple, "stroke-opacity": 0.32, "stroke-width": 1,
+        "stroke-dasharray": "3 5", "stroke-linecap": "round",
+        style: "--d:" + (0.2 + l.index * 0.08) + "s" });
+    });
+
+    var placed = [];
+    layouts.slice().sort(function (a, b) { return b.priority - a.priority || a.index - b.index; })
+      .forEach(function (l, rank) {
+        if (placed.length >= 7) return;
+        if (l.members.length === 0) return;
+        var text = l.topic.name + " · " + l.members.length;
+        var b = box(l.cx, l.cy - l.base - 9, text);
+        if (placed.some(function (other) { return intersects(b, other); })) return;
+        placed.push(b);
+        el(svg, "text", { class: "kn-label", x: l.cx, y: l.cy - l.base - 9,
+          "text-anchor": "middle", fill: p.purple,
+          style: "--d:" + (0.95 + rank * 0.08) + "s;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase" },
+          text);
+      });
+
     MEMBERS.forEach(function (e, i) {
-      var d = 0.5 + i * 0.08;
+      var d = 0.5 + i * 0.06;
       if (e.kind === "published") {
         el(svg, "circle", { class: "kn-dot kn-breathe", cx: e.x, cy: e.y, r: e.r * 3.1, fill: p.amber,
           opacity: 0.12, filter: "url(#kblur)", style: "--d:" + d + "s" });
@@ -270,21 +312,25 @@
           opacity: 0.9, style: "--d:" + (d + 0.05) + "s" });
       } else if (e.kind === "skill") {
         el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.moss, style: "--d:" + d + "s" });
+      } else if (e.kind === "unfiled") {
+        el(svg, "circle", { class: "kn-dot kn-breathe", cx: e.x, cy: e.y, r: e.r * 3.2, fill: "url(#kunfiled)", opacity: 0.28, style: "--d:" + d + "s" });
+        el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: p.cyan, opacity: 0.72, style: "--d:" + d + "s" });
       } else {
         el(svg, "circle", { class: "kn-dot", cx: e.x, cy: e.y, r: e.r, fill: "none",
           stroke: p.pearlStroke, "stroke-width": 1.2, style: "--d:" + d + "s" });
       }
-      if (e.label) {
-        var anchor = e.x > W - 150 ? "end" : "start";
-        var dx = anchor === "start" ? e.r + 8 : -(e.r + 8);
-        el(svg, "text", { class: "kn-label", x: e.x + dx, y: e.y + 3.5, "text-anchor": anchor,
-          fill: p.labelDim,
-          style: "--d:" + (1.3 + i * 0.05) + "s;font-family:var(--mono);font-size:9px;letter-spacing:.06em" },
-          e.name);
-      }
     });
 
-    // the field continues past the frame
+    // readable but restrained callouts: only unfiled evidence gets names here
+    MEMBERS.filter(function (e) { return e.kind === "unfiled"; }).forEach(function (e, i) {
+      var anchor = e.x > W - 150 ? "end" : "start";
+      var dx = anchor === "start" ? e.r + 8 : -(e.r + 8);
+      el(svg, "text", { class: "kn-label", x: e.x + dx, y: e.y + 3.5, "text-anchor": anchor,
+        fill: p.labelDim,
+        style: "--d:" + (1.3 + i * 0.05) + "s;font-family:var(--mono);font-size:9px;letter-spacing:.06em" },
+        e.name + " · unfiled");
+    });
+
     [[1068, 218, 1102, 208], [-4, 342, 30, 352], [560, -4, 574, 22]].forEach(function (h, i) {
       el(svg, "path", { class: "kn-weave", pathLength: 1,
         d: "M " + h[0] + " " + h[1] + " L " + h[2] + " " + h[3],

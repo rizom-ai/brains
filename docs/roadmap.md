@@ -157,7 +157,6 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
-- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — hosted package/image/TLS machinery now serves production `rizom.ai`; remaining scope is the `docs.rizom.ai` hosted cutover.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
 

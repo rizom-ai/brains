@@ -10,7 +10,7 @@ import {
 import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
 import { KnowledgeMapWidget } from "../../src/widgets/knowledge-map";
 
-/* Phase 3 of docs/plans/knowledge-map.md: the console widget. The narrow
+/* The console widget integration. The narrow
    structural contexts keep every stub honestly typed — no casts. */
 
 function makeDataContext(): KnowledgeMapDataContext {

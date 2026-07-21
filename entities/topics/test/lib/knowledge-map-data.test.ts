@@ -5,7 +5,7 @@ import {
 } from "../../src/lib/knowledge-map-data";
 import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
 
-/* Phase 1 of docs/plans/knowledge-map.md: the data builder projects the whole
+/* The data builder projects the whole
    corpus (centerless 2D), turns topics into zones, files each entity into its
    nearest zone in the projected plane (so zones visually contain their
    members), and flags what lands outside every border as unfiled. */

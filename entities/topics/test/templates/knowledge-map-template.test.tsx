@@ -6,7 +6,7 @@ import type { KnowledgeMapTemplateData } from "../../src/templates/knowledge-map
 import { getKnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
 import { KnowledgeMapDataSource } from "../../src/datasources/knowledge-map-datasource";
 
-/* Phase 4 of docs/plans/knowledge-map.md: the site template. The proof
+/* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
    counts and proof links in the foot. Copy is overlay-authored like the
    proximity hero; the map payload comes from the datasource. */
