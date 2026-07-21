@@ -57,6 +57,7 @@ describe("createDefaultUserRunner", () => {
       atproto: {
         identifier: "did:plc:oehciuqunzskplljt3qnnncw",
         accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
+        lexiconAuthority: true,
       },
     });
 
@@ -64,6 +65,7 @@ describe("createDefaultUserRunner", () => {
       "  atproto:\n" +
         "    identifier: did:plc:oehciuqunzskplljt3qnnncw\n" +
         "    accountDid: did:plc:oehciuqunzskplljt3qnnncw\n" +
+        "    lexiconAuthority: true\n" +
         "    appPassword: ${ATPROTO_APP_PASSWORD}",
     );
   });
@@ -82,5 +84,20 @@ describe("createDefaultUserRunner", () => {
         "    appPassword: ${ATPROTO_APP_PASSWORD}",
     );
     expect(result.brainYaml).not.toContain("accountDid");
+    expect(result.brainYaml).not.toContain("lexiconAuthority");
+  });
+
+  it("preserves an explicit false lexicon authority setting", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      atproto: {
+        identifier: "rizom.bsky.social",
+        lexiconAuthority: false,
+      },
+    });
+
+    expect(result.brainYaml).toContain("    lexiconAuthority: false");
   });
 });

@@ -59,6 +59,8 @@ export interface ResolvedAtprotoConfig {
   identifier: string;
   /** Owner account DID served at /.well-known/atproto-did for handle verification. */
   accountDid?: string | undefined;
+  /** Whether this account publishes the canonical ai.rizom.brain.* schemas. */
+  lexiconAuthority?: boolean | undefined;
 }
 
 export interface ResolvedPlaybooksConfig {

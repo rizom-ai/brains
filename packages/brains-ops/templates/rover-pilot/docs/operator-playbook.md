@@ -180,6 +180,10 @@ Use this when enabling AT Protocol publishing for a single pilot user.
      accountDid: did:plc:example123
    ```
 
+   Only for the PDS account designated by the protocol authority's `_lexicon`
+   DNS TXT record, also set `lexiconAuthority: true`. Every other fleet user
+   must omit it.
+
 2. Put the app password in `users/<handle>.secrets.yaml`:
 
    ```yaml
@@ -191,11 +195,11 @@ Use this when enabling AT Protocol publishing for a single pilot user.
 4. Reconcile/deploy the user or cohort:
    - `bunx brains-ops onboard . <handle>`
    - or `bunx brains-ops reconcile-cohort . <cohort>`
-5. Verify the generated `users/<handle>/brain.yaml` contains `plugins.atproto.identifier` (plus `accountDid` when configured) and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+5. Verify the generated `users/<handle>/brain.yaml` contains `plugins.atproto.identifier` (plus `accountDid` and `lexiconAuthority` when configured) and `appPassword: ${ATPROTO_APP_PASSWORD}`.
 
 Notes:
 
-- The ATProto identifier is public instance config and belongs in `users/<handle>.yaml`.
+- The ATProto identifier and authority flag are public instance config and belong in `users/<handle>.yaml`. Only the DNS-designated authority account may set `lexiconAuthority: true`.
 - The ATProto app password is secret and belongs only in the encrypted per-user secret payload.
 - For smoke deployments, pin only the smoke cohort/user to the released brain version that contains ATProto support.
 

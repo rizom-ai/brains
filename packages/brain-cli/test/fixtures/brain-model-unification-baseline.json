@@ -425,10 +425,12 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
             },
@@ -825,10 +827,12 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
             },
@@ -1468,10 +1472,12 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
             },
@@ -2069,10 +2075,12 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
             },

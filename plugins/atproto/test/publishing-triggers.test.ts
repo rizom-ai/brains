@@ -5,6 +5,7 @@ import {
   ATPROTO_PUBLISH_FAILED,
   AtprotoPlugin,
   AtprotoProjectionRegistry,
+  listCanonicalAtprotoLexicons,
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
@@ -76,10 +77,14 @@ function createClientMocks(input: { putError?: Error } = {}): {
     accessJwt: "access-token",
     refreshJwt: "refresh-token",
   }));
-  const putRecord = mock(async () => {
-    if (input.putError) throw input.putError;
-    return { uri: "at://did:plc:repo/record", cid: "cid" };
-  });
+  const putRecord = mock(
+    async (
+      _input: Parameters<NonNullable<AtprotoPdsClientLike["putRecord"]>>[0],
+    ) => {
+      if (input.putError) throw input.putError;
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    },
+  );
   const deleteRecord = mock(async () => {});
   return {
     client: {
@@ -100,12 +105,14 @@ function createClientMocks(input: { putError?: Error } = {}): {
 function createConfiguredPlugin(
   registry: AtprotoProjectionRegistry,
   client: AtprotoPdsClientLike,
+  config: { lexiconAuthority?: boolean } = {},
 ): AtprotoPlugin {
   return new AtprotoPlugin(
     {
       identifier: "brain.example.com",
       appPassword: "secret",
       repoDid: "did:plc:repo",
+      ...config,
     },
     {
       projectionRegistry: registry,
@@ -138,12 +145,133 @@ describe("AT Protocol ambient publishing triggers", () => {
         validate: false,
       }),
     );
+    expect(client.putRecord).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: "com.atproto.lexicon.schema",
+      }),
+    );
+  });
+
+  it("upserts every canonical lexicon schema when this repo is the authority", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client, {
+      lexiconAuthority: true,
+    });
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "system:plugins:ready",
+      payload: {},
+      sender: "test",
+      broadcast: true,
+    });
+    await plugin.shutdown?.();
+
+    const lexicons = listCanonicalAtprotoLexicons();
+    expect(client.createSession).toHaveBeenCalledTimes(2);
+    expect(client.putRecord).toHaveBeenCalledTimes(lexicons.length + 1);
+    for (const lexicon of lexicons) {
+      expect(client.putRecord).toHaveBeenCalledWith({
+        repo: "did:plc:repo",
+        collection: "com.atproto.lexicon.schema",
+        rkey: lexicon.id,
+        record: {
+          $type: "com.atproto.lexicon.schema",
+          ...lexicon,
+        },
+      });
+    }
+  });
+
+  it("converges lexicon schemas under the same record keys on every ready event", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client, {
+      lexiconAuthority: true,
+    });
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    for (let index = 0; index < 2; index += 1) {
+      await shell.getMessageBus().send({
+        type: "system:plugins:ready",
+        payload: {},
+        sender: "test",
+        broadcast: true,
+      });
+    }
+    await plugin.shutdown?.();
+
+    for (const lexicon of listCanonicalAtprotoLexicons()) {
+      const matchingCalls = client.putRecord.mock.calls.filter(
+        ([input]) =>
+          input.collection === "com.atproto.lexicon.schema" &&
+          input.rkey === lexicon.id,
+      );
+      expect(matchingCalls).toHaveLength(2);
+    }
+  });
+
+  it("isolates one schema failure and continues publishing the remaining lexicons", async () => {
+    const client = createClientMocks();
+    const putRecord = mock(
+      async (
+        input: Parameters<NonNullable<AtprotoPdsClientLike["putRecord"]>>[0],
+      ) => {
+        if (
+          input.collection === "com.atproto.lexicon.schema" &&
+          input.rkey === "ai.rizom.brain.card"
+        ) {
+          throw new Error("schema rejected");
+        }
+        return { uri: "at://did:plc:repo/record", cid: "cid" };
+      },
+    );
+    client.client.putRecord = putRecord;
+    const plugin = createConfiguredPlugin(createRegistry(), client.client, {
+      lexiconAuthority: true,
+    });
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const failures: unknown[] = [];
+    shell.getMessageBus().subscribe(ATPROTO_PUBLISH_FAILED, async (message) => {
+      failures.push(message.payload);
+      return { success: true };
+    });
+    await plugin.register(shell);
+
+    const response = await shell.getMessageBus().send({
+      type: "system:plugins:ready",
+      payload: {},
+      sender: "test",
+      broadcast: true,
+    });
+    await plugin.shutdown?.();
+
+    expect(response).toEqual({ success: true });
+    expect(putRecord).toHaveBeenCalledTimes(
+      listCanonicalAtprotoLexicons().length + 1,
+    );
+    expect(putRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: "com.atproto.lexicon.schema",
+        rkey: "ai.rizom.brain.topic",
+      }),
+    );
+    expect(failures).toEqual([
+      {
+        operation: "upsert-record",
+        entityType: "lexicon-schema",
+        entityId: "ai.rizom.brain.card",
+        collection: "com.atproto.lexicon.schema",
+        error: "schema rejected",
+      },
+    ]);
   });
 
   it("skips the ready trigger when publishing credentials are absent", async () => {
     const createPdsClient = mock(() => createClientMocks().client);
     const plugin = new AtprotoPlugin(
-      {},
+      { lexiconAuthority: true },
       { projectionRegistry: createRegistry(), createPdsClient },
     );
     const shell = createMockShell({ domain: "brain.example.com" });

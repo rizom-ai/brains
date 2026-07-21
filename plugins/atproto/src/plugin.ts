@@ -21,6 +21,7 @@ import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
+  listCanonicalAtprotoLexicons,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
@@ -142,6 +143,7 @@ export const ATPROTO_PUBLISH_FAILED = "atproto:publish:failed";
 
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
+const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
 const PUBLISH_COMPLETED = "publish:completed";
 const MAX_DISCOVERY_REPOS = 50;
 
@@ -179,6 +181,11 @@ export class AtprotoPlugin extends ServicePlugin<
           () => this.publishBrainCard(context),
         ),
       );
+      if (this.config.lexiconAuthority) {
+        this.trackPublishingTask(() =>
+          this.publishCanonicalLexiconSchemas(context),
+        );
+      }
       return { success: true };
     });
 
@@ -539,6 +546,60 @@ export class AtprotoPlugin extends ServicePlugin<
       cid: result.cid,
       dryRun: false,
     };
+  }
+
+  private async publishCanonicalLexiconSchemas(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await this.runPublishingTrigger(
+      context,
+      {
+        operation: "upsert-record",
+        entityType: "lexicon-schema",
+        entityId: "*",
+        collection: LEXICON_SCHEMA_COLLECTION,
+      },
+      async () => {
+        const appPassword = this.resolveAppPassword();
+        if (!this.config.identifier || !appPassword) {
+          throw new Error(
+            "AT Protocol publishing requires identifier and app password configuration",
+          );
+        }
+
+        const client = this.createPdsClient(appPassword);
+        const session = await client.createSession();
+        const targetRepo = this.config.repoDid ?? session.did;
+        if (!client.putRecord) {
+          throw new Error(
+            "AT Protocol PDS client does not support record upserts",
+          );
+        }
+        const putRecord = client.putRecord.bind(client);
+
+        for (const lexicon of listCanonicalAtprotoLexicons()) {
+          await this.runPublishingTrigger(
+            context,
+            {
+              operation: "upsert-record",
+              entityType: "lexicon-schema",
+              entityId: lexicon.id,
+              collection: LEXICON_SCHEMA_COLLECTION,
+            },
+            () =>
+              putRecord({
+                repo: targetRepo,
+                collection: LEXICON_SCHEMA_COLLECTION,
+                rkey: lexicon.id,
+                record: {
+                  $type: LEXICON_SCHEMA_COLLECTION,
+                  ...lexicon,
+                },
+              }),
+          );
+        }
+      },
+    );
   }
 
   private async reconcileProjectedEntity(
