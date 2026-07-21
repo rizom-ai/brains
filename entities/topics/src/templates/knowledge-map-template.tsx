@@ -69,10 +69,10 @@ const DEFAULT_COPY = {
 const SITE_STYLES = `
 .knowledge-map-site {
   --console-mono: var(--font-mono, ui-monospace, monospace);
-  --console-accent: var(--color-accent, #b45309);
-  --console-text: var(--color-text, #211d36);
-  --console-secondary: #8c82c8;
-  --kmap-moss: var(--color-secondary, #7d9268);
+  --console-accent: var(--color-accent);
+  --console-text: var(--color-text);
+  --console-secondary: var(--color-secondary);
+  --kmap-moss: var(--color-secondary);
   position: relative;
   padding: clamp(2.5rem, 5vw, 3.5rem) 1.5rem;
   color: var(--console-text);
@@ -83,7 +83,6 @@ const SITE_STYLES = `
 @media (min-width: 1280px) {
   .knowledge-map-site { padding-left: 5rem; padding-right: 5rem; }
 }
-html[data-theme="light"] .knowledge-map-site { --console-secondary: #6b2fa0; }
 .knowledge-map-site__grid {
   display: grid;
   gap: clamp(2rem, 4vw, 3.5rem);
@@ -162,14 +161,14 @@ html[data-theme="light"] .knowledge-map-site { --console-secondary: #6b2fa0; }
 }
 .knowledge-map-site__cta {
   font-weight: var(--rizom-btn-primary-font-weight, 500);
-  color: var(--rizom-btn-primary-color, var(--color-bg, #fff));
+  color: var(--rizom-btn-primary-color, var(--color-bg));
   background: var(--rizom-btn-primary-bg, var(--console-accent));
   border-color: var(--rizom-btn-primary-border-color, transparent);
   border-width: var(--rizom-btn-primary-border-width, 0);
   box-shadow: var(--rizom-btn-primary-shadow, none);
 }
 .knowledge-map-site__cta:hover {
-  color: var(--rizom-btn-primary-hover-color, var(--color-bg, #fff));
+  color: var(--rizom-btn-primary-hover-color, var(--color-bg));
   background: var(--rizom-btn-primary-hover-bg, var(--console-accent));
   box-shadow: var(--rizom-btn-primary-hover-shadow, none);
   transform: var(--rizom-btn-primary-hover-transform, none);

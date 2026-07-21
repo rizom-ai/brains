@@ -71,6 +71,7 @@ describe("knowledgeMapWidgetRegistration", () => {
     expect(registration.section).toBe("primary");
     expect(registration.rendererName).toBe("KnowledgeMapWidget");
     expect(registration.clientStyles).toContain(".kmap");
+    expect(registration.clientStyles).toContain(".kmap-field");
 
     const data = await registration.dataProvider();
     expect(data.zones.map((zone) => zone.name)).toEqual(["Future of Work"]);
@@ -144,6 +145,7 @@ describe("KnowledgeMapWidget", () => {
         }}
       />,
     );
+    expect(html).toContain("kmap-field");
     expect(html).toContain("kmap--dashboard");
     expect(html).toContain("Future of Work");
 
