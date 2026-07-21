@@ -72,7 +72,10 @@ export type SiteBuildDiagnosticCode =
   | "missing-layout"
   | "missing-template"
   | "missing-web-renderer"
-  | "unsafe-static-asset-path";
+  | "unsafe-static-asset-path"
+  | "static-asset-collision"
+  | "section-content-resolution-failed"
+  | "invalid-section-content";
 
 export interface SiteBuildDiagnostic {
   severity: "warning" | "error";
@@ -96,6 +99,9 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
     "missing-template",
     "missing-web-renderer",
     "unsafe-static-asset-path",
+    "static-asset-collision",
+    "section-content-resolution-failed",
+    "invalid-section-content",
   ]),
   message: z.string(),
   routeId: z.string().optional(),

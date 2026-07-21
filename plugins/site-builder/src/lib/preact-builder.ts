@@ -4,7 +4,6 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
-import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { render } from "preact-render-to-string";
@@ -18,21 +17,18 @@ import type { ComponentChildren } from "preact";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import {
-  collectRouteAssets,
-  collectRouteScripts,
   createHTMLShell,
+  createSiteImageRenderer,
   HeadCollector,
   TailwindCSSProcessor,
   type CSSProcessor,
+  type PreparedRoute,
+  type PreparedSiteBuild,
 } from "@brains/site-engine";
 import { pLimit } from "@brains/utils/p-limit";
-import { z } from "@brains/utils/zod";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 import { resolveSafeOutputFile } from "./output-path";
-
-const sectionContentSchema = z.record(z.string(), z.unknown());
-type SectionContent = z.output<typeof sectionContentSchema>;
 
 /**
  * Preact-based static site builder
@@ -54,7 +50,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     context: BuildContext,
     onProgress: (notification: ProgressNotification) => void,
   ): Promise<void> {
-    const total = context.routes.length + 4;
+    const { preparedBuild } = context;
+    const total = preparedBuild.routes.length + 4;
     let progress = 0;
     const reportProgress = (message: string): void => {
       progress++;
@@ -67,23 +64,20 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.mkdir(this.outputDir, { recursive: true });
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
 
-    // Fetch site layout info once for all routes
-    const siteLayoutInfo = await context.getSiteLayoutInfo();
-
-    // Build routes concurrently (independent — different paths, content, output files)
+    // Build routes concurrently from the immutable prepared snapshot.
     const limit = pLimit(4);
     await Promise.all(
-      context.routes.map((route) =>
+      preparedBuild.routes.map((route) =>
         limit(async () => {
           reportProgress(`Building route: ${route.path}`);
-          await this.buildRoute(route, context, siteLayoutInfo);
+          await this.buildRoute(route, context, preparedBuild);
         }),
       ),
     );
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     reportProgress("Processing Tailwind CSS");
-    await this.processStyles(context.themeCSS ?? "");
+    await this.processStyles(preparedBuild.themeCSS ?? "");
 
     // Copy static assets from public/ directory
     reportProgress("Copying static assets");
@@ -94,10 +88,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     // assets supplied by the SitePackage (canvas scripts, fonts, etc.) —
     // keyed by output path, values are file contents as strings. On a path
     // collision the SitePackage wins.
-    await this.writeInlineStaticAssets({
-      ...collectRouteAssets(context.routes, context),
-      ...context.staticAssets,
-    });
+    await this.writeInlineStaticAssets(preparedBuild.staticAssets);
 
     reportProgress("Preact build complete");
   }
@@ -128,38 +119,27 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   private async buildRoute(
-    route: RouteDefinition,
+    route: PreparedRoute,
     context: BuildContext,
-    siteLayoutInfo: SiteLayoutInfo,
+    preparedBuild: PreparedSiteBuild,
   ): Promise<void> {
     this.logger.debug(`Building route: ${route.path}`);
 
-    // Create section components (filter out footer - it will be in layout)
-    const contentSections = route.sections.filter(
-      (s) => s.template !== "footer",
-    );
-    const sectionComponents = await this.createSectionComponents(
-      route,
-      contentSections,
+    const sectionComponents = this.createSectionComponents(
+      route.sections,
       context,
     );
-
-    // Check if any section's template requests fullscreen rendering
-    const isFullscreen = route.sections.some((section) => {
-      const tmpl = context.getViewTemplate(section.template);
-      return tmpl?.fullscreen === true;
-    });
+    const siteLayoutInfo = preparedBuild.site;
 
     // Create head collector for SSR
-    const headCollector = new HeadCollector(context.siteConfig.title);
+    const headCollector = new HeadCollector(preparedBuild.site.title);
 
     // Get image renderer for markdown content (if ImageBuildService is available)
-    const imageRenderer =
-      context.imageBuildService?.createImageRenderer() ?? null;
+    const imageRenderer = createSiteImageRenderer(preparedBuild.images);
 
     let layoutHtml: string;
 
-    if (isFullscreen) {
+    if (route.fullscreen) {
       // Fullscreen: render sections directly, no page layout shell
       const wrapper = h(HeadProvider, {
         headCollector,
@@ -216,20 +196,18 @@ export class PreactBuilder implements StaticSiteBuilder {
       headCollector.setHeadProps(headProps);
     }
 
-    // Collect per-route runtime scripts: walk this route's sections,
-    // look up each template, accumulate runtimeScripts, dedupe by src.
-    // These get appended to the global headScripts so pages without a
-    // template that declares them never load the corresponding files.
-    const perRouteScripts = collectRouteScripts(route, context);
-    const allHeadScripts = [...(context.headScripts ?? []), ...perRouteScripts];
+    const allHeadScripts = [
+      ...preparedBuild.globalHeadScripts,
+      ...route.headScripts,
+    ];
 
     // Create full HTML page with head data
     const html = createHTMLShell(
       layoutHtml,
       headCollector.generateHeadHTML(),
-      context.siteConfig.title,
-      context.siteConfig.themeMode,
-      context.siteConfig.analyticsScript,
+      preparedBuild.site.title,
+      preparedBuild.site.themeMode,
+      preparedBuild.site.analyticsScript,
       allHeadScripts,
     );
 
@@ -247,59 +225,23 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.writeFile(fullPath, html, "utf-8");
   }
 
-  private async createSectionComponents(
-    route: RouteDefinition,
-    sections: RouteDefinition["sections"],
+  private createSectionComponents(
+    sections: PreparedRoute["sections"],
     context: BuildContext,
-  ): Promise<ComponentChildren[]> {
+  ): ComponentChildren[] {
     const sectionComponents: ComponentChildren[] = [];
 
     for (const section of sections) {
-      const template = context.getViewTemplate(section.template);
-      if (!template) {
-        this.logger.warn(`Template not found: ${section.template}`);
-        continue;
-      }
-
-      const renderer = template.renderers.web;
+      const template = context.viewTemplates[section.template];
+      const renderer = template?.renderers.web;
       if (!renderer || typeof renderer !== "function") {
-        this.logger.warn(`No web renderer for template: ${section.template}`);
-        continue;
-      }
-
-      // Always get content through context to allow dynamic resolution
-      const content = await context.getContent(route, section);
-
-      if (!content) {
-        this.logger.debug(`No content for section: ${section.id}`);
-        continue;
-      }
-
-      // Validate content against schema
-      // Inject route title/pageLabel for templates that use them (e.g., list pages)
-      try {
-        const contentObj: SectionContent = sectionContentSchema.parse(content);
-        const validatedContent: SectionContent = sectionContentSchema.parse(
-          template.schema.parse({
-            ...contentObj,
-            pageTitle: route.title || context.siteConfig.title,
-            ...(route.pageLabel !== undefined && {
-              pageLabel: route.pageLabel,
-            }),
-          }),
-        );
-
-        // Create component using h() to pass props correctly.
-        const component = h(renderer, validatedContent);
-
-        sectionComponents.push(component);
-        this.logger.debug(`Created component for section ${section.id}`);
-      } catch (error) {
-        this.logger.error(
-          `Failed to create section component ${section.id}:`,
-          error,
+        throw new Error(
+          `Prepared template binding not found: ${section.template}`,
         );
       }
+
+      sectionComponents.push(h(renderer, section.data));
+      this.logger.debug(`Created component for section ${section.id}`);
     }
 
     return sectionComponents;

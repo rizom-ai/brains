@@ -7,6 +7,9 @@ import {
 } from "@brains/test-utils";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import type { BuildResult } from "../../src/types/site-builder-types";
+import type { SiteViewTemplate } from "../../src/lib/site-view-template";
+import { z } from "@brains/utils/zod";
+import { h, type VNode } from "preact";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import { createSiteBuilderServices, TestLayout } from "../test-helpers";
@@ -32,7 +35,10 @@ function createPipelineContext(
 function run(
   route: RouteDefinitionInput,
   staticSiteBuilderFactory: StaticSiteBuilderFactory,
+  configure?: (pipelineContext: BuildPipelineContext) => void,
 ): Promise<BuildResult> {
+  const pipelineContext = createPipelineContext(route);
+  configure?.(pipelineContext);
   return runSiteBuild({
     buildOptions: {
       environment: "production",
@@ -47,7 +53,7 @@ function run(
       layouts: { default: TestLayout },
     },
     progress: undefined,
-    pipelineContext: createPipelineContext(route),
+    pipelineContext,
     staticSiteBuilderFactory,
   });
 }
@@ -123,6 +129,105 @@ describe("runSiteBuild preflight", () => {
           code: "missing-template",
           routeId: "home",
           sectionId: "hero",
+        }),
+      ],
+    });
+  });
+
+  it("resolves all section content before renderer creation and cleanup", async () => {
+    const events: string[] = [];
+    const clean = mock(async () => {
+      events.push("clean");
+    });
+    const build = mock(async (context) => {
+      events.push("build");
+      expect(context).not.toHaveProperty("getContent");
+      expect(context.preparedBuild.routes[0]?.sections[0]?.data).toMatchObject({
+        heading: "Prepared heading",
+      });
+    });
+    const staticSiteBuilderFactory = mock<StaticSiteBuilderFactory>(() => ({
+      clean,
+      build,
+    }));
+    const template: SiteViewTemplate = {
+      name: "fixture:hero",
+      pluginId: "fixture",
+      schema: z.object({ heading: z.string() }),
+      renderers: { web: (): VNode => h("div", {}) },
+    };
+
+    const result = await run(
+      createRoute({
+        sections: [
+          {
+            id: "hero",
+            template: "fixture:hero",
+            content: { heading: "Prepared heading" },
+          },
+        ],
+      }),
+      staticSiteBuilderFactory,
+      (pipelineContext) => {
+        pipelineContext.services.getViewTemplate = (): SiteViewTemplate =>
+          template;
+        pipelineContext.services.resolveTemplateContent = mock(
+          async (_templateName, resolutionOptions): Promise<never> => {
+            events.push("resolve");
+            return resolutionOptions?.fallback as never;
+          },
+        );
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(events).toEqual(["resolve", "clean", "build"]);
+  });
+
+  it("does not create or clean the renderer when content preparation fails", async () => {
+    const staticSiteBuilderFactory = mock<StaticSiteBuilderFactory>(() => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => undefined),
+    }));
+    const template: SiteViewTemplate = {
+      name: "fixture:hero",
+      pluginId: "fixture",
+      schema: z.object({ heading: z.string() }),
+      renderers: { web: (): VNode => h("div", {}) },
+    };
+
+    const result = await run(
+      createRoute({
+        sections: [
+          {
+            id: "hero",
+            template: "fixture:hero",
+            dataQuery: { entityType: "post" },
+          },
+        ],
+      }),
+      staticSiteBuilderFactory,
+      (pipelineContext) => {
+        pipelineContext.services.getViewTemplate = (): SiteViewTemplate =>
+          template;
+        pipelineContext.services.resolveTemplateContent = mock(
+          async (): Promise<never> => {
+            throw new Error("datasource unavailable");
+          },
+        );
+      },
+    );
+
+    expect(staticSiteBuilderFactory).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      success: false,
+      diagnostics: [
+        expect.objectContaining({
+          severity: "error",
+          code: "section-content-resolution-failed",
+          routeId: "home",
+          sectionId: "hero",
+          message: expect.stringContaining("datasource unavailable"),
         }),
       ],
     });

@@ -102,6 +102,48 @@ describe("preflightSiteBuild", () => {
     );
   });
 
+  it("reports template and site-package asset collisions with existing precedence", () => {
+    const templates: Record<string, SiteViewTemplate> = {
+      "baseline:hero": template({
+        staticAssets: { "/scripts/shared.js": "hero" },
+      }),
+      "baseline:details": template({
+        name: "baseline:details",
+        staticAssets: { "/scripts/shared.js": "details" },
+      }),
+    };
+
+    const result = preflightSiteBuild({
+      routes: [
+        route({
+          sections: [
+            { id: "hero", template: "baseline:hero", content: {} },
+            { id: "details", template: "baseline:details", content: {} },
+          ],
+        }),
+      ],
+      layouts: { default: layout },
+      getViewTemplate: (name) => templates[name],
+      staticAssets: { "/scripts/shared.js": "site package" },
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: "static-asset-collision",
+        template: "baseline:details",
+        path: "/scripts/shared.js",
+        message: expect.stringContaining('"baseline:hero" wins'),
+      }),
+      expect.objectContaining({
+        code: "static-asset-collision",
+        template: "baseline:hero",
+        path: "/scripts/shared.js",
+        message: expect.stringContaining("Site-package static asset"),
+      }),
+    ]);
+  });
+
   it("rejects unsafe output paths and missing layouts before rendering", () => {
     const unsafeTemplate = template({
       staticAssets: { "../template.js": "unsafe" },

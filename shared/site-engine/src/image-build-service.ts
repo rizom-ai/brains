@@ -4,13 +4,10 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import {
-  detectImageFormat,
-  escapeHtmlAttr,
-  extractBase64,
-} from "./image-utils";
+import { detectImageFormat, extractBase64 } from "./image-utils";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
+import { createSiteImageRenderer } from "./site-image-renderer";
 
 export type ResolvedBuildImage = ResolvedSiteImage;
 export type BuildImageMap = SiteImageMap;
@@ -138,34 +135,7 @@ export class ImageBuildService {
    * Resolves entity://image/{id} references to optimized <img> tags with srcset.
    */
   createImageRenderer(): ImageRenderer {
-    const imageMap = this.imageMap;
-    return (
-      href: string,
-      title: string | null,
-      text: string,
-    ): string | undefined => {
-      const entityMatch = /^entity:\/\/image\/(.+)$/.exec(href);
-      if (!entityMatch?.[1]) return undefined;
-
-      const resolved = imageMap[entityMatch[1]];
-      if (!resolved) return undefined;
-
-      const attrs: string[] = [
-        `src="${escapeHtmlAttr(resolved.src)}"`,
-        `alt="${escapeHtmlAttr(text)}"`,
-      ];
-      if (resolved.srcset)
-        attrs.push(`srcset="${escapeHtmlAttr(resolved.srcset)}"`);
-      if (resolved.sizes)
-        attrs.push(`sizes="${escapeHtmlAttr(resolved.sizes)}"`);
-      if (resolved.width) attrs.push(`width="${resolved.width}"`);
-      if (resolved.height) attrs.push(`height="${resolved.height}"`);
-      if (title) attrs.push(`title="${escapeHtmlAttr(title)}"`);
-      attrs.push('loading="lazy"');
-      attrs.push('decoding="async"');
-
-      return `<img ${attrs.join(" ")}>`;
-    };
+    return createSiteImageRenderer(this.imageMap);
   }
 }
 

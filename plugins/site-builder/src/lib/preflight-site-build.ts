@@ -63,6 +63,10 @@ export function preflightSiteBuild(
 ): SiteBuildPreflightResult {
   const diagnostics = validateAssetPaths(options.staticAssets, {});
   const validatedTemplates = new Set<string>();
+  const templateAssetOwners = new Map<
+    string,
+    { template: string; content: string }
+  >();
 
   for (const route of options.routes) {
     const routePathIssue = describeUnsafeOutputPath(route.path, "route");
@@ -130,7 +134,41 @@ export function preflightSiteBuild(
           template: section.template,
         }),
       );
+      for (const [path, content] of Object.entries(
+        template.staticAssets ?? {},
+      )) {
+        const owner = templateAssetOwners.get(path);
+        if (!owner) {
+          templateAssetOwners.set(path, {
+            template: section.template,
+            content,
+          });
+          continue;
+        }
+        if (owner.content === content) continue;
+        diagnostics.push(
+          diagnostic(
+            "warning",
+            "static-asset-collision",
+            `Static asset path "${path}" is declared by templates "${owner.template}" and "${section.template}"; "${owner.template}" wins by route order`,
+            { template: section.template, path },
+          ),
+        );
+      }
     }
+  }
+
+  for (const [path, content] of Object.entries(options.staticAssets ?? {})) {
+    const owner = templateAssetOwners.get(path);
+    if (!owner || owner.content === content) continue;
+    diagnostics.push(
+      diagnostic(
+        "warning",
+        "static-asset-collision",
+        `Site-package static asset "${path}" overrides template "${owner.template}"`,
+        { template: owner.template, path },
+      ),
+    );
   }
 
   return {

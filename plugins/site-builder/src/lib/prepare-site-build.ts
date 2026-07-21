@@ -1,0 +1,225 @@
+import type {
+  RouteDefinition,
+  SectionDefinition,
+  SiteMetadata,
+} from "@brains/site-composition";
+import {
+  collectRouteAssets,
+  collectRouteScripts,
+  createPreparedSiteBuildSnapshot,
+  jsonObjectSchema,
+  type PreparedRoute,
+  type PreparedSection,
+  type PreparedSiteBuild,
+  type SiteImageLookup,
+  type SiteImageMap,
+} from "@brains/site-engine";
+import { getErrorMessage } from "@brains/utils/error";
+import { pLimit } from "@brains/utils/p-limit";
+import { z } from "@brains/utils/zod";
+import type {
+  SiteBuildDiagnostic,
+  SiteBuilderOptions,
+} from "../types/site-builder-types";
+import { buildSiteLayoutInfo } from "./build-site-layout-info";
+import type { BuildPipelineContext } from "./build-pipeline-context";
+import { resolveSiteSectionContent } from "./content-resolver";
+import type { SiteViewTemplate } from "./site-view-template";
+
+const sectionContentSchema = z.record(z.string(), z.unknown());
+
+export interface PrepareSiteBuildOptions {
+  buildId: string;
+  routes: RouteDefinition[];
+  parsedOptions: Pick<
+    SiteBuilderOptions,
+    "environment" | "siteConfig" | "themeCSS"
+  >;
+  buildOptions: Pick<SiteBuilderOptions, "headScripts" | "staticAssets">;
+  pipelineContext: BuildPipelineContext;
+  imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
+  siteMetadata: SiteMetadata;
+}
+
+export interface PrepareSiteBuildResult {
+  preparedBuild: PreparedSiteBuild;
+  diagnostics: SiteBuildDiagnostic[];
+}
+
+interface PreparedRouteResult {
+  route: PreparedRoute;
+  diagnostics: SiteBuildDiagnostic[];
+}
+
+/** Resolve and validate every route section before renderer execution begins. */
+export async function prepareSiteBuild(
+  options: PrepareSiteBuildOptions,
+): Promise<PrepareSiteBuildResult> {
+  const getViewTemplate = (name: string): SiteViewTemplate | undefined =>
+    options.pipelineContext.services.getViewTemplate(name);
+  const publishedOnly = options.parsedOptions.environment === "production";
+  const limit = pLimit(4);
+  const routeResults = await Promise.all(
+    options.routes.map((route) =>
+      limit(() =>
+        prepareRoute({
+          route,
+          siteTitle: options.siteMetadata.title,
+          publishedOnly,
+          getViewTemplate,
+          pipelineContext: options.pipelineContext,
+          imageBuildService: options.imageBuildService,
+          siteUrl: options.siteMetadata.url,
+        }),
+      ),
+    ),
+  );
+
+  const site = buildSiteLayoutInfo(
+    options.siteMetadata,
+    options.pipelineContext.profileService,
+    options.pipelineContext.routeRegistry,
+  );
+  const staticAssets = {
+    ...collectRouteAssets(options.routes, { getViewTemplate }),
+    ...options.buildOptions.staticAssets,
+  };
+  const preparedBuild = createPreparedSiteBuildSnapshot({
+    buildId: options.buildId,
+    environment: options.parsedOptions.environment,
+    site,
+    routes: routeResults.map((result) => result.route),
+    ...(options.parsedOptions.themeCSS !== undefined && {
+      themeCSS: options.parsedOptions.themeCSS,
+    }),
+    images: options.imageBuildService.getMap(),
+    staticAssets,
+    globalHeadScripts: options.buildOptions.headScripts ?? [],
+  });
+
+  return {
+    preparedBuild,
+    diagnostics: routeResults.flatMap((result) => result.diagnostics),
+  };
+}
+
+interface PrepareRouteOptions {
+  route: RouteDefinition;
+  siteTitle: string;
+  publishedOnly: boolean;
+  getViewTemplate(name: string): SiteViewTemplate | undefined;
+  pipelineContext: BuildPipelineContext;
+  imageBuildService: SiteImageLookup;
+  siteUrl: string | undefined;
+}
+
+async function prepareRoute(
+  options: PrepareRouteOptions,
+): Promise<PreparedRouteResult> {
+  const diagnostics: SiteBuildDiagnostic[] = [];
+  const sections: PreparedSection[] = [];
+
+  for (const section of options.route.sections) {
+    if (section.template === "footer") continue;
+
+    const result = await prepareSection(options, section);
+    if (result.section) sections.push(result.section);
+    if (result.diagnostic) diagnostics.push(result.diagnostic);
+  }
+
+  return {
+    route: {
+      id: options.route.id,
+      path: options.route.path,
+      title: options.route.title,
+      ...(options.route.pageLabel !== undefined && {
+        pageLabel: options.route.pageLabel,
+      }),
+      description: options.route.description,
+      layout: options.route.layout,
+      fullscreen: options.route.sections.some(
+        (section) =>
+          options.getViewTemplate(section.template)?.fullscreen === true,
+      ),
+      sections,
+      headScripts: collectRouteScripts(options.route, {
+        getViewTemplate: options.getViewTemplate,
+      }),
+    },
+    diagnostics,
+  };
+}
+
+interface PreparedSectionResult {
+  section?: PreparedSection;
+  diagnostic?: SiteBuildDiagnostic;
+}
+
+async function prepareSection(
+  options: PrepareRouteOptions,
+  section: SectionDefinition,
+): Promise<PreparedSectionResult> {
+  const template = options.getViewTemplate(section.template);
+  const renderer = template?.renderers.web;
+  if (!template || !renderer || typeof renderer !== "function") return {};
+
+  let content: unknown;
+  try {
+    content = await resolveSiteSectionContent(
+      section,
+      options.route,
+      options.publishedOnly,
+      "public",
+      {
+        pipelineContext: options.pipelineContext,
+        imageBuildService: options.imageBuildService,
+        siteUrl: options.siteUrl,
+      },
+    );
+  } catch (error) {
+    const diagnostic: SiteBuildDiagnostic = {
+      severity: "error",
+      code: "section-content-resolution-failed",
+      message: `Failed to resolve content for route "${options.route.id}" section "${section.id}": ${getErrorMessage(error)}`,
+      routeId: options.route.id,
+      sectionId: section.id,
+      template: section.template,
+    };
+    options.pipelineContext.logger.error(diagnostic.message, { error });
+    return { diagnostic };
+  }
+
+  if (!content) return {};
+
+  try {
+    const contentObject = sectionContentSchema.parse(content);
+    const validatedContent = sectionContentSchema.parse(
+      template.schema.parse({
+        ...contentObject,
+        pageTitle: options.route.title || options.siteTitle,
+        ...(options.route.pageLabel !== undefined && {
+          pageLabel: options.route.pageLabel,
+        }),
+      }),
+    );
+
+    return {
+      section: {
+        id: section.id,
+        template: section.template,
+        data: jsonObjectSchema.parse(validatedContent),
+      },
+    };
+  } catch (error) {
+    const diagnostic: SiteBuildDiagnostic = {
+      severity: "warning",
+      code: "invalid-section-content",
+      message: `Route "${options.route.id}" section "${section.id}" has invalid content for template "${section.template}": ${getErrorMessage(error)}`,
+      routeId: options.route.id,
+      sectionId: section.id,
+      template: section.template,
+    };
+    options.pipelineContext.logger.error(diagnostic.message, { error });
+    return { diagnostic };
+  }
+}
