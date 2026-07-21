@@ -16,7 +16,7 @@ Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: 
 
 ## Open work
 
-Ordered; each slice ships independently.
+Ordered; each slice ships independently unless it declares an explicit dependency gate.
 
 ### 1. Publishing trigger (make brains publish themselves) — implemented, live verification pending
 
@@ -42,13 +42,19 @@ Surfaced 2026-07-21 by the first external consumer: pdsls.dev fails with "lexico
 
 Verification: `com.atproto.repo.getRecord` returns `com.atproto.lexicon.schema/ai.rizom.brain.card` from the org repo, and pdsls.dev renders the card without the resolution error.
 
-### 3. Outbound ATProto OAuth (fleet-user publishing)
+### 3. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
 
-App password is the sanctioned headless credential for operator-configured brains; OAuth is the fleet-user story:
+App password is the sanctioned headless credential for operator-configured brains; OAuth is the fleet-user story.
 
-- Console "connect Bluesky" flow using `@atproto/oauth-client-node` (confidential client via existing JWKS); browser user-delegation with PAR/DPoP and rotating refresh tokens.
-- The same gesture captures the user's account DID for member-handle plumbing (see 4).
-- Includes JWT/session refresh in `AtprotoPdsClient` (the app-password client does one-shot publishes today).
+**Dependency gate:** implementation waits for [Auth runtime database](./auth-runtime-db.md) to merge and stabilize its runtime storage and Admin API boundaries. Design and protocol research may proceed in parallel, but the ATProto plugin must not create a second token database or plugin-local JSON store. The existing OAuth grant tables hold credentials the brain **issues** to MCP clients; outbound ATProto OAuth needs a distinct external-provider connection store for credentials the brain **receives** from Bluesky. That store belongs on the same private auth runtime plane, with provider tokens and DPoP key material encrypted or otherwise isolated and never written to entities, Git, or `brain.yaml`.
+
+After the dependency lands:
+
+- Add an Admin-only Console "connect Bluesky" flow using `@atproto/oauth-client-node` (confidential client via existing JWKS); browser user-delegation with PAR/PKCE, DPoP, callback-state binding, and rotating refresh tokens.
+- Persist the connection against the authenticated runtime user, with reconnect, disconnect/revocation, audit, expiry, and suspended-user behavior following auth-service policy.
+- Capture the account DID, repo DID, and PDS endpoint in the same gesture for publishing and member-handle plumbing (see 4).
+- Extend `AtprotoPdsClient` to consume and refresh the stored OAuth session while preserving app-password support for operator-configured headless brains; ambient publishing remains unchanged above the authentication layer.
+- Test authorization discovery/callback, state rejection, refresh-token rotation, DPoP persistence, account binding, publishing, revocation, failure isolation, and secret redaction.
 
 ### 4. Member handle rollout
 
