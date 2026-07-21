@@ -120,6 +120,36 @@ describe("KnowledgeMap", () => {
     expect(crowdedHtml).not.toContain("Topic 11");
   });
 
+  test("places compact territory labels as edge callouts with leaders", () => {
+    const edgeData: KnowledgeMapData = {
+      zones: [
+        {
+          id: "compact",
+          name: "Compact Territory With Long Name",
+          x: 0.12,
+          y: 0.5,
+          memberIds: ["p"],
+        },
+      ],
+      points: [
+        {
+          id: "p",
+          entityType: "post",
+          title: "P",
+          kind: "published",
+          x: 0.12,
+          y: 0.5,
+          zoneId: "compact",
+        },
+      ],
+      counts: { entities: 1, topics: 1 },
+    };
+
+    const html = render(<KnowledgeMap data={edgeData} />);
+    expect(html).toContain("Compact Territory With Long Name · 1");
+    expect(html).toContain("kmap-label-leader");
+  });
+
   test("colliding zone labels are skipped — priority zones win", () => {
     const collided: KnowledgeMapData = {
       zones: [

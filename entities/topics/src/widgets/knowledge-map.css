@@ -1,16 +1,85 @@
 /* Knowledge map — shared styles for both surfaces. Colors ride --kmap-*
    custom properties; each surface maps them from its own tokens (the
    dashboard's console vars by default, the site template overrides). */
+.kmap-field {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.kmap-field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 36% 50%,
+      color-mix(in srgb, var(--console-accent) 5%, transparent),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 54% 44%,
+      color-mix(in srgb, var(--console-secondary) 10%, transparent),
+      transparent 34%
+    ),
+    var(--console-bg-deep);
+  -webkit-mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
+  mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
+}
+.kmap-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  -webkit-mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
+  mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
+}
 .kmap {
-  --kmap-glow: var(--console-accent, #b45309);
-  --kmap-hot: var(--console-text, #211d18);
-  --kmap-zone: var(--console-secondary, #7653a6);
-  --kmap-skill: var(--kmap-moss, #7d9268);
-  --kmap-ink-dim: color-mix(in srgb, var(--console-text, #211d18) 50%, transparent);
-  --kmap-ink-faint: color-mix(in srgb, var(--console-text, #211d18) 22%, transparent);
+  --kmap-glow: var(--console-accent);
+  --kmap-hot: var(--console-text);
+  --kmap-zone: var(--console-secondary);
+  --kmap-skill: var(--kmap-moss, var(--console-secondary));
+  --kmap-ink-dim: color-mix(in srgb, var(--console-text) 50%, transparent);
+  --kmap-ink-faint: color-mix(in srgb, var(--console-text) 22%, transparent);
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: auto;
+}
+.kmap-field > .kmap {
+  min-height: 420px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
+  mask-image: radial-gradient(
+    ellipse 66% 92% at 50% 50%,
+    black 52%,
+    transparent 99%
+  );
 }
 .kmap text {
   font-family: var(--console-mono, ui-monospace, monospace);
@@ -40,6 +109,12 @@
   opacity: 0;
   animation: kmap-fade 0.9s ease forwards;
   animation-delay: var(--d, 0s);
+}
+.kmap-label--zone {
+  paint-order: stroke;
+  stroke: var(--console-bg-deep);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 .kmap-label--legend {
   fill: var(--kmap-ink-dim);

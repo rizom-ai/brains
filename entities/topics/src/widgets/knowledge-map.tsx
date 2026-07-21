@@ -72,13 +72,27 @@ function blobPath(cx: number, cy: number, base: number, seed: number): string {
   return `${d} Z`;
 }
 
+interface LabelLeader {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+interface LabelPlacement {
+  x: number;
+  y: number;
+  anchor: "start" | "middle" | "end";
+  leader: LabelLeader | null;
+}
+
 interface ZoneLayout {
   zone: KnowledgeMapZone;
   cx: number;
   cy: number;
   base: number;
   path: string;
-  labeled: boolean;
+  label: LabelPlacement | null;
 }
 
 function layoutZones(data: KnowledgeMapData): {
@@ -86,7 +100,7 @@ function layoutZones(data: KnowledgeMapData): {
   placed: LabelBox[];
 } {
   const pointById = new Map(data.points.map((point) => [point.id, point]));
-  const layouts = data.zones.map((zone, index) => {
+  const layouts: ZoneLayout[] = data.zones.map((zone, index) => {
     const members = zone.memberIds
       .map((id) => pointById.get(id))
       .filter((point): point is KnowledgeMapPoint => point !== undefined);
@@ -112,7 +126,7 @@ function layoutZones(data: KnowledgeMapData): {
       cy,
       base,
       path: blobPath(cx, cy, base, 40 + index),
-      labeled: false,
+      label: null,
     };
   });
 
@@ -135,14 +149,10 @@ function layoutZones(data: KnowledgeMapData): {
     if (layout.zone.memberIds.length === 0) continue;
     if (budget <= 0) break;
     const text = `${layout.zone.name} · ${layout.zone.memberIds.length}`;
-    const box = centeredBox(
-      layout.cx,
-      layout.cy - layout.base - 8,
-      text.length * LABEL_CHAR_WIDTH,
-    );
-    if (placed.some((other) => intersects(box, other))) continue;
-    placed.push(box);
-    layout.labeled = true;
+    const placement = chooseLabelPlacement(layout, text, placed);
+    if (!placement) continue;
+    placed.push(placement.box, territoryBox(layout));
+    layout.label = placement.label;
     budget--;
   }
   return { layouts, placed };
@@ -168,13 +178,127 @@ interface LabelBox {
   h: number;
 }
 
-function centeredBox(cx: number, cy: number, width: number): LabelBox {
+function labelBox(
+  x: number,
+  y: number,
+  width: number,
+  anchor: LabelPlacement["anchor"],
+): LabelBox {
   return {
-    x: cx - width / 2,
-    y: cy - LABEL_HEIGHT / 2,
-    w: width,
-    h: LABEL_HEIGHT,
+    x:
+      anchor === "start"
+        ? x - 6
+        : anchor === "end"
+          ? x - width - 6
+          : x - width / 2 - 6,
+    y: y - LABEL_HEIGHT / 2 - 2,
+    w: width + 12,
+    h: LABEL_HEIGHT + 4,
   };
+}
+
+function territoryBox(layout: ZoneLayout): LabelBox {
+  return {
+    x: layout.cx - layout.base - 8,
+    y: layout.cy - layout.base * 0.86 - 8,
+    w: layout.base * 2 + 16,
+    h: layout.base * 1.72 + 16,
+  };
+}
+
+function isInFrame(box: LabelBox): boolean {
+  return (
+    box.x >= 24 &&
+    box.y >= 24 &&
+    box.x + box.w <= WIDTH - 24 &&
+    box.y + box.h <= HEIGHT - 24
+  );
+}
+
+function labelCandidates(
+  layout: ZoneLayout,
+  textWidth: number,
+): LabelPlacement[] {
+  const side = layout.cx < WIDTH / 2 ? -1 : 1;
+  const half = textWidth / 2;
+  const internalOk = layout.base > Math.max(38, half * 0.62);
+  const candidates: LabelPlacement[] = [];
+
+  if (internalOk) {
+    candidates.push(
+      { x: layout.cx, y: layout.cy + 3, anchor: "middle", leader: null },
+      {
+        x: layout.cx,
+        y: layout.cy - layout.base * 0.34,
+        anchor: "middle",
+        leader: null,
+      },
+    );
+  }
+
+  candidates.push(
+    {
+      x: layout.cx + side * (layout.base + 18),
+      y: layout.cy + 4,
+      anchor: side > 0 ? "start" : "end",
+      leader: {
+        x1: layout.cx + side * (layout.base * 0.74),
+        y1: layout.cy + 2,
+        x2: layout.cx + side * (layout.base + 10),
+        y2: layout.cy + 2,
+      },
+    },
+    {
+      x: layout.cx,
+      y: layout.cy - layout.base - 13,
+      anchor: "middle",
+      leader: {
+        x1: layout.cx,
+        y1: layout.cy - layout.base * 0.72,
+        x2: layout.cx,
+        y2: layout.cy - layout.base - 5,
+      },
+    },
+    {
+      x: layout.cx,
+      y: layout.cy + layout.base + 18,
+      anchor: "middle",
+      leader: {
+        x1: layout.cx,
+        y1: layout.cy + layout.base * 0.72,
+        x2: layout.cx,
+        y2: layout.cy + layout.base + 8,
+      },
+    },
+    {
+      x: layout.cx - side * (layout.base + 18),
+      y: layout.cy + 4,
+      anchor: side > 0 ? "end" : "start",
+      leader: {
+        x1: layout.cx - side * (layout.base * 0.74),
+        y1: layout.cy + 2,
+        x2: layout.cx - side * (layout.base + 10),
+        y2: layout.cy + 2,
+      },
+    },
+  );
+
+  return candidates;
+}
+
+function chooseLabelPlacement(
+  layout: ZoneLayout,
+  text: string,
+  placed: LabelBox[],
+): { label: LabelPlacement; box: LabelBox } | null {
+  const width = text.length * LABEL_CHAR_WIDTH;
+  for (const candidate of labelCandidates(layout, width)) {
+    const box = labelBox(candidate.x, candidate.y, width, candidate.anchor);
+    if (!isInFrame(box)) continue;
+    if (placed.some((other) => intersects(box, other))) continue;
+    return { label: candidate, box };
+  }
+  return null;
 }
 
 function intersects(a: LabelBox, b: LabelBox): boolean {
@@ -192,7 +316,7 @@ function ZoneShape({
   index: number;
   surface: string;
 }): JSX.Element {
-  const { zone, cx, cy, base, path, labeled } = layout;
+  const { zone, path, label } = layout;
   const count = zone.memberIds.length;
   return (
     <g>
@@ -209,12 +333,25 @@ function ZoneShape({
         stroke-linecap="round"
         style={`--d:${(0.2 + index * 0.08).toFixed(2)}s`}
       />
-      {labeled && (
+      {label?.leader && (
+        <path
+          class="kmap-weave kmap-label-leader"
+          pathLength={1}
+          d={`M ${label.leader.x1} ${label.leader.y1} L ${label.leader.x2} ${label.leader.y2}`}
+          fill="none"
+          stroke="var(--kmap-zone)"
+          stroke-opacity={0.34}
+          stroke-width={0.7}
+          stroke-linecap="round"
+          style={`--d:${(0.9 + index * 0.08).toFixed(2)}s`}
+        />
+      )}
+      {label && (
         <text
           class="kmap-label kmap-label--zone"
-          x={cx}
-          y={cy - base - 8}
-          text-anchor="middle"
+          x={label.x}
+          y={label.y}
+          text-anchor={label.anchor}
           fill="var(--kmap-zone)"
           font-size="11"
           font-weight="600"
@@ -372,7 +509,7 @@ export function KnowledgeMap({
   const titleId = `kmap-title-${surface}`;
   const descId = `kmap-desc-${surface}`;
   const labeledZones = zones
-    .filter((layout) => layout.labeled)
+    .filter((layout) => layout.label)
     .map((layout) => layout.zone.name)
     .slice(0, 4);
   const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, and operational entities are ground spores.`;
@@ -436,5 +573,9 @@ export function KnowledgeMapWidget({
 }: WidgetComponentProps): JSX.Element {
   const parsed = knowledgeMapDataSchema.safeParse(data);
   if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
-  return <KnowledgeMap data={parsed.data} />;
+  return (
+    <div class="kmap-field kmap-field--dashboard">
+      <KnowledgeMap data={parsed.data} />
+    </div>
+  );
 }

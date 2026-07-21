@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.210
+
+### Patch Changes
+
+- [`a067fc5`](https://github.com/rizom-ai/brains/commit/a067fc55548595d8f057774c97278c583cc5cf01) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the knowledge map dashboard widget with the proximity-field visual treatment and remove hardcoded color fallbacks from its map styles.
+
 ## 0.2.0-alpha.209
 
 ### Patch Changes
