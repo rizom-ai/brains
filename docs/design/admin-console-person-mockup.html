@@ -57,12 +57,12 @@
       .session-chip { display: flex; align-items: baseline; gap: 7px; padding: 5px 10px; font-size: 11px; text-decoration: none; }
       .session-chip span { color: var(--text); } .session-chip em { color: var(--accent); font-style: normal; font-family: var(--mono); font-size: 9px; text-transform: uppercase; } .session-chip strong { color: var(--text-muted); font-weight: 400; }
 
-      .note-banner { width: min(1120px, 100%); margin: 20px auto -8px; padding: 0 32px; display: flex; align-items: center; gap: 14px; }
+      .note-banner { width: min(1560px, 100%); margin: 20px auto -8px; padding: 0 32px; display: flex; align-items: center; gap: 14px; }
       .note-banner .badge { font: 600 9px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--bg-deep); background: var(--accent); padding: 4px 9px; border-radius: 5px; }
       .note-banner p { margin: 0; color: var(--text-muted); font-size: 12px; }
       .note-banner b { color: var(--text-dim); font-weight: 500; }
 
-      .console { width: min(1120px, 100%); margin: 0 auto; padding: clamp(24px, 4vw, 40px) 32px 72px; }
+      .console { width: min(1560px, 100%); margin: 0 auto; padding: clamp(24px, 4vw, 40px) 32px 72px; }
       .frame { position: relative; background: radial-gradient(640px 220px at 18% -4%, var(--glow), transparent 70%), var(--frame); border: 1px solid var(--rule-strong); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8); }
       .frame::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent) 0, color-mix(in srgb, var(--accent) 35%, transparent) 34%, transparent 72%); opacity: 0.85; }
       .masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px 28px 0; animation: rise 0.5s ease-out both; }
@@ -115,6 +115,9 @@
       .invite-strip { display: flex; align-items: center; gap: 18px; padding: 18px 20px; border: 1px solid var(--rule); border-radius: 11px; background: var(--card); }
       .invite-strip .txt { color: var(--text-muted); font-size: 12px; max-width: 52ch; } .invite-strip .txt b { color: var(--text-dim); font-weight: 500; }
 
+      .roster-search { padding: 12px 14px; border-bottom: 1px solid var(--rule); color: var(--text-muted); font-size: 12px; display: flex; gap: 8px; }
+      .roster-search input { flex: 1; background: transparent; border: none; color: var(--text); outline: none; }
+
       .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin: 6px 0 16px; }
       .section-head .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.17em; text-transform: uppercase; margin-bottom: 6px; }
       .section-head h2 { margin: 0; font: 520 26px/1.05 var(--display); letter-spacing: -0.01em; }
@@ -132,7 +135,7 @@
       .roster-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
       .host-chip { font: 600 8px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); border: 1px solid var(--rule-strong); }
       .host-chip.own { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); background: var(--info-soft); }
-      .split { display: grid; grid-template-columns: 320px 1fr; gap: 22px; align-items: start; }
+      .split { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
       .detail { border: 1px solid var(--rule); border-radius: 11px; background: var(--card); padding: 22px 24px; }
       .detail-head { display: flex; align-items: center; gap: 15px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); }
       .detail-head .avatar { width: 46px; height: 46px; font-size: 14px; }
@@ -196,8 +199,8 @@
           <div class="masthead-meta">brain <b>rover.alice</b><br />just you</div>
         </div>
         <nav class="tabs">
-          <a class="tab active">Anchor</a>
-          <a class="tab">Members</a>
+          <a class="tab">Anchor</a>
+          <a class="tab active">Members</a>
           <a class="tab ghost">Invitations</a>
           <a class="tab ghost">Audit</a>
         </nav>
@@ -246,6 +249,12 @@
           </div>
           <div class="split">
             <div class="roster">
+              <div class="roster-search">⌕ <input placeholder="Search members…" /></div>
+              <div class="roster-row">
+                <div class="avatar">AM<span class="anchor-pin">★</span></div>
+                <div class="who"><b>Alice Morgan</b><small>you · owner · passkey</small></div>
+                <span class="badge b-admin">Admin</span>
+              </div>
               <div class="roster-row active">
                 <div class="avatar">BV</div>
                 <div class="who"><b>Bob Vance</b><small>own brain · passkey</small></div>
