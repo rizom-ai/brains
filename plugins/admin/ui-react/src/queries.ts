@@ -1,22 +1,21 @@
-import type { QueryClient, UseQueryOptions } from "@tanstack/react-query";
-import {
-  AUTH_ADMIN_MUTATION_ACTIONS,
-  type AuthAdminMutationAction,
-  type AuthAdminUserSummary,
-  type AuthAgentPersonSummary,
-  type AuthBrainAnchorSummary,
+import type {
+  AuthAdminMutationAction,
+  AuthAdminUserSummary,
+  AuthAuditEventSummary,
+  AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
-import { fetchAnchor, fetchRepresentations, fetchUsers } from "./api";
+import type { QueryClient, UseQueryOptions } from "@tanstack/react-query";
+import { fetchAnchor, fetchAudit, fetchUsers } from "./api";
 
 export type AnchorQueryKey = readonly ["admin", "anchor"];
 export type UsersQueryKey = readonly ["admin", "users"];
-export type RepresentationsQueryKey = readonly ["admin", "representations"];
+export type AuditQueryKey = readonly ["admin", "audit"];
 
 export const adminKeys = {
   all: ["admin"] as const,
   anchor: (): AnchorQueryKey => ["admin", "anchor"],
   users: (): UsersQueryKey => ["admin", "users"],
-  representations: (): RepresentationsQueryKey => ["admin", "representations"],
+  audit: (): AuditQueryKey => ["admin", "audit"],
 };
 
 export function anchorQueryOptions(): UseQueryOptions<
@@ -43,35 +42,25 @@ export function usersQueryOptions(): UseQueryOptions<
   };
 }
 
-export function representationsQueryOptions(): UseQueryOptions<
-  AuthAgentPersonSummary[],
+export function auditQueryOptions(): UseQueryOptions<
+  AuthAuditEventSummary[],
   Error,
-  AuthAgentPersonSummary[],
-  RepresentationsQueryKey
+  AuthAuditEventSummary[],
+  AuditQueryKey
 > {
   return {
-    queryKey: adminKeys.representations(),
-    queryFn: async () => (await fetchRepresentations()).representations,
+    queryKey: adminKeys.audit(),
+    queryFn: async () => (await fetchAudit()).events,
   };
 }
 
 export async function invalidateAfterAdminMutation(
   queryClient: QueryClient,
-  action: AuthAdminMutationAction,
-): Promise<void> {
-  if (action === AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration) return;
-
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: adminKeys.users() }),
-    queryClient.invalidateQueries({ queryKey: adminKeys.representations() }),
-  ]);
-}
-
-export async function invalidateAfterRepresentationMutation(
-  queryClient: QueryClient,
+  _action: AuthAdminMutationAction,
 ): Promise<void> {
   await Promise.all([
+    queryClient.invalidateQueries({ queryKey: adminKeys.anchor() }),
     queryClient.invalidateQueries({ queryKey: adminKeys.users() }),
-    queryClient.invalidateQueries({ queryKey: adminKeys.representations() }),
+    queryClient.invalidateQueries({ queryKey: adminKeys.audit() }),
   ]);
 }

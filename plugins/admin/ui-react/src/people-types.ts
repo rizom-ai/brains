@@ -1,9 +1,6 @@
-import type { AgentPersonClaimInput } from "@brains/auth-service/admin-contracts";
-
-export interface AgentPromotionDraft {
-  agentId: string;
+export interface ExternalPeerInvitationDraft {
+  peerId: string;
   displayName?: string;
-  claims?: AgentPersonClaimInput[];
 }
 
 export interface Confirmation {
@@ -16,11 +13,9 @@ export interface Confirmation {
 }
 
 export type Modal =
-  | { kind: "add" }
-  | { kind: "identity" }
-  | { kind: "promotion"; draft: AgentPromotionDraft }
+  | { kind: "add"; draft?: ExternalPeerInvitationDraft }
   | { kind: "setup"; setupUrl: string; copy: string }
   | Confirmation
   | null;
 
-export type SurfaceView = "roster" | "representations";
+export type SurfaceView = "overview" | "members" | "invitations" | "audit";

@@ -18,7 +18,6 @@ const legacyAuthV6Fixture = await Bun.file(
 const currentAuthTableNames = [
   "__drizzle_migrations",
   "a2a_peer_trust",
-  "agent_person_links",
   "auth_audit_events",
   "auth_brain_anchor",
   "auth_identity_evidence",
@@ -31,6 +30,7 @@ const currentAuthTableNames = [
   "oauth_refresh_tokens",
   "oauth_signing_keys",
   "passkey_credentials",
+  "person_external_peers",
   "person_identity_claims",
   "setup_token_deliveries",
   "setup_tokens",
@@ -152,7 +152,7 @@ describe("AuthRuntimeDatabase", () => {
           "auth_identity_evidence",
           ["admin", "agent", "migration", "provider", "asserted", "verified"],
         ],
-        ["agent_person_links", ["pending", "active", "revoked"]],
+        ["person_external_peers", ["unverified", "verified"]],
         ["webauthn_challenges", ["registration", "authentication"]],
         ["oauth_signing_keys", ["oauth", "a2a", "active", "retired"]],
         ["a2a_peer_trust", ["public", "trusted"]],
@@ -319,7 +319,7 @@ describe("AuthRuntimeDatabase", () => {
     }
   });
 
-  it("preserves existing v6 people, users, sessions, links, and claim ids", async () => {
+  it("preserves existing v6 people, users, sessions, and claim ids", async () => {
     const storageDir = await tempStorageDir();
     const legacy = createClient({ url: `file:${join(storageDir, "auth.db")}` });
     await legacy.executeMultiple(legacyAuthV4Fixture);
@@ -341,27 +341,12 @@ describe("AuthRuntimeDatabase", () => {
     );
     await legacy.executeMultiple(legacyAuthV5Fixture);
     await legacy.executeMultiple(legacyAuthV6Fixture);
-    await legacy.execute({
-      sql: `INSERT INTO agent_person_links
-        (agent_id, person_id, status, created_by_user_id,
-         consented_by_user_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        "agent:existing",
-        "prsn_existing",
-        "active",
-        "usr_existing",
-        "usr_existing",
-        14,
-        15,
-      ],
-    });
     legacy.close();
 
     const migrated = new AuthRuntimeDatabase({ storageDir });
     await migrated.start();
     try {
-      const [user, claim, evidence, session, link] = await Promise.all([
+      const [user, claim, evidence, session] = await Promise.all([
         migrated.client.execute(
           "SELECT id, person_id, role, status FROM auth_users WHERE id = 'usr_existing'",
         ),
@@ -373,9 +358,6 @@ describe("AuthRuntimeDatabase", () => {
         ),
         migrated.client.execute(
           "SELECT user_id FROM auth_sessions WHERE token_hash = 'existing-session'",
-        ),
-        migrated.client.execute(
-          "SELECT agent_id, person_id, status FROM agent_person_links WHERE agent_id = 'agent:existing'",
         ),
       ]);
 
@@ -394,11 +376,6 @@ describe("AuthRuntimeDatabase", () => {
         assurance: "asserted",
       });
       expect(session.rows[0]?.["user_id"]).toBe("usr_existing");
-      expect(link.rows[0]).toMatchObject({
-        agent_id: "agent:existing",
-        person_id: "prsn_existing",
-        status: "active",
-      });
       expect(await tableNames(migrated)).toEqual(currentAuthTableNames);
     } finally {
       await migrated.stop();
@@ -418,7 +395,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(3);
+      expect(migrations.rows).toHaveLength(5);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

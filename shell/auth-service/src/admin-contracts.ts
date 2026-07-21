@@ -15,13 +15,10 @@ export const AUTH_ADMIN_IDENTITY_TYPES = [
   "did",
   "a2a",
 ] as const;
-export const AUTH_REPRESENTATION_MUTATION_ACTIONS = {
-  acceptRepresentation: "acceptRepresentation",
-} as const;
 export const AUTH_ADMIN_MUTATION_ACTIONS = {
   createUser: "createUser",
-  promoteAgentPerson: "promoteAgentPerson",
-  linkAgentPerson: "linkAgentPerson",
+  inviteExternalPeerPerson: "inviteExternalPeerPerson",
+  linkExternalPeer: "linkExternalPeer",
   updateUserRole: "updateUserRole",
   updateUserStatus: "updateUserStatus",
   attachIdentity: "attachIdentity",
@@ -74,6 +71,16 @@ export interface AuthIdentitySummary {
   createdAt: number;
 }
 
+export interface AuthAuditEventSummary {
+  id: string;
+  actorUserId?: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: number;
+}
+
 export interface AuthPasskeySummary {
   id: string;
   userId: string;
@@ -84,12 +91,11 @@ export interface AuthPasskeySummary {
   updatedAt: number;
 }
 
-export interface AuthAgentPersonSummary {
-  agentId: string;
+export interface AuthExternalPeerSummary {
+  peerId: string;
   personId: string;
-  status: "pending" | "active" | "revoked";
+  verificationStatus: "unverified" | "verified";
   createdByUserId: string | null;
-  consentedByUserId: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -98,7 +104,7 @@ export interface AuthAdminUserSummary extends AuthAdminPrincipal {
   profileEntityId?: string;
   identities: AuthIdentitySummary[];
   passkeys: AuthPasskeySummary[];
-  agents: AuthAgentPersonSummary[];
+  externalPeers: AuthExternalPeerSummary[];
 }
 
 export interface AuthBrainAnchorSummary {
@@ -117,7 +123,7 @@ export interface AuthBrainAnchorResponse {
   anchor: AuthBrainAnchorSummary;
 }
 
-export interface AgentPersonClaimInput {
+export interface AuthIdentityProposalInput {
   type: "discord" | "mcp" | "oauth" | "email" | "did";
   subject: string;
   issuer?: string | undefined;
@@ -125,30 +131,30 @@ export interface AgentPersonClaimInput {
   visibility?: AuthIdentityVisibility | undefined;
 }
 
-export interface AuthAgentPersonReconciliationOwner {
+export interface AuthIdentityReconciliationOwner {
   personId: string;
   userId?: string;
   displayName?: string;
   status?: AuthAdminStatus;
 }
 
-export interface AuthAgentPersonClaimReconciliation {
+export interface AuthIdentityClaimReconciliation {
   index: number;
-  type: AgentPersonClaimInput["type"];
+  type: AuthIdentityProposalInput["type"];
   label?: string;
   state: "unbound" | "asserted_match" | "verified_match";
-  owner?: AuthAgentPersonReconciliationOwner;
+  owner?: AuthIdentityReconciliationOwner;
 }
 
-export interface AuthAgentPersonReconciliationRequest {
-  claims: AgentPersonClaimInput[];
+export interface AuthIdentityReconciliationRequest {
+  claims: AuthIdentityProposalInput[];
 }
 
-export interface AuthAgentPersonReconciliationResponse {
+export interface AuthIdentityReconciliationResponse {
   state:
     "unique_verified_match" | "cross_person_conflict" | "no_verified_match";
   suggestedUserId?: string;
-  claims: AuthAgentPersonClaimReconciliation[];
+  claims: AuthIdentityClaimReconciliation[];
 }
 
 export type AuthAdminMutation =
@@ -160,20 +166,17 @@ export type AuthAdminMutation =
       status: AuthAdminStatus;
     }
   | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson;
-      agentId: string;
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson;
+      peerId: string;
       displayName: string;
-      profileEntityId?: string;
-      role: AuthAdminRole;
-      claims?: AgentPersonClaimInput[];
+      role: Extract<AuthAdminRole, "admin" | "trusted">;
     }
   | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson;
-      agentId: string;
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
+      peerId: string;
       userId: string;
-      claims?: AgentPersonClaimInput[];
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole;
@@ -221,12 +224,6 @@ export interface AuthAdminUsersResponse {
   users: AuthAdminUserSummary[];
 }
 
-export interface AuthRepresentationsResponse {
-  representations: AuthAgentPersonSummary[];
-}
-
-export interface AuthRepresentationMutation {
-  action: typeof AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation;
-  confirmation: typeof AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation;
-  agentId: string;
+export interface AuthAdminAuditResponse {
+  events: AuthAuditEventSummary[];
 }

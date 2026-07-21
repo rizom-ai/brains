@@ -3,31 +3,34 @@ export {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
   AUTH_BRAIN_ANCHOR_KINDS,
-  AUTH_REPRESENTATION_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
 } from "./admin-contracts";
 export type {
-  AgentPersonClaimInput as AuthAdminAgentPersonClaimInput,
   AuthAdminIdentityType,
   AuthAdminMutation,
   AuthAdminMutationAction,
   AuthAdminPrincipal,
   AuthAdminRole,
   AuthAdminStatus,
+  AuthAdminAuditResponse,
   AuthAdminUserSummary,
   AuthAdminUsersResponse,
-  AuthAgentPersonSummary,
+  AuthAuditEventSummary,
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorKind,
   AuthBrainAnchorResponse,
   AuthBrainAnchorSummary,
+  AuthExternalPeerSummary,
+  AuthIdentityClaimReconciliation,
+  AuthIdentityProposalInput,
+  AuthIdentityReconciliationOwner,
+  AuthIdentityReconciliationRequest,
+  AuthIdentityReconciliationResponse,
   AuthIdentitySourceKind as AuthAdminIdentitySourceKind,
   AuthIdentitySummary,
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
   AuthPasskeySummary,
-  AuthRepresentationMutation,
-  AuthRepresentationsResponse,
 } from "./admin-contracts";
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
@@ -51,10 +54,10 @@ export type {
   AuthMutationContext,
   AuthPrincipal,
   AuthServiceOptions,
-  LinkAgentPersonRequest,
+  InvitedExternalPeerAccess,
+  InviteExternalPeerPersonRequest,
+  LinkExternalPeerRequest,
   PasskeySetupRequired,
-  PromoteAgentPersonRequest,
-  PromotedAgentAccess,
 } from "./auth-service";
 export {
   AuthServicePlugin,
@@ -67,13 +70,12 @@ export type {
 } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
-export { PersonAgentStore } from "./person-agent-store";
+export { PersonExternalPeerStore } from "./person-external-peer-store";
 export type {
-  AgentPersonIdentityClaimInput,
-  LinkAgentToPersonInput,
-  PromoteAgentPersonInput,
-  PromotedAgentPerson,
-} from "./person-agent-store";
+  InvitedExternalPeerPerson,
+  InviteExternalPeerPersonInput,
+  LinkExternalPeerInput,
+} from "./person-external-peer-store";
 export {
   A2APeerTrustStore,
   RuntimeA2APeerTrustStore,
@@ -87,9 +89,9 @@ export type {
 export { AuthRuntimeDatabase } from "./runtime-db";
 export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
 export type {
-  AgentPersonLink,
   AuthBrainAnchor,
   AuthPerson,
+  PersonExternalPeer,
 } from "./runtime-schema";
 export {
   InvalidClientMetadataError,

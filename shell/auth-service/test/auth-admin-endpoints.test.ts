@@ -86,16 +86,13 @@ describe("auth admin API", () => {
           path: "/auth/admin/reconciliation",
           method: "POST",
         }),
-        expect.objectContaining({
-          path: "/auth/representations",
-          method: "GET",
-        }),
-        expect.objectContaining({
-          path: "/auth/representations",
-          method: "POST",
-        }),
       ]),
     );
+    expect(
+      plugin
+        .getWebRoutes()
+        .some((route) => route.path.includes("representations")),
+    ).toBe(false);
   });
 
   it("requires an active admin session", async () => {
@@ -246,7 +243,8 @@ describe("auth admin API", () => {
     const session = await service.createAuthSession(anchor.userId);
     const listUserIdentities = service.listUserIdentities.bind(service);
     const listUserPasskeys = service.listUserPasskeys.bind(service);
-    const listPersonAgents = service.listPersonAgents.bind(service);
+    const listPersonExternalPeers =
+      service.listPersonExternalPeers.bind(service);
     let perUserQueryCount = 0;
     service.listUserIdentities = async (
       userId,
@@ -260,11 +258,11 @@ describe("auth admin API", () => {
       perUserQueryCount += 1;
       return listUserPasskeys(userId);
     };
-    service.listPersonAgents = async (
+    service.listPersonExternalPeers = async (
       personId,
-    ): ReturnType<typeof listPersonAgents> => {
+    ): ReturnType<typeof listPersonExternalPeers> => {
       perUserQueryCount += 1;
-      return listPersonAgents(personId);
+      return listPersonExternalPeers(personId);
     };
 
     const response = await service.handleRequest(
@@ -423,81 +421,38 @@ describe("auth admin API", () => {
     });
   });
 
-  it("promotes an agent's represented person into an invited user facet", async () => {
+  it("invites a person from an independent external peer", async () => {
     const service = await createService();
-    const anchor = await service.createUser({
-      displayName: "Anchor",
+    const admin = await service.createUser({
+      displayName: "Admin",
       role: "admin",
     });
-    const session = await service.createAuthSession(anchor.userId);
+    const session = await service.createAuthSession(admin.userId);
 
     const response = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
-        action: "promoteAgentPerson",
-        confirmation: "promoteAgentPerson",
-        agentId: "agent:mira-field",
+        action: "inviteExternalPeerPerson",
+        confirmation: "inviteExternalPeerPerson",
+        peerId: "did:web:mira.example",
         displayName: "Mira Reyes",
-        profileEntityId: "person-profile/mira-reyes",
         role: "trusted",
-        claims: [
-          {
-            type: "did",
-            subject: "did:plc:mira",
-            label: "Mira's asserted DID",
-          },
-        ],
       }),
     );
 
     expect(response.status).toBe(200);
-    const promoted = (await response.json()) as {
+    const invited = (await response.json()) as {
       user: { userId: string; personId: string; status: string };
-      representation: {
-        agentId: string;
-        personId: string;
-        status: string;
-      };
+      peer: { peerId: string; personId: string; verificationStatus: string };
       registration: { setupUrl: string; expiresAt: number };
     };
-    expect(promoted.user).toMatchObject({ status: "invited" });
-    expect(promoted.representation).toMatchObject({
-      agentId: "agent:mira-field",
-      personId: promoted.user.personId,
-      status: "pending",
+    expect(invited.user).toMatchObject({ status: "invited" });
+    expect(invited.peer).toMatchObject({
+      peerId: "did:web:mira.example",
+      personId: invited.user.personId,
+      verificationStatus: "unverified",
     });
-
-    expect(promoted.registration.setupUrl).toStartWith(
-      `${ISSUER}/setup?token=`,
-    );
-    expect(await service.listUserIdentities(promoted.user.userId)).toEqual([
-      expect.objectContaining({
-        personId: promoted.user.personId,
-        type: "did",
-        evidence: [
-          expect.objectContaining({
-            sourceKind: "agent",
-            sourceId: "agent:mira-field",
-            assurance: "asserted",
-          }),
-        ],
-      }),
-    ]);
-    expect(
-      await service.resolveIdentityAccess({
-        type: "did",
-        subject: "did:plc:mira",
-      }),
-    ).toEqual({ state: "denied" });
-    const setupToken = new URL(promoted.registration.setupUrl).searchParams.get(
-      "token",
-    );
-    const optionsResponse = await service.handleRequest(
-      new Request(
-        `${ISSUER}/webauthn/register/options?setup_token=${encodeURIComponent(setupToken ?? "")}`,
-        { method: "POST" },
-      ),
-    );
-    expect(optionsResponse.status).toBe(200);
+    expect(invited.registration.setupUrl).toStartWith(`${ISSUER}/setup?token=`);
+    expect(await service.listUserIdentities(invited.user.userId)).toEqual([]);
 
     const listResponse = await service.handleRequest(
       adminRequest("/auth/admin/users", session.cookie),
@@ -505,167 +460,112 @@ describe("auth admin API", () => {
     const roster = (await listResponse.json()) as {
       users: Array<{
         userId: string;
-        personId: string;
-        agents: Array<{ agentId: string; status: string }>;
+        externalPeers: Array<{ peerId: string }>;
       }>;
     };
     expect(
-      roster.users.find((user) => user.userId === promoted.user.userId),
+      roster.users.find((user) => user.userId === invited.user.userId),
     ).toMatchObject({
-      personId: promoted.user.personId,
-      agents: [{ agentId: "agent:mira-field", status: "pending" }],
+      externalPeers: [{ peerId: "did:web:mira.example" }],
     });
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: anchor.userId,
-          action: "auth.agent_person.promoted",
-          targetId: "agent:mira-field",
+          actorUserId: admin.userId,
+          action: "auth.external_peer.invited",
+          targetId: "did:web:mira.example",
         }),
       ]),
     );
   });
 
-  it("links an existing user's person to an agent pending their consent", async () => {
+  it("links an existing account to an independent external peer", async () => {
     const service = await createService();
-    const anchor = await service.createUser({
-      displayName: "Anchor",
+    const admin = await service.createUser({
+      displayName: "Admin",
       role: "admin",
     });
     const collaborator = await service.createUser({
       displayName: "Mira Reyes",
       role: "trusted",
     });
-    const session = await service.createAuthSession(anchor.userId);
-    const existingClaim = await service.attachIdentity({
-      userId: collaborator.userId,
-      type: "discord",
-      subject: "1442828818493735015",
-      verifiedAt: 200,
-      source: { kind: "provider", id: "discord" },
-    });
+    const session = await service.createAuthSession(admin.userId);
 
     const response = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
-        action: "linkAgentPerson",
-        confirmation: "linkAgentPerson",
-        agentId: "agent:mira-field",
+        action: "linkExternalPeer",
+        confirmation: "linkExternalPeer",
+        peerId: "did:web:mira.example",
         userId: collaborator.userId,
-        claims: [
-          {
-            type: "discord",
-            subject: "1442828818493735015",
-            label: "@mira",
-          },
-        ],
       }),
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      representation: {
-        agentId: "agent:mira-field",
+      peer: {
+        peerId: "did:web:mira.example",
         personId: collaborator.personId,
-        status: "pending",
-        createdByUserId: anchor.userId,
-        consentedByUserId: null,
+        verificationStatus: "unverified",
+        createdByUserId: admin.userId,
         createdAt: expect.any(Number),
         updatedAt: expect.any(Number),
       },
     });
-    expect(await service.listUserIdentities(collaborator.userId)).toEqual([
-      expect.objectContaining({
-        id: existingClaim.id,
-        evidence: expect.arrayContaining([
-          expect.objectContaining({
-            sourceKind: "provider",
-            assurance: "verified",
-          }),
-          expect.objectContaining({
-            sourceKind: "agent",
-            sourceId: "agent:mira-field",
-            assurance: "asserted",
-          }),
-        ]),
-      }),
-    ]);
+    expect(await service.listUserIdentities(collaborator.userId)).toEqual([]);
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: anchor.userId,
-          action: "auth.agent_person.linked",
-          targetId: "agent:mira-field",
+          actorUserId: admin.userId,
+          action: "auth.external_peer.linked",
+          targetId: "did:web:mira.example",
           metadata: expect.objectContaining({
             personId: collaborator.personId,
             userId: collaborator.userId,
-            status: "pending",
           }),
         }),
       ]),
     );
+  });
 
+  it("lists actor-attributed audit events for Admins only", async () => {
+    const service = await createService();
+    const admin = await service.createUser({
+      displayName: "Admin",
+      role: "admin",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    const adminSession = await service.createAuthSession(admin.userId);
     const collaboratorSession = await service.createAuthSession(
       collaborator.userId,
     );
-    const pending = await service.handleRequest(
-      adminRequest("/auth/representations", collaboratorSession.cookie),
+    const forbidden = await service.handleRequest(
+      adminRequest("/auth/admin/audit", collaboratorSession.cookie),
     );
-    expect(pending.status).toBe(200);
-    expect(await pending.json()).toEqual({
-      representations: [
-        expect.objectContaining({
-          agentId: "agent:mira-field",
-          personId: collaborator.personId,
-          status: "pending",
-        }),
-      ],
+    await service.updateUserStatus(collaborator.userId, "suspended", {
+      actorUserId: admin.userId,
     });
-
-    const crossOrigin = await service.handleRequest(
-      adminRequest(
-        "/auth/representations",
-        collaboratorSession.cookie,
-        {
-          action: "acceptRepresentation",
-          confirmation: "acceptRepresentation",
-          agentId: "agent:mira-field",
-        },
-        "https://evil.example",
-      ),
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/audit", adminSession.cookie),
     );
-    expect(crossOrigin.status).toBe(403);
 
-    const wrongPerson = await service.handleRequest(
-      adminRequest("/auth/representations", session.cookie, {
-        action: "acceptRepresentation",
-        confirmation: "acceptRepresentation",
-        agentId: "agent:mira-field",
-      }),
-    );
-    expect(wrongPerson.status).toBe(400);
-
-    const accepted = await service.handleRequest(
-      adminRequest("/auth/representations", collaboratorSession.cookie, {
-        action: "acceptRepresentation",
-        confirmation: "acceptRepresentation",
-        agentId: "agent:mira-field",
-      }),
-    );
-    expect(accepted.status).toBe(200);
-    expect(await accepted.json()).toEqual({
-      representation: expect.objectContaining({
-        agentId: "agent:mira-field",
-        personId: collaborator.personId,
-        status: "active",
-        consentedByUserId: collaborator.userId,
-      }),
-    });
-    expect(await service.listAuditEvents()).toEqual(
+    expect(forbidden.status).toBe(403);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      events: Array<{
+        actorUserId?: string;
+        action: string;
+        targetId?: string;
+      }>;
+    };
+    expect(body.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: collaborator.userId,
-          action: "auth.agent_person.accepted",
-          targetId: "agent:mira-field",
+          actorUserId: admin.userId,
+          action: "auth.user.status_updated",
+          targetId: collaborator.userId,
         }),
       ]),
     );
@@ -775,7 +675,7 @@ describe("auth admin API", () => {
     );
   });
 
-  it("manages users and redacted identities with actor-attributed audit", async () => {
+  it("shows verified email labels while redacting machine identity fields", async () => {
     const service = await createService();
     const anchor = await service.createUser({
       displayName: "Anchor",
@@ -828,13 +728,13 @@ describe("auth admin API", () => {
       identities: [
         expect.objectContaining({
           type: "email",
-          label: "m***@example.com",
+          label: "mira@example.com",
         }),
       ],
       passkeys: [],
     });
-    expect(responseText).not.toContain("mira@example.com");
     expect(responseText).not.toContain("identityKeyHash");
+    expect(responseText).not.toContain('"subject"');
 
     const events = await service.listAuditEvents();
     expect(events).toEqual(

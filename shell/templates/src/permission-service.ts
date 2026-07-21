@@ -219,7 +219,7 @@ export class PermissionService {
     return patternLevel ?? "public";
   }
 
-  /** Whether the caller represents this personal brain's anchor identity. */
+  /** Whether the caller is this professional brain's Anchor identity. */
   isAnchor(interfaceType: string, userId: string): boolean {
     return this.anchors.has(`${interfaceType}:${userId}`);
   }

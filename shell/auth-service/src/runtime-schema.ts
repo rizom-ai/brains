@@ -387,59 +387,56 @@ export const authIdentityEvidence: AuthIdentityEvidenceTable = sqliteTable(
   }),
 );
 
-type AgentPersonLinksTable = AuthTable<
-  "agent_person_links",
+type PersonExternalPeersTable = AuthTable<
+  "person_external_peers",
   {
-    agentId: AuthTextColumn<"agent_person_links", "agent_id", true, true>;
-    personId: AuthTextColumn<"agent_person_links", "person_id", true>;
-    status: AuthTextColumn<
-      "agent_person_links",
-      "status",
+    peerId: AuthTextColumn<"person_external_peers", "peer_id", true, true>;
+    personId: AuthTextColumn<"person_external_peers", "person_id", true>;
+    verificationStatus: AuthTextColumn<
+      "person_external_peers",
+      "verification_status",
       true,
       false,
-      "pending" | "active" | "revoked",
-      ["pending", "active", "revoked"]
+      "unverified" | "verified",
+      ["unverified", "verified"]
     >;
     createdByUserId: AuthTextColumn<
-      "agent_person_links",
+      "person_external_peers",
       "created_by_user_id",
       false
     >;
-    consentedByUserId: AuthTextColumn<
-      "agent_person_links",
-      "consented_by_user_id",
-      false
-    >;
-    createdAt: AuthIntegerColumn<"agent_person_links", "created_at", true>;
-    updatedAt: AuthIntegerColumn<"agent_person_links", "updated_at", true>;
+    createdAt: AuthIntegerColumn<"person_external_peers", "created_at", true>;
+    updatedAt: AuthIntegerColumn<"person_external_peers", "updated_at", true>;
   }
 >;
 
-export const agentPersonLinks: AgentPersonLinksTable = sqliteTable(
-  "agent_person_links",
+/**
+ * Associates a local person with an independent external brain actor.
+ * This relation grants no access and carries no representation semantics.
+ */
+export const personExternalPeers: PersonExternalPeersTable = sqliteTable(
+  "person_external_peers",
   {
-    agentId: text("agent_id").primaryKey(),
+    peerId: text("peer_id").primaryKey(),
     personId: text("person_id")
       .notNull()
       .references(() => authPeople.id, { onDelete: "cascade" }),
-    status: text("status", {
-      enum: ["pending", "active", "revoked"],
+    verificationStatus: text("verification_status", {
+      enum: ["unverified", "verified"],
     }).notNull(),
     createdByUserId: text("created_by_user_id").references(() => authUsers.id, {
       onDelete: "set null",
     }),
-    consentedByUserId: text("consented_by_user_id").references(
-      () => authUsers.id,
-      { onDelete: "set null" },
-    ),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
   (table) => ({
-    personIdIdx: index("idx_agent_person_links_person_id").on(table.personId),
-    statusCheck: check(
-      "agent_person_links_status_check",
-      sql`${table.status} IN ('pending', 'active', 'revoked')`,
+    personIdIdx: index("idx_person_external_peers_person_id").on(
+      table.personId,
+    ),
+    verificationStatusCheck: check(
+      "person_external_peers_verification_status_check",
+      sql`${table.verificationStatus} IN ('unverified', 'verified')`,
     ),
   }),
 );
@@ -872,7 +869,6 @@ export const a2aPeerTrust: A2aPeerTrustTable = sqliteTable(
 
 export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
-  agentPersonLinks: AgentPersonLinksTable;
   authAuditEvents: AuthAuditEventsTable;
   authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
@@ -886,12 +882,12 @@ export const authRuntimeSchema: {
   oauthSigningKeys: OauthSigningKeysTable;
   authSessions: AuthSessionsTable;
   passkeyCredentials: PasskeyCredentialsTable;
+  personExternalPeers: PersonExternalPeersTable;
   setupTokenDeliveries: SetupTokenDeliveriesTable;
   setupTokens: SetupTokensTable;
   webauthnChallenges: WebauthnChallengesTable;
 } = {
   a2aPeerTrust,
-  agentPersonLinks,
   authAuditEvents,
   authBrainAnchor,
   authIdentities,
@@ -905,13 +901,14 @@ export const authRuntimeSchema: {
   oauthSigningKeys,
   authSessions,
   passkeyCredentials,
+  personExternalPeers,
   setupTokenDeliveries,
   setupTokens,
   webauthnChallenges,
 };
 
-export type AgentPersonLink = typeof agentPersonLinks.$inferSelect;
-export type InsertAgentPersonLink = typeof agentPersonLinks.$inferInsert;
+export type PersonExternalPeer = typeof personExternalPeers.$inferSelect;
+export type InsertPersonExternalPeer = typeof personExternalPeers.$inferInsert;
 export type AuthBrainAnchor = typeof authBrainAnchor.$inferSelect;
 export type InsertAuthBrainAnchor = typeof authBrainAnchor.$inferInsert;
 export type AuthPerson = typeof authPeople.$inferSelect;

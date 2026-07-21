@@ -77,17 +77,6 @@ export function buildAgentRows(
           kind: frontmatter.kind,
           status: frontmatter.status,
           discoveredAt: frontmatter.discoveredAt,
-          ...(frontmatter.anchorDid
-            ? {
-                representedPersonClaims: [
-                  {
-                    type: "did" as const,
-                    subject: frontmatter.anchorDid,
-                    label: `${frontmatter.name} DID`,
-                  },
-                ],
-              }
-            : {}),
         }) satisfies AgentNetworkAgentRow,
     )
     .sort(compareAgentRows);

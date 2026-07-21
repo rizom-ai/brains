@@ -36,7 +36,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       id: "admin",
       label: "Admin",
       description:
-        "Manage people, access, identity claims, and representation.",
+        "Manage people, access, invitations, external peers, and audit history.",
       href: this.config.routePath,
       kind: "admin",
       priority: 50,

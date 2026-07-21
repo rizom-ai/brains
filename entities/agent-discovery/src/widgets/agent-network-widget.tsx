@@ -34,16 +34,11 @@ function AgentListItem({ item }: { item: AgentNetworkAgentRow }): JSX.Element {
       <button
         class="agent-network-promote"
         type="button"
-        data-agent-promote={item.id}
-        data-agent-promote-name={item.name.split(" · ", 1)[0] ?? item.name}
-        data-agent-person-claims={
-          item.representedPersonClaims
-            ? JSON.stringify(item.representedPersonClaims)
-            : undefined
-        }
+        data-external-peer-invite={item.id}
+        data-external-peer-name={item.name.split(" · ", 1)[0] ?? item.name}
         hidden
       >
-        Grant access
+        Invite person
       </button>
     );
   }

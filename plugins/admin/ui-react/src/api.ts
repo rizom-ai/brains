@@ -1,13 +1,8 @@
-import {
-  AUTH_REPRESENTATION_MUTATION_ACTIONS,
-  type AgentPersonClaimInput,
-  type AuthAdminMutation,
-  type AuthAdminUsersResponse,
-  type AuthAgentPersonReconciliationRequest,
-  type AuthBrainAnchorResponse,
-  type AuthAgentPersonReconciliationResponse,
-  type AuthRepresentationMutation,
-  type AuthRepresentationsResponse,
+import type {
+  AuthAdminAuditResponse,
+  AuthAdminMutation,
+  AuthAdminUsersResponse,
+  AuthBrainAnchorResponse,
 } from "@brains/auth-service/admin-contracts";
 
 export class PeopleApiError extends Error {
@@ -58,6 +53,15 @@ export async function fetchUsers(): Promise<AuthAdminUsersResponse> {
   );
 }
 
+export async function fetchAudit(): Promise<AuthAdminAuditResponse> {
+  return parseResponse(
+    await fetch("/auth/admin/audit", {
+      credentials: "same-origin",
+      cache: "no-store",
+    }),
+  );
+}
+
 export async function mutateAdmin<T>(mutation: AuthAdminMutation): Promise<T> {
   return parseResponse(
     await fetch("/auth/admin/mutations", {
@@ -65,45 +69,6 @@ export async function mutateAdmin<T>(mutation: AuthAdminMutation): Promise<T> {
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mutation),
-    }),
-  );
-}
-
-export async function reconcileAgentPersonClaims(
-  claims: AgentPersonClaimInput[],
-): Promise<AuthAgentPersonReconciliationResponse> {
-  return parseResponse(
-    await fetch("/auth/admin/reconciliation", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        claims,
-      } satisfies AuthAgentPersonReconciliationRequest),
-    }),
-  );
-}
-
-export async function fetchRepresentations(): Promise<AuthRepresentationsResponse> {
-  return parseResponse(
-    await fetch("/auth/representations", {
-      credentials: "same-origin",
-      cache: "no-store",
-    }),
-  );
-}
-
-export async function acceptRepresentation(agentId: string): Promise<void> {
-  await parseResponse(
-    await fetch("/auth/representations", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation,
-        confirmation: AUTH_REPRESENTATION_MUTATION_ACTIONS.acceptRepresentation,
-        agentId,
-      } satisfies AuthRepresentationMutation),
     }),
   );
 }

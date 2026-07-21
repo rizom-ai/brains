@@ -24,7 +24,7 @@
 | `auth-service`   | OAuth/passkey operator auth                 |
 | `cms`            | CMS surface                                 |
 | `dashboard`      | role-aware monitoring widgets               |
-| `admin`          | People, access, and representation console  |
+| `admin`          | People, invitations, peer links, and audit  |
 | `web-chat`       | operator web chat UI                        |
 | `image`          | image handling for site-facing instances    |
 | `site-info`      | site identity metadata                      |

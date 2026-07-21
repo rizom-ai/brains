@@ -10,11 +10,13 @@ import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
-  type AgentPersonClaimInput,
   type AuthAdminPrincipal,
+  type AuthAuditEventSummary,
   type AuthAdminUserSummary,
-  type AuthAgentPersonReconciliationResponse,
+  type AuthIdentityProposalInput,
+  type AuthIdentityReconciliationResponse,
   type AuthBrainAnchorSummary,
+  type AuthExternalPeerSummary,
   type AuthIdentitySummary,
   type AuthPasskeySummary,
 } from "./admin-contracts";
@@ -28,21 +30,12 @@ export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;
   listUsers(): Promise<AuthAdminPrincipal[]>;
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
+  listAuditEvents(): Promise<AuthAuditEventSummary[]>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
-  reconcileAgentPersonClaims(
-    claims: AgentPersonClaimInput[],
-  ): Promise<AuthAgentPersonReconciliationResponse>;
-  listPersonAgents(personId: string): Promise<
-    Array<{
-      agentId: string;
-      personId: string;
-      status: "pending" | "active" | "revoked";
-      createdByUserId: string | null;
-      consentedByUserId: string | null;
-      createdAt: number;
-      updatedAt: number;
-    }>
-  >;
+  reconcileIdentityProposals(
+    claims: AuthIdentityProposalInput[],
+  ): Promise<AuthIdentityReconciliationResponse>;
+  listPersonExternalPeers(personId: string): Promise<AuthExternalPeerSummary[]>;
   listUserIdentities(userId: string): Promise<AuthIdentitySummary[]>;
   listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]>;
   createUser(
@@ -53,52 +46,22 @@ export interface AuthAdminOperations {
     },
     actorUserId: string,
   ): Promise<AuthAdminPrincipal>;
-  promoteAgentPerson(
+  inviteExternalPeerPerson(
     input: {
-      agentId: string;
+      peerId: string;
       displayName: string;
-      profileEntityId?: string;
-      role: AuthUserRole;
-      claims?: Array<{
-        type: "discord" | "mcp" | "oauth" | "email" | "did";
-        subject: string;
-        issuer?: string | undefined;
-        label?: string | undefined;
-        visibility?: "private" | "trusted" | "public" | undefined;
-      }>;
+      role: "admin" | "trusted";
     },
     actorUserId: string,
   ): Promise<{
     user: AuthAdminPrincipal;
-    representation: {
-      agentId: string;
-      personId: string;
-      status: "pending" | "active" | "revoked";
-    };
+    peer: AuthExternalPeerSummary;
     registration: { setupUrl: string; expiresAt: number };
   }>;
-  linkAgentPerson(
-    input: {
-      agentId: string;
-      userId: string;
-      claims?: Array<{
-        type: "discord" | "mcp" | "oauth" | "email" | "did";
-        subject: string;
-        issuer?: string | undefined;
-        label?: string | undefined;
-        visibility?: "private" | "trusted" | "public" | undefined;
-      }>;
-    },
+  linkExternalPeer(
+    input: { peerId: string; userId: string },
     actorUserId: string,
-  ): Promise<{
-    agentId: string;
-    personId: string;
-    status: "pending" | "active" | "revoked";
-    createdByUserId: string | null;
-    consentedByUserId: string | null;
-    createdAt: number;
-    updatedAt: number;
-  }>;
+  ): Promise<AuthExternalPeerSummary>;
   updateUserRole(
     userId: string,
     role: AuthUserRole,
@@ -140,7 +103,7 @@ const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
 const statusSchema = z.enum(AUTH_USER_STATUSES);
 const identityTypeSchema = z.enum(AUTH_ADMIN_IDENTITY_TYPES);
 
-const agentPersonClaimSchema = z.strictObject({
+const identityProposalSchema = z.strictObject({
   type: z.enum(["discord", "mcp", "oauth", "email", "did"]),
   subject: z.string().trim().min(1).max(2_000),
   issuer: z.string().trim().min(1).max(2_000).optional(),
@@ -157,20 +120,19 @@ const adminMutationSchema = z.union([
     status: statusSchema.default("active"),
   }),
   z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson),
-    agentId: z.string().trim().min(1).max(500),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson),
+    confirmation: z.literal(
+      AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson,
+    ),
+    peerId: z.string().trim().min(1).max(2_000),
     displayName: z.string().trim().min(1).max(200),
-    profileEntityId: z.string().trim().min(1).max(500).optional(),
-    role: roleSchema,
-    claims: z.array(agentPersonClaimSchema).max(10).optional(),
+    role: z.enum(["admin", "trusted"]),
   }),
   z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson),
-    agentId: z.string().trim().min(1).max(500),
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
+    peerId: z.string().trim().min(1).max(2_000),
     userId: z.string().min(1),
-    claims: z.array(agentPersonClaimSchema).max(10).optional(),
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole),
@@ -243,12 +205,16 @@ export async function handleAuthAdminRequest(
     return privateJsonResponse({ users });
   }
 
+  if (request.method === "GET" && path === "/auth/admin/audit") {
+    return privateJsonResponse({ events: await operations.listAuditEvents() });
+  }
+
   if (request.method === "POST" && path === "/auth/admin/reconciliation") {
     const requestError = requireSameOriginJson(request);
     if (requestError) return requestError;
 
     const parsed = z
-      .strictObject({ claims: z.array(agentPersonClaimSchema).min(1).max(10) })
+      .strictObject({ claims: z.array(identityProposalSchema).min(1).max(10) })
       .safeParse(await readJsonRequest(request));
     if (!parsed.success) {
       return privateJsonResponse(
@@ -259,7 +225,7 @@ export async function handleAuthAdminRequest(
 
     try {
       return privateJsonResponse(
-        await operations.reconcileAgentPersonClaims(parsed.data.claims),
+        await operations.reconcileIdentityProposals(parsed.data.claims),
       );
     } catch (error) {
       return privateJsonResponse(
@@ -307,7 +273,7 @@ async function listAdminUsersCompat(
       ...user,
       identities: await operations.listUserIdentities(user.userId),
       passkeys: await operations.listUserPasskeys(user.userId),
-      agents: await operations.listPersonAgents(user.personId),
+      externalPeers: await operations.listPersonExternalPeers(user.personId),
     })),
   );
 }
@@ -329,27 +295,19 @@ async function executeMutation(
           actorUserId,
         ),
       };
-    case "promoteAgentPerson":
-      return operations.promoteAgentPerson(
+    case "inviteExternalPeerPerson":
+      return operations.inviteExternalPeerPerson(
         {
-          agentId: mutation.agentId,
+          peerId: mutation.peerId,
           displayName: mutation.displayName,
-          ...(mutation.profileEntityId
-            ? { profileEntityId: mutation.profileEntityId }
-            : {}),
           role: mutation.role,
-          ...(mutation.claims ? { claims: mutation.claims } : {}),
         },
         actorUserId,
       );
-    case "linkAgentPerson":
+    case "linkExternalPeer":
       return {
-        representation: await operations.linkAgentPerson(
-          {
-            agentId: mutation.agentId,
-            userId: mutation.userId,
-            ...(mutation.claims ? { claims: mutation.claims } : {}),
-          },
+        peer: await operations.linkExternalPeer(
+          { peerId: mutation.peerId, userId: mutation.userId },
           actorUserId,
         ),
       };
@@ -425,7 +383,7 @@ function safeIdentityLabel(
   if (type === "email") {
     const [localPart, domain] = subject.trim().toLowerCase().split("@", 2);
     if (!localPart || !domain) return undefined;
-    return `${localPart.slice(0, 1)}***@${domain}`;
+    return `${localPart}@${domain}`;
   }
   const trimmedLabel = label?.trim();
   if (!trimmedLabel) return undefined;

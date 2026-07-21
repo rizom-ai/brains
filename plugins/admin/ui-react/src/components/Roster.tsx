@@ -81,7 +81,9 @@ export function Roster(props: {
                   <span className={`people-role people-role--${user.role}`}>
                     {roleLabel(user.role)}
                   </span>
-                  <span className="people-host-chip">Hosted</span>
+                  <span className="people-host-chip">
+                    {user.externalPeers.length > 0 ? "External peer" : "Hosted"}
+                  </span>
                 </span>
               </button>
             );

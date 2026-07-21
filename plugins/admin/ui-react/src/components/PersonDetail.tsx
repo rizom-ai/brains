@@ -6,13 +6,7 @@ import {
   type AuthAdminUserSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
-import {
-  assuranceLabel,
-  cmsEntityHref,
-  formatDate,
-  initials,
-  roleLabel,
-} from "../format";
+import { cmsEntityHref, formatDate, initials, roleLabel } from "../format";
 import type { Confirmation } from "../people-types";
 import { AccessItem, Button, DetailSection, TextAction } from "./primitives";
 
@@ -20,7 +14,6 @@ export function PersonDetail(props: {
   user: AuthAdminUserSummary | undefined;
   brainName: string;
   activeAdminCount: number;
-  onIdentity: () => void;
   onConfirm: (confirmation: Confirmation) => void;
   onMutation: (
     mutation: AuthAdminMutation,
@@ -44,15 +37,21 @@ export function PersonDetail(props: {
     user.status === "active" &&
     props.activeAdminCount <= 1;
   const roleProtection = user.isAnchor
-    ? "A personal Anchor must remain an active Admin."
+    ? "A professional Anchor must remain an active Admin."
     : protectsActiveAdmin
       ? "Add another active Admin before changing this role."
       : undefined;
   const suspensionProtection = user.isAnchor
-    ? "The personal Anchor cannot be suspended."
+    ? "The professional Anchor cannot be suspended."
     : protectsActiveAdmin
       ? "Add another active Admin before suspending this person."
       : undefined;
+  const connectedChannels = user.identities.filter(
+    (identity) =>
+      identity.revokedAt === undefined &&
+      identity.verifiedAt !== undefined &&
+      (identity.type === "email" || identity.type === "discord"),
+  );
 
   const confirmRole = (role: AuthAdminRole): void => {
     if (role === user.role) return;
@@ -79,6 +78,27 @@ export function PersonDetail(props: {
     });
   };
 
+  const createSetupLink = (): void => {
+    void props
+      .onMutation({
+        action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        userId: user.userId,
+      })
+      .then((result) => {
+        const registration = (
+          result as {
+            registration: { setupUrl: string; expiresAt: number };
+          }
+        ).registration;
+        props.onSetup(
+          registration.setupUrl,
+          `Send this single-use link to ${user.displayName} through a private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+        );
+      })
+      .catch(() => undefined);
+  };
+
   return (
     <section className="card people-detail" aria-live="polite">
       <div className="people-detail-identity">
@@ -89,7 +109,8 @@ export function PersonDetail(props: {
           <span>
             <span className="people-detail-name">{user.displayName}</span>
             <span className="people-detail-id">
-              {user.personId} · {user.userId} · {roleLabel(user.status)}
+              {user.isAnchor ? "Professional Anchor · " : ""}
+              {roleLabel(user.status)} account
             </span>
           </span>
         </div>
@@ -103,7 +124,7 @@ export function PersonDetail(props: {
             </strong>
           </div>
           <div className="people-facet">
-            <span>Anchor?</span>
+            <span>Anchor</span>
             <strong className={user.isAnchor ? "is-anchor" : "not-anchor"}>
               {user.isAnchor ? "Yes" : "No"}
             </strong>
@@ -114,57 +135,69 @@ export function PersonDetail(props: {
       <div className="people-detail-sections">
         <DetailSection
           title="Profile"
-          description="How this member presents. The profile lives with the member, not the brain."
+          description={
+            user.profileEntityId
+              ? "This brain’s Anchor profile is CMS-owned."
+              : user.externalPeers.length > 0
+                ? "Published by the linked external brain and read-only here."
+                : "Hosted members without an external brain have no profile for now."
+          }
         >
-          <AccessItem kind="Display name" value={user.displayName} />
-          <AccessItem
-            kind="Profile record"
-            value={
-              user.profileEntityId
-                ? "CMS-managed profile"
-                : "Role, bio, and expertise not set"
-            }
-            action={
-              user.profileEntityId && cmsEntityHref(user.profileEntityId) ? (
-                <a
-                  className="people-text-action"
-                  href={cmsEntityHref(user.profileEntityId)}
-                >
-                  Edit in CMS →
-                </a>
-              ) : undefined
-            }
-          />
+          {user.profileEntityId ? (
+            <AccessItem
+              kind="Anchor profile"
+              value={user.displayName}
+              action={
+                cmsEntityHref(user.profileEntityId) ? (
+                  <a
+                    className="people-text-action"
+                    href={cmsEntityHref(user.profileEntityId)}
+                  >
+                    Edit in CMS →
+                  </a>
+                ) : undefined
+              }
+            />
+          ) : user.externalPeers.length > 0 ? (
+            <AccessItem
+              kind="External profile"
+              value={user.externalPeers[0]?.peerId ?? "External brain"}
+            />
+          ) : (
+            <p className="people-empty">No profile · local display name only</p>
+          )}
         </DetailSection>
 
         <DetailSection
           title="Brain"
-          description="This account is hosted on the current brain. A separate verified peer brain is optional; this console never provisions one."
+          description="Local membership and external peer linkage are independent facts."
         >
           <AccessItem
-            kind="Current brain"
-            value={`${props.brainName} · hosted member`}
+            kind="Local"
+            value={`${props.brainName} · member account`}
           />
-          <AccessItem
-            kind="External peer brain"
-            value="No verified external brain linked"
-          />
+          {user.externalPeers.length === 0 ? (
+            <AccessItem kind="External" value="None linked" />
+          ) : (
+            user.externalPeers.map((peer) => (
+              <AccessItem
+                key={peer.peerId}
+                kind="External peer"
+                value={`${peer.peerId} · ${roleLabel(peer.verificationStatus)}`}
+              />
+            ))
+          )}
         </DetailSection>
 
         <DetailSection
           title="Access"
-          description="Permission role — the only facet authorization gates check."
+          description="Permission role on this brain. Peer linkage never changes it."
         >
           <div className="people-access-role">
             <span>
               <strong>{roleLabel(user.role)}</strong>
               <small>
-                {roleProtection ??
-                  (user.role === "admin"
-                    ? "Can administer members and access"
-                    : user.role === "trusted"
-                      ? "Elevated collaboration access"
-                      : "Limited read-oriented access")}
+                {roleProtection ?? `${roleLabel(user.status)} account`}
               </small>
             </span>
             <label className="people-role-control">
@@ -184,98 +217,40 @@ export function PersonDetail(props: {
               </select>
             </label>
           </div>
+          <AccessItem
+            kind="Sessions"
+            value="Current browser and OAuth access"
+            action={
+              <TextAction
+                danger
+                onClick={() =>
+                  props.onConfirm({
+                    kind: "confirm",
+                    title: "Revoke all sessions?",
+                    copy: `${user.displayName} will be signed out everywhere.`,
+                    warning:
+                      "This does not remove passkeys or connected channels.",
+                    submitLabel: "Revoke sessions",
+                    run: async () => {
+                      await props.onMutation({
+                        action: AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
+                        confirmation:
+                          AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
+                        userId: user.userId,
+                      });
+                    },
+                  })
+                }
+              >
+                Revoke all
+              </TextAction>
+            }
+          />
         </DetailSection>
 
         <DetailSection
-          title="Representatives"
-          description="Representatives sharing this person’s canonical profile and identity claims."
-        >
-          {user.agents.length === 0 ? (
-            <p className="people-empty">
-              No external representatives linked. The brain’s built-in agent is
-              implicit and does not require a representation link.
-            </p>
-          ) : (
-            user.agents.map((agent) => (
-              <AccessItem
-                key={agent.agentId}
-                kind="Agent"
-                value={`${agent.agentId} · ${roleLabel(agent.status)}`}
-              />
-            ))
-          )}
-        </DetailSection>
-
-        <DetailSection
-          title="Identities"
-          description="Verified sign-in methods and private identity claims."
-        >
-          {user.identities.length === 0 ? (
-            <p className="people-empty">No identities attached.</p>
-          ) : (
-            user.identities.map((identity) => {
-              const sources = [
-                ...new Set(
-                  identity.evidence.map((evidence) =>
-                    roleLabel(evidence.sourceKind),
-                  ),
-                ),
-              ];
-              const provenance =
-                sources.length > 0 ? ` via ${sources.join(", ")}` : "";
-              return (
-                <AccessItem
-                  key={identity.id}
-                  kind={roleLabel(identity.type)}
-                  value={`${identity.label ?? "Private identity"} · ${assuranceLabel(identity)}${provenance}`}
-                  action={
-                    <TextAction
-                      danger
-                      onClick={() =>
-                        props.onConfirm({
-                          kind: "confirm",
-                          title: "Detach this identity?",
-                          copy: `${user.displayName} will no longer be recognized through this identity.`,
-                          warning:
-                            "Any sessions associated with this person will end.",
-                          submitLabel: "Detach identity",
-                          run: async () => {
-                            await props.onMutation(
-                              {
-                                action:
-                                  AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity,
-                                confirmation:
-                                  AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity,
-                                identityId: identity.id,
-                              },
-                              user.userId,
-                            );
-                          },
-                        })
-                      }
-                    >
-                      Detach
-                    </TextAction>
-                  }
-                />
-              );
-            })
-          )}
-          <details className="people-advanced">
-            <summary>Advanced identity tools</summary>
-            <p>
-              Manual claims are unverified and cannot authenticate this person.
-              Prefer a verified provider sign-in or passkey whenever possible.
-            </p>
-            <TextAction onClick={props.onIdentity}>
-              Attach unverified identity
-            </TextAction>
-          </details>
-        </DetailSection>
-
-        <DetailSection
-          title="Passkeys"
-          description="Private authentication credentials."
+          title="Sign-in"
+          description="Passkeys used to access this account."
         >
           {user.passkeys.length === 0 ? (
             <p className="people-empty">No passkeys registered.</p>
@@ -293,7 +268,7 @@ export function PersonDetail(props: {
                         kind: "confirm",
                         title: "Revoke this passkey?",
                         copy: "This passkey will stop working immediately.",
-                        warning: `${user.displayName} will need another passkey or identity to sign in.`,
+                        warning: `${user.displayName} will need another passkey to sign in.`,
                         submitLabel: "Revoke passkey",
                         run: async () => {
                           await props.onMutation(
@@ -316,76 +291,33 @@ export function PersonDetail(props: {
             ))
           )}
           <div className="people-inline-actions">
-            <TextAction
-              onClick={() => {
-                void props
-                  .onMutation({
-                    action:
-                      AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-                    confirmation:
-                      AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-                    userId: user.userId,
-                  })
-                  .then((result) => {
-                    const registration = (
-                      result as {
-                        registration: { setupUrl: string; expiresAt: number };
-                      }
-                    ).registration;
-                    props.onSetup(
-                      registration.setupUrl,
-                      `Send this single-use link to ${user.displayName} through a private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
-                    );
-                  })
-                  .catch(() => undefined);
-              }}
-            >
-              Create setup link
-            </TextAction>
+            <TextAction onClick={createSetupLink}>Create setup link</TextAction>
           </div>
         </DetailSection>
 
         <DetailSection
-          title="Sessions"
-          description="Current authenticated access."
+          title="Connected channels"
+          description="Verified human-facing channels connected to this account."
         >
-          <AccessItem
-            kind="Authenticated sessions"
-            value="Revoke current browser and OAuth access"
-            action={
-              <TextAction
-                danger
-                onClick={() =>
-                  props.onConfirm({
-                    kind: "confirm",
-                    title: "Revoke all sessions?",
-                    copy: `${user.displayName} will be signed out everywhere.`,
-                    warning: "This does not remove passkeys or identities.",
-                    submitLabel: "Revoke sessions",
-                    run: async () => {
-                      await props.onMutation({
-                        action: AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
-                        confirmation:
-                          AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
-                        userId: user.userId,
-                      });
-                    },
-                  })
-                }
-              >
-                Revoke all
-              </TextAction>
-            }
-          />
+          {connectedChannels.length === 0 ? (
+            <p className="people-empty">
+              No verified email or Discord channel.
+            </p>
+          ) : (
+            connectedChannels.map((identity) => (
+              <AccessItem
+                key={identity.id}
+                kind={roleLabel(identity.type)}
+                value={`${identity.label ?? "Verified channel"} · verified`}
+              />
+            ))
+          )}
         </DetailSection>
       </div>
 
       <footer className="people-detail-footer">
         <small>
-          {suspensionProtection ??
-            (user.role === "admin" && user.status === "active"
-              ? "At least one active Admin must remain."
-              : "Access changes are audited.")}
+          {suspensionProtection ?? "Account access changes are audited."}
         </small>
         <Button
           {...(user.status === "suspended" ? {} : { tone: "danger" as const })}
@@ -399,10 +331,10 @@ export function PersonDetail(props: {
               title: `${suspended ? "Reactivate" : "Suspend"} ${user.displayName}?`,
               copy: suspended
                 ? "Authenticated access will be available again."
-                : "Authenticated access will end immediately.",
+                : "Every connected channel and session will be denied immediately.",
               warning: suspended
-                ? "Existing passkeys and identities remain attached."
-                : "Sessions and refresh tokens will be revoked. You can reactivate this person later.",
+                ? "Existing passkeys and channels remain attached."
+                : "Sessions and refresh tokens will be revoked.",
               submitLabel: suspended ? "Reactivate person" : "Suspend person",
               run: async () => {
                 await props.onMutation(

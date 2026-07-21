@@ -1,29 +1,35 @@
-import {
-  AUTH_USER_ROLES,
-  type AuthAdminRole,
-} from "@brains/auth-service/admin-contracts";
+import type { AuthAdminRole } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
-import { roleLabel } from "../format";
 import { Button } from "../components/primitives";
+import type { ExternalPeerInvitationDraft } from "../people-types";
 import { ModalFrame } from "./ModalFrame";
 
+export interface AddPersonInput {
+  displayName: string;
+  role: Extract<AuthAdminRole, "admin" | "trusted">;
+  peerId?: string;
+}
+
 export function AddPersonDialog(props: {
+  initialDraft?: ExternalPeerInvitationDraft;
   onClose: () => void;
-  onCreate: (displayName: string, role: AuthAdminRole) => Promise<void>;
+  onCreate: (input: AddPersonInput) => Promise<void>;
 }): ReactElement {
   return (
     <ModalFrame
-      eyebrow="New access"
+      eyebrow="New invitation"
       title="Add a person"
-      copy="Create access first; attach an identity or passkey next."
+      copy="Link an external brain when one exists, or create a hosted account without a profile."
       onClose={props.onClose}
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        void props.onCreate(
-          String(data.get("displayName") ?? ""),
-          String(data.get("role") ?? "trusted") as AuthAdminRole,
-        );
+        const peerId = String(data.get("peerId") ?? "").trim();
+        void props.onCreate({
+          displayName: String(data.get("displayName") ?? "").trim(),
+          role: String(data.get("role") ?? "trusted") as AddPersonInput["role"],
+          ...(peerId ? { peerId } : {}),
+        });
       }}
       footer={
         <>
@@ -31,28 +37,42 @@ export function AddPersonDialog(props: {
             Cancel
           </Button>
           <Button type="submit" tone="primary">
-            Create person
+            Create invitation
           </Button>
         </>
       }
     >
       <label>
         <span>Display name</span>
-        <input name="displayName" maxLength={200} required autoFocus />
+        <input
+          name="displayName"
+          maxLength={200}
+          defaultValue={props.initialDraft?.displayName ?? ""}
+          required
+          autoFocus
+        />
       </label>
       <label>
-        <span>Initial role</span>
+        <span>
+          External brain ID or URL <small>optional</small>
+        </span>
+        <input
+          name="peerId"
+          maxLength={2000}
+          placeholder="did:web:person.example"
+          defaultValue={props.initialDraft?.peerId ?? ""}
+        />
+      </label>
+      <label>
+        <span>Intended role</span>
         <select name="role" defaultValue="trusted">
-          {AUTH_USER_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {roleLabel(role)}
-            </option>
-          ))}
+          <option value="trusted">Trusted</option>
+          <option value="admin">Admin</option>
         </select>
       </label>
       <p className="people-warning">
-        Adding an Admin grants full administration and restricted-content
-        access.
+        The external brain remains an independent peer. Linking it never grants
+        that peer the person’s role or attribution.
       </p>
     </ModalFrame>
   );

@@ -1,17 +1,16 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mockFetch } from "@brains/test-utils";
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
-  type AuthAgentPersonSummary,
+  type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
+import { mockFetch } from "@brains/test-utils";
 import { createAdminQueryClient } from "./query-client";
 import {
   adminKeys,
   anchorQueryOptions,
+  auditQueryOptions,
   invalidateAfterAdminMutation,
-  invalidateAfterRepresentationMutation,
-  representationsQueryOptions,
   usersQueryOptions,
 } from "./queries";
 
@@ -42,7 +41,7 @@ describe("Admin server-state queries", () => {
     client.clear();
   });
 
-  it("loads Anchor and representation records into separate caches", async () => {
+  it("loads Anchor and audit records into separate caches", async () => {
     mockFetch(async (request) => {
       const url = String(request);
       if (url.endsWith("/auth/admin/anchor")) {
@@ -56,79 +55,42 @@ describe("Admin server-state queries", () => {
           },
         });
       }
-      return Response.json({ representations: [] });
+      return Response.json({ events: [] });
     });
     const client = createAdminQueryClient();
 
-    const [anchor, representations] = await Promise.all([
+    const [anchor, audit] = await Promise.all([
       client.fetchQuery(anchorQueryOptions()),
-      client.fetchQuery(representationsQueryOptions()),
+      client.fetchQuery(auditQueryOptions()),
     ]);
 
     expect(anchor.displayName).toBe("Rizom");
-    expect(representations).toEqual([]);
+    expect(audit).toEqual([]);
     expect(
       client.getQueryData<AuthBrainAnchorSummary>(adminKeys.anchor()),
     ).toBe(anchor);
     expect(
-      client.getQueryData<AuthAgentPersonSummary[]>(
-        adminKeys.representations(),
-      ),
-    ).toBe(representations);
+      client.getQueryData<AuthAuditEventSummary[]>(adminKeys.audit()),
+    ).toBe(audit);
     client.clear();
   });
 });
 
 describe("Admin mutation invalidation", () => {
-  it("keeps the config-derived Anchor cache stable after auth mutations", async () => {
+  it("refreshes Overview, roster, invitations, and audit together", async () => {
     const client = createAdminQueryClient();
     client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
     client.setQueryData(adminKeys.users(), []);
-    client.setQueryData(adminKeys.representations(), []);
+    client.setQueryData(adminKeys.audit(), []);
 
     await invalidateAfterAdminMutation(
       client,
-      AUTH_ADMIN_MUTATION_ACTIONS.createUser,
+      AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer,
     );
 
-    expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(false);
+    expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
-    expect(
-      client.getQueryState(adminKeys.representations())?.isInvalidated,
-    ).toBe(true);
-    client.clear();
-  });
-
-  it("does not refresh durable records for a transient setup URL", async () => {
-    const client = createAdminQueryClient();
-    client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
-    client.setQueryData(adminKeys.users(), []);
-    client.setQueryData(adminKeys.representations(), []);
-
-    await invalidateAfterAdminMutation(
-      client,
-      AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-    );
-
-    expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(false);
-    expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(false);
-    expect(
-      client.getQueryState(adminKeys.representations())?.isInvalidated,
-    ).toBe(false);
-    client.clear();
-  });
-
-  it("refreshes both representations and member detail after consent", async () => {
-    const client = createAdminQueryClient();
-    client.setQueryData(adminKeys.users(), []);
-    client.setQueryData(adminKeys.representations(), []);
-
-    await invalidateAfterRepresentationMutation(client);
-
-    expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
-    expect(
-      client.getQueryState(adminKeys.representations())?.isInvalidated,
-    ).toBe(true);
+    expect(client.getQueryState(adminKeys.audit())?.isInvalidated).toBe(true);
     client.clear();
   });
 });

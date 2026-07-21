@@ -1,25 +1,22 @@
 import { describe, expect, it } from "bun:test";
+import type {
+  AuthAdminUserSummary,
+  AuthAuditEventSummary,
+  AuthBrainAnchorSummary,
+} from "@brains/auth-service/admin-contracts";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   PeopleApp,
-  PromotionReconciliationSummary,
-  assuranceLabel,
   initials,
-  manualIdentityTypes,
   messageOf,
-  promotionReconciliationDefaults,
   roleLabel,
   type PeopleBootstrap,
 } from "./App";
+import { PersonDetail } from "./components/PersonDetail";
 import { runWithFeedback as executeWithFeedback } from "./feedback";
 import { createAdminQueryClient } from "./query-client";
-import type {
-  AuthAdminUserSummary,
-  AuthAgentPersonReconciliationResponse,
-  AuthBrainAnchorSummary,
-} from "@brains/auth-service/admin-contracts";
 
 const admin: PeopleBootstrap = {
   userId: "usr_yeehaa",
@@ -48,7 +45,6 @@ const user: AuthAdminUserSummary = {
   status: "active",
   permissionLevel: "admin",
   isAnchor: false,
-  profileEntityId: "person-profile/mira-reyes",
   identities: [
     {
       id: "idn_discord",
@@ -56,35 +52,41 @@ const user: AuthAdminUserSummary = {
       userId: "usr_mira",
       type: "discord",
       visibility: "private",
-      label: "m***",
+      label: "@mira",
+      verifiedAt: 2,
       createdAt: 1,
       evidence: [
         {
-          sourceKind: "agent",
-          assurance: "asserted",
+          sourceKind: "provider",
+          assurance: "verified",
+          verifiedAt: 2,
         },
       ],
     },
   ],
   passkeys: [],
-  agents: [
+  externalPeers: [
     {
-      agentId: "mira.example",
+      peerId: "did:web:mira.example",
       personId: "per_mira",
-      status: "active",
-      createdByUserId: "usr_anchor",
-      consentedByUserId: "usr_mira",
+      verificationStatus: "verified",
+      createdByUserId: "usr_yeehaa",
       createdAt: 1,
       updatedAt: 1,
     },
   ],
 };
 
-const representation = user.agents[0];
-const identity = user.identities[0];
-if (!representation || !identity) {
-  throw new Error("People test fixture is incomplete");
-}
+const audit: AuthAuditEventSummary[] = [
+  {
+    id: "aae_1",
+    actorUserId: admin.userId,
+    action: "auth.external_peer.linked",
+    targetType: "external_peer",
+    targetId: "did:web:mira.example",
+    createdAt: 2,
+  },
+];
 
 function renderPeople(props: Parameters<typeof PeopleApp>[0]): string {
   const queryClient = createAdminQueryClient();
@@ -97,50 +99,43 @@ function renderPeople(props: Parameters<typeof PeopleApp>[0]): string {
   );
 }
 
-describe("People surface", () => {
-  it("renders the anchor and member model without dashboard markup", () => {
+function renderPerson(
+  member: AuthAdminUserSummary,
+  activeAdminCount = 2,
+): string {
+  return renderToStaticMarkup(
+    createElement(PersonDetail, {
+      user: member,
+      brainName: "smoke-rover",
+      activeAdminCount,
+      onConfirm: () => undefined,
+      onMutation: async () => undefined,
+      onSetup: () => undefined,
+    }),
+  );
+}
+
+describe("Admin surface", () => {
+  it("renders the four permanent sections and Overview Anchor summary", () => {
     const html = renderPeople({
       bootstrap: admin,
       initialAnchor: brainAnchor,
       initialUsers: [user],
+      initialAudit: audit,
     });
 
-    expect(html).toContain("Admin");
-    expect(html).toContain("Anchor");
-    expect(html).toContain("person");
+    expect(html).toContain("Overview");
     expect(html).toContain("Members");
-    expect(html).toContain("smoke-rover");
-    expect(html).toContain("1 member · 1 admin");
-    expect(html).toContain("Mira Reyes");
-    expect(html).toContain("Brain");
-    expect(html).toContain("smoke-rover · hosted member");
-    expect(html).toContain("No verified external brain linked");
-    expect(html).toContain("Anchor?");
-    expect(html).toContain("No");
-    expect(html).toContain("Asserted — cannot authenticate");
-    expect(html).toContain("Add member");
-    expect(html).toContain("kind: person · brain.yaml");
-    expect(html).toContain("Edit in CMS");
-    expect(html).toContain("/cms#/person-profile/mira-reyes");
+    expect(html).toContain("Invitations");
+    expect(html).toContain("Audit");
     expect(html).toContain("Yeehaa Morgan");
-    expect(html).not.toContain("Save Anchor");
-    expect(html).not.toContain("anchor-kind-toggle");
-    expect(html).not.toContain("dashboard-tab-panel");
+    expect(html).toContain("Active members");
+    expect(html).not.toContain("My agents");
+    expect(html).not.toContain("Representatives");
   });
 
-  it("uses team and organization vocabulary without changing collective mechanics", () => {
+  it("uses People vocabulary only for collective organizations", () => {
     const { personId: _personId, ...collectiveAnchor } = brainAnchor;
-    const teamHtml = renderPeople({
-      bootstrap: { ...admin, isAnchor: false },
-      initialAnchor: {
-        ...collectiveAnchor,
-        kind: "collective",
-        configuredKind: "team",
-        subjectId: "coll_team",
-        displayName: "The Peppers",
-      },
-      initialUsers: [user],
-    });
     const organizationHtml = renderPeople({
       bootstrap: { ...admin, isAnchor: false },
       initialAnchor: {
@@ -151,192 +146,88 @@ describe("People surface", () => {
         displayName: "Rizom",
       },
       initialUsers: [user],
+      initialAudit: [],
     });
 
-    expect(teamHtml).toContain("members · anchor · access");
-    expect(teamHtml).toContain("Add member");
-    expect(teamHtml).toContain("run together");
-    expect(organizationHtml).toContain("people · anchor · access");
-    expect(organizationHtml).toContain("Add person");
-    expect(organizationHtml).toContain("administered on its behalf");
+    expect(organizationHtml).toContain("People");
+    expect(organizationHtml).toContain("people · invitations · audit");
   });
 
-  it("disables impossible last-Admin role and status changes", () => {
-    const html = renderPeople({
-      bootstrap: admin,
-      initialAnchor: brainAnchor,
-      initialUsers: [user],
-    });
+  it("shows peer linkage separately from local access", () => {
+    const html = renderPerson(user);
 
     expect(html).toContain(
+      "Local membership and external peer linkage are independent",
+    );
+    expect(html).toContain("did:web:mira.example");
+    expect(html).toContain("Permission role on this brain");
+    expect(html).toContain("Connected channels");
+    expect(html).toContain("@mira · verified");
+    expect(html).toContain("Sign-in");
+    expect(html).not.toContain("Advanced");
+    expect(html).not.toContain("per_mira");
+    expect(html).not.toContain("usr_mira");
+  });
+
+  it("shows no local profile for hosted members without a peer", () => {
+    const html = renderPerson({
+      ...user,
+      identities: [],
+      externalPeers: [],
+    });
+
+    expect(html).toContain("No profile · local display name only");
+    expect(html).toContain("No verified email or Discord channel");
+  });
+
+  it("protects the last active Admin and professional Anchor", () => {
+    const lastAdmin = renderPerson(user, 1);
+    const anchorUser = renderPerson(
+      {
+        ...user,
+        userId: admin.userId,
+        personId: brainAnchor.personId ?? "per_yeehaa",
+        displayName: brainAnchor.displayName,
+        isAnchor: true,
+        ...(brainAnchor.profileEntityId
+          ? { profileEntityId: brainAnchor.profileEntityId }
+          : {}),
+      },
+      2,
+    );
+
+    expect(lastAdmin).toContain(
       "Add another active Admin before changing this role.",
     );
-    expect(html).toContain(
+    expect(lastAdmin).toContain(
       "Add another active Admin before suspending this person.",
     );
-    expect(html.match(/disabled=""/g)).toHaveLength(2);
-  });
-
-  it("keeps a personal Anchor active and Admin even when another Admin exists", () => {
-    const anchorUser: AuthAdminUserSummary = {
-      ...user,
-      userId: admin.userId,
-      personId: brainAnchor.personId ?? "per_yeehaa",
-      displayName: brainAnchor.displayName,
-      isAnchor: true,
-    };
-    const html = renderPeople({
-      bootstrap: admin,
-      initialAnchor: brainAnchor,
-      initialUsers: [anchorUser, user],
-    });
-
-    expect(html).toContain("A personal Anchor must remain an active Admin.");
-    expect(html).toContain("The personal Anchor cannot be suspended.");
-  });
-
-  it("explains that linked agents are external representatives", () => {
-    const html = renderPeople({
-      bootstrap: admin,
-      initialAnchor: brainAnchor,
-      initialUsers: [{ ...user, agents: [] }],
-    });
-
-    expect(html).toContain("No external representatives linked");
-    expect(html).toContain("built-in agent is");
-  });
-
-  it("demotes manual identity attachment behind an advanced warning", () => {
-    const html = renderPeople({
-      bootstrap: admin,
-      initialAnchor: brainAnchor,
-      initialUsers: [user],
-    });
-
-    expect(html).toContain("Advanced identity tools");
-    expect(html).toContain("Attach unverified identity");
-    expect(html).toContain("cannot authenticate this person");
-  });
-
-  it("filters manual identity types to human-facing configured providers", () => {
-    expect(manualIdentityTypes(["discord", "mcp", "a2a"])).toEqual([
-      "oauth",
-      "discord",
-    ]);
-    expect(manualIdentityTypes(["email-resend"])).toEqual(["oauth", "email"]);
-  });
-
-  it("shows only self-service representation consent to non-Admins", () => {
-    const html = renderPeople({
-      bootstrap: {
-        ...admin,
-        displayName: "Mira",
-        role: "trusted",
-        isAnchor: false,
-      },
-      initialRepresentations: [representation],
-    });
-
-    expect(html).toContain("My agents");
-    expect(html).not.toContain("Access roster");
-    expect(html).not.toContain("Add member");
-  });
-
-  it("preselects the only exact independently verified person", () => {
-    const reconciliation: AuthAgentPersonReconciliationResponse = {
-      state: "unique_verified_match",
-      suggestedUserId: user.userId,
-      claims: [
-        {
-          index: 0,
-          type: "did",
-          label: "Mira DID",
-          state: "verified_match",
-          owner: {
-            personId: user.personId,
-            userId: user.userId,
-            displayName: user.displayName,
-            status: user.status,
-          },
-        },
-      ],
-    };
-
-    expect(
-      promotionReconciliationDefaults(reconciliation, "usr_other"),
-    ).toEqual({
-      accessPath: "link",
-      userId: user.userId,
-      blocked: false,
-    });
-    const html = renderToStaticMarkup(
-      createElement(PromotionReconciliationSummary, { reconciliation }),
+    expect(anchorUser).toContain(
+      "A professional Anchor must remain an active Admin.",
     );
-    expect(html).toContain("Verified person found");
-    expect(html).toContain("Mira Reyes");
-    expect(html).not.toContain("did:example:mira");
-  });
-
-  it("blocks cross-person claims and names the records requiring review", () => {
-    const reconciliation: AuthAgentPersonReconciliationResponse = {
-      state: "cross_person_conflict",
-      claims: [
-        {
-          index: 0,
-          type: "did",
-          label: "Profile DID",
-          state: "verified_match",
-          owner: {
-            personId: "prsn_mira",
-            userId: "usr_mira",
-            displayName: "Mira Reyes",
-            status: "active",
-          },
-        },
-        {
-          index: 1,
-          type: "email",
-          label: "Contact email",
-          state: "verified_match",
-          owner: {
-            personId: "prsn_jules",
-            userId: "usr_jules",
-            displayName: "Jules Chen",
-            status: "active",
-          },
-        },
-      ],
-    };
-
-    expect(
-      promotionReconciliationDefaults(reconciliation, user.userId),
-    ).toEqual({
-      accessPath: "invite",
-      userId: user.userId,
-      blocked: true,
-    });
-    const html = renderToStaticMarkup(
-      createElement(PromotionReconciliationSummary, { reconciliation }),
+    expect(anchorUser).toContain(
+      "The professional Anchor cannot be suspended.",
     );
-    expect(html).toContain("Identity reconciliation required");
-    expect(html).toContain("Mira Reyes");
-    expect(html).toContain("Jules Chen");
-    expect(html).toContain("Profile DID");
-    expect(html).toContain("Contact email");
+    expect(anchorUser).toContain("Edit in CMS");
   });
 
-  it("uses canonical auth vocabulary and evidence labels", () => {
+  it("does not expose administration to non-Admins", () => {
+    const html = renderPeople({
+      bootstrap: { ...admin, role: "trusted", isAnchor: false },
+    });
+
+    expect(html).toContain("Admin access required");
+    expect(html).not.toContain("Resolving private records");
+  });
+
+  it("uses canonical role formatting and safe feedback fallbacks", () => {
     expect(roleLabel("admin")).toBe("Admin");
     expect(initials("Mira Reyes")).toBe("MR");
-    expect(assuranceLabel(identity)).toBe("Asserted — cannot authenticate");
-  });
-
-  it("uses safe mutation feedback fallbacks", () => {
-    expect(messageOf(new Error("Consent denied"), "Consent failed")).toBe(
-      "Consent denied",
+    expect(messageOf(new Error("Access denied"), "Mutation failed")).toBe(
+      "Access denied",
     );
-    expect(messageOf({ secret: "private" }, "Consent failed")).toBe(
-      "Consent failed",
+    expect(messageOf({ secret: "private" }, "Mutation failed")).toBe(
+      "Mutation failed",
     );
   });
 
@@ -354,7 +245,7 @@ describe("People surface", () => {
     try {
       await executeWithFeedback(
         async () => {
-          throw { secret: "private" };
+          throw new Error("Denied");
         },
         (entry) => feedback.push(entry),
         { fallback: "Update failed" },
@@ -362,10 +253,7 @@ describe("People surface", () => {
     } catch (error) {
       thrown = error;
     }
-    expect(thrown).toEqual({ secret: "private" });
-    expect(feedback.at(-1)).toEqual({
-      message: "Update failed",
-      tone: "error",
-    });
+    expect(thrown).toEqual(new Error("Denied"));
+    expect(feedback.at(-1)).toEqual({ message: "Denied", tone: "error" });
   });
 });

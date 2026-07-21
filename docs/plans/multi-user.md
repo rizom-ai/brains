@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-model-visible Admin API with config-derived, CMS-profiled Anchor ownership. Decisions 14 and 15 define the post-merge corrections: DB-only runtime access with explicit recovery, a four-section Admin information architecture, connected delivery channels, and external peer brains without person-representation semantics. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, and access-neutral person-to-external-peer links. Decision 14's DB-only principal grants/recovery and decision 15's delivery-channel binding remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -24,7 +24,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
-- The standalone admin console is implemented by `@brains/admin` at `/admin`. Its agreed end state is Overview, Members/People, Invitations, and Audit; the shipped self-service representation view is superseded by decision 15 and will be removed when external peer links replace representation records.
+- The standalone admin console is implemented by `@brains/admin` at `/admin` with Overview, Members/People, Invitations, and Audit. External peer links are access-neutral; the unreleased representation API and self-service consent view have been removed.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -75,7 +75,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - `shell/auth-service` remains the sole owner of the admin HTTP endpoints, schema, permission policy, last-Admin invariant, and audit. The surface is a thin same-origin client over `/auth/admin/*` and **imports auth-service's exported role/mutation contract types** rather than re-declaring the role list or mutation-action names.
     - The dashboard stays pure monitoring: no People tab, no inline admin script, no hand-rolled Admin-visibility branch.
     - **Console integration lives here now.** Console unification shipped and its plan retired, so the surface remains a registered web route, appears in the shared route-derived console strip and Admin-gated ⌘K jump, and uses the shared `instrument` climate.
-    - **Current state:** the standalone `@brains/admin` React package and configurable `/admin` route are implemented. The four-section target and removal of the shipped representation UI remain follow-on work under decision 15.
+    - **Current state:** the standalone `@brains/admin` React package and configurable `/admin` route implement the four-section target. The former unreleased representation UI is removed.
 12. **`Anchor` is the owner (an identity), `Admin` is the permission role.** _(Adopted 2026-07-18 and implemented; supersedes the "Anchor is the role" naming in decision 6.)_
     - **Anchor = the brain's owner/subject — professional, team, or collective.** It is an _identity/profile_ concept, not an authenticator: a team or collective never logs in, so "anchor" names what the brain belongs to and speaks as, not a login.
     - **Admin = the human permission role** that administers the brain. The permission levels are **`admin` / `trusted` / `public`**; the former Anchor role has been removed. Admins work in the `/admin` console (decision 11), so role and surface line up.
@@ -106,10 +106,10 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **Members are local accounts.** Role, status, passkeys, connected channels, session revocation, and suspension are ordinary person-detail actions. Internal IDs, evidence provenance, raw provider subjects, and per-session metadata stay out of the UI; there is no generic Advanced drawer.
     - **Sign-in and channels are distinct.** Passkeys appear under Sign-in. Verified email and Discord appear under Connected channels, with full human-facing addresses visible to Admins. Claiming a setup link delivered through a channel binds that verified channel to the new account.
     - **External brains are optional peer links.** Local membership and a linked external brain are independent facts and both appear in the person detail. The peer remains a separate actor and never inherits the person's role, identity claims, or attribution.
-    - **No representation consent model.** Remove the permanent My agents view and the pending/active agent-person representation workflow. Preserve existing durable rows during migration: active links become person-to-external-peer associations; pending/revoked records remain migration/audit history and do not grant access.
+    - **No representation consent model.** The permanent My agents view and pending/active agent-person workflow are removed. Because that schema never shipped outside this feature branch, generated pre-release migrations replace it directly with `person_external_peers`; there is no historical representation-data transform or permanent dual-read path.
     - **Invitation roles are deliberate.** Add person offers Trusted or Admin only. `invited` remains a status, not a role; the intended role is retained and shown on the invitation. A member without a brain receives a local account and setup delivery but no profile.
     - **Peer-first add is an Admin escalation.** Selecting a known peer or entering a peer URL resolves its published profile and proposed email. The final confirmation names the person, exact destination, role, and setup delivery. A no-brain fallback asks for local display name and email and creates no profile.
-    - **Audit is first-class.** Existing audit storage remains authoritative; add an Admin-only read endpoint and plain-language viewer under the permanent Audit tab.
+    - **Audit is first-class.** Existing audit storage remains authoritative and is exposed through an Admin-only read endpoint and plain-language viewer under the permanent Audit tab.
 
 ## Terminology contract
 
@@ -401,18 +401,18 @@ Validation:
 
 ### Phase 5 — Admin console and terminology migration
 
-**Status: the standalone `/admin` console and bounded legacy-cookie compatibility are implemented; decision 15's four-section redesign remains follow-on work.**
+**Status: implemented.** The standalone four-section `/admin` console and bounded legacy-cookie compatibility are in place.
 
 - [x] Capture the revised console design per Anchor kind: [professional](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [collective](../design/admin-console-org-mockup.html).
 - [x] Add Admin-only roster administration over the existing auth APIs.
-- [ ] Replace the shipped roster/My agents navigation with Overview, Members/People, Invitations, and Audit.
-- [ ] Remove representation consent and expose external brains only as optional peer links.
+- [x] Replace the shipped roster/My agents navigation with Overview, Members/People, Invitations, and Audit.
+- [x] Remove representation consent and expose external brains only as optional peer links.
 - [x] Move People off the dashboard SSR page into the standalone `@brains/admin` React admin console (decision 11), importing auth-service's browser-safe contract types and constants instead of literal role/mutation vocabularies. Dashboard is pure monitoring again.
   - The console is a registered route-derived surface using the `instrument` climate.
   - `GET /api/console/jump` includes an admin surface door for authenticated Admins.
   - The surface consumes `@brains/console-theme`; the shared surface registry recognizes the new consumer.
 - [x] Generalize the surface to `/admin` with a configurable `routePath`.
-- [ ] Add the permanent Invitations and Audit sections, including an Admin-only audit read endpoint/viewer.
+- [x] Add the permanent Invitations and Audit sections, including an Admin-only audit read endpoint/viewer.
 - [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
 - [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-Admin elevation.
 - [x] Show `Name · Admin|Trusted|Public · Sign out`, with Anchor shown separately in the console masthead.
@@ -429,7 +429,7 @@ Validation:
 
 ### Phase 6 — Person-centered identity and external peer links
 
-**Status: person backfill and normalized person-owned identity claims are complete. The shipped agent-person representation layer is superseded by decision 15 and must be migrated to simpler external-peer associations before this phase is final.**
+**Status: person backfill, normalized person-owned identity claims, and access-neutral external-peer associations are implemented. Delivery-channel binding remains in Phase 7.**
 
 The stable subject model is:
 
@@ -450,15 +450,15 @@ Auth user ─────► Person ─────► optional external peer br
 
 Migration and storage boundaries:
 
-- Preserve all existing person, user, session, passkey, identity, claim, and link ids.
-- Reinterpret active agent-person links as person-to-external-peer associations without granting access or `onBehalfOf` semantics.
-- Preserve pending/revoked representation rows as migration/audit history; they never activate or grant access.
-- Remove `/auth/representations`, My agents, representation consent, and represented-person claim projection after the peer-link read/write path is available.
+- Preserve all released person, user, session, passkey, identity, and claim ids.
+- Store person-to-external-peer associations without granting access or `onBehalfOf` semantics.
+- Replace the unreleased agent-person schema directly with generated Drizzle migrations; no released representation rows require conversion.
+- Keep `/auth/representations`, My agents, representation consent, and represented-person claim projection absent.
 - Keep raw connected-channel delivery subjects private to auth and authorized Admin responses; never expose them to models or public peer cards.
 
 Validation:
 
-- existing durable rows survive the representation-to-peer migration
+- existing released auth rows survive the pre-release schema correction
 - a peer remains a distinct actor before and after association
 - linking a peer never grants the person's role or rewrites actor attribution
 - setup-link claim binds the delivery email or Discord identity to the invited account
@@ -467,7 +467,7 @@ Validation:
 
 ### Phase 7 — Invitation delivery and audit viewer
 
-**Status: planned by decision 15.** Build the permanent Invitations and Audit sections on the existing targeted setup and audit stores:
+**Status: Audit endpoint/viewer and invitation-account listing are implemented; delivery is planned.** Complete invitation delivery on the existing targeted setup store:
 
 - email/Discord setup delivery with exact Admin confirmation
 - bind the delivery channel when its single-use setup link is claimed

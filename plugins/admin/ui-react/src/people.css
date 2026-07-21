@@ -1036,8 +1036,113 @@
   color: var(--console-text-muted);
 }
 
+.people-section-heading {
+  margin-bottom: 18px;
+}
+.people-overview {
+  display: grid;
+  gap: 18px;
+}
+.people-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.people-metric {
+  appearance: none;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 18px;
+  color: var(--console-text);
+  text-align: left;
+  background: var(--console-surface);
+  border: 1px solid var(--console-rule);
+  border-radius: 9px;
+}
+button.people-metric {
+  cursor: pointer;
+}
+button.people-metric:hover {
+  border-color: var(--console-accent);
+  transform: translateY(-1px);
+}
+.people-metric > span {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.people-metric strong {
+  font-family: var(--console-display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 500;
+  line-height: 1;
+}
+.people-metric small,
+.people-invitation small,
+.people-audit-event small {
+  display: block;
+  color: var(--console-text-muted);
+}
+.people-metric.has-attention {
+  border-color: var(--console-warn);
+}
+.people-invitation-list {
+  display: grid;
+  gap: 9px;
+}
+.people-invitation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 17px;
+}
+.people-invitation-actions {
+  display: flex;
+  gap: 12px;
+}
+.people-empty-state {
+  padding: 32px;
+  text-align: center;
+}
+.people-empty-state p {
+  margin-bottom: 0;
+  color: var(--console-text-muted);
+}
+.people-audit-list {
+  overflow: hidden;
+}
+.people-audit-event {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 18px;
+  padding: 14px 17px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.people-audit-event:last-child {
+  border-bottom: 0;
+}
+.people-audit-event time {
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.admin-tabs button small {
+  min-width: 17px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  color: var(--console-on-accent);
+  background: var(--console-accent);
+  border-radius: 999px;
+}
+
 @media (max-width: 940px) {
   .anchor-fields {
+    grid-template-columns: 1fr;
+  }
+  .people-metrics {
     grid-template-columns: 1fr;
   }
   .anchor-field + .anchor-field {
@@ -1094,5 +1199,15 @@
   .people-role-control {
     width: 100%;
     justify-content: space-between;
+  }
+  .people-invitation {
+    grid-template-columns: 1fr auto;
+  }
+  .people-invitation-actions {
+    grid-column: 1 / -1;
+  }
+  .people-audit-event {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }

@@ -4,7 +4,8 @@ import type { Logger } from "@brains/utils/logger";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
-  AuthAgentPersonReconciliationResponse,
+  AuthIdentityProposalInput,
+  AuthIdentityReconciliationResponse,
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
@@ -28,11 +29,7 @@ import {
   type PasskeyRegistrationUser,
 } from "./passkey-service";
 import { PasskeyStore } from "./passkey-store";
-import {
-  PersonAgentStore,
-  type AgentPersonIdentityClaimInput,
-  type PromoteAgentPersonInput,
-} from "./person-agent-store";
+import { PersonExternalPeerStore } from "./person-external-peer-store";
 import {
   A2APeerTrustStore,
   RuntimeA2APeerTrustStore,
@@ -41,9 +38,9 @@ import {
 } from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
 import type {
-  AgentPersonLink,
   AuthBrainAnchor,
   AuthUser,
+  PersonExternalPeer,
 } from "./runtime-schema";
 import {
   AuthUserStore,
@@ -60,7 +57,6 @@ import {
   RefreshTokenStore,
   RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
-import { handleAuthRepresentationRequest } from "./representation-endpoints";
 import { RuntimeSetupStateStore, SetupStateStore } from "./setup-state-store";
 import {
   AuthSessionStore,
@@ -137,20 +133,20 @@ export interface UserPasskeyRegistration {
   expiresAt: number;
 }
 
-export type PromoteAgentPersonRequest = Omit<
-  PromoteAgentPersonInput,
-  "createdByUserId"
->;
-
-export interface LinkAgentPersonRequest {
-  agentId: string;
-  userId: string;
-  claims?: AgentPersonIdentityClaimInput[];
+export interface InviteExternalPeerPersonRequest {
+  peerId: string;
+  displayName: string;
+  role: "admin" | "trusted";
 }
 
-export interface PromotedAgentAccess {
+export interface LinkExternalPeerRequest {
+  peerId: string;
+  userId: string;
+}
+
+export interface InvitedExternalPeerAccess {
   user: AuthPrincipal;
-  representation: AgentPersonLink;
+  peer: PersonExternalPeer;
   registration: UserPasskeyRegistration;
 }
 
@@ -198,7 +194,7 @@ export class AuthService {
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
-  private personAgentStore: PersonAgentStore | undefined;
+  private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private credentialStore: AuthCredentialStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -419,7 +415,7 @@ export class AuthService {
   private async closeInternal(): Promise<void> {
     await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
-    this.personAgentStore = undefined;
+    this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
     this.credentialStore = undefined;
     this.initialization = undefined;
@@ -433,7 +429,9 @@ export class AuthService {
     }
     await this.runtimeDatabase.start();
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
-    this.personAgentStore = new PersonAgentStore(this.runtimeDatabase.db);
+    this.personExternalPeerStore = new PersonExternalPeerStore(
+      this.runtimeDatabase.db,
+    );
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
@@ -638,11 +636,11 @@ export class AuthService {
     return this.userStore;
   }
 
-  private getPersonAgentStore(): PersonAgentStore {
-    if (!this.personAgentStore) {
+  private getPersonExternalPeerStore(): PersonExternalPeerStore {
+    if (!this.personExternalPeerStore) {
       throw new Error("Auth service has not been initialized");
     }
-    return this.personAgentStore;
+    return this.personExternalPeerStore;
   }
 
   private getAuditStore(): AuthAuditStore {
@@ -869,95 +867,64 @@ export class AuthService {
     return this.principalFromUser(user);
   }
 
-  async promoteAgentPerson(
-    input: PromoteAgentPersonRequest,
+  async inviteExternalPeerPerson(
+    input: InviteExternalPeerPersonRequest,
     context: AuthMutationContext,
-  ): Promise<PromotedAgentAccess> {
+  ): Promise<InvitedExternalPeerAccess> {
     await this.ensureUserStoreStarted();
     if (!context.actorUserId) {
-      throw new Error("Authenticated actor is required for agent promotion");
+      throw new Error("Authenticated actor is required for peer invitation");
     }
-    const promoted = await this.getPersonAgentStore().promoteAgentPerson({
+    const invited = await this.getPersonExternalPeerStore().invitePeerPerson({
       ...input,
       createdByUserId: context.actorUserId,
     });
     const registration = await this.startPasskeyRegistrationForUser(
-      promoted.user.id,
+      invited.user.id,
       context,
     );
     await this.getAuditStore().append({
       ...auditActor(context),
-      action: "auth.agent_person.promoted",
-      targetType: "agent",
-      targetId: promoted.link.agentId,
+      action: "auth.external_peer.invited",
+      targetType: "external_peer",
+      targetId: invited.peer.peerId,
       metadata: {
-        personId: promoted.person.id,
-        userId: promoted.user.id,
-        role: promoted.user.role,
-        claimCount: input.claims?.length ?? 0,
+        personId: invited.person.id,
+        userId: invited.user.id,
+        role: invited.user.role,
       },
     });
     return {
-      user: await this.principalFromUser(promoted.user),
-      representation: promoted.link,
+      user: await this.principalFromUser(invited.user),
+      peer: invited.peer,
       registration,
     };
   }
 
-  async linkAgentPerson(
-    input: LinkAgentPersonRequest,
+  async linkExternalPeer(
+    input: LinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<AgentPersonLink> {
+  ): Promise<PersonExternalPeer> {
     await this.ensureUserStoreStarted();
     if (!context.actorUserId) {
-      throw new Error("Authenticated actor is required for agent linking");
+      throw new Error("Authenticated actor is required for peer linking");
     }
     const user = await this.getUserStore().getUser(input.userId);
     if (!user) throw new Error(`Auth user not found: ${input.userId}`);
 
-    const link = await this.getPersonAgentStore().linkAgent({
-      agentId: input.agentId,
+    const peer = await this.getPersonExternalPeerStore().linkPeer({
+      peerId: input.peerId,
       personId: user.personId,
       createdByUserId: context.actorUserId,
-      ...(input.claims ? { claims: input.claims } : {}),
     });
     await this.getAuditStore().append({
       ...auditActor(context),
-      action: "auth.agent_person.linked",
-      targetType: "agent",
-      targetId: link.agentId,
-      metadata: {
-        personId: link.personId,
-        userId: user.id,
-        status: link.status,
-        claimCount: input.claims?.length ?? 0,
-      },
+      action: "auth.external_peer.linked",
+      targetType: "external_peer",
+      targetId: peer.peerId,
+      metadata: { personId: peer.personId, userId: user.id },
     });
-    return link;
-  }
-
-  async acceptAgentRepresentation(
-    agentId: string,
-    context: AuthMutationContext,
-  ): Promise<AgentPersonLink> {
-    await this.ensureUserStoreStarted();
-    if (!context.actorUserId) {
-      throw new Error(
-        "Authenticated actor is required for representation consent",
-      );
-    }
-    const accepted = await this.getPersonAgentStore().acceptRepresentation(
-      agentId,
-      context.actorUserId,
-    );
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.agent_person.accepted",
-      targetType: "agent",
-      targetId: accepted.agentId,
-      metadata: { personId: accepted.personId },
-    });
-    return accepted;
+    return peer;
   }
 
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
@@ -986,19 +953,22 @@ export class AuthService {
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
     await this.ensureUserStoreStarted();
-    const [users, people, identities, passkeys, agents, anchor] =
+    const [users, people, identities, passkeys, externalPeers, anchor] =
       await Promise.all([
         this.getUserStore().listUsers(),
         this.getUserStore().listPeople(),
         this.getUserStore().listAllIdentities(),
         this.getCredentialStore().listPasskeys(),
-        this.getPersonAgentStore().listAll(),
+        this.getPersonExternalPeerStore().listAll(),
         this.getUserStore().getBrainAnchor(),
       ]);
     const peopleById = new Map(people.map((person) => [person.id, person]));
     const identitiesByPersonId = groupBy(identities, (item) => item.personId);
     const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
-    const agentsByPersonId = groupBy(agents, (item) => item.personId);
+    const externalPeersByPersonId = groupBy(
+      externalPeers,
+      (item) => item.personId,
+    );
 
     return Promise.all(
       users.map(async (user) => {
@@ -1015,15 +985,15 @@ export class AuthService {
             (identity) => identitySummary(identity, user.id),
           ),
           passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
-          agents: agentsByPersonId.get(user.personId) ?? [],
+          externalPeers: externalPeersByPersonId.get(user.personId) ?? [],
         };
       }),
     );
   }
 
-  async reconcileAgentPersonClaims(
-    claims: AgentPersonIdentityClaimInput[],
-  ): Promise<AuthAgentPersonReconciliationResponse> {
+  async reconcileIdentityProposals(
+    claims: AuthIdentityProposalInput[],
+  ): Promise<AuthIdentityReconciliationResponse> {
     await this.ensureUserStoreStarted();
     const [identities, users] = await Promise.all([
       this.getUserStore().listAllIdentities(),
@@ -1036,7 +1006,7 @@ export class AuthService {
     );
     const userByPersonId = new Map(users.map((user) => [user.personId, user]));
 
-    const reconciledClaims: AuthAgentPersonReconciliationResponse["claims"] =
+    const reconciledClaims: AuthIdentityReconciliationResponse["claims"] =
       claims.map((claim, index) => {
         const identityKeyHash = hashIdentityKey(
           normalizeIdentityKey({
@@ -1103,9 +1073,11 @@ export class AuthService {
     return { state: "no_verified_match", claims: reconciledClaims };
   }
 
-  async listPersonAgents(personId: string): Promise<AgentPersonLink[]> {
+  async listPersonExternalPeers(
+    personId: string,
+  ): Promise<PersonExternalPeer[]> {
     await this.ensureUserStoreStarted();
-    return this.getPersonAgentStore().listByPersonId(personId);
+    return this.getPersonExternalPeerStore().listByPersonId(personId);
   }
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
@@ -1404,24 +1376,6 @@ export class AuthService {
     if (user.status === "invited") {
       await this.updateUserStatus(user.id, "active", { actorUserId: user.id });
     }
-
-    const links = await this.getPersonAgentStore().listByPersonId(
-      user.personId,
-    );
-    for (const link of links) {
-      if (link.status !== "pending") continue;
-      const accepted = await this.getPersonAgentStore().acceptRepresentation(
-        link.agentId,
-        user.id,
-      );
-      await this.getAuditStore().append({
-        actorUserId: user.id,
-        action: "auth.agent_person.accepted",
-        targetType: "agent",
-        targetId: accepted.agentId,
-        metadata: { personId: user.personId },
-      });
-    }
   }
 
   async getPasskeySetupRequired(
@@ -1473,16 +1427,13 @@ export class AuthService {
 
     if (
       path === "/auth/admin/users" ||
+      path === "/auth/admin/audit" ||
       path === "/auth/admin/anchor" ||
       path === "/auth/admin/mutations" ||
       path === "/auth/admin/reconciliation"
     ) {
       return this.handleAdminRequest(request);
     }
-    if (path === "/auth/representations") {
-      return this.handleRepresentationRequest(request);
-    }
-
     if (request.method === "OPTIONS" && isCorsMachineEndpoint(path)) {
       return corsPreflightResponse();
     }
@@ -1569,33 +1520,25 @@ export class AuthService {
     return this.handleRequest(request);
   }
 
-  private handleRepresentationRequest(request: Request): Promise<Response> {
-    return handleAuthRepresentationRequest(request, {
-      resolveSession: (representationRequest) =>
-        this.resolveSession(representationRequest),
-      listPersonAgents: (personId) => this.listPersonAgents(personId),
-      acceptRepresentation: (agentId, actorUserId) =>
-        this.acceptAgentRepresentation(agentId, { actorUserId }),
-    });
-  }
-
   private handleAdminRequest(request: Request): Promise<Response> {
     return handleAuthAdminRequest(request, {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
       getBrainAnchor: () => this.getBrainAnchor(),
+      listAuditEvents: () => this.listAuditEvents(),
       listAdminUsers: () => this.listAdminUsers(),
-      reconcileAgentPersonClaims: (claims) =>
-        this.reconcileAgentPersonClaims(claims),
-      listPersonAgents: (personId) => this.listPersonAgents(personId),
+      reconcileIdentityProposals: (claims) =>
+        this.reconcileIdentityProposals(claims),
+      listPersonExternalPeers: (personId) =>
+        this.listPersonExternalPeers(personId),
       listUserIdentities: (userId) => this.listUserIdentities(userId),
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),
       createUser: (input, actorUserId) =>
         this.createUser(input, { actorUserId }),
-      promoteAgentPerson: (input, actorUserId) =>
-        this.promoteAgentPerson(input, { actorUserId }),
-      linkAgentPerson: (input, actorUserId) =>
-        this.linkAgentPerson(input, { actorUserId }),
+      inviteExternalPeerPerson: (input, actorUserId) =>
+        this.inviteExternalPeerPerson(input, { actorUserId }),
+      linkExternalPeer: (input, actorUserId) =>
+        this.linkExternalPeer(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>

@@ -3,7 +3,7 @@ import {
   type AuthAdminMutation,
   type AuthAdminRole,
   type AuthAdminUserSummary,
-  type AuthAgentPersonSummary,
+  type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,36 +14,37 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import { acceptRepresentation, mutateAdmin } from "./api";
-import { AnchorPanel } from "./components/AnchorPanel";
+import { mutateAdmin } from "./api";
+import { AuditView } from "./components/AuditView";
+import { InvitationsView } from "./components/InvitationsView";
+import { OverviewView } from "./components/OverviewView";
 import { PersonDetail } from "./components/PersonDetail";
-import { RepresentationsView } from "./components/RepresentationsView";
 import { Roster } from "./components/Roster";
 import { Button } from "./components/primitives";
-import { AddPersonDialog } from "./dialogs/AddPersonDialog";
-import { IdentityDialog } from "./dialogs/IdentityDialog";
-import { ModalFrame } from "./dialogs/ModalFrame";
 import {
-  PromotionDialog,
-  PromotionReconciliationSummary,
-  promotionReconciliationDefaults,
-} from "./dialogs/PromotionDialog";
+  AddPersonDialog,
+  type AddPersonInput,
+} from "./dialogs/AddPersonDialog";
+import { ModalFrame } from "./dialogs/ModalFrame";
 import { messageOf, useMutationFeedback } from "./feedback";
 import { formatDate } from "./format";
-import { manualIdentityTypes } from "./identity-providers";
 import styles from "./people.css" with { type: "text" };
-import type { AgentPromotionDraft, Modal, SurfaceView } from "./people-types";
+import type {
+  ExternalPeerInvitationDraft,
+  Modal,
+  SurfaceView,
+} from "./people-types";
 import {
   anchorQueryOptions,
+  auditQueryOptions,
   invalidateAfterAdminMutation,
-  invalidateAfterRepresentationMutation,
-  representationsQueryOptions,
   usersQueryOptions,
 } from "./queries";
 
-export { messageOf, manualIdentityTypes };
+export { messageOf };
 export { assuranceLabel, initials, roleLabel } from "./format";
-export { PromotionReconciliationSummary, promotionReconciliationDefaults };
+
+const PEER_INVITATION_STORAGE_KEY = "brains:admin-peer-invitation";
 
 export interface PeopleBootstrap {
   userId: string;
@@ -59,10 +60,8 @@ export interface PeopleAppProps {
   bootstrap: PeopleBootstrap;
   initialAnchor?: AuthBrainAnchorSummary;
   initialUsers?: AuthAdminUserSummary[];
-  initialRepresentations?: AuthAgentPersonSummary[];
+  initialAudit?: AuthAuditEventSummary[];
 }
-
-const PROMOTION_STORAGE_KEY = "brains:people-agent-promotion";
 
 export function PeopleApp(props: PeopleAppProps): ReactElement {
   const isAdmin = props.bootstrap.role === "admin";
@@ -81,112 +80,180 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       ? { initialData: props.initialUsers }
       : {}),
   });
-  const representationsQuery = useQuery({
-    ...representationsQueryOptions(),
-    ...(props.initialRepresentations !== undefined
-      ? { initialData: props.initialRepresentations }
+  const auditQuery = useQuery({
+    ...auditQueryOptions(),
+    enabled: isAdmin,
+    ...(props.initialAudit !== undefined
+      ? { initialData: props.initialAudit }
       : {}),
   });
   const users = usersQuery.data ?? [];
-  const representations = representationsQuery.data ?? [];
+  const auditEvents = auditQuery.data ?? [];
   const anchor = anchorQuery.data;
   const configuredAnchorKind = anchor?.configuredKind ?? "person";
   const organization = configuredAnchorKind === "organization";
   const rosterLabel = organization ? "People" : "Members";
   const rosterSingular = organization ? "person" : "member";
-  const heroTagline =
-    configuredAnchorKind === "person"
-      ? "your brain · access"
-      : organization
-        ? "people · anchor · access"
-        : "members · anchor · access";
+  const activeUsers = users.filter((user) => user.status !== "invited");
+  const invitations = users.filter((user) => user.status === "invited");
   const activeAdminCount = users.filter(
     (user) => user.role === "admin" && user.status === "active",
   ).length;
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(
     props.initialUsers?.find((user) => user.userId === props.bootstrap.userId)
-      ?.userId ?? props.initialUsers?.[0]?.userId,
+      ?.userId ??
+      props.initialUsers?.find((user) => user.status !== "invited")?.userId,
   );
-  const [view, setView] = useState<SurfaceView>(
-    isAdmin ? "roster" : "representations",
-  );
+  const [view, setView] = useState<SurfaceView>("overview");
   const [modal, setModal] = useState<Modal>(null);
-  const { feedback, setFeedback, runWithFeedback } = useMutationFeedback();
+  const { feedback, runWithFeedback } = useMutationFeedback();
   const { mutateAsync: runAdminMutation } = useMutation({
     mutationFn: (mutation: AuthAdminMutation) => mutateAdmin<unknown>(mutation),
     onSuccess: async (_result, mutation) =>
       invalidateAfterAdminMutation(queryClient, mutation.action),
   });
-  const { mutateAsync: runRepresentationMutation } = useMutation({
-    mutationFn: acceptRepresentation,
-    onSuccess: async () => invalidateAfterRepresentationMutation(queryClient),
-  });
-  const loading = isAdmin
-    ? anchorQuery.isPending || usersQuery.isPending
-    : representationsQuery.isPending;
-  const queryError =
-    representationsQuery.error ??
-    (isAdmin ? (anchorQuery.error ?? usersQuery.error) : null);
-  const error = queryError ? messageOf(queryError, "People unavailable") : null;
+  const loading =
+    isAdmin &&
+    (anchorQuery.isPending || usersQuery.isPending || auditQuery.isPending);
+  const queryError = anchorQuery.error ?? usersQuery.error ?? auditQuery.error;
+  const error = queryError ? messageOf(queryError, "Admin unavailable") : null;
 
   const selectedUser = useMemo(
-    () => users.find((user) => user.userId === selectedUserId),
-    [selectedUserId, users],
+    () => activeUsers.find((user) => user.userId === selectedUserId),
+    [activeUsers, selectedUserId],
   );
 
   useEffect(() => {
     setSelectedUserId((current) => {
-      if (users.some((user) => user.userId === current)) return current;
+      if (activeUsers.some((user) => user.userId === current)) return current;
       return (
-        users.find((user) => user.userId === props.bootstrap.userId)?.userId ??
-        users[0]?.userId
+        activeUsers.find((user) => user.userId === props.bootstrap.userId)
+          ?.userId ?? activeUsers[0]?.userId
       );
     });
-  }, [props.bootstrap.userId, users]);
+  }, [activeUsers, props.bootstrap.userId]);
 
   useEffect(() => {
     if (!isAdmin || typeof window === "undefined") return;
-    const raw = window.sessionStorage.getItem(PROMOTION_STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(PEER_INVITATION_STORAGE_KEY);
     if (!raw) return;
-    window.sessionStorage.removeItem(PROMOTION_STORAGE_KEY);
+    window.sessionStorage.removeItem(PEER_INVITATION_STORAGE_KEY);
     try {
-      const draft = JSON.parse(raw) as AgentPromotionDraft;
-      if (typeof draft.agentId === "string" && draft.agentId.length > 0) {
-        setModal({ kind: "promotion", draft });
-      }
-    } catch {
-      setFeedback({
-        message: "The agent promotion request was invalid.",
-        tone: "error",
+      const draft = JSON.parse(raw) as ExternalPeerInvitationDraft;
+      if (typeof draft.peerId !== "string" || !draft.peerId.trim()) return;
+      setView("invitations");
+      setModal({
+        kind: "add",
+        draft: {
+          peerId: draft.peerId,
+          ...(typeof draft.displayName === "string" && draft.displayName.trim()
+            ? { displayName: draft.displayName }
+            : {}),
+        },
       });
+    } catch {
+      // Ignore malformed cross-surface navigation state.
     }
-  }, [isAdmin, setFeedback]);
+  }, [isAdmin]);
 
   const runMutation = useCallback(
     async (
       mutation: AuthAdminMutation,
       preferredUserId?: string,
       successMessage = "Access record updated",
-    ): Promise<unknown> => {
-      const refreshesRecords =
-        mutation.action !==
-        AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
-      return runWithFeedback(
+    ): Promise<unknown> =>
+      runWithFeedback(
         async () => {
           const result = await runAdminMutation(mutation);
           if (preferredUserId) setSelectedUserId(preferredUserId);
           return result;
         },
-        {
-          fallback: "Mutation failed",
-          ...(refreshesRecords ? { success: successMessage } : {}),
-        },
-      );
-    },
+        { fallback: "Mutation failed", success: successMessage },
+      ),
     [runAdminMutation, runWithFeedback],
   );
 
   const closeModal = (): void => setModal(null);
+
+  const showSetup = (
+    user: { userId: string; displayName: string },
+    registration: { setupUrl: string; expiresAt: number },
+  ): void => {
+    setSelectedUserId(user.userId);
+    setModal({
+      kind: "setup",
+      setupUrl: registration.setupUrl,
+      copy: `Deliver this single-use link to ${user.displayName} through the confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+    });
+  };
+
+  const createSetup = (user: AuthAdminUserSummary): void => {
+    void runMutation(
+      {
+        action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        userId: user.userId,
+      },
+      user.userId,
+      "Setup link created",
+    )
+      .then((result) => {
+        const registration = (
+          result as {
+            registration: { setupUrl: string; expiresAt: number };
+          }
+        ).registration;
+        showSetup(user, registration);
+      })
+      .catch(() => undefined);
+  };
+
+  const createInvitation = async (input: AddPersonInput): Promise<void> => {
+    if (input.peerId) {
+      const result = await runMutation(
+        {
+          action: AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson,
+          confirmation: AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson,
+          peerId: input.peerId,
+          displayName: input.displayName,
+          role: input.role,
+        },
+        undefined,
+        "Invitation created",
+      );
+      const invited = result as {
+        user: { userId: string; displayName: string };
+        registration: { setupUrl: string; expiresAt: number };
+      };
+      showSetup(invited.user, invited.registration);
+      return;
+    }
+
+    const created = (await runMutation(
+      {
+        action: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
+        displayName: input.displayName,
+        role: input.role,
+        status: "invited",
+      },
+      undefined,
+      "Invitation created",
+    )) as { user: { userId: string; displayName: string } };
+    const setup = (await runMutation(
+      {
+        action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
+        userId: created.user.userId,
+      },
+      created.user.userId,
+      "Setup link created",
+    )) as { registration: { setupUrl: string; expiresAt: number } };
+    showSetup(created.user, setup.registration);
+  };
+
+  const openMembers = (): void => setView("members");
+  const openInvitations = (): void => setView("invitations");
 
   return (
     <>
@@ -195,113 +262,126 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         <header className="admin-hero">
           <div>
             <h1>Admin</h1>
-            <p>{heroTagline}</p>
+            <p>
+              {organization
+                ? "people · invitations · audit"
+                : "members · invitations · audit"}
+            </p>
           </div>
           <div className="admin-hero-meta">
             <span>
               brain <strong>{props.bootstrap.brainName}</strong>
             </span>
             <span>
-              {isAdmin
-                ? `${users.length} ${users.length === 1 ? "member" : "members"} · ${activeAdminCount} ${activeAdminCount === 1 ? "admin" : "admins"}`
-                : "self service"}
+              {activeUsers.length}{" "}
+              {activeUsers.length === 1 ? "member" : "members"} ·{" "}
+              {activeAdminCount} {activeAdminCount === 1 ? "admin" : "admins"}
             </span>
           </div>
         </header>
 
         <nav className="admin-tabs" aria-label="Administration sections">
-          {isAdmin && <a href="#brain-anchor">Anchor</a>}
-          {isAdmin && (
-            <button
-              className={view === "roster" ? "is-active" : ""}
-              type="button"
-              onClick={() => setView("roster")}
-            >
-              {rosterLabel}
-            </button>
-          )}
-          <button
-            className={view === "representations" ? "is-active" : ""}
-            type="button"
-            onClick={() => setView("representations")}
-          >
-            My agents
-          </button>
-          {isAdmin && (
-            <span>
-              Invitations <small>soon</small>
-            </span>
-          )}
-          {isAdmin && (
-            <span>
-              Audit <small>soon</small>
-            </span>
+          {(["overview", "members", "invitations", "audit"] as const).map(
+            (section) => (
+              <button
+                key={section}
+                className={view === section ? "is-active" : ""}
+                type="button"
+                onClick={() => setView(section)}
+              >
+                {section === "members"
+                  ? rosterLabel
+                  : section[0]?.toUpperCase() + section.slice(1)}
+                {section === "invitations" && invitations.length > 0 ? (
+                  <small>{invitations.length}</small>
+                ) : null}
+              </button>
+            ),
           )}
         </nav>
 
-        {error && <p className="people-error-banner">{error}</p>}
-        {loading ? (
+        {!isAdmin ? (
+          <div className="card people-empty-state">
+            <strong>Admin access required</strong>
+            <p>This console is available only to active Administrators.</p>
+          </div>
+        ) : error ? (
+          <p className="people-error-banner">{error}</p>
+        ) : loading ? (
           <div className="people-loading">Resolving private records…</div>
-        ) : view === "representations" ? (
-          <RepresentationsView
-            representations={representations}
-            onAccept={async (agentId) => {
-              await runWithFeedback(
-                async () => {
-                  await runRepresentationMutation(agentId);
+        ) : view === "overview" ? (
+          <OverviewView
+            anchor={anchor}
+            users={users}
+            onOpenMembers={openMembers}
+            onOpenInvitations={openInvitations}
+          />
+        ) : view === "members" ? (
+          <section className="people-panel">
+            <header className="people-head">
+              <div>
+                <div className="eyebrow">Roster</div>
+                <h2>{rosterLabel}</h2>
+                <p>
+                  Local accounts, sign-in, connected channels, access, and
+                  optional external peers.
+                </p>
+              </div>
+              <Button tone="primary" onClick={() => setModal({ kind: "add" })}>
+                Add {rosterSingular}
+              </Button>
+            </header>
+            <div className="people-layout">
+              <Roster
+                users={activeUsers}
+                selectedUserId={selectedUserId}
+                currentUserId={props.bootstrap.userId}
+                label={rosterLabel}
+                onSelect={setSelectedUserId}
+              />
+              <PersonDetail
+                user={selectedUser}
+                brainName={props.bootstrap.brainName}
+                activeAdminCount={activeAdminCount}
+                onConfirm={setModal}
+                onMutation={runMutation}
+                onSetup={(setupUrl, copy) =>
+                  setModal({ kind: "setup", setupUrl, copy })
+                }
+              />
+            </div>
+          </section>
+        ) : view === "invitations" ? (
+          <InvitationsView
+            invitations={invitations}
+            onAdd={() => setModal({ kind: "add" })}
+            onCreateSetup={createSetup}
+            onCancel={(user) =>
+              setModal({
+                kind: "confirm",
+                title: `Cancel ${user.displayName}’s invitation?`,
+                copy: "The pending account will be suspended and its setup links revoked.",
+                warning:
+                  "The person and peer association remain in audit history.",
+                submitLabel: "Cancel invitation",
+                run: async () => {
+                  await runMutation(
+                    {
+                      action: AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
+                      confirmation:
+                        AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
+                      userId: user.userId,
+                      status: "suspended",
+                    },
+                    undefined,
+                    "Invitation cancelled",
+                  );
                 },
-                {
-                  success: "Agent representation accepted",
-                  fallback: "Consent failed",
-                },
-              ).catch(() => undefined);
-            }}
+              })
+            }
           />
         ) : (
-          <>
-            <div id="brain-anchor">
-              <AnchorPanel anchor={anchor} />
-            </div>
-            <section className="people-panel">
-              <header className="people-head">
-                <div>
-                  <div className="eyebrow">Roster</div>
-                  <h2>{rosterLabel}</h2>
-                  <p>
-                    {organization
-                      ? "Everyone with a profile at this organization, their access, and any linked brain representatives."
-                      : "Everyone with a profile on this brain, their access, and any linked brain representatives."}
-                  </p>
-                </div>
-                <Button
-                  tone="primary"
-                  onClick={() => setModal({ kind: "add" })}
-                >
-                  Add {rosterSingular}
-                </Button>
-              </header>
-              <div className="people-layout">
-                <Roster
-                  users={users}
-                  selectedUserId={selectedUserId}
-                  currentUserId={props.bootstrap.userId}
-                  label={rosterLabel}
-                  onSelect={setSelectedUserId}
-                />
-                <PersonDetail
-                  user={selectedUser}
-                  brainName={props.bootstrap.brainName}
-                  activeAdminCount={activeAdminCount}
-                  onIdentity={() => setModal({ kind: "identity" })}
-                  onConfirm={setModal}
-                  onMutation={runMutation}
-                  onSetup={(setupUrl, copy) =>
-                    setModal({ kind: "setup", setupUrl, copy })
-                  }
-                />
-              </div>
-            </section>
-          </>
+          <AuditView events={auditEvents} users={users} />
         )}
       </div>
 
@@ -316,45 +396,9 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
 
       {modal?.kind === "add" && (
         <AddPersonDialog
+          {...(modal.draft ? { initialDraft: modal.draft } : {})}
           onClose={closeModal}
-          onCreate={async (displayName, role) => {
-            const result = await runMutation(
-              {
-                action: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
-                confirmation: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
-                displayName,
-                role,
-                status: "active",
-              },
-              undefined,
-              "Person created",
-            );
-            const created = result as { user: AuthAdminUserSummary };
-            setSelectedUserId(created.user.userId);
-            closeModal();
-          }}
-        />
-      )}
-
-      {modal?.kind === "identity" && selectedUser && (
-        <IdentityDialog
-          identityTypes={manualIdentityTypes(
-            props.bootstrap.registeredInterfaces ?? [],
-          )}
-          onClose={closeModal}
-          onAttach={async (input) => {
-            await runMutation(
-              {
-                action: AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity,
-                confirmation: AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity,
-                userId: selectedUser.userId,
-                ...input,
-              },
-              selectedUser.userId,
-              "Identity attached",
-            );
-            closeModal();
-          }}
+          onCreate={(input) => createInvitation(input).catch(() => undefined)}
         />
       )}
 
@@ -418,59 +462,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
             is used.
           </p>
         </ModalFrame>
-      )}
-
-      {modal?.kind === "promotion" && (
-        <PromotionDialog
-          draft={modal.draft}
-          users={users}
-          selectedUserId={selectedUserId}
-          onClose={closeModal}
-          onPromote={async (input) => {
-            if (input.accessPath === "link") {
-              if (!input.userId) throw new Error("Select an existing person");
-              await runMutation(
-                {
-                  action: AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson,
-                  confirmation: AUTH_ADMIN_MUTATION_ACTIONS.linkAgentPerson,
-                  agentId: modal.draft.agentId,
-                  userId: input.userId,
-                  ...(modal.draft.claims?.length
-                    ? { claims: modal.draft.claims }
-                    : {}),
-                },
-                input.userId,
-                "Representation request created",
-              );
-              closeModal();
-              return;
-            }
-            const result = await runMutation(
-              {
-                action: AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson,
-                confirmation: AUTH_ADMIN_MUTATION_ACTIONS.promoteAgentPerson,
-                agentId: modal.draft.agentId,
-                displayName: input.displayName,
-                role: input.role,
-                ...(modal.draft.claims?.length
-                  ? { claims: modal.draft.claims }
-                  : {}),
-              },
-              undefined,
-              "Invitation created",
-            );
-            const promoted = result as {
-              user: AuthAdminUserSummary;
-              registration: { setupUrl: string; expiresAt: number };
-            };
-            setSelectedUserId(promoted.user.userId);
-            setModal({
-              kind: "setup",
-              setupUrl: promoted.registration.setupUrl,
-              copy: `Send this single-use link to ${promoted.user.displayName} through a private channel. It expires ${formatDate(promoted.registration.expiresAt * 1000)}.`,
-            });
-          }}
-        />
       )}
     </>
   );

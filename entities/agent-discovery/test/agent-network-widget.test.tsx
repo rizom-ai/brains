@@ -13,16 +13,16 @@ describe("AgentNetworkWidget", () => {
     expect(agentNetworkWidgetStyles).toContain("prefers-reduced-motion");
   });
 
-  it("bridges approved-agent promotion into the Anchor People flow", () => {
+  it("bridges an approved external peer into the Admin invitation flow", () => {
     expect(agentNetworkWidgetScript).toContain(
-      'sessionStorage.setItem("brains:people-agent-promotion"',
+      'sessionStorage.setItem("brains:admin-peer-invitation"',
     );
     expect(agentNetworkWidgetScript).toContain(
       'window.location.assign("/admin")',
     );
-    expect(agentNetworkWidgetScript).not.toContain("brains:agent-promote");
     expect(agentNetworkWidgetScript).toContain('data-auth-role") === "admin"');
-    expect(agentNetworkWidgetScript).toContain("data-agent-person-claims");
+    expect(agentNetworkWidgetScript).toContain("data-external-peer-invite");
+    expect(agentNetworkWidgetScript).not.toContain("representation");
   });
 
   it("renders agents and skills tabs in one widget", () => {
@@ -41,13 +41,6 @@ describe("AgentNetworkWidget", () => {
                 kind: "professional",
                 status: "approved",
                 discoveredAt: "2026-04-20T00:00:00.000Z",
-                representedPersonClaims: [
-                  {
-                    type: "did",
-                    subject: "did:plc:kai",
-                    label: "Kai DID",
-                  },
-                ],
               },
               {
                 id: "north.ops",
@@ -126,11 +119,9 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain('data-ui-panel="professional"');
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
-    expect(html).toContain('data-agent-promote="kai.brain"');
-    expect(html).toContain('data-agent-promote-name="Kai"');
-    expect(html).toContain("data-agent-person-claims");
-    expect(html).toContain("did:plc:kai");
-    expect(html.match(/data-agent-promote=/g)).toHaveLength(2);
-    expect(html).not.toContain('data-agent-promote="north.ops"');
+    expect(html).toContain('data-external-peer-invite="kai.brain"');
+    expect(html).toContain('data-external-peer-name="Kai"');
+    expect(html.match(/data-external-peer-invite=/g)).toHaveLength(2);
+    expect(html).not.toContain('data-external-peer-invite="north.ops"');
   });
 });

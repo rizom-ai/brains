@@ -386,6 +386,12 @@ export class AuthServicePlugin extends ServicePlugin<
         handler,
       },
       {
+        path: "/auth/admin/audit",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
         path: "/auth/admin/mutations",
         method: "POST",
         public: true,
@@ -393,18 +399,6 @@ export class AuthServicePlugin extends ServicePlugin<
       },
       {
         path: "/auth/admin/reconciliation",
-        method: "POST",
-        public: true,
-        handler,
-      },
-      {
-        path: "/auth/representations",
-        method: "GET",
-        public: true,
-        handler,
-      },
-      {
-        path: "/auth/representations",
         method: "POST",
         public: true,
         handler,
