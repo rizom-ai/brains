@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createPreactBuilder } from "../../src/lib/preact-builder";
-import type { BuildContext } from "../../src/lib/static-site-builder";
+import { createPreactBuilder as createActualPreactBuilder } from "../../src/lib/preact-builder";
+import type { RendererTestSourceContext as BuildContext } from "../test-helpers";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import type { RouteDefinition } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
@@ -10,7 +10,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { h, type VNode } from "preact";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
-import { TestLayout } from "../test-helpers";
+import { prepareRendererTestContext, TestLayout } from "../test-helpers";
 import {
   UISlotRegistry,
   type LayoutComponent,
@@ -19,6 +19,29 @@ import {
 
 const titlePropsSchema = z.object({ title: z.string() });
 const contentPropsSchema = z.object({ content: z.string() });
+
+function createPreactBuilder(
+  options: Parameters<typeof createActualPreactBuilder>[0],
+): {
+  build(
+    context: BuildContext,
+    onProgress: Parameters<
+      ReturnType<typeof createActualPreactBuilder>["build"]
+    >[1],
+  ): Promise<void>;
+  clean(): Promise<void>;
+} {
+  const builder = createActualPreactBuilder(options);
+  return {
+    build: async (context, onProgress): Promise<void> => {
+      await builder.build(
+        await prepareRendererTestContext(context),
+        onProgress,
+      );
+    },
+    clean: () => builder.clean(),
+  };
+}
 
 describe("PreactBuilder", () => {
   let testDir: string;

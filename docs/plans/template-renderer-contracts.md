@@ -2,7 +2,7 @@
 
 ## Status
 
-Active on `work/site-build-robustness`. The first slice establishes the behavioral baseline and preflight diagnostics before introducing prepared build snapshots.
+Active on `work/site-build-robustness`. Baseline and preflight diagnostics are in place. The current Phase 2 slice resolves and validates route content, metadata, scripts, template assets, and the image map into a frozen serializable snapshot before the Preact renderer runs. App `public/` inventory and transactional output remain pending.
 
 The robustness work is valuable with the current Preact renderer. Supporting Astro or another renderer is an optional later outcome, not the reason for the plan.
 

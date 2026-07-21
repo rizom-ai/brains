@@ -7,23 +7,25 @@ import type {
 import { runStaticSiteBuild } from "../../src/lib/run-static-site-build";
 
 const buildContext: BuildContext = {
-  routes: [],
-  siteConfig: {
-    title: "Test Site",
-    description: "Test Description",
-  },
-  getContent: async () => null,
-  getViewTemplate: () => undefined,
-  layouts: {},
-  getSiteLayoutInfo: async () => ({
-    title: "Test Site",
-    description: "Test Description",
-    navigation: {
-      primary: [],
-      secondary: [],
+  preparedBuild: {
+    buildId: "run-static-site-build-test",
+    environment: "preview",
+    site: {
+      title: "Test Site",
+      description: "Test Description",
+      navigation: {
+        primary: [],
+        secondary: [],
+      },
+      copyright: "© Test Site",
     },
-    copyright: "© Test Site",
-  }),
+    routes: [],
+    images: {},
+    staticAssets: {},
+    globalHeadScripts: [],
+  },
+  viewTemplates: {},
+  layouts: {},
 };
 
 describe("runStaticSiteBuild", () => {

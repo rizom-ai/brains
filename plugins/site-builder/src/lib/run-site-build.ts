@@ -1,6 +1,7 @@
 import type { ProgressCallback } from "@brains/utils/progress";
 import { ProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
+import { randomUUID } from "crypto";
 import type {
   BuildResult,
   SiteBuildDiagnostic,
@@ -11,6 +12,7 @@ import { collectBuildRoutes } from "./collect-build-routes";
 import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
+import { prepareSiteBuild } from "./prepare-site-build";
 import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
 import type { BuildPipelineContext } from "./build-pipeline-context";
@@ -81,14 +83,8 @@ export async function runSiteBuild(
       });
     }
 
-    const staticSiteBuilder = await createStaticSiteBuilder({
-      logger: options.pipelineContext.logger,
-      parsedOptions,
-      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-    });
-
     await reporter?.report({
-      message: `Building ${routes.length} routes`,
+      message: `Preparing ${routes.length} routes`,
       progress: 20,
       total: 100,
     });
@@ -103,14 +99,41 @@ export async function runSiteBuild(
       pipelineContext: options.pipelineContext,
       sharedImagesDir: parsedOptions.sharedImagesDir,
     });
-
-    const buildContext = createBuildContext({
+    const preparation = await prepareSiteBuild({
+      buildId: randomUUID(),
       routes,
       parsedOptions,
       buildOptions: options.buildOptions,
       pipelineContext: options.pipelineContext,
       imageBuildService,
       siteMetadata: parsedOptions.siteConfig,
+    });
+    diagnostics.push(...preparation.diagnostics);
+    const preparationWarnings = preparation.diagnostics.filter(
+      (diagnostic) => diagnostic.severity === "warning",
+    );
+    warnings.push(...preparationWarnings.map(formatSiteBuildDiagnostic));
+    const preparationErrors = preparation.diagnostics.filter(
+      (diagnostic) => diagnostic.severity === "error",
+    );
+    if (preparationErrors.length > 0) {
+      return createFailedBuildResult({
+        outputDir: parsedOptions.outputDir,
+        errorMessages: preparationErrors.map(formatSiteBuildDiagnostic),
+        diagnostics,
+      });
+    }
+
+    const buildContext = createBuildContext({
+      preparedBuild: preparation.preparedBuild,
+      layouts: parsedOptions.layouts,
+      slots: options.buildOptions.slots,
+      pipelineContext: options.pipelineContext,
+    });
+    const staticSiteBuilder = await createStaticSiteBuilder({
+      logger: options.pipelineContext.logger,
+      parsedOptions,
+      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
     });
 
     await runStaticSiteBuild({

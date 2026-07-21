@@ -10,6 +10,7 @@ import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { IAnchorProfileService } from "@brains/plugins";
 import { createSiteBuilderServices, TestLayout } from "../test-helpers";
 import { z } from "@brains/utils/zod";
+import { h } from "preact";
 
 describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
@@ -31,7 +32,7 @@ describe("SiteBuilder dataQuery handling", () => {
       name: "test-template",
       pluginId: "test",
       schema: z.object({}),
-      renderers: {},
+      renderers: { web: () => h("div", {}) },
     });
 
     // Create route registry
@@ -39,15 +40,7 @@ describe("SiteBuilder dataQuery handling", () => {
 
     // Create mock static site builder
     mockStaticSiteBuilder = {
-      build: mock().mockImplementation(async (buildContext) => {
-        // Call getContent for each section of each route to trigger the logic
-        for (const route of buildContext.routes) {
-          for (const section of route.sections) {
-            await buildContext.getContent(route, section);
-          }
-        }
-        return { success: true };
-      }),
+      build: mock().mockResolvedValue({ success: true }),
       clean: mock().mockResolvedValue(undefined),
     };
 

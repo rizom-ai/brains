@@ -8,9 +8,9 @@ import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import { Fragment, h, type VNode } from "preact";
 import { createPreactBuilder } from "../../src/lib/preact-builder";
-import type { BuildContext } from "../../src/lib/static-site-builder";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
+import { createRendererTestContext } from "../test-helpers";
 
 const pageSchema = z.object({
   heading: z.string(),
@@ -119,7 +119,7 @@ describe("PreactBuilder behavioral baseline", () => {
       },
     };
 
-    const context: BuildContext = {
+    const context = createRendererTestContext({
       routes: [
         {
           id: "home",
@@ -171,10 +171,9 @@ describe("PreactBuilder behavioral baseline", () => {
         themeMode: "light",
         analyticsScript: '<script id="analytics"></script>',
       },
-      getContent: async (_route, section) => section.content ?? null,
       getViewTemplate: (name) => templates[name],
       layouts: { default: layout },
-      getSiteLayoutInfo: async () => ({
+      siteLayoutInfo: {
         title: "Baseline Site",
         description: "Baseline description",
         copyright: "Baseline copyright",
@@ -182,14 +181,14 @@ describe("PreactBuilder behavioral baseline", () => {
           primary: [{ label: "Writing", href: "/writing", priority: 10 }],
           secondary: [],
         },
-      }),
+      },
       themeCSS: ":root { --color-brand: #123456; }",
       headScripts: ['<script id="global-head"></script>'],
       staticAssets: {
         "/scripts/page.js": "console.log('site package override');",
         "/assets/site.txt": "site asset",
       },
-    };
+    });
 
     const progress: string[] = [];
     const builder = createPreactBuilder({
