@@ -86,6 +86,7 @@ The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress,
 Plans:
 
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
+- [identity-profiles-and-expression.md](./plans/identity-profiles-and-expression.md) — separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 
