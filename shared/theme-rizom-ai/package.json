@@ -1,6 +1,6 @@
 {
   "name": "@rizom/theme-rizom-ai",
-  "version": "0.2.0-alpha.210",
+  "version": "0.2.0-alpha.211",
   "description": "Consolidated rizom.ai theme — rev-5 design system: deep indigo ground, brass/ruby/moss room accents, warm off-white light mode, Fraunces + IBM Plex.",
   "license": "Apache-2.0",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
@@ -36,7 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rizom/theme-default": "0.2.0-alpha.210"
+    "@rizom/theme-default": "0.2.0-alpha.211"
   },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",

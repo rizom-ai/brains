@@ -1,5 +1,12 @@
 # @brains/ui-library
 
+## 0.2.0-alpha.211
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.211
+
 ## 0.2.0-alpha.210
 
 ### Patch Changes
