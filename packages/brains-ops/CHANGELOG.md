@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`ba3dbab`](https://github.com/rizom-ai/brains/commit/ba3dbab5d25577c17259ebf05506ff1ff4b7f26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish canonical AT Protocol lexicon schema records from the DNS-designated authority account on startup.
+
 ## 0.2.0-alpha.207
 
 ## 0.2.0-alpha.206

@@ -1,5 +1,16 @@
 # @brains/atproto
 
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`ba3dbab`](https://github.com/rizom-ai/brains/commit/ba3dbab5d25577c17259ebf05506ff1ff4b7f26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish canonical AT Protocol lexicon schema records from the DNS-designated authority account on startup.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.208
+  - @brains/utils@0.2.0-alpha.208
+  - @brains/plugins@0.2.0-alpha.208
+
 ## 0.2.0-alpha.207
 
 ### Patch Changes

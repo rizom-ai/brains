@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.208
+
+### Patch Changes
+
+- [`6b03c83`](https://github.com/rizom-ai/brains/commit/6b03c836ff153b56b52a37bf7198f4a22d032052) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Enforce the topic soft ceiling when semantic merge synthesis says an incoming topic is distinct, preventing corpus rebuilds from minting topics past the calibrated ceiling.
+
 ## 0.2.0-alpha.207
 
 ## 0.2.0-alpha.206
