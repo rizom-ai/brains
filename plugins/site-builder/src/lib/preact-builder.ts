@@ -29,6 +29,7 @@ import { pLimit } from "@brains/utils/p-limit";
 import { z } from "@brains/utils/zod";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
+import { resolveSafeOutputFile } from "./output-path";
 
 const sectionContentSchema = z.record(z.string(), z.unknown());
 type SectionContent = z.output<typeof sectionContentSchema>;
@@ -235,7 +236,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Determine output path
     const outputPath =
       route.path === "/" ? "index.html" : `${route.path.slice(1)}/index.html`;
-    const fullPath = join(this.outputDir, outputPath);
+    const fullPath = resolveSafeOutputFile(this.outputDir, outputPath);
 
     // Ensure directory exists
     const dir = fullPath.substring(0, fullPath.lastIndexOf("/"));
@@ -419,16 +420,10 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     await Promise.all(
       entries.map(async ([rawPath, content]) => {
-        // Strip a leading slash so `join(outputDir, rawPath)` always
-        // resolves under outputDir rather than treating `rawPath` as an
-        // absolute filesystem path.
-        const relativePath = rawPath.startsWith("/")
-          ? rawPath.slice(1)
-          : rawPath;
-        const destPath = join(this.outputDir, relativePath);
+        const destPath = resolveSafeOutputFile(this.outputDir, rawPath);
         await fs.mkdir(dirname(destPath), { recursive: true });
         await fs.writeFile(destPath, content, "utf-8");
-        this.logger.debug(`Wrote inline static asset: ${relativePath}`);
+        this.logger.debug(`Wrote inline static asset: ${rawPath}`);
       }),
     );
   }

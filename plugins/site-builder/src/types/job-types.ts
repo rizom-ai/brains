@@ -1,6 +1,7 @@
 import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 import type { SiteMetadata } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
+import type { SiteBuildDiagnostic } from "./site-builder-types";
 
 /**
  * Schema for site build job data
@@ -32,6 +33,7 @@ export interface SiteBuildJobResult {
   environment: "preview" | "production";
   errors?: string[];
   warnings?: string[];
+  diagnostics?: SiteBuildDiagnostic[];
 }
 
 /**

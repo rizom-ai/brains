@@ -184,6 +184,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         environment,
         ...(result.errors && { errors: result.errors }),
         ...(result.warnings && { warnings: result.warnings }),
+        ...(result.diagnostics && { diagnostics: result.diagnostics }),
       };
     } catch (error) {
       await this.recordStatus(

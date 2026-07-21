@@ -2,7 +2,7 @@
 
 ## Status
 
-Parked while implementation timing is assessed. The maintainer decides when this work starts; this plan defines a safe technical sequence rather than a product-demand gate.
+Active on `work/site-build-robustness`. The first slice establishes the behavioral baseline and preflight diagnostics before introducing prepared build snapshots.
 
 The robustness work is valuable with the current Preact renderer. Supporting Astro or another renderer is an optional later outcome, not the reason for the plan.
 

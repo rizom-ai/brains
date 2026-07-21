@@ -1,9 +1,13 @@
-import type { BuildResult } from "../types/site-builder-types";
+import type {
+  BuildResult,
+  SiteBuildDiagnostic,
+} from "../types/site-builder-types";
 
 export interface SuccessfulBuildResultOptions {
   outputDir: string;
   routesBuilt: number;
   warnings: string[];
+  diagnostics?: SiteBuildDiagnostic[] | undefined;
 }
 
 export function createSuccessfulBuildResult(
@@ -15,12 +19,17 @@ export function createSuccessfulBuildResult(
     filesGenerated: options.routesBuilt + 1,
     routesBuilt: options.routesBuilt,
     ...(options.warnings.length > 0 && { warnings: options.warnings }),
+    ...(options.diagnostics &&
+      options.diagnostics.length > 0 && {
+        diagnostics: options.diagnostics,
+      }),
   };
 }
 
 export interface FailedBuildResultOptions {
   outputDir: string;
-  errorMessage: string;
+  errorMessages: string[];
+  diagnostics?: SiteBuildDiagnostic[] | undefined;
 }
 
 export function createFailedBuildResult(
@@ -31,6 +40,10 @@ export function createFailedBuildResult(
     outputDir: options.outputDir,
     filesGenerated: 0,
     routesBuilt: 0,
-    errors: [options.errorMessage],
+    errors: options.errorMessages,
+    ...(options.diagnostics &&
+      options.diagnostics.length > 0 && {
+        diagnostics: options.diagnostics,
+      }),
   };
 }

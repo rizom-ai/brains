@@ -240,4 +240,26 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
       fs.writeFile = originalWriteFile;
     }
   });
+
+  test("should reject paths that escape the output directory", async () => {
+    const originalMkdir = fs.mkdir;
+    const originalWriteFile = fs.writeFile;
+    const mkdirMock = mock(() => Promise.resolve(undefined));
+    const writeFileMock = mock(() => Promise.resolve());
+    fs.mkdir = mkdirMock as typeof fs.mkdir;
+    fs.writeFile = writeFileMock as typeof fs.writeFile;
+
+    try {
+      const writePromise = testableBuilder.writeInlineStaticAssets({
+        "../outside.js": "unsafe",
+      });
+      expect(writePromise).rejects.toThrow("path contains a .. segment");
+      await writePromise.catch(() => undefined);
+      expect(mkdirMock).not.toHaveBeenCalled();
+      expect(writeFileMock).not.toHaveBeenCalled();
+    } finally {
+      fs.mkdir = originalMkdir;
+      fs.writeFile = originalWriteFile;
+    }
+  });
 });
