@@ -345,6 +345,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
@@ -355,9 +356,30 @@
                   "link",
                   "anchor-profile"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published"],
@@ -716,6 +738,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
@@ -726,9 +749,30 @@
                   "link",
                   "anchor-profile"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published"],
@@ -1282,6 +1326,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
@@ -1292,9 +1337,30 @@
                   "link",
                   "anchor-profile"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published"],
@@ -1903,6 +1969,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
@@ -1913,9 +1980,30 @@
                   "link",
                   "anchor-profile"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published"],
@@ -2555,6 +2643,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
@@ -2569,9 +2658,30 @@
                   "anchor-profile",
                   "brain-character"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
@@ -2910,6 +3020,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
@@ -2924,9 +3035,30 @@
                   "anchor-profile",
                   "brain-character"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
@@ -3632,6 +3764,7 @@
               "packageName": "@brains/topics",
               "config": {
                 "autoMerge": true,
+                "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
@@ -3646,9 +3779,30 @@
                   "anchor-profile",
                   "brain-character"
                 ],
+                "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "sourceChangeBatchDelayMs": 1000
+                "mintableEntityTypes": [
+                  "anchor-profile",
+                  "post",
+                  "summary",
+                  "deck",
+                  "project"
+                ],
+                "reconciliationMaxPairs": 100,
+                "reinforceRelevanceThreshold": 0.5,
+                "semanticMergeDistance": 0.35,
+                "sourceChangeBatchDelayMs": 1000,
+                "sourceWeights": {
+                  "anchor-profile": 1,
+                  "deck": 0.85,
+                  "link": 0.6,
+                  "note": 0.6,
+                  "post": 1,
+                  "project": 0.8,
+                  "summary": 1
+                },
+                "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
