@@ -1,6 +1,6 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-07-19
+Last updated: 2026-07-21
 
 ## Status
 
@@ -10,7 +10,9 @@ Phase 1B's parser, resolver, and permission integration waits for that branch. N
 runtime has been implemented. The alpha.204 model and preset contract is frozen in
 `packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
 catalog IDs, selected members, sanitized resolved config, instruction text, effective
-permissions, site/theme identity, and the consolidated Rizom additions.
+permissions, site/theme identity, and the consolidated Rizom additions. The fixture was
+refreshed on 2026-07-21 to absorb the recorded topics-calibration delta (see the
+intentional-differences table); every other value remains the alpha.204 contract.
 
 The known-good baseline is `@rizom/brain@0.2.0-alpha.204`, healthy on the hosted `jo` and
 `smoke` canaries and on the consolidated `rizom.ai` production deployment. Unification
@@ -221,17 +223,18 @@ additions must be visible in `brain.yaml`; recipes cannot create hidden runtime 
 
 ### Intentional differences from alpha.204
 
-| Alpha.204 behavior                                                                                           | Unified target                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Admin is absent and `anchor` doubles as the administrative permission level                                  | Admin is a core capability; the auth branch's distinct `admin` level owns administrative routes and destructive defaults |
-| Decks are absent from Rover/Relay core                                                                       | Decks move to `core` as universal knowledge-work output                                                                  |
-| Outbound ATProto is in Rover core; the registry is only a catalog/instance addition                          | ATProto registry moves to `core`; outbound ATProto moves to `publishing`                                                 |
-| `dashboard-root` and `dashboard` are separate capability IDs selected by preset subtraction                  | One `dashboard` member defaults to `/`; `site` explicitly overrides it to `/dashboard`                                   |
-| `rover-profile` and `rover-onboarding` expose model names in capability IDs                                  | Transitional aliases map to model-neutral `profile` and `onboarding` IDs                                                 |
-| Rover default mixes blog, decks, analytics, Obsidian, and site infrastructure                                | Blog belongs to `publishing`, decks to `core`, analytics/site infrastructure to `site`, and Obsidian remains opt-in      |
-| Rover does not select `site-content` by preset; production Rizom adds it manually                            | `site-content` belongs to `site` because entity-backed site sections require it                                          |
-| Relay model defaults carry team instructions, permissions, topic config, site/theme, and seed paths together | `team` owns instruction/config/permission posture; recipe/instance output owns site, theme, and seed content explicitly  |
-| Professional-profile work temporarily adds LinkedIn import to Rover core                                     | Provider-neutral profile ownership remains core; LinkedIn import and OAuth broker remain opt-in                          |
+| Alpha.204 behavior                                                                                           | Unified target                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin is absent and `anchor` doubles as the administrative permission level                                  | Admin is a core capability; the auth branch's distinct `admin` level owns administrative routes and destructive defaults                                                                                                                                                                                                                      |
+| Decks are absent from Rover/Relay core                                                                       | Decks move to `core` as universal knowledge-work output                                                                                                                                                                                                                                                                                       |
+| Outbound ATProto is in Rover core; the registry is only a catalog/instance addition                          | ATProto registry moves to `core`; outbound ATProto moves to `publishing`                                                                                                                                                                                                                                                                      |
+| `dashboard-root` and `dashboard` are separate capability IDs selected by preset subtraction                  | One `dashboard` member defaults to `/`; `site` explicitly overrides it to `/dashboard`                                                                                                                                                                                                                                                        |
+| `rover-profile` and `rover-onboarding` expose model names in capability IDs                                  | Transitional aliases map to model-neutral `profile` and `onboarding` IDs                                                                                                                                                                                                                                                                      |
+| Rover default mixes blog, decks, analytics, Obsidian, and site infrastructure                                | Blog belongs to `publishing`, decks to `core`, analytics/site infrastructure to `site`, and Obsidian remains opt-in                                                                                                                                                                                                                           |
+| Rover does not select `site-content` by preset; production Rizom adds it manually                            | `site-content` belongs to `site` because entity-backed site sections require it                                                                                                                                                                                                                                                               |
+| Relay model defaults carry team instructions, permissions, topic config, site/theme, and seed paths together | `team` owns instruction/config/permission posture; recipe/instance output owns site, theme, and seed content explicitly                                                                                                                                                                                                                       |
+| Professional-profile work temporarily adds LinkedIn import to Rover core                                     | Provider-neutral profile ownership remains core; LinkedIn import and OAuth broker remain opt-in                                                                                                                                                                                                                                               |
+| Topics extraction ran with generic thresholds and no source weighting                                        | Calibrated derivation economics from `work/topics-derivation` (per-source weights, create/reinforce relevance thresholds, semantic merge distance, reconciliation caps, mint ceilings) — landed on the alpha line 2026-07-21; the baseline fixture was refreshed to include these additive defaults, with all critical topics flags unchanged |
 
 Every other change must either preserve the fixture or add another explicit row before its
 implementation merges.
