@@ -3,7 +3,14 @@
   "extends": ["//"],
   "tasks": {
     "test": {
-      "dependsOn": ["build"]
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "scripts/**",
+        "package.json",
+        "turbo.json"
+      ]
     }
   }
 }
