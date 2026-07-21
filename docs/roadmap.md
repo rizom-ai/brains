@@ -199,10 +199,10 @@ Cleanup:
 - [code-quality-cleanup.md](./plans/code-quality-cleanup.md) — **active in `work/code-quality-cleanup`**: five-phase cleanup from the 2026-07 codebase review — dead-package deletion, confirmation/queue/secret-template correctness fixes, mechanical dedup, extract-at-two abstractions, and structural consolidation (Discord interface, shell singletons, god-file splits).
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — site-build robustness through deterministic snapshots, transactional output, structured diagnostics, cancellation, and an optional renderer seam.
 
 Research probes (parked):
 
-- [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contracts and Astro spike.
 - [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 - [turso-database-engine.md](./plans/turso-database-engine.md) — exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.
 
