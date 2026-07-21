@@ -1,6 +1,10 @@
-import type { ActorRef } from "@brains/contracts";
+import type {
+  ActorRef,
+  RuntimeInterfacePrincipalState,
+} from "@brains/contracts";
 import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
+import { reinitializeAuthAccessStores } from "./access-reinitialization";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
@@ -29,6 +33,11 @@ import {
   type PasskeyRegistrationUser,
 } from "./passkey-service";
 import { PasskeyStore } from "./passkey-store";
+import {
+  InterfacePrincipalStore,
+  type ConfiguredInterfacePrincipals,
+  type ResolvedInterfacePrincipal,
+} from "./interface-principal-store";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
 import {
   A2APeerTrustStore,
@@ -194,6 +203,7 @@ export class AuthService {
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
+  private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private credentialStore: AuthCredentialStore | undefined;
@@ -415,6 +425,7 @@ export class AuthService {
   private async closeInternal(): Promise<void> {
     await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
+    this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
     this.credentialStore = undefined;
@@ -429,6 +440,9 @@ export class AuthService {
     }
     await this.runtimeDatabase.start();
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.interfacePrincipalStore = new InterfacePrincipalStore(
+      this.runtimeDatabase.db,
+    );
     this.personExternalPeerStore = new PersonExternalPeerStore(
       this.runtimeDatabase.db,
     );
@@ -636,6 +650,13 @@ export class AuthService {
     return this.userStore;
   }
 
+  private getInterfacePrincipalStore(): InterfacePrincipalStore {
+    if (!this.interfacePrincipalStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.interfacePrincipalStore;
+  }
+
   private getPersonExternalPeerStore(): PersonExternalPeerStore {
     if (!this.personExternalPeerStore) {
       throw new Error("Auth service has not been initialized");
@@ -655,6 +676,42 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.credentialStore;
+  }
+
+  async initializeConfiguredInterfacePrincipals(
+    config: ConfiguredInterfacePrincipals,
+  ): Promise<RuntimeInterfacePrincipalState> {
+    await this.initialize();
+    const store = this.getInterfacePrincipalStore();
+    await store.seedConfigOnce(config);
+    return store.listActiveState();
+  }
+
+  async reinitializeConfiguredInterfacePrincipals(
+    config: ConfiguredInterfacePrincipals,
+    context: AuthMutationContext = {},
+  ): Promise<RuntimeInterfacePrincipalState> {
+    await this.initialize();
+    const result = await reinitializeAuthAccessStores(
+      {
+        principalStore: this.getInterfacePrincipalStore(),
+        userStore: this.getUserStore(),
+        sessionStore: this.sessionStore,
+        refreshTokenStore: this.refreshTokenStore,
+        auditStore: this.getAuditStore(),
+      },
+      config,
+      context.actorUserId,
+    );
+    return result.state;
+  }
+
+  async resolveInterfacePrincipal(
+    interfaceType: string,
+    subject: string,
+  ): Promise<ResolvedInterfacePrincipal | undefined> {
+    await this.initialize();
+    return this.getInterfacePrincipalStore().resolve(interfaceType, subject);
   }
 
   private async profileDisplayName(

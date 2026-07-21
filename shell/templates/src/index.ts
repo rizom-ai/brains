@@ -30,6 +30,7 @@ export type {
   EntityActionPolicyConfigInput,
   EntityActionPolicyEntry,
   EntityActionPolicy,
+  ConfiguredPrincipalSeeds,
   PermissionConfig,
   PermissionRule,
   PermissionRuleInput,

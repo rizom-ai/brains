@@ -109,6 +109,20 @@ describe("parseArgs", () => {
     expect(result.flags["storage-dir"]).toBe("./runtime/auth");
   });
 
+  it("should parse 'auth reinitialize-access' recovery flags", () => {
+    const result = parseArgs([
+      "auth",
+      "reinitialize-access",
+      "--yes",
+      "--storage-dir",
+      "./runtime/auth",
+    ]);
+    expect(result.command).toBe("auth");
+    expect(result.args).toEqual(["reinitialize-access"]);
+    expect(result.flags.yes).toBe(true);
+    expect(result.flags["storage-dir"]).toBe("./runtime/auth");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");
@@ -167,6 +181,90 @@ describe("brain auth recovery", () => {
     expect(
       readFileSync(join(authDir, "oauth-passkeys.json"), "utf8"),
     ).toContain("credential");
+  });
+
+  it("requires --yes before reinitializing access", async () => {
+    const { runCommand } = await import("../src/run-command");
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: rover\npermissions:\n  admins:\n    - discord:admin\n",
+    );
+
+    const result = await runCommand(
+      {
+        command: "auth",
+        args: ["reinitialize-access"],
+        flags: {},
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("--yes");
+    expect(existsSync(join(testDir, "data", "auth", "auth.db"))).toBe(false);
+  });
+
+  it("reinitializes DB-backed exact access from brain.yaml", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const { AuthService } = await import("@brains/auth-service");
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      [
+        "brain: rover",
+        "permissions:",
+        "  admins:",
+        "    - discord:admin-1",
+        "  trusted:",
+        "    - discord:trusted-1",
+        "  anchors:",
+        "    - discord:owner-1",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runCommand(
+      {
+        command: "auth",
+        args: ["reinitialize-access"],
+        flags: { yes: true },
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Access reinitialized");
+    const service = new AuthService({
+      storageDir: join(testDir, "data", "auth"),
+    });
+    expect(
+      await service.resolveInterfacePrincipal("discord", "admin-1"),
+    ).toEqual({ permissionLevel: "admin", isAnchor: false });
+    expect(
+      await service.resolveInterfacePrincipal("discord", "trusted-1"),
+    ).toEqual({ permissionLevel: "trusted", isAnchor: false });
+    expect(
+      await service.resolveInterfacePrincipal("discord", "owner-1"),
+    ).toEqual({ permissionLevel: "public", isAnchor: true });
+    await service.close();
+  });
+
+  it("treats empty access lists as absent during reinitialization", async () => {
+    const { runCommand } = await import("../src/run-command");
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: rover\nadmins:\n  - discord:admin-1\nanchors:\n",
+    );
+
+    const result = await runCommand(
+      {
+        command: "auth",
+        args: ["reinitialize-access"],
+        flags: { yes: true },
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
   });
 
   it("clears auth passkeys and active OAuth state", async () => {

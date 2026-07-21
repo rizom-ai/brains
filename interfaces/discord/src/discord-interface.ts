@@ -530,9 +530,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
     );
     return {
       userPermissionLevel: auth.permissionLevel,
-      isAnchor:
-        auth.principal?.isAnchor === true ||
-        this.context.permissions.isAnchor("discord", interaction.user.id),
+      isAnchor: auth.principal
+        ? auth.principal.isAnchor
+        : this.context.permissions.isAnchor("discord", interaction.user.id),
       interfaceType: "discord",
       channelId: interaction.channelId,
       actor: {
@@ -672,12 +672,12 @@ export class DiscordInterface extends MessageInterfacePlugin<
         conversationId,
         {
           userPermissionLevel,
-          isAnchor:
-            authResolution.principal?.isAnchor === true ||
-            this.context.permissions.isAnchor(
-              "discord",
-              discordMessage.author.id,
-            ),
+          isAnchor: authResolution.principal
+            ? authResolution.principal.isAnchor
+            : this.context.permissions.isAnchor(
+                "discord",
+                discordMessage.author.id,
+              ),
           interfaceType: "discord",
           ...this.buildUserMessageMetadata(
             discordMessage,
@@ -1030,9 +1030,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
       approvalId,
       {
         userPermissionLevel,
-        isAnchor:
-          authResolution.principal?.isAnchor === true ||
-          context.permissions.isAnchor("discord", discordMessage.author.id),
+        isAnchor: authResolution.principal
+          ? authResolution.principal.isAnchor
+          : context.permissions.isAnchor("discord", discordMessage.author.id),
         interfaceType: "discord",
         channelId,
         channelName,

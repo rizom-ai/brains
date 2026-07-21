@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
+import { PermissionService } from "@brains/templates";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
@@ -445,6 +446,108 @@ describe("AuthService", () => {
       profileEntityId: "anchor-profile/anchor-profile",
     });
     expect((await service.listUsers())[0]?.isAnchor).toBe(false);
+  });
+
+  it("seeds exact interface principals once and projects DB state into permissions", async () => {
+    const storageDir = await tempStorageDir();
+    const firstHarness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logger: Logger.createFresh({ level: LogLevel.ERROR }),
+    });
+    firstHarness.setPermissionService(
+      new PermissionService({
+        admins: ["discord:first-admin"],
+        trusted: ["discord:first-trusted"],
+        anchors: ["discord:first-owner"],
+      }),
+    );
+    await firstHarness.installPlugin(
+      authServicePlugin({ storageDir, issuer: "https://brain.example.com" }),
+    );
+
+    expect(
+      firstHarness
+        .getPermissionService()
+        .determineUserLevel("discord", "first-admin"),
+    ).toBe("admin");
+    expect(
+      firstHarness
+        .getPermissionService()
+        .determineUserLevel("discord", "first-trusted"),
+    ).toBe("trusted");
+    expect(
+      firstHarness.getPermissionService().isAnchor("discord", "first-owner"),
+    ).toBe(true);
+    await firstHarness.getPlugin().getService().close();
+
+    const restartHarness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logger: Logger.createFresh({ level: LogLevel.ERROR }),
+    });
+    restartHarness.setPermissionService(
+      new PermissionService({ admins: ["discord:replacement"] }),
+    );
+    await restartHarness.installPlugin(
+      authServicePlugin({ storageDir, issuer: "https://brain.example.com" }),
+    );
+
+    expect(
+      restartHarness
+        .getPermissionService()
+        .determineUserLevel("discord", "first-admin"),
+    ).toBe("admin");
+    expect(
+      restartHarness
+        .getPermissionService()
+        .determineUserLevel("discord", "replacement"),
+    ).toBe("public");
+    await restartHarness.getPlugin().getService().close();
+  });
+
+  it("reinitializes access from config without deleting users and revokes sessions", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    await service.initializeConfiguredInterfacePrincipals({
+      admins: ["discord:old-admin"],
+      trusted: [],
+      anchors: [],
+    });
+    const session = await service.createAuthSession();
+    const userCount = (await service.listUsers()).length;
+
+    const state = await service.reinitializeConfiguredInterfacePrincipals({
+      admins: ["discord:new-admin"],
+      trusted: ["discord:new-trusted"],
+      anchors: ["discord:new-owner"],
+    });
+
+    expect(
+      await service.resolveInterfacePrincipal("discord", "old-admin"),
+    ).toBeUndefined();
+    expect(
+      await service.resolveInterfacePrincipal("discord", "new-admin"),
+    ).toEqual({ permissionLevel: "admin", isAnchor: false });
+    expect(state.grants.map((grant) => grant.permissionLevel).sort()).toEqual([
+      "admin",
+      "trusted",
+    ]);
+    expect(state.anchors).toHaveLength(1);
+    expect(
+      await service.resolveSession(
+        new Request("https://brain.example.com/admin", {
+          headers: { cookie: session.cookie },
+        }),
+      ),
+    ).toBeUndefined();
+    expect((await service.listUsers()).length).toBe(userCount);
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "auth.access.reinitialized" }),
+      ]),
+    );
+    await service.close();
   });
 
   it("reprojects persisted ownership when brain configuration changes", async () => {

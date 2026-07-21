@@ -32,6 +32,8 @@ export type {
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
   AuthPasskeySummary,
 } from "./admin-contracts";
+export { reinitializeAuthAccessStorage } from "./access-reinitialization";
+export type { ReinitializeAuthAccessResult } from "./access-reinitialization";
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 export {

@@ -18,6 +18,7 @@ const legacyAuthV6Fixture = await Bun.file(
 const currentAuthTableNames = [
   "__drizzle_migrations",
   "a2a_peer_trust",
+  "auth_access_seed_state",
   "auth_audit_events",
   "auth_brain_anchor",
   "auth_identity_evidence",
@@ -25,6 +26,8 @@ const currentAuthTableNames = [
   "auth_people",
   "auth_sessions",
   "auth_users",
+  "interface_anchor_bindings",
+  "interface_principal_grants",
   "oauth_auth_codes",
   "oauth_clients",
   "oauth_refresh_tokens",
@@ -395,7 +398,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(5);
+      expect(migrations.rows).toHaveLength(6);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

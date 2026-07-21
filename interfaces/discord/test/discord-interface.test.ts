@@ -436,6 +436,41 @@ describe("DiscordInterface", () => {
       );
     });
 
+    it("should let a connected account override standalone config grants", async () => {
+      mockActiveAuthService = {
+        resolveIdentityAccess: mock(async () => ({
+          state: "resolved" as const,
+          principal: {
+            userId: "usr_member",
+            displayName: "Member",
+            role: "public" as const,
+            status: "active" as const,
+            permissionLevel: "public" as const,
+            isAnchor: false,
+          },
+        })),
+      };
+
+      const msg = createDiscordMessage({
+        author: { id: "anchor-user", username: "member" },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello bot",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          isAnchor: false,
+          actor: expect.objectContaining({
+            identity: { kind: "user", userId: "usr_member" },
+          }),
+        }),
+        expect.any(AbortSignal),
+      );
+    });
+
     it("should deny known inactive bindings before permission-rule fallback", async () => {
       mockActiveAuthService = {
         resolveIdentityAccess: mock(async () => ({ state: "denied" as const })),

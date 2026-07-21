@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, and access-neutral person-to-external-peer links. Decision 14's DB-only principal grants/recovery and decision 15's delivery-channel binding remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Admin CRUD for standalone grants and decision 15's delivery-channel binding remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -16,7 +16,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 
 ## Current baseline
 
-- Permission levels are `public`, `trusted`, and `admin`; Anchor identity is exposed independently through `isAnchor`. Active connected users are authoritative before standalone channel grants. Request-time config fallback remains only until decision 14's DB principal-grant migration lands.
+- Permission levels are `public`, `trusted`, and `admin`; Anchor identity is exposed independently through `isAnchor`. Active connected users are authoritative before standalone channel grants. Exact `admins`/`trusted`/`anchors` entries resolve from DB-projected hashed rows, not configuration, at request time.
 - Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
 - Fresh setup and migrated installations use durable `usr_<uuid>` subjects; legacy files remain immutable migration backups.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
@@ -100,7 +100,9 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **Every explicit config entry seeds on first initialization.** Web and headless brains both apply declared `admins`/`trusted`/`anchors` seed-if-absent. A web brain with no declarations seeds nothing and uses passkey setup. Ordinary restarts never overwrite later DB or `/admin` changes.
     - **Recovery is explicit.** A local `brain auth reinitialize-access --yes` command reapplies the current config deliberately, preserves users, identities, passkeys, external-peer links, and audit history, and revokes active sessions. Reinitialization never happens as a side effect of startup or deploy. The existing `reset-passkeys` command remains separate.
     - **Durability is a libSQL backup destination, not git.** `auth.db` gets a private sync/backup target (embedded replica → remote primary, or scheduled encrypted snapshots). Point-in-time recovery comes from that durable store; config remains a bootstrap/recovery template, not live GitOps authorization.
-    - **Sequencing keeps a bridge.** Build DB principal grants, account precedence, console CRUD, seed loading, and explicit recovery before removing request-time config reads. Keep the current request-time allowlist until the DB path is complete so non-login channels never lose access mid-migration.
+    - **Implemented runtime path.** Generated migration `0005_round_kat_farrell.sql` adds hashed exact-principal grants, independent Anchor bindings, and a one-time seed marker. Startup seeds explicit declarations only when the marker is absent, then replaces the synchronous permission projection from DB rows. Ordinary restarts do not reread exact config entries. `brain auth reinitialize-access --yes` deliberately replaces access rows and revokes sessions while preserving durable auth subjects and credentials.
+    - **Contextual policy stays configuration-derived.** Pattern rules and shared-space selectors are request-context policy rather than exact principal grants, so they remain configuration inputs. The deprecated static MCP token remains a transport-level Admin fallback and never establishes Anchor identity. Neither path overrides a connected account's current role/status.
+    - **Remaining administration work.** Add explicit `/admin` CRUD for standalone DB grants before treating decision 14's management surface as complete. The runtime no longer uses request-time exact-config fallback; this follow-on does not require a dual read path.
 15. **The Admin console manages people and peer brains; it does not model agents as representatives of people.** _(Adopted 2026-07-21; supersedes the Phase 6 representation direction.)_
     - **Four permanent sections:** Overview, Members/People, Invitations, and Audit. Overview owns the read-only Anchor summary, administrator posture, and attention items. The roster never repeats the Anchor panel.
     - **Members are local accounts.** Role, status, passkeys, connected channels, session revocation, and suspension are ordinary person-detail actions. Internal IDs, evidence provenance, raw provider subjects, and per-session metadata stay out of the UI; there is no generic Advanced drawer.

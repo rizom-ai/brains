@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { hashInterfacePrincipal } from "@brains/contracts";
 import {
   PermissionService,
   UserPermissionLevelSchema,
@@ -26,6 +27,62 @@ describe("PermissionService", () => {
     expect(service.determineUserLevel("mcp", "stdio")).toBe("admin");
     expect(service.isAnchor("cli", "owner")).toBe(true);
     expect(service.isAnchor("cli", "admin")).toBe(false);
+  });
+
+  describe("Runtime exact-principal state", () => {
+    it("replaces config lists with DB-projected grants and Anchor facets", () => {
+      const service = new PermissionService({
+        admins: ["discord:config-admin"],
+        trusted: ["discord:config-trusted"],
+        anchors: ["discord:config-owner"],
+        rules: [{ pattern: "slack:team-*", level: "trusted" }],
+      });
+
+      service.replaceRuntimePrincipalState({
+        grants: [
+          {
+            interfaceType: "discord",
+            principalKeyHash: hashInterfacePrincipal("discord", "db-admin"),
+            permissionLevel: "admin",
+          },
+        ],
+        anchors: [
+          {
+            interfaceType: "discord",
+            principalKeyHash: hashInterfacePrincipal("discord", "db-owner"),
+          },
+        ],
+      });
+
+      expect(service.determineUserLevel("discord", "config-admin")).toBe(
+        "public",
+      );
+      expect(service.determineUserLevel("discord", "config-trusted")).toBe(
+        "public",
+      );
+      expect(service.isAnchor("discord", "config-owner")).toBe(false);
+      expect(service.determineUserLevel("discord", "db-admin")).toBe("admin");
+      expect(service.determineUserLevel("discord", "db-owner")).toBe("public");
+      expect(service.isAnchor("discord", "db-owner")).toBe(true);
+      expect(service.determineUserLevel("slack", "team-alpha")).toBe("trusted");
+    });
+
+    it("returns immutable bootstrap inputs for first initialization", () => {
+      const service = new PermissionService({
+        admins: ["discord:admin"],
+        trusted: ["discord:trusted"],
+        anchors: ["discord:owner"],
+      });
+
+      const seeds = service.getConfiguredPrincipalSeeds();
+      seeds.admins.push("discord:mutated");
+
+      expect(service.getConfiguredPrincipalSeeds()).toEqual({
+        admins: ["discord:admin"],
+        trusted: ["discord:trusted"],
+        anchors: ["discord:owner"],
+      });
+    });
   });
 
   describe("Explicit user lists", () => {

@@ -17,6 +17,7 @@ import { runCertBootstrap } from "./commands/cert-bootstrap";
 import { runSecretsPush } from "./commands/secrets-push";
 import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
 import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
+import { reinitializeAuthAccess } from "./commands/auth-reinitialize-access";
 import type { CommandResult } from "./lib/command-result";
 
 export type { CommandResult } from "./lib/command-result";
@@ -73,6 +74,11 @@ export async function runCommand(
         storageDir: parsed.flags["storage-dir"],
         yes: parsed.flags.yes,
       });
+    case "auth:reinitialize-access":
+      return reinitializeAuthAccess(dir, {
+        storageDir: parsed.flags["storage-dir"],
+        yes: parsed.flags.yes,
+      });
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -105,6 +111,9 @@ function collapseSubcommand(command: string, args: string[]): string {
   }
   if (command === "auth" && args[0] === "reset-passkeys") {
     return "auth:reset-passkeys";
+  }
+  if (command === "auth" && args[0] === "reinitialize-access") {
+    return "auth:reinitialize-access";
   }
   return command;
 }
@@ -204,6 +213,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  secrets:push    Push env-backed local secrets to GitHub or Bitwarden",
     "  ssh-key:bootstrap Bootstrap a Hetzner deploy SSH key and optional GitHub secret",
     "  auth reset-passkeys --yes  Clear local auth passkeys and active OAuth state",
+    "  auth reinitialize-access --yes  Reapply exact access from brain.yaml",
     "  tool <name>     Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];

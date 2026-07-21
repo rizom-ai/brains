@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/deploy-support": "workspace:*",

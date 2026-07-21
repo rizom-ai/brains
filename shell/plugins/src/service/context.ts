@@ -20,8 +20,10 @@ import {
 } from "../entity/namespaces";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
+import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
 import { TemplateCapabilities } from "@brains/templates";
 import type {
+  ConfiguredPrincipalSeeds,
   OutputFormat,
   Renderer,
   Template,
@@ -86,7 +88,18 @@ export interface IViewsNamespace {
  * Includes: entity management, templates, views, prompt resolution, AI, messaging, jobs.
  * Excludes: MCP protocol registration, transport.
  */
+export interface IServiceRuntimePermissionsNamespace {
+  /** Exact principals declared in brain configuration for bootstrap/recovery. */
+  getConfiguredPrincipalSeeds(): ConfiguredPrincipalSeeds;
+  /** Replace exact-principal runtime projection after loading auth.db. */
+  replaceRuntimePrincipalState(state: RuntimeInterfacePrincipalState): void;
+}
+
 export interface ServicePluginContext extends BasePluginContext {
+  /** Auth-runtime projection hooks available only to service plugins. */
+  readonly permissions: BasePluginContext["permissions"] &
+    IServiceRuntimePermissionsNamespace;
+
   /** Full entity service with write operations */
   readonly entityService: IEntityService;
 
@@ -132,9 +145,18 @@ export function createServicePluginContext(
   const entityService = shell.getEntityService();
   const renderService = shell.getRenderService();
   const contentService = shell.getContentService();
+  const permissionService = shell.getPermissionService();
 
   return {
     ...baseContext,
+
+    permissions: {
+      ...baseContext.permissions,
+      getConfiguredPrincipalSeeds: () =>
+        permissionService.getConfiguredPrincipalSeeds(),
+      replaceRuntimePrincipalState: (state): void =>
+        permissionService.replaceRuntimePrincipalState(state),
+    },
 
     entityService,
 

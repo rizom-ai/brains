@@ -8,6 +8,7 @@ import { formatDate, roleLabel } from "../format";
 const actionLabels: Record<string, string> = {
   "auth.a2a_peer_trust.granted": "trusted an A2A peer",
   "auth.a2a_peer_trust.revoked": "revoked A2A peer trust",
+  "auth.access.reinitialized": "reinitialized access from configuration",
   "auth.external_peer.invited": "invited a person from an external peer",
   "auth.external_peer.linked": "linked an external peer",
   "auth.identity.attached": "connected an identity",

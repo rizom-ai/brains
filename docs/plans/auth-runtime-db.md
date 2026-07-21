@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, and normalized identity evidence are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 14's DB-only principal grants/recovery and decision 15's connected delivery-channel binding remain follow-on work. Legacy JSON/JWK files remain immutable migration backups, never `AuthService` runtime truth.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Standalone-grant Admin CRUD and decision 15's connected delivery-channel binding remain follow-on work. Legacy JSON/JWK files remain immutable migration backups, never `AuthService` runtime truth.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -156,13 +156,14 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 
 `multi-user.md` decision 14 makes `auth.db` the single request-time source of truth. `brain.yaml` is bootstrap/recovery input, not a request-time fallback or live GitOps policy:
 
-- [ ] **Persist interface principals in `auth.db`.** Store normalized hashed keys for standalone Discord/CLI/etc. principals and read only DB state at request time. Keep raw routing subjects only when delivery requires them.
-- [ ] **Keep permission and Anchor facets independent.** `admins`/`trusted` seed role grants; `anchors` seed only `isAnchor`. Anchor status never grants permission.
-- [ ] **Make connected accounts authoritative.** An unconnected channel uses its standalone grant. Once connected to a user, the user's current role/status wins; missing or suspended connected users are denied and cannot fall through to a stale grant.
-- [ ] **Seed every explicit declaration once.** Web and headless brains both seed declared entries idempotently on first initialization. A config with no declarations seeds nothing. Later startup never overwrites DB/Admin changes.
-- [ ] **Add access-only reinitialization.** `brain auth reinitialize-access --yes` deliberately reapplies config, preserves users, identities, passkeys, external-peer links, and audit history, and revokes active sessions. It never runs automatically. Keep `reset-passkeys` separate.
+- [x] **Persist interface principals in `auth.db`.** Generated migration `0005_round_kat_farrell.sql` stores exact standalone grants by normalized SHA-256 key and projects active rows into runtime permission lookup. Raw config subjects are not persisted.
+- [x] **Keep permission and Anchor facets independent.** `admins`/`trusted` seed role grants; `anchors` seed separate Anchor bindings only. Anchor status never grants permission.
+- [x] **Make connected accounts authoritative.** An unconnected channel uses its standalone grant. Once connected to a user, the user's current role/status and Anchor facet win; missing or suspended connected users are denied and cannot fall through to a stale grant.
+- [x] **Seed every explicit declaration once.** Web and headless brains seed declared entries behind a persisted singleton marker. A config with no declarations seeds nothing. Later startup loads DB state without overwriting it.
+- [x] **Add access-only reinitialization.** `brain auth reinitialize-access --yes` deliberately reapplies config, preserves users, identities, passkeys, external-peer links, keys, clients, and audit history, revokes active sessions/refresh tokens, and appends an audit event. It never runs automatically. `reset-passkeys` remains separate.
+- [x] **Remove request-time exact-config fallback.** `PermissionService` starts with a boot bridge, then auth-service registration atomically replaces exact Admin/trusted/Anchor sets with the DB projection before interfaces run. Pattern rules and shared-space selectors remain intentional contextual config policy; static MCP token auth remains a deprecated transport-level Admin fallback with no Anchor identity.
+- [ ] **Add standalone-grant Admin CRUD.** Exact grant creation/revocation still needs a dedicated non-model-visible management flow; this does not restore a request-time config fallback.
 - [ ] **Add a private libSQL backup destination.** Use an embedded replica/remote primary or scheduled encrypted snapshots for durability and point-in-time recovery; never git.
-- [ ] **Sequence and keep the bridge.** Land DB principal grants, precedence, console CRUD, seed loading, and recovery before removing current request-time config reads.
 
 ### Correction: people link to peer brains, not representative agents (multi-user decision 15)
 

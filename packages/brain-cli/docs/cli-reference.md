@@ -117,6 +117,20 @@ brain auth reset-passkeys --yes --storage-dir ./data/auth
 
 After running it, restart the brain. On boot, the auth service detects that no passkeys remain and logs a fresh one-shot `/setup` URL. Auth storage must stay outside `brain-data`; the command refuses to modify paths under `brain-data`.
 
+### `brain auth reinitialize-access`
+
+Break-glass recovery for exact interface access. It replaces DB-backed Admin/trusted grants and Anchor bindings from the current `brain.yaml`, revokes active browser sessions and refresh tokens, and records the recovery in auth audit history. It preserves users, people, identities, passkeys, OAuth clients, signing keys, and external-peer links.
+
+```bash
+cd mybrain
+# Stop the running brain first.
+brain auth reinitialize-access --yes
+brain auth reinitialize-access --yes --storage-dir ./data/auth
+# Restart to load the new DB projection.
+```
+
+Ordinary startup seeds exact `admins`, `trusted`, and `anchors` entries only on first initialization and never reapplies changed configuration. Use this explicit command when access recovery must deliberately make the current configuration authoritative again. Pattern rules and shared-space selectors remain contextual configuration policy; the command handles exact principal entries only. Auth storage must stay outside `brain-data`.
+
 ### `brain ssh-key:bootstrap`
 
 Create or reuse a deploy SSH key locally, ensure the matching public key exists in Hetzner, and optionally push the private key into GitHub Actions secrets.

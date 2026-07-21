@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.200",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },

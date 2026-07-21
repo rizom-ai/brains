@@ -36,6 +36,13 @@
       "when": 1784641954782,
       "tag": "0004_brave_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784647473058,
+      "tag": "0005_round_kat_farrell",
+      "breakpoints": true
     }
   ]
 }

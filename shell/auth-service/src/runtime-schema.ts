@@ -441,6 +441,175 @@ export const personExternalPeers: PersonExternalPeersTable = sqliteTable(
   }),
 );
 
+type InterfacePrincipalGrantsTable = AuthTable<
+  "interface_principal_grants",
+  {
+    id: AuthTextColumn<"interface_principal_grants", "id", true, true>;
+    interfaceType: AuthTextColumn<
+      "interface_principal_grants",
+      "interface_type",
+      true
+    >;
+    principalKeyHash: AuthTextColumn<
+      "interface_principal_grants",
+      "principal_key_hash",
+      true
+    >;
+    permissionLevel: AuthTextColumn<
+      "interface_principal_grants",
+      "permission_level",
+      true,
+      false,
+      "admin" | "trusted",
+      ["admin", "trusted"]
+    >;
+    source: AuthTextColumn<
+      "interface_principal_grants",
+      "source",
+      true,
+      false,
+      "config" | "admin",
+      ["config", "admin"]
+    >;
+    createdAt: AuthIntegerColumn<
+      "interface_principal_grants",
+      "created_at",
+      true
+    >;
+    updatedAt: AuthIntegerColumn<
+      "interface_principal_grants",
+      "updated_at",
+      true
+    >;
+    revokedAt: AuthIntegerColumn<
+      "interface_principal_grants",
+      "revoked_at",
+      false
+    >;
+  }
+>;
+
+export const interfacePrincipalGrants: InterfacePrincipalGrantsTable =
+  sqliteTable(
+    "interface_principal_grants",
+    {
+      id: text("id").primaryKey(),
+      interfaceType: text("interface_type").notNull(),
+      principalKeyHash: text("principal_key_hash").notNull(),
+      permissionLevel: text("permission_level", {
+        enum: ["admin", "trusted"],
+      }).notNull(),
+      source: text("source", { enum: ["config", "admin"] }).notNull(),
+      createdAt: integer("created_at").notNull(),
+      updatedAt: integer("updated_at").notNull(),
+      revokedAt: integer("revoked_at"),
+    },
+    (table) => ({
+      activePrincipalIdx: uniqueIndex(
+        "idx_interface_principal_grants_active_principal",
+      )
+        .on(table.interfaceType, table.principalKeyHash)
+        .where(sql`revoked_at IS NULL`),
+      permissionLevelCheck: check(
+        "interface_principal_grants_permission_level_check",
+        sql`${table.permissionLevel} IN ('admin', 'trusted')`,
+      ),
+      sourceCheck: check(
+        "interface_principal_grants_source_check",
+        sql`${table.source} IN ('config', 'admin')`,
+      ),
+    }),
+  );
+
+type InterfaceAnchorBindingsTable = AuthTable<
+  "interface_anchor_bindings",
+  {
+    id: AuthTextColumn<"interface_anchor_bindings", "id", true, true>;
+    interfaceType: AuthTextColumn<
+      "interface_anchor_bindings",
+      "interface_type",
+      true
+    >;
+    principalKeyHash: AuthTextColumn<
+      "interface_anchor_bindings",
+      "principal_key_hash",
+      true
+    >;
+    source: AuthTextColumn<
+      "interface_anchor_bindings",
+      "source",
+      true,
+      false,
+      "config" | "admin",
+      ["config", "admin"]
+    >;
+    createdAt: AuthIntegerColumn<
+      "interface_anchor_bindings",
+      "created_at",
+      true
+    >;
+    updatedAt: AuthIntegerColumn<
+      "interface_anchor_bindings",
+      "updated_at",
+      true
+    >;
+    revokedAt: AuthIntegerColumn<
+      "interface_anchor_bindings",
+      "revoked_at",
+      false
+    >;
+  }
+>;
+
+export const interfaceAnchorBindings: InterfaceAnchorBindingsTable =
+  sqliteTable(
+    "interface_anchor_bindings",
+    {
+      id: text("id").primaryKey(),
+      interfaceType: text("interface_type").notNull(),
+      principalKeyHash: text("principal_key_hash").notNull(),
+      source: text("source", { enum: ["config", "admin"] }).notNull(),
+      createdAt: integer("created_at").notNull(),
+      updatedAt: integer("updated_at").notNull(),
+      revokedAt: integer("revoked_at"),
+    },
+    (table) => ({
+      activePrincipalIdx: uniqueIndex(
+        "idx_interface_anchor_bindings_active_principal",
+      )
+        .on(table.interfaceType, table.principalKeyHash)
+        .where(sql`revoked_at IS NULL`),
+      sourceCheck: check(
+        "interface_anchor_bindings_source_check",
+        sql`${table.source} IN ('config', 'admin')`,
+      ),
+    }),
+  );
+
+type AuthAccessSeedStateTable = AuthTable<
+  "auth_access_seed_state",
+  {
+    id: AuthTextColumn<"auth_access_seed_state", "id", true, true>;
+    seededAt: AuthIntegerColumn<"auth_access_seed_state", "seeded_at", true>;
+    updatedAt: AuthIntegerColumn<"auth_access_seed_state", "updated_at", true>;
+  }
+>;
+
+export const authAccessSeedState: AuthAccessSeedStateTable = sqliteTable(
+  "auth_access_seed_state",
+  {
+    id: text("id").primaryKey(),
+    seededAt: integer("seeded_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => ({
+    singletonCheck: check(
+      "auth_access_seed_state_singleton_check",
+      sql`${table.id} = 'config'`,
+    ),
+  }),
+);
+
 type PasskeyCredentialsTable = AuthTable<
   "passkey_credentials",
   {
@@ -869,6 +1038,7 @@ export const a2aPeerTrust: A2aPeerTrustTable = sqliteTable(
 
 export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
+  authAccessSeedState: AuthAccessSeedStateTable;
   authAuditEvents: AuthAuditEventsTable;
   authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
@@ -876,6 +1046,8 @@ export const authRuntimeSchema: {
   authLegacyImports: AuthLegacyImportsTable;
   authPeople: AuthPeopleTable;
   authUsers: AuthUsersTable;
+  interfaceAnchorBindings: InterfaceAnchorBindingsTable;
+  interfacePrincipalGrants: InterfacePrincipalGrantsTable;
   oauthAuthCodes: OauthAuthCodesTable;
   oauthClients: OauthClientsTable;
   oauthRefreshTokens: OauthRefreshTokensTable;
@@ -888,6 +1060,7 @@ export const authRuntimeSchema: {
   webauthnChallenges: WebauthnChallengesTable;
 } = {
   a2aPeerTrust,
+  authAccessSeedState,
   authAuditEvents,
   authBrainAnchor,
   authIdentities,
@@ -895,6 +1068,8 @@ export const authRuntimeSchema: {
   authLegacyImports,
   authPeople,
   authUsers,
+  interfaceAnchorBindings,
+  interfacePrincipalGrants,
   oauthAuthCodes,
   oauthClients,
   oauthRefreshTokens,
@@ -909,6 +1084,10 @@ export const authRuntimeSchema: {
 
 export type PersonExternalPeer = typeof personExternalPeers.$inferSelect;
 export type InsertPersonExternalPeer = typeof personExternalPeers.$inferInsert;
+export type InterfacePrincipalGrant =
+  typeof interfacePrincipalGrants.$inferSelect;
+export type InterfaceAnchorBinding =
+  typeof interfaceAnchorBindings.$inferSelect;
 export type AuthBrainAnchor = typeof authBrainAnchor.$inferSelect;
 export type InsertAuthBrainAnchor = typeof authBrainAnchor.$inferInsert;
 export type AuthPerson = typeof authPeople.$inferSelect;

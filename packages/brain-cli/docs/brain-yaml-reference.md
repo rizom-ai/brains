@@ -347,7 +347,7 @@ Explicit permission and Anchor identity configuration.
 ```yaml
 permissions:
   admins:
-    - "cli:*"
+    - "mcp:stdio"
   anchors:
     - "discord:000000000000000000"
   trusted:
@@ -381,6 +381,8 @@ Permission config is merged in this order:
 3. nested `permissions` block
 
 So the nested `permissions` block wins over the top-level shorthand.
+
+On first auth initialization, exact `admins`, `trusted`, and `anchors` entries are normalized, hashed, and seeded into private `auth.db`. Ordinary restarts load those DB rows and do not reapply later config edits. Use `brain auth reinitialize-access --yes` for deliberate access recovery. Connected accounts take precedence over standalone exact grants. Pattern `rules` and shared-space selectors remain request-context configuration; the deprecated static MCP token remains a transport-level Admin fallback and never establishes Anchor identity.
 
 ## Environment variable interpolation
 

@@ -170,6 +170,11 @@ export class AuthServicePlugin extends ServicePlugin<
       logger: context.logger,
     });
     await this.service.initialize();
+    const principalState =
+      await this.service.initializeConfiguredInterfacePrincipals(
+        context.permissions.getConfiguredPrincipalSeeds(),
+      );
+    context.permissions.replaceRuntimePrincipalState(principalState);
     activeAuthService = this.service;
 
     this.unsubscribePrincipalResolver = context.messaging.subscribe(

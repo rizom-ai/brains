@@ -67,6 +67,15 @@ export {
   type AuthPrincipalResolveRequest,
   type AuthPrincipalResolveResponse,
 } from "./auth-principal";
+export {
+  hashInterfacePrincipal,
+  normalizeInterfacePrincipal,
+  parseConfiguredInterfacePrincipal,
+  type InterfaceAnchorBindingState,
+  type InterfacePrincipalGrantState,
+  type InterfacePrincipalRef,
+  type RuntimeInterfacePrincipalState,
+} from "./interface-principal";
 export { dbConfigSchema, type DbConfig } from "./db-config";
 export {
   generationResultSchema,

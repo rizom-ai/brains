@@ -1,3 +1,8 @@
+import {
+  hashInterfacePrincipal,
+  parseConfiguredInterfacePrincipal,
+  type RuntimeInterfacePrincipalState,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { matchSpaceSelector } from "./space-selector";
 
@@ -99,6 +104,12 @@ export type PermissionRuleInput = PermissionRule;
 /**
  * Configuration for the permission system
  */
+export interface ConfiguredPrincipalSeeds {
+  admins: string[];
+  anchors: string[];
+  trusted: string[];
+}
+
 export interface PermissionConfig {
   /** Callers with administrative permission. */
   admins?: string[];
@@ -163,6 +174,7 @@ export class PermissionService {
   private admins: Set<string>;
   private anchors: Set<string>;
   private trusted: Set<string>;
+  private readonly configuredPrincipalSeeds: ConfiguredPrincipalSeeds;
   private rules: PermissionRule[];
   private spaces: string[];
   private entityActions?: EntityActionPolicyConfig;
@@ -171,9 +183,18 @@ export class PermissionService {
     config: PermissionConfig,
     options: PermissionServiceOptions = {},
   ) {
-    this.admins = new Set(config.admins ?? []);
-    this.anchors = new Set(config.anchors ?? []);
-    this.trusted = new Set(config.trusted ?? []);
+    this.configuredPrincipalSeeds = {
+      admins: [...(config.admins ?? [])],
+      anchors: [...(config.anchors ?? [])],
+      trusted: [...(config.trusted ?? [])],
+    };
+    this.admins = configuredPrincipalKeys(this.configuredPrincipalSeeds.admins);
+    this.anchors = configuredPrincipalKeys(
+      this.configuredPrincipalSeeds.anchors,
+    );
+    this.trusted = configuredPrincipalKeys(
+      this.configuredPrincipalSeeds.trusted,
+    );
     this.rules = config.rules ?? [];
     this.spaces = options.spaces ?? [];
     if (config.entityActions) {
@@ -200,9 +221,13 @@ export class PermissionService {
     context: PermissionLookupContext = {},
   ): UserPermissionLevel {
     const fullId = `${interfaceType}:${userId}`;
+    const principalKey = runtimePrincipalKey(
+      interfaceType,
+      hashInterfacePrincipal(interfaceType, userId),
+    );
 
-    if (this.admins.has(fullId)) return "admin";
-    if (this.trusted.has(fullId)) return "trusted";
+    if (this.admins.has(principalKey)) return "admin";
+    if (this.trusted.has(principalKey)) return "trusted";
 
     const patternLevel = this.getPatternLevel(fullId);
     if (patternLevel === "admin" || patternLevel === "trusted") {
@@ -221,7 +246,42 @@ export class PermissionService {
 
   /** Whether the caller is this professional brain's Anchor identity. */
   isAnchor(interfaceType: string, userId: string): boolean {
-    return this.anchors.has(`${interfaceType}:${userId}`);
+    return this.anchors.has(
+      runtimePrincipalKey(
+        interfaceType,
+        hashInterfacePrincipal(interfaceType, userId),
+      ),
+    );
+  }
+
+  getConfiguredPrincipalSeeds(): ConfiguredPrincipalSeeds {
+    return {
+      admins: [...this.configuredPrincipalSeeds.admins],
+      anchors: [...this.configuredPrincipalSeeds.anchors],
+      trusted: [...this.configuredPrincipalSeeds.trusted],
+    };
+  }
+
+  replaceRuntimePrincipalState(state: RuntimeInterfacePrincipalState): void {
+    this.admins = new Set(
+      state.grants
+        .filter((grant) => grant.permissionLevel === "admin")
+        .map((grant) =>
+          runtimePrincipalKey(grant.interfaceType, grant.principalKeyHash),
+        ),
+    );
+    this.trusted = new Set(
+      state.grants
+        .filter((grant) => grant.permissionLevel === "trusted")
+        .map((grant) =>
+          runtimePrincipalKey(grant.interfaceType, grant.principalKeyHash),
+        ),
+    );
+    this.anchors = new Set(
+      state.anchors.map((anchor) =>
+        runtimePrincipalKey(anchor.interfaceType, anchor.principalKeyHash),
+      ),
+    );
   }
 
   /**
@@ -359,4 +419,23 @@ export class PermissionService {
       matchSpaceSelector(selector, spaceId),
     );
   }
+}
+
+function configuredPrincipalKeys(values: string[]): Set<string> {
+  return new Set(
+    values.map((value) => {
+      const principal = parseConfiguredInterfacePrincipal(value);
+      return runtimePrincipalKey(
+        principal.interfaceType,
+        hashInterfacePrincipal(principal.interfaceType, principal.subject),
+      );
+    }),
+  );
+}
+
+function runtimePrincipalKey(
+  interfaceType: string,
+  principalKeyHash: string,
+): string {
+  return `${interfaceType.trim().toLowerCase()}:${principalKeyHash}`;
 }
