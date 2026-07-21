@@ -185,7 +185,6 @@ export async function extractTopicsBatched(
             continue;
           }
 
-          let distinctFromCandidate = false;
           if (autoMerge) {
             const candidate = await topicService.findMergeCandidate({
               incoming: topic,
@@ -200,11 +199,7 @@ export async function extractTopicsBatched(
                 incomingTopic: topic,
               });
 
-              if (synthesized.verdict === "distinct") {
-                // The semantic index found a close neighbor, but the final
-                // merge judge ruled this is a separate durable domain.
-                distinctFromCandidate = true;
-              } else {
+              if (synthesized.verdict !== "distinct") {
                 const mergedTopic = await topicService.applySynthesizedMerge({
                   existingId: candidate.topic.id,
                   synthesized: { ...synthesized, title: candidate.title },
@@ -219,6 +214,10 @@ export async function extractTopicsBatched(
                 merged++;
                 continue;
               }
+              // The semantic index found a close neighbor, but the final merge
+              // judge ruled this is a separate durable domain. Creation still
+              // must respect the corpus soft ceiling; above the ceiling we only
+              // reinforce/merge existing topics.
             }
           }
 
@@ -227,7 +226,7 @@ export async function extractTopicsBatched(
           const mayCreate =
             sourcePolicy.canMint &&
             weightedRelevance >= createRelevanceThreshold &&
-            (!atSoftCeiling || distinctFromCandidate);
+            !atSoftCeiling;
           if (!mayCreate) {
             skipped++;
             continue;

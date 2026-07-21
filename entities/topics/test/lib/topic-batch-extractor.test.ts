@@ -405,7 +405,9 @@ describe("extractTopicsBatched", () => {
   });
 
   describe("mint economics", () => {
-    function makeSynthesizer(): ITopicMergeSynthesizer {
+    function makeSynthesizer(
+      verdict: TopicMergeSynthesisResult["verdict"] = "merge",
+    ): ITopicMergeSynthesizer {
       return {
         synthesize: async ({
           existingTopic,
@@ -413,7 +415,7 @@ describe("extractTopicsBatched", () => {
         }): Promise<TopicMergeSynthesisResult> => {
           const parsed = topicAdapter.parseTopicBody(existingTopic.content);
           return {
-            verdict: "merge",
+            verdict,
             title: parsed.title,
             content: `${parsed.content}\n\n${incomingTopic.content}`,
           };
@@ -557,6 +559,53 @@ describe("extractTopicsBatched", () => {
         context,
         logger,
         { autoMerge: true, sourceEntityCount: 8 },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("does not let a distinct merge verdict bypass the soft ceiling", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      for (const title of ["A", "B", "C", "D", "E"]) {
+        await entityService.createEntity({
+          entity: {
+            id: `topic-${title.toLowerCase()}`,
+            entityType: "topic",
+            content: topicAdapter.createTopicBody({ title, content: title }),
+            visibility: "public",
+            metadata: {},
+          },
+        });
+      }
+      spyOn(entityService, "searchWithDistances").mockResolvedValue([
+        { entityId: "topic-a", entityType: "topic", distance: 0.2 },
+      ]);
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Novel Topic",
+            content: "A novel topic with strong relevance.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Content 1")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          sourceEntityCount: 8,
+          semanticMergeDistance: 0.35,
+          topicMergeSynthesizer: makeSynthesizer("distinct"),
+        },
       );
 
       expect(result.created).toBe(0);
