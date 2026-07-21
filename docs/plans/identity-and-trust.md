@@ -142,11 +142,18 @@ directory.
 
 ## Sequencing
 
-The two subject tracks are independent and can proceed in parallel:
+The two subject tracks can otherwise proceed in parallel, with one explicit
+provider-connection dependency:
 
 - **Humans**: auth-runtime-db → multi-user phases 1–2 (real users, roles,
   per-session MCP permissions).
 - **Brains**: a2a-request-signing phases 1–6 (keys, signing, verification,
-  task binding); ATProto OAuth hardening on its own track.
+  task binding); ATProto protocol work remains independent.
+- **Outbound ATProto OAuth**: auth-runtime-db must land first. Bluesky access
+  tokens, rotating refresh tokens, and DPoP key material are received provider
+  credentials and belong in a dedicated external-provider connection store on
+  the private auth runtime plane, not in the ATProto plugin or the brain's
+  existing issued-grant tables.
 
-Cross-subject identity linking (decision 5 follow-on) is gated on both.
+Cross-subject identity linking (decision 5 follow-on) is gated on both subject
+tracks.
