@@ -4,15 +4,23 @@ import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
   type ReactElement,
 } from "react";
 import { Streamdown } from "streamdown";
+import {
+  cmsCollectionPath,
+  cmsEntityPath,
+  cmsWorkspacePath,
+  parseCmsPath,
+} from "../../src/cms-paths";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
@@ -38,9 +46,11 @@ import {
   type SiteWorkspaceSnapshot,
   type TypeSchema,
 } from "./api";
+import { getCmsRouterBasePath } from "./cms-router";
 import { createEditorDocument } from "./editor-document";
 import {
   editorWorkflowReducer,
+  hasUnsavedEditorChanges,
   initialEditorWorkflowState,
   type SaveState,
 } from "./editor-workflow";
@@ -76,37 +86,6 @@ import {
 export function entityTitle(entity: EntitySummary): string {
   const title = entity.frontmatter["title"];
   return typeof title === "string" && title.length > 0 ? title : entity.id;
-}
-
-export interface CmsHashTarget {
-  entityType: string;
-  id?: string;
-}
-
-export interface CmsWorkspaceHashTarget {
-  workspaceId: string;
-}
-
-/**
- * Parse a console-jump door (#/{entityType}[/{id}]) into an editor target.
- * Ids may contain slashes; both segments are URI-decoded.
- */
-export function parseCmsHash(hash: string): CmsHashTarget | null {
-  const match = /^#\/([^/]+)(?:\/(.+))?$/.exec(hash);
-  const rawType = match?.[1];
-  if (rawType === undefined || rawType === "workspace") return null;
-  const entityType = decodeURIComponent(rawType);
-  const rawId = match?.[2];
-  return rawId === undefined
-    ? { entityType }
-    : { entityType, id: decodeURIComponent(rawId) };
-}
-
-export function parseCmsWorkspaceHash(
-  hash: string,
-): CmsWorkspaceHashTarget | null {
-  const match = /^#\/workspace\/([^/]+)$/.exec(hash);
-  return match?.[1] ? { workspaceId: decodeURIComponent(match[1]) } : null;
 }
 
 /** Initial frontmatter draft for a new entity: descriptor defaults only. */
@@ -2134,6 +2113,15 @@ export function DirectorySyncWorkspace(props: {
 }
 
 export function App(): ReactElement {
+  const router = useRouter();
+  const routePathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const cmsBasePath = getCmsRouterBasePath();
+  const routeTarget = useMemo(
+    () => parseCmsPath(routePathname, cmsBasePath),
+    [cmsBasePath, routePathname],
+  );
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     null,
   );
@@ -2143,6 +2131,12 @@ export function App(): ReactElement {
     initialEditorWorkflowState,
   );
   const { mode, draft, body, save: saveState, deleteOpen } = editor;
+  const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
+  const navigationBlocker = useBlocker({
+    shouldBlockFn: () => hasUnsavedChanges,
+    enableBeforeUnload: hasUnsavedChanges,
+    withResolver: true,
+  });
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
@@ -2151,8 +2145,10 @@ export function App(): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
-  // Entity id from a console-jump door, opened once its collection loads.
-  const pendingDeepLinkId = useRef<string | null>(null);
+  const pendingOpenState = useRef<{
+    pathname: string;
+    save: SaveState;
+  } | null>(null);
   const openRequestId = useRef(0);
   const selectedEntityTypeRef = useRef(entityType);
   selectedEntityTypeRef.current = entityType;
@@ -2234,30 +2230,45 @@ export function App(): ReactElement {
 
   useEffect(() => {
     if (!types) return;
-    // A console-jump door (#/{type}[/{id}]) overrides the default starting
-    // collection; the id half is honored once entities load.
-    const target = parseCmsHash(window.location.hash);
-    const targeted =
-      target && types.some((info) => info.entityType === target.entityType)
-        ? target
-        : null;
-    if (targeted?.id !== undefined) {
-      pendingDeepLinkId.current = targeted.id;
+    setLoadError(null);
+
+    if (routeTarget.kind === "not-found") {
+      openRequestId.current += 1;
+      setLoadError(`CMS route not found: ${routeTarget.pathname}`);
+      return;
     }
-    const workspaceTarget = parseCmsWorkspaceHash(window.location.hash);
-    if (
-      workspaceTarget &&
-      workspaces.some(
-        (workspace) => workspace.id === workspaceTarget.workspaceId,
-      )
-    ) {
-      setActiveWorkspaceId(workspaceTarget.workspaceId);
+
+    if (routeTarget.kind === "workspace") {
+      const workspace = workspaces.find(
+        (entry) => entry.id === routeTarget.workspaceId,
+      );
+      if (!workspace) {
+        openRequestId.current += 1;
+        setLoadError(`Unknown CMS workspace: ${routeTarget.workspaceId}`);
+        return;
+      }
+      setActiveWorkspaceId(workspace.id);
+      return;
     }
+
+    const requestedType =
+      routeTarget.kind === "collection" || routeTarget.kind === "entity"
+        ? routeTarget.entityType
+        : undefined;
     const first = types.find((info) => !info.isSingleton) ?? types[0];
-    setEntityType(
-      targeted ? targeted.entityType : first ? first.entityType : null,
-    );
-  }, [types, workspaces]);
+    const nextType = requestedType ?? first?.entityType ?? null;
+    if (
+      requestedType !== undefined &&
+      !types.some((info) => info.entityType === requestedType)
+    ) {
+      openRequestId.current += 1;
+      setLoadError(`Unknown CMS entity type: ${requestedType}`);
+      return;
+    }
+
+    setActiveWorkspaceId(null);
+    setEntityType(nextType);
+  }, [routeTarget, types, workspaces]);
 
   useEffect(() => {
     if (!activeWorkspaceId || !siteWorkspaceData) return undefined;
@@ -2305,8 +2316,18 @@ export function App(): ReactElement {
   }, [saveState, syncStatus, baselineCommit, queryClient]);
 
   useEffect(() => {
-    if (!entityType) return;
-    openRequestId.current += 1;
+    if (
+      !entityType ||
+      routeTarget.kind === "workspace" ||
+      routeTarget.kind === "not-found"
+    ) {
+      return;
+    }
+    const routeEntityId =
+      routeTarget.kind === "entity" && routeTarget.entityType === entityType
+        ? routeTarget.id
+        : null;
+    const requestId = ++openRequestId.current;
     dispatchEditor({ type: "collectionChanged" });
     setMobilePane("details");
     setFieldAssistState({ kind: "idle" });
@@ -2319,22 +2340,30 @@ export function App(): ReactElement {
       queryClient.ensureQueryData(entityListQueryOptions(entityType)),
     ])
       .then(([loadedSchema, loadedEntities]) => {
-        if (!active) return undefined;
-        const deepLinkId = pendingDeepLinkId.current;
-        if (deepLinkId !== null) {
-          pendingDeepLinkId.current = null;
-          if (loadedEntities.some((entry) => entry.id === deepLinkId)) {
-            return queryClient
-              .fetchQuery({
-                ...entityDetailQueryOptions(entityType, deepLinkId),
-                staleTime: 0,
-              })
-              .then((entity) => {
-                if (!active) return;
-                const document = createEditorDocument(entity);
-                dispatchEditor({ type: "documentOpened", document });
+        if (!active || requestId !== openRequestId.current) return undefined;
+        if (routeEntityId !== null) {
+          return queryClient
+            .fetchQuery({
+              ...entityDetailQueryOptions(entityType, routeEntityId),
+              staleTime: 0,
+            })
+            .then((entity) => {
+              if (!active || requestId !== openRequestId.current) return;
+              const document = createEditorDocument(entity);
+              const pending = pendingOpenState.current;
+              const nextSave =
+                pending?.pathname === routePathname
+                  ? pending.save
+                  : { kind: "idle" as const };
+              if (pending?.pathname === routePathname) {
+                pendingOpenState.current = null;
+              }
+              dispatchEditor({
+                type: "documentOpened",
+                document,
+                save: nextSave,
               });
-          }
+            });
         }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
@@ -2346,7 +2375,7 @@ export function App(): ReactElement {
                 staleTime: 0,
               })
               .then((entity) => {
-                if (!active) return;
+                if (!active || requestId !== openRequestId.current) return;
                 const document = createEditorDocument(entity);
                 dispatchEditor({ type: "documentOpened", document });
               });
@@ -2359,16 +2388,30 @@ export function App(): ReactElement {
         return undefined;
       })
       .catch((error: unknown) => {
-        if (active) setLoadError(errorMessage(error));
+        if (active && requestId === openRequestId.current) {
+          setLoadError(errorMessage(error));
+        }
       });
     return (): void => {
       active = false;
     };
-  }, [entityType, queryClient]);
+  }, [entityType, queryClient, routePathname, routeTarget]);
 
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
+      const pathname = cmsEntityPath(cmsBasePath, entityType, id);
+      if (pathname !== routePathname) {
+        pendingOpenState.current = { pathname, save: nextState };
+        router.history.push(
+          pathname,
+          {
+            cmsCollectionPath: cmsCollectionPath(cmsBasePath, entityType),
+          },
+          nextState.kind === "saved" ? { ignoreBlocker: true } : undefined,
+        );
+        return;
+      }
       const requestId = ++openRequestId.current;
       const requestedType = entityType;
       queryClient
@@ -2397,45 +2440,33 @@ export function App(): ReactElement {
           }
         });
     },
-    [entityType, queryClient],
+    [cmsBasePath, entityType, queryClient, routePathname, router.history],
   );
 
   const openWorkspaceEntity = useCallback(
     (nextEntityType: string, id: string): void => {
-      setActiveWorkspaceId(null);
-      window.history.replaceState(
-        null,
-        "",
-        `#/${encodeURIComponent(nextEntityType)}/${encodeURIComponent(id)}`,
-      );
-      if (nextEntityType === entityType) {
-        openEntity(id);
-        return;
-      }
-      pendingDeepLinkId.current = id;
-      setEntityType(nextEntityType);
+      const pathname = cmsEntityPath(cmsBasePath, nextEntityType, id);
+      pendingOpenState.current = { pathname, save: { kind: "idle" } };
+      router.history.push(pathname, {
+        cmsCollectionPath: cmsCollectionPath(cmsBasePath, nextEntityType),
+      });
     },
-    [entityType, openEntity],
+    [cmsBasePath, router.history],
   );
 
-  const selectEntityType = useCallback((nextEntityType: string): void => {
-    setActiveWorkspaceId(null);
-    window.history.replaceState(
-      null,
-      "",
-      `#/${encodeURIComponent(nextEntityType)}`,
-    );
-    setEntityType(nextEntityType);
-  }, []);
+  const selectEntityType = useCallback(
+    (nextEntityType: string): void => {
+      router.history.push(cmsCollectionPath(cmsBasePath, nextEntityType));
+    },
+    [cmsBasePath, router.history],
+  );
 
-  const selectWorkspace = useCallback((workspaceId: string): void => {
-    setActiveWorkspaceId(workspaceId);
-    window.history.replaceState(
-      null,
-      "",
-      `#/workspace/${encodeURIComponent(workspaceId)}`,
-    );
-  }, []);
+  const selectWorkspace = useCallback(
+    (workspaceId: string): void => {
+      router.history.push(cmsWorkspacePath(cmsBasePath, workspaceId));
+    },
+    [cmsBasePath, router.history],
+  );
 
   const startCreate = useCallback((): void => {
     if (!schema) return;
@@ -2447,9 +2478,21 @@ export function App(): ReactElement {
   }, [schema]);
 
   const backToList = useCallback((): void => {
-    dispatchEditor({ type: "browseRequested" });
-    setFieldAssistState({ kind: "idle" });
-  }, []);
+    if (!entityType) return;
+    const collectionPath = cmsCollectionPath(cmsBasePath, entityType);
+    const historyState = router.history.location.state as Record<
+      string,
+      unknown
+    >;
+    if (
+      historyState["cmsCollectionPath"] === collectionPath &&
+      router.history.canGoBack()
+    ) {
+      router.history.back();
+      return;
+    }
+    router.history.replace(collectionPath);
+  }, [cmsBasePath, entityType, router.history]);
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
@@ -2573,6 +2616,7 @@ export function App(): ReactElement {
               queryKey: cmsKeys.syncStatus(),
             }),
           ]);
+          router.history.replace(cmsCollectionPath(cmsBasePath, entityType));
         },
         onError: (error: Error) => {
           dispatchEditor({
@@ -2582,7 +2626,15 @@ export function App(): ReactElement {
         },
       },
     );
-  }, [entityType, mode, deleting, queryClient, deleteEntityMutation]);
+  }, [
+    cmsBasePath,
+    entityType,
+    mode,
+    deleting,
+    queryClient,
+    deleteEntityMutation,
+    router.history,
+  ]);
 
   const performPublishingAction = useCallback(
     async (action: PublishingAction): Promise<PublishingActionResult> => {
@@ -2710,11 +2762,6 @@ export function App(): ReactElement {
       workspace.rendererName === "PublishingWorkspace" &&
       workspace.entityTypes.includes(selectedEntityType),
   );
-  const hasUnsavedChanges =
-    mode.kind === "edit" &&
-    (body !== mode.entity.body ||
-      JSON.stringify(draft) !== JSON.stringify(mode.entity.frontmatter));
-
   return (
     <div
       className="studio"
@@ -3035,6 +3082,41 @@ export function App(): ReactElement {
           onCancel={() => dispatchEditor({ type: "deleteCancelled" })}
           onConfirm={remove}
         />
+      )}
+      {navigationBlocker.status === "blocked" && (
+        <div className="modal-scrim" role="presentation">
+          <section
+            className="delete-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-navigation-title"
+          >
+            <span className="modal-mark" aria-hidden="true">
+              ↩
+            </span>
+            <h3 id="discard-navigation-title">Discard unsaved changes?</h3>
+            <p>
+              This draft has not been saved. Continue only if you want to leave
+              it behind.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={navigationBlocker.reset}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={navigationBlocker.proceed}
+              >
+                Discard and continue
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );
