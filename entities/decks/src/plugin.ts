@@ -93,7 +93,7 @@ export class DecksPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 1.5 };
+    return { weight: 1.5, projectionSourceRole: "primary" };
   }
 
   protected override async onRegister(

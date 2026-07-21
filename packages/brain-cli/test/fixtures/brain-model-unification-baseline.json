@@ -359,26 +359,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -754,26 +763,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -1344,26 +1362,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -1989,26 +2016,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -2669,26 +2705,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -3046,26 +3091,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -3790,26 +3844,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {

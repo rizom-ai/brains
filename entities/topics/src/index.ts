@@ -75,7 +75,11 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 0.5, projectionSource: false };
+    return {
+      weight: 0.5,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 
   protected override getTemplates(): Record<string, Template> {

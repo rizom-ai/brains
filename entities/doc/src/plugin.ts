@@ -1,4 +1,9 @@
-import type { DataSource, Plugin, Template } from "@brains/plugins";
+import type {
+  DataSource,
+  EntityTypeConfig,
+  Plugin,
+  Template,
+} from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { docSchema, type Doc } from "./schemas/doc";
 import { docAdapter, type DocAdapter } from "./adapters/doc-adapter";
@@ -17,6 +22,10 @@ export class DocsPlugin extends EntityPlugin<
 
   constructor() {
     super("docs", packageJson, {}, emptyEntityPluginConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "primary" };
   }
 
   protected override getTemplates(): Record<string, Template> {

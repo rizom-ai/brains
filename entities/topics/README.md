@@ -26,16 +26,33 @@ Topics are normal entities:
 interface TopicsPluginConfig {
   includeEntityTypes?: string[]; // Entity types to extract from
   minRelevanceScore?: number; // Default: 0.5
+  createRelevanceThreshold?: number; // Default: 0.7
+  reinforceRelevanceThreshold?: number; // Default: 0.5
+  sourceRolePolicies?: Partial<
+    Record<ProjectionSourceRole, TopicSourceRolePolicy>
+  >;
+  sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
   mergeSimilarityThreshold?: number; // Default: 0.85
   autoMerge?: boolean; // Default: true
   extractableStatuses?: string[]; // Default: ["published"]
   enableAutoExtraction?: boolean; // Default: true
+}
+
+type ProjectionSourceRole =
+  "canonical" | "primary" | "supporting" | "ambient" | "excluded";
+
+interface TopicSourceRolePolicy {
+  weight: number;
+  canMint: boolean;
 }
 ```
 
 ### Notes
 
 - Only entity types listed in `includeEntityTypes` are processed.
+- Entity types declare their default derivation authority via `projectionSourceRole`; the topics plugin maps roles to mint/reinforce behavior instead of knowing about package-specific entity names.
+- Brain and instance configs can adapt authority with `sourceRoleOverrides` and `sourceRolePolicies`.
+- Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
 - Topic entities themselves are never reprocessed as sources.
 - Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
 - `autoMerge` stays configurable; rebuilds do not force it on globally.

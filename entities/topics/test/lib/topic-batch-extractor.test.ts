@@ -427,6 +427,9 @@ describe("extractTopicsBatched", () => {
       const logger = createSilentLogger();
       const mockShell = createMockShell({ logger });
       const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "supporting",
+      });
 
       spyOn(context.ai, "generate").mockResolvedValue({
         topics: [
@@ -520,7 +523,11 @@ describe("extractTopicsBatched", () => {
         [makeEntity("pr1", "project", "Project 1", "Project content")],
         context,
         logger,
-        { autoMerge: false },
+        {
+          autoMerge: false,
+          sourceWeights: { project: 0.8 },
+          mintableEntityTypes: ["project"],
+        },
       );
 
       expect(result.created).toBe(0);
@@ -559,6 +566,99 @@ describe("extractTopicsBatched", () => {
         context,
         logger,
         { autoMerge: true, sourceEntityCount: 8 },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("uses entity source roles so primary custom sources can mint", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "primary",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Research Theme",
+            content: "A strong custom source theme.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("doc-1", "research-doc", "Research doc", "Content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(0);
+    });
+
+    it("uses entity source roles so supporting sources reinforce but do not mint", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "supporting",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Vendor Research",
+            content: "Strong but supporting evidence.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("link-1", "link", "Vendor link", "Link content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(0);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it("lets source role overrides adapt mint authority per brain config", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "primary",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Project Delivery",
+            content: "Project content should reinforce in this brain.",
+            relevanceScore: 0.95,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("project-1", "project", "Project", "Project content")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          sourceRoleOverrides: { project: "supporting" },
+        },
       );
 
       expect(result.created).toBe(0);

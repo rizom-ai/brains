@@ -63,6 +63,7 @@ export class NewsletterPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return {
+      projectionSourceRole: "primary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     };
   }

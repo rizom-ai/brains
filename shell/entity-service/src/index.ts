@@ -77,6 +77,7 @@ export type {
   IEntitiesNamespace,
   EntityDbConfig,
   EntityTypeConfig,
+  ProjectionSourceRole,
   EntityJobOptions,
   EntityMutationEventContext,
   EntityEventBus,
