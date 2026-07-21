@@ -8,7 +8,7 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
-- ambient brain card and projected-entity publishing
+- ambient brain card, projected-entity, and authority-gated canonical lexicon publishing
 - projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
 - candidate brain-card discovery via public `com.atproto.repo.getRecord` reads and internal message-bus events
 
@@ -24,6 +24,8 @@ atprotoPlugin({
   // Optional; defaults from site domain when omitted.
   brainDid: "did:web:example.com",
   anchorDid: "did:web:example.com:anchor",
+  // Only for the DNS-designated ai.rizom.brain.* authority account.
+  lexiconAuthority: true,
   appPassword: "${ATPROTO_APP_PASSWORD}",
 });
 ```
@@ -39,6 +41,8 @@ plugins:
     # Optional; defaults from domain/siteUrl when omitted.
     brainDid: did:web:example.com
     anchorDid: did:web:example.com:anchor
+    # Only for the DNS-designated ai.rizom.brain.* authority account.
+    lexiconAuthority: true
     appPassword: ${ATPROTO_APP_PASSWORD}
 ```
 
@@ -58,12 +62,13 @@ Secrets should be supplied through environment variables or app secret configura
 - `brainDid`: public brain DID. Defaults to `did:web:<site-host>` when omitted. If configured as `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
 - `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
+- `lexiconAuthority`: defaults to `false`. When true, the ready trigger upserts every canonical `ai.rizom.brain.*` lexicon as a `com.atproto.lexicon.schema` record. Enable this only for the PDS account named by the authority's `_lexicon` DNS TXT record.
 
 ## Ambient publishing
 
 The plugin exposes no agent tools. When `identifier` and `appPassword` are configured, it publishes automatically:
 
-- `system:plugins:ready` upserts the public brain card as `ai.rizom.brain.card/self`.
+- `system:plugins:ready` upserts the public brain card as `ai.rizom.brain.card/self`. On the designated lexicon authority, it also converges canonical schemas under `com.atproto.lexicon.schema/<nsid>`.
 - `publish:completed` upserts the source entity when its entity package has registered an ATProto projection and the entity is public.
 - `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record.
 - `entity:deleted` deletes the projected record when the deleted entity was public.
@@ -108,8 +113,8 @@ Use a test PDS/Bluesky account, an app password, and a controlled public site do
 
 The committed Rover full test app uses the Alex example identity (`domain: alex.example.com`, `identifier: alex.example.com`) so it stays aligned with the eval content. `alex.example.com` is fixture data, not a live PDS handle/domain. For a real live smoke, use the matching deployed Alex domain/account and keep only the app password in the environment.
 
-1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities.
-2. Start a brain with the ATProto plugin enabled. The ready event should upsert `ai.rizom.brain.card/self` automatically.
+1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities. Set `lexiconAuthority: true` only when testing the PDS account designated by `_lexicon.<reversed-authority>` DNS.
+2. Start a brain with the ATProto plugin enabled. The ready event should upsert `ai.rizom.brain.card/self` automatically and, for the designated authority, one `com.atproto.lexicon.schema` record per canonical NSID.
 3. Confirm DID documents if using `did:web`:
    - brain root DID: `GET https://<brain-domain>/.well-known/did.json`
    - same-domain anchor path DID: `GET https://<brain-domain>/anchor/did.json`
@@ -122,6 +127,6 @@ The committed Rover full test app uses the Alex example identity (`domain: alex.
 
 - Outbound ATProto OAuth is deferred; the prototype uses app-password authentication. This is separate from the brain's existing inbound OAuth server for clients calling the brain.
 - Lexicon TypeScript generation is intentionally not wired into the workspace yet. For now, canonical lexicon JSON lives in `@brains/atproto-contracts`, and record mapper tests validate projections against existing entity schemas.
-- Custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons.
+- Custom `ai.rizom.brain.*` records are still written with PDS validation disabled; protocol-native authority records let external resolvers discover and validate the canonical schemas but do not require every PDS implementation to dynamically load them during writes.
 - Post cover images are uploaded as AT Protocol blobs and included in `ai.rizom.brain.post` records.
 - Bluesky `app.bsky.feed.post` publishing is intentionally not part of `atproto_publish_post`; it should be added later through the `social-post` workflow.

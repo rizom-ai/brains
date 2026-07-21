@@ -13,6 +13,7 @@ const baseConfig = {
   pdsEndpoint: "https://pds.example.com/",
   identifier: "brain.example.com",
   brainDid: "did:web:brain.example.com",
+  lexiconAuthority: false,
 };
 
 describe("did helpers", () => {

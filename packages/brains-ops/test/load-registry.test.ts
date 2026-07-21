@@ -212,6 +212,7 @@ agePublicKey: age1testpublickey
       "users/smoke.yaml": `handle: smoke
 atproto:
   identifier: rizom-test.bsky.social
+  lexiconAuthority: true
 discord:
   enabled: false
 `,
@@ -224,6 +225,7 @@ discord:
 
     expect(registry.users[0]?.atproto).toEqual({
       identifier: "rizom-test.bsky.social",
+      lexiconAuthority: true,
     });
   });
 
