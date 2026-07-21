@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
   JobHandler,
   Template,
   DataSource,
@@ -166,6 +167,10 @@ export class PortfolioPlugin extends EntityPlugin<
 
   constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "supporting" };
   }
 
   protected override async interceptCreate(

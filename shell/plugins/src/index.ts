@@ -187,6 +187,7 @@ export type {
   BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
+  ProjectionSourceRole,
   ICoreEntityService,
   IEntityService,
   ProjectSemanticSpaceRequest,

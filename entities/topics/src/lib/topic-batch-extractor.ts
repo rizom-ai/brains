@@ -2,9 +2,11 @@ import type {
   BaseEntity,
   ContentVisibility,
   EntityPluginContext,
+  ProjectionSourceRole,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
+import type { TopicSourceRolePolicy } from "../schemas/config";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";
@@ -43,6 +45,8 @@ export interface ExtractTopicsBatchedOptions {
   reinforceRelevanceThreshold?: number;
   sourceWeights?: Record<string, number>;
   mintableEntityTypes?: string[];
+  sourceRolePolicies?: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
+  sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
   sourceEntityCount?: number;
   maxEntitiesPerBatch?: number;
   topicSoftCeilingSourceRatio?: number;
@@ -61,23 +65,16 @@ export interface ExtractTopicsBatchedResult {
   batches: number;
 }
 
-const DEFAULT_SOURCE_WEIGHTS: Record<string, number> = {
-  "anchor-profile": 1,
-  post: 1,
-  summary: 1,
-  deck: 0.85,
-  project: 0.8,
-  link: 0.6,
-  note: 0.6,
+const DEFAULT_SOURCE_ROLE_POLICIES: Record<
+  ProjectionSourceRole,
+  TopicSourceRolePolicy
+> = {
+  canonical: { weight: 1, canMint: true },
+  primary: { weight: 1, canMint: true },
+  supporting: { weight: 0.55, canMint: false },
+  ambient: { weight: 0.35, canMint: false },
+  excluded: { weight: 0, canMint: false },
 };
-
-const DEFAULT_MINTABLE_ENTITY_TYPES = [
-  "anchor-profile",
-  "post",
-  "summary",
-  "deck",
-  "project",
-];
 
 /**
  * Extract topics from source entities in token-budget-aware batches.
@@ -112,13 +109,12 @@ export async function extractTopicsBatched(
   const createRelevanceThreshold = options.createRelevanceThreshold ?? 0.7;
   const reinforceRelevanceThreshold =
     options.reinforceRelevanceThreshold ?? 0.5;
-  const sourceWeights = {
-    ...DEFAULT_SOURCE_WEIGHTS,
-    ...(options.sourceWeights ?? {}),
+  const sourceWeights = options.sourceWeights ?? {};
+  const mintableEntityTypes = new Set(options.mintableEntityTypes ?? []);
+  const sourceRolePolicies = {
+    ...DEFAULT_SOURCE_ROLE_POLICIES,
+    ...(options.sourceRolePolicies ?? {}),
   };
-  const mintableEntityTypes = new Set(
-    options.mintableEntityTypes ?? DEFAULT_MINTABLE_ENTITY_TYPES,
-  );
   const autoMerge = options.autoMerge ?? false;
   const threshold =
     options.semanticMergeDistance ?? options.mergeSimilarityThreshold ?? 0.35;
@@ -153,11 +149,15 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const batchContent = buildBatchPrompt(batch);
-    const sourcePolicy = getBatchSourcePolicy(
+    const sourcePolicy = getBatchSourcePolicy({
       batch,
+      getEntityTypeConfig: (entityType) =>
+        context.entityService.getEntityTypeConfig(entityType),
       sourceWeights,
       mintableEntityTypes,
-    );
+      sourceRolePolicies,
+      sourceRoleOverrides: options.sourceRoleOverrides ?? {},
+    });
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
@@ -302,17 +302,43 @@ function splitBatchesByEntityCount(
   });
 }
 
-function getBatchSourcePolicy(
-  batch: BaseEntity[],
-  sourceWeights: Record<string, number>,
-  mintableEntityTypes: Set<string>,
-): { weight: number; canMint: boolean } {
-  return batch.reduce<{ weight: number; canMint: boolean }>(
+function getBatchSourcePolicy(params: {
+  batch: BaseEntity[];
+  getEntityTypeConfig: (entityType: string) => {
+    projectionSource?: boolean;
+    projectionSourceRole?: ProjectionSourceRole;
+  };
+  sourceWeights: Record<string, number>;
+  mintableEntityTypes: Set<string>;
+  sourceRolePolicies: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
+  sourceRoleOverrides: Record<string, ProjectionSourceRole>;
+}): { weight: number; canMint: boolean } {
+  const hasLegacyPolicy =
+    Object.keys(params.sourceWeights).length > 0 ||
+    params.mintableEntityTypes.size > 0;
+
+  return params.batch.reduce<{ weight: number; canMint: boolean }>(
     (policy, entity) => {
-      const weight = sourceWeights[entity.entityType] ?? 1;
+      if (hasLegacyPolicy) {
+        return {
+          weight: Math.max(
+            policy.weight,
+            params.sourceWeights[entity.entityType] ?? 1,
+          ),
+          canMint:
+            policy.canMint || params.mintableEntityTypes.has(entity.entityType),
+        };
+      }
+
+      const config = params.getEntityTypeConfig(entity.entityType);
+      const role =
+        params.sourceRoleOverrides[entity.entityType] ??
+        config.projectionSourceRole ??
+        (config.projectionSource === false ? "excluded" : "primary");
+      const rolePolicy = params.sourceRolePolicies[role];
       return {
-        weight: Math.max(policy.weight, weight),
-        canMint: policy.canMint || mintableEntityTypes.has(entity.entityType),
+        weight: Math.max(policy.weight, rolePolicy.weight),
+        canMint: policy.canMint || rolePolicy.canMint,
       };
     },
     { weight: 0, canMint: false },

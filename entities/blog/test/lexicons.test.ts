@@ -15,7 +15,7 @@ describe("blog ATProto lexicons", () => {
           record: {
             required: ["title", "body", "createdAt"],
             properties: {
-              coverImage: { type: "object" },
+              coverImage: { type: "ref", ref: "#coverImage" },
               sourceEntityType: { type: "string" },
               sourceEntityId: { type: "string" },
             },

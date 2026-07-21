@@ -66,6 +66,7 @@ export class SocialMediaPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return {
+      projectionSourceRole: "supporting",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     };
   }

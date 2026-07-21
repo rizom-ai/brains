@@ -1,11 +1,12 @@
 {
   "name": "@brains/atproto-contracts",
-  "version": "0.2.0-alpha.208",
+  "version": "0.2.0-alpha.209",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@atproto/lexicon": "^0.7.7",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",

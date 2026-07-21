@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
   JobHandler,
   Template,
   DataSource,
@@ -56,6 +57,10 @@ export class LinkPlugin extends EntityPlugin<
 
   constructor(config: LinkConfigInput = {}) {
     super("link", packageJson, config, linkConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "supporting" };
   }
 
   /**

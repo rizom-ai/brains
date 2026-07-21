@@ -359,26 +359,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -754,26 +763,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -1344,26 +1362,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -1989,26 +2016,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -2507,8 +2543,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4620,
-              "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+              "length": 4445,
+              "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -2519,8 +2555,8 @@
           },
           "/atproto/lexicons/ai.rizom.brain.link.json": {
             "$string": {
-              "length": 1737,
-              "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+              "length": 1808,
+              "sha256": "2dd86bf521f6345da411ac0ceca44b78d0bc397dfd027b56e04e496b3ebf54e3"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.note.json": {
@@ -2531,8 +2567,8 @@
           },
           "/atproto/lexicons/ai.rizom.brain.post.json": {
             "$string": {
-              "length": 2280,
-              "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+              "length": 2311,
+              "sha256": "6c23a2ea24cddb56ec19a15454d7ebcd442c764fca593ad9d05aa8c1f060ce01"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.project.json": {
@@ -2669,26 +2705,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -3046,26 +3091,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -3458,8 +3512,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4620,
-                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                      "length": 4445,
+                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -3470,8 +3524,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.link.json": {
                     "$string": {
-                      "length": 1737,
-                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                      "length": 1808,
+                      "sha256": "2dd86bf521f6345da411ac0ceca44b78d0bc397dfd027b56e04e496b3ebf54e3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.note.json": {
@@ -3482,8 +3536,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.post.json": {
                     "$string": {
-                      "length": 2280,
-                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                      "length": 2311,
+                      "sha256": "6c23a2ea24cddb56ec19a15454d7ebcd442c764fca593ad9d05aa8c1f060ce01"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.project.json": {
@@ -3790,26 +3844,35 @@
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
-                "mintableEntityTypes": [
-                  "anchor-profile",
-                  "post",
-                  "summary",
-                  "deck",
-                  "project"
-                ],
+                "mintableEntityTypes": [],
                 "reconciliationMaxPairs": 100,
                 "reinforceRelevanceThreshold": 0.5,
                 "semanticMergeDistance": 0.35,
                 "sourceChangeBatchDelayMs": 1000,
-                "sourceWeights": {
-                  "anchor-profile": 1,
-                  "deck": 0.85,
-                  "link": 0.6,
-                  "note": 0.6,
-                  "post": 1,
-                  "project": 0.8,
-                  "summary": 1
+                "sourceRoleOverrides": {},
+                "sourceRolePolicies": {
+                  "ambient": {
+                    "canMint": false,
+                    "weight": 0.35
+                  },
+                  "canonical": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "excluded": {
+                    "canMint": false,
+                    "weight": 0
+                  },
+                  "primary": {
+                    "canMint": true,
+                    "weight": 1
+                  },
+                  "supporting": {
+                    "canMint": false,
+                    "weight": 0.55
+                  }
                 },
+                "sourceWeights": {},
                 "topicSoftCeilingSourceRatio": 5
               },
               "criticalConfig": {
@@ -4212,8 +4275,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4620,
-                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                      "length": 4445,
+                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4224,8 +4287,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.link.json": {
                     "$string": {
-                      "length": 1737,
-                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                      "length": 1808,
+                      "sha256": "2dd86bf521f6345da411ac0ceca44b78d0bc397dfd027b56e04e496b3ebf54e3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.note.json": {
@@ -4236,8 +4299,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.post.json": {
                     "$string": {
-                      "length": 2280,
-                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                      "length": 2311,
+                      "sha256": "6c23a2ea24cddb56ec19a15454d7ebcd442c764fca593ad9d05aa8c1f060ce01"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.project.json": {
@@ -4482,8 +4545,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4620,
-              "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+              "length": 4445,
+              "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4494,8 +4557,8 @@
           },
           "/atproto/lexicons/ai.rizom.brain.link.json": {
             "$string": {
-              "length": 1737,
-              "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+              "length": 1808,
+              "sha256": "2dd86bf521f6345da411ac0ceca44b78d0bc397dfd027b56e04e496b3ebf54e3"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.note.json": {
@@ -4506,8 +4569,8 @@
           },
           "/atproto/lexicons/ai.rizom.brain.post.json": {
             "$string": {
-              "length": 2280,
-              "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+              "length": 2311,
+              "sha256": "6c23a2ea24cddb56ec19a15454d7ebcd442c764fca593ad9d05aa8c1f060ce01"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.project.json": {
@@ -4739,8 +4802,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4620,
-                      "sha256": "f2077c3626eae43c20802936816f1a1acbf9b779ef9a98a3507ab17003a36682"
+                      "length": 4445,
+                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4751,8 +4814,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.link.json": {
                     "$string": {
-                      "length": 1737,
-                      "sha256": "dcc1f23d92b9308addc215cf1a4500d506ba38d3da06c046ff8918f1f25644bf"
+                      "length": 1808,
+                      "sha256": "2dd86bf521f6345da411ac0ceca44b78d0bc397dfd027b56e04e496b3ebf54e3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.note.json": {
@@ -4763,8 +4826,8 @@
                   },
                   "/atproto/lexicons/ai.rizom.brain.post.json": {
                     "$string": {
-                      "length": 2280,
-                      "sha256": "d74cf87e4f3534f1c8430f53ff00d21d50c94a190def05c83126055038ab8498"
+                      "length": 2311,
+                      "sha256": "6c23a2ea24cddb56ec19a15454d7ebcd442c764fca593ad9d05aa8c1f060ce01"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.project.json": {

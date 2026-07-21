@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.209
+
+### Patch Changes
+
+- [`9e3fe42`](https://github.com/rizom-ai/brains/commit/9e3fe420c252e1aecb929fc94872bd50f39b9adf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add generic projection source roles to entity type configuration and make topic extraction use role-based source authority policies instead of package-specific entity type defaults.
+
 ## 0.2.0-alpha.208
 
 ### Patch Changes

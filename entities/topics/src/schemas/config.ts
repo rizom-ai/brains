@@ -1,3 +1,4 @@
+import type { ProjectionSourceRole } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -5,10 +6,39 @@ import { z } from "@brains/utils/zod";
  */
 export type TopicExtractionVisibility = "public" | "shared" | "restricted";
 
+export interface TopicSourceRolePolicy {
+  weight: number;
+  canMint: boolean;
+}
+
 const extractionVisibilitySchema: z.ZodType<
   TopicExtractionVisibility,
   TopicExtractionVisibility
 > = z.enum(["public", "shared", "restricted"]);
+
+const projectionSourceRoleSchema: z.ZodType<
+  ProjectionSourceRole,
+  ProjectionSourceRole
+> = z.enum(["canonical", "primary", "supporting", "ambient", "excluded"]);
+
+const topicSourceRolePolicySchema: z.ZodType<
+  TopicSourceRolePolicy,
+  TopicSourceRolePolicy
+> = z.object({
+  weight: z.number().min(0).max(1),
+  canMint: z.boolean(),
+});
+
+const defaultSourceRolePolicies: Record<
+  ProjectionSourceRole,
+  TopicSourceRolePolicy
+> = {
+  canonical: { weight: 1, canMint: true },
+  primary: { weight: 1, canMint: true },
+  supporting: { weight: 0.55, canMint: false },
+  ambient: { weight: 0.35, canMint: false },
+  excluded: { weight: 0, canMint: false },
+};
 
 export interface TopicsPluginConfig {
   includeEntityTypes: string[];
@@ -17,6 +47,8 @@ export interface TopicsPluginConfig {
   reinforceRelevanceThreshold: number;
   sourceWeights: Record<string, number>;
   mintableEntityTypes: string[];
+  sourceRolePolicies: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
+  sourceRoleOverrides: Record<string, ProjectionSourceRole>;
   maxEntitiesPerBatch: number;
   topicSoftCeilingSourceRatio: number;
   mergeSimilarityThreshold: number;
@@ -36,6 +68,9 @@ export interface TopicsPluginConfigInput {
   reinforceRelevanceThreshold?: number | undefined;
   sourceWeights?: Record<string, number> | undefined;
   mintableEntityTypes?: string[] | undefined;
+  sourceRolePolicies?:
+    Partial<Record<ProjectionSourceRole, TopicSourceRolePolicy>> | undefined;
+  sourceRoleOverrides?: Record<string, ProjectionSourceRole> | undefined;
   maxEntitiesPerBatch?: number | undefined;
   topicSoftCeilingSourceRatio?: number | undefined;
   mergeSimilarityThreshold?: number | undefined;
@@ -74,25 +109,36 @@ export const topicsPluginConfigSchema: z.ZodType<
   reinforceRelevanceThreshold: z.number().min(0).max(1).default(0.5),
 
   /**
-   * Relevance multipliers by source entity type.
+   * Deprecated per-entity relevance multipliers retained for config
+   * compatibility. Prefer sourceRolePolicies + entity projectionSourceRole.
    */
-  sourceWeights: z.record(z.string(), z.number().min(0).max(1)).default({
-    "anchor-profile": 1,
-    post: 1,
-    summary: 1,
-    deck: 0.85,
-    project: 0.8,
-    link: 0.6,
-    note: 0.6,
-  }),
+  sourceWeights: z.record(z.string(), z.number().min(0).max(1)).default({}),
 
   /**
-   * Entity types allowed to mint new topics. Other source types can only
-   * reinforce existing topics.
+   * Deprecated per-entity mint allow-list retained for config compatibility.
+   * Prefer sourceRolePolicies + entity projectionSourceRole.
    */
-  mintableEntityTypes: z
-    .array(z.string())
-    .default(["anchor-profile", "post", "summary", "deck", "project"]),
+  mintableEntityTypes: z.array(z.string()).default([]),
+
+  /**
+   * Role-level topic economics. Entity packages define default roles; brain or
+   * instance config can override policies without the topics plugin knowing
+   * about other entity packages.
+   */
+  sourceRolePolicies: z
+    .partialRecord(projectionSourceRoleSchema, topicSourceRolePolicySchema)
+    .default({})
+    .transform((policies) => ({
+      ...defaultSourceRolePolicies,
+      ...policies,
+    })),
+
+  /**
+   * Brain/instance-specific role overrides by entity type.
+   */
+  sourceRoleOverrides: z
+    .record(z.string(), projectionSourceRoleSchema)
+    .default({}),
 
   /**
    * Maximum entities in one AI extraction prompt. This prevents large corpus

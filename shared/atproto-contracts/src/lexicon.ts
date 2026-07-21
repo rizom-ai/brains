@@ -25,35 +25,55 @@ export interface AtprotoLexiconRecordDef {
   };
 }
 
+export interface AtprotoLexiconObjectDef {
+  type: "object";
+  description?: string | undefined;
+  required?: string[] | undefined;
+  properties: Record<string, AtprotoLexiconProperty>;
+}
+
 export interface AtprotoLexicon {
   lexicon: 1;
   id: string;
   defs: {
     main: AtprotoLexiconRecordDef;
-  };
+  } & Record<string, AtprotoLexiconObjectDef | AtprotoLexiconRecordDef>;
 }
 
 const atprotoLexiconPropertySchema = z
   .object({ type: z.string() })
   .catchall(z.unknown());
 
+// Nested objects are not allowed inline in record properties by the lexicon
+// spec; they live as named object defs referenced via `{type: "ref"}`.
+const atprotoLexiconObjectDefSchema = z.object({
+  type: z.literal("object"),
+  description: z.string().optional(),
+  required: z.array(z.string()).optional(),
+  properties: z.record(z.string(), atprotoLexiconPropertySchema),
+});
+
 const atprotoLexiconSchema = z.object({
   lexicon: z.literal(1),
   id: z.string(),
-  defs: z.object({
-    main: z.object({
-      type: z.literal("record"),
-      key: z.string().min(1),
-      // zod strips undeclared keys: without this the registry publishes
-      // every lexicon shorn of its authored description.
-      description: z.string().optional(),
-      record: z.object({
-        type: z.literal("object"),
-        required: z.array(z.string()).optional(),
-        properties: z.record(z.string(), atprotoLexiconPropertySchema),
+  defs: z
+    .object({
+      main: z.object({
+        type: z.literal("record"),
+        key: z.string().min(1),
+        // zod strips undeclared keys: without this the registry publishes
+        // every lexicon shorn of its authored description.
+        description: z.string().optional(),
+        record: z.object({
+          type: z.literal("object"),
+          required: z.array(z.string()).optional(),
+          properties: z.record(z.string(), atprotoLexiconPropertySchema),
+        }),
       }),
-    }),
-  }),
+    })
+    // Same stripping hazard as `description` above: named object defs must
+    // survive parsing or published schemas lose their ref targets.
+    .catchall(atprotoLexiconObjectDefSchema),
 });
 
 export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
