@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { cmsApiPath } from "./api";
+import { cmsApiPath, configureCmsApiBasePath } from "./api";
 
 describe("cmsApiPath", () => {
   it("derives API requests from the configured CMS route", () => {
@@ -13,5 +13,11 @@ describe("cmsApiPath", () => {
 
   it("retains the default CMS route", () => {
     expect(cmsApiPath("types", "/cms")).toBe("/cms/api/types");
+  });
+
+  it("uses the configured shell base instead of the current deep pathname", () => {
+    configureCmsApiBasePath("/studio");
+    expect(cmsApiPath("types")).toBe("/studio/api/types");
+    configureCmsApiBasePath("/cms");
   });
 });

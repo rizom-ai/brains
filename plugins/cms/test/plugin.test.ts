@@ -31,6 +31,8 @@ describe("cms plugin", () => {
       routes.map((route) => `${route.method ?? "GET"} ${route.path}`),
     ).toEqual([
       "GET /cms",
+      "GET /cms/entities",
+      "GET /cms/workspaces",
       "GET /cms/assets/app.js",
       "GET /cms/api/types",
       "GET /cms/api/workspace",
@@ -60,6 +62,26 @@ describe("cms plugin", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
+  });
+
+  it("preserves a deep CMS path through operator login", async () => {
+    const shell = createCmsTestShell();
+    const plugin = cmsPlugin();
+
+    await plugin.register(shell);
+
+    const route = findRoute(plugin.getWebRoutes(), "/cms/entities");
+    expect(route.match).toBe("prefix");
+    const response = await route.handler(
+      new Request(
+        "https://yeehaa.io/cms/entities/note/journal%2Fday-one?view=edit",
+      ),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "/login?return_to=%2Fcms%2Fentities%2Fnote%2Fjournal%252Fday-one%3Fview%3Dedit",
+    );
   });
 
   it("respects a custom route path", async () => {

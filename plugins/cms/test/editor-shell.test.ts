@@ -3,6 +3,7 @@ import { renderEditorShellHtml } from "../src/editor-shell";
 
 const SHELL_OPTIONS = {
   assetPath: "/cms/assets/app.js",
+  basePath: "/cms",
   surfaces: [
     {
       id: "dashboard",
@@ -61,6 +62,7 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('class="climate-chip"');
     expect(html).toContain('class="session-chip"');
     expect(html).toContain('href="/logout?return_to=%2Fcms"');
+    expect(html).toContain('data-cms-base-path="/cms"');
     expect(html).toContain("Sign out");
   });
 
