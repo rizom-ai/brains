@@ -268,10 +268,24 @@ export class ServerManager {
     const requestMethod = c.req.method.toUpperCase();
     const requestPath = c.req.path;
 
-    const webRoute = this.getCurrentWebRoutes().find((route) => {
+    const methodRoutes = this.getCurrentWebRoutes().filter((route) => {
       const routeMethod = route.definition.method ?? "GET";
-      return route.fullPath === requestPath && routeMethod === requestMethod;
+      return routeMethod === requestMethod;
     });
+    const webRoute =
+      methodRoutes.find(
+        (route) =>
+          (route.definition.match ?? "exact") === "exact" &&
+          route.fullPath === requestPath,
+      ) ??
+      methodRoutes
+        .filter(
+          (route) =>
+            route.definition.match === "prefix" &&
+            (requestPath === route.fullPath ||
+              requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
+        )
+        .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
     if (webRoute) {
       // `public` is the only auth signal wired for web routes today. Until
       // real auth exists, non-public routes fail closed rather than serve

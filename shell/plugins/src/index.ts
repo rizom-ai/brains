@@ -532,6 +532,7 @@ export type {
   RegisteredWebRoute,
   WebRouteMethod,
   WebRouteHandler,
+  WebRouteMatch,
 } from "./types/web-routes";
 export {
   CMS_WORKSPACE_REGISTER_MESSAGE,
