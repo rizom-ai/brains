@@ -192,10 +192,10 @@ describe("dashboard widget registration", () => {
   it("includes the CMS management URL only when registration succeeded", async () => {
     await registerDashboardWidget(context, "content-pipeline", {
       ...deps,
-      managementUrl: "/studio#/workspace/publishing",
+      managementUrl: "/studio/workspaces/publishing",
     });
     expect((await widgetPayload?.dataProvider())?.managementUrl).toBe(
-      "/studio#/workspace/publishing",
+      "/studio/workspaces/publishing",
     );
 
     await registerDashboardWidget(context, "content-pipeline", deps);

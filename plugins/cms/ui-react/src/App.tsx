@@ -2118,8 +2118,16 @@ export function App(): ReactElement {
     select: (state) => state.location.pathname,
   });
   const cmsBasePath = getCmsRouterBasePath();
+  // TanStack Router exposes a pathname relative to its configured basepath.
   const routeTarget = useMemo(
-    () => parseCmsPath(routePathname, cmsBasePath),
+    () => parseCmsPath(routePathname, "/"),
+    [routePathname],
+  );
+  const currentCmsPathname = useMemo(
+    () =>
+      routePathname === "/"
+        ? cmsBasePath
+        : `${cmsBasePath === "/" ? "" : cmsBasePath}${routePathname}`,
     [cmsBasePath, routePathname],
   );
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
@@ -2352,10 +2360,10 @@ export function App(): ReactElement {
               const document = createEditorDocument(entity);
               const pending = pendingOpenState.current;
               const nextSave =
-                pending?.pathname === routePathname
+                pending?.pathname === currentCmsPathname
                   ? pending.save
                   : { kind: "idle" as const };
-              if (pending?.pathname === routePathname) {
+              if (pending?.pathname === currentCmsPathname) {
                 pendingOpenState.current = null;
               }
               dispatchEditor({
@@ -2395,13 +2403,13 @@ export function App(): ReactElement {
     return (): void => {
       active = false;
     };
-  }, [entityType, queryClient, routePathname, routeTarget]);
+  }, [currentCmsPathname, entityType, queryClient, routePathname, routeTarget]);
 
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
       const pathname = cmsEntityPath(cmsBasePath, entityType, id);
-      if (pathname !== routePathname) {
+      if (pathname !== currentCmsPathname) {
         pendingOpenState.current = { pathname, save: nextState };
         router.history.push(
           pathname,
@@ -2440,7 +2448,7 @@ export function App(): ReactElement {
           }
         });
     },
-    [cmsBasePath, entityType, queryClient, routePathname, router.history],
+    [cmsBasePath, currentCmsPathname, entityType, queryClient, router.history],
   );
 
   const openWorkspaceEntity = useCallback(
@@ -2616,7 +2624,11 @@ export function App(): ReactElement {
               queryKey: cmsKeys.syncStatus(),
             }),
           ]);
-          router.history.replace(cmsCollectionPath(cmsBasePath, entityType));
+          router.history.replace(
+            cmsCollectionPath(cmsBasePath, entityType),
+            undefined,
+            { ignoreBlocker: true },
+          );
         },
         onError: (error: Error) => {
           dispatchEditor({

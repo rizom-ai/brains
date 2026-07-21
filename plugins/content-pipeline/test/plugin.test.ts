@@ -95,7 +95,7 @@ describe("ContentPipelinePlugin", () => {
       let dashboardDataProvider: (() => Promise<unknown>) | undefined;
       harness.subscribe("cms:register-workspace", async () => ({
         success: true,
-        data: { workspaceUrl: "/studio#/workspace/publishing" },
+        data: { workspaceUrl: "/studio/workspaces/publishing" },
       }));
       harness.subscribe<{ dataProvider: () => Promise<unknown> }>(
         "dashboard:register-widget",
@@ -108,7 +108,7 @@ describe("ContentPipelinePlugin", () => {
       await plugin.ready();
 
       expect(await dashboardDataProvider?.()).toMatchObject({
-        managementUrl: "/studio#/workspace/publishing",
+        managementUrl: "/studio/workspaces/publishing",
       });
     });
   });

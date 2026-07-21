@@ -31,7 +31,7 @@ describe("DirectorySyncPlugin", () => {
         workspaceRegistration = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/studio#/workspace/sync" },
+          data: { workspaceUrl: "/studio/workspaces/sync" },
         };
       },
     );
@@ -154,7 +154,7 @@ describe("DirectorySyncPlugin", () => {
       // No git configured in this harness — status degrades, not errors.
       expect(response?.git).toBeNull();
       expect(response?.lastSync).toBeNull();
-      expect(response?.managementUrl).toBe("/studio#/workspace/sync");
+      expect(response?.managementUrl).toBe("/studio/workspaces/sync");
     });
 
     it("should respond to export requests", async () => {
