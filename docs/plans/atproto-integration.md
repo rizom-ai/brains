@@ -4,7 +4,7 @@
 
 Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password, `did:web` document routes), the projection-backed outbound publishing substrate (`post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`) with local lexicon validation, blob upload, and idempotent `putRecord` upserts; canonical `ai.rizom.brain.*` contracts in `@brains/atproto-contracts` with Zod record schemas, served publicly by the registry on the live `rizom.ai` instance; the first bounded discovery slice (signed brain cards enrich or create reviewable `agent` entities); the member-handle verification endpoint (`/.well-known/atproto-did`), dogfooded by the org account — `@rizom.ai` verified over HTTP against `did:plc:oehciuqunzskplljt3qnnncw`; and live credentials on the rizom-ai brain (`ATPROTO_APP_PASSWORD` deployed).
 
-**Nothing publishes yet.** The publish methods (`publishBrainCard`, `publishEntity`, `publishPost`) have zero callers: the MCP tool surface was deliberately removed on 2026-06-27 (`fix(atproto): remove agent tool surface`) and no invocation surface replaced it. Earlier "done" evidence in this plan cited `atproto_publish_*` smoke runs through those since-removed tools. Wiring a trigger is the top open item.
+Ambient publishing is implemented in-repo as of 2026-07-20; live verification is still pending. The MCP tool surface remains intentionally absent. With credentials configured, the plugin now refreshes the brain card on ready, mirrors projected entities after publish completion and public updates, removes records after deletion or visibility changes, and isolates PDS failures from local source operations.
 
 ## Reference invariants (needed by the open work)
 
@@ -18,17 +18,17 @@ Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password,
 
 Ordered; each slice ships independently.
 
-### 1. Publishing trigger (make brains publish themselves)
+### 1. Publishing trigger (make brains publish themselves) — implemented, live verification pending
 
-The substrate is complete but inert. Make publishing ambient, replacing the removed tool surface with event wiring inside the atproto plugin:
+The removed tool surface has been replaced with event wiring inside the atproto plugin:
 
-- **Brain card on ready**: when credentials are configured, publish/refresh `ai.rizom.brain.card/self` at `system:plugins:ready`. `putRecord` under `literal:self` is an idempotent upsert, so every boot converges the card; no dedupe state needed.
-- **Entity records on publish events**: subscribe to the publish-pipeline's `publish:report:success` and to entity update events for already-public entities. For any entity type with a registered projection, build, validate, and upsert the projected record. Entity deletion (or a public entity turning non-public) deletes the projected record — the PDS repo is a quiet mirror of public projected state.
-- **Safety boundary, sharpened**: projection registration is the consent gate. Once an entity package registers a projection and the operator configures credentials, publishing for that type is automatic. "No entity type is published blindly" means no publishing without a registered projection — not that each record needs a manual act. The explicit-act model was the removed tool surface; this slice supersedes it.
-- **Failure handling**: publish failures report through the existing messaging/report path and never fail the source operation (a PDS outage must not block a local publish).
-- Tests: card upsert on ready (and skipped without credentials), publish event → record upsert, delete → record delete, no publish for types without projections, failure isolation.
+- **Brain card on ready**: with credentials configured, `system:plugins:ready` publishes/refreshes `ai.rizom.brain.card/self`. `putRecord` under `literal:self` is an idempotent upsert, so every boot converges the card; no dedupe state is needed.
+- **Entity records on publish events**: the plugin subscribes to `publish:completed`, the publish pipeline's broadcast fan-out event, rather than request-style `publish:report:success`. It also subscribes to entity updates. For any entity type with a registered projection, it builds, validates, and upserts the projected record. Entity deletion (or a projected entity turning non-public) calls `com.atproto.repo.deleteRecord`, making the PDS repo a quiet mirror of public projected state.
+- **Safety boundary, sharpened**: projection registration is the consent gate. Once an entity package registers a projection and the operator configures credentials, publishing for that type is automatic. No entity type is published without a registered projection; individual records do not require a manual act.
+- **Failure handling**: PDS failures log and broadcast `atproto:publish:failed`. They do not emit `publish:report:failure`, because that request belongs to the source publish provider and would incorrectly fail an already-successful local publish. Trigger handlers always isolate failures from the source operation.
+- **Tests**: card upsert on ready (and skipped without credentials), publish completion → record upsert, delete → record delete, public → non-public → record delete, no publish for types without projections, PDS client deletion, and failure isolation.
 
-First verification on live: `com.atproto.repo.listRecords` for `did:plc:oehciuqunzskplljt3qnnncw` shows `ai.rizom.brain.card/self` and records for the rizom-ai brain's public entities.
+Remaining verification on live: `com.atproto.repo.listRecords` for `did:plc:oehciuqunzskplljt3qnnncw` shows `ai.rizom.brain.card/self` and records for the rizom-ai brain's public entities.
 
 ### 2. Outbound ATProto OAuth (fleet-user publishing)
 

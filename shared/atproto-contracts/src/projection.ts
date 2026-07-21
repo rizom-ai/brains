@@ -39,6 +39,11 @@ export interface AtprotoPdsClientLike {
     collection: string;
     rkey: string;
   }): Promise<{ uri: string; cid: string; value: Record<string, unknown> }>;
+  deleteRecord?(input: {
+    repo: string;
+    collection: string;
+    rkey: string;
+  }): Promise<void>;
   uploadBlob?(input: {
     data: Buffer;
     mimeType: string;
