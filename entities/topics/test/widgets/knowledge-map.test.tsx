@@ -5,9 +5,9 @@ import { KnowledgeMap } from "../../src/widgets/knowledge-map";
 import type { KnowledgeMapData } from "../../src/lib/knowledge-map-data";
 
 /* The shared knowledge-map renderer. Topics are soft-bounded blob zones
-   (mist + dashed border + floating label), points are kind-styled (published
-   glows, skills are moss, ground is spores), and the whole render is
-   deterministic so static builds stay stable. */
+   (mist + dashed border + floating label), published points glow, source
+   points stay quiet, and the whole render is deterministic so static builds
+   stay stable. */
 
 const data: KnowledgeMapData = {
   zones: [
@@ -84,17 +84,17 @@ describe("KnowledgeMap", () => {
     expect(html).toContain("Future of Work · 1");
     expect(html).toContain("stroke-dasharray");
 
-    // published entities glow — but carry no titles: the glow is the
-    // statement, names live in the console. Text discipline keeps the sky
-    // legible at real corpus sizes.
+    // entities glow by kind without names: the glow is the statement, names
+    // live in the console. Text discipline keeps the sky legible.
     expect(html).toContain("kmap-breathe");
     expect(html).not.toContain("The Future of Work is Play");
     expect(html).not.toContain("CoCoCo");
 
-    // kinds map to their classes
-    expect(html).toContain("kmap-point--skill");
-    expect(html).toContain("kmap-point--pearl");
+    // public visual classes avoid leaking internal entity taxonomy.
+    expect(html).toContain("kmap-point--source");
     expect(html).toContain("kmap-point--ground");
+    expect(html).not.toContain("kmap-point--skill");
+    expect(html).not.toContain("kmap-point--pearl");
 
     // colors ride surface-mapped custom properties, never literals
     expect(html).toContain("var(--kmap-");
@@ -106,21 +106,31 @@ describe("KnowledgeMap", () => {
     expect(html).not.toContain("Staging Deployment");
 
     const crowded: KnowledgeMapData = {
-      ...data,
-      zones: Array.from({ length: 12 }, (_, i) => ({
+      zones: Array.from({ length: 8 }, (_, i) => ({
         id: `topic-${i}`,
         name: `Topic ${i}`,
-        x: (i % 4) * 0.25 + 0.1,
-        y: Math.floor(i / 4) * 0.3 + 0.15,
-        memberIds: i === 0 ? ["play-essay"] : [],
+        x: (i % 4) * 0.22 + 0.14,
+        y: Math.floor(i / 4) * 0.34 + 0.22,
+        memberIds: [`point-${i}`],
       })),
+      points: Array.from({ length: 8 }, (_, i) => ({
+        id: `point-${i}`,
+        entityType: "post",
+        title: `Point ${i}`,
+        kind: "published" as const,
+        x: (i % 4) * 0.22 + 0.14,
+        y: Math.floor(i / 4) * 0.34 + 0.22,
+        zoneId: `topic-${i}`,
+      })),
+      counts: { entities: 16, topics: 8 },
     };
     const crowdedHtml = render(<KnowledgeMap data={crowded} />);
     expect(crowdedHtml).toContain("Topic 0 · 1");
-    expect(crowdedHtml).not.toContain("Topic 11");
+    expect(crowdedHtml).toContain("Topic 6 · 1");
+    expect(crowdedHtml).not.toContain("Topic 7 · 1");
   });
 
-  test("places compact territory labels as edge callouts with leaders", () => {
+  test("places compact cartographic labels as edge callouts with leaders", () => {
     const edgeData: KnowledgeMapData = {
       zones: [
         {
@@ -148,9 +158,10 @@ describe("KnowledgeMap", () => {
     const html = render(<KnowledgeMap data={edgeData} />);
     expect(html).toContain("Compact Territory With Long Name · 1");
     expect(html).toContain("kmap-label-leader");
+    expect(html).toContain('font-size="9"');
   });
 
-  test("colliding zone labels are skipped — priority zones win", () => {
+  test("nearby zones can both label when cartographic callouts fit", () => {
     const collided: KnowledgeMapData = {
       zones: [
         { id: "a", name: "Alpha Systems", x: 0.5, y: 0.5, memberIds: ["p"] },
@@ -204,7 +215,13 @@ describe("KnowledgeMap", () => {
     };
     const html = render(<KnowledgeMap data={collided} />);
     expect(html).toContain("Beta Systems · 3");
-    expect(html).not.toContain("Alpha Systems · 1");
+    expect(html).toContain("Alpha Systems · 1");
+  });
+
+  test("draws faint semantic links between nearby territories", () => {
+    const html = render(<KnowledgeMap data={data} />);
+    expect(html).toContain("kmap-topic-link");
+    expect(html).toContain('stroke-opacity="0.11"');
   });
 
   test("only zones holding members carry the mist", () => {
@@ -221,9 +238,13 @@ describe("KnowledgeMap", () => {
     );
     expect(html).toContain("Knowledge map");
     expect(html).toContain("7 entities and 2 topics");
-    expect(html).toContain("topic zones");
+    expect(html).toContain("topics");
+    expect(html).toContain("sources");
     expect(html).toContain("published");
-    expect(html).toContain("references");
+    expect(html).not.toContain("skills");
+    expect(html).not.toContain("references");
+    expect(html).not.toContain("operational");
+    expect(html).not.toContain("unfiled");
   });
 
   test("renders byte-identically across builds and switches surfaces", () => {

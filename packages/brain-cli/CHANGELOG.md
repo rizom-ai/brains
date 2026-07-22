@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.213
+
+### Patch Changes
+
+- [`0da54ac`](https://github.com/rizom-ai/brains/commit/0da54ace0708e3f5236ac76a598f8201504fbf9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the confusing unfiled knowledge map highlight and keep unassigned evidence styled by its normal entity kind.
+
+## 0.2.0-alpha.212
+
+## 0.2.0-alpha.211
+
+### Patch Changes
+
+- [`320061d`](https://github.com/rizom-ai/brains/commit/320061d6b494a66d57f3b1fa41b8c7dd68b1b50c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Finish aligning the knowledge map renderer with the latest cartographic mock labels, semantic links, unfiled callouts, and legend treatment.
+
 ## 0.2.0-alpha.210
 
 ### Patch Changes

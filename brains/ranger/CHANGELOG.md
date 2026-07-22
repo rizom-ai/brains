@@ -1,5 +1,83 @@
 # @brains/ranger
 
+## 0.2.0-alpha.213
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/link@0.2.0-alpha.213
+  - @brains/note@0.2.0-alpha.213
+  - @brains/products@0.2.0-alpha.213
+  - @brains/prompt@0.2.0-alpha.213
+  - @brains/site-info@0.2.0-alpha.213
+  - @brains/social-media@0.2.0-alpha.213
+  - @brains/wishlist@0.2.0-alpha.213
+  - @brains/discord@0.2.0-alpha.213
+  - @brains/mcp@0.2.0-alpha.213
+  - @brains/webserver@0.2.0-alpha.213
+  - @brains/analytics@0.2.0-alpha.213
+  - @brains/atproto-registry@0.2.0-alpha.213
+  - @brains/cms@0.2.0-alpha.213
+  - @brains/dashboard@0.2.0-alpha.213
+  - @brains/directory-sync@0.2.0-alpha.213
+  - @brains/site-builder-plugin@0.2.0-alpha.213
+  - @brains/site-content@0.2.0-alpha.213
+  - @brains/theme-rizom@0.2.0-alpha.213
+  - @brains/app@0.2.0-alpha.213
+  - @rizom/site-rizom@0.2.0-alpha.213
+
+## 0.2.0-alpha.212
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/link@0.2.0-alpha.212
+  - @brains/note@0.2.0-alpha.212
+  - @brains/products@0.2.0-alpha.212
+  - @brains/prompt@0.2.0-alpha.212
+  - @brains/site-info@0.2.0-alpha.212
+  - @brains/social-media@0.2.0-alpha.212
+  - @brains/wishlist@0.2.0-alpha.212
+  - @brains/discord@0.2.0-alpha.212
+  - @brains/mcp@0.2.0-alpha.212
+  - @brains/webserver@0.2.0-alpha.212
+  - @brains/analytics@0.2.0-alpha.212
+  - @brains/atproto-registry@0.2.0-alpha.212
+  - @brains/cms@0.2.0-alpha.212
+  - @brains/dashboard@0.2.0-alpha.212
+  - @brains/directory-sync@0.2.0-alpha.212
+  - @brains/site-builder-plugin@0.2.0-alpha.212
+  - @brains/site-content@0.2.0-alpha.212
+  - @brains/theme-rizom@0.2.0-alpha.212
+  - @brains/app@0.2.0-alpha.212
+  - @rizom/site-rizom@0.2.0-alpha.212
+
+## 0.2.0-alpha.211
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/link@0.2.0-alpha.211
+  - @brains/note@0.2.0-alpha.211
+  - @brains/products@0.2.0-alpha.211
+  - @brains/prompt@0.2.0-alpha.211
+  - @brains/site-info@0.2.0-alpha.211
+  - @brains/social-media@0.2.0-alpha.211
+  - @brains/wishlist@0.2.0-alpha.211
+  - @brains/discord@0.2.0-alpha.211
+  - @brains/mcp@0.2.0-alpha.211
+  - @brains/webserver@0.2.0-alpha.211
+  - @brains/analytics@0.2.0-alpha.211
+  - @brains/atproto-registry@0.2.0-alpha.211
+  - @brains/cms@0.2.0-alpha.211
+  - @brains/dashboard@0.2.0-alpha.211
+  - @brains/directory-sync@0.2.0-alpha.211
+  - @brains/site-builder-plugin@0.2.0-alpha.211
+  - @brains/site-content@0.2.0-alpha.211
+  - @brains/theme-rizom@0.2.0-alpha.211
+  - @brains/app@0.2.0-alpha.211
+  - @rizom/site-rizom@0.2.0-alpha.211
+
 ## 0.2.0-alpha.210
 
 ### Patch Changes

@@ -30,8 +30,8 @@ The repo also checks in its deploy contract:
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 Use separate GitHub tokens: `CONTENT_REPO_ADMIN_TOKEN` for operator-side content repo creation/checks, and `GIT_SYNC_TOKEN` for runtime directory-sync git access.
-The shared pilot image tag is `brain-${brainVersion}` end to end.
-When `pilot.yaml.brainVersion` changes and you push, CI rebuilds the shared tag, refreshes generated user env files, and redeploys affected users.
+The default pilot image tag is `brain-${brainVersion}` end to end. A user with `siteOverride` gets an isolated `brain-${brainVersion}-sites-${packageHash}` image instead.
+When the effective brain version (`pilot.yaml.brainVersion`, or a cohort override) changes and you push, CI rebuilds the required default/site tags, refreshes generated user env files, and redeploys affected users. An omitted `siteOverride.version` follows that effective version; an explicit exact version remains pinned.
 When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
 
 ## Commands

@@ -72,7 +72,6 @@ const SITE_STYLES = `
   --console-accent: var(--color-accent);
   --console-text: var(--color-text);
   --console-secondary: var(--color-secondary);
-  --kmap-moss: var(--color-secondary);
   position: relative;
   padding: clamp(2.5rem, 5vw, 3.5rem) 1.5rem;
   color: var(--console-text);

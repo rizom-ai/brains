@@ -14,19 +14,19 @@ export { knowledgeMapStyles };
 /**
  * The knowledge map renderer: the corpus as a centerless sky. Topics are
  * soft-bounded blob territories (mist + dashed border + floating label),
- * published work glows, skills are moss, notes are pearls, operational
- * entities are ground spores. Deterministic by construction — static site
- * builds must not churn.
+ * published work glows, supporting sources are quiet context marks, and
+ * low-signal entities become faint ground. Deterministic by construction —
+ * static site builds must not churn.
  */
 
-const WIDTH = 1000;
+const WIDTH = 1100;
 const HEIGHT = 560;
 const PAD = 60;
 /** How many zone labels the sky can carry before empty zones go quiet. */
-const LABEL_BUDGET = 6;
-const LABEL_HEIGHT = 14;
+const LABEL_BUDGET = 7;
+const LABEL_HEIGHT = 18;
 /** Rough mono glyph advance at the label sizes — enough for collision boxes. */
-const LABEL_CHAR_WIDTH = 7.3;
+const LABEL_CHAR_WIDTH = 7.5;
 
 function mulberry32(seed: number): () => number {
   let value = seed >>> 0;
@@ -151,7 +151,7 @@ function layoutZones(data: KnowledgeMapData): {
     const text = `${layout.zone.name} · ${layout.zone.memberIds.length}`;
     const placement = chooseLabelPlacement(layout, text, placed);
     if (!placement) continue;
-    placed.push(placement.box, territoryBox(layout));
+    placed.push(placement.box);
     layout.label = placement.label;
     budget--;
   }
@@ -197,21 +197,12 @@ function labelBox(
   };
 }
 
-function territoryBox(layout: ZoneLayout): LabelBox {
-  return {
-    x: layout.cx - layout.base - 8,
-    y: layout.cy - layout.base * 0.86 - 8,
-    w: layout.base * 2 + 16,
-    h: layout.base * 1.72 + 16,
-  };
-}
-
 function isInFrame(box: LabelBox): boolean {
   return (
-    box.x >= 24 &&
-    box.y >= 24 &&
-    box.x + box.w <= WIDTH - 24 &&
-    box.y + box.h <= HEIGHT - 24
+    box.x >= 26 &&
+    box.y >= 26 &&
+    box.x + box.w <= WIDTH - 26 &&
+    box.y + box.h <= HEIGHT - 28
   );
 }
 
@@ -307,6 +298,56 @@ function intersects(a: LabelBox, b: LabelBox): boolean {
   );
 }
 
+interface ZoneLink {
+  first: ZoneLayout;
+  second: ZoneLayout;
+  path: string;
+}
+
+function buildZoneLinks(layouts: ZoneLayout[]): ZoneLink[] {
+  const random = mulberry32(211);
+  return layouts
+    .flatMap((first, leftIndex) =>
+      layouts.slice(leftIndex + 1).map((second) => ({
+        first,
+        second,
+        distance: Math.hypot(second.cx - first.cx, second.cy - first.cy),
+      })),
+    )
+    .sort((left, right) => left.distance - right.distance)
+    .slice(0, 8)
+    .map(({ first, second }) => {
+      const middleX = (first.cx + second.cx) / 2 + (random() - 0.5) * 34;
+      const middleY = (first.cy + second.cy) / 2 + (random() - 0.5) * 34;
+      return {
+        first,
+        second,
+        path: `M ${first.cx} ${first.cy} Q ${middleX} ${middleY}, ${second.cx} ${second.cy}`,
+      };
+    });
+}
+
+function ZoneLinkShape({
+  link,
+  index,
+}: {
+  link: ZoneLink;
+  index: number;
+}): JSX.Element {
+  return (
+    <path
+      class="kmap-weave kmap-topic-link"
+      pathLength={1}
+      d={link.path}
+      fill="none"
+      stroke="var(--kmap-glow)"
+      stroke-opacity={0.11}
+      stroke-width={0.75}
+      style={`--d:${(1.15 + index * 0.11).toFixed(2)}s`}
+    />
+  );
+}
+
 function ZoneShape({
   layout,
   index,
@@ -328,7 +369,7 @@ function ZoneShape({
         fill="none"
         stroke="var(--kmap-zone)"
         stroke-opacity={0.32}
-        stroke-width={1.2}
+        stroke-width={1}
         stroke-dasharray="3 5"
         stroke-linecap="round"
         style={`--d:${(0.2 + index * 0.08).toFixed(2)}s`}
@@ -353,10 +394,10 @@ function ZoneShape({
           y={label.y}
           text-anchor={label.anchor}
           fill="var(--kmap-zone)"
-          font-size="11"
+          font-size="9"
           font-weight="600"
           letter-spacing="0.18em"
-          style={`--d:${(1 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
+          style={`--d:${(0.95 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
         >
           {count > 0 ? `${zone.name} · ${count}` : zone.name}
         </text>
@@ -409,28 +450,16 @@ function PointShape({
       </g>
     );
   }
-  if (point.kind === "skill") {
+  if (point.kind === "skill" || point.kind === "pearl") {
     return (
       <circle
-        class="kmap-dot kmap-point--skill"
+        class="kmap-dot kmap-point--source"
         cx={x}
         cy={y}
-        r={3.4}
-        fill="var(--kmap-skill)"
-        style={`--d:${delay}s`}
-      />
-    );
-  }
-  if (point.kind === "pearl") {
-    return (
-      <circle
-        class="kmap-dot kmap-point--pearl"
-        cx={x}
-        cy={y}
-        r={2.8}
+        r={2.9}
         fill="none"
         stroke="var(--kmap-ink-dim)"
-        stroke-width={1.3}
+        stroke-width={1.2}
         style={`--d:${delay}s`}
       />
     );
@@ -449,16 +478,14 @@ function PointShape({
 
 function KnowledgeMapLegend(): JSX.Element {
   const items = [
-    { label: "topic zones", kind: "zone" },
+    { label: "topics", kind: "zone" },
+    { label: "sources", kind: "source" },
     { label: "published", kind: "published" },
-    { label: "skills", kind: "skill" },
-    { label: "references", kind: "pearl" },
-    { label: "operational", kind: "ground" },
   ] as const;
   return (
     <g class="kmap-legend" aria-hidden="true">
       {items.map((item, index) => {
-        const x = 560 + index * 84;
+        const x = 720 + index * 95;
         const y = HEIGHT - 23;
         return (
           <g key={item.label} transform={`translate(${x} ${y})`}>
@@ -474,19 +501,15 @@ function KnowledgeMapLegend(): JSX.Element {
               />
             ) : item.kind === "published" ? (
               <circle cx={0} cy={0} r={4} fill="var(--kmap-glow)" />
-            ) : item.kind === "skill" ? (
-              <circle cx={0} cy={0} r={3.4} fill="var(--kmap-skill)" />
-            ) : item.kind === "pearl" ? (
+            ) : (
               <circle
                 cx={0}
                 cy={0}
-                r={3.5}
+                r={3.3}
                 fill="none"
                 stroke="var(--kmap-ink-dim)"
                 stroke-width={1.1}
               />
-            ) : (
-              <circle cx={0} cy={0} r={2.2} fill="var(--kmap-ink-faint)" />
             )}
             <text x={9} y={3.5} class="kmap-label kmap-label--legend">
               {item.label}
@@ -506,17 +529,16 @@ export function KnowledgeMap({
   surface?: "dashboard" | "site";
 }): JSX.Element {
   const { layouts: zones } = layoutZones(data);
+  const zoneLinks = buildZoneLinks(zones);
   const titleId = `kmap-title-${surface}`;
   const descId = `kmap-desc-${surface}`;
   const labeledZones = zones
     .filter((layout) => layout.label)
     .map((layout) => layout.zone.name)
     .slice(0, 4);
-  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, and operational entities are ground spores.`;
-  // Ground first so territories and lights paint over the spores.
-  const points = [...data.points].sort(
-    (a, b) => (a.kind === "ground" ? 0 : 1) - (b.kind === "ground" ? 0 : 1),
-  );
+  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows; other source material appears as quiet context marks.`;
+  const groundPoints = data.points.filter((point) => point.kind === "ground");
+  const evidencePoints = data.points.filter((point) => point.kind !== "ground");
   return (
     <svg
       class={`kmap kmap--${surface}`}
@@ -537,15 +559,30 @@ export function KnowledgeMap({
           <feGaussianBlur stdDeviation="2.4" />
         </filter>
         <radialGradient id={`kmap-mist-${surface}`}>
-          <stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.13" />
+          <stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.25" />
           <stop
             offset="70%"
             stop-color="var(--kmap-zone)"
-            stop-opacity="0.05"
+            stop-opacity="0.09"
           />
           <stop offset="100%" stop-color="var(--kmap-zone)" stop-opacity="0" />
         </radialGradient>
       </defs>
+      {groundPoints.map((point, index) => (
+        <PointShape
+          key={point.id}
+          point={point}
+          index={index}
+          surface={surface}
+        />
+      ))}
+      {zoneLinks.map((link, index) => (
+        <ZoneLinkShape
+          key={`${link.first.zone.id}:${link.second.zone.id}`}
+          link={link}
+          index={index}
+        />
+      ))}
       {zones.map((layout, index) => (
         <ZoneShape
           key={layout.zone.id}
@@ -554,7 +591,7 @@ export function KnowledgeMap({
           surface={surface}
         />
       ))}
-      {points.map((point, index) => (
+      {evidencePoints.map((point, index) => (
         <PointShape
           key={point.id}
           point={point}
