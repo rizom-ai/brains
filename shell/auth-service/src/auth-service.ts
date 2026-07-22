@@ -3,11 +3,10 @@ import type {
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import {
-  AuthAdministrationService,
-  type InvitedExternalPeerAccess,
-  type InviteExternalPeerPersonRequest,
-  type LinkExternalPeerRequest,
+import type {
+  InvitedExternalPeerAccess,
+  InviteExternalPeerPersonRequest,
+  LinkExternalPeerRequest,
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
@@ -20,86 +19,44 @@ import type {
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
-import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
-import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
-import { RuntimeOAuthClientStore } from "./client-store";
-import { AuthCredentialStore } from "./credential-store";
-import {
-  AuthIdentityStore,
-  type AttachAuthIdentityInput,
-  type AuthIdentityRecord,
-  type ResolveAuthIdentityInput,
+import type { AuthAuditEvent } from "./audit-store";
+import { AuthRequestRouter } from "./auth-request-router";
+import { AuthRuntime } from "./auth-runtime";
+import type {
+  AttachAuthIdentityInput,
+  AuthIdentityRecord,
+  ResolveAuthIdentityInput,
 } from "./identity-store";
-import { IdentityReconciliationService } from "./identity-reconciliation-service";
-import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import type { AuthMutationContext } from "./mutation-context";
-import {
-  PasskeyService,
-  type PasskeyRegistrationUser,
-} from "./passkey-service";
-import {
-  PasskeySetupCoordinator,
-  type UserPasskeyRegistration,
-} from "./passkey-setup-coordinator";
-import {
-  InterfacePrincipalStore,
-  type ConfiguredInterfacePrincipals,
-  type ResolvedInterfacePrincipal,
+import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
+import type {
+  ConfiguredInterfacePrincipals,
+  ResolvedInterfacePrincipal,
 } from "./interface-principal-store";
-import { PersonExternalPeerStore } from "./person-external-peer-store";
-import {
-  RuntimeA2APeerTrustStore,
-  type A2APeerTrustRecord,
-  type GrantA2APeerTrustInput,
+import type {
+  A2APeerTrustRecord,
+  GrantA2APeerTrustInput,
 } from "./peer-trust-store";
-import { AuthRuntimeDatabase } from "./runtime-db";
-import type { AuthUser, PersonExternalPeer } from "./runtime-schema";
-import {
-  AuthUserStore,
-  type AuthUserRole,
-  type AuthUserStatus,
-  type CreateAuthUserInput,
+import type { PersonExternalPeer } from "./runtime-schema";
+import type {
+  AuthUserRole,
+  AuthUserStatus,
+  CreateAuthUserInput,
 } from "./user-store";
-import { RuntimeRefreshTokenStore } from "./refresh-token-store";
-import { RuntimeSetupStateStore } from "./setup-state-store";
-import {
-  clearAuthSessionCookies,
-  RuntimeAuthSessionStore,
-  type AuthSessionRecord,
-  type CreateAuthSessionResult,
+import type {
+  AuthSessionRecord,
+  CreateAuthSessionResult,
 } from "./session-store";
-import {
-  absoluteUrl,
-  isLoopbackIssuer,
-  isSecureRequest,
-  normalizeIssuer,
-} from "./issuer";
-import {
-  AuthPrincipalService,
-  type AuthBearerGrant,
-  type AuthIdentityAccessResolution,
-  type AuthPrincipal,
+import { absoluteUrl, isLoopbackIssuer, normalizeIssuer } from "./issuer";
+import type {
+  AuthBearerGrant,
+  AuthIdentityAccessResolution,
+  AuthPrincipal,
 } from "./principal-service";
 import type { VerifiedAccessToken } from "./token-verifier";
-import {
-  corsPreflightResponse,
-  errorMessage,
-  htmlResponse,
-  isCorsMachineEndpoint,
-  jsonResponse,
-  safeRelativeReturnTo,
-  withCors,
-} from "./http-responses";
-import { renderLoginPage, unauthorizedHtmlResponse } from "./pages";
-import { OAuthEndpoints } from "./oauth-endpoints";
-import { WebAuthnEndpoints } from "./webauthn-endpoints";
-import {
-  DEFAULT_SETUP_TOKEN_TTL_SECONDS,
-  SetupFlow,
-  type PasskeySetupRequired,
-} from "./setup-flow";
-import { TargetedSetupService } from "./targeted-setup-service";
-import { AuthUserManagementService } from "./user-management-service";
+import { errorMessage } from "./http-responses";
+import { unauthorizedHtmlResponse } from "./pages";
+import type { PasskeySetupRequired } from "./setup-flow";
 import type {
   A2APrivateJwk,
   AuthorizationServerMetadata,
@@ -143,338 +100,78 @@ export interface AuthServiceOptions {
 
 export class AuthService {
   private readonly issuer: string;
-  private readonly trustedIssuers: Set<string>;
-  private readonly allowLocalhostIssuers: boolean;
-  private readonly anchor: AuthBrainAnchorConfigKind;
-  private readonly anchorProfileEntityId: string;
-  private readonly resolveProfileDisplayName:
-    ((profileEntityId: string) => Promise<string | undefined>) | undefined;
-  private readonly runtimeDatabase: AuthRuntimeDatabase;
-  private userStore: AuthUserStore | undefined;
-  private identityStore: AuthIdentityStore | undefined;
-  private identityReconciliationService:
-    IdentityReconciliationService | undefined;
-  private passkeySetupCoordinator: PasskeySetupCoordinator | undefined;
-  private userManagementService: AuthUserManagementService | undefined;
-  private principalService: AuthPrincipalService | undefined;
-  private administrationService: AuthAdministrationService | undefined;
-  private interfacePrincipalStore: InterfacePrincipalStore | undefined;
-  private personExternalPeerStore: PersonExternalPeerStore | undefined;
-  private auditStore: AuthAuditStore | undefined;
-  private credentialStore: AuthCredentialStore | undefined;
-  private initialization: Promise<void> | undefined;
-  private firstAdminInitialization: Promise<AuthUser> | undefined;
-  private closePromise: Promise<void> | undefined;
-  private readonly keyStore: AuthKeyStore;
-  private readonly a2aKeyStore: A2AKeyStore;
-  private readonly clientStore: RuntimeOAuthClientStore;
-  private readonly authCodeStore: RuntimeAuthorizationCodeStore;
-  private readonly sessionStore: RuntimeAuthSessionStore;
-  private readonly refreshTokenStore: RuntimeRefreshTokenStore;
-  private readonly peerTrustStore: RuntimeA2APeerTrustStore;
-  private readonly passkeyService: PasskeyService;
-  private readonly setupStateStore: RuntimeSetupStateStore;
-  private readonly setupFlow: SetupFlow;
-  private readonly oauthEndpoints: OAuthEndpoints;
-  private readonly webauthnEndpoints: WebAuthnEndpoints;
+  private readonly runtime: AuthRuntime;
+  private readonly requestRouter: AuthRequestRouter;
   private readonly logger: Logger | undefined;
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
-    this.trustedIssuers = new Set([
-      this.issuer,
-      ...(options.trustedIssuers ?? []).map((issuer) =>
-        normalizeIssuer(issuer),
-      ),
-    ]);
-    this.allowLocalhostIssuers =
-      options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer);
-    this.anchor = options.anchor ?? "person";
-    this.anchorProfileEntityId =
-      options.anchorProfileEntityId ?? DEFAULT_ANCHOR_PROFILE_ENTITY_ID;
-    this.resolveProfileDisplayName = options.resolveProfileDisplayName;
-    this.runtimeDatabase = new AuthRuntimeDatabase({
+    this.logger = options.logger;
+    this.runtime = new AuthRuntime({
       storageDir: options.storageDir,
-    });
-    this.keyStore = new AuthKeyStore(this.runtimeDatabase);
-    this.a2aKeyStore = new A2AKeyStore(this.runtimeDatabase);
-    this.clientStore = new RuntimeOAuthClientStore(this.runtimeDatabase);
-    this.authCodeStore = new RuntimeAuthorizationCodeStore(
-      this.runtimeDatabase,
-    );
-    this.sessionStore = new RuntimeAuthSessionStore(this.runtimeDatabase);
-    this.refreshTokenStore = new RuntimeRefreshTokenStore(this.runtimeDatabase);
-    this.peerTrustStore = new RuntimeA2APeerTrustStore(this.runtimeDatabase);
-    this.passkeyService = new PasskeyService({
-      runtimeDatabase: this.runtimeDatabase,
-      ...(options.logger ? { logger: options.logger } : {}),
-    });
-    this.setupStateStore = new RuntimeSetupStateStore(this.runtimeDatabase);
-    this.setupFlow = new SetupFlow({
-      setupStateStore: this.setupStateStore,
-      passkeyService: this.passkeyService,
-      setupTokenTtlSeconds:
-        options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS,
-    });
-    this.oauthEndpoints = new OAuthEndpoints({
-      clientStore: this.clientStore,
-      authCodeStore: this.authCodeStore,
-      refreshTokenStore: this.refreshTokenStore,
-      resolveSession: async (request): Promise<AuthSessionRecord | undefined> =>
-        (await this.resolveActiveSession(request))?.session,
-      keyStore: this.keyStore,
+      issuer: this.issuer,
+      trustedIssuers: new Set([
+        this.issuer,
+        ...(options.trustedIssuers ?? []).map((issuer) =>
+          normalizeIssuer(issuer),
+        ),
+      ]),
+      allowLocalhostIssuers:
+        options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer),
+      anchor: options.anchor ?? "person",
+      anchorProfileEntityId:
+        options.anchorProfileEntityId ?? DEFAULT_ANCHOR_PROFILE_ENTITY_ID,
+      ...(options.resolveProfileDisplayName
+        ? { resolveProfileDisplayName: options.resolveProfileDisplayName }
+        : {}),
+      ...(options.setupTokenTtlSeconds !== undefined
+        ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }
+        : {}),
       ...(options.oauthClientMaintenanceIntervalMs !== undefined
         ? {
-            clientMaintenanceIntervalMs:
+            oauthClientMaintenanceIntervalMs:
               options.oauthClientMaintenanceIntervalMs,
           }
         : {}),
-      onClientMaintenanceError: (error): void => {
-        this.logger?.warn("Failed to prune stale OAuth clients", { error });
-      },
+      ...(options.logger ? { logger: options.logger } : {}),
     });
-    this.webauthnEndpoints = new WebAuthnEndpoints({
-      passkeyService: this.passkeyService,
-      sessionStore: this.sessionStore,
-      setupFlow: this.setupFlow,
-      recordAuditEvent: async (event): Promise<void> => {
-        await this.getAuditStore().append(event);
+    this.requestRouter = new AuthRequestRouter({
+      setupFlow: this.runtime.setupFlow,
+      oauthEndpoints: this.runtime.oauthEndpoints,
+      webauthnEndpoints: this.runtime.webauthnEndpoints,
+      handleAdminRequest: (request): Promise<Response> =>
+        this.handleAdminRequest(request),
+      revokeSession: async (request): Promise<void> => {
+        await this.runtime.sessionStore.revokeSessionFromRequest(request);
       },
-      validateTargetedRegistration: async (setup): Promise<void> => {
-        await this.getPasskeySetupCoordinator().validateTargetedRegistration(
-          setup,
-        );
-      },
-      completeTargetedRegistration: async (setup): Promise<void> => {
-        await this.getPasskeySetupCoordinator().completeTargetedRegistration(
-          setup,
-        );
-      },
-      registrationUserProvider: async (
-        userId?: string,
-      ): Promise<PasskeyRegistrationUser> => {
-        const user = userId
-          ? await this.getUserStore().getUser(userId)
-          : await this.ensureFirstAdminUser();
-        if (!user || user.status === "suspended") {
-          throw new Error("Passkey registration user is unavailable");
-        }
-        return {
-          subject: user.id,
-          userName: user.displayName,
-          userDisplayName: user.displayName,
-        };
-      },
+      getAuthorizationServerMetadata: (issuer): AuthorizationServerMetadata =>
+        this.getAuthorizationServerMetadata(issuer),
+      getProtectedResourceMetadata: (
+        resource,
+        issuer,
+      ): ProtectedResourceMetadata =>
+        this.getProtectedResourceMetadata(resource, issuer),
+      getJwks: (): Promise<JwksResponse> => this.getJwks(),
     });
-    this.logger = options.logger;
   }
 
   getIssuer(): string {
     return this.issuer;
   }
 
-  async initialize(): Promise<void> {
-    if (this.closePromise) {
-      await this.closePromise;
-      this.closePromise = undefined;
-    }
-    if (this.initialization) {
-      return this.initialization;
-    }
-
-    const initialization = this.initializeInternal();
-    this.initialization = initialization;
-    try {
-      await initialization;
-    } catch (error) {
-      if (this.initialization === initialization) {
-        this.initialization = undefined;
-      }
-      throw error;
-    }
-  }
-
-  private async initializeInternal(): Promise<void> {
-    await this.ensureUserStoreStarted();
-    await this.projectConfiguredBrainAnchor();
-    await Promise.all([
-      this.keyStore.getPrivateJwk(),
-      this.a2aKeyStore.getPrivateJwk(),
-    ]);
-    this.logger?.debug("Auth service signing keys loaded");
-
-    if (!(await this.hasPasskeyCredentials())) {
-      await this.setupFlow.ensureSetupToken();
-      const setupUrl = this.getSetupUrl();
-      if (setupUrl) {
-        if (isLoopbackIssuer(this.issuer)) {
-          this.logger?.warn(`Passkey setup required: ${setupUrl}`);
-        } else {
-          this.logger?.warn(
-            "Passkey setup required. Ask through an Admin interface for the setup URL.",
-          );
-        }
-      }
-    }
-    await this.oauthEndpoints.startClientMaintenance();
+  initialize(): Promise<void> {
+    return this.runtime.initialize();
   }
 
   close(): Promise<void> {
-    this.closePromise ??= this.closeInternal();
-    return this.closePromise;
-  }
-
-  private async closeInternal(): Promise<void> {
-    await this.oauthEndpoints.stopClientMaintenance();
-    this.userStore = undefined;
-    this.identityStore = undefined;
-    this.identityReconciliationService = undefined;
-    this.passkeySetupCoordinator = undefined;
-    this.userManagementService = undefined;
-    this.principalService = undefined;
-    this.administrationService = undefined;
-    this.interfacePrincipalStore = undefined;
-    this.personExternalPeerStore = undefined;
-    this.auditStore = undefined;
-    this.credentialStore = undefined;
-    this.initialization = undefined;
-    this.firstAdminInitialization = undefined;
-    await this.runtimeDatabase.stop();
-  }
-
-  private async ensureUserStoreStarted(): Promise<void> {
-    if (this.userStore) {
-      return;
-    }
-    await this.runtimeDatabase.start();
-    this.identityStore = new AuthIdentityStore(this.runtimeDatabase.db);
-    this.userStore = new AuthUserStore(this.runtimeDatabase.db);
-    this.identityReconciliationService = new IdentityReconciliationService({
-      identities: this.identityStore,
-      users: this.userStore,
-    });
-    const targetedSetupService = new TargetedSetupService(
-      this.runtimeDatabase.db,
-      this.identityStore,
-    );
-    this.interfacePrincipalStore = new InterfacePrincipalStore(
-      this.runtimeDatabase.db,
-    );
-    this.personExternalPeerStore = new PersonExternalPeerStore(
-      this.runtimeDatabase.db,
-    );
-    this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
-    this.passkeySetupCoordinator = new PasskeySetupCoordinator({
-      issuer: this.issuer,
-      users: this.userStore,
-      identities: this.identityStore,
-      audit: this.auditStore,
-      setupFlow: this.setupFlow,
-      targetedSetup: targetedSetupService,
-    });
-    this.userManagementService = new AuthUserManagementService({
-      users: this.userStore,
-      audit: this.auditStore,
-      sessions: this.sessionStore,
-      refreshTokens: this.refreshTokenStore,
-    });
-    this.principalService = new AuthPrincipalService({
-      issuer: this.issuer,
-      trustedIssuers: this.trustedIssuers,
-      allowLocalhostIssuers: this.allowLocalhostIssuers,
-      users: this.userStore,
-      identities: this.identityStore,
-      sessions: this.sessionStore,
-      ensureFirstAdminUser: (): Promise<AuthUser> =>
-        this.ensureFirstAdminUser(),
-      getJwks: (): Promise<JwksResponse> => this.getJwks(),
-    });
-    this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
-    this.administrationService = new AuthAdministrationService({
-      configuredAnchorKind: this.anchor,
-      ...(this.resolveProfileDisplayName
-        ? { resolveProfileDisplayName: this.resolveProfileDisplayName }
-        : {}),
-      users: this.userStore,
-      identities: this.identityStore,
-      credentials: this.credentialStore,
-      externalPeers: this.personExternalPeerStore,
-      audit: this.auditStore,
-      management: this.getUserManagementService(),
-      startPasskeyRegistration: (
-        userId,
-        context,
-        delivery,
-      ): Promise<UserPasskeyRegistration> =>
-        this.getPasskeySetupCoordinator().startRegistration(
-          userId,
-          context,
-          delivery,
-        ),
-    });
-  }
-
-  private getUserStore(): AuthUserStore {
-    if (!this.userStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.userStore;
-  }
-
-  private getIdentityReconciliationService(): IdentityReconciliationService {
-    if (!this.identityReconciliationService) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.identityReconciliationService;
-  }
-
-  private getPasskeySetupCoordinator(): PasskeySetupCoordinator {
-    if (!this.passkeySetupCoordinator) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.passkeySetupCoordinator;
-  }
-
-  private getUserManagementService(): AuthUserManagementService {
-    if (!this.userManagementService) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.userManagementService;
-  }
-
-  private getPrincipalService(): AuthPrincipalService {
-    if (!this.principalService) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.principalService;
-  }
-
-  private getAdministrationService(): AuthAdministrationService {
-    if (!this.administrationService) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.administrationService;
-  }
-
-  private getInterfacePrincipalStore(): InterfacePrincipalStore {
-    if (!this.interfacePrincipalStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.interfacePrincipalStore;
-  }
-
-  private getAuditStore(): AuthAuditStore {
-    if (!this.auditStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.auditStore;
+    return this.runtime.close();
   }
 
   async initializeConfiguredInterfacePrincipals(
     config: ConfiguredInterfacePrincipals,
   ): Promise<RuntimeInterfacePrincipalState> {
     await this.initialize();
-    const store = this.getInterfacePrincipalStore();
+    const store = this.runtime.getInterfacePrincipalStore();
     await store.seedConfigOnce(config);
     return store.listActiveState();
   }
@@ -484,91 +181,29 @@ export class AuthService {
     subject: string,
   ): Promise<ResolvedInterfacePrincipal | undefined> {
     await this.initialize();
-    return this.getInterfacePrincipalStore().resolve(interfaceType, subject);
-  }
-
-  private async profileDisplayName(
-    profileEntityId: string | null,
-  ): Promise<string | undefined> {
-    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
-    try {
-      const displayName = await this.resolveProfileDisplayName(profileEntityId);
-      const trimmed = displayName?.trim();
-      return trimmed && trimmed.length > 0 ? trimmed : undefined;
-    } catch (error) {
-      this.logger?.warn("Failed to resolve CMS profile display name", {
-        profileEntityId,
-        error: errorMessage(error, "Profile lookup failed"),
-      });
-      return undefined;
-    }
-  }
-
-  private async projectConfiguredBrainAnchor(): Promise<void> {
-    const current = await this.getUserStore().getBrainAnchor();
-    const profileDisplayName = await this.profileDisplayName(
-      this.anchorProfileEntityId,
-    );
-    const displayName =
-      profileDisplayName ??
-      current?.displayName ??
-      (this.anchor === "person"
-        ? "Admin"
-        : this.anchor === "team"
-          ? "Team"
-          : "Organization");
-    await this.getUserStore().configureBrainAnchor({
-      kind: this.anchor === "person" ? "person" : "collective",
-      displayName,
-      profileEntityId: this.anchorProfileEntityId,
-    });
-  }
-
-  private async ensureFirstAdminUser(): Promise<AuthUser> {
-    if (this.firstAdminInitialization) {
-      return this.firstAdminInitialization;
-    }
-
-    const initialization = (async (): Promise<AuthUser> => {
-      const existingUsers = await this.getUserStore().listUsers();
-      const user = await this.getUserStore().ensureFirstAdminUser();
-      await this.projectConfiguredBrainAnchor();
-      if (!existingUsers.some((existing) => existing.id === user.id)) {
-        await this.getAuditStore().append({
-          action: "auth.user.created",
-          targetType: "user",
-          targetId: user.id,
-          metadata: { role: user.role, status: user.status },
-        });
-      }
-      return user;
-    })();
-    this.firstAdminInitialization = initialization;
-    try {
-      return await initialization;
-    } finally {
-      if (this.firstAdminInitialization === initialization) {
-        this.firstAdminInitialization = undefined;
-      }
-    }
+    return this.runtime
+      .getInterfacePrincipalStore()
+      .resolve(interfaceType, subject);
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
-    return this.passkeyService.hasCredentials();
+    return this.runtime.passkeyService.hasCredentials();
   }
 
   async revokePasskey(
     credentialId: string,
     context: AuthMutationContext = {},
   ): Promise<void> {
-    await this.ensureUserStoreStarted();
-    await this.getAdministrationService().revokePasskey(credentialId, context);
+    await this.runtime.ensureStarted();
+    await this.runtime
+      .getAdministrationService()
+      .revokePasskey(credentialId, context);
   }
 
   async getJwks(): Promise<JwksResponse> {
     const [oauthKey, a2aKey] = await Promise.all([
-      this.keyStore.getPublicJwk(),
-      this.a2aKeyStore.getPublicJwk(),
+      this.runtime.keyStore.getPublicJwk(),
+      this.runtime.a2aKeyStore.getPublicJwk(),
     ]);
     return {
       keys: [oauthKey, a2aKey],
@@ -576,7 +211,7 @@ export class AuthService {
   }
 
   async getA2ASigningKey(): Promise<A2ASigningKey> {
-    const privateJwk = await this.a2aKeyStore.getPrivateJwk();
+    const privateJwk = await this.runtime.a2aKeyStore.getPrivateJwk();
     return {
       privateJwk,
       keyId: absoluteUrl(
@@ -591,14 +226,14 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<A2APeerTrustRecord> {
     await this.initialize();
-    return this.peerTrustStore.grant(input, context);
+    return this.runtime.peerTrustStore.grant(input, context);
   }
 
   async getA2APeerTrust(
     domain: string,
   ): Promise<A2APeerTrustRecord | undefined> {
     await this.initialize();
-    return this.peerTrustStore.get(domain);
+    return this.runtime.peerTrustStore.get(domain);
   }
 
   async revokeA2APeerTrust(
@@ -606,7 +241,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<void> {
     await this.initialize();
-    return this.peerTrustStore.revoke(domain, context);
+    return this.runtime.peerTrustStore.revoke(domain, context);
   }
 
   getAuthorizationServerMetadata(
@@ -649,80 +284,83 @@ export class AuthService {
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
     await this.initialize();
-    return this.clientStore.registerClient(input);
+    return this.runtime.clientStore.registerClient(input);
   }
 
   async getRegisteredClient(
     clientId: string,
   ): Promise<RegisteredOAuthClient | undefined> {
     await this.initialize();
-    return this.clientStore.getClient(clientId);
+    return this.runtime.clientStore.getClient(clientId);
   }
 
   async createUser(
     input: CreateAuthUserInput,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().createUser(input, context);
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().createUser(input, context);
   }
 
   async inviteExternalPeerPerson(
     input: InviteExternalPeerPersonRequest,
     context: AuthMutationContext,
   ): Promise<InvitedExternalPeerAccess> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().inviteExternalPeerPerson(
-      input,
-      context,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .inviteExternalPeerPerson(input, context);
   }
 
   async linkExternalPeer(
     input: LinkExternalPeerRequest,
     context: AuthMutationContext,
   ): Promise<PersonExternalPeer> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().linkExternalPeer(input, context);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .linkExternalPeer(input, context);
   }
 
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().getBrainAnchor();
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().getBrainAnchor();
   }
 
   async listUsers(): Promise<AuthPrincipal[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listUsers();
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().listUsers();
   }
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listAdminUsers();
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().listAdminUsers();
   }
 
   async reconcileIdentityProposals(
     claims: AuthIdentityProposalInput[],
   ): Promise<AuthIdentityReconciliationResponse> {
-    await this.ensureUserStoreStarted();
-    return this.getIdentityReconciliationService().reconcile(claims);
+    await this.runtime.ensureStarted();
+    return this.runtime.getIdentityReconciliationService().reconcile(claims);
   }
 
   async listPersonExternalPeers(
     personId: string,
   ): Promise<PersonExternalPeer[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listPersonExternalPeers(personId);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .listPersonExternalPeers(personId);
   }
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listUserIdentities(userId);
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().listUserIdentities(userId);
   }
 
   async listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listUserPasskeys(userId);
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().listUserPasskeys(userId);
   }
 
   async updateUserRole(
@@ -730,12 +368,10 @@ export class AuthService {
     role: AuthUserRole,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().updateUserRole(
-      userId,
-      role,
-      context,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .updateUserRole(userId, role, context);
   }
 
   async updateUserStatus(
@@ -743,12 +379,10 @@ export class AuthService {
     status: AuthUserStatus,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().updateUserStatus(
-      userId,
-      status,
-      context,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .updateUserStatus(userId, status, context);
   }
 
   suspendUser(
@@ -762,36 +396,42 @@ export class AuthService {
     userId: string,
     context: AuthMutationContext = {},
   ): Promise<{ sessions: number; refreshTokens: number }> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().revokeUserGrants(userId, context);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .revokeUserGrants(userId, context);
   }
 
   async attachIdentity(
     input: AttachAuthIdentityInput,
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().attachIdentity(input, context);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .attachIdentity(input, context);
   }
 
   async detachIdentity(
     identityId: string,
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().detachIdentity(identityId, context);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .detachIdentity(identityId, context);
   }
 
   async listAuditEvents(): Promise<AuthAuditEvent[]> {
-    await this.ensureUserStoreStarted();
-    return this.getAdministrationService().listAuditEvents();
+    await this.runtime.ensureStarted();
+    return this.runtime.getAdministrationService().listAuditEvents();
   }
 
   async resolveActorPrincipal(
     actor: ActorRef,
   ): Promise<AuthPrincipal | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveActor(actor);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().resolveActor(actor);
   }
 
   /**
@@ -804,42 +444,35 @@ export class AuthService {
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthPrincipal | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveIdentity(input);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().resolveIdentity(input);
   }
 
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveIdentityAccess(input);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().resolveIdentityAccess(input);
   }
 
   async createAuthSession(
     subject?: string,
     options: { secure?: boolean } = {},
   ): Promise<CreateAuthSessionResult> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().createSession(subject, options);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().createSession(subject, options);
   }
 
   async getAuthSession(
     request: Request,
   ): Promise<AuthSessionRecord | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().getSession(request);
-  }
-
-  private async resolveActiveSession(
-    request: Request,
-  ): Promise<{ session: AuthSessionRecord; user: AuthUser } | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveActiveSession(request);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().getSession(request);
   }
 
   async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveSession(request);
+    await this.runtime.ensureStarted();
+    return this.runtime.getPrincipalService().resolveSession(request);
   }
 
   createAuthLoginResponse(request: Request): Response {
@@ -850,28 +483,34 @@ export class AuthService {
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<VerifiedAccessToken | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().verifyBearerToken(request, options);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPrincipalService()
+      .verifyBearerToken(request, options);
   }
 
   async resolveBearerGrant(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthBearerGrant | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveBearerGrant(request, options);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPrincipalService()
+      .resolveBearerGrant(request, options);
   }
 
   async resolveBearerToken(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthPrincipal | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPrincipalService().resolveBearerToken(request, options);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPrincipalService()
+      .resolveBearerToken(request, options);
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {
-    return this.setupFlow.getSetupUrl(issuer);
+    return this.runtime.setupFlow.getSetupUrl(issuer);
   }
 
   async startPasskeyRegistrationForUser(
@@ -879,39 +518,38 @@ export class AuthService {
     context: AuthMutationContext = {},
     delivery?: AuthSetupDeliveryInput,
   ): Promise<UserPasskeyRegistration> {
-    await this.ensureUserStoreStarted();
-    return this.getPasskeySetupCoordinator().startRegistration(
-      userId,
-      context,
-      delivery,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPasskeySetupCoordinator()
+      .startRegistration(userId, context, delivery);
   }
 
   async getPasskeySetupRequired(
     issuer: string = this.issuer,
   ): Promise<PasskeySetupRequired | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPasskeySetupCoordinator().getPasskeySetupRequired(issuer);
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPasskeySetupCoordinator()
+      .getPasskeySetupRequired(issuer);
   }
 
   async getPasskeySetupRequiredForDelivery(
     issuer: string = this.issuer,
   ): Promise<PasskeySetupRequired | undefined> {
-    await this.ensureUserStoreStarted();
-    return this.getPasskeySetupCoordinator().getPasskeySetupRequiredForDelivery(
-      issuer,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPasskeySetupCoordinator()
+      .getPasskeySetupRequiredForDelivery(issuer);
   }
 
   async hasSetupEmailDelivery(
     setupTokenIdValue: string,
     recipient: string,
   ): Promise<boolean> {
-    await this.ensureUserStoreStarted();
-    return this.getPasskeySetupCoordinator().hasSetupEmailDelivery(
-      setupTokenIdValue,
-      recipient,
-    );
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getPasskeySetupCoordinator()
+      .hasSetupEmailDelivery(setupTokenIdValue, recipient);
   }
 
   async recordSetupEmailDelivery(
@@ -919,12 +557,10 @@ export class AuthService {
     recipient: string,
     options: { deliveryId?: string } = {},
   ): Promise<void> {
-    await this.ensureUserStoreStarted();
-    await this.getPasskeySetupCoordinator().recordSetupEmailDelivery(
-      setupTokenIdValue,
-      recipient,
-      options,
-    );
+    await this.runtime.ensureStarted();
+    await this.runtime
+      .getPasskeySetupCoordinator()
+      .recordSetupEmailDelivery(setupTokenIdValue, recipient, options);
   }
 
   async handleRequest(request: Request): Promise<Response> {
@@ -939,97 +575,7 @@ export class AuthService {
       });
       return new Response("Untrusted OAuth issuer", { status: 400 });
     }
-    const path = new URL(request.url).pathname;
-
-    if (
-      path === "/auth/admin/users" ||
-      path === "/auth/admin/audit" ||
-      path === "/auth/admin/anchor" ||
-      path === "/auth/admin/mutations" ||
-      path === "/auth/admin/reconciliation"
-    ) {
-      return this.handleAdminRequest(request);
-    }
-    if (request.method === "OPTIONS" && isCorsMachineEndpoint(path)) {
-      return corsPreflightResponse();
-    }
-
-    if (request.method === "GET") {
-      if (path === "/.well-known/oauth-authorization-server") {
-        return withCors(
-          jsonResponse(this.getAuthorizationServerMetadata(requestIssuer)),
-        );
-      }
-
-      if (path === "/.well-known/jwks.json") {
-        return withCors(jsonResponse(await this.getJwks()));
-      }
-
-      if (path === "/.well-known/oauth-protected-resource") {
-        return withCors(
-          jsonResponse(
-            this.getProtectedResourceMetadata(requestIssuer, requestIssuer),
-          ),
-        );
-      }
-    }
-
-    if (request.method === "GET" && path === "/setup") {
-      return this.setupFlow.handleSetupPage(request);
-    }
-
-    if (request.method === "GET" && path === "/login") {
-      return this.handleLoginPage(request);
-    }
-
-    if (
-      (request.method === "GET" || request.method === "POST") &&
-      path === "/logout"
-    ) {
-      return this.handleLogout(request);
-    }
-
-    if (request.method === "POST" && path === "/webauthn/register/options") {
-      return this.webauthnEndpoints.handleRegistrationOptions(request);
-    }
-
-    if (request.method === "POST" && path === "/webauthn/register/verify") {
-      return this.webauthnEndpoints.handleRegistrationVerify(request);
-    }
-
-    if (request.method === "POST" && path === "/webauthn/auth/options") {
-      return this.webauthnEndpoints.handleAuthenticationOptions(request);
-    }
-
-    if (request.method === "POST" && path === "/webauthn/auth/verify") {
-      return this.webauthnEndpoints.handleAuthenticationVerify(request);
-    }
-
-    if (request.method === "GET" && path === "/authorize") {
-      return this.oauthEndpoints.handleAuthorizePage(request);
-    }
-
-    if (request.method === "POST" && path === "/authorize") {
-      return this.oauthEndpoints.handleAuthorizeApproval(request);
-    }
-
-    if (request.method === "POST" && path === "/register") {
-      return withCors(
-        await this.oauthEndpoints.handleClientRegistration(request),
-      );
-    }
-
-    if (request.method === "POST" && path === "/token") {
-      return withCors(
-        await this.oauthEndpoints.handleTokenRequest(request, requestIssuer),
-      );
-    }
-
-    if (request.method === "POST" && path === "/revoke") {
-      return withCors(await this.oauthEndpoints.handleRevokeRequest(request));
-    }
-
-    return new Response("Not Found", { status: 404 });
+    return this.requestRouter.handle(request, requestIssuer);
   }
 
   async handleWellKnownRequest(request: Request): Promise<Response> {
@@ -1066,9 +612,9 @@ export class AuthService {
         ),
       detachIdentity: async (identityId, actorUserId) => {
         const identity = await this.detachIdentity(identityId, { actorUserId });
-        const user = await this.getUserStore().getUserByPersonId(
-          identity.personId,
-        );
+        const user = await this.runtime
+          .getUserStore()
+          .getUserByPersonId(identity.personId);
         if (!user) throw new Error("Identity person has no auth user");
         return identitySummary(identity, user.id);
       },
@@ -1082,29 +628,7 @@ export class AuthService {
   }
 
   private resolveRequestIssuer(request: Request): string {
-    return this.getPrincipalService().resolveRequestIssuer(request);
-  }
-
-  private handleLoginPage(request: Request): Response {
-    const returnTo = safeRelativeReturnTo(
-      new URL(request.url).searchParams.get("return_to"),
-    );
-    return htmlResponse(renderLoginPage(returnTo));
-  }
-
-  private async handleLogout(request: Request): Promise<Response> {
-    await this.sessionStore.revokeSessionFromRequest(request);
-    const returnTo = safeRelativeReturnTo(
-      new URL(request.url).searchParams.get("return_to"),
-    );
-    const headers = new Headers({
-      Location: returnTo,
-      "Cache-Control": "no-store",
-    });
-    for (const cookie of clearAuthSessionCookies(isSecureRequest(request))) {
-      headers.append("Set-Cookie", cookie);
-    }
-    return new Response(null, { status: 302, headers });
+    return this.runtime.getPrincipalService().resolveRequestIssuer(request);
   }
 }
 

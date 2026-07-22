@@ -744,16 +744,12 @@ describe("AuthService", () => {
       { actorUserId: user.userId },
     );
     let verificationCount = 0;
-    const passkeyService = (
-      service as unknown as {
-        passkeyService: {
-          verifyRegistrationResponse: () => Promise<{
-            verified: boolean;
-            subject: string;
-          }>;
-        };
-      }
-    ).passkeyService;
+    const passkeyService = service["runtime"].passkeyService as unknown as {
+      verifyRegistrationResponse: () => Promise<{
+        verified: boolean;
+        subject: string;
+      }>;
+    };
     passkeyService.verifyRegistrationResponse = async (): Promise<{
       verified: boolean;
       subject: string;
@@ -1990,7 +1986,7 @@ describe("AuthService", () => {
     });
     const challenge = await pkceChallenge("correct-verifier");
     const session = await service.createAuthSession();
-    const code = await service["authCodeStore"].createCode({
+    const code = await service["runtime"].authCodeStore.createCode({
       clientId: client.client_id,
       redirectUri: "http://127.0.0.1:6274/oauth/callback",
       codeChallenge: challenge,
