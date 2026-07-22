@@ -6,6 +6,8 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
+  A2A_CHANNELS,
+  DIRECTORY_SYNC_CHANNELS,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
@@ -372,7 +374,7 @@ async function handleSyncStatus(
 ): Promise<Response> {
   const unavailable = { directorySync: null, git: null };
   const response = await context.messaging.send({
-    type: "sync:status:request",
+    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
     payload: {},
   });
   if (!("success" in response) || !response.success) {
@@ -886,7 +888,7 @@ async function handleListAgents(
   context: ServicePluginContext,
 ): Promise<Response> {
   const response = await context.messaging.send({
-    type: "a2a:call:agents",
+    type: A2A_CHANNELS.callAgents,
     payload: {},
   });
   if (!("success" in response) || !response.success) {
@@ -914,7 +916,7 @@ async function handleAskAgent(
   }
 
   const result = await context.messaging.send({
-    type: "a2a:call:request",
+    type: A2A_CHANNELS.callRequest,
     payload,
   });
   if (!("success" in result) || !result.success) {

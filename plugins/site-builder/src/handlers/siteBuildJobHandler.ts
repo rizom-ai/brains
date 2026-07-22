@@ -1,4 +1,4 @@
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, SITE_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -161,7 +161,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             : this.cfg.siteUrl;
 
         await this.sendMessage({
-          type: "site:build:completed",
+          type: SITE_CHANNELS.buildCompleted,
           payload: {
             outputDir: data.outputDir,
             environment,

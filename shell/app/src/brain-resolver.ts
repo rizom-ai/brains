@@ -4,6 +4,7 @@ import {
   type IShell,
   type Plugin,
   type PluginCapabilities,
+  SITE_BUILDER_CHANNELS,
 } from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
@@ -305,7 +306,7 @@ class DeclarativeSitePlugin implements Plugin {
       messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
         for (const [index, script] of this.site.headScripts?.entries() ?? []) {
           await messaging.send({
-            type: "plugin:site-builder:head-script:register",
+            type: SITE_BUILDER_CHANNELS.headScriptRegister,
             sender: this.id,
             payload: {
               pluginId: `${this.id}:${index}`,

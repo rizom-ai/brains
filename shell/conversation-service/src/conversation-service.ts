@@ -1,3 +1,4 @@
+import { CONVERSATION_CHANNELS } from "@brains/contracts";
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
 import { coerceConversationMetadata } from "./metadata";
@@ -440,7 +441,7 @@ export class ConversationService implements IConversationService {
 
     // Broadcast digest event
     await this.messageBus.send({
-      type: "conversation:digest",
+      type: CONVERSATION_CHANNELS.digest,
       payload: digestPayload,
       sender: "conversation-service",
       broadcast: true,

@@ -1,3 +1,4 @@
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { type Logger } from "@brains/utils/logger";
@@ -203,7 +204,7 @@ export function registerToolOnServer(
 
       try {
         const response = await messageBus.send({
-          type: `plugin:${pluginId}:tool:execute`,
+          type: PLUGIN_CHANNELS.toolExecute(pluginId),
           payload: {
             toolName: tool.name,
             args: params,

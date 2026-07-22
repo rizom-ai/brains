@@ -1,3 +1,4 @@
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type {
   Plugin,
   PluginType,
@@ -115,7 +116,7 @@ export abstract class BasePlugin<
   protected setupMessageHandlers(context: TContext): void {
     // Subscribe to tool execution requests for this specific plugin
     context.messaging.subscribe(
-      `plugin:${this.id}:tool:execute`,
+      PLUGIN_CHANNELS.toolExecute(this.id),
       async (message) => {
         try {
           // Validate and parse the message payload
@@ -174,7 +175,7 @@ export abstract class BasePlugin<
                 ): Promise<void> => {
                   // Send progress notification back through message bus
                   await context.messaging.send({
-                    type: `plugin:${this.id}:progress`,
+                    type: PLUGIN_CHANNELS.progress(this.id),
                     payload: {
                       progressToken,
                       notification,
@@ -203,7 +204,7 @@ export abstract class BasePlugin<
 
     // Subscribe to resource get requests for this specific plugin
     context.messaging.subscribe(
-      `plugin:${this.id}:resource:get`,
+      PLUGIN_CHANNELS.resourceGet(this.id),
       async (message) => {
         try {
           // Validate and parse the message payload
@@ -357,7 +358,7 @@ export abstract class BasePlugin<
     const pluginId = this.id;
     return ProgressReporter.from(async (notification: ProgressNotification) => {
       await context.messaging.send({
-        type: `plugin:${pluginId}:progress`,
+        type: PLUGIN_CHANNELS.progress(pluginId),
         payload: {
           progressToken,
           notification: {

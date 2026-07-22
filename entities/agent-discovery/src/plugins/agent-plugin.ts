@@ -12,7 +12,11 @@ import { AgentDataSource } from "../datasources/agent-datasource";
 import { ProximityMapDataSource } from "../datasources/proximity-map-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
 import { registerAgentNetworkDashboardWidget } from "../lib/agent-dashboard";
-import { registerAtprotoBrainCardHandlers } from "../lib/atproto-card-events";
+import {
+  refreshKnownAgentCards,
+  registerAtprotoBrainCardHandlers,
+  type AtprotoCardFetch,
+} from "../lib/atproto-card-events";
 import { getAgentDiscoveryInstructions } from "../lib/agent-instructions";
 import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { getTemplates } from "../lib/register-templates";
@@ -29,14 +33,16 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   readonly entityType: typeof AGENT_ENTITY_TYPE = AGENT_ENTITY_TYPE;
   readonly schema: typeof agentEntitySchema = agentEntitySchema;
   readonly adapter: AgentAdapter = agentAdapter;
+  private readonly fetchFn: AtprotoCardFetch | undefined;
 
-  constructor() {
+  constructor(fetchFn?: AtprotoCardFetch) {
     super(
       AGENT_DISCOVERY_PLUGIN_ID,
       packageJson,
       {},
       emptyEntityPluginConfigSchema,
     );
+    this.fetchFn = fetchFn;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -67,6 +73,15 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     registerAtprotoBrainCardHandlers(context);
+    context.recurringChecks.register({
+      id: "agent-card-refresh",
+      cadence: "daily",
+      deliverAlerts: false,
+      run: async ({ signal }) => {
+        await refreshKnownAgentCards(context, this.fetchFn, signal);
+        return {};
+      },
+    });
     registerAgentNetworkDashboardWidget(context, this.id);
   }
 

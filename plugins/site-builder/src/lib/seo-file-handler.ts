@@ -1,3 +1,4 @@
+import { SITE_CHANNELS } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -52,7 +53,7 @@ export function subscribeBuildCompleted(deps: SeoHandlerDeps): void {
   const { context, routeRegistry, logger } = deps;
 
   context.messaging.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
-    "site:build:completed",
+    SITE_CHANNELS.buildCompleted,
     async (message) => {
       try {
         const payload = message.payload;

@@ -9,7 +9,14 @@ import type {
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import type { PublishProvider } from "@brains/contracts";
+import {
+  BUTTONDOWN_CHANNELS,
+  GENERATE_CHANNELS,
+  NEWSLETTER_CHANNELS,
+  PUBLISH_CHANNELS,
+  SITE_BUILDER_CHANNELS,
+  type PublishProvider,
+} from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
@@ -104,12 +111,12 @@ export class NewsletterPlugin extends EntityPlugin<
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       // Check if buttondown is configured by sending a message
       const response = await context.messaging.send({
-        type: "buttondown:is-configured",
+        type: BUTTONDOWN_CHANNELS.isConfigured,
         payload: {},
       });
       if (!("noop" in response) && response.success) {
         await context.messaging.send({
-          type: "plugin:site-builder:slot:register",
+          type: SITE_BUILDER_CHANNELS.slotRegister,
           payload: {
             pluginId: this.id,
             slotName: "footer-top",
@@ -133,7 +140,7 @@ export class NewsletterPlugin extends EntityPlugin<
           { entityId: string; subject: string; content: string },
           { emailId?: string }
         >({
-          type: "buttondown:send",
+          type: BUTTONDOWN_CHANNELS.send,
           payload: {
             entityId: "",
             subject,
@@ -151,7 +158,7 @@ export class NewsletterPlugin extends EntityPlugin<
 
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
-        type: "publish:register",
+        type: PUBLISH_CHANNELS.register,
         payload: {
           entityType: "newsletter",
           provider,
@@ -167,7 +174,7 @@ export class NewsletterPlugin extends EntityPlugin<
 
   private subscribeToGenerateExecute(context: EntityPluginContext): void {
     context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
-      "generate:execute",
+      GENERATE_CHANNELS.execute,
       async (msg) => {
         if (msg.payload.entityType !== "newsletter") return { success: true };
 
@@ -182,7 +189,7 @@ export class NewsletterPlugin extends EntityPlugin<
 
           if (recentPosts.length === 0) {
             await context.messaging.send({
-              type: "generate:report:failure",
+              type: GENERATE_CHANNELS.reportFailure,
               payload: {
                 entityType: "newsletter",
                 error: "No published posts available for newsletter",
@@ -192,7 +199,7 @@ export class NewsletterPlugin extends EntityPlugin<
           }
 
           await context.jobs.enqueue({
-            type: "newsletter:generation",
+            type: NEWSLETTER_CHANNELS.generation,
             data: {
               sourceEntityIds: recentPosts.map((p) => p.id),
               sourceEntityType: "post",
@@ -204,7 +211,7 @@ export class NewsletterPlugin extends EntityPlugin<
           return { success: true };
         } catch (error) {
           await context.messaging.send({
-            type: "generate:report:failure",
+            type: GENERATE_CHANNELS.reportFailure,
             payload: {
               entityType: "newsletter",
               error: getErrorMessage(error),
@@ -226,7 +233,7 @@ export class NewsletterPlugin extends EntityPlugin<
 
       return context.ai.generate<{ subject: string; content: string }>({
         prompt: generationPrompt,
-        templateName: "newsletter:generation",
+        templateName: NEWSLETTER_CHANNELS.generation,
       });
     });
   }

@@ -1,3 +1,4 @@
+import { JOB_CHANNELS } from "@brains/contracts";
 import type { InterfacePluginContext } from "../interface/context";
 import {
   JobProgressEventSchema,
@@ -22,7 +23,7 @@ export function setupProgressHandler(
   context: InterfacePluginContext,
   handlers: ProgressHandlers,
 ): void {
-  context.messaging.subscribe("job-progress", async (message) => {
+  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
     try {
       const validationResult = JobProgressEventSchema.safeParse(
         message.payload,

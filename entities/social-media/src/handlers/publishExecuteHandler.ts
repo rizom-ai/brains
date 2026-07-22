@@ -11,7 +11,10 @@ import type {
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  PUBLISH_CHANNELS,
+} from "@brains/plugins";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -280,7 +283,7 @@ export class PublishExecuteHandler {
     platformPostId: string,
   ): Promise<void> {
     await this.sendMessage({
-      type: "publish:report:success",
+      type: PUBLISH_CHANNELS.reportSuccess,
       payload: {
         entityType,
         entityId,
@@ -298,7 +301,7 @@ export class PublishExecuteHandler {
     error: string,
   ): Promise<void> {
     await this.sendMessage({
-      type: "publish:report:failure",
+      type: PUBLISH_CHANNELS.reportFailure,
       payload: {
         entityType,
         entityId,
