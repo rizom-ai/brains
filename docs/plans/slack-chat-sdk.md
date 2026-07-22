@@ -374,6 +374,27 @@ Implementation result, 2026-07-22:
 - Response/approval/artifact presentation lives in `ChatResponseCoordinator`; upload continuity and legacy-ref migration live in `ChatUploadCoordinator`; output conversion and message attribution use focused helpers.
 - Focused metadata tests, all 190 Chat tests, all 403 plugin tests, Rover Chat opt-in tests, Chat typecheck/lint, formatting, and diff checks pass.
 
+### 18. Extract Chat SDK turn routing
+
+Complete the orchestrator decomposition by moving Chat SDK handler registration and inbound message/action turn routing out of the plugin class.
+
+- Add a focused turn controller for mention, DM, subscribed-message, prompt-action, approval-action, and passive-URL paths.
+- Keep framework overrides, daemon lifecycle, outbound messaging, progress bridges, and transport ownership in `ChatInterface`.
+- Inject the existing routing, response, upload, subscription, and input collaborators explicitly; do not duplicate their policy or split behavior by transport.
+- Preserve the shared input-processing lifecycle and URL-capture path from `MessageInterfacePlugin` through a narrow host boundary.
+
+Acceptance criteria:
+
+- `ChatInterface` is reduced below 500 lines.
+- The controller has one inbound-turn responsibility and does not own daemon or outbound progress lifecycle.
+- Existing Chat, plugin, Rover, lint, typecheck, formatting, and hook validations continue to pass.
+
+Implementation result, 2026-07-22:
+
+- `ChatInterface` now contains 444 lines; its remaining methods are framework lifecycle, outbound messaging, and progress/tool-status overrides.
+- `ChatTurnController` owns the cohesive inbound SDK registration and turn-routing workflow while delegating policy and presentation to the existing collaborators.
+- The controller reuses the base message-interface processing and URL-capture helpers through a narrow host contract; transport policy was not duplicated.
+
 ## Final live-trial results
 
 Validated in **The Fourth** workspace on 2026-07-13:
