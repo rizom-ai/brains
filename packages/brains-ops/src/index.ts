@@ -14,6 +14,10 @@ export {
   type ResolveImageBuildsOptions,
   type RunResolveMissingImagesOptions,
 } from "./images";
+export {
+  derivePreviewDomain,
+  type PreviewDomainOptions,
+} from "./preview-domain";
 export { writeUsersTable } from "./render-users-table";
 export { onboardUser } from "./onboard-user";
 export { addPilotUser } from "./user-add";

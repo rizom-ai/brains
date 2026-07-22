@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { loadPilotRegistry } from "@rizom/ops";
+import { derivePreviewDomain, loadPilotRegistry } from "@rizom/ops";
 
 import {
   parseEnvFile,
@@ -30,11 +30,9 @@ const user = registry.users.find((entry) => entry.handle === handle);
 if (!user) {
   throw new Error(`Unknown user handle: ${handle}`);
 }
-const previewDomain = resolvePreviewDomain(
-  handle,
-  brainDomain,
-  registry.pilot.domainSuffix,
-);
+const previewDomain = derivePreviewDomain(brainDomain, {
+  sharedDomain: registry.pilot.domainSuffix,
+});
 const wwwDomain = isFleetDomain(
   handle,
   brainDomain,
@@ -75,23 +73,6 @@ for (const key of required) {
 
 for (const [key, value] of Object.entries(outputs)) {
   writeGitHubOutput(key, value);
-}
-
-function resolvePreviewDomain(
-  userHandle: string,
-  domain: string,
-  pilotDomainSuffix: string,
-): string {
-  if (!isFleetDomain(userHandle, domain, pilotDomainSuffix)) {
-    return `preview.${domain}`;
-  }
-
-  const fleetZone = pilotDomainSuffix.replace(/^\./, "");
-  if (!fleetZone) {
-    throw new Error(`Could not derive preview domain from ${domain}`);
-  }
-
-  return `${userHandle}-preview.${fleetZone}`;
 }
 
 function isFleetDomain(

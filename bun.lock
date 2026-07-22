@@ -751,6 +751,7 @@
       "devDependencies": {
         "@brains/deploy-support": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "^1.3.14",

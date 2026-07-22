@@ -430,9 +430,11 @@ describe("initPilotRepo", () => {
     // and the deploy can never disagree about a tag.
     expect(resolveScript).toContain("siteImageTag");
     expect(resolveScript).toContain("sitePackagesFor");
-    expect(resolveScript).toContain("resolvePreviewDomain");
-    expect(resolveScript).toContain("-preview.");
-    expect(resolveScript).toContain("`preview.${domain}`");
+    expect(resolveScript).toContain("derivePreviewDomain");
+    expect(resolveScript).toContain(
+      "sharedDomain: registry.pilot.domainSuffix",
+    );
+    expect(resolveScript).not.toContain("function resolvePreviewDomain");
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
