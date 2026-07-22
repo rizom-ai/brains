@@ -305,6 +305,14 @@
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Startup readiness signal — stop capturing default identity at boot</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">stop capturing default identity at boot: move the atproto boot triggers to the plugin <code>ready()</code> hook and rename the pre-ready <code>system:plugins:ready</code> wire value so nothing is named &quot;ready&quot; before ready exists.</div>
+          <div class="card-file">startup-readiness-signal.md</div>
+        </div>
         </div>
       </details>
 

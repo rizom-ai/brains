@@ -9,6 +9,7 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  ENTITY_CHANNELS,
   parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
@@ -62,9 +63,9 @@ function subscribeToEntityCacheInvalidation(
   logger: Logger,
 ): (() => void)[] {
   const events = [
-    "entity:created",
-    "entity:updated",
-    "entity:deleted",
+    ENTITY_CHANNELS.created,
+    ENTITY_CHANNELS.updated,
+    ENTITY_CHANNELS.deleted,
   ] as const;
 
   return events.map((event) =>

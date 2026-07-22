@@ -1,4 +1,8 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type EntityPluginContext,
+  PUBLISH_CHANNELS,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishProvider } from "@brains/contracts";
 import {
@@ -24,7 +28,7 @@ export function registerWithPublishPipeline(
     const provider = providers.values().next().value;
 
     await context.messaging.send({
-      type: "publish:register",
+      type: PUBLISH_CHANNELS.register,
       payload: {
         entityType: "social-post",
         provider: provider,
@@ -52,7 +56,7 @@ export function subscribeToPublishExecute(
   });
 
   context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(
-    "publish:execute",
+    PUBLISH_CHANNELS.execute,
     async (msg) => {
       await executeHandler.handle(msg.payload);
       return { success: true };

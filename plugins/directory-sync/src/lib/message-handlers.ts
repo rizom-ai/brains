@@ -1,3 +1,4 @@
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -49,7 +50,7 @@ export function registerMessageHandlers(
   const { subscribe } = context.messaging;
 
   subscribe<{ entityTypes?: string[] }>(
-    "entity:export:request",
+    DIRECTORY_SYNC_CHANNELS.entityExportRequest,
     async (message) => {
       try {
         const ds = getDirectorySync();
@@ -64,29 +65,32 @@ export function registerMessageHandlers(
     },
   );
 
-  subscribe<{ paths?: string[] }>("entity:import:request", async (message) => {
-    try {
-      const ds = getDirectorySync();
-      const paths = message.payload.paths;
-      const result = await ds.importEntities(paths);
+  subscribe<{ paths?: string[] }>(
+    DIRECTORY_SYNC_CHANNELS.entityImportRequest,
+    async (message) => {
+      try {
+        const ds = getDirectorySync();
+        const paths = message.payload.paths;
+        const result = await ds.importEntities(paths);
 
-      // When specific paths are provided (e.g., from git-sync after a pull),
-      // some of those paths may be deletions. Run orphan cleanup to remove
-      // DB entities whose files no longer exist on disk.
-      if (paths && paths.length > 0) {
-        await ds.removeOrphanedEntities();
+        // When specific paths are provided (e.g., from git-sync after a pull),
+        // some of those paths may be deletions. Run orphan cleanup to remove
+        // DB entities whose files no longer exist on disk.
+        if (paths && paths.length > 0) {
+          await ds.removeOrphanedEntities();
+        }
+
+        return { success: true, data: result };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Import failed",
+        };
       }
+    },
+  );
 
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Import failed",
-      };
-    }
-  });
-
-  subscribe("sync:status:request", async () => {
+  subscribe(DIRECTORY_SYNC_CHANNELS.statusRequest, async () => {
     try {
       const ds = getDirectorySync();
       const status = await ds.getStatus();
@@ -112,25 +116,29 @@ export function registerMessageHandlers(
     }
   });
 
-  subscribe<{ syncPath: string }>("sync:configure:request", async (message) => {
-    try {
-      await configure({ syncPath: message.payload.syncPath });
-      return {
-        success: true,
-        data: {
-          syncPath: message.payload.syncPath,
-          configured: true,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Configuration failed",
-      };
-    }
-  });
+  subscribe<{ syncPath: string }>(
+    DIRECTORY_SYNC_CHANNELS.configureRequest,
+    async (message) => {
+      try {
+        await configure({ syncPath: message.payload.syncPath });
+        return {
+          success: true,
+          data: {
+            syncPath: message.payload.syncPath,
+            configured: true,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Configuration failed",
+        };
+      }
+    },
+  );
 
-  subscribe("git-sync:get-repo-info", async () => {
+  subscribe(DIRECTORY_SYNC_CHANNELS.getRepoInfo, async () => {
     if (!gitConfig?.repo) {
       return { success: false, error: "Git not configured" };
     }

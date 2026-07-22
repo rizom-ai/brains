@@ -1,3 +1,4 @@
+import { DASHBOARD_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -25,7 +26,7 @@ export async function registerDashboardWidget(
   deps: RegisterDashboardWidgetDeps,
 ): Promise<void> {
   await context.messaging.send({
-    type: "dashboard:register-widget",
+    type: DASHBOARD_CHANNELS.registerWidget,
     payload: {
       id: "publication-pipeline",
       pluginId,

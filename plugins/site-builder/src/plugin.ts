@@ -4,7 +4,7 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, SITE_BUILDER_CHANNELS } from "@brains/plugins";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
   SiteBuildProfile,
@@ -89,7 +89,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
     context.messaging.subscribe<
       SlotRegistration & { slotName: string },
       { success: boolean }
-    >("plugin:site-builder:slot:register", async (message) => {
+    >(SITE_BUILDER_CHANNELS.slotRegister, async (message) => {
       const { slotName, pluginId, render, priority } = message.payload;
       this._slotRegistry?.register(slotName, {
         pluginId,
@@ -103,7 +103,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
     context.messaging.subscribe<
       { pluginId: string; script: string },
       { success: boolean }
-    >("plugin:site-builder:head-script:register", async (message) => {
+    >(SITE_BUILDER_CHANNELS.headScriptRegister, async (message) => {
       const { pluginId, script } = message.payload;
       // Use pluginId as key so re-registration replaces (no duplicates)
       this.headScripts.set(pluginId, script);

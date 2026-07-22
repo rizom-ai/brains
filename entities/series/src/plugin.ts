@@ -8,7 +8,12 @@ import type {
   BaseEntity,
   DerivedEntityProjection,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+  ENTITY_CHANNELS,
+  SERIES_CHANNELS,
+} from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import { seriesSchema, type Series } from "./schemas/series";
@@ -110,7 +115,7 @@ export class SeriesPlugin extends EntityPlugin<
         id: "series-projection",
         targetType: "series",
         job: {
-          type: "series:project",
+          type: SERIES_CHANNELS.project,
           handler: this.createSeriesProjectionHandler(context),
         },
         initialSync: {
@@ -122,7 +127,11 @@ export class SeriesPlugin extends EntityPlugin<
           // type can carry — we filter per-event below by inspecting the
           // entity itself rather than its type.
           sourceTypes: ["*"],
-          events: ["entity:created", "entity:updated", "entity:deleted"],
+          events: [
+            ENTITY_CHANNELS.created,
+            ENTITY_CHANNELS.updated,
+            ENTITY_CHANNELS.deleted,
+          ],
           requireInitialSync: true,
           jobData: (payload): SeriesProjectionJobData | null => {
             if (payload.entityType === "series") return null;

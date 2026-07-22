@@ -3,7 +3,11 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  ServicePlugin,
+  ENTITY_CHANNELS,
+  PUBLISH_CHANNELS,
+} from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -148,7 +152,7 @@ function entityTaskKey(payload: EntityTriggerPayload): string {
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
-const PUBLISH_COMPLETED = "publish:completed";
+const PUBLISH_COMPLETED = PUBLISH_CHANNELS.completed;
 const MAX_DISCOVERY_REPOS = 50;
 
 export class AtprotoPlugin extends ServicePlugin<
@@ -185,7 +189,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe("entity:updated", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.trackPublishingTask(entityTaskKey(payload.data), () =>
@@ -195,7 +199,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe("entity:deleted", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.deleted, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.trackPublishingTask(entityTaskKey(payload.data), () =>
