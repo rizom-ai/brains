@@ -1,0 +1,63 @@
+{
+  "name": "@rizom/theme-signal",
+  "version": "0.2.0-alpha.217",
+  "description": "High-contrast signal-lab theme for public Rover site packages",
+  "license": "Apache-2.0",
+  "author": "Rizom <hello@rizom.ai> (https://rizom.ai)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": "./src/types.d.ts"
+  },
+  "publishExports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "postpack": "publish-manifest restore",
+    "prepack": "publish-manifest prepare",
+    "prepublishOnly": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rizom/theme-default": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/build-tools": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "shared/theme-signal"
+  },
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/shared/theme-signal#readme",
+  "bugs": {
+    "url": "https://github.com/rizom-ai/brains/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  }
+}

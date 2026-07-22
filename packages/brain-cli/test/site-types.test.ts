@@ -3,6 +3,11 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "node:child_process";
 
+import {
+  personalSitePlugin,
+  professionalSitePlugin,
+} from "../src/entries/site";
+
 const pkgDir = join(import.meta.dir, "..");
 const siteAuthorFixtureDir = join(pkgDir, "test", "fixtures", "site-author");
 
@@ -44,6 +49,14 @@ describe("@rizom/brain/site type contract", () => {
     ]) {
       expect(types).toContain(symbol);
       expect(entry).toContain(symbol);
+    }
+  });
+
+  it("preserves runtime lifecycle methods behind the opaque plugin type", () => {
+    for (const plugin of [personalSitePlugin(), professionalSitePlugin()]) {
+      expect(
+        (plugin as unknown as { register?: unknown }).register,
+      ).toBeFunction();
     }
   });
 
