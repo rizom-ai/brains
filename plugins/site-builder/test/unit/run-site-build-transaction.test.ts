@@ -75,6 +75,7 @@ describe("runSiteBuild transactional output", () => {
         title: "Transactional Site",
         description: "Transactional fixture",
       },
+      siteUrl: "https://transaction.example",
       layouts: { default: TestLayout },
     };
 
@@ -91,7 +92,7 @@ describe("runSiteBuild transactional output", () => {
       "stable output",
     );
     expect(await fs.readFile(join(outputDir, "robots.txt"), "utf8")).toContain(
-      "Sitemap: https://example.com/sitemap.xml",
+      "Sitemap: https://transaction.example/sitemap.xml",
     );
     expect(
       await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),
@@ -178,6 +179,7 @@ describe("runSiteBuild transactional output", () => {
           title: "Commit Site",
           description: "Commit fixture",
         },
+        siteUrl: undefined,
         layouts: { default: TestLayout },
       },
       progress: undefined,
@@ -205,6 +207,7 @@ describe("runSiteBuild transactional output", () => {
         title: "Cancellation Site",
         description: "Cancellation fixture",
       },
+      siteUrl: undefined,
       layouts: { default: TestLayout },
     };
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({

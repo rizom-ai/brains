@@ -60,6 +60,8 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
    * text imports.
    */
   staticAssets?: Record<string, string> | undefined;
+  /** Environment-specific public URL used for staged SEO extension artifacts. */
+  siteUrl: string | undefined;
   /** Optional caller cancellation combined with the builder-owned signal. */
   signal?: AbortSignal | undefined;
 }

@@ -70,6 +70,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
+    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ siteUrl: "https://yeehaa.io" }),
+      expect.anything(),
+    );
     expect(sendMessage).toHaveBeenCalledWith({
       type: "site:build:completed",
       payload: expect.objectContaining({
@@ -94,6 +98,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
+    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ siteUrl: "https://preview.yeehaa.io" }),
+      expect.anything(),
+    );
     expect(sendMessage).toHaveBeenCalledWith({
       type: "site:build:completed",
       payload: expect.objectContaining({
@@ -137,6 +145,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
+    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ siteUrl: undefined }),
+      expect.anything(),
+    );
     expect(sendMessage).toHaveBeenCalledWith({
       type: "site:build:completed",
       payload: expect.objectContaining({
