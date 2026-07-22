@@ -54,7 +54,15 @@ export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
     z.null(),
     z.boolean(),
-    z.number().finite(),
+    // Reject integers outside the safe range: a JSON round-trip would
+    // silently reround them, breaking deterministic snapshot comparison.
+    z
+      .number()
+      .finite()
+      .refine(
+        (value) => !Number.isInteger(value) || Number.isSafeInteger(value),
+        { message: "integer exceeds the JSON-safe range" },
+      ),
     z.string(),
     z.array(jsonValueSchema),
     z.record(z.string(), jsonValueSchema),

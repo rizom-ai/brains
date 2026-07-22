@@ -79,6 +79,25 @@ describe("PreparedSiteBuild", () => {
     expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
   });
 
+  it("rejects integers beyond the JSON-safe range", () => {
+    const input = createPreparedBuild();
+    const section = input.routes[0]?.sections[0];
+    if (!section) throw new Error("Expected fixture section");
+    section.data["bigId"] = Number.MAX_SAFE_INTEGER + 1;
+
+    expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
+  });
+
+  it("accepts safe integers and fractional numbers", () => {
+    const input = createPreparedBuild();
+    const section = input.routes[0]?.sections[0];
+    if (!section) throw new Error("Expected fixture section");
+    section.data["safeId"] = Number.MAX_SAFE_INTEGER;
+    section.data["ratio"] = 3.14;
+
+    expect(() => preparedSiteBuildSchema.parse(input)).not.toThrow();
+  });
+
   it("deep-freezes a validated snapshot", () => {
     const prepared = freezePreparedSiteBuild(
       preparedSiteBuildSchema.parse(createPreparedBuild()),

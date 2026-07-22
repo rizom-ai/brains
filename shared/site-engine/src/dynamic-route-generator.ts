@@ -9,11 +9,15 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
+import { isVisibleWithinScope } from "@brains/entity-service";
 import { type Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import type { RouteRegistry } from "./route-registry";
 
-export type DynamicRouteEntity = Pick<BaseEntity, "id" | "metadata">;
+export type DynamicRouteEntity = Pick<
+  BaseEntity,
+  "id" | "metadata" | "visibility"
+>;
 
 export interface DynamicRouteEntityService extends Pick<
   IEntityService,
@@ -78,6 +82,31 @@ export class DynamicRouteGenerator {
         filter: { ...filter, visibilityScope: scope },
       }),
     };
+  }
+
+  /**
+   * Defensively drop entities the entity service returned that fall outside the
+   * configured visibility scope. The service chokepoint is the primary filter;
+   * this second pass keeps a service bug from ever emitting a static route for
+   * non-public content, and logs when it fires rather than dropping silently.
+   */
+  private filterVisibleEntities(
+    entities: DynamicRouteEntity[],
+    entityType: string,
+  ): DynamicRouteEntity[] {
+    const scope = this.options.visibilityScope;
+    if (!scope) return entities;
+
+    const visible = entities.filter((entity) =>
+      isVisibleWithinScope(entity.visibility, scope),
+    );
+    const dropped = entities.length - visible.length;
+    if (dropped > 0) {
+      this.services.logger.warn(
+        `Dropped ${dropped} ${entityType} ${dropped === 1 ? "entity" : "entities"} above "${scope}" visibility scope before route generation`,
+      );
+    }
+    return visible;
   }
 
   /**
@@ -206,10 +235,13 @@ export class DynamicRouteGenerator {
     // Get all entities of this type and create detail routes if we have a detail template
     if (detailTemplateName) {
       try {
-        const entities = await this.services.entityService.listEntities({
+        const entities = this.filterVisibleEntities(
+          await this.services.entityService.listEntities({
+            entityType,
+            options: this.listOptions({ limit: 1000 }),
+          }), // Get all entities for static generation
           entityType,
-          options: this.listOptions({ limit: 1000 }),
-        }); // Get all entities for static generation
+        );
 
         logger.debug(
           `Found ${entities.length} ${entityType} entities to generate routes for`,
@@ -282,10 +314,13 @@ export class DynamicRouteGenerator {
     logger: Logger,
   ): Promise<void> {
     // Get total entity count
-    const entities = await this.services.entityService.listEntities({
+    const entities = this.filterVisibleEntities(
+      await this.services.entityService.listEntities({
+        entityType,
+        options: this.listOptions({ limit: 1000 }),
+      }),
       entityType,
-      options: this.listOptions({ limit: 1000 }),
-    });
+    );
     const totalItems = entities.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 

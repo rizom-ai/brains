@@ -393,6 +393,45 @@ describe("DynamicRouteGenerator", () => {
       }
     });
 
+    test("drops entities the service leaks above the configured scope", async () => {
+      entityTypes.push("post");
+      // Simulate a service that fails to filter: it returns a restricted
+      // entity even though the build requested public-only content.
+      entities.set("post", [
+        createMockEntity("public-post", "post", "public-post"),
+        {
+          ...createMockEntity("secret-post", "post", "secret-post"),
+          visibility: "restricted",
+        },
+      ]);
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      const scopedGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        undefined,
+        { visibilityScope: "public" },
+      );
+
+      await scopedGenerator.generateEntityRoutes();
+
+      expect(routeRegistry.get("/posts/public-post")).toBeDefined();
+      expect(routeRegistry.get("/posts/secret-post")).toBeUndefined();
+    });
+
     test("does not add visibilityScope when none configured", async () => {
       entityTypes.push("post");
       entities.set("post", [createMockEntity("p1", "post", "p1")]);
