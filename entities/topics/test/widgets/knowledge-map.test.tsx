@@ -84,17 +84,16 @@ describe("KnowledgeMap", () => {
     expect(html).toContain("Future of Work · 1");
     expect(html).toContain("stroke-dasharray");
 
-    // filed published entities glow without names; unfiled evidence gets a
-    // restrained cartographic callout so orphaned sources are visible.
+    // entities glow by kind without names: the glow is the statement, names
+    // live in the console. Text discipline keeps the sky legible.
     expect(html).toContain("kmap-breathe");
     expect(html).not.toContain("The Future of Work is Play");
-    expect(html).toContain("CoCoCo · unfiled");
+    expect(html).not.toContain("CoCoCo");
 
     // kinds map to their classes
     expect(html).toContain("kmap-point--skill");
     expect(html).toContain("kmap-point--pearl");
     expect(html).toContain("kmap-point--ground");
-    expect(html).toContain("kmap-point--unfiled");
 
     // colors ride surface-mapped custom properties, never literals
     expect(html).toContain("var(--kmap-");
@@ -241,7 +240,7 @@ describe("KnowledgeMap", () => {
     expect(html).toContain("topic zones");
     expect(html).toContain("published");
     expect(html).toContain("references");
-    expect(html).toContain("unfiled");
+    expect(html).not.toContain("unfiled");
   });
 
   test("renders byte-identically across builds and switches surfaces", () => {
