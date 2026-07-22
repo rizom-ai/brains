@@ -118,7 +118,9 @@
     "@rizom/theme-rizom-ai": "0.2.0-alpha.141",
     "@brains/notification-contracts": "0.2.0-alpha.174",
     "@brains/recurring-checks": "0.2.0-alpha.174",
-    "@brains/scheduler": "0.2.0-alpha.174"
+    "@brains/scheduler": "0.2.0-alpha.174",
+    "@rizom/theme-signal": "0.2.0-alpha.217",
+    "@rizom/site-smoke-canary": "0.2.0-alpha.217"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -370,6 +372,7 @@
     "skill-derivation-backpressure",
     "slack-chat-adapter",
     "smoke-a2a-root-caddy-fallback",
+    "smoke-canary-site-packages",
     "ssh-key-bootstrap-and-local-secret-paths",
     "stabilize-rover-eval-routing",
     "standalone-deploy-bun-setup",

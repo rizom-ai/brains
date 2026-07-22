@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-engine",
-  "version": "0.2.0-alpha.217",
+  "version": "0.2.0-alpha.218",
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
     "@brains/entity-service": "workspace:*",

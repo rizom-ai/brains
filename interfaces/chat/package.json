@@ -1,6 +1,6 @@
 {
   "name": "@brains/chat",
-  "version": "0.2.0-alpha.217",
+  "version": "0.2.0-alpha.218",
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {
     "@brains/plugins": "workspace:*",
