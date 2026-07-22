@@ -362,61 +362,32 @@ export class AuthUserStore {
     return user;
   }
 
-  async updateUserRole(userId: string, role: AuthUserRole): Promise<AuthUser> {
-    const existing = await this.requireUser(userId);
-    if (existing.role === role) return existing;
-    const otherUsers = alias(authUsers, "other_admin_users");
-    const isPersonalAnchor = this.db
-      .select({ subjectId: authBrainAnchor.subjectId })
-      .from(authBrainAnchor)
-      .where(
-        and(
-          eq(authBrainAnchor.id, "brain"),
-          eq(authBrainAnchor.kind, "person"),
-          eq(authBrainAnchor.subjectId, authUsers.personId),
-        ),
-      );
-    const hasOtherActiveAdmin = this.db
-      .select({ id: otherUsers.id })
-      .from(otherUsers)
-      .where(
-        and(
-          ne(otherUsers.id, userId),
-          eq(otherUsers.role, "admin"),
-          eq(otherUsers.status, "active"),
-        ),
-      );
-
-    await this.db
-      .update(authUsers)
-      .set({ role, updatedAt: Date.now() })
-      .where(
-        and(
-          eq(authUsers.id, userId),
-          role === "admin" ? undefined : notExists(isPersonalAnchor),
-          role === "admin"
-            ? undefined
-            : or(
-                ne(authUsers.role, "admin"),
-                ne(authUsers.status, "active"),
-                exists(hasOtherActiveAdmin),
-              ),
-        ),
-      );
-
-    const updated = await this.requireUser(userId);
-    if (updated.role !== role) {
-      await this.throwAdminInvariantError(existing);
-    }
-    return updated;
+  updateUserRole(userId: string, role: AuthUserRole): Promise<AuthUser> {
+    return this.applyGuardedUserMutation(userId, { kind: "role", value: role });
   }
 
-  async updateUserStatus(
+  updateUserStatus(userId: string, status: AuthUserStatus): Promise<AuthUser> {
+    return this.applyGuardedUserMutation(userId, {
+      kind: "status",
+      value: status,
+    });
+  }
+
+  private async applyGuardedUserMutation(
     userId: string,
-    status: AuthUserStatus,
+    mutation:
+      | { kind: "role"; value: AuthUserRole }
+      | { kind: "status"; value: AuthUserStatus },
   ): Promise<AuthUser> {
     const existing = await this.requireUser(userId);
-    if (existing.status === status) return existing;
+    const currentValue =
+      mutation.kind === "role" ? existing.role : existing.status;
+    if (currentValue === mutation.value) return existing;
+
+    const relaxing =
+      mutation.kind === "role"
+        ? mutation.value === "admin"
+        : mutation.value === "active";
     const otherUsers = alias(authUsers, "other_active_admin_users");
     const isPersonalAnchor = this.db
       .select({ subjectId: authBrainAnchor.subjectId })
@@ -438,15 +409,19 @@ export class AuthUserStore {
           eq(otherUsers.status, "active"),
         ),
       );
+    const values =
+      mutation.kind === "role"
+        ? { role: mutation.value, updatedAt: Date.now() }
+        : { status: mutation.value, updatedAt: Date.now() };
 
     await this.db
       .update(authUsers)
-      .set({ status, updatedAt: Date.now() })
+      .set(values)
       .where(
         and(
           eq(authUsers.id, userId),
-          status === "active" ? undefined : notExists(isPersonalAnchor),
-          status === "active"
+          relaxing ? undefined : notExists(isPersonalAnchor),
+          relaxing
             ? undefined
             : or(
                 ne(authUsers.role, "admin"),
@@ -457,7 +432,9 @@ export class AuthUserStore {
       );
 
     const updated = await this.requireUser(userId);
-    if (updated.status !== status) {
+    const updatedValue =
+      mutation.kind === "role" ? updated.role : updated.status;
+    if (updatedValue !== mutation.value) {
       await this.throwAdminInvariantError(existing);
     }
     return updated;

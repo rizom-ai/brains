@@ -619,4 +619,36 @@ describe("AuthUserStore", () => {
       ).toHaveLength(1);
     });
   });
+
+  it("atomically preserves an active admin across concurrent role and status changes", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.ensureFirstAdminUser({ displayName: "First" });
+      const second = await store.createUser({
+        displayName: "Second",
+        role: "admin",
+      });
+      await store.configureBrainAnchor({
+        kind: "collective",
+        displayName: "Example Collective",
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
+
+      const results = await Promise.allSettled([
+        store.updateUserRole(first.id, "trusted"),
+        store.updateUserStatus(second.id, "suspended"),
+      ]);
+
+      expect(
+        results.filter((result) => result.status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(
+        results.filter((result) => result.status === "rejected"),
+      ).toHaveLength(1);
+      expect(
+        (await store.listUsers()).filter(
+          (user) => user.role === "admin" && user.status === "active",
+        ),
+      ).toHaveLength(1);
+    });
+  });
 });
