@@ -4,29 +4,31 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
+import { styles } from "./app-styles";
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
-  applyFieldAssistSuggestion,
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
-  DirectorySyncWorkspace,
-  emptyDraft,
-  entityPublicationState,
-  entityTitle,
+  MODEL_ASSIST_TARGET,
+} from "./body-editor";
+import { DirectorySyncWorkspace } from "./directory-sync-workspace";
+import {
+  applyFieldAssistSuggestion,
   Field,
   FieldAssistControls,
   fieldAssistVariant,
-  MODEL_ASSIST_TARGET,
+  typeHasPublicationField,
+  TypeSwitcher,
+} from "./entity-fields";
+import {
   PublicationActions,
   PublishConfirmationDialog,
   PublishingWorkspace,
-  SiteWorkspace,
-  styles,
-  typeHasPublicationField,
-  TypeSwitcher,
-} from "./App";
+} from "./publishing-workspace";
+import { SiteWorkspace } from "./site-workspace";
+import { emptyDraft, entityPublicationState, entityTitle } from "./ui-utils";
 import {
   DeleteDialog,
   derivePipeline,
