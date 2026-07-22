@@ -1,5 +1,14 @@
 # @rizom/theme-signal
 
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- [#67](https://github.com/rizom-ai/brains/pull/67) [`9b88099`](https://github.com/rizom-ai/brains/commit/9b88099767282df468a4f912e7e85b1a98e8284b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Pin the published `@rizom/theme-default` dependency to a concrete version in the source manifest. npm creates registry dependency metadata before `prepack`, so the workspace protocol in the initial release produced an uninstallable packument even though its tarball manifest was valid.
+
+- Updated dependencies []:
+  - @rizom/theme-default@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Minor Changes
