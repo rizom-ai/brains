@@ -82,6 +82,39 @@ describe("SiteBuildStatusService", () => {
     });
   });
 
+  it("records cancellation without clearing a newer active build", async () => {
+    const service = createStatusService();
+    await service.markBuilding(
+      "preview",
+      "job-old",
+      "2026-07-16T09:00:00.000Z",
+    );
+    await service.markBuilding(
+      "preview",
+      "job-new",
+      "2026-07-16T09:00:01.000Z",
+    );
+    await service.markCancelled(
+      "preview",
+      "job-old",
+      "Superseded by a newer preview site build",
+      "2026-07-16T09:00:02.000Z",
+    );
+
+    const snapshot = await service.getSnapshot();
+    expect(snapshot.environments[0]).toMatchObject({
+      active: { jobId: "job-new", state: "building" },
+      lastCancellation: {
+        jobId: "job-old",
+        message: "Superseded by a newer preview site build",
+      },
+    });
+    expect(snapshot.recentBuilds[0]).toMatchObject({
+      jobId: "job-old",
+      outcome: "cancelled",
+    });
+  });
+
   it("clears an unrecoverable debounced request during initialization", async () => {
     const context = createServicePluginContext(
       createMockShell(),

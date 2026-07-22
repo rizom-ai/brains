@@ -201,9 +201,13 @@ describe("PreactBuilder behavioral baseline", () => {
       cssProcessor: new MockCSSProcessor(),
     });
 
-    await builder.build(context, (notification) => {
-      if (notification.message) progress.push(notification.message);
-    });
+    await builder.build(
+      context,
+      (notification) => {
+        if (notification.message) progress.push(notification.message);
+      },
+      new AbortController().signal,
+    );
 
     const home = await fs.readFile(join(outputDir, "index.html"), "utf-8");
     const writing = await fs.readFile(

@@ -8,6 +8,7 @@ export interface RunStaticSiteBuildOptions {
   staticSiteBuilder: StaticSiteBuilder;
   buildContext: BuildContext;
   reporter: ProgressReporter | undefined;
+  signal: AbortSignal;
 }
 
 export async function runStaticSiteBuild(
@@ -20,6 +21,7 @@ export async function runStaticSiteBuild(
     },
   });
 
+  options.signal.throwIfAborted();
   await options.staticSiteBuilder.build(
     options.buildContext,
     (notification) => {
@@ -27,5 +29,7 @@ export async function runStaticSiteBuild(
         // Ignore progress reporting errors
       });
     },
+    options.signal,
   );
+  options.signal.throwIfAborted();
 }

@@ -5,11 +5,13 @@ import type { BuildPipelineContext } from "./build-pipeline-context";
 export interface PrepareSiteImagesOptions {
   pipelineContext: BuildPipelineContext;
   sharedImagesDir: string;
+  signal: AbortSignal;
 }
 
 export async function prepareSiteImages(
   options: PrepareSiteImagesOptions,
 ): Promise<ImageBuildService> {
+  options.signal.throwIfAborted();
   const imageBuildService = new ImageBuildService(
     options.pipelineContext.services.entityService,
     options.pipelineContext.logger,
@@ -20,10 +22,12 @@ export async function prepareSiteImages(
     options.pipelineContext.services.entityService,
     options.pipelineContext.logger,
   );
+  options.signal.throwIfAborted();
 
   if (imageIds.length > 0) {
-    await imageBuildService.resolveAll(imageIds);
+    await imageBuildService.resolveAll(imageIds, options.signal);
   }
+  options.signal.throwIfAborted();
 
   return imageBuildService;
 }

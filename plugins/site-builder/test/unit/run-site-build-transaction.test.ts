@@ -10,7 +10,11 @@ import { join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
-import { createSiteBuilderServices, TestLayout } from "../test-helpers";
+import {
+  createSiteBuilderServices,
+  createTestSiteBuildOutputLifecycle,
+  TestLayout,
+} from "../test-helpers";
 
 function createPipelineContext(): BuildPipelineContext {
   const logger = createSilentLogger();
@@ -79,6 +83,7 @@ describe("runSiteBuild transactional output", () => {
       progress: undefined,
       pipelineContext: createPipelineContext(),
       staticSiteBuilderFactory: successfulFactory,
+      signal: new AbortController().signal,
     });
 
     expect(firstResult.success).toBe(true);
@@ -107,6 +112,7 @@ describe("runSiteBuild transactional output", () => {
       progress: undefined,
       pipelineContext: createPipelineContext(),
       staticSiteBuilderFactory: failingFactory,
+      signal: new AbortController().signal,
     });
 
     expect(failedResult).toMatchObject({
@@ -133,6 +139,7 @@ describe("runSiteBuild transactional output", () => {
       progress: undefined,
       pipelineContext: createPipelineContext(),
       staticSiteBuilderFactory: invalidFactory,
+      signal: new AbortController().signal,
     });
 
     expect(invalidResult).toMatchObject({
@@ -150,5 +157,109 @@ describe("runSiteBuild transactional output", () => {
       join(testDir, ".site-builds", "preview"),
     );
     expect(generations).toHaveLength(1);
+  });
+
+  it("treats the bounded output commit section as non-interruptible", async () => {
+    const controller = new AbortController();
+    const lifecycle = createTestSiteBuildOutputLifecycle();
+    const commit = lifecycle.commit;
+    lifecycle.commit = async (options): ReturnType<typeof commit> => {
+      controller.abort(new Error("cancel arrived during commit"));
+      return commit(options);
+    };
+    const result = await runSiteBuild({
+      buildOptions: {
+        environment: "preview",
+        outputDir,
+        sharedImagesDir: join(testDir, "images"),
+        enableContentGeneration: false,
+        cleanBeforeBuild: true,
+        siteConfig: {
+          title: "Commit Site",
+          description: "Commit fixture",
+        },
+        layouts: { default: TestLayout },
+      },
+      progress: undefined,
+      pipelineContext: createPipelineContext(),
+      staticSiteBuilderFactory: () => ({
+        clean: mock(async () => undefined),
+        build: mock(async () => undefined),
+      }),
+      outputLifecycle: lifecycle,
+      signal: controller.signal,
+    });
+
+    expect(result).toMatchObject({ success: true });
+    expect(result.cancelled).toBeUndefined();
+  });
+
+  it("cleans cancelled staging without replacing the active generation", async () => {
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Cancellation Site",
+        description: "Cancellation fixture",
+      },
+      layouts: { default: TestLayout },
+    };
+    const successfulFactory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+    expect(
+      (
+        await runSiteBuild({
+          buildOptions,
+          progress: undefined,
+          pipelineContext: createPipelineContext(),
+          staticSiteBuilderFactory: successfulFactory,
+          signal: new AbortController().signal,
+        })
+      ).success,
+    ).toBe(true);
+
+    const controller = new AbortController();
+    const cancellingFactory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async (_context, _onProgress, signal) => {
+        await fs.writeFile(join(options.outputDir, "index.html"), "partial");
+        controller.abort(new Error("operator cancelled build"));
+        signal.throwIfAborted();
+      }),
+    });
+    const cancelled = await runSiteBuild({
+      buildOptions,
+      progress: undefined,
+      pipelineContext: createPipelineContext(),
+      staticSiteBuilderFactory: cancellingFactory,
+      signal: controller.signal,
+    });
+
+    expect(cancelled).toMatchObject({
+      success: false,
+      cancelled: true,
+      errors: [
+        "[build-cancelled] Site build cancelled: operator cancelled build",
+      ],
+      diagnostics: [expect.objectContaining({ code: "build-cancelled" })],
+    });
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "stable",
+    );
+    expect(
+      await fs.readdir(join(testDir, ".site-builds", "preview")),
+    ).toHaveLength(1);
   });
 });

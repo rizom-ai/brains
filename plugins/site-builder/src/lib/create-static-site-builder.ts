@@ -10,11 +10,13 @@ export interface CreateStaticSiteBuilderOptions {
   workingDir: string;
   cleanBeforeBuild: boolean;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
+  signal: AbortSignal;
 }
 
 export async function createStaticSiteBuilder(
   options: CreateStaticSiteBuilderOptions,
 ): Promise<StaticSiteBuilder> {
+  options.signal.throwIfAborted();
   const staticSiteBuilder = options.staticSiteBuilderFactory({
     logger: options.logger.child("StaticSiteBuilder"),
     workingDir: options.workingDir,
@@ -24,6 +26,7 @@ export async function createStaticSiteBuilder(
   if (options.cleanBeforeBuild) {
     await staticSiteBuilder.clean();
   }
+  options.signal.throwIfAborted();
 
   return staticSiteBuilder;
 }

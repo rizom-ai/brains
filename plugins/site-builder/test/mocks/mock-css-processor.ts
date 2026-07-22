@@ -12,7 +12,9 @@ export class MockCSSProcessor implements CSSProcessor {
     _workingDir: string,
     _outputDir: string,
     logger: Logger,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     logger.info("Using mock CSS processor");
     const fallbackCSS = `/* Mock CSS for testing */
 ${inputCSS}
@@ -22,6 +24,9 @@ ${inputCSS}
 .text-theme { color: #1a202c; }
 .min-h-full { min-height: 100%; }
 `;
-    await fs.writeFile(outputPath, fallbackCSS, "utf-8");
+    await fs.writeFile(outputPath, fallbackCSS, {
+      encoding: "utf-8",
+      signal,
+    });
   }
 }

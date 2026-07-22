@@ -60,6 +60,7 @@ function run(
     pipelineContext,
     staticSiteBuilderFactory,
     outputLifecycle: createTestSiteBuildOutputLifecycle(),
+    signal: new AbortController().signal,
   });
 }
 

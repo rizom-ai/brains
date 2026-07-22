@@ -21,6 +21,7 @@ import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import {
+  createCancelledBuildResult,
   createFailedBuildResult,
   createSuccessfulBuildResult,
 } from "./site-build-result";
@@ -42,6 +43,7 @@ export interface RunSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   outputLifecycle?: SiteBuildOutputLifecycle | undefined;
+  signal: AbortSignal;
 }
 
 export async function runSiteBuild(
@@ -57,8 +59,10 @@ export async function runSiteBuild(
     new TransactionalSiteBuildOutput(options.pipelineContext.logger);
   let outputTarget: SiteBuildOutputTarget | undefined;
   let failureCode: SiteBuildDiagnosticCode = "build-failed";
+  let commitStarted = false;
 
   try {
+    options.signal.throwIfAborted();
     await reporter?.report({
       message: "Starting site build",
       progress: 0,
@@ -70,11 +74,13 @@ export async function runSiteBuild(
       progress: 10,
       total: 100,
     });
+    options.signal.throwIfAborted();
 
     await generateSiteRoutes({
       pipelineContext: options.pipelineContext,
       publishedOnly: parsedOptions.environment === "production",
     });
+    options.signal.throwIfAborted();
 
     const buildRoutes = collectBuildRoutes(
       options.pipelineContext.routeRegistry,
@@ -114,6 +120,7 @@ export async function runSiteBuild(
     const imageBuildService = await prepareSiteImages({
       pipelineContext: options.pipelineContext,
       sharedImagesDir: parsedOptions.sharedImagesDir,
+      signal: options.signal,
     });
     const preparation = await prepareSiteBuild({
       buildId: randomUUID(),
@@ -124,6 +131,7 @@ export async function runSiteBuild(
       imageBuildService,
       siteMetadata: parsedOptions.siteConfig,
       publicDir: join(process.cwd(), "public"),
+      signal: options.signal,
     });
     diagnostics.push(...preparation.diagnostics);
     const preparationWarnings = preparation.diagnostics.filter(
@@ -141,6 +149,7 @@ export async function runSiteBuild(
       });
     }
 
+    options.signal.throwIfAborted();
     const buildContext = createBuildContext({
       preparedBuild: preparation.preparedBuild,
       layouts: parsedOptions.layouts,
@@ -153,13 +162,16 @@ export async function runSiteBuild(
       buildId: preparation.preparedBuild.buildId,
       configuredWorkingDir: parsedOptions.workingDir,
     });
+    options.signal.throwIfAborted();
     const staticSiteBuilder = await createStaticSiteBuilder({
       logger: options.pipelineContext.logger,
       outputDir: outputTarget.generationDir,
       workingDir: outputTarget.workingDir,
       cleanBeforeBuild: parsedOptions.cleanBeforeBuild,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+      signal: options.signal,
     });
+    options.signal.throwIfAborted();
 
     await reporter?.report({
       message: "Preparing site extension artifacts",
@@ -179,11 +191,13 @@ export async function runSiteBuild(
       payload: stagingPayload,
       broadcast: true,
     });
+    options.signal.throwIfAborted();
 
     await runStaticSiteBuild({
       staticSiteBuilder,
       buildContext,
       reporter,
+      signal: options.signal,
     });
 
     failureCode = "output-commit-failed";
@@ -196,6 +210,7 @@ export async function runSiteBuild(
       outputDir: outputTarget.generationDir,
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
+      signal: options.signal,
     });
 
     await reporter?.report({
@@ -203,6 +218,8 @@ export async function runSiteBuild(
       progress: 97,
       total: 100,
     });
+    options.signal.throwIfAborted();
+    commitStarted = true;
     const commitResult = await outputLifecycle.commit({
       target: outputTarget,
       preparedBuild: preparation.preparedBuild,
@@ -229,7 +246,28 @@ export async function runSiteBuild(
     });
   } catch (error) {
     if (outputTarget) {
-      await outputLifecycle.abort(outputTarget);
+      try {
+        await outputLifecycle.abort(outputTarget);
+      } catch (abortError) {
+        options.pipelineContext.logger.warn(
+          "Failed to clean aborted site build output",
+          { error: abortError },
+        );
+      }
+    }
+    if (options.signal.aborted && !commitStarted) {
+      const reason = getErrorMessage(options.signal.reason ?? error);
+      const diagnostic: SiteBuildDiagnostic = {
+        severity: "error",
+        code: "build-cancelled",
+        message: `Site build cancelled: ${reason}`,
+      };
+      options.pipelineContext.logger.info(diagnostic.message);
+      return createCancelledBuildResult({
+        outputDir: parsedOptions.outputDir,
+        message: formatSiteBuildDiagnostic(diagnostic),
+        diagnostics: [...diagnostics, diagnostic],
+      });
     }
     const messagePrefix =
       failureCode === "output-commit-failed"

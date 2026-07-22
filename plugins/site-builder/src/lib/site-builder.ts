@@ -19,6 +19,11 @@ import type { SiteBuildOutputLifecycle } from "./site-build-output-lifecycle";
 export type { EnrichedEntity } from "./content-enrichment";
 export type { SiteBuilderServices } from "./site-builder-services";
 
+interface ActiveSiteBuild {
+  controller: AbortController;
+  promise: Promise<BuildResult>;
+}
+
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
@@ -26,6 +31,7 @@ export class SiteBuilder implements ISiteBuilder {
   private pipelineContext: BuildPipelineContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private outputLifecycle: SiteBuildOutputLifecycle | undefined;
+  private readonly activeBuilds = new Map<string, ActiveSiteBuild>();
 
   /**
    * Set the default static site builder factory for all instances
@@ -105,12 +111,42 @@ export class SiteBuilder implements ISiteBuilder {
     options: SiteBuilderOptions,
     progress?: ProgressCallback,
   ): Promise<BuildResult> {
-    return runSiteBuild({
+    const environment = options.environment;
+    const previousBuild = this.activeBuilds.get(environment);
+    previousBuild?.controller.abort(
+      new Error(`Superseded by a newer ${environment} site build`),
+    );
+
+    const controller = new AbortController();
+    const signal = options.signal
+      ? AbortSignal.any([controller.signal, options.signal])
+      : controller.signal;
+    const promise = runSiteBuild({
       buildOptions: options,
       progress,
       pipelineContext: this.pipelineContext,
       staticSiteBuilderFactory: this.staticSiteBuilderFactory,
       ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
+      signal,
     });
+    const activeBuild = { controller, promise };
+    this.activeBuilds.set(environment, activeBuild);
+
+    try {
+      return await promise;
+    } finally {
+      if (this.activeBuilds.get(environment) === activeBuild) {
+        this.activeBuilds.delete(environment);
+      }
+    }
+  }
+
+  /** Cancel admitted builds and wait for staging cleanup to settle. */
+  async cancelActiveBuilds(
+    reason: Error = new Error("Site builder is shutting down"),
+  ): Promise<void> {
+    const activeBuilds = [...this.activeBuilds.values()];
+    for (const build of activeBuilds) build.controller.abort(reason);
+    await Promise.allSettled(activeBuilds.map((build) => build.promise));
   }
 }

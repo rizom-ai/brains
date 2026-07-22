@@ -8,6 +8,7 @@ import {
   createMockMessageSender,
 } from "@brains/test-utils";
 import { ProgressReporter } from "@brains/utils/progress";
+import type { SiteBuildStatusService } from "../../src/lib/site-build-status";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;
@@ -157,5 +158,56 @@ describe("SiteBuildJobHandler", () => {
       expect(capturedOptions).toBeDefined();
       expect(capturedOptions?.slots).toBe(slotRegistry);
     });
+  });
+
+  it("records a cancelled build without emitting completion", async () => {
+    const markCancelled = mock(async () => undefined);
+    const statusService = {
+      markBuilding: mock(async () => undefined),
+      markCancelled,
+    } as unknown as SiteBuildStatusService;
+    const cancelledBuilder: ISiteBuilder = {
+      build: mock(async () => ({
+        success: false,
+        cancelled: true,
+        outputDir: "/tmp/output",
+        filesGenerated: 0,
+        routesBuilt: 0,
+        errors: ["[build-cancelled] Site build cancelled: superseded"],
+      })),
+    };
+    const { sendMessage, _sentMessages } = createMockMessageSender();
+    const cancelledHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: cancelledBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        statusService,
+      },
+    );
+    const progressReporter = ProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    const result = await cancelledHandler.process(
+      { outputDir: "/tmp/output", environment: "preview" },
+      "job-cancelled",
+      progressReporter,
+    );
+
+    expect(result.cancelled).toBe(true);
+    expect(markCancelled).toHaveBeenCalledWith(
+      "preview",
+      "job-cancelled",
+      "[build-cancelled] Site build cancelled: superseded",
+    );
+    expect(
+      _sentMessages.some((message) => message.type === "site:build:completed"),
+    ).toBe(false);
   });
 });

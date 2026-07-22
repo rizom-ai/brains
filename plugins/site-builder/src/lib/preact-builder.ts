@@ -49,7 +49,9 @@ export class PreactBuilder implements StaticSiteBuilder {
   async build(
     context: BuildContext,
     onProgress: (notification: ProgressNotification) => void,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     const { preparedBuild } = context;
     const total = preparedBuild.routes.length + 4;
     let progress = 0;
@@ -63,32 +65,40 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Create output directory
     await fs.mkdir(this.outputDir, { recursive: true });
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
+    signal.throwIfAborted();
 
     // Build routes concurrently from the immutable prepared snapshot.
     const limit = pLimit(4);
-    await Promise.all(
+    const routeResults = await Promise.allSettled(
       preparedBuild.routes.map((route) =>
         limit(async () => {
+          signal.throwIfAborted();
           reportProgress(`Building route: ${route.path}`);
-          await this.buildRoute(route, context, preparedBuild);
+          await this.buildRoute(route, context, preparedBuild, signal);
         }),
       ),
     );
+    signal.throwIfAborted();
+    const rejectedRoute = routeResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (rejectedRoute) throw rejectedRoute.reason;
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     reportProgress("Processing Tailwind CSS");
-    await this.processStyles(preparedBuild.themeCSS ?? "");
+    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
 
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
-    await this.writePublicAssets(preparedBuild.publicAssets);
+    await this.writePublicAssets(preparedBuild.publicAssets, signal);
 
     // Write inline static assets: files declared by templates in use on the
     // built routes (e.g. the file behind a runtimeScripts src), merged with
     // assets supplied by the SitePackage (canvas scripts, fonts, etc.) —
     // keyed by output path, values are file contents as strings. On a path
     // collision the SitePackage wins.
-    await this.writeInlineStaticAssets(preparedBuild.staticAssets);
+    await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
+    signal.throwIfAborted();
 
     reportProgress("Preact build complete");
   }
@@ -122,7 +132,9 @@ export class PreactBuilder implements StaticSiteBuilder {
     route: PreparedRoute,
     context: BuildContext,
     preparedBuild: PreparedSiteBuild,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     this.logger.debug(`Building route: ${route.path}`);
 
     const sectionComponents = this.createSectionComponents(
@@ -181,6 +193,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       });
       layoutHtml = render(layoutWithProvider);
     }
+    signal.throwIfAborted();
 
     // Set default head props if no Head component was rendered
     if (!headCollector.getHeadProps()) {
@@ -222,7 +235,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       await fs.mkdir(dir, { recursive: true });
     }
 
-    await fs.writeFile(fullPath, html, "utf-8");
+    await fs.writeFile(fullPath, html, { encoding: "utf-8", signal });
   }
 
   private createSectionComponents(
@@ -263,7 +276,11 @@ export class PreactBuilder implements StaticSiteBuilder {
     return { imports, cssWithoutImports };
   }
 
-  private async processStyles(themeCSS: string): Promise<void> {
+  private async processStyles(
+    themeCSS: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    signal.throwIfAborted();
     this.logger.debug("Processing CSS styles");
 
     // baseCSS is imported at the top of the file as text (inlined in bundle)
@@ -289,17 +306,25 @@ export class PreactBuilder implements StaticSiteBuilder {
       this.workingDir,
       this.outputDir,
       this.logger,
+      signal,
     );
+    signal.throwIfAborted();
 
     // Read processed CSS and prepend font imports
-    const processedCSS = await fs.readFile(outputPath, "utf-8");
+    const processedCSS = await fs.readFile(outputPath, {
+      encoding: "utf-8",
+      signal,
+    });
 
     // Theme imports override base imports (if theme has fonts, use only those)
     const finalImports = themeImports.length > 0 ? themeImports : baseImports;
 
     if (finalImports.length > 0) {
       const finalCSS = finalImports.join("\n") + "\n\n" + processedCSS;
-      await fs.writeFile(outputPath, finalCSS, "utf-8");
+      await fs.writeFile(outputPath, finalCSS, {
+        encoding: "utf-8",
+        signal,
+      });
     }
 
     this.logger.debug("CSS processed successfully with font imports");
@@ -307,15 +332,20 @@ export class PreactBuilder implements StaticSiteBuilder {
 
   private async writePublicAssets(
     assets: Record<string, string>,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     const entries = Object.entries(assets);
     if (entries.length === 0) return;
 
     this.logger.debug(`Writing ${entries.length} snapshotted public asset(s)`);
     for (const [assetPath, contentBase64] of entries) {
+      signal.throwIfAborted();
       const destPath = resolveSafeOutputFile(this.outputDir, assetPath);
       await fs.mkdir(dirname(destPath), { recursive: true });
-      await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"));
+      await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"), {
+        signal,
+      });
       this.logger.debug(`Wrote public asset: ${assetPath}`);
     }
   }
@@ -333,7 +363,9 @@ export class PreactBuilder implements StaticSiteBuilder {
    */
   private async writeInlineStaticAssets(
     assets: Record<string, string> | undefined,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     if (!assets) return;
     const entries = Object.entries(assets);
     if (entries.length === 0) return;
@@ -342,14 +374,23 @@ export class PreactBuilder implements StaticSiteBuilder {
       `Writing ${entries.length} inline static asset(s) from SitePackage`,
     );
 
-    await Promise.all(
+    const writeResults = await Promise.allSettled(
       entries.map(async ([rawPath, content]) => {
+        signal.throwIfAborted();
         const destPath = resolveSafeOutputFile(this.outputDir, rawPath);
         await fs.mkdir(dirname(destPath), { recursive: true });
-        await fs.writeFile(destPath, content, "utf-8");
+        await fs.writeFile(destPath, content, {
+          encoding: "utf-8",
+          signal,
+        });
         this.logger.debug(`Wrote inline static asset: ${rawPath}`);
       }),
     );
+    signal.throwIfAborted();
+    const rejectedWrite = writeResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (rejectedWrite) throw rejectedWrite.reason;
   }
 }
 

@@ -48,6 +48,7 @@ describe("runStaticSiteBuild", () => {
       staticSiteBuilder,
       buildContext,
       reporter,
+      signal: new AbortController().signal,
     });
 
     expect(report).toHaveBeenCalledWith({

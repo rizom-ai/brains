@@ -28,6 +28,7 @@ export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
  */
 export interface SiteBuildJobResult {
   success: boolean;
+  cancelled?: boolean;
   routesBuilt: number;
   outputDir: string;
   environment: "preview" | "production";

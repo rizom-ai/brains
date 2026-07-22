@@ -24,6 +24,12 @@ const environmentSchema = z.object({
       message: z.string(),
     })
     .optional(),
+  lastCancellation: z
+    .object({
+      completedAt: z.string(),
+      message: z.string(),
+    })
+    .optional(),
 });
 
 const siteHealthWidgetDataSchema = z.object({
@@ -46,12 +52,14 @@ interface SiteHealthWidgetProps {
 
 function environmentState(environment: EnvironmentHealth): string {
   if (environment.active) return environment.active.state;
+  if (environment.lastCancellation) return "cancelled";
   if (environment.lastFailure) return "failed";
   if (environment.lastSuccess) return "current";
   return "not built";
 }
 
 function environmentDetail(environment: EnvironmentHealth): string {
+  if (environment.lastCancellation) return environment.lastCancellation.message;
   if (environment.lastFailure) return environment.lastFailure.message;
   if (environment.lastSuccess) {
     const warningLabel =

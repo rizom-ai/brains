@@ -60,6 +60,8 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
    * text imports.
    */
   staticAssets?: Record<string, string> | undefined;
+  /** Optional caller cancellation combined with the builder-owned signal. */
+  signal?: AbortSignal | undefined;
 }
 
 /**
@@ -68,6 +70,7 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
  */
 export type SiteBuildDiagnosticCode =
   | "build-failed"
+  | "build-cancelled"
   | "output-commit-failed"
   | "unsafe-route-path"
   | "missing-layout"
@@ -96,6 +99,7 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
   severity: z.enum(["warning", "error"]),
   code: z.enum([
     "build-failed",
+    "build-cancelled",
     "output-commit-failed",
     "unsafe-route-path",
     "missing-layout",
@@ -119,6 +123,7 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
  */
 export interface BuildResult {
   success: boolean;
+  cancelled?: boolean | undefined;
   outputDir: string;
   filesGenerated: number;
   routesBuilt: number;
@@ -129,6 +134,7 @@ export interface BuildResult {
 
 export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
   success: z.boolean(),
+  cancelled: z.boolean().optional(),
   outputDir: z.string(),
   filesGenerated: z.number(),
   routesBuilt: z.number(),
