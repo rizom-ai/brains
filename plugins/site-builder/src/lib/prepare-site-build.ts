@@ -218,6 +218,9 @@ async function prepareSection(
   options.signal.throwIfAborted();
   const template = options.getViewTemplate(section.template);
   const renderer = template?.renderers.web;
+  // Missing templates / renderers are already surfaced as structured
+  // diagnostics by the preflight pass, which runs before preparation. Skip the
+  // section here rather than double-reporting the same warning.
   if (!template || !renderer || typeof renderer !== "function") return {};
 
   let content: unknown;
