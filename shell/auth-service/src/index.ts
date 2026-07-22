@@ -68,6 +68,19 @@ export type {
   AuthServiceConfig,
   AuthServiceConfigInput,
 } from "./auth-service-plugin";
+export {
+  AuthIdentityStore,
+  hashIdentityKey,
+  normalizeIdentityKey,
+} from "./identity-store";
+export type {
+  AttachAuthIdentityInput,
+  AuthIdentityRecord,
+  AuthIdentitySourceKind,
+  AuthIdentityType,
+  AuthIdentityVisibility,
+  ResolveAuthIdentityInput,
+} from "./identity-store";
 export { AuthKeyStore } from "./key-store";
 export { PersonExternalPeerStore } from "./person-external-peer-store";
 export type {
@@ -142,28 +155,18 @@ export {
   clearAuthSessionCookies,
   RuntimeAuthSessionStore,
 } from "./session-store";
-export {
-  AuthUserStore,
-  hashIdentityKey,
-  normalizeIdentityKey,
-} from "./user-store";
+export { AuthUserStore } from "./user-store";
 export type {
   AuthSessionPersistence,
   AuthSessionRecord,
   CreateAuthSessionResult,
 } from "./session-store";
 export type {
-  AttachAuthIdentityInput,
-  AuthIdentityRecord,
-  AuthIdentitySourceKind,
-  AuthIdentityType,
-  AuthIdentityVisibility,
   AuthUserRole,
   AuthUserStatus,
   ConfigureBrainAnchorInput,
   CreateAuthPersonInput,
   CreateAuthUserInput,
-  ResolveAuthIdentityInput,
 } from "./user-store";
 export type {
   A2APrivateJwk,

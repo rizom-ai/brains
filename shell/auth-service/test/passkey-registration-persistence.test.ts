@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AuthAuditStore, AuthRuntimeDatabase, AuthUserStore } from "../src";
+import {
+  AuthAuditStore,
+  AuthIdentityStore,
+  AuthRuntimeDatabase,
+  AuthUserStore,
+} from "../src";
 import { RuntimePasskeyStore } from "../src/credential-store";
 
 const tempDirs: string[] = [];
@@ -44,7 +49,7 @@ describe("runtime passkey registration persistence", () => {
       });
 
       expect(
-        await users.resolveIdentity({
+        await new AuthIdentityStore(database.db).resolveIdentity({
           type: "passkey",
           subject: "new-credential",
         }),

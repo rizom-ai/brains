@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AuthIdentityStore } from "../src/identity-store";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import {
   authIdentityEvidence,
@@ -21,14 +22,23 @@ async function tempStorageDir(): Promise<string> {
 }
 
 async function withUserStore<T>(
-  callback: (store: AuthUserStore, database: AuthRuntimeDatabase) => Promise<T>,
+  callback: (
+    store: AuthUserStore,
+    database: AuthRuntimeDatabase,
+    identities: AuthIdentityStore,
+  ) => Promise<T>,
 ): Promise<T> {
   const database = new AuthRuntimeDatabase({
     storageDir: await tempStorageDir(),
   });
   await database.start();
   try {
-    return await callback(new AuthUserStore(database.db), database);
+    const identities = new AuthIdentityStore(database.db);
+    return await callback(
+      new AuthUserStore(database.db, identities),
+      database,
+      identities,
+    );
   } finally {
     await database.stop();
   }
@@ -139,13 +149,13 @@ describe("AuthUserStore", () => {
   });
 
   it("resolves verified active identity bindings without storing raw lookup subjects", async () => {
-    await withUserStore(async (store, database) => {
+    await withUserStore(async (store, database, identities) => {
       const user = await store.createUser({
         displayName: "Discord Collaborator",
         role: "trusted",
       });
 
-      const identity = await store.attachIdentity({
+      const identity = await identities.attachIdentity({
         userId: user.id,
         type: "discord",
         subject: "1442828818493735015",
@@ -155,7 +165,7 @@ describe("AuthUserStore", () => {
       expect(identity.personId).toBe(user.personId);
 
       expect(
-        await store.resolveIdentity({
+        await identities.resolveIdentity({
           type: "discord",
           subject: "1442828818493735015",
         }),
@@ -179,13 +189,13 @@ describe("AuthUserStore", () => {
   });
 
   it("atomically binds a confirmed setup delivery and activates its invited user", async () => {
-    await withUserStore(async (store, database) => {
+    await withUserStore(async (store, database, identities) => {
       const user = await store.createUser({
         displayName: "Invited Person",
         role: "trusted",
         status: "invited",
       });
-      const identity = await store.attachIdentity({
+      const identity = await identities.attachIdentity({
         userId: user.id,
         type: "email",
         subject: "invited@example.com",
@@ -221,12 +231,12 @@ describe("AuthUserStore", () => {
         boundIdentity: { id: identity.id, type: "email" },
       });
       expect(
-        await store.resolveIdentity({
+        await identities.resolveIdentity({
           type: "email",
           subject: "invited@example.com",
         }),
       ).toMatchObject({ id: user.id, status: "active" });
-      expect(await store.listIdentities(user.id)).toEqual([
+      expect(await identities.listIdentities(user.id)).toEqual([
         expect.objectContaining({
           id: identity.id,
           verifiedAt: expect.any(Number),
@@ -262,7 +272,7 @@ describe("AuthUserStore", () => {
   });
 
   it("refuses wrong-user and suspended setup delivery claims without consuming them", async () => {
-    await withUserStore(async (store, database) => {
+    await withUserStore(async (store, database, identities) => {
       const owner = await store.createUser({
         displayName: "Claim Owner",
         role: "trusted",
@@ -273,7 +283,7 @@ describe("AuthUserStore", () => {
         role: "trusted",
         status: "invited",
       });
-      const identity = await store.attachIdentity({
+      const identity = await identities.attachIdentity({
         userId: owner.id,
         type: "discord",
         subject: "123456789",
@@ -322,7 +332,9 @@ describe("AuthUserStore", () => {
         .select({ consumedAt: setupTokens.consumedAt })
         .from(setupTokens);
       expect(token?.consumedAt).toBeNull();
-      expect((await store.listIdentities(owner.id))[0]?.verifiedAt).toBeNull();
+      expect(
+        (await identities.listIdentities(owner.id))[0]?.verifiedAt,
+      ).toBeNull();
 
       const undeliveredTokenHash = setupTokenId("setup_undelivered");
       await database.db.insert(setupTokens).values({
@@ -349,9 +361,9 @@ describe("AuthUserStore", () => {
   });
 
   it("preserves agent assertion and provider verification as separate evidence", async () => {
-    await withUserStore(async (store) => {
+    await withUserStore(async (store, _database, identities) => {
       const user = await store.createUser({ displayName: "Claimed Person" });
-      const asserted = await store.attachIdentity({
+      const asserted = await identities.attachIdentity({
         userId: user.id,
         type: "discord",
         subject: "1442828818493735015",
@@ -374,13 +386,13 @@ describe("AuthUserStore", () => {
         }),
       ]);
       expect(
-        await store.resolveIdentityAccess({
+        await identities.resolveIdentityAccess({
           type: "discord",
           subject: "1442828818493735015",
         }),
       ).toEqual({ state: "denied" });
 
-      const verified = await store.attachIdentity({
+      const verified = await identities.attachIdentity({
         userId: user.id,
         type: "discord",
         subject: "1442828818493735015",
@@ -404,9 +416,9 @@ describe("AuthUserStore", () => {
           }),
         ]),
       );
-      expect(await store.listIdentities(user.id)).toHaveLength(1);
+      expect(await identities.listIdentities(user.id)).toHaveLength(1);
       expect(
-        await store.resolveIdentity({
+        await identities.resolveIdentity({
           type: "discord",
           subject: "1442828818493735015",
         }),
@@ -415,10 +427,10 @@ describe("AuthUserStore", () => {
   });
 
   it("blocks conflicting exact claims across people for reconciliation", async () => {
-    await withUserStore(async (store) => {
+    await withUserStore(async (store, _database, identities) => {
       const first = await store.createUser({ displayName: "First Person" });
       const second = await store.createUser({ displayName: "Second Person" });
-      await store.attachIdentity({
+      await identities.attachIdentity({
         userId: first.id,
         type: "discord",
         subject: "1442828818493735015",
@@ -427,7 +439,7 @@ describe("AuthUserStore", () => {
       });
 
       await expectRejectsWithMessage(
-        store.attachIdentity({
+        identities.attachIdentity({
           userId: second.id,
           type: "discord",
           subject: "1442828818493735015",
@@ -435,14 +447,14 @@ describe("AuthUserStore", () => {
         }),
         "Canonical identity claim belongs to another person; reconciliation required",
       );
-      expect(await store.listIdentities(second.id)).toHaveLength(0);
+      expect(await identities.listIdentities(second.id)).toHaveLength(0);
     });
   });
 
   it("does not treat agent-carried verification as authentication evidence", async () => {
-    await withUserStore(async (store) => {
+    await withUserStore(async (store, _database, identities) => {
       const user = await store.createUser({ displayName: "Asserted Person" });
-      const identity = await store.attachIdentity({
+      const identity = await identities.attachIdentity({
         userId: user.id,
         type: "email",
         subject: "asserted@example.com",
@@ -460,7 +472,7 @@ describe("AuthUserStore", () => {
         }),
       ]);
       expect(
-        await store.resolveIdentityAccess({
+        await identities.resolveIdentityAccess({
           type: "email",
           subject: "asserted@example.com",
         }),
@@ -469,10 +481,10 @@ describe("AuthUserStore", () => {
   });
 
   it("allows reattaching an identity after it is detached", async () => {
-    await withUserStore(async (store) => {
+    await withUserStore(async (store, _database, identities) => {
       const first = await store.createUser({ displayName: "First" });
       const second = await store.createUser({ displayName: "Second" });
-      const identity = await store.attachIdentity({
+      const identity = await identities.attachIdentity({
         userId: first.id,
         type: "email",
         subject: "ALEX@Example.COM",
@@ -481,8 +493,8 @@ describe("AuthUserStore", () => {
         deliverySubject: "alex@example.com",
       });
 
-      await store.detachIdentity(identity.id);
-      await store.attachIdentity({
+      await identities.detachIdentity(identity.id);
+      await identities.attachIdentity({
         userId: second.id,
         type: "email",
         subject: "alex@example.com",
@@ -492,7 +504,7 @@ describe("AuthUserStore", () => {
       });
 
       expect(
-        await store.resolveIdentity({
+        await identities.resolveIdentity({
           type: "email",
           subject: "alex@example.com",
         }),

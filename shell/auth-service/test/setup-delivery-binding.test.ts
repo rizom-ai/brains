@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AuthIdentityStore } from "../src/identity-store";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { setupTokens } from "../src/runtime-schema";
 import { RuntimeSetupStateStore, setupTokenId } from "../src/setup-state-store";
@@ -34,7 +35,7 @@ describe("targeted setup delivery binding", () => {
         role: "trusted",
         status: "invited",
       });
-      const identity = await users.attachIdentity({
+      const identity = await new AuthIdentityStore(database.db).attachIdentity({
         userId: user.id,
         type: "email",
         subject: "mira@example.com",

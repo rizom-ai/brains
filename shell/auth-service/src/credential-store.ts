@@ -3,7 +3,7 @@ import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { passkeyCredentials, webauthnChallenges } from "./runtime-schema";
-import { AuthUserStore } from "./user-store";
+import { AuthIdentityStore } from "./identity-store";
 import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
@@ -107,7 +107,7 @@ export class RuntimePasskeyStore {
       createdAt: timestampToMilliseconds(credential.created_at),
       updatedAt: timestampToMilliseconds(credential.updated_at),
     });
-    await new AuthUserStore(this.database.db).ensureIdentity({
+    await new AuthIdentityStore(this.database.db).ensureIdentity({
       userId: credential.subject,
       type: "passkey",
       subject: credential.id,

@@ -21,11 +21,8 @@ import {
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
 } from "./admin-contracts";
-import type {
-  AuthIdentityType,
-  AuthUserRole,
-  AuthUserStatus,
-} from "./user-store";
+import type { AuthIdentityType } from "./identity-store";
+import type { AuthUserRole, AuthUserStatus } from "./user-store";
 
 export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AuthAdminPrincipal | undefined>;

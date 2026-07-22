@@ -18,6 +18,14 @@ import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
 import { RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
+import {
+  AuthIdentityStore,
+  hashIdentityKey,
+  normalizeIdentityKey,
+  type AttachAuthIdentityInput,
+  type AuthIdentityRecord,
+  type ResolveAuthIdentityInput,
+} from "./identity-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
   PasskeyService,
@@ -42,14 +50,9 @@ import type {
 } from "./runtime-schema";
 import {
   AuthUserStore,
-  type AttachAuthIdentityInput,
-  type AuthIdentityRecord,
   type AuthUserRole,
   type AuthUserStatus,
-  hashIdentityKey,
-  normalizeIdentityKey,
   type CreateAuthUserInput,
-  type ResolveAuthIdentityInput,
 } from "./user-store";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
 import { RuntimeSetupStateStore, setupTokenId } from "./setup-state-store";
@@ -194,6 +197,7 @@ export class AuthService {
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
+  private identityStore: AuthIdentityStore | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
@@ -359,6 +363,7 @@ export class AuthService {
   private async closeInternal(): Promise<void> {
     await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
+    this.identityStore = undefined;
     this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
@@ -373,7 +378,11 @@ export class AuthService {
       return;
     }
     await this.runtimeDatabase.start();
-    this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.identityStore = new AuthIdentityStore(this.runtimeDatabase.db);
+    this.userStore = new AuthUserStore(
+      this.runtimeDatabase.db,
+      this.identityStore,
+    );
     this.interfacePrincipalStore = new InterfacePrincipalStore(
       this.runtimeDatabase.db,
     );
@@ -389,6 +398,13 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.userStore;
+  }
+
+  private getIdentityStore(): AuthIdentityStore {
+    if (!this.identityStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.identityStore;
   }
 
   private getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -521,7 +537,7 @@ export class AuthService {
     }
 
     await this.getCredentialStore().revokePasskey(credentialId);
-    await this.getUserStore().detachIdentityBySubject({
+    await this.getIdentityStore().detachIdentityBySubject({
       userId: credential.userId,
       type: "passkey",
       subject: credentialId,
@@ -737,7 +753,7 @@ export class AuthService {
       await Promise.all([
         this.getUserStore().listUsers(),
         this.getUserStore().listPeople(),
-        this.getUserStore().listAllIdentities(),
+        this.getIdentityStore().listAllIdentities(),
         this.getCredentialStore().listPasskeys(),
         this.getPersonExternalPeerStore().listAll(),
         this.getUserStore().getBrainAnchor(),
@@ -776,7 +792,7 @@ export class AuthService {
   ): Promise<AuthIdentityReconciliationResponse> {
     await this.ensureUserStoreStarted();
     const [identities, users] = await Promise.all([
-      this.getUserStore().listAllIdentities(),
+      this.getIdentityStore().listAllIdentities(),
       this.getUserStore().listUsers(),
     ]);
     const activeIdentityByHash = new Map(
@@ -862,8 +878,8 @@ export class AuthService {
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
     await this.ensureUserStoreStarted();
-    return (await this.getUserStore().listIdentities(userId)).map((identity) =>
-      identitySummary(identity, userId),
+    return (await this.getIdentityStore().listIdentities(userId)).map(
+      (identity) => identitySummary(identity, userId),
     );
   }
 
@@ -948,7 +964,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
-    const identity = await this.getUserStore().attachIdentity({
+    const identity = await this.getIdentityStore().attachIdentity({
       ...input,
       ...(input.source
         ? {}
@@ -974,7 +990,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
-    const identity = await this.getUserStore().detachIdentity(identityId);
+    const identity = await this.getIdentityStore().detachIdentity(identityId);
     const user = await this.getUserStore().getUserByPersonId(identity.personId);
     if (user) await this.revokeUserSessionsAndRefreshTokens(user.id);
     await this.getAuditStore().append({
@@ -1012,7 +1028,7 @@ export class AuthService {
       : "";
     if (!/^[a-f0-9]{64}$/.test(identityKeyHash)) return undefined;
     const result =
-      await this.getUserStore().resolveIdentityHashAccess(identityKeyHash);
+      await this.getIdentityStore().resolveIdentityHashAccess(identityKeyHash);
     return result.state === "resolved"
       ? this.principalFromUser(result.user)
       : undefined;
@@ -1036,7 +1052,7 @@ export class AuthService {
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {
     await this.ensureUserStoreStarted();
-    const result = await this.getUserStore().resolveIdentityAccess(input);
+    const result = await this.getIdentityStore().resolveIdentityAccess(input);
     return result.state === "resolved"
       ? {
           state: "resolved",
@@ -1176,7 +1192,7 @@ export class AuthService {
     AuthIdentityRecord & { type: "email" | "discord"; deliverySubject: string }
   > {
     const identities = (
-      await this.getUserStore().listIdentities(userId)
+      await this.getIdentityStore().listIdentities(userId)
     ).filter(
       (
         identity,
@@ -1214,7 +1230,7 @@ export class AuthService {
     const subject = delivery.subject.trim();
     const normalizedSubject =
       delivery.type === "email" ? subject.toLowerCase() : subject;
-    const { identity } = await this.getUserStore().ensureIdentity({
+    const { identity } = await this.getIdentityStore().ensureIdentity({
       userId,
       type: delivery.type,
       subject: normalizedSubject,
