@@ -46,13 +46,15 @@ export type {
   ConsumeAuthorizationCodeInput,
   CreateAuthorizationCodeInput,
 } from "./auth-code-store";
+export type {
+  InvitedExternalPeerAccess,
+  InviteExternalPeerPersonRequest,
+  LinkExternalPeerRequest,
+} from "./administration-service";
 export { AuthService } from "./auth-service";
 export type {
   A2ASigningKey,
   AuthServiceOptions,
-  InvitedExternalPeerAccess,
-  InviteExternalPeerPersonRequest,
-  LinkExternalPeerRequest,
   PasskeySetupRequired,
 } from "./auth-service";
 export {

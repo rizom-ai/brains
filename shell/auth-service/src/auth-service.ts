@@ -3,6 +3,12 @@ import type {
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
+import {
+  AuthAdministrationService,
+  type InvitedExternalPeerAccess,
+  type InviteExternalPeerPersonRequest,
+  type LinkExternalPeerRequest,
+} from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
@@ -17,7 +23,7 @@ import type {
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
 import { RuntimeOAuthClientStore } from "./client-store";
-import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
+import { AuthCredentialStore } from "./credential-store";
 import {
   AuthIdentityStore,
   type AttachAuthIdentityInput,
@@ -26,7 +32,7 @@ import {
 } from "./identity-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
-import { auditActor, type AuthMutationContext } from "./mutation-context";
+import type { AuthMutationContext } from "./mutation-context";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
@@ -47,11 +53,7 @@ import {
   type GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
-import type {
-  AuthBrainAnchor,
-  AuthUser,
-  PersonExternalPeer,
-} from "./runtime-schema";
+import type { AuthUser, PersonExternalPeer } from "./runtime-schema";
 import {
   AuthUserStore,
   type AuthUserRole,
@@ -74,7 +76,6 @@ import {
 } from "./issuer";
 import {
   AuthPrincipalService,
-  principalFromUser,
   type AuthBearerGrant,
   type AuthIdentityAccessResolution,
   type AuthPrincipal,
@@ -110,24 +111,6 @@ import type {
 export type { PasskeySetupRequired } from "./setup-flow";
 
 const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
-
-export interface InviteExternalPeerPersonRequest {
-  peerId: string;
-  displayName: string;
-  role: "admin" | "trusted";
-  delivery: AuthSetupDeliveryInput;
-}
-
-export interface LinkExternalPeerRequest {
-  peerId: string;
-  userId: string;
-}
-
-export interface InvitedExternalPeerAccess {
-  user: AuthPrincipal;
-  peer: PersonExternalPeer;
-  registration: UserPasskeyRegistration;
-}
 
 export interface A2ASigningKey {
   privateJwk: A2APrivateJwk;
@@ -174,6 +157,7 @@ export class AuthService {
   private passkeySetupCoordinator: PasskeySetupCoordinator | undefined;
   private userManagementService: AuthUserManagementService | undefined;
   private principalService: AuthPrincipalService | undefined;
+  private administrationService: AuthAdministrationService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
@@ -348,6 +332,7 @@ export class AuthService {
     this.passkeySetupCoordinator = undefined;
     this.userManagementService = undefined;
     this.principalService = undefined;
+    this.administrationService = undefined;
     this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
@@ -405,6 +390,28 @@ export class AuthService {
       getJwks: (): Promise<JwksResponse> => this.getJwks(),
     });
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
+    this.administrationService = new AuthAdministrationService({
+      configuredAnchorKind: this.anchor,
+      ...(this.resolveProfileDisplayName
+        ? { resolveProfileDisplayName: this.resolveProfileDisplayName }
+        : {}),
+      users: this.userStore,
+      identities: this.identityStore,
+      credentials: this.credentialStore,
+      externalPeers: this.personExternalPeerStore,
+      audit: this.auditStore,
+      management: this.getUserManagementService(),
+      startPasskeyRegistration: (
+        userId,
+        context,
+        delivery,
+      ): Promise<UserPasskeyRegistration> =>
+        this.getPasskeySetupCoordinator().startRegistration(
+          userId,
+          context,
+          delivery,
+        ),
+    });
   }
 
   private getUserStore(): AuthUserStore {
@@ -412,13 +419,6 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.userStore;
-  }
-
-  private getIdentityStore(): AuthIdentityStore {
-    if (!this.identityStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.identityStore;
   }
 
   private getIdentityReconciliationService(): IdentityReconciliationService {
@@ -449,6 +449,13 @@ export class AuthService {
     return this.principalService;
   }
 
+  private getAdministrationService(): AuthAdministrationService {
+    if (!this.administrationService) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.administrationService;
+  }
+
   private getInterfacePrincipalStore(): InterfacePrincipalStore {
     if (!this.interfacePrincipalStore) {
       throw new Error("Auth service has not been initialized");
@@ -456,25 +463,11 @@ export class AuthService {
     return this.interfacePrincipalStore;
   }
 
-  private getPersonExternalPeerStore(): PersonExternalPeerStore {
-    if (!this.personExternalPeerStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.personExternalPeerStore;
-  }
-
   private getAuditStore(): AuthAuditStore {
     if (!this.auditStore) {
       throw new Error("Auth service has not been initialized");
     }
     return this.auditStore;
-  }
-
-  private getCredentialStore(): AuthCredentialStore {
-    if (!this.credentialStore) {
-      throw new Error("Auth service has not been initialized");
-    }
-    return this.credentialStore;
   }
 
   async initializeConfiguredInterfacePrincipals(
@@ -560,10 +553,6 @@ export class AuthService {
     }
   }
 
-  private async principalFromUser(user: AuthUser): Promise<AuthPrincipal> {
-    return this.getPrincipalService().principalFromUser(user);
-  }
-
   async hasPasskeyCredentials(): Promise<boolean> {
     return this.passkeyService.hasCredentials();
   }
@@ -573,25 +562,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<void> {
     await this.ensureUserStoreStarted();
-    const credential = await this.getCredentialStore().getPasskey(credentialId);
-    if (!credential) {
-      throw new Error(`Passkey credential not found: ${credentialId}`);
-    }
-
-    await this.getCredentialStore().revokePasskey(credentialId);
-    await this.getIdentityStore().detachIdentityBySubject({
-      userId: credential.userId,
-      type: "passkey",
-      subject: credentialId,
-    });
-    await this.revokeUserSessionsAndRefreshTokens(credential.userId);
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.passkey.revoked",
-      targetType: "passkey",
-      targetId: credentialId,
-      metadata: { userId: credential.userId },
-    });
+    await this.getAdministrationService().revokePasskey(credentialId, context);
   }
 
   async getJwks(): Promise<JwksResponse> {
@@ -693,11 +664,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const user = await this.getUserManagementService().createUser(
-      input,
-      context,
-    );
-    return this.principalFromUser(user);
+    return this.getAdministrationService().createUser(input, context);
   }
 
   async inviteExternalPeerPerson(
@@ -705,34 +672,10 @@ export class AuthService {
     context: AuthMutationContext,
   ): Promise<InvitedExternalPeerAccess> {
     await this.ensureUserStoreStarted();
-    if (!context.actorUserId) {
-      throw new Error("Authenticated actor is required for peer invitation");
-    }
-    const invited = await this.getPersonExternalPeerStore().invitePeerPerson({
-      ...input,
-      createdByUserId: context.actorUserId,
-    });
-    const registration = await this.startPasskeyRegistrationForUser(
-      invited.user.id,
+    return this.getAdministrationService().inviteExternalPeerPerson(
+      input,
       context,
-      input.delivery,
     );
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.external_peer.invited",
-      targetType: "external_peer",
-      targetId: invited.peer.peerId,
-      metadata: {
-        personId: invited.person.id,
-        userId: invited.user.id,
-        role: invited.user.role,
-      },
-    });
-    return {
-      user: await this.principalFromUser(invited.user),
-      peer: invited.peer,
-      registration,
-    };
   }
 
   async linkExternalPeer(
@@ -740,89 +683,22 @@ export class AuthService {
     context: AuthMutationContext,
   ): Promise<PersonExternalPeer> {
     await this.ensureUserStoreStarted();
-    if (!context.actorUserId) {
-      throw new Error("Authenticated actor is required for peer linking");
-    }
-    const user = await this.getUserStore().getUser(input.userId);
-    if (!user) throw new Error(`Auth user not found: ${input.userId}`);
-
-    const peer = await this.getPersonExternalPeerStore().linkPeer({
-      peerId: input.peerId,
-      personId: user.personId,
-      createdByUserId: context.actorUserId,
-    });
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.external_peer.linked",
-      targetType: "external_peer",
-      targetId: peer.peerId,
-      metadata: { personId: peer.personId, userId: user.id },
-    });
-    return peer;
+    return this.getAdministrationService().linkExternalPeer(input, context);
   }
 
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
     await this.ensureUserStoreStarted();
-    const [anchor, users] = await Promise.all([
-      this.getUserStore().getBrainAnchor(),
-      this.getUserStore().listUsers(),
-    ]);
-    if (!anchor) throw new Error("Brain anchor is not configured");
-    return brainAnchorSummary(
-      anchor,
-      users,
-      this.anchor,
-      await this.profileDisplayName(anchor.profileEntityId),
-    );
+    return this.getAdministrationService().getBrainAnchor();
   }
 
   async listUsers(): Promise<AuthPrincipal[]> {
     await this.ensureUserStoreStarted();
-    const [users, anchor] = await Promise.all([
-      this.getUserStore().listUsers(),
-      this.getUserStore().getBrainAnchor(),
-    ]);
-    return users.map((user) => principalFromUser(user, anchor));
+    return this.getAdministrationService().listUsers();
   }
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
     await this.ensureUserStoreStarted();
-    const [users, people, identities, passkeys, externalPeers, anchor] =
-      await Promise.all([
-        this.getUserStore().listUsers(),
-        this.getUserStore().listPeople(),
-        this.getIdentityStore().listAllIdentities(),
-        this.getCredentialStore().listPasskeys(),
-        this.getPersonExternalPeerStore().listAll(),
-        this.getUserStore().getBrainAnchor(),
-      ]);
-    const peopleById = new Map(people.map((person) => [person.id, person]));
-    const identitiesByPersonId = groupBy(identities, (item) => item.personId);
-    const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
-    const externalPeersByPersonId = groupBy(
-      externalPeers,
-      (item) => item.personId,
-    );
-
-    return Promise.all(
-      users.map(async (user) => {
-        const profileEntityId = peopleById.get(user.personId)?.profileEntityId;
-        const principal = principalFromUser(user, anchor);
-        const profileDisplayName = profileEntityId
-          ? await this.profileDisplayName(profileEntityId)
-          : undefined;
-        return {
-          ...principal,
-          displayName: profileDisplayName ?? principal.displayName,
-          ...(profileEntityId ? { profileEntityId } : {}),
-          identities: (identitiesByPersonId.get(user.personId) ?? []).map(
-            (identity) => identitySummary(identity, user.id),
-          ),
-          passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
-          externalPeers: externalPeersByPersonId.get(user.personId) ?? [],
-        };
-      }),
-    );
+    return this.getAdministrationService().listAdminUsers();
   }
 
   async reconcileIdentityProposals(
@@ -836,21 +712,17 @@ export class AuthService {
     personId: string,
   ): Promise<PersonExternalPeer[]> {
     await this.ensureUserStoreStarted();
-    return this.getPersonExternalPeerStore().listByPersonId(personId);
+    return this.getAdministrationService().listPersonExternalPeers(personId);
   }
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
     await this.ensureUserStoreStarted();
-    return (await this.getIdentityStore().listIdentities(userId)).map(
-      (identity) => identitySummary(identity, userId),
-    );
+    return this.getAdministrationService().listUserIdentities(userId);
   }
 
   async listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]> {
     await this.ensureUserStoreStarted();
-    return (await this.getCredentialStore().listPasskeys(userId)).map(
-      passkeySummary,
-    );
+    return this.getAdministrationService().listUserPasskeys(userId);
   }
 
   async updateUserRole(
@@ -859,12 +731,11 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const updated = await this.getUserManagementService().updateRole(
+    return this.getAdministrationService().updateUserRole(
       userId,
       role,
       context,
     );
-    return this.principalFromUser(updated);
   }
 
   async updateUserStatus(
@@ -873,12 +744,11 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const updated = await this.getUserManagementService().updateStatus(
+    return this.getAdministrationService().updateUserStatus(
       userId,
       status,
       context,
     );
-    return this.principalFromUser(updated);
   }
 
   suspendUser(
@@ -893,7 +763,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<{ sessions: number; refreshTokens: number }> {
     await this.ensureUserStoreStarted();
-    return this.getUserManagementService().revokeGrants(userId, context);
+    return this.getAdministrationService().revokeUserGrants(userId, context);
   }
 
   async attachIdentity(
@@ -901,25 +771,7 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
-    const identity = await this.getIdentityStore().attachIdentity({
-      ...input,
-      ...(input.source
-        ? {}
-        : {
-            source: {
-              kind: "admin" as const,
-              ...(context.actorUserId ? { id: context.actorUserId } : {}),
-            },
-          }),
-    });
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.identity.attached",
-      targetType: "identity",
-      targetId: identity.id,
-      metadata: { type: identity.type, userId: input.userId },
-    });
-    return identity;
+    return this.getAdministrationService().attachIdentity(input, context);
   }
 
   async detachIdentity(
@@ -927,25 +779,12 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
     await this.ensureUserStoreStarted();
-    const identity = await this.getIdentityStore().detachIdentity(identityId);
-    const user = await this.getUserStore().getUserByPersonId(identity.personId);
-    if (user) await this.revokeUserSessionsAndRefreshTokens(user.id);
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.identity.detached",
-      targetType: "identity",
-      targetId: identity.id,
-      metadata: {
-        type: identity.type,
-        ...(user ? { userId: user.id } : {}),
-      },
-    });
-    return identity;
+    return this.getAdministrationService().detachIdentity(identityId, context);
   }
 
   async listAuditEvents(): Promise<AuthAuditEvent[]> {
     await this.ensureUserStoreStarted();
-    return this.getAuditStore().list();
+    return this.getAdministrationService().listAuditEvents();
   }
 
   async resolveActorPrincipal(
@@ -1269,41 +1108,6 @@ export class AuthService {
   }
 }
 
-function groupBy<T>(
-  values: T[],
-  keyFor: (value: T) => string,
-): Map<string, T[]> {
-  const grouped = new Map<string, T[]>();
-  for (const value of values) {
-    const key = keyFor(value);
-    const group = grouped.get(key) ?? [];
-    group.push(value);
-    grouped.set(key, group);
-  }
-  return grouped;
-}
-
-function brainAnchorSummary(
-  anchor: AuthBrainAnchor,
-  users: AuthUser[],
-  configuredKind: AuthBrainAnchorConfigKind,
-  profileDisplayName?: string,
-): AuthBrainAnchorSummary {
-  return {
-    kind: anchor.kind,
-    configuredKind,
-    subjectId: anchor.subjectId,
-    displayName: profileDisplayName ?? anchor.displayName,
-    ...(anchor.kind === "person" ? { personId: anchor.subjectId } : {}),
-    ...(anchor.profileEntityId
-      ? { profileEntityId: anchor.profileEntityId }
-      : {}),
-    administeredBy: users.filter(
-      (user) => user.role === "admin" && user.status === "active",
-    ).length,
-  };
-}
-
 function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
@@ -1327,19 +1131,5 @@ function identitySummary(
       : {}),
     ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
     createdAt: identity.createdAt,
-  };
-}
-
-function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
-  return {
-    id: passkey.id,
-    userId: passkey.userId,
-    ...(passkey.transports ? { transports: passkey.transports } : {}),
-    ...(passkey.credentialDeviceType
-      ? { credentialDeviceType: passkey.credentialDeviceType }
-      : {}),
-    credentialBackedUp: passkey.credentialBackedUp,
-    createdAt: passkey.createdAt,
-    updatedAt: passkey.updatedAt,
   };
 }
