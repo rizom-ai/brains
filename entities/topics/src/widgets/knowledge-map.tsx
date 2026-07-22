@@ -14,9 +14,9 @@ export { knowledgeMapStyles };
 /**
  * The knowledge map renderer: the corpus as a centerless sky. Topics are
  * soft-bounded blob territories (mist + dashed border + floating label),
- * published work glows, skills are moss, notes are pearls, operational
- * entities are ground spores. Deterministic by construction — static site
- * builds must not churn.
+ * published work glows, supporting sources are quiet context marks, and
+ * low-signal entities become faint ground. Deterministic by construction —
+ * static site builds must not churn.
  */
 
 const WIDTH = 1100;
@@ -450,28 +450,16 @@ function PointShape({
       </g>
     );
   }
-  if (point.kind === "skill") {
+  if (point.kind === "skill" || point.kind === "pearl") {
     return (
       <circle
-        class="kmap-dot kmap-point--skill"
+        class="kmap-dot kmap-point--source"
         cx={x}
         cy={y}
-        r={3.4}
-        fill="var(--kmap-skill)"
-        style={`--d:${delay}s`}
-      />
-    );
-  }
-  if (point.kind === "pearl") {
-    return (
-      <circle
-        class="kmap-dot kmap-point--pearl"
-        cx={x}
-        cy={y}
-        r={2.8}
+        r={2.9}
         fill="none"
         stroke="var(--kmap-ink-dim)"
-        stroke-width={1.3}
+        stroke-width={1.2}
         style={`--d:${delay}s`}
       />
     );
@@ -490,16 +478,14 @@ function PointShape({
 
 function KnowledgeMapLegend(): JSX.Element {
   const items = [
-    { label: "topic zones", kind: "zone" },
+    { label: "topics", kind: "zone" },
+    { label: "sources", kind: "source" },
     { label: "published", kind: "published" },
-    { label: "skills", kind: "skill" },
-    { label: "references", kind: "pearl" },
-    { label: "operational", kind: "ground" },
   ] as const;
   return (
     <g class="kmap-legend" aria-hidden="true">
       {items.map((item, index) => {
-        const x = 560 + index * 82;
+        const x = 720 + index * 95;
         const y = HEIGHT - 23;
         return (
           <g key={item.label} transform={`translate(${x} ${y})`}>
@@ -515,19 +501,15 @@ function KnowledgeMapLegend(): JSX.Element {
               />
             ) : item.kind === "published" ? (
               <circle cx={0} cy={0} r={4} fill="var(--kmap-glow)" />
-            ) : item.kind === "skill" ? (
-              <circle cx={0} cy={0} r={3.4} fill="var(--kmap-skill)" />
-            ) : item.kind === "pearl" ? (
+            ) : (
               <circle
                 cx={0}
                 cy={0}
-                r={3.5}
+                r={3.3}
                 fill="none"
                 stroke="var(--kmap-ink-dim)"
                 stroke-width={1.1}
               />
-            ) : (
-              <circle cx={0} cy={0} r={2.2} fill="var(--kmap-ink-faint)" />
             )}
             <text x={9} y={3.5} class="kmap-label kmap-label--legend">
               {item.label}
@@ -554,7 +536,7 @@ export function KnowledgeMap({
     .filter((layout) => layout.label)
     .map((layout) => layout.zone.name)
     .slice(0, 4);
-  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, and operational entities are ground spores.`;
+  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows; other source material appears as quiet context marks.`;
   const groundPoints = data.points.filter((point) => point.kind === "ground");
   const evidencePoints = data.points.filter((point) => point.kind !== "ground");
   return (

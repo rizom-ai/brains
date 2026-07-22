@@ -6,9 +6,9 @@ import {
 import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
 
 /* The data builder projects the whole
-   corpus (centerless 2D), turns topics into zones, files each entity into its
-   nearest zone in the projected plane (so zones visually contain their
-   members), and flags what lands outside every border as unfiled. */
+   corpus (centerless 2D), turns topics into zones, and files each entity into
+   its nearest zone in the projected plane (so zones visually contain their
+   members). */
 
 function makeContext(): KnowledgeMapDataContext {
   const points = [
@@ -85,7 +85,7 @@ function makeContext(): KnowledgeMapDataContext {
 }
 
 describe("buildKnowledgeMapData", () => {
-  test("projects the corpus into zones, filed points, and unfiled lights", async () => {
+  test("projects the corpus into zones and source points", async () => {
     const data = await buildKnowledgeMapData(makeContext());
 
     // schema round-trip: the template/datasource contract holds
@@ -106,7 +106,7 @@ describe("buildKnowledgeMapData", () => {
     expect(fow?.memberIds).toEqual(["play-essay"]);
     expect(workshops?.memberIds).toEqual(["team-assessment"]);
 
-    // the far deck is filed nowhere — unfiled, and visibly so
+    // the far deck is filed nowhere, but remains an ordinary source point
     const deck = data.points.find((point) => point.id === "cococo");
     expect(deck?.zoneId).toBeNull();
 

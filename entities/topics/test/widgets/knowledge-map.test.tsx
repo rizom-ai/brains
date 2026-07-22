@@ -5,9 +5,9 @@ import { KnowledgeMap } from "../../src/widgets/knowledge-map";
 import type { KnowledgeMapData } from "../../src/lib/knowledge-map-data";
 
 /* The shared knowledge-map renderer. Topics are soft-bounded blob zones
-   (mist + dashed border + floating label), points are kind-styled (published
-   glows, skills are moss, ground is spores), and the whole render is
-   deterministic so static builds stay stable. */
+   (mist + dashed border + floating label), published points glow, source
+   points stay quiet, and the whole render is deterministic so static builds
+   stay stable. */
 
 const data: KnowledgeMapData = {
   zones: [
@@ -90,10 +90,11 @@ describe("KnowledgeMap", () => {
     expect(html).not.toContain("The Future of Work is Play");
     expect(html).not.toContain("CoCoCo");
 
-    // kinds map to their classes
-    expect(html).toContain("kmap-point--skill");
-    expect(html).toContain("kmap-point--pearl");
+    // public visual classes avoid leaking internal entity taxonomy.
+    expect(html).toContain("kmap-point--source");
     expect(html).toContain("kmap-point--ground");
+    expect(html).not.toContain("kmap-point--skill");
+    expect(html).not.toContain("kmap-point--pearl");
 
     // colors ride surface-mapped custom properties, never literals
     expect(html).toContain("var(--kmap-");
@@ -237,9 +238,12 @@ describe("KnowledgeMap", () => {
     );
     expect(html).toContain("Knowledge map");
     expect(html).toContain("7 entities and 2 topics");
-    expect(html).toContain("topic zones");
+    expect(html).toContain("topics");
+    expect(html).toContain("sources");
     expect(html).toContain("published");
-    expect(html).toContain("references");
+    expect(html).not.toContain("skills");
+    expect(html).not.toContain("references");
+    expect(html).not.toContain("operational");
     expect(html).not.toContain("unfiled");
   });
 
