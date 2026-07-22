@@ -10,6 +10,20 @@ import {
   type AtprotoPdsClientLike,
 } from "../src";
 
+async function settleTicks(count = 20): Promise<void> {
+  for (let i = 0; i < count; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
+async function untilTrue(condition: () => boolean): Promise<void> {
+  for (let i = 0; i < 200; i += 1) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  throw new Error("condition not reached");
+}
+
 function createEntity(
   input: {
     entityType?: string;
@@ -382,6 +396,111 @@ describe("AT Protocol ambient publishing triggers", () => {
     expect(client.createSession).not.toHaveBeenCalled();
     expect(client.putRecord).not.toHaveBeenCalled();
     expect(client.deleteRecord).not.toHaveBeenCalled();
+  });
+
+  it("serializes same-entity writes so a delete cannot lose to an in-flight upsert", async () => {
+    const calls: string[] = [];
+    let releaseUpsert = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseUpsert = resolve;
+    });
+    const createSession = mock(async () => ({
+      did: "did:plc:repo",
+      handle: "brain.example.com",
+      accessJwt: "access-token",
+      refreshJwt: "refresh-token",
+    }));
+    const putRecord = mock(async () => {
+      calls.push("put:start");
+      await gate;
+      calls.push("put:end");
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    });
+    const deleteRecord = mock(async () => {
+      calls.push("delete");
+    });
+    const client: AtprotoPdsClientLike = {
+      createSession,
+      createRecord: mock(async () => ({
+        uri: "at://did:plc:repo/record",
+        cid: "cid",
+      })),
+      putRecord,
+      deleteRecord,
+    };
+    const plugin = createConfiguredPlugin(createRegistry(), client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity();
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "publish:completed",
+      payload: { entityType: "note", entityId: "note-123" },
+      sender: "publish-service",
+      broadcast: true,
+    });
+    await untilTrue(() => calls.includes("put:start"));
+
+    await shell.getMessageBus().send({
+      type: "entity:deleted",
+      payload: { entityType: "note", entityId: "note-123", entity },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await settleTicks();
+    expect(calls).toEqual(["put:start"]);
+
+    releaseUpsert();
+    await plugin.shutdown?.();
+
+    expect(calls).toEqual(["put:start", "put:end", "delete"]);
+    expect(deleteRecord).toHaveBeenCalledTimes(1);
+  });
+
+  it("still publishes distinct entities concurrently", async () => {
+    let releaseUpserts = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseUpserts = resolve;
+    });
+    const putRecord = mock(async () => {
+      await gate;
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    });
+    const client: AtprotoPdsClientLike = {
+      createSession: mock(async () => ({
+        did: "did:plc:repo",
+        handle: "brain.example.com",
+        accessJwt: "access-token",
+        refreshJwt: "refresh-token",
+      })),
+      createRecord: mock(async () => ({
+        uri: "at://did:plc:repo/record",
+        cid: "cid",
+      })),
+      putRecord,
+      deleteRecord: mock(async () => {}),
+    };
+    const plugin = createConfiguredPlugin(createRegistry(), client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    shell.addEntities([createEntity(), { ...createEntity(), id: "note-456" }]);
+    await plugin.register(shell);
+
+    for (const entityId of ["note-123", "note-456"]) {
+      await shell.getMessageBus().send({
+        type: "publish:completed",
+        payload: { entityType: "note", entityId },
+        sender: "publish-service",
+        broadcast: true,
+      });
+    }
+    // Both upserts must be in flight while the gate is closed: per-entity
+    // serialization must not degrade into one global write queue.
+    await untilTrue(() => putRecord.mock.calls.length === 2);
+
+    releaseUpserts();
+    await plugin.shutdown?.();
+    expect(putRecord).toHaveBeenCalledTimes(2);
   });
 
   it("reports PDS failures without failing the source publish event", async () => {
