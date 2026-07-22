@@ -12,7 +12,11 @@ import { z } from "@brains/utils/zod";
 import { h, type VNode } from "preact";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
-import { createSiteBuilderServices, TestLayout } from "../test-helpers";
+import {
+  createSiteBuilderServices,
+  createTestSiteBuildOutputLifecycle,
+  TestLayout,
+} from "../test-helpers";
 
 const outputDir = "/tmp/site-build-preflight-output";
 
@@ -55,6 +59,7 @@ function run(
     progress: undefined,
     pipelineContext,
     staticSiteBuilderFactory,
+    outputLifecycle: createTestSiteBuildOutputLifecycle(),
   });
 }
 
@@ -177,11 +182,15 @@ describe("runSiteBuild preflight", () => {
             return resolutionOptions?.fallback as never;
           },
         );
+        pipelineContext.services.sendMessage = mock(async (request) => {
+          if (request.type === "site:build:staging") events.push("staging");
+          return { success: true };
+        });
       },
     );
 
     expect(result.success).toBe(true);
-    expect(events).toEqual(["resolve", "clean", "build"]);
+    expect(events).toEqual(["resolve", "clean", "staging", "build"]);
   });
 
   it("does not create or clean the renderer when content preparation fails", async () => {

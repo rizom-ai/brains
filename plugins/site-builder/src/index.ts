@@ -10,4 +10,7 @@ export type {
 export { createPreactBuilder } from "./lib/preact-builder";
 
 // Export event payload types for plugins that subscribe to build events
-export type { SiteBuildCompletedPayload } from "./types/job-types";
+export type {
+  SiteBuildCompletedPayload,
+  SiteBuildStagingPayload,
+} from "./types/job-types";

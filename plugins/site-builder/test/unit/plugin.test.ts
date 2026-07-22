@@ -97,9 +97,10 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("uses the shell-owned profile exposed by the plugin context", async () => {
-    const outputDir = await mkdtemp(
+    const testDir = await mkdtemp(
       join(process.cwd(), ".site-builder-profile-"),
     );
+    const outputDir = join(testDir, "site-preview");
     const profileUrl = "https://github.com/fresh-shell-profile";
     harness.getMockShell().getProfile = (): AnchorProfile => ({
       name: "Fresh Shell",
@@ -136,7 +137,7 @@ describe("SiteBuilderPlugin", () => {
       const result = await builder.build({
         environment: "preview",
         outputDir,
-        sharedImagesDir: join(outputDir, "images"),
+        sharedImagesDir: join(testDir, "images"),
         enableContentGeneration: false,
         cleanBeforeBuild: true,
         siteConfig: {
@@ -154,7 +155,7 @@ describe("SiteBuilderPlugin", () => {
         profileUrl,
       );
     } finally {
-      await rm(outputDir, { recursive: true, force: true });
+      await rm(testDir, { recursive: true, force: true });
     }
   });
 

@@ -19,7 +19,6 @@ import {
 import { RebuildManager } from "./lib/auto-rebuild";
 import { setupRouteHandlers } from "./lib/route-handlers";
 import { registerConfigRoutes } from "./lib/route-helpers";
-import { subscribeBuildCompleted } from "./lib/seo-file-handler";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
@@ -216,13 +215,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
         return { success: true };
       },
     );
-
-    // Subscribe to build-completed for SEO file generation
-    subscribeBuildCompleted({
-      context,
-      routeRegistry: this._routeRegistry,
-      logger: this.logger,
-    });
   }
 
   protected override async onReady(

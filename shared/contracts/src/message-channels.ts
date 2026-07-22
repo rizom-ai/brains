@@ -105,6 +105,7 @@ export const SITE_BUILDER_CHANNELS = {
 } as const;
 
 export const SITE_CHANNELS = {
+  buildStaging: "site:build:staging",
   buildCompleted: "site:build:completed",
 } as const;
 

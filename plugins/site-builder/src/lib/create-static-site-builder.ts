@@ -1,6 +1,4 @@
-import { join } from "path";
 import type { Logger } from "@brains/utils/logger";
-import type { SiteBuilderOptions } from "../types/site-builder-types";
 import type {
   StaticSiteBuilder,
   StaticSiteBuilderFactory,
@@ -8,27 +6,22 @@ import type {
 
 export interface CreateStaticSiteBuilderOptions {
   logger: Logger;
-  parsedOptions: Pick<
-    SiteBuilderOptions,
-    "workingDir" | "outputDir" | "cleanBeforeBuild"
-  >;
+  outputDir: string;
+  workingDir: string;
+  cleanBeforeBuild: boolean;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
 }
 
 export async function createStaticSiteBuilder(
   options: CreateStaticSiteBuilderOptions,
 ): Promise<StaticSiteBuilder> {
-  const workingDir =
-    options.parsedOptions.workingDir ??
-    join(options.parsedOptions.outputDir, ".preact-work");
-
   const staticSiteBuilder = options.staticSiteBuilderFactory({
     logger: options.logger.child("StaticSiteBuilder"),
-    workingDir,
-    outputDir: options.parsedOptions.outputDir,
+    workingDir: options.workingDir,
+    outputDir: options.outputDir,
   });
 
-  if (options.parsedOptions.cleanBeforeBuild) {
+  if (options.cleanBeforeBuild) {
     await staticSiteBuilder.clean();
   }
 
