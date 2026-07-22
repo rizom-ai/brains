@@ -10,6 +10,7 @@ import {
   adminKeys,
   anchorQueryOptions,
   auditQueryOptions,
+  interfaceGrantsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
 } from "./queries";
@@ -38,6 +39,35 @@ describe("Admin server-state queries", () => {
     expect(first).toEqual([]);
     expect(second).toBe(first);
     expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("loads labeled standalone grants without principal subjects", async () => {
+    mockFetch(async (request) => {
+      expect(String(request)).toEndWith("/auth/admin/interface-grants");
+      return Response.json({
+        grants: [
+          {
+            id: "ipg_1",
+            interfaceType: "discord",
+            label: "Operations room",
+            permissionLevel: "trusted",
+            source: "admin",
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      });
+    });
+    const client = createAdminQueryClient();
+
+    const grants = await client.fetchQuery(interfaceGrantsQueryOptions());
+
+    expect(adminKeys.interfaceGrants()).toEqual(["admin", "interface-grants"]);
+    expect(grants).toEqual([
+      expect.objectContaining({ label: "Operations room" }),
+    ]);
+    expect(JSON.stringify(grants)).not.toContain("principalKeyHash");
     client.clear();
   });
 
@@ -77,11 +107,12 @@ describe("Admin server-state queries", () => {
 });
 
 describe("Admin mutation invalidation", () => {
-  it("refreshes Overview, roster, invitations, and audit together", async () => {
+  it("refreshes all private administration state together", async () => {
     const client = createAdminQueryClient();
     client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
     client.setQueryData(adminKeys.users(), []);
     client.setQueryData(adminKeys.audit(), []);
+    client.setQueryData(adminKeys.interfaceGrants(), []);
 
     await invalidateAfterAdminMutation(
       client,
@@ -91,6 +122,9 @@ describe("Admin mutation invalidation", () => {
     expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.audit())?.isInvalidated).toBe(true);
+    expect(
+      client.getQueryState(adminKeys.interfaceGrants())?.isInvalidated,
+    ).toBe(true);
     client.clear();
   });
 });

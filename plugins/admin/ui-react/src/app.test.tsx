@@ -138,6 +138,17 @@ describe("Admin surface", () => {
       initialAnchor: brainAnchor,
       initialUsers: [user],
       initialAudit: audit,
+      initialInterfaceGrants: [
+        {
+          id: "ipg_ops",
+          interfaceType: "discord",
+          label: "Operations room",
+          permissionLevel: "trusted",
+          source: "admin",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
     });
 
     expect(html).toContain("Overview");
@@ -146,6 +157,10 @@ describe("Admin surface", () => {
     expect(html).toContain("Audit");
     expect(html).toContain("Yeehaa Morgan");
     expect(html).toContain("Active members");
+    expect(html).toContain("Standalone access");
+    expect(html).toContain("Operations room");
+    expect(html).toContain("Subject is hashed and never shown again");
+    expect(html).not.toContain("principalKeyHash");
     expect(html).not.toContain("My agents");
     expect(html).not.toContain("Representatives");
   });

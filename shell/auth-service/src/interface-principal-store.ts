@@ -1,5 +1,6 @@
 import {
   hashInterfacePrincipal,
+  normalizeInterfacePrincipal,
   parseConfiguredInterfacePrincipal,
   type RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
@@ -22,6 +23,33 @@ export interface ResolvedInterfacePrincipal {
   permissionLevel: "admin" | "trusted" | "public";
   isAnchor: boolean;
 }
+
+export interface AdminInterfacePrincipalGrant {
+  id: string;
+  interfaceType: string;
+  label: string;
+  permissionLevel: "admin" | "trusted";
+  source: "config" | "admin";
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface UpsertAdminInterfacePrincipalGrantInput {
+  interfaceType: string;
+  subject: string;
+  label: string;
+  permissionLevel: "admin" | "trusted";
+}
+
+const adminGrantSelection = {
+  id: interfacePrincipalGrants.id,
+  interfaceType: interfacePrincipalGrants.interfaceType,
+  label: interfacePrincipalGrants.label,
+  permissionLevel: interfacePrincipalGrants.permissionLevel,
+  source: interfacePrincipalGrants.source,
+  createdAt: interfacePrincipalGrants.createdAt,
+  updatedAt: interfacePrincipalGrants.updatedAt,
+};
 
 type PreparedPrincipalState = RuntimeInterfacePrincipalState;
 
@@ -116,6 +144,86 @@ export class InterfacePrincipalStore {
     };
   }
 
+  async listAdminGrants(): Promise<AdminInterfacePrincipalGrant[]> {
+    return this.db
+      .select(adminGrantSelection)
+      .from(interfacePrincipalGrants)
+      .where(isNull(interfacePrincipalGrants.revokedAt))
+      .orderBy(
+        interfacePrincipalGrants.interfaceType,
+        interfacePrincipalGrants.createdAt,
+        interfacePrincipalGrants.id,
+      );
+  }
+
+  async upsertAdminGrant(
+    input: UpsertAdminInterfacePrincipalGrantInput,
+  ): Promise<AdminInterfacePrincipalGrant> {
+    const normalizedPrincipal = normalizeInterfacePrincipal(
+      input.interfaceType,
+      input.subject,
+    );
+    const separator = normalizedPrincipal.indexOf(":");
+    const interfaceType = normalizedPrincipal.slice(0, separator);
+    const principalKeyHash = hashInterfacePrincipal(
+      interfaceType,
+      input.subject,
+    );
+    const label = input.label.trim();
+    if (!label) throw new Error("Interface principal grant requires a label");
+    if (label.toLowerCase().includes(input.subject.trim().toLowerCase())) {
+      throw new Error("Grant label must not contain the principal subject");
+    }
+    const now = Date.now();
+    const rows = await this.db
+      .insert(interfacePrincipalGrants)
+      .values({
+        id: createPrefixedId("ipg"),
+        interfaceType,
+        principalKeyHash,
+        label,
+        permissionLevel: input.permissionLevel,
+        source: "admin",
+        createdAt: now,
+        updatedAt: now,
+        revokedAt: null,
+      })
+      .onConflictDoUpdate({
+        target: [
+          interfacePrincipalGrants.interfaceType,
+          interfacePrincipalGrants.principalKeyHash,
+        ],
+        targetWhere: isNull(interfacePrincipalGrants.revokedAt),
+        set: {
+          label,
+          permissionLevel: input.permissionLevel,
+          source: "admin",
+          updatedAt: now,
+        },
+      })
+      .returning(adminGrantSelection);
+    const grant = rows[0];
+    if (!grant) throw new Error("Failed to persist interface principal grant");
+    return grant;
+  }
+
+  async revokeAdminGrant(id: string): Promise<AdminInterfacePrincipalGrant> {
+    const now = Date.now();
+    const rows = await this.db
+      .update(interfacePrincipalGrants)
+      .set({ revokedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(interfacePrincipalGrants.id, id),
+          isNull(interfacePrincipalGrants.revokedAt),
+        ),
+      )
+      .returning(adminGrantSelection);
+    const grant = rows[0];
+    if (!grant) throw new Error("Active interface principal grant not found");
+    return grant;
+  }
+
   async listActiveState(): Promise<RuntimeInterfacePrincipalState> {
     const [grants, anchors] = await Promise.all([
       this.db
@@ -206,6 +314,7 @@ async function insertPreparedState(
       state.grants.map((grant) => ({
         id: createPrefixedId("ipg"),
         ...grant,
+        label: `Configured ${grant.interfaceType} principal`,
         source: "config" as const,
         createdAt: now,
         updatedAt: now,

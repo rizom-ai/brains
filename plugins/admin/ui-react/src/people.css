@@ -1089,6 +1089,128 @@ button.people-metric:hover {
 .people-metric.has-attention {
   border-color: var(--console-warn);
 }
+.standalone-access {
+  overflow: hidden;
+  margin-top: clamp(14px, 3vw, 28px);
+}
+.standalone-access-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.standalone-access-head .eyebrow {
+  margin-bottom: 5px;
+  color: var(--console-accent);
+  font: 500 9px var(--console-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.standalone-access-head h3 {
+  margin: 0;
+  color: var(--console-text);
+  font: 520 22px var(--console-display);
+}
+.standalone-access-head p {
+  max-width: 70ch;
+  margin: 6px 0 0;
+  color: var(--console-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.standalone-access-head > strong {
+  min-width: 34px;
+  padding: 6px 9px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 7px;
+  color: var(--console-accent);
+  background: var(--console-accent-soft);
+  font: 600 13px var(--console-mono);
+  text-align: center;
+}
+.standalone-access-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(360px, 1.2fr);
+  align-items: start;
+}
+.standalone-access-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 18px 20px 20px;
+  border-right: 1px solid var(--console-rule);
+}
+.standalone-access-form label {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  color: var(--console-text-dim);
+  font-size: 10px;
+}
+.standalone-access-form label:nth-of-type(3) {
+  grid-column: 1 / -1;
+}
+.standalone-access-form label > span {
+  font: 500 9px var(--console-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.standalone-access-form input,
+.standalone-access-form select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card-soft);
+  color: var(--console-text);
+  padding: 8px 9px;
+}
+.standalone-access-form input:focus-visible,
+.standalone-access-form select:focus-visible {
+  outline: 2px solid var(--console-accent);
+  outline-offset: 2px;
+}
+.standalone-access-form small {
+  color: var(--console-text-muted);
+  font-size: 9px;
+}
+.standalone-access-form .people-button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.standalone-access-list {
+  min-width: 0;
+  padding: 6px;
+}
+.standalone-access-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 10px 11px;
+  border-radius: 8px;
+}
+.standalone-access-row + .standalone-access-row {
+  border-top: 1px solid var(--console-rule);
+  border-radius: 0;
+}
+.standalone-access-row strong,
+.standalone-access-row small {
+  display: block;
+}
+.standalone-access-row strong {
+  overflow-wrap: anywhere;
+  color: var(--console-text);
+  font-size: 12px;
+}
+.standalone-access-row small {
+  margin-top: 3px;
+  color: var(--console-text-muted);
+  font: 9px var(--console-mono);
+}
 .people-invitation-list {
   display: grid;
   gap: 9px;
@@ -1139,6 +1261,13 @@ button.people-metric:hover {
 }
 
 @media (max-width: 940px) {
+  .standalone-access-body {
+    grid-template-columns: 1fr;
+  }
+  .standalone-access-form {
+    border-right: 0;
+    border-bottom: 1px solid var(--console-rule);
+  }
   .anchor-fields {
     grid-template-columns: 1fr;
   }
@@ -1199,6 +1328,20 @@ button.people-metric:hover {
   .people-role-control {
     width: 100%;
     justify-content: space-between;
+  }
+  .standalone-access-form {
+    grid-template-columns: 1fr;
+  }
+  .standalone-access-form label:nth-of-type(3),
+  .standalone-access-form .people-button {
+    grid-column: auto;
+  }
+  .standalone-access-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .standalone-access-row .people-text-action {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
   .people-invitation {
     grid-template-columns: 1fr auto;

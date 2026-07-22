@@ -52,6 +52,7 @@ export class AuthRequestRouter {
       "/auth/admin/anchor",
       "/auth/admin/mutations",
       "/auth/admin/reconciliation",
+      "/auth/admin/interface-grants",
     ].map<AuthRequestRoute>((path) => ({
       method: "*",
       path,

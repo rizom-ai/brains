@@ -1,5 +1,6 @@
 import type {
   AuthAdminAuditResponse,
+  AuthAdminInterfaceGrantsResponse,
   AuthAdminMutation,
   AuthAdminUsersResponse,
   AuthBrainAnchorResponse,
@@ -56,6 +57,15 @@ export async function fetchUsers(): Promise<AuthAdminUsersResponse> {
 export async function fetchAudit(): Promise<AuthAdminAuditResponse> {
   return parseResponse(
     await fetch("/auth/admin/audit", {
+      credentials: "same-origin",
+      cache: "no-store",
+    }),
+  );
+}
+
+export async function fetchInterfaceGrants(): Promise<AuthAdminInterfaceGrantsResponse> {
+  return parseResponse(
+    await fetch("/auth/admin/interface-grants", {
       credentials: "same-origin",
       cache: "no-store",
     }),

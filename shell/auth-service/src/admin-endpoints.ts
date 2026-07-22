@@ -18,10 +18,12 @@ import {
   type AuthBrainAnchorSummary,
   type AuthExternalPeerSummary,
   type AuthIdentitySummary,
+  type AuthInterfacePrincipalGrantSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
 } from "./admin-contracts";
 import type { AuthIdentityType } from "./identity-store";
+import { AuthRouteTable, type AuthRoute } from "./route-table";
 import type { AuthUserRole, AuthUserStatus } from "./user-store";
 
 export interface AuthAdminOperations {
@@ -29,6 +31,7 @@ export interface AuthAdminOperations {
   listUsers(): Promise<AuthAdminPrincipal[]>;
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
   listAuditEvents(): Promise<AuthAuditEventSummary[]>;
+  listInterfaceGrants(): Promise<AuthInterfacePrincipalGrantSummary[]>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   reconcileIdentityProposals(
     claims: AuthIdentityProposalInput[],
@@ -96,6 +99,19 @@ export interface AuthAdminOperations {
     userId: string,
     actorUserId: string,
   ): Promise<{ sessions: number; refreshTokens: number }>;
+  upsertInterfaceGrant(
+    input: {
+      interfaceType: string;
+      subject: string;
+      label: string;
+      permissionLevel: "admin" | "trusted";
+    },
+    actorUserId: string,
+  ): Promise<AuthInterfacePrincipalGrantSummary>;
+  revokeInterfaceGrant(
+    grantId: string,
+    actorUserId: string,
+  ): Promise<AuthInterfacePrincipalGrantSummary>;
 }
 
 const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
@@ -191,9 +207,77 @@ const adminMutationSchema = z.union([
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions),
     userId: z.string().min(1),
   }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant),
+    interfaceType: z
+      .string()
+      .trim()
+      .regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/),
+    subject: z.string().trim().min(1).max(2_000),
+    label: z.string().trim().min(1).max(200),
+    permissionLevel: z.enum(["admin", "trusted"]),
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant),
+    grantId: z.string().min(1).max(200),
+  }),
 ]);
 
 type AdminMutation = z.infer<typeof adminMutationSchema>;
+
+interface AdminRouteContext {
+  operations: AuthAdminOperations;
+  principal: AuthAdminPrincipal;
+}
+
+const adminRoutes = new AuthRouteTable<AdminRouteContext>([
+  {
+    method: "GET",
+    path: "/auth/admin/anchor",
+    handler: async (_request, context): Promise<Response> =>
+      privateJsonResponse({
+        anchor: await context.operations.getBrainAnchor(),
+      }),
+  },
+  {
+    method: "GET",
+    path: "/auth/admin/users",
+    handler: async (_request, context): Promise<Response> => {
+      const users = context.operations.listAdminUsers
+        ? await context.operations.listAdminUsers()
+        : await listAdminUsersCompat(context.operations);
+      return privateJsonResponse({ users });
+    },
+  },
+  {
+    method: "GET",
+    path: "/auth/admin/audit",
+    handler: async (_request, context): Promise<Response> =>
+      privateJsonResponse({
+        events: await context.operations.listAuditEvents(),
+      }),
+  },
+  {
+    method: "GET",
+    path: "/auth/admin/interface-grants",
+    handler: async (_request, context): Promise<Response> =>
+      privateJsonResponse({
+        grants: await context.operations.listInterfaceGrants(),
+      }),
+  },
+  {
+    method: "POST",
+    path: "/auth/admin/reconciliation",
+    handler: handleReconciliationRequest,
+  },
+  {
+    method: "POST",
+    path: "/auth/admin/mutations",
+    handler: handleMutationRequest,
+  },
+] satisfies AuthRoute<AdminRouteContext>[]);
 
 export async function handleAuthAdminRequest(
   request: Request,
@@ -207,75 +291,70 @@ export async function handleAuthAdminRequest(
     return privateJsonResponse({ error: "Admin access required" }, 403);
   }
 
-  const path = new URL(request.url).pathname;
-  if (request.method === "GET" && path === "/auth/admin/anchor") {
-    return privateJsonResponse({ anchor: await operations.getBrainAnchor() });
-  }
+  return (
+    (await adminRoutes.dispatch(request, { operations, principal })) ??
+    privateJsonResponse({ error: "Not Found" }, 404)
+  );
+}
 
-  if (request.method === "GET" && path === "/auth/admin/users") {
-    const users = operations.listAdminUsers
-      ? await operations.listAdminUsers()
-      : await listAdminUsersCompat(operations);
-    return privateJsonResponse({ users });
-  }
+async function handleReconciliationRequest(
+  request: Request,
+  context: AdminRouteContext,
+): Promise<Response> {
+  const requestError = requireSameOriginJson(request);
+  if (requestError) return requestError;
 
-  if (request.method === "GET" && path === "/auth/admin/audit") {
-    return privateJsonResponse({ events: await operations.listAuditEvents() });
-  }
-
-  if (request.method === "POST" && path === "/auth/admin/reconciliation") {
-    const requestError = requireSameOriginJson(request);
-    if (requestError) return requestError;
-
-    const parsed = z
-      .strictObject({ claims: z.array(identityProposalSchema).min(1).max(10) })
-      .safeParse(await readJsonRequest(request));
-    if (!parsed.success) {
-      return privateJsonResponse(
-        { error: "Invalid identity reconciliation request" },
-        400,
-      );
-    }
-
-    try {
-      return privateJsonResponse(
-        await operations.reconcileIdentityProposals(parsed.data.claims),
-      );
-    } catch (error) {
-      return privateJsonResponse(
-        { error: errorMessage(error, "Reconciliation failed") },
-        400,
-      );
-    }
-  }
-
-  if (request.method === "POST" && path === "/auth/admin/mutations") {
-    const requestError = requireSameOriginJson(request);
-    if (requestError) return requestError;
-
-    const parsed = adminMutationSchema.safeParse(
-      await readJsonRequest(request),
+  const parsed = z
+    .strictObject({ claims: z.array(identityProposalSchema).min(1).max(10) })
+    .safeParse(await readJsonRequest(request));
+  if (!parsed.success) {
+    return privateJsonResponse(
+      { error: "Invalid identity reconciliation request" },
+      400,
     );
-    if (!parsed.success) {
-      return privateJsonResponse(
-        { error: "Invalid or unconfirmed auth mutation" },
-        400,
-      );
-    }
-
-    try {
-      return privateJsonResponse(
-        await executeMutation(parsed.data, principal.userId, operations),
-      );
-    } catch (error) {
-      return privateJsonResponse(
-        { error: errorMessage(error, "Mutation failed") },
-        400,
-      );
-    }
   }
 
-  return privateJsonResponse({ error: "Not Found" }, 404);
+  try {
+    return privateJsonResponse(
+      await context.operations.reconcileIdentityProposals(parsed.data.claims),
+    );
+  } catch (error) {
+    return privateJsonResponse(
+      { error: errorMessage(error, "Reconciliation failed") },
+      400,
+    );
+  }
+}
+
+async function handleMutationRequest(
+  request: Request,
+  context: AdminRouteContext,
+): Promise<Response> {
+  const requestError = requireSameOriginJson(request);
+  if (requestError) return requestError;
+
+  const parsed = adminMutationSchema.safeParse(await readJsonRequest(request));
+  if (!parsed.success) {
+    return privateJsonResponse(
+      { error: "Invalid or unconfirmed auth mutation" },
+      400,
+    );
+  }
+
+  try {
+    return privateJsonResponse(
+      await executeMutation(
+        parsed.data,
+        context.principal.userId,
+        context.operations,
+      ),
+    );
+  } catch (error) {
+    return privateJsonResponse(
+      { error: errorMessage(error, "Mutation failed") },
+      400,
+    );
+  }
 }
 
 async function listAdminUsersCompat(
@@ -388,6 +467,21 @@ async function executeMutation(
           actorUserId,
         ),
       };
+    case "upsertInterfaceGrant":
+      return {
+        grant: await operations.upsertInterfaceGrant(
+          {
+            interfaceType: mutation.interfaceType,
+            subject: mutation.subject,
+            label: mutation.label,
+            permissionLevel: mutation.permissionLevel,
+          },
+          actorUserId,
+        ),
+      };
+    case "revokeInterfaceGrant":
+      await operations.revokeInterfaceGrant(mutation.grantId, actorUserId);
+      return { grantId: mutation.grantId, revoked: true };
   }
 }
 

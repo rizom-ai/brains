@@ -18,6 +18,7 @@ type AuthTextColumn<
   TPrimaryKey extends boolean = false,
   TData = string,
   TEnumValues extends [string, ...string[]] = [string, ...string[]],
+  THasDefault extends boolean = false,
 > = SQLiteColumn<
   {
     name: TName;
@@ -27,7 +28,7 @@ type AuthTextColumn<
     data: TData;
     driverParam: string;
     notNull: TNotNull;
-    hasDefault: false;
+    hasDefault: THasDefault;
     isPrimaryKey: TPrimaryKey;
     isAutoincrement: false;
     hasRuntimeDefault: false;
@@ -455,6 +456,15 @@ type InterfacePrincipalGrantsTable = AuthTable<
       "principal_key_hash",
       true
     >;
+    label: AuthTextColumn<
+      "interface_principal_grants",
+      "label",
+      true,
+      false,
+      string,
+      [string, ...string[]],
+      true
+    >;
     permissionLevel: AuthTextColumn<
       "interface_principal_grants",
       "permission_level",
@@ -496,6 +506,7 @@ export const interfacePrincipalGrants: InterfacePrincipalGrantsTable =
       id: text("id").primaryKey(),
       interfaceType: text("interface_type").notNull(),
       principalKeyHash: text("principal_key_hash").notNull(),
+      label: text("label").notNull().default("Unnamed principal"),
       permissionLevel: text("permission_level", {
         enum: ["admin", "trusted"],
       }).notNull(),

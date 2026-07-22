@@ -404,7 +404,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(8);
+      expect(migrations.rows).toHaveLength(9);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

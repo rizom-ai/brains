@@ -1,0 +1,1 @@
+ALTER TABLE `interface_principal_grants` ADD `label` text DEFAULT 'Unnamed principal' NOT NULL;

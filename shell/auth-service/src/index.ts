@@ -8,6 +8,7 @@ export {
 } from "./admin-contracts";
 export type {
   AuthAdminIdentityType,
+  AuthAdminInterfaceGrantsResponse,
   AuthAdminMutation,
   AuthAdminMutationAction,
   AuthAdminPrincipal,
@@ -30,6 +31,7 @@ export type {
   AuthIdentitySourceKind as AuthAdminIdentitySourceKind,
   AuthIdentitySummary,
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
+  AuthInterfacePrincipalGrantSummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
 export { reinitializeAuthAccessStorage } from "./access-reinitialization";

@@ -5,6 +5,7 @@ import {
   type AuthAdminUserSummary,
   type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
+  type AuthInterfacePrincipalGrantSummary,
 } from "@brains/auth-service/admin-contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,6 +20,7 @@ import { AuditView } from "./components/AuditView";
 import { InvitationsView } from "./components/InvitationsView";
 import { OverviewView } from "./components/OverviewView";
 import { PersonDetail } from "./components/PersonDetail";
+import type { StandaloneGrantInput } from "./components/StandaloneAccessPanel";
 import { Roster } from "./components/Roster";
 import { Button } from "./components/primitives";
 import {
@@ -37,6 +39,7 @@ import type {
 import {
   anchorQueryOptions,
   auditQueryOptions,
+  interfaceGrantsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
 } from "./queries";
@@ -67,6 +70,7 @@ export interface PeopleAppProps {
   initialAnchor?: AuthBrainAnchorSummary;
   initialUsers?: AuthAdminUserSummary[];
   initialAudit?: AuthAuditEventSummary[];
+  initialInterfaceGrants?: AuthInterfacePrincipalGrantSummary[];
 }
 
 export function PeopleApp(props: PeopleAppProps): ReactElement {
@@ -93,8 +97,16 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       ? { initialData: props.initialAudit }
       : {}),
   });
+  const interfaceGrantsQuery = useQuery({
+    ...interfaceGrantsQueryOptions(),
+    enabled: isAdmin,
+    ...(props.initialInterfaceGrants !== undefined
+      ? { initialData: props.initialInterfaceGrants }
+      : {}),
+  });
   const users = usersQuery.data ?? [];
   const auditEvents = auditQuery.data ?? [];
+  const interfaceGrants = interfaceGrantsQuery.data ?? [];
   const anchor = anchorQuery.data;
   const configuredAnchorKind = anchor?.configuredKind ?? "person";
   const organization = configuredAnchorKind === "organization";
@@ -120,8 +132,15 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   });
   const loading =
     isAdmin &&
-    (anchorQuery.isPending || usersQuery.isPending || auditQuery.isPending);
-  const queryError = anchorQuery.error ?? usersQuery.error ?? auditQuery.error;
+    (anchorQuery.isPending ||
+      usersQuery.isPending ||
+      auditQuery.isPending ||
+      interfaceGrantsQuery.isPending);
+  const queryError =
+    anchorQuery.error ??
+    usersQuery.error ??
+    auditQuery.error ??
+    interfaceGrantsQuery.error;
   const error = queryError ? messageOf(queryError, "Admin unavailable") : null;
 
   const selectedUser = useMemo(
@@ -270,6 +289,44 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     );
   };
 
+  const upsertInterfaceGrant = async (
+    input: StandaloneGrantInput,
+  ): Promise<void> => {
+    await runMutation(
+      {
+        action: AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant,
+        ...input,
+      },
+      undefined,
+      "Standalone access updated",
+    );
+  };
+
+  const requestInterfaceGrantRevocation = (
+    grant: AuthInterfacePrincipalGrantSummary,
+  ): void => {
+    setModal({
+      kind: "confirm",
+      title: `Revoke ${grant.label}?`,
+      copy: `This removes ${grant.permissionLevel} access for the exact ${grant.interfaceType} principal.`,
+      warning:
+        "The hidden principal subject cannot be recovered from auth storage. Add it again explicitly if access is needed later.",
+      submitLabel: "Revoke access",
+      run: async (): Promise<void> => {
+        await runMutation(
+          {
+            action: AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant,
+            confirmation: AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant,
+            grantId: grant.id,
+          },
+          undefined,
+          "Standalone access revoked",
+        );
+      },
+    });
+  };
+
   const openMembers = (): void => setView("members");
   const openInvitations = (): void => setView("invitations");
 
@@ -331,8 +388,16 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           <OverviewView
             anchor={anchor}
             users={users}
+            interfaceGrants={interfaceGrants}
+            {...(props.bootstrap.registeredInterfaces
+              ? {
+                  registeredInterfaces: props.bootstrap.registeredInterfaces,
+                }
+              : {})}
             onOpenMembers={openMembers}
             onOpenInvitations={openInvitations}
+            onUpsertInterfaceGrant={upsertInterfaceGrant}
+            onRevokeInterfaceGrant={requestInterfaceGrantRevocation}
           />
         ) : view === "members" ? (
           <section className="people-panel">

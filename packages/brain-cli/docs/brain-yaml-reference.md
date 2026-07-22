@@ -382,7 +382,7 @@ Permission config is merged in this order:
 
 So the nested `permissions` block wins over the top-level shorthand.
 
-On first auth initialization, exact `admins`, `trusted`, and `anchors` entries are normalized, hashed, and seeded into private `auth.db`. Ordinary restarts load those DB rows and do not reapply later config edits. Use `brain auth reinitialize-access --yes` for deliberate access recovery. Connected accounts take precedence over standalone exact grants. Pattern `rules` and shared-space selectors remain request-context configuration; the deprecated static MCP token remains a transport-level Admin fallback and never establishes Anchor identity.
+On first auth initialization, exact `admins`, `trusted`, and `anchors` entries are normalized, hashed, and seeded into private `auth.db`. Ordinary restarts load those DB rows and do not reapply later config edits. Use the Admin console Overview to manage labeled standalone exact grants; the supplied subject is hashed on write and never displayed again. Use `brain auth reinitialize-access --yes` for deliberate access recovery. Connected accounts take precedence over standalone exact grants. Pattern `rules` and shared-space selectors remain request-context configuration; the deprecated static MCP token remains a transport-level Admin fallback and never establishes Anchor identity.
 
 ## Environment variable interpolation
 
