@@ -1,5 +1,14 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.213
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.213
+  - @rizom/site-sections@0.2.0-alpha.213
+  - @rizom/site-rizom@0.2.0-alpha.213
+
 ## 0.2.0-alpha.212
 
 ### Patch Changes
