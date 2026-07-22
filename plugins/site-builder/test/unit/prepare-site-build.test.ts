@@ -116,6 +116,7 @@ describe("prepareSiteBuild", () => {
       buildId: "prepared-build",
       routes,
       publicDir: missingPublicDir,
+      signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
         siteConfig: {
@@ -190,6 +191,7 @@ describe("prepareSiteBuild", () => {
       buildId: "invalid-content-build",
       routes,
       publicDir: missingPublicDir,
+      signal: new AbortController().signal,
       parsedOptions: {
         environment: "production",
         siteConfig: {
@@ -234,6 +236,7 @@ describe("prepareSiteBuild", () => {
       buildId: "resolution-failure-build",
       routes: [route],
       publicDir: missingPublicDir,
+      signal: new AbortController().signal,
       parsedOptions: {
         environment: "production",
         siteConfig: {
@@ -272,6 +275,7 @@ describe("prepareSiteBuild", () => {
       buildId: "public-assets-build",
       routes: [],
       publicDir,
+      signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
         siteConfig: {
@@ -314,6 +318,7 @@ describe("prepareSiteBuild", () => {
       buildId: "invalid-public-assets-build",
       routes: [],
       publicDir,
+      signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
         siteConfig: {

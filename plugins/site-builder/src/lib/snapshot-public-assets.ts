@@ -7,9 +7,9 @@ import { join, relative, sep } from "path";
  */
 export async function snapshotPublicAssets(
   publicDir: string,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<Record<string, string>> {
-  signal?.throwIfAborted();
+  signal.throwIfAborted();
 
   try {
     await fs.access(publicDir);
@@ -27,14 +27,14 @@ async function collectPublicAssets(
   publicDir: string,
   directory: string,
   assets: Record<string, string>,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<void> {
-  signal?.throwIfAborted();
+  signal.throwIfAborted();
   const entries = await fs.readdir(directory, { withFileTypes: true });
   entries.sort((left, right) => left.name.localeCompare(right.name));
 
   for (const entry of entries) {
-    signal?.throwIfAborted();
+    signal.throwIfAborted();
     const sourcePath = join(directory, entry.name);
     const assetPath = relative(publicDir, sourcePath).split(sep).join("/");
 

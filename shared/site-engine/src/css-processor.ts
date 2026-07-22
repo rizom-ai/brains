@@ -14,6 +14,7 @@ export interface CSSProcessor {
     workingDir: string,
     outputDir: string,
     logger: Logger,
+    signal: AbortSignal,
   ): Promise<void>;
 }
 
@@ -27,7 +28,9 @@ export class TailwindCSSProcessor implements CSSProcessor {
     _workingDir: string,
     outputDir: string,
     logger: Logger,
+    signal: AbortSignal,
   ): Promise<void> {
+    signal.throwIfAborted();
     logger.debug(`Processing Tailwind CSS for ${outputDir}`);
 
     // Use PostCSS with Tailwind v4 plugin
@@ -35,11 +38,13 @@ export class TailwindCSSProcessor implements CSSProcessor {
     const result = await postcss([tailwindcss()]).process(inputCSS, {
       from: join(outputDir, "input.css"), // Set a from path for better resolution
     });
+    signal.throwIfAborted();
 
     // Write the compiled CSS
     const outputPath = join(outputDir, "styles", "main.css");
     await fs.mkdir(join(outputDir, "styles"), { recursive: true });
-    await fs.writeFile(outputPath, result.css, "utf-8");
+    await fs.writeFile(outputPath, result.css, { encoding: "utf-8", signal });
+    signal.throwIfAborted();
 
     logger.debug("Tailwind CSS processed successfully");
   }

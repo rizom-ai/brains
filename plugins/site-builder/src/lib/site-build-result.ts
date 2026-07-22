@@ -27,6 +27,26 @@ export function createSuccessfulBuildResult(
   };
 }
 
+export interface CancelledBuildResultOptions {
+  outputDir: string;
+  message: string;
+  diagnostics: SiteBuildDiagnostic[];
+}
+
+export function createCancelledBuildResult(
+  options: CancelledBuildResultOptions,
+): BuildResult {
+  return {
+    success: false,
+    cancelled: true,
+    outputDir: options.outputDir,
+    filesGenerated: 0,
+    routesBuilt: 0,
+    errors: [options.message],
+    diagnostics: options.diagnostics,
+  };
+}
+
 export interface FailedBuildResultOptions {
   outputDir: string;
   errorMessages: string[];

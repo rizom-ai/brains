@@ -47,4 +47,28 @@ describe("SiteHealthWidget", () => {
     expect(html).not.toContain("Build preview");
     expect(html).not.toContain("Update live site");
   });
+
+  it("distinguishes cancellation from a build failure", () => {
+    const html = render(
+      h(SiteHealthWidget, {
+        title: "Site health",
+        data: {
+          ...siteHealth,
+          environments: [
+            {
+              environment: "preview",
+              lastCancellation: {
+                completedAt: "2026-07-16T09:00:00.000Z",
+                message: "Superseded by a newer preview site build",
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(html).toContain("cancelled");
+    expect(html).toContain("Superseded by a newer preview site build");
+    expect(html).not.toContain("Needs attention");
+  });
 });

@@ -41,7 +41,7 @@ export interface PrepareSiteBuildOptions {
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
   publicDir: string;
-  signal?: AbortSignal | undefined;
+  signal: AbortSignal;
 }
 
 export interface PrepareSiteBuildResult {
@@ -58,6 +58,7 @@ interface PreparedRouteResult {
 export async function prepareSiteBuild(
   options: PrepareSiteBuildOptions,
 ): Promise<PrepareSiteBuildResult> {
+  options.signal.throwIfAborted();
   const getViewTemplate = (name: string): SiteViewTemplate | undefined =>
     options.pipelineContext.services.getViewTemplate(name);
   const publishedOnly = options.parsedOptions.environment === "production";
@@ -69,7 +70,7 @@ export async function prepareSiteBuild(
       options.signal,
     );
   } catch (error) {
-    options.signal?.throwIfAborted();
+    options.signal.throwIfAborted();
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
       code: "public-asset-snapshot-failed",
@@ -81,10 +82,11 @@ export async function prepareSiteBuild(
   }
 
   const limit = pLimit(4);
-  const routeResults = await Promise.all(
+  const settledRouteResults = await Promise.allSettled(
     options.routes.map((route) =>
-      limit(() =>
-        prepareRoute({
+      limit(() => {
+        options.signal.throwIfAborted();
+        return prepareRoute({
           route,
           siteTitle: options.siteMetadata.title,
           publishedOnly,
@@ -92,9 +94,18 @@ export async function prepareSiteBuild(
           pipelineContext: options.pipelineContext,
           imageBuildService: options.imageBuildService,
           siteUrl: options.siteMetadata.url,
-        }),
-      ),
+          signal: options.signal,
+        });
+      }),
     ),
+  );
+  options.signal.throwIfAborted();
+  const rejectedRoute = settledRouteResults.find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (rejectedRoute) throw rejectedRoute.reason;
+  const routeResults = settledRouteResults.map(
+    (result) => (result as PromiseFulfilledResult<PreparedRouteResult>).value,
   );
 
   const site = buildSiteLayoutInfo(
@@ -119,6 +130,7 @@ export async function prepareSiteBuild(
       path: staticAssetPath,
     });
   }
+  options.signal.throwIfAborted();
   const preparedBuild = createPreparedSiteBuildSnapshot({
     buildId: options.buildId,
     environment: options.parsedOptions.environment,
@@ -150,15 +162,18 @@ interface PrepareRouteOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup;
   siteUrl: string | undefined;
+  signal: AbortSignal;
 }
 
 async function prepareRoute(
   options: PrepareRouteOptions,
 ): Promise<PreparedRouteResult> {
+  options.signal.throwIfAborted();
   const diagnostics: SiteBuildDiagnostic[] = [];
   const sections: PreparedSection[] = [];
 
   for (const section of options.route.sections) {
+    options.signal.throwIfAborted();
     if (section.template === "footer") continue;
 
     const result = await prepareSection(options, section);
@@ -198,6 +213,7 @@ async function prepareSection(
   options: PrepareRouteOptions,
   section: SectionDefinition,
 ): Promise<PreparedSectionResult> {
+  options.signal.throwIfAborted();
   const template = options.getViewTemplate(section.template);
   const renderer = template?.renderers.web;
   if (!template || !renderer || typeof renderer !== "function") return {};
@@ -215,7 +231,9 @@ async function prepareSection(
         siteUrl: options.siteUrl,
       },
     );
+    options.signal.throwIfAborted();
   } catch (error) {
+    options.signal.throwIfAborted();
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
       code: "section-content-resolution-failed",
@@ -230,6 +248,7 @@ async function prepareSection(
 
   if (!content) return {};
 
+  options.signal.throwIfAborted();
   try {
     const contentObject = sectionContentSchema.parse(content);
     const validatedContent = sectionContentSchema.parse(

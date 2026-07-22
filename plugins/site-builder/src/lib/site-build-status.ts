@@ -28,17 +28,24 @@ export interface SiteBuildFailure {
   message: string;
 }
 
+export interface SiteBuildCancellation {
+  jobId: string;
+  completedAt: string;
+  message: string;
+}
+
 export interface SiteBuildEnvironmentStatus {
   environment: SiteBuildEnvironment;
   active?: ActiveSiteBuild | undefined;
   lastSuccess?: SiteBuildSuccess | undefined;
   lastFailure?: SiteBuildFailure | undefined;
+  lastCancellation?: SiteBuildCancellation | undefined;
 }
 
 export interface RecentSiteBuild {
   jobId: string;
   environment: SiteBuildEnvironment;
-  outcome: "succeeded" | "failed";
+  outcome: "succeeded" | "failed" | "cancelled";
   completedAt: string;
   routesBuilt?: number | undefined;
   warnings?: string[] | undefined;
@@ -76,16 +83,23 @@ const siteBuildFailureSchema = z.object({
   message: z.string(),
 });
 
+const siteBuildCancellationSchema = z.object({
+  jobId: z.string(),
+  completedAt: z.string().datetime(),
+  message: z.string(),
+});
+
 const environmentStatusSchema = z.object({
   active: activeSiteBuildSchema.optional(),
   lastSuccess: siteBuildSuccessSchema.optional(),
   lastFailure: siteBuildFailureSchema.optional(),
+  lastCancellation: siteBuildCancellationSchema.optional(),
 });
 
 const recentSiteBuildSchema = z.object({
   jobId: z.string(),
   environment: z.enum(["preview", "production"]),
-  outcome: z.enum(["succeeded", "failed"]),
+  outcome: z.enum(["succeeded", "failed", "cancelled"]),
   completedAt: z.string().datetime(),
   routesBuilt: z.number().int().nonnegative().optional(),
   warnings: z.array(z.string()).optional(),
@@ -100,6 +114,7 @@ const storedSiteBuildStatusSchema: z.ZodType<StoredSiteBuildStatus> = z.object({
 
 const terminalJobResultSchema = z.object({
   success: z.boolean(),
+  cancelled: z.boolean().optional(),
   routesBuilt: z.number().int().nonnegative(),
   warnings: z.array(z.string()).optional(),
   errors: z.array(z.string()).optional(),
@@ -190,7 +205,15 @@ export class SiteBuildStatusService {
       }
 
       const result = terminalJobResultSchema.safeParse(job.result);
-      if (result.success && result.data.success) {
+      if (result.success && result.data.cancelled) {
+        this.applyCancellation(
+          state,
+          environment,
+          active.jobId,
+          completedAt,
+          result.data.errors?.join("; ") ?? "Site build cancelled",
+        );
+      } else if (result.success && result.data.success) {
         this.applySuccess(
           state,
           environment,
@@ -277,6 +300,17 @@ export class SiteBuildStatusService {
     });
   }
 
+  markCancelled(
+    environment: SiteBuildEnvironment,
+    jobId: string,
+    message: string,
+    completedAt: string = new Date().toISOString(),
+  ): Promise<void> {
+    return this.mutate((state: StoredSiteBuildStatus) => {
+      this.applyCancellation(state, environment, jobId, completedAt, message);
+    });
+  }
+
   markFailure(
     environment: SiteBuildEnvironment,
     jobId: string,
@@ -346,7 +380,8 @@ export class SiteBuildStatusService {
     };
     state[environment].lastSuccess = success;
     delete state[environment].lastFailure;
-    delete state[environment].active;
+    delete state[environment].lastCancellation;
+    this.clearMatchingActive(state, environment, jobId);
     this.prependRecent(state, {
       jobId,
       environment,
@@ -366,7 +401,8 @@ export class SiteBuildStatusService {
   ): void {
     const failure: SiteBuildFailure = { jobId, completedAt, message };
     state[environment].lastFailure = failure;
-    delete state[environment].active;
+    delete state[environment].lastCancellation;
+    this.clearMatchingActive(state, environment, jobId);
     this.prependRecent(state, {
       jobId,
       environment,
@@ -374,6 +410,35 @@ export class SiteBuildStatusService {
       completedAt,
       message,
     });
+  }
+
+  private applyCancellation(
+    state: StoredSiteBuildStatus,
+    environment: SiteBuildEnvironment,
+    jobId: string,
+    completedAt: string,
+    message: string,
+  ): void {
+    state[environment].lastCancellation = { jobId, completedAt, message };
+    delete state[environment].lastFailure;
+    this.clearMatchingActive(state, environment, jobId);
+    this.prependRecent(state, {
+      jobId,
+      environment,
+      outcome: "cancelled",
+      completedAt,
+      message,
+    });
+  }
+
+  private clearMatchingActive(
+    state: StoredSiteBuildStatus,
+    environment: SiteBuildEnvironment,
+    jobId: string,
+  ): void {
+    if (state[environment].active?.jobId === jobId) {
+      delete state[environment].active;
+    }
   }
 
   private prependRecent(

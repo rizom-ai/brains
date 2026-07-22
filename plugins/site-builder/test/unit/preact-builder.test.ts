@@ -37,6 +37,7 @@ function createPreactBuilder(
       await builder.build(
         await prepareRendererTestContext(context),
         onProgress,
+        new AbortController().signal,
       );
     },
     clean: () => builder.clean(),

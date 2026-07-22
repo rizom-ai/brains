@@ -6,9 +6,13 @@ import { promises as fs } from "fs";
 
 // Type for accessing private methods in tests
 interface PreactBuilderTestable {
-  writePublicAssets(assets: Record<string, string>): Promise<void>;
+  writePublicAssets(
+    assets: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<void>;
   writeInlineStaticAssets(
     assets: Record<string, string> | undefined,
+    signal: AbortSignal,
   ): Promise<void>;
 }
 
@@ -37,9 +41,12 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writePublicAssets({
-        "icons/favicon.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
-      });
+      await testableBuilder.writePublicAssets(
+        {
+          "icons/favicon.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
+        },
+        new AbortController().signal,
+      );
 
       expect(writes).toHaveLength(1);
       expect(writes[0]?.[0]).toBe("/tmp/output/icons/favicon.bin");
@@ -54,7 +61,10 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
 
   test("rejects snapshotted paths that escape output", async () => {
     expect(
-      testableBuilder.writePublicAssets({ "../outside.bin": "AA==" }),
+      testableBuilder.writePublicAssets(
+        { "../outside.bin": "AA==" },
+        new AbortController().signal,
+      ),
     ).rejects.toThrow("path contains a .. segment");
   });
 });
@@ -92,10 +102,13 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets({
-        "/canvases/tree.js": "(function(){/* tree */})();",
-        "/canvases/constellation.js": "(function(){/* constellation */})();",
-      });
+      await testableBuilder.writeInlineStaticAssets(
+        {
+          "/canvases/tree.js": "(function(){/* tree */})();",
+          "/canvases/constellation.js": "(function(){/* constellation */})();",
+        },
+        new AbortController().signal,
+      );
 
       // One writeFile per asset
       expect(writeFileCalls).toHaveLength(2);
@@ -125,7 +138,10 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets({});
+      await testableBuilder.writeInlineStaticAssets(
+        {},
+        new AbortController().signal,
+      );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
       fs.writeFile = originalWriteFile;
@@ -138,7 +154,10 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets(undefined);
+      await testableBuilder.writeInlineStaticAssets(
+        undefined,
+        new AbortController().signal,
+      );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
       fs.writeFile = originalWriteFile;
@@ -159,10 +178,13 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets({
-        "/canvases/tree.js": "a",
-        "canvases/relative.js": "b",
-      });
+      await testableBuilder.writeInlineStaticAssets(
+        {
+          "/canvases/tree.js": "a",
+          "canvases/relative.js": "b",
+        },
+        new AbortController().signal,
+      );
 
       // Neither file should be written at a filesystem-root path
       for (const p of writeFileCalls) {
@@ -183,9 +205,12 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      const writePromise = testableBuilder.writeInlineStaticAssets({
-        "../outside.js": "unsafe",
-      });
+      const writePromise = testableBuilder.writeInlineStaticAssets(
+        {
+          "../outside.js": "unsafe",
+        },
+        new AbortController().signal,
+      );
       expect(writePromise).rejects.toThrow("path contains a .. segment");
       await writePromise.catch(() => undefined);
       expect(mkdirMock).not.toHaveBeenCalled();

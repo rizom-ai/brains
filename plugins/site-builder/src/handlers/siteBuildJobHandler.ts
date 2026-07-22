@@ -122,6 +122,16 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             ),
           "success",
         );
+      } else if (result.cancelled) {
+        await this.recordStatus(
+          () =>
+            this.cfg.statusService?.markCancelled(
+              environment,
+              jobId,
+              result.errors?.join("; ") ?? "Site build cancelled",
+            ),
+          "cancelled",
+        );
       } else {
         await this.recordStatus(
           () =>
@@ -138,7 +148,9 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       await progressReporter.report({
         progress: 100,
         total: 100,
-        message: `Site build completed: ${result.routesBuilt} routes built`,
+        message: result.cancelled
+          ? "Site build cancelled"
+          : `Site build completed: ${result.routesBuilt} routes built`,
       });
 
       this.logger.debug("Site build job completed", {
@@ -146,6 +158,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         environment,
         routesBuilt: result.routesBuilt,
         success: result.success,
+        cancelled: result.cancelled ?? false,
       });
 
       // Emit site:build:completed event for other plugins to hook into
@@ -179,6 +192,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
       return {
         success: result.success,
+        ...(result.cancelled && { cancelled: true }),
         routesBuilt: result.routesBuilt,
         outputDir: data.outputDir,
         environment,

@@ -23,6 +23,7 @@ export interface StaticSiteBuilder<
   build(
     context: TContext,
     onProgress: (notification: ProgressNotification) => void,
+    signal: AbortSignal,
   ): Promise<void>;
   clean(): Promise<void>;
 }

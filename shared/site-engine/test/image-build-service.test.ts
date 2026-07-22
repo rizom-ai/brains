@@ -66,7 +66,7 @@ describe("ImageBuildService", () => {
     });
 
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["cover-photo"]);
+    await service.resolveAll(["cover-photo"], new AbortController().signal);
 
     const resolved = service.get("cover-photo");
     expect(resolved).toBeDefined();
@@ -78,6 +78,17 @@ describe("ImageBuildService", () => {
     expect(resolved.srcset).toContain("960w");
     expect(resolved.width).toBe(960);
     expect(resolved.height).toBe(480);
+  });
+
+  test("rejects an already cancelled image batch before entity reads", async () => {
+    const mockEntityService = createMockEntityService();
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const controller = new AbortController();
+    controller.abort(new Error("cancel image preparation"));
+
+    expect(
+      service.resolveAll(["cover-photo"], controller.signal),
+    ).rejects.toThrow("cancel image preparation");
   });
 
   test("should return original URL for small images that cannot be optimized", async () => {
@@ -99,7 +110,7 @@ describe("ImageBuildService", () => {
     });
 
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["tiny-icon"]);
+    await service.resolveAll(["tiny-icon"], new AbortController().signal);
 
     const resolved = service.get("tiny-icon");
     expect(resolved).toBeDefined();
@@ -115,7 +126,7 @@ describe("ImageBuildService", () => {
     });
 
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["missing-id"]);
+    await service.resolveAll(["missing-id"], new AbortController().signal);
 
     expect(service.get("missing-id")).toBeUndefined();
   });
@@ -139,7 +150,10 @@ describe("ImageBuildService", () => {
     });
 
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["shared", "shared", "shared"]);
+    await service.resolveAll(
+      ["shared", "shared", "shared"],
+      new AbortController().signal,
+    );
 
     // Only one entry in the map — deduplication worked
     expect(Object.keys(service.getMap())).toHaveLength(1);
@@ -164,7 +178,7 @@ describe("ImageBuildService", () => {
     });
 
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["test"]);
+    await service.resolveAll(["test"], new AbortController().signal);
 
     const map = service.getMap();
     expect(Object.keys(map)).toHaveLength(1);
@@ -195,7 +209,7 @@ describe("ImageBuildService", () => {
         logger,
         imagesDir,
       );
-      await service.resolveAll(["photo"]);
+      await service.resolveAll(["photo"], new AbortController().signal);
 
       const renderer = service.createImageRenderer();
       const html = markdownToHtml("![Alt](entity://image/photo)", {
