@@ -196,7 +196,6 @@ Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
-- [startup-readiness-signal.md](./plans/startup-readiness-signal.md) — stop capturing default identity at boot: move the atproto boot triggers to the plugin `ready()` hook and rename the pre-ready `system:plugins:ready` wire value so nothing is named "ready" before ready exists.
 
 Research probes (parked):
 
