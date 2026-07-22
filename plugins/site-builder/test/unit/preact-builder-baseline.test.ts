@@ -32,6 +32,20 @@ async function listFiles(root: string, directory = root): Promise<string[]> {
   return files.flat().sort();
 }
 
+async function readOutputSnapshot(
+  root: string,
+): Promise<Record<string, string>> {
+  const files = await listFiles(root);
+  return Object.fromEntries(
+    await Promise.all(
+      files.map(async (file) => [
+        file,
+        (await fs.readFile(join(root, file))).toString("base64"),
+      ]),
+    ),
+  );
+}
+
 function count(text: string, value: string): number {
   return text.split(value).length - 1;
 }
@@ -223,8 +237,10 @@ describe("PreactBuilder behavioral baseline", () => {
       "utf-8",
     );
 
+    const firstOutputSnapshot = await readOutputSnapshot(outputDir);
+
     expect({
-      files: await listFiles(outputDir),
+      files: Object.keys(firstOutputSnapshot),
       home: {
         title: home.includes("<title>Home Route</title>"),
         description: home.includes(
@@ -342,5 +358,22 @@ describe("PreactBuilder behavioral baseline", () => {
         ],
       },
     });
+
+    const repeatedOutputDir = join(testDir, "repeated-output");
+    const repeatedBuilder = createPreactBuilder({
+      logger: createSilentLogger(),
+      outputDir: repeatedOutputDir,
+      workingDir: join(testDir, "repeated-working"),
+      cssProcessor: new MockCSSProcessor(),
+    });
+    await repeatedBuilder.build(
+      context,
+      () => {},
+      new AbortController().signal,
+    );
+
+    expect(await readOutputSnapshot(repeatedOutputDir)).toEqual(
+      firstOutputSnapshot,
+    );
   });
 });

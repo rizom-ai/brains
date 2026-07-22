@@ -288,12 +288,13 @@ async function pruneGenerations(
         const path = join(environmentDir, entry.name);
         try {
           await fs.access(join(path, SITE_BUILD_MANIFEST_FILE));
+          const stat = await fs.stat(path);
+          return { path, modifiedAt: stat.mtimeMs };
         } catch {
-          // Never prune legacy backups or in-progress generations.
+          // Never prune legacy backups, in-progress generations, or a
+          // generation that vanished after its manifest was observed.
           return undefined;
         }
-        const stat = await fs.stat(path);
-        return { path, modifiedAt: stat.mtimeMs };
       }),
   );
   const directories = candidates.filter(
