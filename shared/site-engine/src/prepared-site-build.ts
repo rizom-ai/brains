@@ -38,6 +38,7 @@ export interface PreparedRoute {
  */
 export interface PreparedSiteBuild {
   buildId: string;
+  preparedAt: string;
   environment: "preview" | "production";
   site: SiteLayoutInfo;
   routes: PreparedRoute[];
@@ -93,6 +94,7 @@ export const preparedRouteSchema: z.ZodType<PreparedRoute> = z.object({
 
 export const preparedSiteBuildSchema: z.ZodType<PreparedSiteBuild> = z.object({
   buildId: z.string().min(1),
+  preparedAt: z.string().datetime(),
   environment: z.enum(["preview", "production"]),
   site: siteLayoutInfoSchema,
   routes: z.array(preparedRouteSchema),

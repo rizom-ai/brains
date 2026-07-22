@@ -49,10 +49,16 @@ export interface SiteBuildOutputLifecycle {
 export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
   private readonly logger: Logger;
   private readonly retainedGenerations: number;
+  private readonly staleGenerationAgeMs: number;
 
-  constructor(logger: Logger, retainedGenerations = 3) {
+  constructor(
+    logger: Logger,
+    retainedGenerations: number = 3,
+    staleGenerationAgeMs: number = 24 * 60 * 60 * 1_000,
+  ) {
     this.logger = logger.child("SiteBuildOutput");
     this.retainedGenerations = Math.max(1, retainedGenerations);
+    this.staleGenerationAgeMs = Math.max(0, staleGenerationAgeMs);
   }
 
   async begin(
@@ -76,6 +82,16 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
         );
 
     await fs.mkdir(environmentDir, { recursive: true });
+    const staleGenerations = await removeStaleUncommittedGenerations(
+      environmentDir,
+      generationDir,
+      this.staleGenerationAgeMs,
+    );
+    if (staleGenerations > 0) {
+      this.logger.debug(
+        `Removed ${staleGenerations} stale uncommitted site generation(s)`,
+      );
+    }
     await fs.rm(generationDir, { recursive: true, force: true });
     await fs.rm(workingDir, { recursive: true, force: true });
     await fs.mkdir(generationDir, { recursive: true });
@@ -218,6 +234,43 @@ async function lstatIfPresent(
     return await fs.lstat(path);
   } catch (error) {
     if (isNotFoundError(error)) return undefined;
+    throw error;
+  }
+}
+
+async function removeStaleUncommittedGenerations(
+  environmentDir: string,
+  currentGenerationDir: string,
+  staleGenerationAgeMs: number,
+): Promise<number> {
+  const entries = await fs.readdir(environmentDir, { withFileTypes: true });
+  const now = Date.now();
+  const staleDirectories: string[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith("legacy-")) continue;
+    const path = join(environmentDir, entry.name);
+    if (resolve(path) === resolve(currentGenerationDir)) continue;
+    if (await hasArtifactManifest(path)) continue;
+    const stat = await fs.stat(path);
+    if (now - stat.mtimeMs < staleGenerationAgeMs) continue;
+    staleDirectories.push(path);
+  }
+
+  await Promise.all(
+    staleDirectories.map((path) =>
+      fs.rm(path, { recursive: true, force: true }),
+    ),
+  );
+  return staleDirectories.length;
+}
+
+async function hasArtifactManifest(directory: string): Promise<boolean> {
+  try {
+    await fs.access(join(directory, SITE_BUILD_MANIFEST_FILE));
+    return true;
+  } catch (error) {
+    if (isNotFoundError(error)) return false;
     throw error;
   }
 }

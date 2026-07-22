@@ -9,6 +9,7 @@ import { runStaticSiteBuild } from "../../src/lib/run-static-site-build";
 const buildContext: BuildContext = {
   preparedBuild: {
     buildId: "run-static-site-build-test",
+    preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "preview",
     site: {
       title: "Test Site",

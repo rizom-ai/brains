@@ -31,6 +31,7 @@ const sectionContentSchema = z.record(z.string(), z.unknown());
 
 export interface PrepareSiteBuildOptions {
   buildId: string;
+  preparedAt: string;
   routes: RouteDefinition[];
   parsedOptions: Pick<
     SiteBuilderOptions,
@@ -133,6 +134,7 @@ export async function prepareSiteBuild(
   options.signal.throwIfAborted();
   const preparedBuild = createPreparedSiteBuildSnapshot({
     buildId: options.buildId,
+    preparedAt: options.preparedAt,
     environment: options.parsedOptions.environment,
     site,
     routes: routeResults.map((result) => result.route),

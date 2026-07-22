@@ -5,6 +5,7 @@ import {
   type SiteBuildArtifactKind,
   type SiteBuildArtifactManifest,
 } from "@brains/site-engine";
+import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { dirname, join, relative, sep } from "path";
 import { resolveSafeOutputFile } from "./output-path";
@@ -126,10 +127,10 @@ function classifyArtifact(
 async function listArtifactFiles(
   generationDir: string,
   directory = generationDir,
-): Promise<Array<{ path: string; size: number }>> {
+): Promise<Array<{ path: string; size: number; sha256: string }>> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   entries.sort((left, right) => left.name.localeCompare(right.name));
-  const files: Array<{ path: string; size: number }> = [];
+  const files: Array<{ path: string; size: number; sha256: string }> = [];
 
   for (const entry of entries) {
     const fullPath = join(directory, entry.name);
@@ -145,8 +146,12 @@ async function listArtifactFiles(
     if (!entry.isFile()) continue;
     const path = relative(generationDir, fullPath).split(sep).join("/");
     if (path === SITE_BUILD_MANIFEST_FILE) continue;
-    const stat = await fs.stat(fullPath);
-    files.push({ path, size: stat.size });
+    const content = await fs.readFile(fullPath);
+    files.push({
+      path,
+      size: content.byteLength,
+      sha256: createHash("sha256").update(content).digest("hex"),
+    });
   }
 
   return files;

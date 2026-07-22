@@ -29,7 +29,11 @@ export async function writeSiteBuildSeoFiles(
   });
   options.signal.throwIfAborted();
 
-  const sitemap = generateSitemap(options.preparedBuild.routes, baseUrl);
+  const sitemap = generateSitemap(
+    options.preparedBuild.routes,
+    baseUrl,
+    options.preparedBuild.preparedAt,
+  );
   await fs.writeFile(join(options.outputDir, "sitemap.xml"), sitemap, {
     encoding: "utf8",
     signal: options.signal,

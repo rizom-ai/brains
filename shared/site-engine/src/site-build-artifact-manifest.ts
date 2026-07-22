@@ -8,6 +8,7 @@ export interface SiteBuildArtifactFile {
   path: string;
   kind: SiteBuildArtifactKind;
   size: number;
+  sha256: string;
 }
 
 export interface SiteBuildRouteArtifact {
@@ -37,6 +38,7 @@ const artifactFileSchema: z.ZodType<SiteBuildArtifactFile> = z.object({
   path: z.string(),
   kind: z.enum(["route", "css", "static", "seo", "public"]),
   size: z.number().nonnegative(),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
 const routeArtifactSchema: z.ZodType<SiteBuildRouteArtifact> = z.object({

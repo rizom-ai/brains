@@ -114,6 +114,7 @@ describe("prepareSiteBuild", () => {
 
     const result = await prepareSiteBuild({
       buildId: "prepared-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
       publicDir: missingPublicDir,
       signal: new AbortController().signal,
@@ -189,6 +190,7 @@ describe("prepareSiteBuild", () => {
 
     const result = await prepareSiteBuild({
       buildId: "invalid-content-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
       publicDir: missingPublicDir,
       signal: new AbortController().signal,
@@ -234,6 +236,7 @@ describe("prepareSiteBuild", () => {
 
     const result = await prepareSiteBuild({
       buildId: "resolution-failure-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [route],
       publicDir: missingPublicDir,
       signal: new AbortController().signal,
@@ -273,6 +276,7 @@ describe("prepareSiteBuild", () => {
 
     const result = await prepareSiteBuild({
       buildId: "public-assets-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
       publicDir,
       signal: new AbortController().signal,
@@ -316,6 +320,7 @@ describe("prepareSiteBuild", () => {
 
     const result = await prepareSiteBuild({
       buildId: "invalid-public-assets-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
       publicDir,
       signal: new AbortController().signal,
