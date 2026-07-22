@@ -195,6 +195,63 @@ discord:
     });
   });
 
+  it("defaults site package versions from effective brain versions while preserving pins", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.136
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/cohort-default.yaml": `handle: cohort-default
+siteOverride:
+  package: "@rizom/site-cohort-default"
+discord:
+  enabled: false
+`,
+      "users/pilot-default.yaml": `handle: pilot-default
+siteOverride:
+  package: "@rizom/site-pilot-default"
+discord:
+  enabled: false
+`,
+      "users/pinned.yaml": `handle: pinned
+siteOverride:
+  package: "@rizom/site-pinned"
+  version: 0.2.0-alpha.135
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `brainVersionOverride: 0.2.0-alpha.137
+members:
+  - cohort-default
+`,
+      "cohorts/steady.yaml": `members:
+  - pilot-default
+  - pinned
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+    const users = Object.fromEntries(
+      registry.users.map((user) => [user.handle, user]),
+    );
+
+    expect(users["cohort-default"]?.siteOverride?.version).toBe(
+      "0.2.0-alpha.137",
+    );
+    expect(users["pilot-default"]?.siteOverride?.version).toBe(
+      "0.2.0-alpha.136",
+    );
+    expect(users["pinned"]?.siteOverride?.version).toBe("0.2.0-alpha.135");
+  });
+
   it("loads user-level ATProto identifier metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1

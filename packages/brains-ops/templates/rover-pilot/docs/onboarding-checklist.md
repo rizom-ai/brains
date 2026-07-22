@@ -34,7 +34,7 @@
       - background jobs are not repeatedly failing, except for expected missing optional integrations
     - for `presetOverride: default` users:
       - initial site build completes
-14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
+14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the required default/site image tags, refreshes generated user env files, and redeploys affected users. Site overrides follow the user's effective brain version unless they declare an explicit exact `version` pin.
 15. Confirm the user received the setup email, registered their passkey, and can sign in to web chat at `https://<handle>.rizom.ai/chat`. That completes the default onboarding; everything below is per-cohort extras.
 16. Hand over the browser surfaces:
     - Chat (primary): `https://<handle>.rizom.ai/chat`

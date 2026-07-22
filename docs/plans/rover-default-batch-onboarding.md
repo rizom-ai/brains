@@ -2,10 +2,12 @@
 
 ## Status
 
-Fact-checked against `@rizom/ops` and the live pilot 2026-07-22. The original
-Phase 1/2 machinery is shipped and proven in production; this plan now covers
-only what actually remains before a second batch: cohort-level version
-defaulting, the package authoring contract docs, and the batch rollout itself.
+Complete. The fleet machinery was already live; this pass added effective-version
+defaulting for site overrides, regression coverage through image derivation, and
+the hosted package authoring/canary/rollback contract to the published
+`@rizom/ops` scaffold. The remaining steps are operational: release `@rizom/ops`,
+remove the now-redundant pins in rover-pilot, and run the external-package canary
+before admitting the next cohort.
 
 ### Shipped (verified)
 
@@ -30,14 +32,18 @@ defaulting, the package authoring contract docs, and the batch rollout itself.
 - **`domainOverride`** — shipped and proven by the `rizom.ai` custom-domain
   TLS cutover.
 
-### Not built
+### Completed by this plan
 
-- `siteOverride.version` is a required exact version — every release bumps the
-  cohort `brainVersionOverride` **and** each site user's `siteOverride.version`
-  (three files per train today).
-- No operator/user-facing doc of the site/theme package contract.
-- `previewDomainOverride` (zero references in the codebase).
-- `brains-ops preflight`.
+- `siteOverride.version` is optional input and resolves to the user's effective
+  brain version in `load-registry.ts`; explicit exact versions remain pins.
+- Registry tests cover the cohort default, pilot default, and explicit pin, and
+  the missing-image test exercises omitted-version resolution through exact npm
+  refs and per-instance image derivation.
+- The scaffolded operator playbook documents the public package contracts,
+  lockstep versions, desired-state config, image isolation, canary, verification,
+  and rollback flow.
+- `previewDomainOverride` and `brains-ops preflight` remain intentionally
+  demand-gated rather than unfinished scope.
 
 ## Goal
 
@@ -49,9 +55,9 @@ Batch constraints (unchanged): custom site/theme packages must be public npm
 packages; private registries, user edits to generated `brain.yaml`, and
 cohort-level site/theme inheritance stay out of scope.
 
-## Phase 1 — Cohort version defaulting
+## Phase 1 — Cohort version defaulting (complete)
 
-Make `siteOverride.version` optional. When omitted, the registry resolves it to
+`siteOverride.version` is optional. When omitted, the registry resolves it to
 the user's effective brain version (cohort `brainVersionOverride`, else the
 pilot default) at load time; an explicit version remains a deliberate pin.
 
@@ -63,16 +69,16 @@ pilot default) at load time; an explicit version remains a deliberate pin.
   concrete `ResolvedSiteOverride` — image tags stay a pure function of
   resolved refs, and a cohort version bump automatically rebuilds the site
   images.
-- Tests first: registry resolution (omitted → cohort version, omitted →
-  pilot default, explicit pin wins), unchanged rendering/image derivation on
-  resolved output.
-- Follow-up in rover-pilot: drop the redundant `version` lines from
-  `users/rizom-ai.yaml` and `users/docs.yaml` so a release train bumps one
-  file.
+- Registry resolution covers omitted → cohort version, omitted → pilot default,
+  and explicit pin wins; image derivation consumes the resolved exact version.
+- After the supporting `@rizom/ops` version is published and pinned in
+  rover-pilot, drop the redundant `version` lines from `users/rizom-ai.yaml` and
+  `users/docs.yaml` so a release train bumps one file.
 
-## Phase 2 — Package authoring contract docs
+## Phase 2 — Package authoring contract docs (complete)
 
-Document the contract before asking a batch to supply packages:
+The scaffolded operator playbook now documents the contract before a batch is
+asked to supply packages:
 
 - theme package exports a CSS string as default export;
 - site package exports a valid `SitePackage`;
@@ -85,7 +91,7 @@ Document the contract before asking a batch to supply packages:
 Starter templates (`rover-site-*` / `rover-theme-*`) only if the first
 external author actually gets stuck without them.
 
-## Phase 3 — The batch
+## Phase 3 — Operational batch rollout
 
 1. One canary user with an externally authored package through the proven
    flow: choose refs → apply to the canary's YAML → reconcile → build/deploy →
@@ -111,9 +117,9 @@ contract, package installation moves into the app runtime with a persistent
 cache and integrity checks, and the shared image stops rebuilding for site/theme
 changes. Migrate by swapping the resolver implementation, not user config.
 
-## Suggested implementation order
+## Completion sequence
 
-1. Cohort version defaulting (Phase 1) + rover-pilot YAML cleanup
-2. Authoring contract docs (Phase 2)
-3. Canary with one external package, then the batch (Phase 3)
-4. Phase 4 items only on demonstrated need
+1. Publish and pin the supporting `@rizom/ops` release, then remove the two
+   redundant rover-pilot YAML pins.
+2. Canary with one external package, then admit the batch.
+3. Add Phase 4 items only on demonstrated need.

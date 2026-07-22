@@ -548,6 +548,16 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("final aggregation step");
     expect(operatorPlaybook).toContain("deploy/scripts/");
     expect(operatorPlaybook).toContain("`@rizom/ops` in `package.json`");
+    expect(operatorPlaybook).toContain(
+      "## Hosted site and theme package contract",
+    );
+    expect(operatorPlaybook).toContain("default-export a valid `SitePackage`");
+    expect(operatorPlaybook).toContain("site-mockup-migration.md");
+    expect(operatorPlaybook).toContain("siteOverride.version");
+    expect(operatorPlaybook).toContain("per-instance image");
+    expect(operatorPlaybook).toContain(
+      "### Custom-package canary and rollback",
+    );
 
     const userOnboarding = await readFile(
       join(repo, "docs", "user-onboarding.md"),
@@ -575,6 +585,8 @@ describe("initPilotRepo", () => {
     expect(readme).toContain(".env.schema");
     expect(readme).toContain("single source of truth");
     expect(readme).toContain("brain-${brainVersion}");
+    expect(readme).toContain("brain-${brainVersion}-sites-${packageHash}");
+    expect(readme).toContain("siteOverride.version");
     expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
   });
