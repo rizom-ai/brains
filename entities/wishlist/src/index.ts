@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -35,6 +36,10 @@ export class WishlistPlugin extends EntityPlugin<
 
   constructor(config: WishlistConfigInput = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSource: false, projectionSourceRole: "excluded" };
   }
 
   protected override async interceptCreate(

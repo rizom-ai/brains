@@ -176,19 +176,7 @@ const roverBrain: BrainDefinition = defineBrain({
     // Not in any preset — the consolidated rizom.ai brain opts in via
     // brain.yaml `add:` (docs/plans/rizom-consolidation.md, decision 3).
     ["products", productsPlugin, undefined],
-    [
-      "topics",
-      topicsPlugin,
-      {
-        includeEntityTypes: [
-          "post",
-          "deck",
-          "project",
-          "link",
-          "anchor-profile",
-        ],
-      },
-    ],
+    ["topics", topicsPlugin, {}],
     [
       "content-pipeline",
       contentPipelinePlugin,

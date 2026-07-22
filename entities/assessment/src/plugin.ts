@@ -1,4 +1,8 @@
-import type { Plugin, EntityPluginContext } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  EntityTypeConfig,
+} from "@brains/plugins";
 import {
   EntityPlugin,
   SYSTEM_CHANNELS,
@@ -32,6 +36,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<
 
   constructor() {
     super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "supporting" };
   }
 
   protected override async onRegister(

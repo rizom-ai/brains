@@ -58,6 +58,12 @@ describe("NotePlugin", () => {
     it("should not provide any resources", () => {
       expect(capabilities.resources).toEqual([]);
     });
+
+    it("registers public notes as primary topic sources", () => {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("note"),
+      ).toMatchObject({ projectionSourceRole: "primary" });
+    });
   });
 
   async function runQueuedUploadImport(): Promise<unknown> {

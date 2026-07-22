@@ -45,7 +45,11 @@ export class SiteInfoPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { embeddable: false };
+    return {
+      embeddable: false,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 
   protected override getDataSources(): DataSource[] {

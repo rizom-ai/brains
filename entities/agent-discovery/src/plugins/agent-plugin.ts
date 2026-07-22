@@ -1,6 +1,7 @@
 import type {
   DataSource,
   EntityPluginContext,
+  EntityTypeConfig,
   JobHandler,
   Plugin,
   Template,
@@ -36,6 +37,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
       {},
       emptyEntityPluginConfigSchema,
     );
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "supporting" };
   }
 
   protected override createGenerationHandler(

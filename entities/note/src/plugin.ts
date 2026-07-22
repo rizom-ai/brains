@@ -54,7 +54,7 @@ export class NotePlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "ambient" };
+    return { projectionSourceRole: "primary" };
   }
 
   protected override async interceptCreate(

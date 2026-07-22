@@ -4,7 +4,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { NewsletterPlugin } from "../src/entity/plugin";
 
 describe("NewsletterPlugin - Publish Pipeline Integration", () => {
-  it("declares newsletter publish statuses", async () => {
+  it("declares newsletter publish statuses and secondary topic authority", async () => {
     const harness = createPluginHarness<NewsletterPlugin>({
       dataDir: "/tmp/test-newsletter-policy",
     });
@@ -12,8 +12,11 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     await harness.installPlugin(new NewsletterPlugin({}));
 
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("newsletter").publish,
-    ).toEqual({ publishStatuses: ["queued", "published", "failed"] });
+      harness.getEntityRegistry().getEntityTypeConfig("newsletter"),
+    ).toMatchObject({
+      projectionSourceRole: "secondary",
+      publish: { publishStatuses: ["queued", "published", "failed"] },
+    });
   });
 
   it("registers provider-mode publishing config", async () => {

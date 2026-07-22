@@ -171,7 +171,7 @@ export class PortfolioPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return { projectionSourceRole: "secondary" };
   }
 
   protected override async interceptCreate(

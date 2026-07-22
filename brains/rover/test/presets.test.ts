@@ -161,6 +161,15 @@ plugins:
     expect(pluginIds).toContain("document");
   });
 
+  it("uses topic source defaults in core", () => {
+    const config = resolve(rover, {}, { preset: "core" });
+    const topics = config.plugins?.find((plugin) => plugin.id === "topics");
+    const topicsConfig = topics?.config as
+      { includeEntityTypes?: readonly string[] } | undefined;
+
+    expect(topicsConfig?.includeEntityTypes).toEqual(["*"]);
+  });
+
   it("keeps Rover onboarding disabled by default", () => {
     const config = resolve(rover, {}, { preset: "core" });
     const onboarding = config.plugins?.find(

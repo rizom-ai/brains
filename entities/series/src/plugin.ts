@@ -79,7 +79,7 @@ export class SeriesPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 0.5 };
+    return { weight: 0.5, projectionSourceRole: "supporting" };
   }
 
   protected override createGenerationHandler(
