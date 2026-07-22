@@ -128,8 +128,8 @@ A human confirms; the suggestion never auto-moves an opportunity.
 
 Each phase ships an end-to-end usable increment; write the tests first.
 
-- **Phase 0 — Walking skeleton: capture.** New `entities/opportunity` package
-  (`@brains/opportunity`) with the `opportunity` entity (schema, adapter,
+- **Phase 0 — Walking skeleton: capture.** New `entities/business-development` package
+  (`@brains/business-development`) with the `opportunity` entity (schema, adapter,
   `EntityPlugin`, `getInstructions()`), captured through `system_create` with
   **manually entered**
   scores. Done when you can save an opportunity with scores + state and read it
@@ -163,8 +163,8 @@ Each phase ships an end-to-end usable increment; write the tests first.
 
 Resolved with Jan Hein:
 
-1. **Packaging.** Build as a standalone `entities/opportunity` package
-   (`@brains/opportunity`), composed into whichever brain Rizom chooses — **kept
+1. **Packaging.** Build as a standalone `entities/business-development` package
+   (`@brains/business-development`), composed into whichever brain Rizom chooses — **kept
    out of Rover's public reference preset**. Which brain actually composes it is
    deferred to composition time and does not block the build.
 2. **Integrity semantics.** `0` = hard disqualify (never Active, regardless of

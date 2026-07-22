@@ -85,7 +85,15 @@
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Identity Profiles, Expression, and Site Composition</span>
+            <span class="card-name">Brain Model Unification — One Brain, Capability Bundles</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + <code>brain init</code> recipes. Supersedes the three-reference-model framing.</div>
+          <div class="card-file">brain-model-unification.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Identity Profiles, Style Guide, and Site Composition</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.</div>
@@ -107,13 +115,13 @@
           <div class="card-desc">rename/reframe <code>system_insights</code> as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.</div>
           <div class="card-file">system-analytics-tool.md</div>
         </div>
-        <div class="card status-done">
+        <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Brain Model Unification — One Brain, Capability Bundles</span>
-            <span class="badge badge-done">Done</span>
+            <span class="card-name">Topics Derivation</span>
+            <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + <code>brain init</code> recipes. Supersedes the three-reference-model framing.</div>
-          <div class="card-file">brain-model-unification.md</div>
+          <div class="card-desc">derived topic entities behind the knowledge map: extraction, reconciliation, projection, and corpus calibration are shipped; the live-fleet rebuild/verification tail remains.</div>
+          <div class="card-file">topics-derivation.md</div>
         </div>
         </div>
       </details>
@@ -143,14 +151,6 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Identity &amp; trust architecture</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.</div>
-          <div class="card-file">identity-and-trust.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Multi-User &amp; Permissions</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -165,13 +165,13 @@
           <div class="card-desc">broader private runtime-state boundary.</div>
           <div class="card-file">operator-runtime-db.md</div>
         </div>
-        <div class="card status-proposed">
+        <div class="card status-done">
           <div class="card-head">
-            <span class="card-name">A2A Request Signing</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="card-name">Identity &amp; trust architecture</span>
+            <span class="badge badge-done">Done</span>
           </div>
-          <div class="card-desc">RFC 9421 request signing for inter-brain A2A.</div>
-          <div class="card-file">a2a-request-signing.md</div>
+          <div class="card-desc">the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.</div>
+          <div class="card-file">identity-and-trust.md</div>
         </div>
         </div>
       </details>
@@ -299,19 +299,19 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Plugin contracts consolidation</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">collapse redundant runtime/public mappers via <code>Schema.parse</code>.</div>
-          <div class="card-file">plugin-contracts-consolidation.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">HTTP route registry hardening</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
           <div class="card-file">http-route-registry-hardening.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Startup readiness signal — stop capturing default identity at boot</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">stop capturing default identity at boot: move the atproto boot triggers to the plugin <code>ready()</code> hook and rename the pre-ready <code>system:plugins:ready</code> wire value so nothing is named &quot;ready&quot; before ready exists.</div>
+          <div class="card-file">startup-readiness-signal.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

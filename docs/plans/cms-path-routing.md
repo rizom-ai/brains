@@ -2,7 +2,9 @@
 
 ## Status
 
-**Proposed.** Replace the CMS editor's hash doors and one-time hash parsing with
+**In progress on `work/cms-path-routing`** — the TanStack router, migrated console
+doors, and conventions doc are committed on the worktree; unmerged. Replace the
+CMS editor's hash doors and one-time hash parsing with
 package-local, typed path routing. Browser Back and Forward must restore collections,
 entities, and optional workspaces without introducing a global browser store or changing
 CMS query, mutation, draft, conflict, or pipeline ownership.
@@ -52,12 +54,12 @@ those producers atomically rather than retain a second legacy routing system.
 
 For a CMS configured with `routePath: "/cms"`, the canonical routes are:
 
-| Screen | Path |
-| --- | --- |
-| CMS entry/default collection | `/cms` |
-| Entity collection | `/cms/entities/{encodedEntityType}` |
-| Entity detail | `/cms/entities/{encodedEntityType}/{encodedEntityId}` |
-| Optional workspace | `/cms/workspaces/{encodedWorkspaceId}` |
+| Screen                       | Path                                                  |
+| ---------------------------- | ----------------------------------------------------- |
+| CMS entry/default collection | `/cms`                                                |
+| Entity collection            | `/cms/entities/{encodedEntityType}`                   |
+| Entity detail                | `/cms/entities/{encodedEntityType}/{encodedEntityId}` |
+| Optional workspace           | `/cms/workspaces/{encodedWorkspaceId}`                |
 
 `routePath` remains configurable, so `/studio/entities/post/field-notes` is equally valid.
 Entity IDs may contain `/`; the entity-detail route therefore treats everything after the

@@ -89,6 +89,7 @@ Plans:
 - [identity-profiles-and-expression.md](./plans/identity-profiles-and-expression.md) — separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
+- [topics-derivation.md](./plans/topics-derivation.md) — derived topic entities behind the knowledge map: extraction, reconciliation, projection, and corpus calibration are shipped; the live-fleet rebuild/verification tail remains.
 
 ### 2. The collective posture (active POC)
 
@@ -134,7 +135,7 @@ This includes:
 - speaker attribution and eventually identity linking;
 - runtime users and roles when the shared model needs them;
 - auth/runtime storage that is not git-synced content;
-- trusted inter-brain/agent collaboration through signed A2A.
+- trusted inter-brain/agent collaboration through signed A2A (RFC 9421 request signing, peer-trust grants, and task-caller binding shipped; the a2a-request-signing plan is retired).
 
 Plans:
 
@@ -142,7 +143,6 @@ Plans:
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
 - [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: database-backed auth, People administration, role invariants, session migration, and normalized identity evidence are implemented; compatibility release gates and remaining hardening findings precede merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
-- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
 ### 4. Hosting & operations
 
@@ -197,8 +197,8 @@ These are real, but they should not masquerade as product bets. They reduce drag
 Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
-- [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [startup-readiness-signal.md](./plans/startup-readiness-signal.md) — stop capturing default identity at boot: move the atproto boot triggers to the plugin `ready()` hook and rename the pre-ready `system:plugins:ready` wire value so nothing is named "ready" before ready exists.
 
 Research probes (parked):
 

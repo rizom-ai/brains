@@ -90,7 +90,6 @@ Deferred until discovery establishes trusted/followed peers:
 
 ### 9. Cleanups
 
-- Split the `shared/atproto-contracts` barrel (`src/index.ts`, 800+ lines re-exporting 200+ Zod schemas) by domain (records, types, projections) when next touching the package — it is the type-instantiation blowup `shared/utils` warns against.
 - `topics` registers its plugin from `src/index.ts` instead of a dedicated `src/plugin.ts`; align when next touching the package.
 - `did:web` documents intentionally omit `verificationMethod` (the repo `did:plc` signs records); revisit only if a brain gets its own signing key.
 
