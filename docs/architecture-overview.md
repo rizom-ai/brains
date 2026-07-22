@@ -192,6 +192,14 @@ Brains uses three primary plugin categories:
 - **ServicePlugin** — provides tools, jobs, API routes, orchestration, and external service integrations.
 - **InterfacePlugin** — provides user-facing transports and long-lived daemons.
 
+### Static site build boundary
+
+`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. Renderers consume that snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
+
+Each build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
+
+Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, Preact bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
+
 ### EntityPlugin behavior
 
 Entity plugins are the default way content enters the system.
