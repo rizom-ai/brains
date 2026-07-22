@@ -52,3 +52,7 @@ export type {
   WidgetFilterOption,
   WidgetTabDefinition,
 } from "./widget-ui";
+
+// Page renderer, exposed for the root console visual-regression script
+export { renderDashboardPageHtml } from "./dashboard-page";
+export type { DashboardRenderInput } from "./dashboard-page";

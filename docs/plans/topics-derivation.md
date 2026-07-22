@@ -1,6 +1,6 @@
 # Topics Derivation
 
-**Status:** Phases 1–3 implemented; Phase 4 calibration next
+**Status:** Phases 1–4 implemented (corpus calibration shipped to main); the live-fleet rebuild/verification tail remains
 
 The topic system produces near-duplicates and operational residue. Root
 causes, verified in code:

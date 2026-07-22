@@ -4,10 +4,11 @@ Last updated: 2026-07-21
 
 ## Status
 
-Phase 0 complete; Phase 1A's pure bundle kernel is next and remains a **pre-`v0.2.0`
-release-candidate gate**. Phase 1A can proceed while `feature/auth-runtime-db` finishes;
-Phase 1B's parser, resolver, and permission integration waits for that branch. No bundle
-runtime has been implemented. The alpha.204 model and preset contract is frozen in
+Phase 0 complete; Phase 1A's pure bundle kernel is **in progress on
+`feature/brain-model-unification-phase-1a`** (bundle definition/resolution committed on
+the worktree; unmerged) and remains a **pre-`v0.2.0` release-candidate gate**. Phase 1A
+can proceed while `feature/auth-runtime-db` finishes; Phase 1B's parser, resolver, and
+permission integration waits for that branch. No bundle runtime is on `main` yet. The alpha.204 model and preset contract is frozen in
 `packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
 catalog IDs, selected members, sanitized resolved config, instruction text, effective
 permissions, site/theme identity, and the consolidated Rizom additions. The fixture was

@@ -10,7 +10,7 @@ broken; the value is option-value while the schema is small and the engine is be
 
 ## Context
 
-Every shell service uses `@libsql/client@^0.15.7` + `drizzle-orm/libsql`
+Every shell service uses `@libsql/client@^0.17.4` + `drizzle-orm/libsql`
 (`entity-service`, `job-queue`, `conversation-service`, `runtime-state`, plus the
 CLI). Usage is deliberately minimal: `createClient({ url, authToken })` over a
 local `file:` SQLite DB, with the door open to a remote Turso/libSQL server when

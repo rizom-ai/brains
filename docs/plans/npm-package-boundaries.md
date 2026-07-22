@@ -7,7 +7,7 @@ Accepted direction. Near-term: the external authoring path is already alpha-usab
 Fact-checked against the tree 2026-06-10:
 
 - The public subpaths exist and exceed the Tier 2 list below: `@rizom/brain` (packages/brain-cli) ships `./plugins`, `./entities`, `./services`, `./interfaces`, `./templates`, plus `./site`, `./themes`, `./deploy`, and the `./cli` bin.
-- Declaration cleanliness is already guarded: `packages/brain-cli/scripts/declaration-leaks.ts` fails the build when generated declarations contain `@brains/*` imports.
+- Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
 - dependency-cruiser is configured (`bun run arch:check`) with layering rules (no-circular, plugins-can-only-import-shell-and-shared, no plugin-to-plugin, …) — but not yet the published-official-plugin dependency rule from migration step 4.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
 - Milestone A has not started: `@brains/note` still depends on five private workspaces (`@brains/plugins`, `@brains/contracts`, `@brains/atproto-contracts`, `@brains/document`, `@brains/utils`).
@@ -65,7 +65,7 @@ Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a la
 - `@rizom/brain/deploy`
 - optional future `@rizom/brain/ui` or equivalent template/UI subpath
 
-These subpaths are the SDK. They must have generated declarations with no `@brains/*` imports (enforced by `scripts/declaration-leaks.ts`).
+These subpaths are the SDK. They must have generated declarations with no `@brains/*` imports (enforced by `findInternalDeclarationImports` in `scripts/build.ts`).
 
 Subpath curation rule (decided 2026-06-10): the list above is the
 registry. Adding a subpath requires a named concrete consumer (a

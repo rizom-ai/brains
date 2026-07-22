@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
 import type {
   AtprotoLexicon,
+  AtprotoLexiconObjectDef,
   AtprotoLexiconProperty,
   CanonicalAtprotoLexiconId,
 } from "./lexicon";
@@ -62,8 +63,21 @@ function buildAtprotoStringSchema(
   return schema;
 }
 
+// Only local `#name` refs are supported; `main` is the record def, never a
+// ref target. Anything else fails closed in the ref case below rather than
+// falling through to an unvalidated field.
+function resolveAtprotoLocalRef(
+  ref: unknown,
+  defs: AtprotoLexicon["defs"],
+): AtprotoLexiconObjectDef | undefined {
+  if (typeof ref !== "string" || !ref.startsWith("#")) return undefined;
+  const def = defs[ref.slice(1)];
+  return def?.type === "object" ? def : undefined;
+}
+
 function buildAtprotoFieldSchema(
   property: AtprotoSchemaProperty,
+  defs: AtprotoLexicon["defs"],
 ): z.ZodType<unknown> {
   switch (property.type) {
     case "string":
@@ -74,7 +88,7 @@ function buildAtprotoFieldSchema(
       return z.boolean();
     case "array": {
       const itemSchema = property.items
-        ? buildAtprotoFieldSchema(property.items)
+        ? buildAtprotoFieldSchema(property.items, defs)
         : z.unknown();
       let schema = z.array(itemSchema);
       if (property.maxLength !== undefined) {
@@ -83,7 +97,16 @@ function buildAtprotoFieldSchema(
       return schema;
     }
     case "object":
-      return buildAtprotoObjectSchema(property);
+      return buildAtprotoObjectSchema(property, defs);
+    case "ref": {
+      const target = resolveAtprotoLocalRef(property["ref"], defs);
+      if (!target) {
+        return z.custom<never>(() => false, {
+          message: `unresolvable lexicon ref ${String(property["ref"])}`,
+        });
+      }
+      return z.lazy(() => buildAtprotoObjectSchema(target, defs));
+    }
     case "blob":
       return z.custom<Record<string, unknown>>(isRecord, {
         message: "expected blob",
@@ -94,14 +117,15 @@ function buildAtprotoFieldSchema(
 }
 
 function buildAtprotoObjectShape(
-  property: AtprotoSchemaProperty,
+  property: AtprotoSchemaProperty | AtprotoLexiconObjectDef,
+  defs: AtprotoLexicon["defs"],
 ): Record<string, z.ZodType<unknown>> {
   const requiredFields = new Set(property.required ?? []);
   const shape: Record<string, z.ZodType<unknown>> = {};
   for (const [field, fieldProperty] of Object.entries(
     property.properties ?? {},
   )) {
-    const fieldSchema = buildAtprotoFieldSchema(fieldProperty);
+    const fieldSchema = buildAtprotoFieldSchema(fieldProperty, defs);
     shape[field] = requiredFields.has(field)
       ? fieldSchema
       : fieldSchema.optional();
@@ -110,9 +134,10 @@ function buildAtprotoObjectShape(
 }
 
 function buildAtprotoObjectSchema(
-  property: AtprotoSchemaProperty,
+  property: AtprotoSchemaProperty | AtprotoLexiconObjectDef,
+  defs: AtprotoLexicon["defs"],
 ): AtprotoRecordSchema {
-  return z.object(buildAtprotoObjectShape(property)).passthrough();
+  return z.object(buildAtprotoObjectShape(property, defs)).passthrough();
 }
 
 function reportUnexpectedFields(
@@ -174,7 +199,7 @@ export function buildAtprotoRecordSchema(
 ): AtprotoRecordSchema {
   const schema = z
     .object({
-      ...buildAtprotoObjectShape(lexicon.defs.main.record),
+      ...buildAtprotoObjectShape(lexicon.defs.main.record, lexicon.defs),
       $type: z.literal(lexicon.id).optional(),
     })
     .passthrough();

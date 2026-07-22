@@ -23,7 +23,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Passkey registration/authentication defaults to `single-operator` and display name `Operator`.
 - HTTP MCP currently treats authenticated requests as `anchor` globally instead of resolving per-user/session permissions.
 - Passkeys, sessions, OAuth clients, signing keys, auth codes, and refresh tokens live in runtime auth storage (`./data/auth`) and must **not** move under `brain-data`.
-- Dashboard widget visibility already uses the standard permission levels (`UserPermissionLevelSchema`, `plugins/dashboard/src/widget-schema.ts`); an operator session maps to `anchor`, everyone else to `public` (`plugin.ts:190`). The signed-in UI is still generic (masthead shows a console header plus `Sign out`, no user name or role).
+- Dashboard widget visibility already uses the standard permission levels (`widgetVisibilitySchema`/`WidgetVisibility`, aliasing `UserPermissionLevel` — `plugins/dashboard/src/widget-schema.ts`, `widget-registry.ts`); an operator session maps to `anchor`, everyone else to `public` (`plugin.ts` anchor mapping). The signed-in UI is still generic (masthead shows a console header plus `Sign out`, no user name or role).
 - Conversation/message/job storage already has metadata hooks, but user attribution is not wired to auth users yet.
 - `@rizom/ops` has fleet/user deployment tooling; that is operator/fleet multi-user, not this runtime auth-user model.
 

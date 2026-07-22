@@ -2,13 +2,13 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium, type Page } from "playwright-core";
 import sharp from "sharp";
-import { renderChatPage } from "../interfaces/web-chat/src/chat-page";
-import { renderEditorShellHtml } from "../plugins/cms/src/editor-shell";
+import { renderChatPage } from "@brains/web-chat";
+import { renderEditorShellHtml } from "@brains/cms";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
-} from "../plugins/dashboard/src/dashboard-page";
-import { createMockAppInfo } from "../shared/test-utils/src/mock-app-info";
+} from "@brains/dashboard";
+import { createMockAppInfo } from "@brains/test-utils";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");

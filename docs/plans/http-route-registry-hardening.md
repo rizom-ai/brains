@@ -339,5 +339,4 @@ Gate:
 - [Auth runtime database](./auth-runtime-db.md)
 - [Multi-user and permissions](./multi-user.md)
 - [Operator runtime database](./operator-runtime-db.md)
-- [Plugin contracts consolidation](./plugin-contracts-consolidation.md)
 - [Installable operator-console PWA](./operator-console-pwa.md)
