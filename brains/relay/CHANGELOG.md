@@ -1,5 +1,43 @@
 # @brains/relay
 
+## 0.2.0-alpha.215
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.215
+  - @brains/assessment@0.2.0-alpha.215
+  - @brains/conversation-memory@0.2.0-alpha.215
+  - @brains/decks@0.2.0-alpha.215
+  - @brains/doc@0.2.0-alpha.215
+  - @brains/image-plugin@0.2.0-alpha.215
+  - @brains/link@0.2.0-alpha.215
+  - @brains/note@0.2.0-alpha.215
+  - @brains/prompt@0.2.0-alpha.215
+  - @brains/rizom-ecosystem@0.2.0-alpha.215
+  - @brains/site-info@0.2.0-alpha.215
+  - @brains/topics@0.2.0-alpha.215
+  - @brains/a2a@0.2.0-alpha.215
+  - @brains/discord@0.2.0-alpha.215
+  - @brains/mcp@0.2.0-alpha.215
+  - @brains/web-chat@0.2.0-alpha.215
+  - @brains/webserver@0.2.0-alpha.215
+  - @brains/cms@0.2.0-alpha.215
+  - @brains/dashboard@0.2.0-alpha.215
+  - @brains/directory-sync@0.2.0-alpha.215
+  - @brains/email-resend@0.2.0-alpha.215
+  - @brains/notifications@0.2.0-alpha.215
+  - @brains/site-builder-plugin@0.2.0-alpha.215
+  - @brains/site-content@0.2.0-alpha.215
+  - @brains/content-formatters@0.2.0-alpha.215
+  - @brains/site-composition@0.2.0-alpha.215
+  - @brains/theme-rizom@0.2.0-alpha.215
+  - @brains/utils@0.2.0-alpha.215
+  - @brains/app@0.2.0-alpha.215
+  - @brains/auth-service@0.2.0-alpha.215
+  - @brains/plugins@0.2.0-alpha.215
+  - @rizom/site-rizom@0.2.0-alpha.215
+
 ## 0.2.0-alpha.214
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.215
+
+### Patch Changes
+
+- [`36bbb02`](https://github.com/rizom-ai/brains/commit/36bbb026b64734c099ea39853b1922208b73a6fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid exposing internal ground/source-kind class names in the knowledge map DOM; render quiet background marks as source context.
+
 ## 0.2.0-alpha.214
 
 ### Patch Changes
