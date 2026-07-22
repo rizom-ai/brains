@@ -1,29 +1,12 @@
 import {
   MessageInterfacePlugin,
-  buildCoalescedInput,
-  buildConfirmationResponseParts,
-  buildMessageActorMetadata,
-  buildMessageSourceMetadata,
-  buildResponsePlan,
-  formatArtifactDisplay,
-  formatConfirmationResult,
-  getConfirmationResultTitle,
   getToolStatusKey,
-  formatPendingConfirmationHelp,
-  PendingApprovalTracker,
-  MessageUploadContinuity,
-  parseConfirmationIntent,
-  routeConfirmationResponse,
   type AgentResponse,
-  type ChatAttachment,
   type InterfacePluginContext,
   type MessageInterfaceOutput,
-  type ResponsePlan,
   type RuntimeUploadStore,
-  type StructuredChatCard,
   type ToolActivityEvent,
   type ToolStatusUpdate,
-  type UserPermissionLevel,
 } from "@brains/plugins";
 import type {
   Daemon,
@@ -32,16 +15,8 @@ import type {
   JobProgressEvent,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  type ActionEvent,
-  type CardElement,
-  type FileUpload,
-  type Message,
-  type MessageContext,
-  type SentMessage,
-} from "chat";
+import type { ActionEvent, Message, MessageContext, SentMessage } from "chat";
 import type { ChatPlatform, ChatThread } from "./types";
-import { z } from "@brains/utils/zod";
 import {
   chatConfigSchema,
   type ChatConfig,
@@ -53,7 +28,6 @@ import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
-  ChatCardBuilder,
   buildProgressCard,
   APPROVAL_CONFIRM_ACTION,
   APPROVAL_CANCEL_ACTION,
@@ -64,31 +38,31 @@ import {
   ownsChatPlatform,
   parseChatPlatform,
 } from "./chat-platform";
-import { ArtifactDeliveryResolver } from "./artifact-delivery";
-import { ApprovalCardTracker } from "./approval-card-tracker";
+import { ChatResponseCoordinator } from "./chat-response-coordinator";
+import { ChatUploadCoordinator } from "./chat-upload-coordinator";
+import {
+  buildChatActionEventMetadata,
+  buildChatCoalescedAgentInput,
+  buildChatUserMessageMetadata,
+  getChatConversationId,
+} from "./chat-metadata";
+import {
+  formatChatErrorPayload,
+  formatChatNoticePayload,
+  toPlatformPostOutput,
+  type ChatCardOutput,
+} from "./chat-output";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
 import { SlackSocketLoop } from "./slack-socket-loop";
 import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
-import {
-  ChatInputBuilder,
-  chatAttachmentFromStoredUpload,
-  type AgentInput,
-} from "./chat-input-builder";
+import { ChatInputBuilder } from "./chat-input-builder";
 import {
   createDiscordThreadSubscriptionStore,
   createSlackThreadSubscriptionStore,
   type ChatThreadSubscriptionStore,
 } from "./subscription-state";
-import {
-  canonicalChatUploadRefKind,
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
-  discordChatUploadRefKind,
-  slackChatUploadRefKind,
-} from "./upload-store";
 import {
   getChannelName,
   getPermissionContext,
@@ -103,36 +77,8 @@ import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
-const GENERIC_APPROVAL_TEXT =
-  /^(?:(?:confirmation|approval) required|please confirm(?: this action)?)\.?$/i;
 /** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
 const MAX_PROMPT_ACTIONS = 1000;
-
-interface DiscordCardOutput {
-  card: CardElement;
-  fallbackText?: string;
-}
-
-interface PendingJobArtifactDelivery {
-  card: Extract<StructuredChatCard, { kind: "attachment" }>;
-  channelId: string;
-  userPermissionLevel: UserPermissionLevel;
-}
-
-const chatCardElementSchema = z.looseObject({
-  type: z.literal("card"),
-  children: z.array(z.looseObject({ type: z.string() })),
-  imageUrl: z.string().optional(),
-  subtitle: z.string().optional(),
-  title: z.string().optional(),
-});
-
-const discordCardOutputSchema = z.object({
-  card: z.custom<CardElement>(
-    (value) => chatCardElementSchema.safeParse(value).success,
-  ),
-  fallbackText: z.string().optional(),
-});
 
 export class ChatInterface extends MessageInterfacePlugin<
   ChatConfig,
@@ -141,34 +87,21 @@ export class ChatInterface extends MessageInterfacePlugin<
   declare protected config: ChatConfig;
 
   private readonly threadRegistry = new ThreadRegistry();
-  private readonly pendingApprovals: PendingApprovalTracker;
-  private readonly uploadContinuity: Readonly<
-    Record<ChatPlatform, MessageUploadContinuity>
-  >;
   private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
-  private readonly pendingJobArtifacts = new Map<
-    string,
-    PendingJobArtifactDelivery[]
-  >();
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
   private readonly compactingSlackApprovalToolStatuses = new Set<string>();
-  private readonly activeSlackConfirmationConversations = new Set<string>();
-  private readonly cardBuilder = new ChatCardBuilder({
+  private readonly uploadCoordinator = new ChatUploadCoordinator({
+    getContext: (): InterfacePluginContext | undefined => this.context,
+    logger: this.logger,
+  });
+  private readonly responseCoordinator = new ChatResponseCoordinator({
+    getContext: (): InterfacePluginContext | undefined => this.context,
     getDisplayBaseUrl: (): string | undefined =>
       this.getPreferredDisplayBaseUrl(),
     registerPromptAction: (threadId, action): string =>
       this.registerPromptAction(threadId, action),
-  });
-  private readonly artifactDelivery = new ArtifactDeliveryResolver({
-    getContext: (): InterfacePluginContext | undefined => this.context,
-    getDisplayBaseUrl: (): string | undefined =>
-      this.getPreferredDisplayBaseUrl(),
-    logger: this.logger,
-  });
-  private readonly approvalCards = new ApprovalCardTracker({
-    cardBuilder: this.cardBuilder,
     clearMessageComponents: async (threadId, messageId): Promise<void> => {
       const botToken = this.config.adapters.discord?.botToken;
       if (!botToken) return;
@@ -179,6 +112,17 @@ export class ChatInterface extends MessageInterfacePlugin<
         logger: this.logger,
       });
     },
+    sendMessageWithId: (input): Promise<string | undefined> =>
+      this.sendMessageWithId(input),
+    handleAgentResponseToolStatuses: (
+      response,
+      conversationId,
+    ): Promise<void> =>
+      this.handleAgentResponseToolStatuses(response, conversationId),
+    trackAgentResponseForJob: (jobId, messageId, channelId): void =>
+      this.trackAgentResponseForJob(jobId, messageId, channelId),
+    threadRegistry: this.threadRegistry,
+    logger: this.logger,
   });
   private readonly subscriptionRouter = new SubscriptionRouter({
     getSubscriptions: (
@@ -196,7 +140,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly chatInputBuilder = new ChatInputBuilder({
     getUploadStore: (platform: string): RuntimeUploadStore | undefined =>
       platform === "discord" || platform === "slack"
-        ? this.getCanonicalUploadStore()
+        ? this.uploadCoordinator.getCanonicalStore()
         : undefined,
     getThreadIdParts,
     logger: this.logger,
@@ -225,7 +169,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       discord: this.config.adapters.discord,
       slack: this.config.adapters.slack,
       getUploadStore: (platform): RuntimeUploadStore | undefined =>
-        this.getUploadStore(platform),
+        this.uploadCoordinator.getPlatformStore(platform),
       buildApp: (runtimeState): ChatSdkApp =>
         createChatSdkApp({
           userName: this.config.userName,
@@ -236,25 +180,6 @@ export class ChatInterface extends MessageInterfacePlugin<
           runtimeState,
         }),
     });
-    this.pendingApprovals = new PendingApprovalTracker({
-      loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await this.context?.conversations.getMessages(conversationId, {
-            limit: 50,
-          })) ?? []
-        );
-      },
-      onRestoreError: (error, conversationId): void => {
-        this.logger.debug("Failed to load pending chat approvals", {
-          error,
-          conversationId,
-        });
-      },
-    });
-    this.uploadContinuity = {
-      discord: this.createUploadContinuity("discord"),
-      slack: this.createUploadContinuity("slack"),
-    };
   }
 
   protected override async onRegister(
@@ -294,9 +219,8 @@ export class ChatInterface extends MessageInterfacePlugin<
         await this.gatewayLoop.stop();
         await this.slackSocketLoop.stop();
         this.threadRegistry.clear();
-        this.uploadContinuity.discord.clear();
-        this.uploadContinuity.slack.clear();
-        this.pendingJobArtifacts.clear();
+        this.uploadCoordinator.clear();
+        this.responseCoordinator.clear();
         this.toolStatusMessenger.clear();
         await this.chatApp.shutdown();
         this.chatAppRunning = false;
@@ -396,28 +320,11 @@ export class ChatInterface extends MessageInterfacePlugin<
     return true;
   }
 
-  private toDiscordCardOutput(
-    output: MessageInterfaceOutput,
-  ): DiscordCardOutput | undefined {
-    const parsed = discordCardOutputSchema.safeParse(output);
-    if (!parsed.success) return undefined;
-
-    const { card, fallbackText } = parsed.data;
-    if (fallbackText === undefined) return { card };
-    return { card, fallbackText };
-  }
-
   private toPlatformPostOutput(
     channelId: string | null,
     output: MessageInterfaceOutput,
-  ): DiscordCardOutput | string | undefined {
-    if (typeof output === "string") return undefined;
-    const cardOutput = this.toDiscordCardOutput(output);
-    if (!cardOutput) return undefined;
-    if (parseChatPlatform(channelId) === "slack" && cardOutput.fallbackText) {
-      return cardOutput.fallbackText;
-    }
-    return cardOutput;
+  ): ChatCardOutput | string | undefined {
+    return toPlatformPostOutput(channelId, output);
   }
 
   protected override formatProgressOutput(
@@ -452,7 +359,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     }
 
     await super.handleProgressEvent(routedEvent, routedContext);
-    await this.deliverCompletedJobArtifacts(routedEvent);
+    await this.responseCoordinator.deliverCompletedJobArtifacts(routedEvent);
   }
 
   protected override async handleToolActivityEvent(
@@ -477,7 +384,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     const isSlack = parseChatPlatform(update.channelId) === "slack";
     const isActiveSlackConfirmation =
       isSlack &&
-      this.activeSlackConfirmationConversations.has(update.conversationId);
+      this.responseCoordinator.isActiveSlackConfirmation(update.conversationId);
     const isCompactedApprovalStatus =
       isSlack &&
       this.compactingSlackApprovalToolStatuses.has(getToolStatusKey(update));
@@ -613,7 +520,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     const action = this.promptActions.get(event.value);
     if (action?.threadId !== thread.id) {
       await thread.post(
-        this.formatNoticePayload(
+        formatChatNoticePayload(
           "That suggested action is no longer available.",
           "Action unavailable",
         ),
@@ -632,7 +539,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         },
       }),
     );
-    const conversationId = this.getConversationId(platform, thread.id);
+    const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
 
     await this.runAgentTurn({
@@ -641,9 +548,8 @@ export class ChatInterface extends MessageInterfacePlugin<
       logLabel: "Error handling chat prompt action",
       body: async () => {
         if (!this.context) return;
-        const attachments = await this.uploadContinuity[
-          platform
-        ].selectPriorUploads({
+        const attachments = await this.uploadCoordinator.selectPriorUploads({
+          platform,
           conversationId,
           currentAttachments: [],
           canRestore:
@@ -658,11 +564,11 @@ export class ChatInterface extends MessageInterfacePlugin<
             interfaceType: platform,
             channelId,
             channelName: getChannelName(thread),
-            ...this.buildActionEventMetadata(platform, thread, event),
+            ...buildChatActionEventMetadata(platform, thread, event),
             ...(attachments.length > 0 ? { attachments } : {}),
           },
         );
-        await this.renderAgentResponse({
+        await this.responseCoordinator.renderAgentResponse({
           thread,
           channelId,
           conversationId,
@@ -682,11 +588,12 @@ export class ChatInterface extends MessageInterfacePlugin<
     const thread = event.thread;
     if (!shouldHandleChatAction(thread, this.getPlatformConfig(thread))) return;
 
-    const conversationId = this.getConversationId(platform, thread.id);
-    const approvalIds = await this.getPendingApprovalIds(conversationId);
+    const conversationId = getChatConversationId(platform, thread.id);
+    const approvalIds =
+      await this.responseCoordinator.getPendingApprovalIds(conversationId);
     if (!approvalIds.has(event.value)) {
       await thread.post(
-        this.formatNoticePayload("That approval is no longer pending."),
+        formatChatNoticePayload("That approval is no longer pending."),
       );
       return;
     }
@@ -702,13 +609,13 @@ export class ChatInterface extends MessageInterfacePlugin<
       }),
     );
 
-    await this.confirmApproval({
+    await this.responseCoordinator.confirmApproval({
       thread,
       conversationId,
       approvalId: event.value,
       confirmed: event.actionId === APPROVAL_CONFIRM_ACTION,
       userPermissionLevel,
-      metadata: this.buildActionEventMetadata(platform, thread, event),
+      metadata: buildChatActionEventMetadata(platform, thread, event),
     });
   }
 
@@ -766,7 +673,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     channelId: string,
     error: unknown,
   ): Promise<void> {
-    const payload = this.formatErrorPayload(error);
+    const payload = formatChatErrorPayload(error);
     const postOutput = this.toPlatformPostOutput(channelId, payload);
     if (postOutput !== undefined) {
       await thread.post(postOutput);
@@ -787,7 +694,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     if (!this.context) return;
 
     this.threadRegistry.set(thread);
-    const conversationId = this.getConversationId(platform, thread.id);
+    const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
     const permissionContext = getPermissionContext(thread, message);
     const userPermissionLevel = this.context.permissions.getUserLevel(
@@ -802,7 +709,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       userPermissionLevel,
     );
     const sameTurnUploads = [...agentInput.attachments];
-    await this.attachPriorUploads(
+    await this.uploadCoordinator.attachPriorUploads(
       platform,
       conversationId,
       agentInput,
@@ -810,7 +717,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
     await this.postUploadNotices(thread, agentInput.notices);
     if (!agentInput.message && agentInput.attachments.length === 0) return;
-    this.rememberUploadAttachments(platform, conversationId, sameTurnUploads);
+    this.uploadCoordinator.remember(platform, conversationId, sameTurnUploads);
 
     await this.runAgentTurn({
       thread,
@@ -820,20 +727,21 @@ export class ChatInterface extends MessageInterfacePlugin<
         if (!this.context) return;
 
         const pendingApprovalIds =
-          await this.getPendingApprovalIds(conversationId);
+          await this.responseCoordinator.getPendingApprovalIds(conversationId);
         if (pendingApprovalIds.size > 0) {
-          const handledConfirmation = await this.handleConfirmationResponse(
-            agentInput.message,
-            conversationId,
-            thread,
-            pendingApprovalIds,
-            userPermissionLevel,
-            this.buildUserMessageMetadata(platform, thread, message),
-          );
+          const handledConfirmation =
+            await this.responseCoordinator.handleConfirmationResponse({
+              message: agentInput.message,
+              conversationId,
+              thread,
+              approvalIds: pendingApprovalIds,
+              userPermissionLevel,
+              metadata: buildChatUserMessageMetadata(platform, thread, message),
+            });
           if (handledConfirmation) return;
         }
 
-        const coalescedInput = this.buildCoalescedAgentInput(
+        const coalescedInput = buildChatCoalescedAgentInput(
           agentInput.message,
           context,
         );
@@ -845,7 +753,7 @@ export class ChatInterface extends MessageInterfacePlugin<
             interfaceType: platform,
             channelId,
             channelName: getChannelName(thread),
-            ...this.buildUserMessageMetadata(
+            ...buildChatUserMessageMetadata(
               platform,
               thread,
               message,
@@ -857,7 +765,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           },
         );
 
-        await this.renderAgentResponse({
+        await this.responseCoordinator.renderAgentResponse({
           thread,
           channelId,
           conversationId,
@@ -866,505 +774,6 @@ export class ChatInterface extends MessageInterfacePlugin<
         });
       },
     });
-  }
-
-  /**
-   * Single render path for every agent response in chat. The optional
-   * `confirmation` switches it to the approval-resolution variant: it syncs (not
-   * remembers) pending confirmations against the resolved approval, edits the
-   * approval card to its resolved state, and uses the confirmation-response text
-   * formatting. Everything else — tool statuses, artifact delivery, card sends,
-   * and async-job progress tracking — is identical for normal and confirmation
-   * turns. (The previous confirmApproval path duplicated this and omitted job
-   * tracking; routing it here fixes that.)
-   */
-  private async renderAgentResponse(input: {
-    thread: ChatThread;
-    channelId: string;
-    conversationId: string;
-    response: AgentResponse;
-    userPermissionLevel: UserPermissionLevel;
-    confirmation?: { approvalId: string; confirmed: boolean };
-  }): Promise<void> {
-    if (input.confirmation) {
-      this.syncPendingConfirmationsFromResponse(
-        input.conversationId,
-        input.response,
-        input.confirmation.approvalId,
-      );
-    } else {
-      this.rememberPendingConfirmationsFromResponse(
-        input.conversationId,
-        input.response,
-      );
-    }
-    await this.handleAgentResponseToolStatuses(
-      input.response,
-      input.conversationId,
-    );
-    const artifactDelivery = await this.artifactDelivery.resolve(
-      input.response.cards,
-      input.userPermissionLevel,
-    );
-    const plan = buildResponsePlan(input.response, {
-      deniedCardIds: artifactDelivery.deniedCardIds,
-    });
-    this.rememberPendingJobArtifacts(
-      plan,
-      input.channelId,
-      input.userPermissionLevel,
-      artifactDelivery.deliveredCardIds,
-      artifactDelivery.deniedCardIds,
-    );
-    let resolvedNativeApproval = false;
-    if (input.confirmation) {
-      const display = formatConfirmationResult(
-        input.response,
-        input.confirmation.confirmed ? "approved" : "declined",
-      );
-      resolvedNativeApproval = await this.approvalCards.resolve(
-        input.conversationId,
-        input.confirmation.approvalId,
-        {
-          title: getConfirmationResultTitle(display.variant),
-          detail: display.label,
-        },
-      );
-    }
-    const approvals = plan.directives.find(
-      (directive) => directive.kind === "approvals",
-    );
-    const confirmations = approvals?.confirmations;
-    const isSlack = this.getPlatform(input.thread) === "slack";
-    const hasArtifact = plan.directives.some(
-      (directive) => directive.kind === "artifact",
-    );
-    const hasQueuedArtifact = plan.directives.some(
-      (directive) =>
-        directive.kind === "artifact" && Boolean(directive.card.jobId),
-    );
-    const hasDeniedArtifact = plan.directives.some(
-      (directive) => directive.kind === "denied-artifact",
-    );
-    const suppressGenericConfirmation =
-      isSlack &&
-      !input.confirmation &&
-      Boolean(confirmations?.length) &&
-      GENERIC_APPROVAL_TEXT.test(input.response.text.trim());
-    const suppressQueuedConfirmationResult =
-      isSlack &&
-      Boolean(input.confirmation) &&
-      hasQueuedArtifact &&
-      artifactDelivery.files.length === 0;
-    const suppressResolvedNativeConfirmation =
-      isSlack &&
-      resolvedNativeApproval &&
-      !confirmations?.length &&
-      !hasArtifact &&
-      !hasDeniedArtifact &&
-      artifactDelivery.files.length === 0;
-    const suppressConfirmationResult =
-      suppressQueuedConfirmationResult || suppressResolvedNativeConfirmation;
-    const suppressPrimaryMessage =
-      suppressGenericConfirmation || suppressConfirmationResult;
-
-    const message = input.confirmation
-      ? this.formatConfirmationResponsePayload(
-          input.response,
-          input.confirmation.confirmed,
-          this.getRemainingApprovalHelp(input.conversationId, input.response),
-          artifactDelivery.deniedCardIds,
-        )
-      : this.formatAgentResponseText(plan, artifactDelivery.deniedCardIds);
-    const messageId = suppressPrimaryMessage
-      ? undefined
-      : await this.sendAgentResponseWithFiles({
-          thread: input.thread,
-          channelId: input.channelId,
-          message,
-          files: artifactDelivery.files,
-        });
-    const artifactMessageId = await this.sendArtifactCards(
-      input.thread,
-      plan,
-      isSlack ? artifactDelivery.deliveredCardIds : undefined,
-    );
-    await this.sendSupplementalCards(
-      input.thread,
-      plan,
-      suppressConfirmationResult,
-    );
-    if (isSlack && confirmations && confirmations.length > 1) {
-      const approvalHelp = formatPendingConfirmationHelp(confirmations);
-      if (approvalHelp) await input.thread.post(approvalHelp);
-    } else {
-      await this.approvalCards.trackPendingConfirmations(
-        input.thread,
-        input.conversationId,
-        confirmations,
-      );
-    }
-
-    const progressMessageId = artifactMessageId ?? messageId;
-    if (progressMessageId) {
-      for (const jobId of plan.jobIds) {
-        this.trackAgentResponseForJob(
-          jobId,
-          progressMessageId,
-          input.channelId,
-        );
-      }
-    }
-  }
-
-  private rememberPendingJobArtifacts(
-    plan: ResponsePlan,
-    channelId: string,
-    userPermissionLevel: UserPermissionLevel,
-    deliveredCardIds: ReadonlySet<string>,
-    deniedCardIds: ReadonlySet<string>,
-  ): void {
-    for (const directive of plan.directives) {
-      if (directive.kind !== "artifact" || !directive.card.jobId) continue;
-      if (
-        deliveredCardIds.has(directive.card.id) ||
-        deniedCardIds.has(directive.card.id)
-      ) {
-        continue;
-      }
-      const pending = this.pendingJobArtifacts.get(directive.card.jobId) ?? [];
-      this.pendingJobArtifacts.set(directive.card.jobId, [
-        ...pending.filter((entry) => entry.card.id !== directive.card.id),
-        { card: directive.card, channelId, userPermissionLevel },
-      ]);
-    }
-  }
-
-  private async deliverCompletedJobArtifacts(
-    event: JobProgressEvent,
-  ): Promise<void> {
-    if (event.status === "failed") {
-      this.pendingJobArtifacts.delete(event.id);
-      return;
-    }
-    if (event.status !== "completed") return;
-
-    const pending = this.pendingJobArtifacts.get(event.id);
-    if (!pending) return;
-    this.pendingJobArtifacts.delete(event.id);
-
-    for (const delivery of pending) {
-      const thread = this.threadRegistry.get(delivery.channelId);
-      if (!thread) continue;
-      try {
-        const resolved = await this.artifactDelivery.resolve(
-          [delivery.card],
-          delivery.userPermissionLevel,
-        );
-        if (resolved.files.length === 0) continue;
-        const sent = await thread.post(
-          this.getPlatform(thread) === "slack"
-            ? { raw: "", files: resolved.files }
-            : {
-                markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
-                files: resolved.files,
-              },
-        );
-        this.threadRegistry.trackMessage(delivery.channelId, sent);
-      } catch (error: unknown) {
-        this.logger.error("Failed to deliver completed chat artifact", {
-          error,
-          jobId: event.id,
-          cardId: delivery.card.id,
-        });
-      }
-    }
-  }
-
-  private rememberPendingConfirmationsFromResponse(
-    conversationId: string,
-    response: AgentResponse,
-  ): void {
-    this.pendingApprovals.rememberFromResponse(conversationId, response);
-  }
-
-  private async getPendingApprovalIds(
-    conversationId: string,
-  ): Promise<Set<string>> {
-    return this.pendingApprovals.getApprovalIds(conversationId);
-  }
-
-  private async handleConfirmationResponse(
-    message: string,
-    conversationId: string,
-    thread: ChatThread,
-    approvalIds: Set<string>,
-    userPermissionLevel: UserPermissionLevel,
-    metadata?: Record<string, unknown>,
-  ): Promise<boolean> {
-    if (!parseConfirmationIntent(message, approvalIds)) return false;
-
-    const routed = routeConfirmationResponse({ message, approvalIds });
-    if (routed.kind === "not-confirmation") {
-      this.pendingApprovals.deleteConversation(conversationId);
-      const notice = this.formatNoticePayload(
-        "No pending approval to resolve.",
-      );
-      await thread.post(
-        this.toPlatformPostOutput(thread.id, notice) ??
-          notice.fallbackText ??
-          "No pending approval to resolve.",
-      );
-      return true;
-    }
-
-    if (routed.kind === "notice") {
-      const notice = this.formatNoticePayload(routed.message);
-      await thread.post(
-        this.toPlatformPostOutput(thread.id, notice) ??
-          notice.fallbackText ??
-          routed.message,
-      );
-      return true;
-    }
-
-    await this.confirmApproval({
-      thread,
-      conversationId,
-      approvalId: routed.approvalId,
-      confirmed: routed.confirmed,
-      userPermissionLevel,
-      ...(metadata ? { metadata } : {}),
-    });
-    return true;
-  }
-
-  private async confirmApproval(input: {
-    thread: ChatThread;
-    conversationId: string;
-    approvalId: string;
-    confirmed: boolean;
-    userPermissionLevel: UserPermissionLevel;
-    metadata?: Record<string, unknown>;
-  }): Promise<void> {
-    const platform = this.getPlatform(input.thread);
-    const compactSlackConfirmation = platform === "slack";
-    if (compactSlackConfirmation) {
-      this.activeSlackConfirmationConversations.add(input.conversationId);
-    }
-    try {
-      const response = await this.context?.agent.confirmPendingAction(
-        input.conversationId,
-        input.confirmed,
-        input.approvalId,
-        {
-          userPermissionLevel: input.userPermissionLevel,
-          interfaceType: platform,
-          channelId: input.thread.id,
-          channelName: getChannelName(input.thread),
-          ...input.metadata,
-        },
-      );
-      this.removePendingApproval(input.conversationId, input.approvalId);
-      if (!response) return;
-
-      await this.renderAgentResponse({
-        thread: input.thread,
-        channelId: input.thread.id,
-        conversationId: input.conversationId,
-        response,
-        userPermissionLevel: input.userPermissionLevel,
-        confirmation: {
-          approvalId: input.approvalId,
-          confirmed: input.confirmed,
-        },
-      });
-    } finally {
-      if (compactSlackConfirmation) {
-        this.activeSlackConfirmationConversations.delete(input.conversationId);
-      }
-    }
-  }
-
-  private formatNoticePayload(
-    message: string,
-    title = "Approval notice",
-  ): DiscordCardOutput {
-    return {
-      card: {
-        type: "card",
-        title,
-        children: [{ type: "text", content: message }],
-      },
-      fallbackText: message,
-    };
-  }
-
-  private formatErrorPayload(error: unknown): MessageInterfaceOutput {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return {
-      card: {
-        type: "card",
-        title: "Message failed",
-        children: [{ type: "text", content: message }],
-      },
-      fallbackText: `Message failed: ${message}`,
-    };
-  }
-
-  private formatAgentResponseText(
-    plan: ResponsePlan,
-    deniedCardIds?: Set<string>,
-  ): string {
-    return plan.directives
-      .flatMap((directive): string[] => {
-        if (directive.kind === "text") return [directive.text];
-        if (directive.kind === "denied-artifact") {
-          return [
-            this.cardBuilder.formatStructuredCard(
-              directive.card,
-              deniedCardIds,
-            ),
-          ];
-        }
-        return [];
-      })
-      .filter((part) => part.trim().length > 0)
-      .join("\n\n");
-  }
-
-  private formatConfirmationResponsePayload(
-    response: AgentResponse,
-    confirmed: boolean,
-    remainingApprovalHelp?: string,
-    deniedCardIds?: Set<string>,
-  ): MessageInterfaceOutput {
-    const result = buildConfirmationResponseParts({
-      response,
-      confirmed,
-      remainingApprovalHelp,
-      deniedCardIds,
-      formatCard: (card): string =>
-        this.cardBuilder.formatStructuredCard(card, deniedCardIds),
-      formatPendingConfirmationHelp,
-    });
-
-    return {
-      card: {
-        type: "card",
-        title: getConfirmationResultTitle(result.variant),
-        children: result.parts.map((content) => ({ type: "text", content })),
-      },
-      fallbackText: result.parts.join("\n\n"),
-    };
-  }
-
-  private async sendAgentResponseWithFiles(input: {
-    thread: ChatThread;
-    channelId: string;
-    message: MessageInterfaceOutput;
-    files: FileUpload[];
-  }): Promise<string | undefined> {
-    if (input.files.length === 0) {
-      return this.sendMessageWithId({
-        channelId: input.channelId,
-        message: input.message,
-      });
-    }
-
-    const cardOutput = this.toDiscordCardOutput(input.message);
-    if (cardOutput) {
-      const sent = await input.thread.post({
-        ...cardOutput,
-        files: input.files,
-      });
-      this.threadRegistry.trackMessage(input.channelId, sent);
-      return sent.id;
-    }
-
-    const text =
-      typeof input.message === "string"
-        ? input.message
-        : "Generated artifacts attached.";
-    const chunks = chunkForChannel(input.channelId, text);
-    let lastSent: SentMessage | undefined;
-    for (const [index, chunk] of chunks.entries()) {
-      const isLastChunk = index === chunks.length - 1;
-      lastSent = await input.thread.post(
-        isLastChunk
-          ? {
-              markdown: chunk || "Generated artifacts attached.",
-              files: input.files,
-            }
-          : chunk,
-      );
-      this.threadRegistry.trackMessage(input.channelId, lastSent);
-    }
-    return lastSent?.id;
-  }
-
-  private getRemainingApprovalHelp(
-    conversationId: string,
-    response: AgentResponse,
-  ): string | undefined {
-    return this.pendingApprovals.formatRemainingApprovalHelp(
-      conversationId,
-      response,
-    );
-  }
-
-  private async sendArtifactCards(
-    thread: ChatThread,
-    plan: ResponsePlan,
-    skipCardIds?: ReadonlySet<string>,
-  ): Promise<string | undefined> {
-    let lastMessageId: string | undefined;
-    for (const directive of plan.directives) {
-      if (directive.kind !== "artifact") continue;
-      if (skipCardIds?.has(directive.card.id)) continue;
-      const display = formatArtifactDisplay(directive.card);
-      if (!display) continue;
-      const fallbackText = this.cardBuilder.formatArtifactFallback(display);
-      const sent = await thread.post(
-        this.getPlatform(thread) === "slack"
-          ? fallbackText
-          : {
-              card: this.cardBuilder.buildArtifactCard(display),
-              fallbackText,
-            },
-      );
-      this.threadRegistry.trackMessage(thread.id, sent);
-      lastMessageId = sent.id;
-    }
-    return lastMessageId;
-  }
-
-  private async sendSupplementalCards(
-    thread: ChatThread,
-    plan: ResponsePlan,
-    suppressToolApproval = false,
-  ): Promise<void> {
-    for (const directive of plan.directives) {
-      if (directive.kind !== "supplemental") continue;
-      if (suppressToolApproval && directive.card.kind === "tool-approval") {
-        continue;
-      }
-      const built = this.cardBuilder.buildSupplementalCard(
-        thread.id,
-        directive.card,
-      );
-      if (!built) continue;
-      const fallbackText = this.cardBuilder.formatStructuredCard(
-        directive.card,
-      );
-      const isSlack = this.getPlatform(thread) === "slack";
-      const sent = await thread.post(
-        isSlack && directive.card.kind !== "actions"
-          ? fallbackText
-          : { card: built, fallbackText },
-      );
-      this.threadRegistry.trackMessage(thread.id, sent);
-    }
   }
 
   private registerPromptAction(
@@ -1379,25 +788,6 @@ export class ChatInterface extends MessageInterfacePlugin<
       return this.context.localSiteUrl;
     }
     return this.context?.siteUrl ?? this.context?.localSiteUrl;
-  }
-
-  private syncPendingConfirmationsFromResponse(
-    conversationId: string,
-    response: AgentResponse,
-    resolvedApprovalId: string,
-  ): void {
-    this.pendingApprovals.syncFromResponse(
-      conversationId,
-      response,
-      resolvedApprovalId,
-    );
-  }
-
-  private removePendingApproval(
-    conversationId: string,
-    approvalId: string,
-  ): void {
-    this.pendingApprovals.removeApproval(conversationId, approvalId);
   }
 
   private async handlePassiveUrlCapture(
@@ -1449,112 +839,6 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
   }
 
-  private createUploadContinuity(
-    platform: ChatPlatform,
-  ): MessageUploadContinuity {
-    return new MessageUploadContinuity({
-      sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
-        platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
-      loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await this.context?.conversations.getMessages(conversationId, {
-            limit: 50,
-          })) ?? []
-        );
-      },
-      restoreAttachment: async (
-        uploadId,
-        sourceKind,
-      ): Promise<ChatAttachment> => {
-        const uploadStore =
-          sourceKind === canonicalChatUploadRefKind
-            ? this.getCanonicalUploadStore()
-            : this.getUploadStore(platform);
-        if (!uploadStore) throw new Error("Chat upload store unavailable");
-        const resolved = await uploadStore.read(uploadId);
-        if (sourceKind !== canonicalChatUploadRefKind) {
-          const canonicalStore = this.getCanonicalUploadStore();
-          if (!canonicalStore) throw new Error("Chat upload store unavailable");
-          const canonical = await canonicalStore.save({
-            filename: resolved.record.filename,
-            mediaType: resolved.record.mediaType,
-            content: resolved.content,
-            ...(resolved.record.metadata
-              ? { metadata: resolved.record.metadata }
-              : {}),
-          });
-          return chatAttachmentFromStoredUpload(
-            canonical.filename,
-            canonical.mediaType,
-            resolved.content,
-            canonical.ref,
-          );
-        }
-        return chatAttachmentFromStoredUpload(
-          resolved.record.filename,
-          resolved.record.mediaType,
-          resolved.content,
-          resolved.record.ref,
-        );
-      },
-      onLoadError: (error, conversationId): void => {
-        this.logger.debug("Failed to load prior chat uploads", {
-          error,
-          conversationId,
-          platform,
-        });
-      },
-      onRestoreError: (error, uploadId): void => {
-        this.logger.debug("Failed to restore prior chat upload", {
-          error,
-          uploadId,
-          platform,
-        });
-      },
-    });
-  }
-
-  private getCanonicalUploadStore(): RuntimeUploadStore | undefined {
-    return this.context?.uploads.scoped(createCanonicalChatUploadStoreScope());
-  }
-
-  private getUploadStore(
-    platform: ChatPlatform,
-  ): RuntimeUploadStore | undefined {
-    const scope =
-      platform === "discord"
-        ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.context?.uploads.scoped(scope);
-  }
-
-  private async attachPriorUploads(
-    platform: ChatPlatform,
-    conversationId: string,
-    agentInput: AgentInput,
-    userLevel: string,
-  ): Promise<void> {
-    agentInput.attachments = await this.uploadContinuity[
-      platform
-    ].selectPriorUploads({
-      conversationId,
-      currentAttachments: agentInput.attachments,
-      canRestore: userLevel === "anchor" || userLevel === "trusted",
-    });
-  }
-
-  private rememberUploadAttachments(
-    platform: ChatPlatform,
-    conversationId: string,
-    attachments: ChatAttachment[],
-  ): void {
-    this.uploadContinuity[platform].remember(conversationId, attachments);
-  }
-
   private getPlatform(thread: ChatThread): string {
     return thread.adapter.name;
   }
@@ -1566,110 +850,5 @@ export class ChatInterface extends MessageInterfacePlugin<
     if (platform === "discord") return this.config.adapters.discord;
     if (platform === "slack") return this.config.adapters.slack;
     return undefined;
-  }
-
-  private getConversationId(platform: string, threadId: string): string {
-    return `${platform}-${threadId}`;
-  }
-
-  private buildCoalescedAgentInput(
-    message: string,
-    context?: MessageContext,
-  ): { message: string; metadata?: Record<string, unknown> } {
-    const coalesced = buildCoalescedInput({
-      message,
-      skippedMessages: (context?.skipped ?? []).map((skippedMessage) => ({
-        id: skippedMessage.id,
-        text: skippedMessage.text,
-        authorName:
-          skippedMessage.author.fullName || skippedMessage.author.userName,
-      })),
-    });
-    return coalesced.metadata
-      ? { message: coalesced.message, metadata: { ...coalesced.metadata } }
-      : { message: coalesced.message };
-  }
-
-  private buildUserMessageMetadata(
-    platform: string,
-    thread: ChatThread,
-    message: Message,
-    metadata?: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return {
-      actor: this.buildActorMetadata(platform, {
-        userId: message.author.userId,
-        userName: message.author.userName,
-        fullName: message.author.fullName,
-        isBot: message.author.isBot,
-      }),
-      source: this.buildSourceMetadata(thread, {
-        messageId: message.id,
-        channelName: getChannelName(thread),
-        ...(metadata ? { metadata } : {}),
-      }),
-    };
-  }
-
-  private buildActionEventMetadata(
-    platform: string,
-    thread: ChatThread,
-    event: ActionEvent,
-  ): Record<string, unknown> {
-    return {
-      actor: this.buildActorMetadata(platform, {
-        userId: event.user.userId,
-        userName: event.user.userName,
-        fullName: event.user.fullName,
-        isBot: event.user.isBot,
-      }),
-      source: this.buildSourceMetadata(thread, {
-        messageId: event.messageId,
-        channelName: getChannelName(thread),
-        metadata: {
-          actionId: event.actionId,
-          ...(event.value ? { actionValue: event.value } : {}),
-        },
-      }),
-    };
-  }
-
-  private buildActorMetadata(
-    platform: string,
-    actor: {
-      userId: string;
-      userName: string;
-      fullName: string;
-      isBot: boolean | string;
-    },
-  ): Record<string, unknown> {
-    return buildMessageActorMetadata({
-      actorId: `${platform}:${actor.userId}`,
-      interfaceType: platform,
-      displayName: actor.fullName || actor.userName,
-      username: actor.userName,
-      isBot: actor.isBot,
-    });
-  }
-
-  private buildSourceMetadata(
-    thread: ChatThread,
-    input: {
-      messageId: string;
-      channelName: string;
-      metadata?: Record<string, unknown>;
-    },
-  ): Record<string, unknown> {
-    const ids = getThreadIdParts(thread.id);
-    return buildMessageSourceMetadata({
-      messageId: input.messageId,
-      channelId: thread.id,
-      channelName: input.channelName,
-      ...(ids.threadId ? { threadId: ids.threadId } : {}),
-      metadata: {
-        ...(input.metadata ?? {}),
-        ...(ids.guildId ? { guildId: ids.guildId } : {}),
-      },
-    });
   }
 }

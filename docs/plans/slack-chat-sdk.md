@@ -350,6 +350,30 @@ Acceptance criteria:
 - Installations missing `im:write` fail preflight clearly.
 - Existing channel, thread, and DM-policy tests remain unchanged.
 
+### 17. Decompose the Chat interface orchestrator
+
+Refactor the completed Slack/Discord implementation before review so the main plugin class owns lifecycle and routing rather than every supporting workflow. This is a behavior-preserving architecture slice, not a transport rewrite.
+
+- Extract response planning, approval resolution, artifact presentation, and queued-artifact delivery into one cohesive response coordinator.
+- Extract upload restoration, legacy-ref migration, and continuity bookkeeping into an upload coordinator.
+- Move actor/source/coalesced-input metadata construction into pure helpers with focused tests.
+- Keep platform enablement, SDK handler registration, daemon lifecycle, and agent-turn routing in `ChatInterface`.
+- Keep shared behavior transport-neutral; do not introduce separate Discord and Slack interface implementations.
+- Preserve the existing public API, runtime-state namespaces, permission checks, output compaction, and live-trial behavior.
+
+Acceptance criteria:
+
+- Existing Chat, plugin, and Rover opt-in tests pass unchanged.
+- Focused tests cover the extracted pure metadata contract.
+- `ChatInterface` is reduced below 1,000 lines without replacing cohesion with generic callback-heavy abstractions.
+- Discord and Slack message, approval, upload, artifact, and progress behavior remains unchanged.
+
+Implementation result, 2026-07-22:
+
+- `ChatInterface` now contains 854 lines and is limited to plugin lifecycle, SDK handler registration, transport ownership, turn routing, and progress/tool-status bridges.
+- Response/approval/artifact presentation lives in `ChatResponseCoordinator`; upload continuity and legacy-ref migration live in `ChatUploadCoordinator`; output conversion and message attribution use focused helpers.
+- Focused metadata tests, all 190 Chat tests, all 403 plugin tests, Rover Chat opt-in tests, Chat typecheck/lint, formatting, and diff checks pass.
+
 ## Final live-trial results
 
 Validated in **The Fourth** workspace on 2026-07-13:
