@@ -8,7 +8,11 @@ import {
 import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { IAnchorProfileService } from "@brains/plugins";
-import { createSiteBuilderServices, TestLayout } from "../test-helpers";
+import {
+  createSiteBuilderServices,
+  createTestSiteBuildOutputLifecycle,
+  TestLayout,
+} from "../test-helpers";
 import { z } from "@brains/utils/zod";
 import { h } from "preact";
 
@@ -55,6 +59,8 @@ describe("SiteBuilder dataQuery handling", () => {
       mockRouteRegistry,
       mockProfileService,
       () => mockStaticSiteBuilder,
+      undefined,
+      createTestSiteBuildOutputLifecycle(),
     );
   });
 

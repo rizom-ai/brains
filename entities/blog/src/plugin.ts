@@ -19,7 +19,7 @@ import {
   registerWithPublishPipeline,
   subscribeToPublishExecute,
 } from "./lib/publish-handler";
-import { subscribeToSiteBuildCompleted } from "./lib/rss-handler";
+import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { BlogPrintableAttachmentProvider } from "./attachments/printable-provider";
@@ -82,7 +82,7 @@ export class BlogPlugin extends EntityPlugin<
     // Publish pipeline and RSS subscriptions
     registerWithPublishPipeline(context, this.logger);
     subscribeToPublishExecute(context, this.logger);
-    subscribeToSiteBuildCompleted(context, this.logger);
+    subscribeToSiteBuildStaging(context, this.logger);
     registerEvalHandlers(context);
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "post",

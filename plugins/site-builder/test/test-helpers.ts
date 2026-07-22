@@ -1,8 +1,14 @@
 import { h } from "preact";
+import { promises as fs } from "fs";
 import type { SiteBuilderConfig } from "../src/config";
 import type { SiteBuilderServices } from "../src/lib/site-builder";
 import type { BuildContext } from "../src/lib/static-site-builder";
 import type { SiteViewTemplate } from "../src/lib/site-view-template";
+import type {
+  SiteBuildOutputCommitResult,
+  SiteBuildOutputLifecycle,
+  SiteBuildOutputTarget,
+} from "../src/lib/site-build-output-lifecycle";
 import type { ServicePluginContext } from "@brains/plugins";
 import type {
   RouteDefinition,
@@ -161,6 +167,46 @@ export function createRendererTestContext(
 /**
  * Create a test config with minimal required fields
  */
+export function createTestSiteBuildOutputLifecycle(): SiteBuildOutputLifecycle {
+  return {
+    begin: async (options): Promise<SiteBuildOutputTarget> => {
+      const generationDir = `${options.outputDir}.generation-${options.buildId}`;
+      await fs.mkdir(generationDir, { recursive: true });
+      return {
+        activeOutputDir: options.outputDir,
+        generationDir,
+        workingDir: `${options.outputDir}.working-${options.buildId}`,
+        environmentDir: `${options.outputDir}.generations`,
+        buildId: options.buildId,
+      };
+    },
+    commit: async (options): Promise<SiteBuildOutputCommitResult> => {
+      await fs.rm(options.target.generationDir, {
+        recursive: true,
+        force: true,
+      });
+      return {
+        filesGenerated: options.preparedBuild.routes.length + 1,
+        manifestPath: `${options.target.activeOutputDir}/.site-build-manifest.json`,
+        manifest: {
+          version: 1,
+          buildId: options.preparedBuild.buildId,
+          environment: options.preparedBuild.environment,
+          routes: [],
+          files: [],
+          images: options.preparedBuild.images,
+          staticAssets: [],
+          scripts: { global: [], byRoute: {} },
+          warnings: options.warnings,
+        },
+      };
+    },
+    abort: async (target): Promise<void> => {
+      await fs.rm(target.generationDir, { recursive: true, force: true });
+    },
+  };
+}
+
 export function createSiteBuilderServices(
   context: ServicePluginContext,
 ): SiteBuilderServices {

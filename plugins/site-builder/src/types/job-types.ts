@@ -44,11 +44,14 @@ export interface SiteBuildCompletedPayload {
   environment: "preview" | "production";
   routesBuilt: number;
   siteConfig: {
-    title?: string;
-    description?: string;
-    url?: string;
-    copyright?: string;
-    themeMode?: "light" | "dark";
+    title?: string | undefined;
+    description?: string | undefined;
+    url?: string | undefined;
+    copyright?: string | undefined;
+    themeMode?: "light" | "dark" | undefined;
   };
   generateEntityUrl: (entityType: string, slug: string) => string;
 }
+
+/** Payload for extensions that write optional artifacts into staging. */
+export type SiteBuildStagingPayload = SiteBuildCompletedPayload;

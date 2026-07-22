@@ -15,6 +15,7 @@ import type { SiteBuilderServices } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { runSiteBuild } from "./run-site-build";
 import type { SiteBuildProfileService } from "./site-build-profile-service";
+import type { SiteBuildOutputLifecycle } from "./site-build-output-lifecycle";
 export type { EnrichedEntity } from "./content-enrichment";
 export type { SiteBuilderServices } from "./site-builder-services";
 
@@ -24,6 +25,7 @@ export class SiteBuilder implements ISiteBuilder {
     createPreactBuilder;
   private pipelineContext: BuildPipelineContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
+  private outputLifecycle: SiteBuildOutputLifecycle | undefined;
 
   /**
    * Set the default static site builder factory for all instances
@@ -63,6 +65,7 @@ export class SiteBuilder implements ISiteBuilder {
     profileService: SiteBuildProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
     entityDisplay: EntityDisplayMap | undefined = undefined,
+    outputLifecycle?: SiteBuildOutputLifecycle,
   ): SiteBuilder {
     return new SiteBuilder(
       logger,
@@ -71,6 +74,7 @@ export class SiteBuilder implements ISiteBuilder {
       routeRegistry,
       profileService,
       entityDisplay,
+      outputLifecycle,
     );
   }
 
@@ -81,6 +85,7 @@ export class SiteBuilder implements ISiteBuilder {
     routeRegistry: RouteRegistry,
     profileService: SiteBuildProfileService,
     entityDisplay: EntityDisplayMap | undefined,
+    outputLifecycle?: SiteBuildOutputLifecycle,
   ) {
     this.pipelineContext = {
       logger,
@@ -90,6 +95,7 @@ export class SiteBuilder implements ISiteBuilder {
       entityDisplay,
     };
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
+    this.outputLifecycle = outputLifecycle;
 
     // Configure the shared EntityUrlGenerator singleton
     EntityUrlGenerator.getInstance().configure(entityDisplay);
@@ -104,6 +110,7 @@ export class SiteBuilder implements ISiteBuilder {
       progress,
       pipelineContext: this.pipelineContext,
       staticSiteBuilderFactory: this.staticSiteBuilderFactory,
+      ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
     });
   }
 }

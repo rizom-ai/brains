@@ -68,6 +68,7 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
  */
 export type SiteBuildDiagnosticCode =
   | "build-failed"
+  | "output-commit-failed"
   | "unsafe-route-path"
   | "missing-layout"
   | "missing-template"
@@ -94,6 +95,7 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
   severity: z.enum(["warning", "error"]),
   code: z.enum([
     "build-failed",
+    "output-commit-failed",
     "unsafe-route-path",
     "missing-layout",
     "missing-template",

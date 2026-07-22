@@ -8,6 +8,9 @@ import {
 } from "@brains/plugins/test";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
+import { promises as fs } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 const sampleDraftPost = createMockPost(
   "post-1",
@@ -261,6 +264,58 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         m.type.startsWith("publish:report"),
       );
       expect(reportMessages).toHaveLength(0);
+    });
+  });
+
+  describe("RSS staging", () => {
+    it("writes feed.xml before publication and ignores completion notifications", async () => {
+      await harness.installPlugin(new BlogPlugin({}));
+      await harness
+        .getEntityService()
+        .createEntity({ entity: sampleDraftPost });
+      const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-staging-"));
+      const stagingDir = join(testDir, "staging");
+      const completedDir = join(testDir, "completed");
+      await fs.mkdir(stagingDir, { recursive: true });
+      await fs.mkdir(completedDir, { recursive: true });
+      const payload = {
+        environment: "preview" as const,
+        routesBuilt: 1,
+        siteConfig: {
+          title: "Test Blog",
+          description: "Test feed",
+          url: "https://example.com",
+        },
+        generateEntityUrl: (_entityType: string, slug: string): string =>
+          `/posts/${slug}`,
+      };
+
+      try {
+        await harness.sendMessage(
+          "site:build:staging",
+          { ...payload, outputDir: stagingDir },
+          "site-builder",
+          true,
+        );
+        expect(
+          await fs.readFile(join(stagingDir, "feed.xml"), "utf8"),
+        ).toContain("Test Post");
+
+        await harness.sendMessage(
+          "site:build:completed",
+          { ...payload, outputDir: completedDir },
+          "site-builder",
+          true,
+        );
+        expect(
+          await fs
+            .access(join(completedDir, "feed.xml"))
+            .then(() => true)
+            .catch(() => false),
+        ).toBe(false);
+      } finally {
+        await fs.rm(testDir, { recursive: true, force: true });
+      }
     });
   });
 });

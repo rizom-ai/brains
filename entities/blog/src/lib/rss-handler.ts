@@ -1,7 +1,7 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { SiteBuildCompletedPayload } from "@brains/site-builder-plugin";
+import type { SiteBuildStagingPayload } from "@brains/site-builder-plugin";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
@@ -9,18 +9,18 @@ import { generateRSSFeed } from "../rss/feed-generator";
 import { promises as fs } from "fs";
 import { join } from "path";
 
-export function subscribeToSiteBuildCompleted(
+export function subscribeToSiteBuildStaging(
   context: EntityPluginContext,
   logger: Logger,
 ): void {
-  context.messaging.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
-    "site:build:completed",
+  context.messaging.subscribe<SiteBuildStagingPayload, { success: boolean }>(
+    "site:build:staging",
     async (message) => {
       try {
         const payload = message.payload;
 
         logger.info(
-          `Received site:build:completed event for ${payload.environment} environment`,
+          `Received site:build:staging event for ${payload.environment} environment`,
         );
 
         await generateRSSAfterBuild(context, logger, payload);
@@ -35,7 +35,7 @@ export function subscribeToSiteBuildCompleted(
 async function generateRSSAfterBuild(
   context: EntityPluginContext,
   logger: Logger,
-  payload: SiteBuildCompletedPayload,
+  payload: SiteBuildStagingPayload,
 ): Promise<void> {
   const isPreview = payload.environment === "preview";
   logger.info(

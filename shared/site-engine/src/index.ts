@@ -27,6 +27,13 @@ export type {
   SiteImageRendererService,
 } from "./site-image-contracts";
 export { createSiteImageRenderer } from "./site-image-renderer";
+export { siteBuildArtifactManifestSchema } from "./site-build-artifact-manifest";
+export type {
+  SiteBuildArtifactFile,
+  SiteBuildArtifactKind,
+  SiteBuildArtifactManifest,
+  SiteBuildRouteArtifact,
+} from "./site-build-artifact-manifest";
 export {
   createPreparedSiteBuildSnapshot,
   freezePreparedSiteBuild,

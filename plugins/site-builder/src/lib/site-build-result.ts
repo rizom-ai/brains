@@ -5,6 +5,7 @@ import type {
 
 export interface SuccessfulBuildResultOptions {
   outputDir: string;
+  filesGenerated: number;
   routesBuilt: number;
   warnings: string[];
   diagnostics?: SiteBuildDiagnostic[] | undefined;
@@ -16,7 +17,7 @@ export function createSuccessfulBuildResult(
   return {
     success: true,
     outputDir: options.outputDir,
-    filesGenerated: options.routesBuilt + 1,
+    filesGenerated: options.filesGenerated,
     routesBuilt: options.routesBuilt,
     ...(options.warnings.length > 0 && { warnings: options.warnings }),
     ...(options.diagnostics &&

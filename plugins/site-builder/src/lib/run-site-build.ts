@@ -1,3 +1,4 @@
+import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { ProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
@@ -5,9 +6,11 @@ import { randomUUID } from "crypto";
 import type {
   BuildResult,
   SiteBuildDiagnostic,
+  SiteBuildDiagnosticCode,
   SiteBuilderOptions,
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
+import type { SiteBuildStagingPayload } from "../types/job-types";
 import { collectBuildRoutes } from "./collect-build-routes";
 import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
@@ -25,12 +28,19 @@ import {
   preflightSiteBuild,
 } from "./preflight-site-build";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
+import { writeSiteBuildSeoFiles } from "./seo-file-handler";
+import {
+  TransactionalSiteBuildOutput,
+  type SiteBuildOutputLifecycle,
+  type SiteBuildOutputTarget,
+} from "./site-build-output-lifecycle";
 
 export interface RunSiteBuildOptions {
   buildOptions: SiteBuilderOptions;
   progress: ProgressCallback | undefined;
   pipelineContext: BuildPipelineContext;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
+  outputLifecycle?: SiteBuildOutputLifecycle | undefined;
 }
 
 export async function runSiteBuild(
@@ -41,6 +51,11 @@ export async function runSiteBuild(
   const reporter = ProgressReporter.from(options.progress);
   const warnings: string[] = [];
   const diagnostics: SiteBuildDiagnostic[] = [];
+  const outputLifecycle =
+    options.outputLifecycle ??
+    new TransactionalSiteBuildOutput(options.pipelineContext.logger);
+  let outputTarget: SiteBuildOutputTarget | undefined;
+  let failureCode: SiteBuildDiagnosticCode = "build-failed";
 
   try {
     await reporter?.report({
@@ -130,10 +145,37 @@ export async function runSiteBuild(
       slots: options.buildOptions.slots,
       pipelineContext: options.pipelineContext,
     });
+    outputTarget = await outputLifecycle.begin({
+      outputDir: parsedOptions.outputDir,
+      environment: parsedOptions.environment,
+      buildId: preparation.preparedBuild.buildId,
+      configuredWorkingDir: parsedOptions.workingDir,
+    });
     const staticSiteBuilder = await createStaticSiteBuilder({
       logger: options.pipelineContext.logger,
-      parsedOptions,
+      outputDir: outputTarget.generationDir,
+      workingDir: outputTarget.workingDir,
+      cleanBeforeBuild: parsedOptions.cleanBeforeBuild,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+    });
+
+    await reporter?.report({
+      message: "Preparing site extension artifacts",
+      progress: 82,
+      total: 100,
+    });
+    const stagingPayload: SiteBuildStagingPayload = {
+      outputDir: outputTarget.generationDir,
+      environment: preparation.preparedBuild.environment,
+      routesBuilt: preparation.preparedBuild.routes.length,
+      siteConfig: preparation.preparedBuild.site,
+      generateEntityUrl: (entityType, slug) =>
+        EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+    };
+    await options.pipelineContext.services.sendMessage({
+      type: "site:build:staging",
+      payload: stagingPayload,
+      broadcast: true,
     });
 
     await runStaticSiteBuild({
@@ -142,23 +184,59 @@ export async function runSiteBuild(
       reporter,
     });
 
+    failureCode = "output-commit-failed";
     await reporter?.report({
-      message: "Site build complete",
-      progress: 100,
+      message: "Generating SEO artifacts",
+      progress: 96,
       total: 100,
     });
+    await writeSiteBuildSeoFiles({
+      outputDir: outputTarget.generationDir,
+      preparedBuild: preparation.preparedBuild,
+      logger: options.pipelineContext.logger,
+    });
+
+    await reporter?.report({
+      message: "Validating and publishing site generation",
+      progress: 97,
+      total: 100,
+    });
+    const commitResult = await outputLifecycle.commit({
+      target: outputTarget,
+      preparedBuild: preparation.preparedBuild,
+      warnings,
+    });
+    outputTarget = undefined;
+
+    await reporter
+      ?.report({
+        message: "Site build complete",
+        progress: 100,
+        total: 100,
+      })
+      .catch(() => {
+        // Publication has committed; progress delivery must not change success.
+      });
 
     return createSuccessfulBuildResult({
       outputDir: parsedOptions.outputDir,
+      filesGenerated: commitResult.filesGenerated,
       routesBuilt: routes.length,
       warnings,
       diagnostics,
     });
   } catch (error) {
+    if (outputTarget) {
+      await outputLifecycle.abort(outputTarget);
+    }
+    const messagePrefix =
+      failureCode === "output-commit-failed"
+        ? "Site output commit failed"
+        : "Site build process failed";
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
-      code: "build-failed",
-      message: `Site build process failed: ${getErrorMessage(error)}`,
+      code: failureCode,
+      message: `${messagePrefix}: ${getErrorMessage(error)}`,
     };
     const buildError = new Error(diagnostic.message);
     options.pipelineContext.logger.error("Site build failed", {
