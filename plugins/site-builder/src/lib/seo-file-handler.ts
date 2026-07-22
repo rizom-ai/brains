@@ -2,7 +2,7 @@ import type { PreparedSiteBuild } from "@brains/site-engine";
 import { generateRobotsTxt, generateSitemap } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
 import { promises as fs } from "fs";
-import { join } from "path";
+import { resolveSafeOutputFile } from "./output-path";
 
 export interface WriteSiteBuildSeoFilesOptions {
   outputDir: string;
@@ -23,10 +23,11 @@ export async function writeSiteBuildSeoFiles(
     baseUrl,
     options.preparedBuild.environment,
   );
-  await fs.writeFile(join(options.outputDir, "robots.txt"), robotsTxt, {
-    encoding: "utf8",
-    signal: options.signal,
-  });
+  await fs.writeFile(
+    resolveSafeOutputFile(options.outputDir, "robots.txt"),
+    robotsTxt,
+    { encoding: "utf8", signal: options.signal },
+  );
   options.signal.throwIfAborted();
 
   const sitemap = generateSitemap(
@@ -34,10 +35,11 @@ export async function writeSiteBuildSeoFiles(
     baseUrl,
     options.preparedBuild.preparedAt,
   );
-  await fs.writeFile(join(options.outputDir, "sitemap.xml"), sitemap, {
-    encoding: "utf8",
-    signal: options.signal,
-  });
+  await fs.writeFile(
+    resolveSafeOutputFile(options.outputDir, "sitemap.xml"),
+    sitemap,
+    { encoding: "utf8", signal: options.signal },
+  );
   options.signal.throwIfAborted();
   options.logger.info(
     `Generated staged SEO files with ${options.preparedBuild.routes.length} URLs`,
