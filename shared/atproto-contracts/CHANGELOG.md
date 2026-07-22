@@ -1,5 +1,19 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.216
+
+### Patch Changes
+
+- [`6cce234`](https://github.com/rizom-ai/brains/commit/6cce2342c28f7e68be2b047afcb9d82bbba540b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate ref-typed lexicon fields against their named object defs. The ref
+  restructure left `buildAtprotoFieldSchema` without a `ref` case, so nested
+  card/anchor/skill, post coverImage, and link source shapes fell through to
+  `z.unknown()` and untrusted discovery input passed record validation
+  unchecked. Local `#name` refs now resolve against `lexicon.defs`;
+  unresolvable refs fail closed.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.216
+  - @brains/entity-service@0.2.0-alpha.216
+
 ## 0.2.0-alpha.215
 
 ### Patch Changes

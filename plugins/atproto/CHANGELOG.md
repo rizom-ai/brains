@@ -1,5 +1,20 @@
 # @brains/atproto
 
+## 0.2.0-alpha.216
+
+### Patch Changes
+
+- [`22e50f6`](https://github.com/rizom-ai/brains/commit/22e50f67e5a807adaaf25470b25f8b6471386aa7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize ambient publishing tasks per record key. `publish:completed` and
+  `entity:updated` both fire for one mutation and previously raced concurrent
+  upserts; worse, a delete for an entity turned private could complete while a
+  slow upsert was still in flight, resurrecting the public record on the PDS.
+  Tasks sharing an entity key now run in event order; distinct entities still
+  publish concurrently.
+- Updated dependencies [[`6cce234`](https://github.com/rizom-ai/brains/commit/6cce2342c28f7e68be2b047afcb9d82bbba540b2)]:
+  - @brains/atproto-contracts@0.2.0-alpha.216
+  - @brains/utils@0.2.0-alpha.216
+  - @brains/plugins@0.2.0-alpha.216
+
 ## 0.2.0-alpha.215
 
 ### Patch Changes

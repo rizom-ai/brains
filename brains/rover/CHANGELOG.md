@@ -1,5 +1,55 @@
 # @brains/rover
 
+## 0.2.0-alpha.216
+
+### Patch Changes
+
+- Updated dependencies [[`22e50f6`](https://github.com/rizom-ai/brains/commit/22e50f67e5a807adaaf25470b25f8b6471386aa7), [`ad296ab`](https://github.com/rizom-ai/brains/commit/ad296abb4418a560c789ade0e995e2c175df0124)]:
+  - @brains/atproto@0.2.0-alpha.216
+  - @brains/topics@0.2.0-alpha.216
+  - @brains/agent-discovery@0.2.0-alpha.216
+  - @brains/blog@0.2.0-alpha.216
+  - @brains/decks@0.2.0-alpha.216
+  - @brains/link@0.2.0-alpha.216
+  - @brains/note@0.2.0-alpha.216
+  - @brains/portfolio@0.2.0-alpha.216
+  - @brains/series@0.2.0-alpha.216
+  - @brains/social-media@0.2.0-alpha.216
+  - @brains/atproto-registry@0.2.0-alpha.216
+  - @brains/site-default@0.2.0-alpha.216
+  - @brains/assessment@0.2.0-alpha.216
+  - @brains/doc@0.2.0-alpha.216
+  - @brains/document-plugin@0.2.0-alpha.216
+  - @brains/image-plugin@0.2.0-alpha.216
+  - @brains/products@0.2.0-alpha.216
+  - @brains/prompt@0.2.0-alpha.216
+  - @brains/rizom-ecosystem@0.2.0-alpha.216
+  - @brains/site-info@0.2.0-alpha.216
+  - @brains/wishlist@0.2.0-alpha.216
+  - @brains/a2a@0.2.0-alpha.216
+  - @brains/chat@0.2.0-alpha.216
+  - @brains/discord@0.2.0-alpha.216
+  - @brains/mcp@0.2.0-alpha.216
+  - @brains/web-chat@0.2.0-alpha.216
+  - @brains/webserver@0.2.0-alpha.216
+  - @brains/analytics@0.2.0-alpha.216
+  - @brains/cms@0.2.0-alpha.216
+  - @brains/content-pipeline@0.2.0-alpha.216
+  - @brains/dashboard@0.2.0-alpha.216
+  - @brains/directory-sync@0.2.0-alpha.216
+  - @brains/email-resend@0.2.0-alpha.216
+  - @brains/newsletter@0.2.0-alpha.216
+  - @brains/notifications@0.2.0-alpha.216
+  - @brains/obsidian-vault@0.2.0-alpha.216
+  - @brains/playbooks@0.2.0-alpha.216
+  - @brains/rover-onboarding@0.2.0-alpha.216
+  - @brains/site-builder-plugin@0.2.0-alpha.216
+  - @brains/site-content@0.2.0-alpha.216
+  - @brains/stock-photo@0.2.0-alpha.216
+  - @brains/app@0.2.0-alpha.216
+  - @brains/auth-service@0.2.0-alpha.216
+  - @rizom/theme-default@0.2.0-alpha.216
+
 ## 0.2.0-alpha.215
 
 ### Patch Changes
