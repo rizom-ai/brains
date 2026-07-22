@@ -1,6 +1,6 @@
 {
   "name": "@brains/email-resend",
-  "version": "0.2.0-alpha.221",
+  "version": "0.2.0-alpha.222",
   "description": "Generic email delivery adapter for Resend",
   "dependencies": {
     "@brains/email-contracts": "workspace:*",

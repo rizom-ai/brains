@@ -126,6 +126,7 @@
     "a2a-agent-call-instruction-cleanup",
     "a2a-effect-lifecycle",
     "agent-approval-frontmatter-sync",
+    "agent-card-refresh-readiness",
     "agent-connect-approves",
     "agent-directory-redesign",
     "agent-discovery-svg-height",

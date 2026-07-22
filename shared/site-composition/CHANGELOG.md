@@ -1,5 +1,15 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.222
+  - @brains/templates@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+  - @rizom/site@0.2.0-alpha.222
+
 ## 0.2.0-alpha.221
 
 ### Patch Changes
