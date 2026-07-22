@@ -25,6 +25,7 @@ import { buildSiteLayoutInfo } from "./build-site-layout-info";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { resolveSiteSectionContent } from "./content-resolver";
 import type { SiteViewTemplate } from "./site-view-template";
+import { snapshotPublicAssets } from "./snapshot-public-assets";
 
 const sectionContentSchema = z.record(z.string(), z.unknown());
 
@@ -39,6 +40,8 @@ export interface PrepareSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
+  publicDir: string;
+  signal?: AbortSignal | undefined;
 }
 
 export interface PrepareSiteBuildResult {
@@ -58,6 +61,25 @@ export async function prepareSiteBuild(
   const getViewTemplate = (name: string): SiteViewTemplate | undefined =>
     options.pipelineContext.services.getViewTemplate(name);
   const publishedOnly = options.parsedOptions.environment === "production";
+  const diagnostics: SiteBuildDiagnostic[] = [];
+  let publicAssets: Record<string, string> = {};
+  try {
+    publicAssets = await snapshotPublicAssets(
+      options.publicDir,
+      options.signal,
+    );
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    const diagnostic: SiteBuildDiagnostic = {
+      severity: "error",
+      code: "public-asset-snapshot-failed",
+      message: `Failed to snapshot app public assets: ${getErrorMessage(error)}`,
+      path: options.publicDir,
+    };
+    options.pipelineContext.logger.error(diagnostic.message, { error });
+    diagnostics.push(diagnostic);
+  }
+
   const limit = pLimit(4);
   const routeResults = await Promise.all(
     options.routes.map((route) =>
@@ -84,6 +106,19 @@ export async function prepareSiteBuild(
     ...collectRouteAssets(options.routes, { getViewTemplate }),
     ...options.buildOptions.staticAssets,
   };
+  const publicAssetPaths = new Set(Object.keys(publicAssets));
+  for (const staticAssetPath of Object.keys(staticAssets)) {
+    const path = staticAssetPath.startsWith("/")
+      ? staticAssetPath.slice(1)
+      : staticAssetPath;
+    if (!publicAssetPaths.has(path)) continue;
+    diagnostics.push({
+      severity: "warning",
+      code: "static-asset-collision",
+      message: `Static asset "${staticAssetPath}" overrides app public asset "${path}"`,
+      path: staticAssetPath,
+    });
+  }
   const preparedBuild = createPreparedSiteBuildSnapshot({
     buildId: options.buildId,
     environment: options.parsedOptions.environment,
@@ -94,12 +129,16 @@ export async function prepareSiteBuild(
     }),
     images: options.imageBuildService.getMap(),
     staticAssets,
+    publicAssets,
     globalHeadScripts: options.buildOptions.headScripts ?? [],
   });
 
   return {
     preparedBuild,
-    diagnostics: routeResults.flatMap((result) => result.diagnostics),
+    diagnostics: [
+      ...diagnostics,
+      ...routeResults.flatMap((result) => result.diagnostics),
+    ],
   };
 }
 

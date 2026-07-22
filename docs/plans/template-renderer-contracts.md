@@ -2,7 +2,7 @@
 
 ## Status
 
-Active on `work/site-build-robustness`. Baseline, preflight diagnostics, and prepared snapshots are in place. Site builds now render into immutable generation directories, validate and write an artifact manifest, and publish through an active-output symlink only after success. Existing directory outputs use a tested rollback-capable one-time migration; later symlink replacements use one atomic rename. App `public/` inventory, cancellation, and broader app-level verification remain pending.
+Active on `work/site-build-robustness`. Baseline, preflight diagnostics, and prepared snapshots are in place. Site builds now render into immutable generation directories, validate and write an artifact manifest, and publish through an active-output symlink only after success. Existing directory outputs use a tested rollback-capable one-time migration; later symlink replacements use one atomic rename. App `public/` files are captured as binary-safe prepared assets and validated in the artifact manifest. Cancellation and broader app-level verification remain pending.
 
 The robustness work is valuable with the current Preact renderer. Supporting Astro or another renderer is an optional later outcome, not the reason for the plan.
 

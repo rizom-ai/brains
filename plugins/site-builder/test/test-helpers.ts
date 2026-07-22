@@ -42,6 +42,7 @@ interface CreateRendererTestContextOptions {
   themeCSS?: string;
   headScripts?: string[];
   staticAssets?: Record<string, string>;
+  publicAssets?: Record<string, string>;
   images?: SiteImageMap;
   slots?: LayoutSlots;
 }
@@ -60,6 +61,7 @@ export interface RendererTestSourceContext {
   themeCSS?: string;
   headScripts?: string[];
   staticAssets?: Record<string, string>;
+  publicAssets?: Record<string, string>;
   images?: SiteImageMap;
   slots?: LayoutSlots;
 }
@@ -92,6 +94,9 @@ export async function prepareRendererTestContext(
     }),
     ...(source.staticAssets !== undefined && {
       staticAssets: source.staticAssets,
+    }),
+    ...(source.publicAssets !== undefined && {
+      publicAssets: source.publicAssets,
     }),
     ...(source.images !== undefined && { images: source.images }),
     ...(source.slots !== undefined && { slots: source.slots }),
@@ -156,6 +161,7 @@ export function createRendererTestContext(
         }),
         ...options.staticAssets,
       },
+      publicAssets: options.publicAssets ?? {},
       globalHeadScripts: options.headScripts ?? [],
     },
     viewTemplates,
@@ -196,6 +202,7 @@ export function createTestSiteBuildOutputLifecycle(): SiteBuildOutputLifecycle {
           files: [],
           images: options.preparedBuild.images,
           staticAssets: [],
+          publicAssets: [],
           scripts: { global: [], byRoute: {} },
           warnings: options.warnings,
         },
