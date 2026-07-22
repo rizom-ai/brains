@@ -647,6 +647,174 @@ describe("AuthService", () => {
     expect(toolNames).not.toContain("auth-service_user_revoke_passkey");
   });
 
+  it("prepares redacted email and Discord delivery claims for targeted setup", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const emailUser = await service.createUser({
+      displayName: "Email Invitee",
+      role: "trusted",
+      status: "invited",
+    });
+    const discordUser = await service.createUser({
+      displayName: "Discord Invitee",
+      role: "trusted",
+      status: "invited",
+    });
+
+    const emailSetup = await service.startPasskeyRegistrationForUser(
+      emailUser.userId,
+      { actorUserId: emailUser.userId },
+      { type: "email", subject: "invitee@example.com" },
+    );
+    const discordSetup = await service.startPasskeyRegistrationForUser(
+      discordUser.userId,
+      { actorUserId: emailUser.userId },
+      {
+        type: "discord",
+        subject: "1442828818493735015",
+        label: "@invitee",
+      },
+    );
+    const emailRetry = await service.startPasskeyRegistrationForUser(
+      emailUser.userId,
+      { actorUserId: emailUser.userId },
+    );
+
+    expect(emailSetup.setupUrl).not.toContain("invitee@example.com");
+    expect(emailSetup.delivery).toEqual({
+      type: "email",
+      label: "Email address",
+    });
+    expect(emailRetry.delivery).toEqual(emailSetup.delivery);
+    expect(discordSetup.setupUrl).not.toContain("1442828818493735015");
+    expect(discordSetup.delivery).toEqual({
+      type: "discord",
+      label: "@invitee",
+    });
+    const emailIdentities = await service.listUserIdentities(emailUser.userId);
+    expect(emailIdentities).toEqual([
+      expect.objectContaining({
+        type: "email",
+        label: "invitee@example.com",
+      }),
+    ]);
+    expect(emailIdentities[0]).not.toHaveProperty("verifiedAt");
+    const discordIdentities = await service.listUserIdentities(
+      discordUser.userId,
+    );
+    expect(discordIdentities).toEqual([
+      expect.objectContaining({
+        type: "discord",
+        label: "@invitee",
+      }),
+    ]);
+    expect(discordIdentities[0]).not.toHaveProperty("verifiedAt");
+    const auditJson = JSON.stringify(await service.listAuditEvents());
+    expect(auditJson).not.toContain("invitee@example.com");
+    expect(auditJson).not.toContain("1442828818493735015");
+    expect(auditJson).toContain('"deliveryType":"email"');
+    expect(auditJson).toContain('"deliveryType":"discord"');
+
+    const userWithoutDelivery = await service.createUser({
+      displayName: "Missing Delivery",
+      role: "trusted",
+      status: "invited",
+    });
+    const missingDeliveryWasRejected = await service
+      .startPasskeyRegistrationForUser(userWithoutDelivery.userId)
+      .then(
+        () => false,
+        (error: unknown) =>
+          error instanceof Error &&
+          error.message ===
+            "A confirmed email or Discord delivery channel is required",
+      );
+    expect(missingDeliveryWasRejected).toBe(true);
+    await service.close();
+  });
+
+  it("binds the delivered channel once when targeted setup is claimed", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const user = await service.createUser({
+      displayName: "Claiming Invitee",
+      role: "trusted",
+      status: "invited",
+    });
+    await service.startPasskeyRegistrationForUser(
+      user.userId,
+      { actorUserId: user.userId },
+      { type: "email", subject: "claiming@example.com" },
+    );
+    const registration = await service.startPasskeyRegistrationForUser(
+      user.userId,
+      { actorUserId: user.userId },
+    );
+    let verificationCount = 0;
+    const passkeyService = (
+      service as unknown as {
+        passkeyService: {
+          verifyRegistrationResponse: () => Promise<{
+            verified: boolean;
+            subject: string;
+          }>;
+        };
+      }
+    ).passkeyService;
+    passkeyService.verifyRegistrationResponse = async (): Promise<{
+      verified: boolean;
+      subject: string;
+    }> => {
+      verificationCount += 1;
+      return { verified: true, subject: user.userId };
+    };
+    const token = new URL(registration.setupUrl).searchParams.get("token");
+    if (!token) throw new Error("Expected targeted setup token");
+    const request = (): Request =>
+      new Request(
+        `https://brain.example.com/webauthn/register/verify?setup_token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
+      );
+
+    const claimed = await service.handleRequest(request());
+    const replayed = await service.handleRequest(request());
+
+    expect(claimed.status).toBe(200);
+    expect(replayed.status).toBe(400);
+    expect(verificationCount).toBe(1);
+    expect(
+      (await service.listUsers()).find((item) => item.userId === user.userId),
+    ).toMatchObject({
+      status: "active",
+    });
+    expect(await service.listUserIdentities(user.userId)).toEqual([
+      expect.objectContaining({
+        type: "email",
+        label: "claiming@example.com",
+        verifiedAt: expect.any(Number),
+        evidence: expect.arrayContaining([
+          expect.objectContaining({
+            sourceKind: "provider",
+            assurance: "verified",
+            verifiedAt: expect.any(Number),
+          }),
+        ]),
+      }),
+    ]);
+    const auditJson = JSON.stringify(await service.listAuditEvents());
+    expect(auditJson).toContain("auth.identity.delivery_bound");
+    expect(auditJson).not.toContain("claiming@example.com");
+    await service.close();
+  });
+
   it("resolves private canonical identities through the internal runtime channel", async () => {
     const harness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",

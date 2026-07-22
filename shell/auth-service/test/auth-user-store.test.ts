@@ -3,7 +3,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
+import {
+  authIdentityEvidence,
+  setupTokenDeliveries,
+  setupTokens,
+} from "../src/runtime-schema";
+import { setupTokenId } from "../src/setup-state-store";
 import { AuthUserStore } from "../src/user-store";
+import { sha256Hex } from "@brains/utils/hash";
 
 const tempDirs: string[] = [];
 
@@ -168,6 +175,176 @@ describe("AuthUserStore", () => {
       );
       expect(rows.rows[0]?.["label"]).toBe("Alex on Discord");
       expect(rows.rows[0]?.["delivery_subject"]).toBeNull();
+    });
+  });
+
+  it("atomically binds a confirmed setup delivery and activates its invited user", async () => {
+    await withUserStore(async (store, database) => {
+      const user = await store.createUser({
+        displayName: "Invited Person",
+        role: "trusted",
+        status: "invited",
+      });
+      const identity = await store.attachIdentity({
+        userId: user.id,
+        type: "email",
+        subject: "invited@example.com",
+        deliverySubject: "invited@example.com",
+        label: "invited@example.com",
+        source: { kind: "admin" },
+      });
+      const tokenHash = setupTokenId("setup_delivered");
+      await database.db.insert(setupTokens).values({
+        tokenHash,
+        purpose: "passkey_setup",
+        targetUserId: user.id,
+        deliveryClaimId: identity.id,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        consumedAt: null,
+        deliveryKeyHash: null,
+        createdAt: Math.floor(Date.now() / 1000),
+      });
+      await database.db.insert(setupTokenDeliveries).values({
+        tokenHash,
+        recipientHash: sha256Hex("invited@example.com"),
+        deliveredAt: Math.floor(Date.now() / 1000),
+        deliveryId: "email_1",
+      });
+
+      const completed = await store.completeTargetedSetup({
+        userId: user.id,
+        setupTokenId: tokenHash,
+      });
+
+      expect(completed).toMatchObject({
+        user: { id: user.id, status: "active" },
+        boundIdentity: { id: identity.id, type: "email" },
+      });
+      expect(
+        await store.resolveIdentity({
+          type: "email",
+          subject: "invited@example.com",
+        }),
+      ).toMatchObject({ id: user.id, status: "active" });
+      expect(await store.listIdentities(user.id)).toEqual([
+        expect.objectContaining({
+          id: identity.id,
+          verifiedAt: expect.any(Number),
+        }),
+      ]);
+      const tokenRows = await database.db
+        .select({ consumedAt: setupTokens.consumedAt })
+        .from(setupTokens);
+      expect(tokenRows[0]?.consumedAt).toEqual(expect.any(Number));
+      const verifiedEvidence = await database.db
+        .select()
+        .from(authIdentityEvidence);
+      expect(verifiedEvidence).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            claimId: identity.id,
+            sourceKind: "provider",
+            sourceId: null,
+            assurance: "verified",
+            verifiedAt: expect.any(Number),
+          }),
+        ]),
+      );
+
+      await expectRejectsWithMessage(
+        store.completeTargetedSetup({
+          userId: user.id,
+          setupTokenId: tokenHash,
+        }),
+        "Invalid or consumed setup token",
+      );
+    });
+  });
+
+  it("refuses wrong-user and suspended setup delivery claims without consuming them", async () => {
+    await withUserStore(async (store, database) => {
+      const owner = await store.createUser({
+        displayName: "Claim Owner",
+        role: "trusted",
+        status: "invited",
+      });
+      const target = await store.createUser({
+        displayName: "Wrong Target",
+        role: "trusted",
+        status: "invited",
+      });
+      const identity = await store.attachIdentity({
+        userId: owner.id,
+        type: "discord",
+        subject: "123456789",
+        deliverySubject: "123456789",
+        label: "@claim-owner",
+        source: { kind: "admin" },
+      });
+      const wrongTokenHash = setupTokenId("setup_wrong_user");
+      await database.db.insert(setupTokens).values({
+        tokenHash: wrongTokenHash,
+        purpose: "passkey_setup",
+        targetUserId: target.id,
+        deliveryClaimId: identity.id,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        consumedAt: null,
+        deliveryKeyHash: null,
+        createdAt: Math.floor(Date.now() / 1000),
+      });
+      await database.db.insert(setupTokenDeliveries).values({
+        tokenHash: wrongTokenHash,
+        recipientHash: sha256Hex("123456789"),
+        deliveredAt: Math.floor(Date.now() / 1000),
+        deliveryId: null,
+      });
+
+      await expectRejectsWithMessage(
+        store.completeTargetedSetup({
+          userId: target.id,
+          setupTokenId: wrongTokenHash,
+        }),
+        "Setup delivery identity does not belong to target user",
+      );
+      await store.updateUserStatus(target.id, "suspended");
+      await expectRejectsWithMessage(
+        store.completeTargetedSetup({
+          userId: target.id,
+          setupTokenId: wrongTokenHash,
+        }),
+        "Passkey registration user is unavailable",
+      );
+
+      expect(await store.getUser(target.id)).toMatchObject({
+        status: "suspended",
+      });
+      const [token] = await database.db
+        .select({ consumedAt: setupTokens.consumedAt })
+        .from(setupTokens);
+      expect(token?.consumedAt).toBeNull();
+      expect((await store.listIdentities(owner.id))[0]?.verifiedAt).toBeNull();
+
+      const undeliveredTokenHash = setupTokenId("setup_undelivered");
+      await database.db.insert(setupTokens).values({
+        tokenHash: undeliveredTokenHash,
+        purpose: "passkey_setup",
+        targetUserId: owner.id,
+        deliveryClaimId: identity.id,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        consumedAt: null,
+        deliveryKeyHash: null,
+        createdAt: Math.floor(Date.now() / 1000),
+      });
+      await expectRejectsWithMessage(
+        store.completeTargetedSetup({
+          userId: owner.id,
+          setupTokenId: undeliveredTokenHash,
+        }),
+        "Setup delivery was not confirmed",
+      );
+      expect(await store.getUser(owner.id)).toMatchObject({
+        status: "invited",
+      });
     });
   });
 

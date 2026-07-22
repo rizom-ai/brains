@@ -13,6 +13,7 @@ const actionLabels: Record<string, string> = {
   "auth.external_peer.linked": "linked an external peer",
   "auth.identity.attached": "connected an identity",
   "auth.identity.detached": "disconnected an identity",
+  "auth.identity.delivery_bound": "bound a verified delivery channel",
   "auth.passkey.authentication_failed": "recorded a failed passkey sign-in",
   "auth.passkey.migrated": "migrated a passkey",
   "auth.passkey.registered": "registered a passkey",

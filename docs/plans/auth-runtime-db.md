@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Standalone-grant Admin CRUD and decision 15's connected delivery-channel binding remain follow-on work. Legacy JSON/JWK files remain immutable migration backups, never `AuthService` runtime truth.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding is implemented. Standalone-grant Admin CRUD and automated provider delivery/resend remain follow-on work. Legacy JSON/JWK files remain immutable migration backups, never `AuthService` runtime truth.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -107,6 +107,22 @@ Non-blocking cleanup surfaced by the merge-readiness pass over the six hardening
 - [x] **Split `plugins/admin/ui-react/src/App.tsx`** [fixed] — the People container is isolated from reusable roster/detail components, dialogs, modal framing, shared view types, and pure formatting. Decision 15 separately removes the superseded consent/promotion components.
 - [x] **Centralize SPA mutation feedback** [fixed] — a tested `runWithFeedback` utility, `useMutationFeedback` hook, and safe `messageOf(error, fallback)` projection now own mutation, representation-consent, clipboard, and reconciliation feedback without exposing unknown thrown values.
 
+**`user-store.ts` decomposition (2026-07-22 review).** At ~904 loc `AuthUserStore` carries ~5 responsibilities (anchor/first-admin bootstrap, user/person CRUD, role/status invariants, targeted-setup completion, identity/evidence). The length is a missing-seam symptom, not verbose code. Ranked by payoff:
+
+- [ ] **De-duplicate `updateUserRole` / `updateUserStatus`** [cleanup, correctness risk] — the two methods are ~90% identical: the `isPersonalAnchor` and `hasOtherActiveAdmin` subqueries are byte-for-byte the same, and only the set-field, the no-op guard column, and the "relaxing" escape (`role === "admin"` vs `status === "active"`) differ. Collapse into one guarded-mutation helper (e.g. `applyGuardedUserMutation({ userId, column, value, relaxing })`). Removes ~50 loc and the real hazard: a change to the last-admin invariant today must land in both copies or they silently drift.
+- [ ] **Extract `AuthIdentityStore`** [cohesion split] — the identity/evidence/claims cluster (`ensureIdentity`, `attachIdentity`, `list/detach/resolveIdentity*`, plus the `identityRecordFromEvidence` / `normalizeIdentityKey` / `hashIdentityKey` helpers, ~220 loc) is a self-contained bounded context over `authIdentities` + `authIdentityEvidence`. Move it to its own store and let `AuthService` compose both; drops user-store to ~630. Coupling to migrate: the shared `requireUser` / `getUser` lookups — inject the db plus a user-lookup, or keep a thin `requireUser` on each store.
+- [ ] **Relocate targeted-setup completion to the setup domain** [altitude] — `validateTargetedSetup` / `completeTargetedSetup` and the free `resolveTargetedSetup` / `requireTargetedSetupContext` helpers operate on `setupTokens` / `setupTokenDeliveries` and belong beside `setup-flow.ts` / `setup-state-store.ts`, not in the user store.
+
+Sequencing: do these **after** the in-flight setup-delivery-binding WIP (currently uncommitted across `user-store.ts`, `setup-flow.ts`, `setup-state-store.ts`, the `0006` migration, and `setup-delivery-binding.test.ts`) is committed and green — it lands in exactly this region and the third item overlaps it directly.
+
+**`auth-service.ts` must come down from ~1812 loc (2026-07-22 review).** 1812 loc is not defensible as "it's the facade" — a composition root wires stores and delegates; it does not inline session/login orchestration, bearer resolution, identity reconciliation, setup delivery, and a whole migration importer. The size is inlined responsibility, and the target end state is a thin wiring + dispatch root (a few hundred loc) over domain services. Work, highest payoff first:
+
+- [x] **Decision: drop the legacy file→DB import entirely (clean cutover)** [decided 2026-07-22, biggest single cut] — the 7 `legacy*Store`s (`OAuthClientStore`, `AuthorizationCodeStore`, `AuthSessionStore`, `RefreshTokenStore`, `A2APeerTrustStore`, `PasskeyStore`, `SetupStateStore` legacy variants), `LegacyAuthImportStore`, their constructions, the `migrateLegacy*` methods, and the ~140-loc import block (~L460-640) are removed. DB-backed auth never shipped, so there is no seamless-migration promise to honor; existing installs re-onboard once (re-register passkeys, re-approve MCP clients, re-login — the regenerated JWK key forces token re-auth anyway). Delete `legacy-import-store.ts` and the legacy file-store modules once no longer referenced. See revised **Migration strategy** below.
+- [ ] **Extract domain services from the remaining orchestration** [the actual decomposition] — pull session/login, bearer/token verification, identity reconciliation, and user-role management out of `AuthService` into their own units, mirroring how `OAuthEndpoints` / `WebAuthnEndpoints` / `SetupFlow` are already separated. `AuthService` retains only construction, `initialize`/`close`, and `handleRequest` dispatch.
+- [ ] **Flatten `handleRequest` into a route table** [altitude] — the ~105-loc dispatcher already delegates to sub-handlers; a `{ method, path → handler }` table shrinks it without moving logic.
+
+`runtime-schema.ts` (~1113 loc) is genuinely fine — 21 pure `sqliteTable` definitions, zero logic; length is inherent to the table count, and a split would be arbitrary. It is the one large auth file the size rule does not indict.
+
 ### OAuth surface — endpoint hardening (2026-07-16 endpoint audit)
 
 A follow-up audit of the full HTTP surface confirmed the admin/session/identity/representation/WebAuthn endpoints are well-gated (`resolveSession` → active Admin, same-origin + action-matched `confirmation`, thorough secret redaction; `acceptRepresentation` enforces `user.personId === link.personId`). The lower-severity OAuth authorization-server findings were defense-in-depth rather than access holes and are now fixed.
@@ -173,7 +189,7 @@ The unreleased representation implementation has been replaced by the target pee
 - [x] **Use a clean pre-release schema correction.** The representation schema never shipped outside this feature branch, so generated Drizzle migrations create `person_external_peers` and remove the obsolete table without a historical data-copy transform or dual-read path.
 - [x] **Remove representation APIs and UI.** `/auth/representations`, My agents, consent mutations, and represented-person projection are absent.
 - [x] **Separate Sign-in from Connected channels.** Passkeys are sign-in credentials. Verified email and Discord are Admin-visible connected channels; raw lookup hashes and protocol internals remain hidden.
-- [ ] **Bind setup delivery explicitly.** Claiming a targeted setup link delivered through verified email or Discord binds that channel to the account while registering the passkey and activating the invited user.
+- [x] **Bind setup delivery explicitly.** Generated migration `0006_magical_maximus.sql` lets a targeted setup token reference an asserted person-owned email or Discord claim and its hashed delivery record. Successful single-use claim atomically verifies that channel, activates the invited user, consumes the token, and records a redacted audit event; wrong-user, suspended, undelivered, expired, and replayed claims fail closed. Retried links reuse the newest eligible confirmed claim instead of falling back to an unbound token.
 - [x] **Build the four-section console contract.** Overview, Members/People, Invitations, and Audit have dedicated read models, including an Admin-only audit-list endpoint. No generic Advanced UI is present.
 
 ## Consumers to satisfy
@@ -381,18 +397,9 @@ The auth DB becomes the private canonical identity backend. Do not add a separat
 
 ### Existing installs
 
-Run an idempotent migration on auth-service startup:
+**Clean cutover — no file→DB import (decided 2026-07-22).** DB-backed auth never shipped, so there is no released install with a seamless-migration promise to honor. Existing installs start from an empty `auth.db` and re-onboard once: re-register passkeys, re-approve MCP/OAuth clients, and re-login. The signing key regenerates, so any outstanding tokens re-auth regardless. This supersedes the earlier idempotent-import design and is why the legacy import layer is deleted from `auth-service.ts` (see the size item under _Refactoring follow-ups_).
 
-1. Create/open `auth.db` and record migration version.
-2. Import the current JWK signing key.
-3. Import OAuth clients.
-4. If passkeys or sessions use `single-operator` and no users exist, create the first active admin user.
-5. Import passkeys, rebinding `single-operator` to that user id.
-6. Import active sessions and auth codes where safe.
-7. Import refresh tokens except `single-operator` tokens; revoke/skip those and force one-time re-auth.
-8. Preserve old JSON files as backup until migration is verified; do not delete automatically in the first release.
-
-Migration should be repeatable and should not create duplicate users, credentials, or clients.
+Operators with old JSON auth files may keep them as a manual backup; nothing reads them automatically.
 
 ## Phased implementation
 
@@ -485,14 +492,14 @@ Validation: existing sessions survive migration; trusted sessions stay trusted i
 
 ### Phase 8 — Person subjects, connected channels, and external peers
 
-**Status: person backfill, normalized claims, and the clean pre-release peer-association correction are complete. Delivery binding remains follow-on work.**
+**Status: person backfill, normalized claims, the clean pre-release peer-association correction, and targeted delivery-channel binding are complete. Automated provider delivery and invitation lifecycle UX remain follow-on work.**
 
 - Preserve stable runtime people, user links, user ids, passkeys, sessions, roles, statuses, claims, evidence, and historical link ids.
 - Keep canonical provider claims person-owned while retaining user authentication bindings and assurance.
 - [x] Add external-peer associations that never grant a role, inherit person identity, or rewrite actor attribution.
 - [x] Replace the unreleased representation table directly; no released rows require conversion.
 - [x] Remove representation endpoints/UI after adding the peer association.
-- Record setup delivery-channel context and bind verified email/Discord on successful claim.
+- [x] Record setup delivery-claim context and bind verified email/Discord on successful single-use claim without exposing raw destinations in tokens, responses, or audit metadata.
 - Keep raw delivery subjects private except for explicit Admin-only connected-channel display.
 
 Validation: migrations preserve released users and credentials and are restart-idempotent; peer association never changes actor attribution. Connected-account precedence and suspension fallback blocking remain part of decision 14.

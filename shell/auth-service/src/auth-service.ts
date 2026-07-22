@@ -13,6 +13,7 @@ import type {
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
   AuthPasskeySummary,
+  AuthSetupDeliveryInput,
 } from "./admin-contracts";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import {
@@ -65,7 +66,11 @@ import {
   RefreshTokenStore,
   RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
-import { RuntimeSetupStateStore, SetupStateStore } from "./setup-state-store";
+import {
+  RuntimeSetupStateStore,
+  SetupStateStore,
+  setupTokenId,
+} from "./setup-state-store";
 import {
   AuthSessionStore,
   clearAuthSessionCookies,
@@ -101,6 +106,7 @@ import {
   DEFAULT_SETUP_TOKEN_TTL_SECONDS,
   SetupFlow,
   type PasskeySetupRequired,
+  type ResolvedSetupToken,
 } from "./setup-flow";
 import type {
   A2APrivateJwk,
@@ -139,12 +145,17 @@ export interface AuthMutationContext {
 export interface UserPasskeyRegistration {
   setupUrl: string;
   expiresAt: number;
+  delivery: {
+    type: "email" | "discord";
+    label: string;
+  };
 }
 
 export interface InviteExternalPeerPersonRequest {
   peerId: string;
   displayName: string;
   role: "admin" | "trusted";
+  delivery: AuthSetupDeliveryInput;
 }
 
 export interface LinkExternalPeerRequest {
@@ -321,8 +332,11 @@ export class AuthService {
       recordAuditEvent: async (event): Promise<void> => {
         await this.getAuditStore().append(event);
       },
-      completeTargetedRegistration: async (userId: string): Promise<void> => {
-        await this.completeTargetedRegistration(userId);
+      validateTargetedRegistration: async (setup): Promise<void> => {
+        await this.validateTargetedRegistration(setup);
+      },
+      completeTargetedRegistration: async (setup): Promise<void> => {
+        await this.completeTargetedRegistration(setup);
       },
       registrationUserProvider: async (
         userId?: string,
@@ -919,6 +933,7 @@ export class AuthService {
     const registration = await this.startPasskeyRegistrationForUser(
       invited.user.id,
       context,
+      input.delivery,
     );
     await this.getAuditStore().append({
       ...auditActor(context),
@@ -1385,33 +1400,141 @@ export class AuthService {
   async startPasskeyRegistrationForUser(
     userId: string,
     context: AuthMutationContext = {},
+    delivery?: AuthSetupDeliveryInput,
   ): Promise<UserPasskeyRegistration> {
     await this.ensureUserStoreStarted();
     const user = await this.getUserStore().getUser(userId);
     if (!user || user.status === "suspended") {
       throw new Error(`Eligible auth user not found: ${userId}`);
     }
+    const deliveryIdentity = delivery
+      ? await this.prepareSetupDeliveryIdentity(userId, delivery)
+      : await this.resolveStoredSetupDeliveryIdentity(userId);
     const setup = await this.setupFlow.createUserPasskeySetup(
       userId,
       this.issuer,
+      { deliveryClaimId: deliveryIdentity.id },
+    );
+    await this.setupFlow.recordSetupDelivery(
+      setup.setupTokenId,
+      deliveryIdentity.deliverySubject,
     );
     await this.getAuditStore().append({
       ...auditActor(context),
       action: "auth.passkey.registration_started",
       targetType: "user",
       targetId: userId,
-      metadata: { expiresAt: setup.expiresAt },
+      metadata: {
+        expiresAt: setup.expiresAt,
+        deliveryType: deliveryIdentity.type,
+      },
     });
-    return { setupUrl: setup.setupUrl, expiresAt: setup.expiresAt };
+    return {
+      setupUrl: setup.setupUrl,
+      expiresAt: setup.expiresAt,
+      delivery: {
+        type: deliveryIdentity.type as "email" | "discord",
+        label:
+          deliveryIdentity.type === "email"
+            ? "Email address"
+            : (deliveryIdentity.label ?? "Discord account"),
+      },
+    };
   }
 
-  private async completeTargetedRegistration(userId: string): Promise<void> {
-    const user = await this.getUserStore().getUser(userId);
-    if (!user || user.status === "suspended") {
-      throw new Error("Passkey registration user is unavailable");
+  private async resolveStoredSetupDeliveryIdentity(
+    userId: string,
+  ): Promise<
+    AuthIdentityRecord & { type: "email" | "discord"; deliverySubject: string }
+  > {
+    const identities = (
+      await this.getUserStore().listIdentities(userId)
+    ).filter(
+      (
+        identity,
+      ): identity is AuthIdentityRecord & {
+        type: "email" | "discord";
+        deliverySubject: string;
+      } =>
+        identity.revokedAt === null &&
+        (identity.type === "email" || identity.type === "discord") &&
+        Boolean(identity.deliverySubject) &&
+        identity.evidence.some(
+          (evidence) =>
+            evidence.sourceKind === "admin" ||
+            (evidence.assurance === "verified" && evidence.verifiedAt !== null),
+        ),
+    );
+    const identity = identities.at(-1);
+    if (!identity) {
+      throw new Error(
+        "A confirmed email or Discord delivery channel is required",
+      );
     }
-    if (user.status === "invited") {
-      await this.updateUserStatus(user.id, "active", { actorUserId: user.id });
+    return identity;
+  }
+
+  private async prepareSetupDeliveryIdentity(
+    userId: string,
+    delivery: AuthSetupDeliveryInput,
+  ): Promise<
+    AuthIdentityRecord & {
+      type: "email" | "discord";
+      deliverySubject: string;
+    }
+  > {
+    const subject = delivery.subject.trim();
+    const normalizedSubject =
+      delivery.type === "email" ? subject.toLowerCase() : subject;
+    const { identity } = await this.getUserStore().ensureIdentity({
+      userId,
+      type: delivery.type,
+      subject: normalizedSubject,
+      deliverySubject: normalizedSubject,
+      label:
+        delivery.type === "email" ? normalizedSubject : delivery.label.trim(),
+      source: { kind: "admin" },
+    });
+    return identity as AuthIdentityRecord & {
+      type: "email" | "discord";
+      deliverySubject: string;
+    };
+  }
+
+  private async validateTargetedRegistration(
+    setup: ResolvedSetupToken & { targetUserId: string },
+  ): Promise<void> {
+    await this.getUserStore().validateTargetedSetup({
+      userId: setup.targetUserId,
+      setupTokenId: setupTokenId(setup.token),
+    });
+  }
+
+  private async completeTargetedRegistration(
+    setup: ResolvedSetupToken & { targetUserId: string },
+  ): Promise<void> {
+    const before = await this.getUserStore().getUser(setup.targetUserId);
+    const completed = await this.getUserStore().completeTargetedSetup({
+      userId: setup.targetUserId,
+      setupTokenId: setupTokenId(setup.token),
+    });
+    if (before?.status === "invited" && completed.user.status === "active") {
+      await this.getAuditStore().append({
+        actorUserId: completed.user.id,
+        action: "auth.user.status_updated",
+        targetType: "user",
+        targetId: completed.user.id,
+        metadata: { status: "active" },
+      });
+    }
+    if (completed.boundIdentity) {
+      await this.getAuditStore().append({
+        actorUserId: completed.user.id,
+        action: "auth.identity.delivery_bound",
+        targetType: "user",
+        targetId: completed.user.id,
+        metadata: { type: completed.boundIdentity.type },
+      });
     }
   }
 
@@ -1595,8 +1718,8 @@ export class AuthService {
       },
       revokePasskey: (credentialId, actorUserId) =>
         this.revokePasskey(credentialId, { actorUserId }),
-      startPasskeyRegistration: (userId, actorUserId) =>
-        this.startPasskeyRegistrationForUser(userId, { actorUserId }),
+      startPasskeyRegistration: (userId, actorUserId, delivery) =>
+        this.startPasskeyRegistrationForUser(userId, { actorUserId }, delivery),
       revokeUserSessionsAndRefreshTokens: (userId, actorUserId) =>
         this.revokeUserSessionsAndRefreshTokens(userId, { actorUserId }),
     });

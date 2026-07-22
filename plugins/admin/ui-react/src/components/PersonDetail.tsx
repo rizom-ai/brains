@@ -88,12 +88,16 @@ export function PersonDetail(props: {
       .then((result) => {
         const registration = (
           result as {
-            registration: { setupUrl: string; expiresAt: number };
+            registration: {
+              setupUrl: string;
+              expiresAt: number;
+              delivery: { label: string };
+            };
           }
         ).registration;
         props.onSetup(
           registration.setupUrl,
-          `Send this single-use link to ${user.displayName} through a private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+          `This single-use link is bound to ${registration.delivery.label}. Deliver it only through that confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
         );
       })
       .catch(() => undefined);

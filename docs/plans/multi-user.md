@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Admin CRUD for standalone grants and decision 15's delivery-channel binding remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. Admin CRUD for standalone grants and automated invitation delivery/resend remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -300,7 +300,7 @@ Add-a-person is **peer-first**, with a no-brain fallback (see the [professional 
 3. **No-brain fallback** — enter a local display name and email. Create the invited account without a profile.
 4. Select only **Trusted** or **Admin** and confirm the exact person, destination, role, and single-use setup delivery.
 
-The external brain remains a separate peer actor; it does not represent the person or inherit the person's role. Claiming a setup link proves control of the delivery channel, binds that verified email or Discord identity to the account, registers the passkey, and activates the invited user. The local account and external peer link remain separate visible facets.
+The external brain remains a separate peer actor; it does not represent the person or inherit the person's role. Claiming a setup link proves control of the delivery channel, binds that verified email or Discord identity to the account, registers the passkey, and activates the invited user. Retried links reuse the newest eligible confirmed delivery claim rather than issuing an unbound token. The local account and external peer link remain separate visible facets.
 
 ## Migration strategy
 
@@ -431,7 +431,7 @@ Validation:
 
 ### Phase 6 — Person-centered identity and external peer links
 
-**Status: person backfill, normalized person-owned identity claims, and access-neutral external-peer associations are implemented. Delivery-channel binding remains in Phase 7.**
+**Status: person backfill, normalized person-owned identity claims, access-neutral external-peer associations, and targeted delivery-channel binding are implemented. Automated delivery lifecycle UX remains in Phase 7.**
 
 The stable subject model is:
 
@@ -469,13 +469,13 @@ Validation:
 
 ### Phase 7 — Invitation delivery and audit viewer
 
-**Status: Audit endpoint/viewer and invitation-account listing are implemented; delivery is planned.** Complete invitation delivery on the existing targeted setup store:
+**Status: Audit endpoint/viewer, invitation-account listing, exact email/Discord delivery intent, and single-use claim binding are implemented. Automated provider delivery and lifecycle controls remain planned.**
 
-- email/Discord setup delivery with exact Admin confirmation
-- bind the delivery channel when its single-use setup link is claimed
-- retain intended Trusted/Admin role separately from invited status
-- resend, expiry, cancel, and delivery-state UX
-- Admin-only audit read endpoint and plain-language event viewer
+- [x] capture exact email/Discord delivery intent with Admin confirmation
+- [x] bind the delivered channel when its single-use setup link is claimed
+- [x] retain intended Trusted/Admin role separately from invited status
+- [ ] automate provider delivery plus resend, expiry, cancel, and delivery-state UX
+- [x] provide an Admin-only audit read endpoint and plain-language event viewer
 
 ## Security notes
 

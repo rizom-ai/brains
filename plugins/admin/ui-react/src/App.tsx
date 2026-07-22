@@ -46,6 +46,12 @@ export { assuranceLabel, initials, roleLabel } from "./format";
 
 const PEER_INVITATION_STORAGE_KEY = "brains:admin-peer-invitation";
 
+type SetupRegistration = {
+  setupUrl: string;
+  expiresAt: number;
+  delivery: { type: "email" | "discord"; label: string };
+};
+
 export interface PeopleBootstrap {
   userId: string;
   displayName: string;
@@ -177,13 +183,14 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
 
   const showSetup = (
     user: { userId: string; displayName: string },
-    registration: { setupUrl: string; expiresAt: number },
+    registration: SetupRegistration,
+    destination = registration.delivery.label,
   ): void => {
     setSelectedUserId(user.userId);
     setModal({
       kind: "setup",
       setupUrl: registration.setupUrl,
-      copy: `Deliver this single-use link to ${user.displayName} through the confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+      copy: `This single-use link is bound to ${destination}. Deliver it only through that confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
     });
   };
 
@@ -198,11 +205,8 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       "Setup link created",
     )
       .then((result) => {
-        const registration = (
-          result as {
-            registration: { setupUrl: string; expiresAt: number };
-          }
-        ).registration;
+        const registration = (result as { registration: SetupRegistration })
+          .registration;
         showSetup(user, registration);
       })
       .catch(() => undefined);
@@ -217,15 +221,22 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           peerId: input.peerId,
           displayName: input.displayName,
           role: input.role,
+          delivery: input.delivery,
         },
         undefined,
         "Invitation created",
       );
       const invited = result as {
         user: { userId: string; displayName: string };
-        registration: { setupUrl: string; expiresAt: number };
+        registration: SetupRegistration;
       };
-      showSetup(invited.user, invited.registration);
+      showSetup(
+        invited.user,
+        invited.registration,
+        input.delivery.type === "email"
+          ? input.delivery.subject
+          : input.delivery.label,
+      );
       return;
     }
 
@@ -245,11 +256,18 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
         confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
         userId: created.user.userId,
+        delivery: input.delivery,
       },
       created.user.userId,
       "Setup link created",
-    )) as { registration: { setupUrl: string; expiresAt: number } };
-    showSetup(created.user, setup.registration);
+    )) as { registration: SetupRegistration };
+    showSetup(
+      created.user,
+      setup.registration,
+      input.delivery.type === "email"
+        ? input.delivery.subject
+        : input.delivery.label,
+    );
   };
 
   const openMembers = (): void => setView("members");

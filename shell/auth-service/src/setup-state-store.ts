@@ -35,6 +35,10 @@ export interface RecordSetupDeliveryOptions {
   deliveryId?: string;
 }
 
+export interface TargetedSetupTokenOptions {
+  deliveryClaimId?: string;
+}
+
 export interface SetupStatePersistence {
   getValidSetupToken(nowSeconds: number): Promise<StoredSetupToken | undefined>;
   hasActiveSetupToken(nowSeconds: number): Promise<boolean>;
@@ -54,11 +58,14 @@ export interface TargetedSetupStatePersistence extends SetupStatePersistence {
   saveTargetedSetupToken(
     setupToken: StoredSetupToken,
     targetUserId: string,
+    options?: TargetedSetupTokenOptions,
   ): Promise<void>;
   getSetupTokenTarget(
     token: string,
     nowSeconds: number,
-  ): Promise<{ targetUserId: string | null } | undefined>;
+  ): Promise<
+    { targetUserId: string | null; deliveryClaimId: string | null } | undefined
+  >;
   consumeSetupToken(token: string): Promise<void>;
 }
 
@@ -66,7 +73,7 @@ export function setupTokenId(token: string): string {
   return sha256Hex(token);
 }
 
-function recipientHash(recipient: string): string {
+export function setupDeliveryRecipientHash(recipient: string): string {
   return sha256Hex(recipient.trim().toLowerCase());
 }
 
@@ -137,6 +144,7 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
           tokenHash,
           purpose: PASSKEY_SETUP_PURPOSE,
           targetUserId: null,
+          deliveryClaimId: null,
           expiresAt: setupToken.expiresAt,
           consumedAt: null,
           deliveryKeyHash: null,
@@ -259,6 +267,7 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
         tokenHash: setupTokenId(setupToken.token),
         purpose: PASSKEY_SETUP_PURPOSE,
         targetUserId: null,
+        deliveryClaimId: null,
         expiresAt: setupToken.expiresAt,
         consumedAt: null,
         deliveryKeyHash: null,
@@ -277,24 +286,44 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
   async saveTargetedSetupToken(
     setupToken: StoredSetupToken,
     targetUserId: string,
+    options: TargetedSetupTokenOptions = {},
   ): Promise<void> {
-    await this.database.db.insert(setupTokens).values({
-      tokenHash: setupTokenId(setupToken.token),
-      purpose: PASSKEY_SETUP_PURPOSE,
-      targetUserId,
-      expiresAt: setupToken.expiresAt,
-      consumedAt: null,
-      deliveryKeyHash: null,
-      createdAt: Math.floor(Date.now() / 1000),
+    const now = Math.floor(Date.now() / 1000);
+    await this.database.db.transaction(async (tx) => {
+      await tx
+        .update(setupTokens)
+        .set({ consumedAt: now })
+        .where(
+          and(
+            eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+            eq(setupTokens.targetUserId, targetUserId),
+            isNull(setupTokens.consumedAt),
+          ),
+        );
+      await tx.insert(setupTokens).values({
+        tokenHash: setupTokenId(setupToken.token),
+        purpose: PASSKEY_SETUP_PURPOSE,
+        targetUserId,
+        deliveryClaimId: options.deliveryClaimId ?? null,
+        expiresAt: setupToken.expiresAt,
+        consumedAt: null,
+        deliveryKeyHash: null,
+        createdAt: now,
+      });
     });
   }
 
   async getSetupTokenTarget(
     token: string,
     nowSecondsValue: number,
-  ): Promise<{ targetUserId: string | null } | undefined> {
+  ): Promise<
+    { targetUserId: string | null; deliveryClaimId: string | null } | undefined
+  > {
     const [row] = await this.database.db
-      .select({ targetUserId: setupTokens.targetUserId })
+      .select({
+        targetUserId: setupTokens.targetUserId,
+        deliveryClaimId: setupTokens.deliveryClaimId,
+      })
       .from(setupTokens)
       .where(
         and(
@@ -344,7 +373,10 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
       .where(
         and(
           eq(setupTokenDeliveries.tokenHash, setupTokenIdValue),
-          eq(setupTokenDeliveries.recipientHash, recipientHash(recipient)),
+          eq(
+            setupTokenDeliveries.recipientHash,
+            setupDeliveryRecipientHash(recipient),
+          ),
         ),
       )
       .limit(1);
@@ -360,7 +392,7 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
       .insert(setupTokenDeliveries)
       .values({
         tokenHash: setupTokenIdValue,
-        recipientHash: recipientHash(recipient),
+        recipientHash: setupDeliveryRecipientHash(recipient),
         deliveredAt: Math.floor(Date.now() / 1000),
         deliveryId: options.deliveryId ?? null,
       })
@@ -448,7 +480,7 @@ export class SetupStateStore implements SetupStatePersistence {
     recipient: string,
   ): Promise<boolean> {
     const state = await this.ensureLoaded();
-    const recipientHashValue = recipientHash(recipient);
+    const recipientHashValue = setupDeliveryRecipientHash(recipient);
     return state.deliveries.some(
       (delivery) =>
         delivery.setupTokenId === setupTokenIdValue &&
@@ -466,7 +498,7 @@ export class SetupStateStore implements SetupStatePersistence {
 
     const delivery: StoredSetupDelivery = {
       setupTokenId: setupTokenIdValue,
-      recipientHash: recipientHash(recipient),
+      recipientHash: setupDeliveryRecipientHash(recipient),
       deliveredAt: Math.floor(Date.now() / 1000),
       ...(options.deliveryId ? { deliveryId: options.deliveryId } : {}),
     };

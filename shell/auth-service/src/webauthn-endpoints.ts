@@ -8,7 +8,7 @@ import type {
   WebAuthnRequestContext,
 } from "./passkey-service";
 import type { AuthSessionPersistence } from "./session-store";
-import type { SetupFlow } from "./setup-flow";
+import type { ResolvedSetupToken, SetupFlow } from "./setup-flow";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
 import { jsonResponse, oauthErrorResponse } from "./http-responses";
 
@@ -19,7 +19,12 @@ export interface WebAuthnEndpointsOptions {
   registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
-  completeTargetedRegistration?: (userId: string) => Promise<void>;
+  validateTargetedRegistration?: (
+    setup: ResolvedSetupToken & { targetUserId: string },
+  ) => Promise<void>;
+  completeTargetedRegistration?: (
+    setup: ResolvedSetupToken & { targetUserId: string },
+  ) => Promise<void>;
   recordAuditEvent?: (event: {
     action: string;
     targetType?: string;
@@ -40,8 +45,12 @@ export class WebAuthnEndpoints {
   private readonly registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
+  private readonly validateTargetedRegistration:
+    | ((setup: ResolvedSetupToken & { targetUserId: string }) => Promise<void>)
+    | undefined;
   private readonly completeTargetedRegistration:
-    ((userId: string) => Promise<void>) | undefined;
+    | ((setup: ResolvedSetupToken & { targetUserId: string }) => Promise<void>)
+    | undefined;
   private readonly recordAuditEvent:
     | ((event: {
         action: string;
@@ -56,6 +65,7 @@ export class WebAuthnEndpoints {
     this.sessionStore = options.sessionStore;
     this.setupFlow = options.setupFlow;
     this.registrationUserProvider = options.registrationUserProvider;
+    this.validateTargetedRegistration = options.validateTargetedRegistration;
     this.completeTargetedRegistration = options.completeTargetedRegistration;
     this.recordAuditEvent = options.recordAuditEvent;
   }
@@ -104,31 +114,66 @@ export class WebAuthnEndpoints {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 
+    if (setup.targetUserId) {
+      try {
+        await this.registrationUserProvider(setup.targetUserId);
+        await this.validateTargetedRegistration?.({
+          ...setup,
+          targetUserId: setup.targetUserId,
+        });
+      } catch {
+        await this.recordRegistrationFailure(setup.targetUserId);
+        return oauthErrorResponse(
+          "access_denied",
+          "Passkey registration user is unavailable",
+        );
+      }
+    }
+
     const result = await this.passkeyService.verifyRegistrationResponse(
       (await request.json()) as RegistrationResponseJSON,
       webAuthnRequestContext(request),
       setup.targetUserId ?? undefined,
     );
-    if (!result.verified) {
-      await this.recordAuditEvent?.({
-        action: "auth.passkey.registration_failed",
-        ...(setup.targetUserId
-          ? { targetType: "user", targetId: setup.targetUserId }
-          : {}),
-      });
+    if (
+      !result.verified ||
+      (setup.targetUserId !== null && result.subject !== setup.targetUserId)
+    ) {
+      await this.recordRegistrationFailure(setup.targetUserId);
       return oauthErrorResponse("access_denied", "Passkey registration failed");
     }
 
-    if (setup.targetUserId) {
-      await this.completeTargetedRegistration?.(setup.targetUserId);
+    if (setup.targetUserId && this.completeTargetedRegistration) {
+      try {
+        await this.completeTargetedRegistration({
+          ...setup,
+          targetUserId: setup.targetUserId,
+        });
+      } catch {
+        await this.recordRegistrationFailure(setup.targetUserId);
+        return oauthErrorResponse(
+          "access_denied",
+          "Passkey registration user is unavailable",
+        );
+      }
+    } else {
+      await this.setupFlow.consumeSetupToken(setup.token);
     }
-    await this.setupFlow.consumeSetupToken(setup.token);
     const session = await this.sessionStore.createSession(
       result.subject ?? "single-operator",
       { secure: isSecureRequest(request) },
     );
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
+    });
+  }
+
+  private async recordRegistrationFailure(
+    targetUserId: string | null,
+  ): Promise<void> {
+    await this.recordAuditEvent?.({
+      action: "auth.passkey.registration_failed",
+      ...(targetUserId ? { targetType: "user", targetId: targetUserId } : {}),
     });
   }
 

@@ -436,6 +436,10 @@ describe("auth admin API", () => {
         peerId: "did:web:mira.example",
         displayName: "Mira Reyes",
         role: "trusted",
+        delivery: {
+          type: "email",
+          subject: "mira@example.com",
+        },
       }),
     );
 
@@ -443,7 +447,11 @@ describe("auth admin API", () => {
     const invited = (await response.json()) as {
       user: { userId: string; personId: string; status: string };
       peer: { peerId: string; personId: string; verificationStatus: string };
-      registration: { setupUrl: string; expiresAt: number };
+      registration: {
+        setupUrl: string;
+        expiresAt: number;
+        delivery: { type: string; label: string };
+      };
     };
     expect(invited.user).toMatchObject({ status: "invited" });
     expect(invited.peer).toMatchObject({
@@ -452,7 +460,23 @@ describe("auth admin API", () => {
       verificationStatus: "unverified",
     });
     expect(invited.registration.setupUrl).toStartWith(`${ISSUER}/setup?token=`);
-    expect(await service.listUserIdentities(invited.user.userId)).toEqual([]);
+    expect(invited.registration.delivery).toEqual({
+      type: "email",
+      label: "Email address",
+    });
+    expect(JSON.stringify(invited)).not.toContain("mira@example.com");
+    expect(await service.listUserIdentities(invited.user.userId)).toEqual([
+      expect.objectContaining({
+        type: "email",
+        label: "mira@example.com",
+        evidence: [
+          expect.objectContaining({
+            sourceKind: "admin",
+            assurance: "asserted",
+          }),
+        ],
+      }),
+    ]);
 
     const listResponse = await service.handleRequest(
       adminRequest("/auth/admin/users", session.cookie),
@@ -586,6 +610,10 @@ describe("auth admin API", () => {
         action: "startPasskeyRegistration",
         confirmation: "startPasskeyRegistration",
         userId: collaborator.userId,
+        delivery: {
+          type: "email",
+          subject: "mira@example.com",
+        },
       }),
     );
     expect(response.status).toBe(200);
@@ -593,6 +621,22 @@ describe("auth admin API", () => {
       registration: { setupUrl: string; expiresAt: number };
     };
     expect(result.registration.setupUrl).toStartWith(`${ISSUER}/setup?token=`);
+    expect(JSON.stringify(result)).not.toContain("mira@example.com");
+    expect(await service.listUserIdentities(collaborator.userId)).toEqual([
+      expect.objectContaining({
+        type: "email",
+        label: "mira@example.com",
+        evidence: [
+          expect.objectContaining({
+            sourceKind: "admin",
+            assurance: "asserted",
+          }),
+        ],
+      }),
+    ]);
+    expect(JSON.stringify(await service.listAuditEvents())).not.toContain(
+      "mira@example.com",
+    );
 
     const setupPage = await service.handleRequest(
       new Request(result.registration.setupUrl),
@@ -639,6 +683,36 @@ describe("auth admin API", () => {
         }),
       ]),
     );
+  });
+
+  it("requires a human-facing label for Discord setup delivery", async () => {
+    const service = await createService({ withPasskey: true });
+    const [anchor] = await service.listUsers();
+    if (!anchor) throw new Error("Expected migrated anchor");
+    const collaborator = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+      status: "invited",
+    });
+    const session = await service.createAuthSession(anchor.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "startPasskeyRegistration",
+        confirmation: "startPasskeyRegistration",
+        userId: collaborator.userId,
+        delivery: {
+          type: "discord",
+          subject: "1442828818493735015",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invalid or unconfirmed auth mutation",
+    });
+    expect(await service.listUserIdentities(collaborator.userId)).toEqual([]);
   });
 
   it("lists and revokes passkeys without exposing credential material", async () => {

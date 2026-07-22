@@ -43,6 +43,13 @@
       "when": 1784647473058,
       "tag": "0005_round_kat_farrell",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784699730669,
+      "tag": "0006_magical_maximus",
+      "breakpoints": true
     }
   ]
 }

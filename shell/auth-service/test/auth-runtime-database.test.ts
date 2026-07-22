@@ -225,6 +225,13 @@ describe("AuthRuntimeDatabase", () => {
         subject_id: "prsn_anchor",
         display_name: "Anchor",
       });
+      const setupTokens = await migrated.client.execute(
+        `SELECT token_hash, delivery_claim_id FROM setup_tokens`,
+      );
+      expect(setupTokens.rows[0]).toMatchObject({
+        token_hash: "legacy-setup-hash",
+        delivery_claim_id: null,
+      });
       const deliveries = await migrated.client.execute(
         `SELECT token_hash, recipient_hash, delivered_at
           FROM setup_token_deliveries`,
@@ -398,7 +405,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(6);
+      expect(migrations.rows).toHaveLength(7);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

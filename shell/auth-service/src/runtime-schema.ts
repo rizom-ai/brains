@@ -885,6 +885,7 @@ type SetupTokensTable = AuthTable<
     tokenHash: AuthTextColumn<"setup_tokens", "token_hash", true, true>;
     purpose: AuthTextColumn<"setup_tokens", "purpose", true>;
     targetUserId: AuthTextColumn<"setup_tokens", "target_user_id", false>;
+    deliveryClaimId: AuthTextColumn<"setup_tokens", "delivery_claim_id", false>;
     expiresAt: AuthIntegerColumn<"setup_tokens", "expires_at", true>;
     consumedAt: AuthIntegerColumn<"setup_tokens", "consumed_at", false>;
     deliveryKeyHash: AuthTextColumn<"setup_tokens", "delivery_key_hash", false>;
@@ -900,6 +901,10 @@ export const setupTokens: SetupTokensTable = sqliteTable(
     targetUserId: text("target_user_id").references(() => authUsers.id, {
       onDelete: "cascade",
     }),
+    deliveryClaimId: text("delivery_claim_id").references(
+      () => authIdentities.id,
+      { onDelete: "cascade" },
+    ),
     expiresAt: integer("expires_at").notNull(),
     consumedAt: integer("consumed_at"),
     deliveryKeyHash: text("delivery_key_hash"),
@@ -908,6 +913,13 @@ export const setupTokens: SetupTokensTable = sqliteTable(
   (table) => ({
     targetUserIdIdx: index("idx_setup_tokens_target_user_id").on(
       table.targetUserId,
+    ),
+    deliveryClaimIdIdx: index("idx_setup_tokens_delivery_claim_id").on(
+      table.deliveryClaimId,
+    ),
+    deliveryRequiresTargetCheck: check(
+      "setup_tokens_delivery_requires_target_check",
+      sql`${table.deliveryClaimId} IS NULL OR ${table.targetUserId} IS NOT NULL`,
     ),
   }),
 );

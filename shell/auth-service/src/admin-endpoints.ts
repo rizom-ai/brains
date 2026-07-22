@@ -19,6 +19,7 @@ import {
   type AuthExternalPeerSummary,
   type AuthIdentitySummary,
   type AuthPasskeySummary,
+  type AuthSetupDeliveryInput,
 } from "./admin-contracts";
 import type {
   AuthIdentityType,
@@ -51,6 +52,7 @@ export interface AuthAdminOperations {
       peerId: string;
       displayName: string;
       role: "admin" | "trusted";
+      delivery: AuthSetupDeliveryInput;
     },
     actorUserId: string,
   ): Promise<{
@@ -91,6 +93,7 @@ export interface AuthAdminOperations {
   startPasskeyRegistration(
     userId: string,
     actorUserId: string,
+    delivery?: AuthSetupDeliveryInput,
   ): Promise<{ setupUrl: string; expiresAt: number }>;
   revokeUserSessionsAndRefreshTokens(
     userId: string,
@@ -102,6 +105,18 @@ const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
   z.enum(AUTH_USER_ROLES);
 const statusSchema = z.enum(AUTH_USER_STATUSES);
 const identityTypeSchema = z.enum(AUTH_ADMIN_IDENTITY_TYPES);
+
+const setupDeliverySchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("email"),
+    subject: z.string().trim().email().max(320),
+  }),
+  z.strictObject({
+    type: z.literal("discord"),
+    subject: z.string().trim().min(1).max(200),
+    label: z.string().trim().min(1).max(200),
+  }),
+]);
 
 const identityProposalSchema = z.strictObject({
   type: z.enum(["discord", "mcp", "oauth", "email", "did"]),
@@ -127,6 +142,7 @@ const adminMutationSchema = z.union([
     peerId: z.string().trim().min(1).max(2_000),
     displayName: z.string().trim().min(1).max(200),
     role: z.enum(["admin", "trusted"]),
+    delivery: setupDeliverySchema,
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
@@ -171,6 +187,7 @@ const adminMutationSchema = z.union([
       AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
     ),
     userId: z.string().min(1),
+    delivery: setupDeliverySchema.optional(),
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions),
@@ -301,6 +318,7 @@ async function executeMutation(
           peerId: mutation.peerId,
           displayName: mutation.displayName,
           role: mutation.role,
+          delivery: mutation.delivery,
         },
         actorUserId,
       );
@@ -362,6 +380,7 @@ async function executeMutation(
         registration: await operations.startPasskeyRegistration(
           mutation.userId,
           actorUserId,
+          mutation.delivery,
         ),
       };
     case "revokeUserSessions":

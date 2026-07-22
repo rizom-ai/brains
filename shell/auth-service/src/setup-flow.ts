@@ -21,6 +21,12 @@ export interface PasskeySetupRequired {
   setupTokenId: string;
 }
 
+export interface ResolvedSetupToken {
+  token: string;
+  targetUserId: string | null;
+  deliveryClaimId: string | null;
+}
+
 export interface SetupFlowOptions {
   setupStateStore: TargetedSetupStatePersistence;
   passkeyService: PasskeyService;
@@ -85,7 +91,7 @@ export class SetupFlow {
 
   async resolveSetupToken(
     request: Request,
-  ): Promise<{ token: string; targetUserId: string | null } | undefined> {
+  ): Promise<ResolvedSetupToken | undefined> {
     const url = new URL(request.url);
     const token =
       url.searchParams.get("setup_token") ?? url.searchParams.get("token");
@@ -94,7 +100,7 @@ export class SetupFlow {
       token,
       Math.floor(Date.now() / 1000),
     );
-    return target ? { token, targetUserId: target.targetUserId } : undefined;
+    return target ? { token, ...target } : undefined;
   }
 
   async hasValidSetupToken(request: Request): Promise<boolean> {
@@ -151,12 +157,17 @@ export class SetupFlow {
   async createUserPasskeySetup(
     userId: string,
     issuer: string,
+    options: { deliveryClaimId?: string } = {},
   ): Promise<PasskeySetupRequired> {
     const setupToken = {
       token: `setup_${randomUUID()}`,
       expiresAt: Math.floor(Date.now() / 1000) + this.setupTokenTtlSeconds,
     };
-    await this.setupStateStore.saveTargetedSetupToken(setupToken, userId);
+    await this.setupStateStore.saveTargetedSetupToken(
+      setupToken,
+      userId,
+      options,
+    );
     return {
       setupUrl: absoluteUrl(
         issuer,
@@ -182,14 +193,14 @@ export class SetupFlow {
     return htmlResponse(renderSetupPage(setup.token));
   }
 
-  async hasSetupEmailDelivery(
+  async hasSetupDelivery(
     setupTokenIdValue: string,
     recipient: string,
   ): Promise<boolean> {
     return this.setupStateStore.hasDelivery(setupTokenIdValue, recipient);
   }
 
-  async recordSetupEmailDelivery(
+  async recordSetupDelivery(
     setupTokenIdValue: string,
     recipient: string,
     options: { deliveryId?: string } = {},
@@ -199,5 +210,20 @@ export class SetupFlow {
       recipient,
       options,
     );
+  }
+
+  async hasSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+  ): Promise<boolean> {
+    return this.hasSetupDelivery(setupTokenIdValue, recipient);
+  }
+
+  async recordSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+    options: { deliveryId?: string } = {},
+  ): Promise<void> {
+    await this.recordSetupDelivery(setupTokenIdValue, recipient, options);
   }
 }

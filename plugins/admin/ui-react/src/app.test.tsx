@@ -15,6 +15,7 @@ import {
   type PeopleBootstrap,
 } from "./App";
 import { PersonDetail } from "./components/PersonDetail";
+import { AddPersonDialog } from "./dialogs/AddPersonDialog";
 import { runWithFeedback as executeWithFeedback } from "./feedback";
 import { createAdminQueryClient } from "./query-client";
 
@@ -116,6 +117,21 @@ function renderPerson(
 }
 
 describe("Admin surface", () => {
+  it("requires an explicit email or Discord delivery channel for invitations", () => {
+    const html = renderToStaticMarkup(
+      createElement(AddPersonDialog, {
+        onClose: () => undefined,
+        onCreate: async () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Delivery channel");
+    expect(html).toContain("Email");
+    expect(html).toContain("Discord");
+    expect(html).toContain("Email address or Discord user ID");
+    expect(html).toContain("Discord display handle");
+  });
+
   it("renders the four permanent sections and Overview Anchor summary", () => {
     const html = renderPeople({
       bootstrap: admin,

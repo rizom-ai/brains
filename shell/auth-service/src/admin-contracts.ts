@@ -123,6 +123,10 @@ export interface AuthBrainAnchorResponse {
   anchor: AuthBrainAnchorSummary;
 }
 
+export type AuthSetupDeliveryInput =
+  | { type: "email"; subject: string }
+  | { type: "discord"; subject: string; label: string };
+
 export interface AuthIdentityProposalInput {
   type: "discord" | "mcp" | "oauth" | "email" | "did";
   subject: string;
@@ -171,6 +175,7 @@ export type AuthAdminMutation =
       peerId: string;
       displayName: string;
       role: Extract<AuthAdminRole, "admin" | "trusted">;
+      delivery: AuthSetupDeliveryInput;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
@@ -213,6 +218,7 @@ export type AuthAdminMutation =
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
       userId: string;
+      delivery?: AuthSetupDeliveryInput;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
