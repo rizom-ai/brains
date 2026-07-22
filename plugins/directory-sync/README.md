@@ -93,7 +93,7 @@ brain tool directory-sync_history '{"entityType":"post","id":"my-first-post"}'
 ## Optional CMS workspace
 
 When `@brains/cms` is installed, directory-sync registers an **Operations → Sync**
-workspace at `#/workspace/sync`. It shows directory, watcher, Git, automation, recent-run,
+workspace at `/cms/workspaces/sync`. It shows directory, watcher, Git, automation, recent-run,
 and quarantined-file status from a bounded runtime projection.
 
 **Sync now** follows the same request path as the `directory-sync_sync` tool. The workspace

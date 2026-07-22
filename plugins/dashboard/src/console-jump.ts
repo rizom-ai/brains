@@ -30,9 +30,9 @@ function anchorForGroup(group: string): string {
 }
 
 /**
- * Grouped doors for the cross-surface ⌘K palette. Entities open in the CMS
- * editor (hash deep-link), so the group exists only when a CMS is
- * registered; tabs land on this dashboard's group anchors.
+ * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
+ * CMS detail paths, so the group exists only when a CMS is registered; tabs
+ * land on this dashboard's in-document group anchors.
  */
 export function buildConsoleJumpGroups(options: {
   query: string;
@@ -53,7 +53,7 @@ export function buildConsoleJumpGroups(options: {
         id: `${hit.entityType}/${hit.id}`,
         title: hit.title,
         sub: hit.entityType,
-        href: `${cmsPath}#/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
+        href: `${cmsPath === "/" ? "" : cmsPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
         tag: "edit in cms",
       })),
     });

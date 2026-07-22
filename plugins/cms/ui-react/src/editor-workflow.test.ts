@@ -3,6 +3,7 @@ import type { EntityDetail } from "./api";
 import { createEditorDocument } from "./editor-document";
 import {
   editorWorkflowReducer,
+  hasUnsavedEditorChanges,
   initialEditorWorkflowState,
   type EditorWorkflowState,
 } from "./editor-workflow";
@@ -25,6 +26,29 @@ function editingState(): EditorWorkflowState {
     document: createEditorDocument(entity()),
   });
 }
+
+describe("hasUnsavedEditorChanges", () => {
+  it("distinguishes clean documents from edited and creation drafts", () => {
+    const clean = editingState();
+    expect(hasUnsavedEditorChanges(clean)).toBe(false);
+    expect(
+      hasUnsavedEditorChanges(
+        editorWorkflowReducer(clean, {
+          type: "bodyChanged",
+          body: "Changed body",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hasUnsavedEditorChanges(
+        editorWorkflowReducer(initialEditorWorkflowState, {
+          type: "creationStarted",
+          draft: {},
+        }),
+      ),
+    ).toBe(true);
+  });
+});
 
 describe("editorWorkflowReducer", () => {
   it("starts creation atomically from browsing", () => {

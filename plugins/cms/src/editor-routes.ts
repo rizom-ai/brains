@@ -18,6 +18,7 @@ import {
 } from "./config";
 import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderEditorShellHtml } from "./editor-shell";
+import { normalizeCmsBasePath } from "./cms-paths";
 import type { CmsWorkspaceRegistry } from "./workspace-registry";
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
@@ -142,46 +143,67 @@ export function createEditorRoutes(
     getEntityDisplay,
     workspaceRegistry,
   } = options;
-  const assetPath = `${routePath}/assets/app.js`;
-  const apiPath = (suffix: string): string => `${routePath}/api/${suffix}`;
+  const normalizedBase = normalizeCmsBasePath(routePath);
+  const shellPath = normalizedBase || "/";
+  const assetPath = `${normalizedBase}/assets/app.js`;
+  const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
   const requireSession = async (request: Request): Promise<Response | null> =>
     (await resolveOperatorSession(request))
       ? null
       : jsonResponse({ error: "Operator session required" }, 401);
 
+  const serveShell = async (request: Request): Promise<Response> => {
+    const requestUrl = new URL(request.url);
+    const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
+    if (!(await resolveOperatorSession(request))) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/login?return_to=${encodeURIComponent(returnTo)}`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+    return new Response(
+      renderEditorShellHtml({
+        assetPath,
+        basePath: shellPath,
+        surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
+          activeId: "cms",
+          self: { id: "cms", href: shellPath },
+        }),
+        sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
+      }),
+      {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  };
+
   return [
     {
-      path: routePath,
+      path: shellPath,
       method: "GET",
       public: true,
-      handler: async (request): Promise<Response> => {
-        if (!(await resolveOperatorSession(request))) {
-          return new Response(null, {
-            status: 302,
-            headers: {
-              Location: `/login?return_to=${encodeURIComponent(routePath)}`,
-              "Cache-Control": "no-store",
-            },
-          });
-        }
-        return new Response(
-          renderEditorShellHtml({
-            assetPath,
-            surfaces: deriveConsoleSurfaces(
-              getContext().webRoutes.getRoutes(),
-              { activeId: "cms", self: { id: "cms", href: routePath } },
-            ),
-            sessionHref: `/logout?return_to=${encodeURIComponent(routePath)}`,
-          }),
-          {
-            headers: {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "no-store",
-            },
-          },
-        );
-      },
+      handler: serveShell,
+    },
+    {
+      path: `${normalizedBase}/entities`,
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: serveShell,
+    },
+    {
+      path: `${normalizedBase}/workspaces`,
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: serveShell,
     },
     {
       path: assetPath,

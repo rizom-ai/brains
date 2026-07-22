@@ -396,7 +396,7 @@ describe("renderDashboardPageHtml", () => {
         lastSync: "2026-07-08T09:30:00.000Z",
         totalFiles: 4,
         byEntityType: { note: 3, post: 1 },
-        managementUrl: "/studio#/workspace/sync",
+        managementUrl: "/studio/workspaces/sync",
       },
     };
 
@@ -425,7 +425,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("entity db");
     expect(html).toContain("exported");
     expect(html).toContain("committed");
-    expect(html).toContain('href="/studio#/workspace/sync"');
+    expect(html).toContain('href="/studio/workspaces/sync"');
     expect(html).toContain("Open in CMS");
   });
 
@@ -766,7 +766,7 @@ describe("renderDashboardPageHtml", () => {
               },
             ],
             publishableEntityTypes: ["newsletter", "post"],
-            managementUrl: "/cms#/workspace/publishing",
+            managementUrl: "/cms/workspaces/publishing",
           },
         },
       },
@@ -782,7 +782,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Published");
     expect(html).toContain("Broken send");
     expect(html).toContain("Provider rejected sender");
-    expect(html).toContain('href="/cms#/workspace/publishing"');
+    expect(html).toContain('href="/cms/workspaces/publishing"');
     expect(html).toContain("Open in CMS");
     expect(html).not.toContain('class="board"');
     expect(html).not.toContain("Domain as identity");

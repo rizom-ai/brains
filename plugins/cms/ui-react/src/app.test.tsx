@@ -4,31 +4,31 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
+import { styles } from "./app-styles";
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
-  applyFieldAssistSuggestion,
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
-  DirectorySyncWorkspace,
-  emptyDraft,
-  entityPublicationState,
-  entityTitle,
+  MODEL_ASSIST_TARGET,
+} from "./body-editor";
+import { DirectorySyncWorkspace } from "./directory-sync-workspace";
+import {
+  applyFieldAssistSuggestion,
   Field,
   FieldAssistControls,
   fieldAssistVariant,
-  parseCmsHash,
-  MODEL_ASSIST_TARGET,
+  typeHasPublicationField,
+  TypeSwitcher,
+} from "./entity-fields";
+import {
   PublicationActions,
   PublishConfirmationDialog,
   PublishingWorkspace,
-  SiteWorkspace,
-  styles,
-  typeHasPublicationField,
-  TypeSwitcher,
-  parseCmsWorkspaceHash,
-} from "./App";
+} from "./publishing-workspace";
+import { SiteWorkspace } from "./site-workspace";
+import { emptyDraft, entityPublicationState, entityTitle } from "./ui-utils";
 import {
   DeleteDialog,
   derivePipeline,
@@ -145,50 +145,6 @@ function renderField(descriptor: FieldDescriptor, value: unknown): string {
     ),
   );
 }
-
-describe("parseCmsHash", () => {
-  it("parses a console-jump door into type and id", () => {
-    expect(parseCmsHash("#/note/verdigris-pigments")).toEqual({
-      entityType: "note",
-      id: "verdigris-pigments",
-    });
-  });
-
-  it("parses a bare type door", () => {
-    expect(parseCmsHash("#/post")).toEqual({ entityType: "post" });
-  });
-
-  it("keeps slashes inside entity ids", () => {
-    expect(parseCmsHash("#/note/journal/2026-07-09")).toEqual({
-      entityType: "note",
-      id: "journal/2026-07-09",
-    });
-  });
-
-  it("decodes encoded segments", () => {
-    expect(parseCmsHash("#/site%20info/front%20page")).toEqual({
-      entityType: "site info",
-      id: "front page",
-    });
-  });
-
-  it("parses workspace doors separately from entity doors", () => {
-    expect(parseCmsWorkspaceHash("#/workspace/publishing")).toEqual({
-      workspaceId: "publishing",
-    });
-    expect(parseCmsWorkspaceHash("#/workspace/publish%20desk")).toEqual({
-      workspaceId: "publish desk",
-    });
-    expect(parseCmsHash("#/workspace/publishing")).toBeNull();
-  });
-
-  it("rejects everything else", () => {
-    expect(parseCmsHash("")).toBeNull();
-    expect(parseCmsHash("#")).toBeNull();
-    expect(parseCmsHash("#/")).toBeNull();
-    expect(parseCmsHash("#anchor")).toBeNull();
-  });
-});
 
 describe("Field", () => {
   it("renders a labelled text input for string fields", () => {

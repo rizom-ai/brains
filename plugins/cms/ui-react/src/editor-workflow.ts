@@ -71,6 +71,17 @@ export const initialEditorWorkflowState: EditorWorkflowState = {
   deleteOpen: false,
 };
 
+/** Whether leaving the current route would discard an editor draft. */
+export function hasUnsavedEditorChanges(state: EditorWorkflowState): boolean {
+  if (state.mode.kind === "browse") return false;
+  if (state.mode.kind === "create") return true;
+  return (
+    state.body !== state.mode.entity.body ||
+    JSON.stringify(state.draft) !==
+      JSON.stringify(state.mode.entity.frontmatter)
+  );
+}
+
 export function editorWorkflowReducer(
   state: EditorWorkflowState,
   action: EditorWorkflowAction,

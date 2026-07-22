@@ -494,11 +494,16 @@ const server = Bun.serve({
           id === "cards" ? cardMessages : id === "empty" ? [] : messages,
       });
     }
-    if (url.pathname === "/cms")
+    if (
+      url.pathname === "/cms" ||
+      url.pathname.startsWith("/cms/entities/") ||
+      url.pathname.startsWith("/cms/workspaces/")
+    )
       return new Response(
         climateHtml(
           renderEditorShellHtml({
             assetPath: "/cms/assets/cms-app.js",
+            basePath: "/cms",
             surfaces: activeSurfaces("cms"),
             sessionHref: "/logout",
           }),
@@ -680,12 +685,14 @@ try {
         );
         const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
         const route =
-          surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
-        const hash = isCmsEditor
-          ? "#/posts/field-notes"
-          : isChat
-            ? `#s/${conversationId}`
-            : "";
+          surface === "dashboard"
+            ? "/dashboard"
+            : isChat
+              ? "/chat"
+              : isCmsEditor
+                ? "/cms/entities/posts/field-notes"
+                : "/cms";
+        const hash = isChat ? `#s/${conversationId}` : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },
