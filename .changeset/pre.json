@@ -273,6 +273,7 @@
     "ops-per-user-plaintext-secrets",
     "ops-required-images",
     "ops-resolve-missing-images",
+    "ops-site-version-default",
     "ops-template-pipeline-sync",
     "ops-template-script-drift",
     "ops-verify-user-command",
