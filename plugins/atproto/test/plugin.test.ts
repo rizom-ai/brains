@@ -337,6 +337,66 @@ describe("atproto plugin", () => {
     });
   });
 
+  it("converts cross-version anchor kinds on discovered cards", async () => {
+    const cardRecord = {
+      ...createTestBrainCardRecord(),
+      anchor: {
+        did: "did:plc:test-anchor",
+        name: "Future Peer",
+        kind: "organization",
+      },
+    };
+    const plugin = new AtprotoPlugin(
+      { pdsEndpoint: "https://pds.example.com" },
+      {
+        fetch: createResolverFetch(),
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:unused",
+            handle: "unused.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+          getRecord: mock(async () => ({
+            uri: "at://did:plc:test/ai.rizom.brain.card/self",
+            cid: "bafytestcard",
+            value: cardRecord,
+          })),
+        }),
+      },
+    );
+    const shell = createMockShell();
+    const events: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
+        events.push(message.payload);
+        return { success: true };
+      });
+
+    await plugin.register(shell);
+    const response = await plugin.discoverBrainCards(
+      createServicePluginContext(shell, "atproto"),
+      { repos: ["test.example.com"] },
+    );
+
+    expect(response.discovered).toBe(1);
+    expect(events).toEqual([
+      expect.objectContaining({
+        record: expect.objectContaining({
+          anchor: expect.objectContaining({
+            name: "Future Peer",
+            kind: "collective",
+          }),
+        }),
+      }),
+    ]);
+  });
+
   it("skips invalid brain cards without emitting discovery events", async () => {
     const getRecord = mock(async () => ({
       uri: "at://did:plc:test/ai.rizom.brain.card/self",
