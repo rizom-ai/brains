@@ -49,9 +49,6 @@ export type {
 export { AuthService } from "./auth-service";
 export type {
   A2ASigningKey,
-  AuthBearerGrant,
-  AuthIdentityAccessResolution,
-  AuthPrincipal,
   AuthServiceOptions,
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
@@ -68,6 +65,11 @@ export type {
   AuthServiceConfigInput,
 } from "./auth-service-plugin";
 export type { AuthMutationContext } from "./mutation-context";
+export type {
+  AuthBearerGrant,
+  AuthIdentityAccessResolution,
+  AuthPrincipal,
+} from "./principal-service";
 export {
   AuthIdentityStore,
   hashIdentityKey,

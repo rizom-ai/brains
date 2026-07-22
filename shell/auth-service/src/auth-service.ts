@@ -64,16 +64,18 @@ import {
 } from "./session-store";
 import {
   absoluteUrl,
-  issuerFromRequest,
   isLoopbackIssuer,
   isSecureRequest,
   normalizeIssuer,
 } from "./issuer";
 import {
-  getBearerToken,
-  verifyAccessToken,
-  type VerifiedAccessToken,
-} from "./token-verifier";
+  AuthPrincipalService,
+  principalFromUser,
+  type AuthBearerGrant,
+  type AuthIdentityAccessResolution,
+  type AuthPrincipal,
+} from "./principal-service";
+import type { VerifiedAccessToken } from "./token-verifier";
 import {
   corsPreflightResponse,
   errorMessage,
@@ -104,24 +106,7 @@ import type {
 
 export type { PasskeySetupRequired } from "./setup-flow";
 
-const LEGACY_SINGLE_OPERATOR_SUBJECT = "single-operator";
 const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
-
-export interface AuthPrincipal {
-  userId: string;
-  personId: string;
-  displayName: string;
-  role: "admin" | "trusted" | "public";
-  status: "active" | "invited" | "suspended";
-  permissionLevel: "admin" | "trusted" | "public";
-  isAnchor: boolean;
-  canonicalId?: string;
-}
-
-export type AuthIdentityAccessResolution =
-  | { state: "resolved"; principal: AuthPrincipal }
-  | { state: "denied" }
-  | { state: "unbound" };
 
 export interface UserPasskeyRegistration {
   setupUrl: string;
@@ -153,11 +138,6 @@ export interface InvitedExternalPeerAccess {
 export interface A2ASigningKey {
   privateJwk: A2APrivateJwk;
   keyId: string;
-}
-
-export interface AuthBearerGrant {
-  principal: AuthPrincipal;
-  token: VerifiedAccessToken;
 }
 
 export interface AuthServiceOptions {
@@ -199,6 +179,7 @@ export class AuthService {
     IdentityReconciliationService | undefined;
   private targetedSetupService: TargetedSetupService | undefined;
   private userManagementService: AuthUserManagementService | undefined;
+  private principalService: AuthPrincipalService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
@@ -368,6 +349,7 @@ export class AuthService {
     this.identityReconciliationService = undefined;
     this.targetedSetupService = undefined;
     this.userManagementService = undefined;
+    this.principalService = undefined;
     this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
@@ -405,6 +387,17 @@ export class AuthService {
       sessions: this.sessionStore,
       refreshTokens: this.refreshTokenStore,
     });
+    this.principalService = new AuthPrincipalService({
+      issuer: this.issuer,
+      trustedIssuers: this.trustedIssuers,
+      allowLocalhostIssuers: this.allowLocalhostIssuers,
+      users: this.userStore,
+      identities: this.identityStore,
+      sessions: this.sessionStore,
+      ensureFirstAdminUser: (): Promise<AuthUser> =>
+        this.ensureFirstAdminUser(),
+      getJwks: (): Promise<JwksResponse> => this.getJwks(),
+    });
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
 
@@ -441,6 +434,13 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.userManagementService;
+  }
+
+  private getPrincipalService(): AuthPrincipalService {
+    if (!this.principalService) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.principalService;
   }
 
   private getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -555,7 +555,7 @@ export class AuthService {
   }
 
   private async principalFromUser(user: AuthUser): Promise<AuthPrincipal> {
-    return principalFromUser(user, await this.getUserStore().getBrainAnchor());
+    return this.getPrincipalService().principalFromUser(user);
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -946,23 +946,7 @@ export class AuthService {
     actor: ActorRef,
   ): Promise<AuthPrincipal | undefined> {
     await this.ensureUserStoreStarted();
-    if (actor.kind === "user") {
-      const user = await this.getUserStore().getUser(actor.userId);
-      return user?.status === "active"
-        ? this.principalFromUser(user)
-        : undefined;
-    }
-    if (actor.kind !== "external") return undefined;
-
-    const identityKeyHash = actor.externalActorId.startsWith("ext_")
-      ? actor.externalActorId.slice("ext_".length)
-      : "";
-    if (!/^[a-f0-9]{64}$/.test(identityKeyHash)) return undefined;
-    const result =
-      await this.getIdentityStore().resolveIdentityHashAccess(identityKeyHash);
-    return result.state === "resolved"
-      ? this.principalFromUser(result.user)
-      : undefined;
+    return this.getPrincipalService().resolveActor(actor);
   }
 
   /**
@@ -975,21 +959,15 @@ export class AuthService {
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthPrincipal | undefined> {
-    const result = await this.resolveIdentityAccess(input);
-    return result.state === "resolved" ? result.principal : undefined;
+    await this.ensureUserStoreStarted();
+    return this.getPrincipalService().resolveIdentity(input);
   }
 
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {
     await this.ensureUserStoreStarted();
-    const result = await this.getIdentityStore().resolveIdentityAccess(input);
-    return result.state === "resolved"
-      ? {
-          state: "resolved",
-          principal: await this.principalFromUser(result.user),
-        }
-      : result;
+    return this.getPrincipalService().resolveIdentityAccess(input);
   }
 
   async createAuthSession(
@@ -997,33 +975,26 @@ export class AuthService {
     options: { secure?: boolean } = {},
   ): Promise<CreateAuthSessionResult> {
     await this.ensureUserStoreStarted();
-    const sessionSubject =
-      !subject || subject === LEGACY_SINGLE_OPERATOR_SUBJECT
-        ? (await this.ensureFirstAdminUser()).id
-        : subject;
-    return this.sessionStore.createSession(sessionSubject, options);
+    return this.getPrincipalService().createSession(subject, options);
   }
 
   async getAuthSession(
     request: Request,
   ): Promise<AuthSessionRecord | undefined> {
-    return this.sessionStore.getSessionFromRequest(request);
+    await this.ensureUserStoreStarted();
+    return this.getPrincipalService().getSession(request);
   }
 
   private async resolveActiveSession(
     request: Request,
   ): Promise<{ session: AuthSessionRecord; user: AuthUser } | undefined> {
     await this.ensureUserStoreStarted();
-    const session = await this.getAuthSession(request);
-    if (!session) return undefined;
-
-    const user = await this.getUserStore().getUser(session.subject);
-    return user?.status === "active" ? { session, user } : undefined;
+    return this.getPrincipalService().resolveActiveSession(request);
   }
 
   async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
-    const resolved = await this.resolveActiveSession(request);
-    return resolved ? this.principalFromUser(resolved.user) : undefined;
+    await this.ensureUserStoreStarted();
+    return this.getPrincipalService().resolveSession(request);
   }
 
   createAuthLoginResponse(request: Request): Response {
@@ -1034,17 +1005,8 @@ export class AuthService {
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<VerifiedAccessToken | undefined> {
-    const token = getBearerToken(request);
-    if (!token) return undefined;
-
-    const issuer = options.issuer
-      ? normalizeIssuer(options.issuer)
-      : this.resolveRequestIssuer(request);
-
-    return verifyAccessToken(token, await this.getJwks(), {
-      issuer,
-      ...(options.audience ? { audience: options.audience } : {}),
-    });
+    await this.ensureUserStoreStarted();
+    return this.getPrincipalService().verifyBearerToken(request, options);
   }
 
   async resolveBearerGrant(
@@ -1052,20 +1014,15 @@ export class AuthService {
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthBearerGrant | undefined> {
     await this.ensureUserStoreStarted();
-    const token = await this.verifyBearerToken(request, options);
-    if (!token) return undefined;
-
-    const user = await this.getUserStore().getUser(token.subject);
-    return user?.status === "active"
-      ? { principal: await this.principalFromUser(user), token }
-      : undefined;
+    return this.getPrincipalService().resolveBearerGrant(request, options);
   }
 
   async resolveBearerToken(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthPrincipal | undefined> {
-    return (await this.resolveBearerGrant(request, options))?.principal;
+    await this.ensureUserStoreStarted();
+    return this.getPrincipalService().resolveBearerToken(request, options);
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {
@@ -1401,17 +1358,7 @@ export class AuthService {
   }
 
   private resolveRequestIssuer(request: Request): string {
-    const requestIssuer = issuerFromRequest(request, this.issuer);
-    if (
-      this.trustedIssuers.has(requestIssuer) ||
-      (this.allowLocalhostIssuers && isLoopbackIssuer(requestIssuer))
-    ) {
-      return requestIssuer;
-    }
-
-    throw new Error(
-      `Request issuer ${requestIssuer} is not in trusted issuers`,
-    );
+    return this.getPrincipalService().resolveRequestIssuer(request);
   }
 
   private handleLoginPage(request: Request): Response {
@@ -1509,21 +1456,5 @@ function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
     credentialBackedUp: passkey.credentialBackedUp,
     createdAt: passkey.createdAt,
     updatedAt: passkey.updatedAt,
-  };
-}
-
-function principalFromUser(
-  user: AuthUser,
-  anchor: AuthBrainAnchor | undefined,
-): AuthPrincipal {
-  return {
-    userId: user.id,
-    personId: user.personId,
-    displayName: user.displayName,
-    role: user.role,
-    status: user.status,
-    permissionLevel: user.role,
-    isAnchor: anchor?.kind === "person" && anchor.subjectId === user.personId,
-    ...(user.canonicalId ? { canonicalId: user.canonicalId } : {}),
   };
 }
