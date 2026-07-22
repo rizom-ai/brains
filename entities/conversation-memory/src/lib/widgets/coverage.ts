@@ -1,4 +1,8 @@
-import type { Conversation, EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type Conversation,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import type { SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
@@ -164,7 +168,7 @@ export function registerSummaryCoverageWidget(params: {
 }): void {
   const { context, pluginId, config } = params;
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { DecksPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -51,7 +52,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message after system:plugins:ready with internal provider", async () => {
+    it("should send publish:register message after plugins-registered with internal provider", async () => {
       await harness.installPlugin(new DecksPlugin());
 
       expect(
@@ -59,7 +60,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
       ).toBeUndefined();
 
       await harness.sendMessage(
-        "system:plugins:ready",
+        SYSTEM_CHANNELS.pluginsRegistered,
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
         true,

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAssessmentPlugin } from "../src";
 import { swotWidgetStyles } from "../src/widgets/swot-widget";
@@ -68,7 +69,7 @@ describe("SwotAssessmentPlugin", () => {
     });
 
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "shell");
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
 
     expect(registrations).toEqual([
       {

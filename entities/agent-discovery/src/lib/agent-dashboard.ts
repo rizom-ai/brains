@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { buildAgentNetworkWidgetData } from "./agent-network-widget";
 import { buildProximityMapData } from "./proximity-map-data";
@@ -28,7 +28,7 @@ export function registerAgentNetworkDashboardWidget(
   pluginId: string,
 ): void {
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

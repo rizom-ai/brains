@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import type { SkillEntity } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
@@ -10,7 +10,7 @@ export function registerSkillsDashboardWidget(
   // alongside Character (persona) in the sidebar rather than in the
   // main corpus column. The full description lives in CMS / A2A.
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

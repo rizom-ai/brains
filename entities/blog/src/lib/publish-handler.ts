@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, ToolContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
@@ -17,7 +17,7 @@ export function registerWithPublishPipeline(
     },
   };
 
-  context.messaging.subscribe("system:plugins:ready", async () => {
+  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
     await context.messaging.send({
       type: "publish:register",
       payload: {

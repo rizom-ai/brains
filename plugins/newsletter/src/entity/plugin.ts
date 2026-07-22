@@ -6,7 +6,7 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { PublishProvider } from "@brains/contracts";
@@ -91,7 +91,7 @@ export class NewsletterPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    // Publish pipeline registration (deferred to system:plugins:ready)
+    // Publish pipeline registration (deferred to plugins-registered)
     this.deferPublishRegistration(context);
 
     // Generate execute handler (from content-pipeline)
@@ -101,7 +101,7 @@ export class NewsletterPlugin extends EntityPlugin<
     this.registerEvalHandlers(context);
 
     // Newsletter signup slot (if buttondown plugin is loaded, it provides the config)
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       // Check if buttondown is configured by sending a message
       const response = await context.messaging.send({
         type: "buttondown:is-configured",
@@ -149,7 +149,7 @@ export class NewsletterPlugin extends EntityPlugin<
       },
     };
 
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
         type: "publish:register",
         payload: {

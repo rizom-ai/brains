@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { BaseEntity } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
 import {
   ATPROTO_PUBLISH_FAILED,
@@ -136,18 +136,41 @@ function createConfiguredPlugin(
 }
 
 describe("AT Protocol ambient publishing triggers", () => {
-  it("upserts the brain card when plugins are ready", async () => {
+  it("does not publish the brain card on the plugins-registered coordination event", async () => {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client);
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
     await shell.getMessageBus().send({
-      type: "system:plugins:ready",
+      type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
       sender: "test",
       broadcast: true,
     });
+    await plugin.shutdown?.();
+
+    expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("upserts the brain card from identity loaded before ready", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    shell.getIdentity = (): ReturnType<typeof shell.getIdentity> => ({
+      name: "Ready Brain",
+      role: "Post-registration role",
+      purpose: "Identity loaded before ready",
+      values: ["presence", "coordination"],
+    });
+    shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
+      name: "Ready Anchor",
+      kind: "collective",
+      description: "Loaded profile",
+    });
+
+    await plugin.ready();
     await plugin.shutdown?.();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
@@ -157,6 +180,18 @@ describe("AT Protocol ambient publishing triggers", () => {
         collection: "ai.rizom.brain.card",
         rkey: "self",
         validate: false,
+        record: expect.objectContaining({
+          brain: expect.objectContaining({
+            name: "Ready Brain",
+            role: "Post-registration role",
+            purpose: "Identity loaded before ready",
+            values: ["presence", "coordination"],
+          }),
+          anchor: expect.objectContaining({
+            name: "Ready Anchor",
+            kind: "collective",
+          }),
+        }),
       }),
     );
     expect(client.putRecord).not.toHaveBeenCalledWith(
@@ -174,12 +209,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
-    await shell.getMessageBus().send({
-      type: "system:plugins:ready",
-      payload: {},
-      sender: "test",
-      broadcast: true,
-    });
+    await plugin.ready();
     await plugin.shutdown?.();
 
     const lexicons = listCanonicalAtprotoLexicons();
@@ -198,7 +228,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     }
   });
 
-  it("converges lexicon schemas under the same record keys on every ready event", async () => {
+  it("converges lexicon schemas under the same record keys on every ready call", async () => {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client, {
       lexiconAuthority: true,
@@ -207,12 +237,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     for (let index = 0; index < 2; index += 1) {
-      await shell.getMessageBus().send({
-        type: "system:plugins:ready",
-        payload: {},
-        sender: "test",
-        broadcast: true,
-      });
+      await plugin.ready();
     }
     await plugin.shutdown?.();
 
@@ -253,15 +278,9 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     await plugin.register(shell);
 
-    const response = await shell.getMessageBus().send({
-      type: "system:plugins:ready",
-      payload: {},
-      sender: "test",
-      broadcast: true,
-    });
+    await plugin.ready();
     await plugin.shutdown?.();
 
-    expect(response).toEqual({ success: true });
     expect(putRecord).toHaveBeenCalledTimes(
       listCanonicalAtprotoLexicons().length + 1,
     );
@@ -291,12 +310,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
-    await shell.getMessageBus().send({
-      type: "system:plugins:ready",
-      payload: {},
-      sender: "test",
-      broadcast: true,
-    });
+    await plugin.ready();
     await plugin.shutdown?.();
 
     expect(createPdsClient).not.toHaveBeenCalled();

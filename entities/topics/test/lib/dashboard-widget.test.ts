@@ -1,5 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type BaseEntity,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import { registerTopicsDashboardWidget } from "../../src/lib/dashboard-widget";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
@@ -69,7 +73,7 @@ describe("registerTopicsDashboardWidget", () => {
     registerTopicsDashboardWidget({ context, pluginId: "topics" });
 
     expect(subscribe).toHaveBeenCalledWith(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
     );
     expect(readyHandler).toBeDefined();

@@ -6,7 +6,7 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
@@ -106,7 +106,7 @@ export class BlogPlugin extends EntityPlugin<
   }
 
   private deferPublishAssetRegistration(context: EntityPluginContext): void {
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
         type: "publish-assets:register",
         payload: {

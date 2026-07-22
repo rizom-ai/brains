@@ -1,10 +1,10 @@
 # Plan: Startup readiness signal — stop capturing default identity at boot
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 ## Status
 
-Root-caused 2026-07-21; not started.
+Root-caused 2026-07-21; plan expanded 2026-07-22 to remove one-off event literal fixes.
 
 ## Problem
 
@@ -36,34 +36,100 @@ cross-plugin handshakes (publish-pipeline provider registration, dashboard widge
 registration, head-script registration, initial-sync kickoff). For them the early
 timing is exactly right; only the name lies. None of them capture identity content.
 
+There is a second design problem: fixing only this literal would be a one-off. The
+message bus has many domain events (`publish:*`, `entity:*`, `dashboard:*`,
+`atproto:*`, etc.) that are still stringly-typed at call sites. This slice should
+establish the pattern that event names are owned by the domain that defines them,
+not scattered as literals.
+
 ## Decisions
 
-1. **The atproto boot triggers move to the existing `Plugin.ready?()` lifecycle
+1. **System/lifecycle bus events are owned by `SYSTEM_CHANNELS`.** The first code
+   step is to fix `SYSTEM_CHANNELS.pluginsRegistered` to use the honest wire value
+   `"system:plugins:registered"`, convert all `system:*` lifecycle subscribers to
+   the constant, and guard against hardcoded system lifecycle event strings in
+   source.
+2. **Domain events get domain-owned constants, not a dumping-ground system file.**
+   Examples:
+   - publish pipeline events live with publish pipeline contracts;
+   - entity mutation events live with entity/service contracts;
+   - dashboard/widget registration events live with dashboard/site composition
+     contracts;
+   - atproto ambient-publishing events live with the atproto package.
+3. **No new post-ready bus event.** After the atproto move, no consumer needs an
+   event-style post-ready broadcast. An unused `system:ready` channel would be the
+   same trap this plan removes. Add one only when a real consumer appears.
+4. **The atproto boot triggers move to the existing `Plugin.ready?()` lifecycle
    hook** (`shell/plugins/src/interfaces.ts`), which `readyPlugins()` dispatches
    after `prepareReadyState()`. This is the mechanism that already means "the brain
    is ready"; the plugin simply used the wrong one.
-2. **No new bus event.** After the atproto move, no consumer needs an event-style
-   post-ready broadcast. An unused `system:ready` channel would be the same trap
-   this plan removes. Add one only when a real consumer appears.
-3. **The wire value renames to `"system:plugins:registered"`** so that nothing in
-   the system is named "ready" before ready exists. All literal subscribers convert
-   to the `SYSTEM_CHANNELS.pluginsRegistered` constant; timing and semantics are
-   unchanged for every one of them.
-4. The entity-record triggers (`publish:completed`, `entity:updated`,
-   `entity:deleted`) stay message-based — they already fire post-boot.
+5. **Message-based entity-record triggers stay message-based, but not literal-based.**
+   `publish:completed`, `entity:updated`, and `entity:deleted` already fire
+   post-boot and keep their semantics; their names should be imported from their
+   owning event contracts.
 
 ## Phases
 
-### 1. Move atproto boot triggers to `ready()`
+### 1. Fix `SYSTEM_CHANNELS` first
+
+Tests first:
+
+- add a shell/plugins guard test that `SYSTEM_CHANNELS.pluginsRegistered` is
+  `"system:plugins:registered"`;
+- add a source guard for hardcoded `system:*` lifecycle bus event strings outside
+  approved channel-definition files and docs/tests;
+- update existing startup/order tests to use the constant rather than the old
+  literal.
+
+Implementation:
+
+- change `SYSTEM_CHANNELS.pluginsRegistered` to `"system:plugins:registered"`;
+- convert every source subscriber currently using the old literal to
+  `SYSTEM_CHANNELS.pluginsRegistered` (shell/app brain-resolver head scripts;
+  newsletter; social-media; wishlist; topics widgets; portfolio; decks;
+  assessment; agent-discovery dashboards; blog; conversation-memory widgets;
+  sites/rizom runtime; directory-sync already uses the constant);
+- update comments/test names so they say "plugins registered" rather than
+  "plugins ready" when referring to this event.
+
+Exit gate: shell/plugins guard and startup/order tests green; no hardcoded
+`system:*` lifecycle event literals in source.
+
+### 2. Add domain-owned event constants for all message-bus events
+
+Tests first:
+
+- add/import small contract tests for each event namespace touched by current
+  call sites;
+- add repo/source guards that allow event string literals only in owning
+  event-contract modules (and docs/tests), not in arbitrary subscribers/senders.
+
+Implementation:
+
+- inventory hardcoded message-bus event names in source;
+- introduce or extend owning constants modules by domain, for example:
+  - publish pipeline: `PUBLISH_CHANNELS` for `publish:register`,
+    `publish:execute`, `publish:completed`, etc.;
+  - entity service: `ENTITY_CHANNELS` for `entity:updated`, `entity:deleted`, etc.;
+  - dashboard/site composition: `DASHBOARD_CHANNELS` for
+    `dashboard:register-widget` and related events;
+  - atproto: keep/extend exported constants such as `ATPROTO_PUBLISH_FAILED`;
+- convert senders and subscribers to imports from their owning domains;
+- do not move domain events into `SYSTEM_CHANNELS`.
+
+Exit gate: event-contract tests and source guard green; no arbitrary hardcoded
+message-bus event strings remain in source.
+
+### 3. Move atproto boot triggers to `ready()`
 
 Tests first, in `plugins/atproto/test/publishing-triggers.test.ts`:
 
-- broadcasting the registration event does **not** publish the card;
+- broadcasting the plugins-registered event does **not** publish the card;
 - `await plugin.ready()` publishes the card (and lexicon schema records when
   `lexiconAuthority` is set) with identity read at call time — assert the record
   carries identity that was loaded _after_ registration;
 - `ready()` without credentials is a silent no-op;
-- failure isolation (`atproto:publish:failed`) is preserved.
+- failure isolation (`ATPROTO_PUBLISH_FAILED`) is preserved.
 
 Implementation: `AtprotoPlugin` overrides `ready()` to run the card and
 lexicon-schema triggers through the existing `runPublishingTrigger`/task-tracking
@@ -72,23 +138,7 @@ path; the bus subscription for the boot triggers is deleted.
 Exit gate: atproto and contracts suites green; the card record in tests contains
 post-registration identity.
 
-### 2. Rename the lying channel
-
-- Change `SYSTEM_CHANNELS.pluginsRegistered` to `"system:plugins:registered"`.
-- Convert every subscriber currently using the literal string to the constant
-  (shell/app brain-resolver head scripts; newsletter; social-media; wishlist;
-  topics widgets; portfolio; decks; assessment; agent-discovery dashboards; blog;
-  conversation-memory widgets).
-- Add a guard test in `shell/plugins` asserting the retired literal
-  `"system:plugins:ready"` appears nowhere in source (changelogs exempt), so the
-  trap cannot quietly return.
-
-Exit gate: full repo test + typecheck + lint; guard test green. The alpha.204
-baseline fixture captures config, not event names, so it is expected to be
-byte-identical — if it moves, record the delta per that plan's procedure before
-merging.
-
-### 3. Ship and remediate live data
+### 4. Ship and remediate live data
 
 - Release train, bump the sites cohort, deploy.
 - Verify `at://did:plc:oehciuqunzskplljt3qnnncw/ai.rizom.brain.card/self` now
@@ -100,9 +150,14 @@ merging.
 
 ## Verification
 
-1. Boot-order test proves the card cannot be built from pre-ready identity.
-2. Repo-wide guard test proves nothing subscribes to a "ready" name that fires at
-   registration.
-3. Live card record shows the authored identity after deploy.
-4. A subsequent discovery pass shows `agent` entities with real names instead of
+1. `SYSTEM_CHANNELS` tests prove the registration coordination event is honestly
+   named and no `system:*` lifecycle literal is hardcoded in source.
+2. Domain event-contract tests prove message-bus events are imported from owning
+   packages rather than scattered string literals.
+3. Boot-order/atproto tests prove the card cannot be built from pre-ready identity.
+4. Full repo test + typecheck + lint pass. The alpha.204 baseline fixture captures
+   config, not event names, so it is expected to be byte-identical — if it moves,
+   record the delta per that plan's procedure before merging.
+5. Live card record shows the authored identity after deploy.
+6. A subsequent discovery pass shows `agent` entities with real names instead of
    "Brain / Knowledge assistant".

@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import {
   buildRecentConversationMemoryData,
   RECENT_MEMORY_WIDGET_ID,
@@ -11,7 +11,7 @@ export function registerRecentConversationMemoryWidget(params: {
 }): void {
   const { context, pluginId } = params;
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

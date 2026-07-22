@@ -6,7 +6,11 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  emptyEntityPluginConfigSchema,
+} from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
 import { getErrorMessage } from "@brains/utils/error";
@@ -122,7 +126,7 @@ export class DecksPlugin extends EntityPlugin<
   }
 
   private deferPublishRegistration(context: EntityPluginContext): void {
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
         type: "publish:register",
         payload: {

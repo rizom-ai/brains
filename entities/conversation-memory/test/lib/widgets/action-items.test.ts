@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { createTestEntity } from "@brains/test-utils";
 import {
   buildActionItemsWidgetData,
@@ -111,7 +111,7 @@ describe("buildActionItemsWidgetData", () => {
 });
 
 describe("registerActionItemsWidget", () => {
-  it("registers a widget on system:plugins:ready", async () => {
+  it("registers a widget on plugins-registered", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
     const send = mock(async (request: { type: string; payload: unknown }) => {
@@ -132,6 +132,10 @@ describe("registerActionItemsWidget", () => {
     } as unknown as EntityPluginContext;
 
     registerActionItemsWidget({ context, pluginId: "conversation-memory" });
+    expect(subscribe).toHaveBeenCalledWith(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      expect.any(Function),
+    );
     await readyHandler?.();
 
     const digestProvider = payload?.["digestProvider"] as (data: unknown) => {

@@ -32,6 +32,7 @@
     "./contracts/identity": "./src/contracts/identity.ts",
     "./contracts/metadata": "./src/contracts/metadata.ts",
     "./contracts/messaging": "./src/contracts/messaging.ts",
+    "./system-channels": "./src/system-channels.ts",
     "./message-interface/artifact-display": "./src/message-interface/artifact-display.ts",
     "./message-interface/content-disposition": "./src/message-interface/content-disposition.ts",
     "./message-interface/confirmation-result": "./src/message-interface/confirmation-result.ts",

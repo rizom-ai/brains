@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { BlogPlugin } from "../src/plugin";
 import { PermissionService } from "@brains/templates";
 import {
@@ -49,7 +50,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message after system:plugins:ready with internal provider", async () => {
+    it("should send publish:register message after plugins-registered with internal provider", async () => {
       await harness.installPlugin(new BlogPlugin({}));
 
       expect(
@@ -57,7 +58,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       ).toBeUndefined();
 
       await harness.sendMessage(
-        "system:plugins:ready",
+        SYSTEM_CHANNELS.pluginsRegistered,
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
         true,
@@ -73,7 +74,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       });
     });
 
-    it("should register post OG images as publish assets after system:plugins:ready", async () => {
+    it("should register post OG images as publish assets after plugins-registered", async () => {
       await harness.installPlugin(new BlogPlugin({}));
 
       expect(
@@ -81,7 +82,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       ).toBeUndefined();
 
       await harness.sendMessage(
-        "system:plugins:ready",
+        SYSTEM_CHANNELS.pluginsRegistered,
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
         true,
@@ -115,7 +116,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       }
 
       await localHarness.sendMessage(
-        "system:plugins:ready",
+        SYSTEM_CHANNELS.pluginsRegistered,
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
         true,
