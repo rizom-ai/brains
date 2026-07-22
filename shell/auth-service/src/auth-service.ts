@@ -20,12 +20,11 @@ import { RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
 import {
   AuthIdentityStore,
-  hashIdentityKey,
-  normalizeIdentityKey,
   type AttachAuthIdentityInput,
   type AuthIdentityRecord,
   type ResolveAuthIdentityInput,
 } from "./identity-store";
+import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { auditActor, type AuthMutationContext } from "./mutation-context";
 import {
@@ -196,6 +195,8 @@ export class AuthService {
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
   private identityStore: AuthIdentityStore | undefined;
+  private identityReconciliationService:
+    IdentityReconciliationService | undefined;
   private targetedSetupService: TargetedSetupService | undefined;
   private userManagementService: AuthUserManagementService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
@@ -364,6 +365,7 @@ export class AuthService {
     await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
     this.identityStore = undefined;
+    this.identityReconciliationService = undefined;
     this.targetedSetupService = undefined;
     this.userManagementService = undefined;
     this.interfacePrincipalStore = undefined;
@@ -382,6 +384,10 @@ export class AuthService {
     await this.runtimeDatabase.start();
     this.identityStore = new AuthIdentityStore(this.runtimeDatabase.db);
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.identityReconciliationService = new IdentityReconciliationService({
+      identities: this.identityStore,
+      users: this.userStore,
+    });
     this.targetedSetupService = new TargetedSetupService(
       this.runtimeDatabase.db,
       this.identityStore,
@@ -414,6 +420,13 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.identityStore;
+  }
+
+  private getIdentityReconciliationService(): IdentityReconciliationService {
+    if (!this.identityReconciliationService) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.identityReconciliationService;
   }
 
   private getTargetedSetupService(): TargetedSetupService {
@@ -810,82 +823,7 @@ export class AuthService {
     claims: AuthIdentityProposalInput[],
   ): Promise<AuthIdentityReconciliationResponse> {
     await this.ensureUserStoreStarted();
-    const [identities, users] = await Promise.all([
-      this.getIdentityStore().listAllIdentities(),
-      this.getUserStore().listUsers(),
-    ]);
-    const activeIdentityByHash = new Map(
-      identities
-        .filter((identity) => identity.revokedAt === null)
-        .map((identity) => [identity.identityKeyHash, identity]),
-    );
-    const userByPersonId = new Map(users.map((user) => [user.personId, user]));
-
-    const reconciledClaims: AuthIdentityReconciliationResponse["claims"] =
-      claims.map((claim, index) => {
-        const identityKeyHash = hashIdentityKey(
-          normalizeIdentityKey({
-            type: claim.type,
-            subject: claim.subject,
-            ...(claim.issuer ? { issuer: claim.issuer } : {}),
-          }),
-        );
-        const identity = activeIdentityByHash.get(identityKeyHash);
-        if (!identity) {
-          return {
-            index,
-            type: claim.type,
-            ...(claim.label ? { label: claim.label } : {}),
-            state: "unbound" as const,
-          };
-        }
-
-        const user = userByPersonId.get(identity.personId);
-        const verified = identity.evidence.some(
-          (evidence) =>
-            evidence.assurance === "verified" && evidence.verifiedAt !== null,
-        );
-        return {
-          index,
-          type: claim.type,
-          ...(claim.label ? { label: claim.label } : {}),
-          state: verified
-            ? ("verified_match" as const)
-            : ("asserted_match" as const),
-          owner: {
-            personId: identity.personId,
-            ...(user
-              ? {
-                  userId: user.id,
-                  displayName: user.displayName,
-                  status: user.status,
-                }
-              : {}),
-          },
-        };
-      });
-
-    const matchedPersonIds = new Set(
-      reconciledClaims.flatMap((claim) =>
-        claim.owner ? [claim.owner.personId] : [],
-      ),
-    );
-    if (matchedPersonIds.size > 1) {
-      return { state: "cross_person_conflict", claims: reconciledClaims };
-    }
-
-    const verifiedMatch = reconciledClaims.find(
-      (claim) => claim.state === "verified_match" && claim.owner?.userId,
-    );
-    if (matchedPersonIds.size === 1 && verifiedMatch?.owner?.userId) {
-      return {
-        state: "unique_verified_match",
-        suggestedUserId: verifiedMatch.owner.userId,
-        claims: reconciledClaims,
-      };
-    }
-
-    return { state: "no_verified_match", claims: reconciledClaims };
+    return this.getIdentityReconciliationService().reconcile(claims);
   }
 
   async listPersonExternalPeers(
