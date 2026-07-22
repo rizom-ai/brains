@@ -33,6 +33,7 @@ function createPreparedBuild(buildId: string): PreparedSiteBuild {
     ],
     images: {},
     staticAssets: { "/assets/site.txt": "site asset" },
+    publicAssets: { "public-logo.bin": "AAECAw==" },
     globalHeadScripts: [],
   };
 }
@@ -98,6 +99,7 @@ describe("TransactionalSiteBuildOutput", () => {
       buildId: "build-one",
       warnings: ["fixture warning"],
       routes: [{ routeId: "home", urlPath: "/", outputFile: "index.html" }],
+      publicAssets: ["public-logo.bin"],
       files: expect.arrayContaining([
         { path: "public-logo.bin", kind: "public", size: 4 },
         { path: "robots.txt", kind: "seo", size: 6 },

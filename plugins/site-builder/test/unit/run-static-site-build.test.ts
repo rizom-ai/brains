@@ -22,6 +22,7 @@ const buildContext: BuildContext = {
     routes: [],
     images: {},
     staticAssets: {},
+    publicAssets: {},
     globalHeadScripts: [],
   },
   viewTemplates: {},

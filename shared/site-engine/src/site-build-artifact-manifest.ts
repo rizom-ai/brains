@@ -25,6 +25,7 @@ export interface SiteBuildArtifactManifest {
   files: SiteBuildArtifactFile[];
   images: SiteImageMap;
   staticAssets: string[];
+  publicAssets: string[];
   scripts: {
     global: string[];
     byRoute: Record<string, string[]>;
@@ -61,6 +62,7 @@ export const siteBuildArtifactManifestSchema: z.ZodType<SiteBuildArtifactManifes
     files: z.array(artifactFileSchema),
     images: z.record(z.string(), resolvedSiteImageSchema),
     staticAssets: z.array(z.string()),
+    publicAssets: z.array(z.string()),
     scripts: z.object({
       global: z.array(z.string()),
       byRoute: z.record(z.string(), z.array(z.string())),

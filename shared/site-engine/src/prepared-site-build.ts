@@ -44,6 +44,8 @@ export interface PreparedSiteBuild {
   themeCSS?: string | undefined;
   images: SiteImageMap;
   staticAssets: Record<string, string>;
+  /** App public files keyed by output path with base64-encoded contents. */
+  publicAssets: Record<string, string>;
   globalHeadScripts: string[];
 }
 
@@ -97,6 +99,7 @@ export const preparedSiteBuildSchema: z.ZodType<PreparedSiteBuild> = z.object({
   themeCSS: z.string().optional(),
   images: z.record(z.string(), resolvedSiteImageSchema),
   staticAssets: z.record(z.string(), z.string()),
+  publicAssets: z.record(z.string(), z.string()),
   globalHeadScripts: z.array(z.string()),
 });
 

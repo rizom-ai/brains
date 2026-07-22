@@ -29,6 +29,7 @@ export async function createSiteBuildArtifactManifest(
   const staticAssets = Object.keys(options.preparedBuild.staticAssets)
     .map(normalizeAssetPath)
     .sort();
+  const publicAssets = Object.keys(options.preparedBuild.publicAssets).sort();
   const staticAssetFiles = new Set(staticAssets);
   const files = await listArtifactFiles(options.generationDir);
   const filePaths = new Set(files.map((file) => file.path));
@@ -53,6 +54,11 @@ export async function createSiteBuildArtifactManifest(
       throw new Error(`Expected static asset is missing: ${path}`);
     }
   }
+  for (const path of publicAssets) {
+    if (!filePaths.has(path)) {
+      throw new Error(`Expected public asset is missing: ${path}`);
+    }
+  }
 
   const classifiedFiles = files.map((file): SiteBuildArtifactFile => ({
     ...file,
@@ -66,6 +72,7 @@ export async function createSiteBuildArtifactManifest(
     files: classifiedFiles,
     images: options.preparedBuild.images,
     staticAssets,
+    publicAssets,
     scripts: {
       global: options.preparedBuild.globalHeadScripts,
       byRoute: Object.fromEntries(

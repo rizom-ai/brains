@@ -3,6 +3,7 @@ import type { ProgressCallback } from "@brains/utils/progress";
 import { ProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
 import { randomUUID } from "crypto";
+import { join } from "path";
 import type {
   BuildResult,
   SiteBuildDiagnostic,
@@ -122,6 +123,7 @@ export async function runSiteBuild(
       pipelineContext: options.pipelineContext,
       imageBuildService,
       siteMetadata: parsedOptions.siteConfig,
+      publicDir: join(process.cwd(), "public"),
     });
     diagnostics.push(...preparation.diagnostics);
     const preparationWarnings = preparation.diagnostics.filter(

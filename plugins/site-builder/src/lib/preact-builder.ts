@@ -79,9 +79,9 @@ export class PreactBuilder implements StaticSiteBuilder {
     reportProgress("Processing Tailwind CSS");
     await this.processStyles(preparedBuild.themeCSS ?? "");
 
-    // Copy static assets from public/ directory
+    // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
-    await this.copyStaticAssets();
+    await this.writePublicAssets(preparedBuild.publicAssets);
 
     // Write inline static assets: files declared by templates in use on the
     // built routes (e.g. the file behind a runtimeScripts src), merged with
@@ -305,37 +305,19 @@ export class PreactBuilder implements StaticSiteBuilder {
     this.logger.debug("CSS processed successfully with font imports");
   }
 
-  private async copyStaticAssets(): Promise<void> {
-    this.logger.debug("Copying static assets from public/ directory");
+  private async writePublicAssets(
+    assets: Record<string, string>,
+  ): Promise<void> {
+    const entries = Object.entries(assets);
+    if (entries.length === 0) return;
 
-    // Look for public/ directory in the app root (process.cwd())
-    const publicDir = join(process.cwd(), "public");
-
-    try {
-      await fs.access(publicDir);
-    } catch {
-      this.logger.debug("No public/ directory found, skipping static assets");
-      return;
+    this.logger.debug(`Writing ${entries.length} snapshotted public asset(s)`);
+    for (const [assetPath, contentBase64] of entries) {
+      const destPath = resolveSafeOutputFile(this.outputDir, assetPath);
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"));
+      this.logger.debug(`Wrote public asset: ${assetPath}`);
     }
-
-    // Read all entries in public directory
-    const entries = await fs.readdir(publicDir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const srcPath = join(publicDir, entry.name);
-      const destPath = join(this.outputDir, entry.name);
-
-      if (entry.isDirectory()) {
-        // Recursively copy directories
-        await this.copyDirectory(srcPath, destPath);
-      } else {
-        // Copy file
-        await fs.copyFile(srcPath, destPath);
-        this.logger.debug(`Copied static asset: ${entry.name}`);
-      }
-    }
-
-    this.logger.debug("Static assets copied successfully");
   }
 
   /**
@@ -368,23 +350,6 @@ export class PreactBuilder implements StaticSiteBuilder {
         this.logger.debug(`Wrote inline static asset: ${rawPath}`);
       }),
     );
-  }
-
-  private async copyDirectory(src: string, dest: string): Promise<void> {
-    await fs.mkdir(dest, { recursive: true });
-
-    const entries = await fs.readdir(src, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const srcPath = join(src, entry.name);
-      const destPath = join(dest, entry.name);
-
-      if (entry.isDirectory()) {
-        await this.copyDirectory(srcPath, destPath);
-      } else {
-        await fs.copyFile(srcPath, destPath);
-      }
-    }
   }
 }
 

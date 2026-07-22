@@ -49,6 +49,7 @@ function createPreparedBuild(): PreparedSiteBuild {
       },
     },
     staticAssets: { "/hero.js": "console.log('hero')" },
+    publicAssets: { "favicon.bin": "AAEC" },
     globalHeadScripts: ['<script id="global"></script>'],
   };
 }

@@ -188,6 +188,9 @@ describe("PreactBuilder behavioral baseline", () => {
         "/scripts/page.js": "console.log('site package override');",
         "/assets/site.txt": "site asset",
       },
+      publicAssets: {
+        "public/fixture.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
+      },
     });
 
     const progress: string[] = [];
@@ -258,6 +261,9 @@ describe("PreactBuilder behavioral baseline", () => {
           join(outputDir, "assets", "site.txt"),
           "utf-8",
         ),
+        publicAsset: [
+          ...(await fs.readFile(join(outputDir, "public", "fixture.bin"))),
+        ],
       },
       css: {
         theme: css.includes(":root { --color-brand: #123456; }"),
@@ -281,6 +287,7 @@ describe("PreactBuilder behavioral baseline", () => {
         "assets/site.txt",
         "canvas/index.html",
         "index.html",
+        "public/fixture.bin",
         "scripts/page.js",
         "styles/main.css",
         "writing/index.html",
@@ -311,6 +318,7 @@ describe("PreactBuilder behavioral baseline", () => {
       assets: {
         routeAsset: "console.log('site package override');",
         siteAsset: "site asset",
+        publicAsset: [0, 1, 2, 3],
       },
       css: {
         theme: true,

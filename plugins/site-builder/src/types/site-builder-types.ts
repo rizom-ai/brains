@@ -75,6 +75,7 @@ export type SiteBuildDiagnosticCode =
   | "missing-web-renderer"
   | "unsafe-static-asset-path"
   | "static-asset-collision"
+  | "public-asset-snapshot-failed"
   | "section-content-resolution-failed"
   | "invalid-section-content";
 
@@ -102,6 +103,7 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
     "missing-web-renderer",
     "unsafe-static-asset-path",
     "static-asset-collision",
+    "public-asset-snapshot-failed",
     "section-content-resolution-failed",
     "invalid-section-content",
   ]),
