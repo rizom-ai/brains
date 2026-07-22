@@ -74,7 +74,7 @@ describe("AnchorProfileAdapter", () => {
     it("should convert profile entity to frontmatter format", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",
-        kind: "collective",
+        kind: "organization",
         description: "Open-source collective building privacy-first tools",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -107,7 +107,7 @@ describe("AnchorProfileAdapter", () => {
     it("should handle optional fields correctly", () => {
       const content = adapter.createProfileContent({
         name: "John Doe",
-        kind: "professional",
+        kind: "person",
       });
 
       const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
@@ -126,7 +126,7 @@ describe("AnchorProfileAdapter", () => {
     it("should parse frontmatter format to profile body", () => {
       const markdown = `---
 name: Rizom
-kind: collective
+kind: organization
 description: Open-source collective
 website: https://rizom.ai
 email: contact@rizom.ai
@@ -166,7 +166,7 @@ socialLinks:
     it("should parse with an extended schema and map body to story", () => {
       const markdown = `---
 name: Yeehaa
-kind: professional
+kind: person
 description: Developer
 tagline: Building tools for thought
 expertise:
@@ -216,7 +216,7 @@ description: Open-source collective
     it("should extract name, email, and website as metadata", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",
-        kind: "collective",
+        kind: "organization",
         description: "Open-source collective",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -244,7 +244,7 @@ description: Open-source collective
     it("should generate frontmatter string from entity", () => {
       const content = adapter.createProfileContent({
         name: "Test",
-        kind: "professional",
+        kind: "person",
         website: "https://test.com",
       });
 
@@ -264,7 +264,7 @@ description: Open-source collective
     it("should parse frontmatter from markdown", () => {
       const markdown = `---
 name: Rizom
-kind: collective
+kind: organization
 website: https://rizom.ai
 ---
 `;
@@ -282,7 +282,7 @@ website: https://rizom.ai
     it("should preserve data through createProfileContent and parseProfileBody", () => {
       const originalData = {
         name: "Rizom",
-        kind: "collective" as const,
+        kind: "organization" as const,
         description: "Open-source collective building privacy-first tools",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -315,7 +315,7 @@ website: https://rizom.ai
     });
 
     it("should preserve data with only required fields", () => {
-      const originalData = { name: "John Doe", kind: "professional" as const };
+      const originalData = { name: "John Doe", kind: "person" as const };
 
       const content = adapter.createProfileContent(originalData);
       const parsed = adapter.parseProfileBody(content);

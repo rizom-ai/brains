@@ -1,6 +1,6 @@
 ---
 name: Approval Candidate
-kind: professional
+kind: person
 brainName: Approval Candidate
 url: "https://approval-candidate.io/a2a"
 status: discovered

@@ -11,6 +11,7 @@
     "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-info": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },

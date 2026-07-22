@@ -41,6 +41,7 @@ describe("SiteInfoAdapter", () => {
       const content = "---\ntitle: My Site\ndescription: My description\n---\n";
       const body = adapter.parseSiteInfoBody(content);
 
+      expect(body.represents).toBe("anchor");
       expect(body.title).toBe("My Site");
       expect(body.description).toBe("My description");
     });

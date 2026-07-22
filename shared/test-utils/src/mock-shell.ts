@@ -771,7 +771,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
     getProfile: (): AnchorProfile => ({
       name: "Test Owner",
-      kind: "professional",
+      kind: "person",
       description: "Test profile for unit tests",
     }),
     getDomain: (): string | undefined => options.domain,

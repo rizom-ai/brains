@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import {
   BaseEntityAdapter,
+  anchorProfileKindSchema,
   baseEntitySchema,
   createEntityPluginContext,
 } from "@brains/plugins";
@@ -29,7 +30,7 @@ const evalAgentStatusSchema = z.enum(["discovered", "approved"]);
 
 const evalAgentFrontmatterSchema = z.object({
   name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
+  kind: anchorProfileKindSchema,
   organization: z.string().optional(),
   brainName: z.string(),
   url: z.string().url(),
@@ -202,7 +203,7 @@ const swotEvalInputSchema = z.object({
     z.object({
       id: z.string().optional(),
       name: z.string(),
-      kind: z.enum(["professional", "team", "collective"]),
+      kind: anchorProfileKindSchema,
       organization: z.string().optional(),
       brainName: z.string(),
       url: z.url(),

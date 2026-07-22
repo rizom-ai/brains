@@ -565,18 +565,13 @@ describe("ImageGenerationJobHandler", () => {
       );
     });
 
-    it("should prepend base style prompt to all generated images", async () => {
+    it("uses a neutral subject prompt when the style guide is empty", async () => {
       const jobData = createValidJobData();
 
       await handler.process(jobData, "job-123", progressReporter);
 
-      // Verify the prompt includes both the style prefix and the user's subject
       expect(context.ai.generateImage).toHaveBeenCalledWith(
-        expect.stringContaining("editorial illustration"),
-        expect.any(Object),
-      );
-      expect(context.ai.generateImage).toHaveBeenCalledWith(
-        expect.stringContaining("A beautiful sunset over mountains"),
+        "Subject: A beautiful sunset over mountains",
         expect.any(Object),
       );
     });

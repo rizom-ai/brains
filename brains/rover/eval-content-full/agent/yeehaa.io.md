@@ -1,6 +1,6 @@
 ---
 name: Yeehaa
-kind: professional
+kind: person
 brainName: Rover
 url: "https://yeehaa.io/a2a"
 status: approved

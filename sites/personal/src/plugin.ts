@@ -5,9 +5,9 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { professionalProfileSchema as personalProfileSchema } from "@brains/profile";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
-import { personalProfileExtension } from "./schemas";
 import { HomepageDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import { HomepageLayout, type HomepageData } from "./templates/homepage";
@@ -61,34 +61,6 @@ const siteInfoCTASchema = z.object({
   subtitle: z.string().optional(),
 });
 
-const personalProfileSchema = z.looseObject({
-  name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
-  organization: z.string().optional(),
-  description: z.string().optional(),
-  avatar: z.string().optional(),
-  website: z.string().optional(),
-  email: z.string().optional(),
-  socialLinks: z
-    .array(
-      z.object({
-        platform: z.enum([
-          "github",
-          "instagram",
-          "linkedin",
-          "email",
-          "website",
-        ]),
-        url: z.string(),
-        label: z.string().optional(),
-      }),
-    )
-    .optional(),
-  tagline: z.string().optional(),
-  intro: z.string().optional(),
-  story: z.string().optional(),
-});
-
 const blogPostSchema = z.looseObject({
   id: z.string(),
   entityType: z.literal("post"),
@@ -136,12 +108,6 @@ export class PersonalSitePlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Extend profile schema with personal fields
-    context.entities.extendFrontmatterSchema(
-      "anchor-profile",
-      personalProfileExtension,
-    );
-
     const postsConfig = this.config.entityDisplay.post;
     const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
 

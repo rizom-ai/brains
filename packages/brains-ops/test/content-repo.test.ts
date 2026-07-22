@@ -80,7 +80,7 @@ function getAuthorization(headers: RequestInit["headers"]): string | undefined {
 }
 
 const placeholderAnchorProfile = `---
-kind: professional
+kind: person
 name: Your Name Here
 description: Replace this with something that actually describes you.
 ---
@@ -305,7 +305,7 @@ anchorProfile:
       remotePath,
       "anchor-profile/anchor-profile.md",
     );
-    expect(content).toContain("kind: professional");
+    expect(content).toContain("kind: person");
     expect(content).toContain("name: Alice Example");
     expect(content).toContain(
       "description: Product strategist and systems thinker.",
@@ -345,7 +345,7 @@ anchorProfile:
     const remotePath = await createBareRemote();
     await populateRemote(remotePath, {
       "anchor-profile/anchor-profile.md": `---
-kind: professional
+kind: person
 name: Alice Real
 description: Custom profile from content repo.
 ---

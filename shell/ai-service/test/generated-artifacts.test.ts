@@ -49,7 +49,7 @@ function createProfileService(): IAnchorProfileService {
   return {
     getProfile: mock((): AnchorProfile => ({
       name: "Test Anchor",
-      kind: "professional",
+      kind: "person",
       description: "Test",
     })),
   };

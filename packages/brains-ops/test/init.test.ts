@@ -920,7 +920,7 @@ describe("initPilotRepo", () => {
         "anchor-profile",
         "anchor-profile.md",
       ),
-      "---\nname: Alice Example\nkind: professional\n---\n",
+      "---\nname: Alice Example\nkind: person\n---\n",
     );
     const currentSha = commitAll(repo, "seed alice anchor profile");
     await writeFile(outputPath, "");

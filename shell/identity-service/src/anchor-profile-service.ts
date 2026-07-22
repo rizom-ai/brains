@@ -32,7 +32,7 @@ export class AnchorProfileService
   public static getDefaultProfile(): AnchorProfile {
     return {
       name: "Unknown",
-      kind: "professional" as const,
+      kind: "person" as const,
     };
   }
 

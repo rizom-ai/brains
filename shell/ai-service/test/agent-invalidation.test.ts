@@ -51,7 +51,7 @@ describe("AgentService invalidation", () => {
       {
         getProfile: () => ({
           name: "Test Anchor",
-          kind: "professional" as const,
+          kind: "person" as const,
           description: "Test",
         }),
       } as IAnchorProfileService,
@@ -84,7 +84,7 @@ describe("AgentService invalidation", () => {
     const mockProfileService: IAnchorProfileService = {
       getProfile: () => ({
         name: profileName,
-        kind: "professional" as const,
+        kind: "person" as const,
         description: "Test",
       }),
     };

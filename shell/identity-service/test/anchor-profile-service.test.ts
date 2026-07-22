@@ -60,7 +60,7 @@ describe("AnchorProfileService", () => {
 
       expect(defaultProfile).toEqual({
         name: "Unknown",
-        kind: "professional",
+        kind: "person",
       });
     });
   });
@@ -76,7 +76,7 @@ describe("AnchorProfileService", () => {
       // Create a mock entity with content
       const mockContent = `---
 name: Rizom
-kind: collective
+kind: organization
 description: Open-source collective building privacy-first tools
 website: 'https://rizom.ai'
 email: contact@rizom.ai
@@ -141,7 +141,7 @@ socialLinks:
       // Mock behavior: existing entity with valid content
       const existingContent = `---
 name: Existing Profile
-kind: professional
+kind: person
 ---
 `;
       const mockEntity = createTestEntity<AnchorProfileEntity>(
@@ -163,7 +163,7 @@ kind: professional
     it("should not create default when profile appears after initial cache miss", async () => {
       const importedContent = `---
 name: Imported Profile
-kind: professional
+kind: person
 ---
 `;
       const importedEntity = createTestEntity<AnchorProfileEntity>(
@@ -212,7 +212,7 @@ kind: professional
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedContent = `---
 name: Yeehaa
-kind: professional
+kind: person
 description: 'Professional developer, writer, and knowledge worker'
 email: yeehaa@rizom.ai
 socialLinks:
@@ -250,7 +250,7 @@ socialLinks:
     it("should use provided custom default profile instead of hardcoded default", async () => {
       const customProfile = {
         name: "Custom Organization",
-        kind: "collective" as const,
+        kind: "organization" as const,
         description: "Custom description",
         website: "https://example.com",
       };
@@ -280,7 +280,7 @@ socialLinks:
     it("should create entity with custom default when none exists", async () => {
       const customProfile = {
         name: "Rizom",
-        kind: "collective" as const,
+        kind: "organization" as const,
         description: "Open-source collective",
         socialLinks: [
           { platform: "github" as const, url: "https://github.com/rizom-ai" },

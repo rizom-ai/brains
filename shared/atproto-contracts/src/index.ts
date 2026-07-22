@@ -16,6 +16,7 @@ export {
 export type {
   AtprotoBlobRef,
   AtprotoBrainCardAnchor,
+  AtprotoAnchorKind,
   AtprotoBrainCardBrain,
   AtprotoBrainCardRecord,
   AtprotoBrainCardSkill,

@@ -147,6 +147,8 @@ export type {
   ToolInfo,
   EvalHandler,
   ContentGenerationConfig,
+  GenerationStyle,
+  GenerationStyleGuide,
   IEvalHandlerRegistry,
 } from "./interfaces";
 
@@ -571,15 +573,15 @@ export {
   type PluginConfigValidationIssue,
 } from "./config";
 
-export type { IAnchorProfileService } from "@brains/identity-service";
+export type {
+  AnchorProfileKind,
+  IAnchorProfileService,
+} from "@brains/identity-service";
 export {
   AnchorProfileService,
   anchorProfileBodySchema,
+  anchorProfileKindSchema,
   brainCharacterBodySchema,
-  baseProfileExtension,
-  professionalProfileExtension,
-  fetchAnchorProfile,
-  fetchAnchorProfileData,
 } from "@brains/identity-service";
 
 // ============================================================================

@@ -20,7 +20,7 @@ describe("AgentAdapter", () => {
     it("should build markdown with frontmatter and body sections", () => {
       const content = adapter.createAgentContent({
         name: "Yeehaa",
-        kind: "professional",
+        kind: "person",
         organization: "Rizom",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
@@ -65,7 +65,7 @@ describe("AgentAdapter", () => {
     it("should handle empty skills", () => {
       const content = adapter.createAgentContent({
         name: "Unknown",
-        kind: "professional",
+        kind: "person",
         brainName: "Unknown Brain",
         url: "https://unknown.io",
         status: "discovered",
@@ -113,7 +113,7 @@ describe("AgentAdapter", () => {
     it("should handle optional fields being absent", () => {
       const content = adapter.createAgentContent({
         name: "Minimal",
-        kind: "professional",
+        kind: "person",
         brainName: "Minimal Brain",
         url: "https://minimal.io",
         status: "discovered",
@@ -222,7 +222,7 @@ Test agent.
         entityType: "agent",
         content: adapter.createAgentContent({
           name: "Yeehaa",
-          kind: "professional",
+          kind: "person",
           brainName: "Yeehaa's Brain",
           url: "https://yeehaa.io",
           status: "discovered",
@@ -255,7 +255,7 @@ Test agent.
     it("should derive slug from name", () => {
       const content = adapter.createAgentContent({
         name: "Yeehaa",
-        kind: "professional",
+        kind: "person",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
         status: "discovered",
@@ -276,7 +276,7 @@ Test agent.
     it("should preserve data through create → parse", () => {
       const content = adapter.createAgentContent({
         name: "Ranger",
-        kind: "collective",
+        kind: "organization",
         organization: "Rizom",
         brainName: "Ranger Brain",
         url: "https://ranger.rizom.ai",
@@ -309,7 +309,7 @@ Test agent.
       // `status: discovered` frontmatter.
       const staleContent = adapter.createAgentContent({
         name: "Phoney",
-        kind: "professional",
+        kind: "person",
         brainName: "mylittlephoney.com",
         url: "https://mylittlephoney.com/a2a",
         status: "discovered",

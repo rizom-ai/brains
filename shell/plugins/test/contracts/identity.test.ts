@@ -28,7 +28,7 @@ describe("public identity contracts", () => {
   it("maps runtime anchor profile to the stable public contract", () => {
     const profile = toPublicAnchorProfile({
       name: "Yeehaa",
-      kind: "professional",
+      kind: "person",
       organization: "Rizom",
       description: "Builder",
       avatar: "https://example.com/avatar.png",
@@ -45,7 +45,7 @@ describe("public identity contracts", () => {
 
     expect(AnchorProfileSchema.parse(profile)).toEqual({
       name: "Yeehaa",
-      kind: "professional",
+      kind: "person",
       organization: "Rizom",
       description: "Builder",
       avatar: "https://example.com/avatar.png",

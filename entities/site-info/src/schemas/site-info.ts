@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { siteInfoBodySchema, type SiteInfoBody } from "./site-info-schema";
+import {
+  siteInfoBodySchema,
+  type ResolvedSiteInfoBody,
+} from "./site-info-schema";
 
 export interface SiteInfoNavigationItem {
   label: string;
@@ -13,7 +16,7 @@ export interface SiteInfoSocialLink {
   label?: string | undefined;
 }
 
-export interface SiteInfo extends SiteInfoBody {
+export interface SiteInfo extends ResolvedSiteInfoBody {
   navigation: {
     primary: SiteInfoNavigationItem[];
     secondary: SiteInfoNavigationItem[];
@@ -66,19 +69,23 @@ const siteInfoSocialLinkSchema: SiteInfoSocialLinkSchema = z.object({
 
 /**
  * Schema for site information
- * Extends the body schema with navigation and socialLinks (from profile entity)
+ * Extends the body schema with resolved display metadata and layout data.
  */
 export const SiteInfoSchema: ReturnType<
   typeof siteInfoBodySchema.extend<{
+    title: z.ZodString;
+    description: z.ZodString;
     navigation: SiteInfoNavigationSchema;
     copyright: z.ZodString;
     socialLinks: z.ZodOptional<z.ZodArray<SiteInfoSocialLinkSchema>>;
   }>
 > = siteInfoBodySchema.extend({
+  title: z.string(),
+  description: z.string(),
   navigation: siteInfoNavigationSchema,
   copyright: z.string(), // Override: datasource always provides copyright (uses default if not in entity)
   socialLinks: z
     .array(siteInfoSocialLinkSchema)
     .optional()
-    .describe("Social media links from profile entity"),
+    .describe("Social media links composed by a site integration"),
 });

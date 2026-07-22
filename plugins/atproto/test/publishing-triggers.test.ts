@@ -179,7 +179,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
       name: "Ready Anchor",
-      kind: "collective",
+      kind: "organization",
       description: "Loaded profile",
     });
 
@@ -203,7 +203,7 @@ describe("AT Protocol ambient publishing triggers", () => {
           }),
           anchor: expect.objectContaining({
             name: "Ready Anchor",
-            kind: "collective",
+            kind: "organization",
           }),
         }),
       }),

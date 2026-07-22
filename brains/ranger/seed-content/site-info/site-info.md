@@ -1,4 +1,5 @@
 ---
+represents: anchor
 title: My Organization
 description: Our shared knowledge hub
 themeMode: dark

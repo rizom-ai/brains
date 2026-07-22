@@ -1,4 +1,4 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { BaseEntityAdapter, type AnchorProfileKind } from "@brains/plugins";
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
@@ -52,7 +52,7 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
 
 export interface CreateAgentContentInput {
   name: string;
-  kind: "professional" | "team" | "collective";
+  kind: AnchorProfileKind;
   organization?: string | undefined;
   brainName: string;
   url: string;

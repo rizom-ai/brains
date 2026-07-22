@@ -22,7 +22,7 @@ input:
 
   agents:
     - name: Verified Editorial
-      kind: professional
+      kind: person
       brainName: verified-editorial
       url: https://verified-editorial.example.com
       status: approved
@@ -46,7 +46,7 @@ input:
       notes: Not yet approved.
 
     - name: Tentative Data Forge
-      kind: professional
+      kind: person
       brainName: tentative-data-forge
       url: https://tentative-data-forge.example.com
       status: discovered

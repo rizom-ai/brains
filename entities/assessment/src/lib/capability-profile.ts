@@ -1,10 +1,12 @@
 import type {
+  AnchorProfileKind,
   BaseEntity,
   EntityPluginContext,
   SkillData,
 } from "@brains/plugins";
 import {
   BaseEntityAdapter,
+  anchorProfileKindSchema,
   baseEntitySchema,
   skillDataSchema,
 } from "@brains/plugins";
@@ -23,7 +25,7 @@ export interface CapabilityProfile {
   source: "self" | "agent";
   name: string;
   brainName?: string;
-  kind?: "professional" | "team" | "collective";
+  kind?: AnchorProfileKind;
   status?: "approved" | "discovered" | "archived";
   description?: string;
   notes?: string;
@@ -59,7 +61,7 @@ const capabilityAgentSkillSchema = z.object({
 
 const capabilityAgentFrontmatterSchema = z.object({
   name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
+  kind: anchorProfileKindSchema,
   organization: z.string().optional(),
   brainName: z.string(),
   url: z.string().url(),

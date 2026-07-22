@@ -26,7 +26,7 @@ describe("tag vocabulary", () => {
         entityType: "agent" as const,
         content: agentAdapter.createAgentContent({
           name: "Kai",
-          kind: "professional",
+          kind: "person",
           brainName: "kai.brain",
           url: "https://kai.brain",
           status: "approved",

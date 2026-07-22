@@ -7,6 +7,7 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { z } from "@brains/utils/zod";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
@@ -114,6 +115,9 @@ Add your conclusion here.`;
       const finalPrompt = prompt ?? defaultPrompt;
       const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         title: string;
         content: string;
@@ -121,6 +125,9 @@ Add your conclusion here.`;
       }>({
         prompt: generationPrompt,
         templateName: "blog:generation",
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       title = title ?? generated.title;
@@ -139,11 +146,17 @@ Add your conclusion here.`;
         message: "Generating excerpt with AI",
       });
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const excerptGenerated = await this.context.ai.generate<{
         excerpt: string;
       }>({
         prompt: `Title: ${title}\n\nContent:\n${content}`,
         templateName: "blog:excerpt",
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       excerpt = excerptGenerated.excerpt;

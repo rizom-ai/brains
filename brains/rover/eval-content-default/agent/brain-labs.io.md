@@ -1,6 +1,6 @@
 ---
 name: Brain
-kind: professional
+kind: person
 brainName: Brain Labs
 url: "https://brain-labs.io/a2a"
 status: approved

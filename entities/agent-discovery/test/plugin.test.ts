@@ -153,7 +153,7 @@ const testBrainCardPayload = {
     anchor: {
       did: "did:plc:anchor",
       name: "Peer Owner",
-      kind: "professional",
+      kind: "person",
     },
     model: "ranger",
     version: "0.2.0-test",

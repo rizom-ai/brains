@@ -1,5 +1,9 @@
-import type { BaseEntity } from "@brains/plugins";
-import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
+import type { AnchorProfileKind, BaseEntity } from "@brains/plugins";
+import {
+  BaseEntityAdapter,
+  anchorProfileKindSchema,
+  baseEntitySchema,
+} from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 
@@ -31,7 +35,7 @@ export const testAgentStatusSchema: z.ZodType<
 export interface TestAgentFrontmatter {
   [key: string]: unknown;
   name: string;
-  kind: "professional" | "team" | "collective";
+  kind: AnchorProfileKind;
   organization?: string | undefined;
   brainName: string;
   url: string;
@@ -42,11 +46,7 @@ export interface TestAgentFrontmatter {
 
 type TestAgentFrontmatterSchema = z.ZodObject<{
   name: z.ZodString;
-  kind: z.ZodEnum<{
-    professional: "professional";
-    team: "team";
-    collective: "collective";
-  }>;
+  kind: typeof anchorProfileKindSchema;
   organization: z.ZodOptional<z.ZodString>;
   brainName: z.ZodString;
   url: z.ZodString;
@@ -57,7 +57,7 @@ type TestAgentFrontmatterSchema = z.ZodObject<{
 
 export const testAgentFrontmatterSchema: TestAgentFrontmatterSchema = z.object({
   name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
+  kind: anchorProfileKindSchema,
   organization: z.string().optional(),
   brainName: z.string(),
   url: z.string().url(),

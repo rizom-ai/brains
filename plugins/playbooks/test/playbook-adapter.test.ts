@@ -187,7 +187,7 @@ Required details:
 - role
 - audience
 - expertise
-- desiredTone
+- availability
 
 To do:
 - Ask only for missing details.
@@ -204,7 +204,13 @@ Say: Done.
 
     expect(parsed.states[0]).toMatchObject({
       id: "identity",
-      requiredDetails: ["name", "role", "audience", "expertise", "desiredTone"],
+      requiredDetails: [
+        "name",
+        "role",
+        "audience",
+        "expertise",
+        "availability",
+      ],
     });
   });
 

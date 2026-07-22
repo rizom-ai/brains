@@ -105,7 +105,7 @@ describe("reconcile scripts", () => {
       join(root, "users/alice/content/anchor-profile/anchor-profile.md"),
       "utf8",
     );
-    expect(anchorProfile).toContain("kind: professional");
+    expect(anchorProfile).toContain("kind: person");
     expect(anchorProfile).toContain("name: Alice Example");
     expect(anchorProfile).toContain("description: Researcher and writer");
     expect(anchorProfile).toContain(

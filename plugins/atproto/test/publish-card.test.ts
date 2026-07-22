@@ -80,7 +80,7 @@ describe("AT Protocol brain card publishing", () => {
       anchor: {
         did: "did:plc:anchor",
         name: "Test Owner",
-        kind: "professional",
+        kind: "person",
       },
       siteUrl: "https://brain.example.com/",
       skills: [],
@@ -204,7 +204,7 @@ describe("AT Protocol brain card publishing", () => {
         anchor: {
           did: "did:plc:anchor",
           name: "Test Owner",
-          kind: "professional",
+          kind: "person",
         },
         siteUrl: "https://brain.example.com/",
       },

@@ -26,9 +26,23 @@ export interface AnchorProfileSocialLink {
   label?: string | undefined;
 }
 
+export type AnchorProfileKindSchema = z.ZodEnum<{
+  person: "person";
+  team: "team";
+  organization: "organization";
+}>;
+
+export const anchorProfileKindSchema: AnchorProfileKindSchema = z.enum([
+  "person",
+  "team",
+  "organization",
+]);
+
+export type AnchorProfileKind = z.infer<typeof anchorProfileKindSchema>;
+
 export interface AnchorProfile {
   name: string;
-  kind: "professional" | "team" | "collective";
+  kind: AnchorProfileKind;
   organization?: string | undefined;
   description?: string | undefined;
   avatar?: string | undefined;
@@ -51,11 +65,7 @@ type SocialLinkSchema = z.ZodObject<{
 
 export type AnchorProfileBodySchema = z.ZodObject<{
   name: z.ZodString;
-  kind: z.ZodEnum<{
-    professional: "professional";
-    team: "team";
-    collective: "collective";
-  }>;
+  kind: typeof anchorProfileKindSchema;
   organization: z.ZodOptional<z.ZodString>;
   description: z.ZodOptional<z.ZodString>;
   avatar: z.ZodOptional<z.ZodString>;
@@ -70,9 +80,9 @@ export type AnchorProfileBodySchema = z.ZodObject<{
  */
 export const anchorProfileBodySchema: AnchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
-  kind: z
-    .enum(["professional", "team", "collective"])
-    .describe("Type of anchor: professional (individual), team, or collective"),
+  kind: anchorProfileKindSchema.describe(
+    "Type of anchor: person, team, or organization",
+  ),
   organization: z
     .string()
     .optional()

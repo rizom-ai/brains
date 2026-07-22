@@ -26,7 +26,7 @@ input:
 
   agents:
     - name: Signal Forge
-      kind: professional
+      kind: person
       brainName: signal-forge
       url: https://signal-forge.example.com
       status: approved
@@ -56,7 +56,7 @@ input:
       notes: Strong overlap on research plus adjacent facilitation.
 
     - name: Scout Video
-      kind: professional
+      kind: person
       brainName: scout-video
       url: https://scout-video.example.com
       status: discovered

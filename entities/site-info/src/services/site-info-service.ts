@@ -1,24 +1,53 @@
-import type { IEntityService } from "@brains/plugins";
+import type {
+  AnchorProfile,
+  BrainCharacter,
+  IEntityService,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { SiteInfoEntity, SiteInfoBody } from "../schemas/site-info-schema";
+import type {
+  ResolvedSiteInfoBody,
+  SiteInfoEntity,
+  SiteInfoBody,
+} from "../schemas/site-info-schema";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 
 /**
  * Site Info Service
  * Provides the site's information (title, description, CTA, etc.)
  */
+interface SiteInfoIdentitySource {
+  getBrain: () => BrainCharacter;
+  getAnchor: () => AnchorProfile;
+}
+
+const defaultIdentitySource: SiteInfoIdentitySource = {
+  getBrain: () => ({
+    name: "Brain",
+    role: "Knowledge assistant",
+    purpose: "A knowledge management system",
+    values: [],
+  }),
+  getAnchor: () => ({
+    name: "Brain",
+    kind: "person",
+    description: "A knowledge management system",
+  }),
+};
+
 export class SiteInfoService {
   private static instance: SiteInfoService | null = null;
   private logger: Logger;
   private entityService: IEntityService;
   private adapter: SiteInfoAdapter;
   private defaultSiteInfo: SiteInfoBody;
+  private identitySource: SiteInfoIdentitySource;
 
   /**
    * Get the default site info for a new site
    */
-  public static getDefaultSiteInfo(): SiteInfoBody {
+  public static getDefaultSiteInfo(): ResolvedSiteInfoBody {
     return {
+      represents: "anchor",
       title: "Brain",
       description: "A knowledge management system",
     };
@@ -31,11 +60,13 @@ export class SiteInfoService {
     entityService: IEntityService,
     logger: Logger,
     defaultSiteInfo?: Partial<SiteInfoBody>,
+    identitySource?: SiteInfoIdentitySource,
   ): SiteInfoService {
     SiteInfoService.instance ??= new SiteInfoService(
       entityService,
       logger,
       defaultSiteInfo,
+      identitySource,
     );
     return SiteInfoService.instance;
   }
@@ -54,8 +85,14 @@ export class SiteInfoService {
     entityService: IEntityService,
     logger: Logger,
     defaultSiteInfo?: Partial<SiteInfoBody>,
+    identitySource?: SiteInfoIdentitySource,
   ): SiteInfoService {
-    return new SiteInfoService(entityService, logger, defaultSiteInfo);
+    return new SiteInfoService(
+      entityService,
+      logger,
+      defaultSiteInfo,
+      identitySource,
+    );
   }
 
   /**
@@ -65,15 +102,15 @@ export class SiteInfoService {
     entityService: IEntityService,
     logger: Logger,
     defaultSiteInfo?: Partial<SiteInfoBody>,
+    identitySource: SiteInfoIdentitySource = defaultIdentitySource,
   ) {
     this.entityService = entityService;
     this.logger = logger.child("SiteInfoService");
     this.adapter = new SiteInfoAdapter();
+    this.identitySource = identitySource;
 
-    // Merge provided defaults with fallback defaults
-    const defaults = SiteInfoService.getDefaultSiteInfo();
     this.defaultSiteInfo = {
-      ...defaults,
+      represents: "anchor",
       ...defaultSiteInfo,
     };
   }
@@ -124,7 +161,7 @@ export class SiteInfoService {
    * Get the site info data (from database or default)
    * Always loads fresh from database to ensure consistency
    */
-  public async getSiteInfo(): Promise<SiteInfoBody> {
+  public async getSiteInfo(): Promise<ResolvedSiteInfoBody> {
     try {
       // Always load fresh from database to avoid stale cache issues
       const siteInfo = await this.entityService.getEntity<SiteInfoEntity>({
@@ -133,11 +170,36 @@ export class SiteInfoService {
       });
 
       if (siteInfo) {
-        return this.adapter.parseSiteInfoBody(siteInfo.content);
+        return this.resolveIdentityFallbacks(
+          this.adapter.parseSiteInfoBody(siteInfo.content),
+        );
       }
     } catch (error) {
       this.logger.debug("Site info not found, using defaults", { error });
     }
-    return this.defaultSiteInfo;
+    return this.resolveIdentityFallbacks(this.defaultSiteInfo);
+  }
+
+  private resolveIdentityFallbacks(
+    siteInfo: SiteInfoBody,
+  ): ResolvedSiteInfoBody {
+    if (siteInfo.represents === "brain") {
+      const brain = this.identitySource.getBrain();
+      return {
+        ...siteInfo,
+        title: siteInfo.title ?? brain.name,
+        description: siteInfo.description ?? brain.purpose,
+      };
+    }
+
+    const anchor = this.identitySource.getAnchor();
+    return {
+      ...siteInfo,
+      title: siteInfo.title ?? anchor.name,
+      description:
+        siteInfo.description ??
+        anchor.description ??
+        `The public site for ${anchor.name}`,
+    };
   }
 }

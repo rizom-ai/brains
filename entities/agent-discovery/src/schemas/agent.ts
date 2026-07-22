@@ -1,5 +1,9 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema, baseEntitySchema } from "@brains/plugins";
+import {
+  anchorProfileKindSchema,
+  baseEntityParserSchema,
+  baseEntitySchema,
+} from "@brains/plugins";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
 /**
@@ -35,17 +39,9 @@ const agentStatusParserSchema: AgentStatusSchema = z
   .enum(["discovered", "approved", "archived"])
   .describe("Discovered for review, approved for calling, or archived");
 
-type AgentKindSchema = z.ZodEnum<{
-  professional: "professional";
-  team: "team";
-  collective: "collective";
-}>;
+type AgentKindSchema = typeof anchorProfileKindSchema;
 
-const agentKindSchema: AgentKindSchema = z.enum([
-  "professional",
-  "team",
-  "collective",
-]);
+const agentKindSchema: AgentKindSchema = anchorProfileKindSchema;
 
 export type AgentFrontmatterSchema = z.ZodObject<{
   name: z.ZodString;
@@ -171,7 +167,7 @@ export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
 
 const agentFrontmatterParserSchema: AgentFrontmatterSchema = z.object({
   name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
+  kind: agentKindSchema,
   organization: z.string().optional(),
   brainName: z.string(),
   url: z.string().url(),

@@ -10,6 +10,7 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -97,6 +98,17 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
     const addToQueue = data.addToQueue ?? false;
     const { prompt, sourceEntityType, sourceEntityId } = data;
     let { content, title } = data;
+    const voiceGuidance =
+      content && title
+        ? ""
+        : formatVoiceGuidance(
+            await fetchStyleGuide(this.context.entityService),
+          );
+    const styleContext = {
+      representedIdentity: "anchor" as const,
+      style: "voice" as const,
+      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+    };
 
     // Case 1: Direct content with title (no AI needed)
     if (content && title) {
@@ -118,6 +130,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       }>({
         prompt: content,
         templateName: getTemplateName(platform),
+        ...styleContext,
       });
 
       title = generated.title;
@@ -165,6 +178,7 @@ Source: ${sourceEntityType}/${slug}
 
 ${sourceEntity.content}`,
         templateName: getTemplateName(platform),
+        ...styleContext,
       });
 
       title = generated.title;
@@ -188,6 +202,7 @@ ${sourceEntity.content}`,
       }>({
         prompt,
         templateName: getTemplateName(platform),
+        ...styleContext,
       });
 
       title = generated.title;

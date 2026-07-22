@@ -157,6 +157,8 @@ export class LinkService {
           ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
           : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
         data: { url, hasContent: fetchResult.success },
+        representedIdentity: "none",
+        style: "none",
         interfacePermissionGrant: "public",
       });
 

@@ -2,6 +2,7 @@ import type {
   BaseEntity,
   CreateInterceptor,
   DataSource,
+  PersistValidator,
   UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityTypeConfig,
@@ -60,6 +61,12 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
       type: string,
     ): FrontmatterSchema | undefined => {
       return entityRegistry.getEffectiveFrontmatterSchema(type);
+    },
+    registerPersistValidator: (
+      entityType: string,
+      validator: PersistValidator,
+    ): void => {
+      entityRegistry.registerPersistValidator(entityType, validator);
     },
     registerCreateInterceptor: (
       entityType: string,

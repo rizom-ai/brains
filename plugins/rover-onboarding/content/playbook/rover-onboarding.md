@@ -32,13 +32,14 @@ Set up Rover's durable identity and anchor profile so future knowledge and publi
 
 ### Brain identity
 
-Say: Rover is your personal knowledge and publishing brain. It captures rough ideas, finds them later, connects them to themes, and turns them into publishable work. First, let’s tune Rover itself. In one sentence, what should this brain help you do?
+Say: Rover is your personal knowledge and publishing brain. It begins with a starter identity that it picked for itself, and this setup is where you make that identity yours. It captures rough ideas, finds them later, connects them to themes, and turns them into publishable work. First, let’s tune the brain itself. In one sentence, what should this brain help you do?
 
 To do:
 
 - Explain Rover as a personal knowledge and publishing brain for an independent professional.
 - Explain that setup is a short guided apprenticeship, not a form.
 - Explain that setup tunes two things first: this brain's identity, then the operator's anchor profile.
+- Explain that any starter brain name and generated anchor placeholder are invitations to customize, not inferred facts about the operator.
 - Help the operator define the brain's identity: name, role, purpose, and values.
 - Keep this about the brain itself — what Rover is and how it should help — not the operator's personal profile.
 - Do not infer brain identity details from the playbook welcome text, ambient memory, or existing brain-character when the operator has not provided details in this run.
@@ -65,27 +66,27 @@ Required details:
 - role
 - audience
 - expertise
-- desiredTone
 
 To do:
 
-- Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
-- Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.
+- Learn enough about the operator to create or update the anchor profile: name, role, audience, and expertise.
+- Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise.
 - A name by itself is not enough to update the profile; after receiving only a name, ask for the operator's role next and do not call any tools.
 - This name-only rule is a hard block: do not call system_update, do not request confirmation, and do not advance the playbook after a name-only answer.
-- Do not update the anchor profile until name, role, audience, expertise, and tone have all been provided in the current onboarding run.
+- Do not update the anchor profile until name, role, audience, and expertise have all been provided in the current onboarding run.
 - If the operator gives multiple details at once, use them; do not re-ask fields already provided.
-- Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.
+- Treat a compact list as valid if it covers name, role, audience, and expertise; only ask for genuinely missing or ambiguous information.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
-- Construct the required full markdown replacement yourself from the operator's natural-language details; never ask the operator to resend full markdown when they already provided name, role, audience, expertise, and tone.
+- Construct the required full markdown replacement yourself from the operator's natural-language details; never ask the operator to resend full markdown when they already provided name, role, audience, and expertise.
 - When the operator only asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
 - Use the `content` argument with a full markdown replacement; never use `fields` for anchor-profile during this playbook. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
-- Set kind to "professional" for an individual operator.
-- Store onboarding essentials as structured frontmatter keys: name, kind, role, audience, expertise, and desiredTone.
-- `kind: professional` is required. Never call system_update for anchor-profile if the replacement content omits kind.
+- Set kind to "person" for an individual operator.
+- Store onboarding essentials as structured frontmatter keys: name, kind, role, audience, and expertise.
+- Do not store tone or visual-style instructions in anchor-profile; those belong in the style-guide singleton.
+- `kind: person` is required. Never call system_update for anchor-profile if the replacement content omits kind.
 - `expertise` must be a YAML list, even when the operator gives one expertise phrase. Never call system_update for anchor-profile if expertise is a one-line string.
-- Use this exact frontmatter shape for anchor-profile content, substituting only details the operator provided in the current onboarding run: `---`, `name: <provided name>`, `kind: professional`, `role: <provided role>`, `audience: <provided audience>`, `expertise:`, `  - <provided expertise>`, `desiredTone: <provided tone>`, then closing `---`. Do not copy placeholder or example values into the profile.
+- Use this exact frontmatter shape for anchor-profile content, substituting only details the operator provided in the current onboarding run: `---`, `name: <provided name>`, `kind: person`, `role: <provided role>`, `audience: <provided audience>`, `expertise:`, `  - <provided expertise>`, then closing `---`. Do not copy placeholder or example values into the profile.
 - Do not use fields-only updates for anchor-profile.
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
 - After saving, explain that Rover uses the anchor profile to shape answers, site content, and publishing workflows around the operator.

@@ -25,7 +25,7 @@ export function buildAgentFromCard(
   anchorName: string;
 } {
   const anchorName = card.anchor?.name ?? card.brainName;
-  const kind = card.anchor?.kind ?? "professional";
+  const kind = card.anchor?.kind ?? "person";
 
   const aboutParts: string[] = [];
   if (card.anchor?.description) aboutParts.push(card.anchor.description);

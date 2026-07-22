@@ -196,7 +196,7 @@ describe("ATProto Zod-backed record schemas", () => {
         anchor: {
           did: "did:web:brain.example.com:anchor",
           name: "Test Owner",
-          kind: "professional",
+          kind: "person",
         },
         skills: [],
         model: "test-brain",
@@ -245,7 +245,7 @@ describe("ATProto Zod-backed record schemas", () => {
         anchor: {
           did: "did:web:brain.example.com:anchor",
           name: "Test Owner",
-          kind: "professional",
+          kind: "person",
         },
         skills: [],
         model: "test-brain",
@@ -313,7 +313,7 @@ describe("ATProto Zod-backed record schemas", () => {
       anchor: {
         did: "did:web:brain.example.com:anchor",
         name: "Test Owner",
-        kind: "professional",
+        kind: "person",
       },
       skills: [],
       model: "test-brain",

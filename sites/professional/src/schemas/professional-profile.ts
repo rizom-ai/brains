@@ -1,25 +1,11 @@
 import {
-  anchorProfileBodySchema,
   professionalProfileExtension,
-} from "@brains/plugins";
+  professionalProfileSchema,
+} from "@brains/profile";
 
-/**
- * Professional profile schema for site rendering.
- *
- * The professional extension is defined by identity-service so site packages
- * consume the profile contract instead of owning durable entity fields.
- */
-export { professionalProfileExtension };
+/** Shared profile contracts are owned by the profile plugin. */
+export { professionalProfileExtension, professionalProfileSchema };
 
-export const professionalProfileSchema: ReturnType<
-  typeof anchorProfileBodySchema.extend<
-    typeof professionalProfileExtension.shape
-  >
-> = anchorProfileBodySchema.extend(professionalProfileExtension.shape);
-
-/**
- * Professional profile type
- */
 export type ProfessionalProfile = ReturnType<
   typeof professionalProfileSchema.parse
 >;

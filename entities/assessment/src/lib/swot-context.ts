@@ -1,4 +1,8 @@
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type {
+  AnchorProfileKind,
+  BaseEntity,
+  EntityPluginContext,
+} from "@brains/plugins";
 import {
   buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,
@@ -17,7 +21,7 @@ export interface SwotContextSkill {
 export interface SwotContextAgent {
   brainName: string;
   name?: string;
-  kind: "professional" | "team" | "collective";
+  kind: AnchorProfileKind;
   description?: string;
   notes?: string;
   skills: SwotContextSkill[];
@@ -83,7 +87,7 @@ function toContextAgent(profile: CapabilityProfile): SwotContextAgent {
   return {
     brainName: profile.brainName ?? profile.name,
     name: profile.name,
-    kind: profile.kind ?? "professional",
+    kind: profile.kind ?? "person",
     ...(profile.description && { description: profile.description }),
     ...(profile.notes && { notes: profile.notes }),
     skills: profile.skills.map(toContextSkill),

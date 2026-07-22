@@ -280,8 +280,8 @@ function Bulb({
       </g>
     );
 
-  if (node.kind === "professional") {
-    return bulb(point.x, point.y, 3.4, "professional");
+  if (node.kind === "person") {
+    return bulb(point.x, point.y, 3.4, "person");
   }
 
   const angles =
@@ -811,9 +811,9 @@ export function ProximityMap({
 
           <div class="proximity-hud proximity-hud-foot">
             <div class="proximity-legend" aria-label="Agent kinds">
-              <span>● professional</span>
+              <span>● person</span>
               <span>∴ team</span>
-              <span>◌ collective</span>
+              <span>◌ organization</span>
               <span>· archived trace</span>
             </div>
             {data.pendingCount > 0 && (

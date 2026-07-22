@@ -2,6 +2,7 @@ import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
 import type {
   BrainCharacter,
   AnchorProfile,
+  AnchorProfileKind,
   ToolInfo,
   SkillData,
 } from "@brains/plugins";
@@ -20,8 +21,8 @@ export interface AgentCardOptions {
   baseUrl?: string;
   /** Organization name for the provider field */
   organization?: string;
-  /** Anchor kind: professional (individual), team, or collective */
-  kind?: "professional" | "team" | "collective";
+  /** Anchor kind: person, team, or organization */
+  kind?: AnchorProfileKind;
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
   /** Derived skill data — replaces tool-based skills when present */

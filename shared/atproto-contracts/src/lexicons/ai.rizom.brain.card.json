@@ -112,7 +112,7 @@
         },
         "kind": {
           "type": "string",
-          "knownValues": ["professional", "team", "collective"],
+          "knownValues": ["person", "team", "organization"],
           "description": "Anchor type."
         }
       }

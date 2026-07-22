@@ -13,9 +13,11 @@ export function buildSiteLayoutInfo(
 
   return {
     ...siteMetadata,
-    ...(profileBody.socialLinks !== undefined && {
-      socialLinks: profileBody.socialLinks,
-    }),
+    represents: siteMetadata.represents ?? "anchor",
+    ...(siteMetadata.represents !== "brain" &&
+      profileBody.socialLinks !== undefined && {
+        socialLinks: profileBody.socialLinks,
+      }),
     navigation: {
       primary: primaryItems,
       secondary: secondaryItems,

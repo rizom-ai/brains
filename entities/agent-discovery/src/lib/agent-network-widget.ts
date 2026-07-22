@@ -60,9 +60,9 @@ export async function buildAgentNetworkWidgetData(
     },
     agents: {
       all: agentRows,
-      professional: agentRows.filter((agent) => agent.kind === "professional"),
+      person: agentRows.filter((agent) => agent.kind === "person"),
       team: agentRows.filter((agent) => agent.kind === "team"),
-      collective: agentRows.filter((agent) => agent.kind === "collective"),
+      organization: agentRows.filter((agent) => agent.kind === "organization"),
     },
     skillFilters: buildSkillFilters(skillRows),
     skills: skillRows,

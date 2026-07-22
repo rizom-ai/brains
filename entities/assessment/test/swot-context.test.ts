@@ -44,7 +44,7 @@ function makeAgent(input: {
   id: string;
   brainName: string;
   status: "approved" | "discovered";
-  kind?: "professional" | "team" | "collective";
+  kind?: "person" | "team" | "organization";
   skills: Array<{ name: string; description: string; tags: string[] }>;
 }): AgentEntity {
   return {
@@ -55,7 +55,7 @@ function makeAgent(input: {
       brainName: input.brainName,
       url: `https://${input.id}`,
       status: input.status,
-      kind: input.kind ?? "professional",
+      kind: input.kind ?? "person",
       discoveredAt: new Date().toISOString(),
       about: "",
       notes: "",

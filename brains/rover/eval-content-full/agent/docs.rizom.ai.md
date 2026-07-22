@@ -1,6 +1,6 @@
 ---
 name: Rizom Docs
-kind: professional
+kind: person
 brainName: docs.rizom.ai
 url: "https://docs.rizom.ai/a2a"
 status: approved

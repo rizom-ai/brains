@@ -5,6 +5,7 @@ import {
   siteInfoBodySchema,
   type SiteInfoEntity,
   type SiteInfoBody,
+  type SiteInfoBodyInput,
   type SiteInfoMetadata,
 } from "../schemas/site-info-schema";
 
@@ -34,7 +35,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    * Create site info content in frontmatter format
    * Validates input data through Zod schema
    */
-  public createSiteInfoContent(params: SiteInfoBody): string {
+  public createSiteInfoContent(params: SiteInfoBodyInput): string {
     const validatedData = siteInfoBodySchema.parse(params);
     return this.buildMarkdown("", validatedData);
   }

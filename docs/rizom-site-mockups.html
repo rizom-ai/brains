@@ -1481,8 +1481,8 @@
   /* honest data: the agents that actually exist today. Ambient dots are unnamed
      texture — space the network hasn't reached — never fictional members. */
   var NODES = [
-    { id: "metis",       name: "Metis",       kind: "professional", status: "approved", distance: 0.3,  bearing: 58 },
-    { id: "paper-tiger", name: "Paper Tiger", kind: "professional", status: "approved", distance: 0.52, bearing: 328 }
+    { id: "metis",       name: "Metis",       kind: "person", status: "approved", distance: 0.3,  bearing: 58 },
+    { id: "paper-tiger", name: "Paper Tiger", kind: "person", status: "approved", distance: 0.52, bearing: 328 }
   ];
   var CLUSTERS = [];
   var SIGHTINGS = [];
@@ -1626,7 +1626,7 @@
     }
     function scaleGlyph(g, p, kind, mode, sizeMul){
       var m = sizeMul || 1;
-      if (kind === "professional") bulb(g, p.x, p.y, 3.2 * m, mode);
+      if (kind === "person") bulb(g, p.x, p.y, 3.2 * m, mode);
       else if (kind === "team") [90, 210, 330].forEach(function(a){
         var q = polar(0, 0, 4.4 * m, a); bulb(g, p.x + q.x, p.y + q.y, 2 * m, mode); });
       else [90, 162, 234, 306, 18].forEach(function(a){

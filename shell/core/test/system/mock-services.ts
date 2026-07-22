@@ -451,7 +451,7 @@ export function createMockSystemServices(
       purpose: "Testing",
       values: ["test"],
     }),
-    getProfile: () => ({ name: "Test Owner", kind: "professional" as const }),
+    getProfile: () => ({ name: "Test Owner", kind: "person" as const }),
     getAppInfo: async () => ({
       model: "test",
       version: "1.0.0",

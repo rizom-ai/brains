@@ -21,7 +21,7 @@ describe("Agent Card identity timing", () => {
     // This is what used to happen before ready-state initialization.
     const uninitializedProfile: AnchorProfile = {
       name: "Unknown",
-      kind: "professional",
+      kind: "person",
     };
     const defaultCharacter: BrainCharacter = {
       name: "Brain",
@@ -46,7 +46,7 @@ describe("Agent Card identity timing", () => {
     // This is what A2A should use when onReady builds the card.
     const initializedProfile: AnchorProfile = {
       name: "Jan Hein",
-      kind: "professional",
+      kind: "person",
       description: "Builder of things",
     };
     const realCharacter: BrainCharacter = {

@@ -197,6 +197,7 @@ export interface SiteMetadataSection {
 }
 
 export interface SiteMetadata {
+  represents?: "brain" | "anchor" | undefined;
   title: string;
   description: string;
   url?: string | undefined;

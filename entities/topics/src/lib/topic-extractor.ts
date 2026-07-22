@@ -65,6 +65,8 @@ export class TopicExtractor {
       }>({
         prompt,
         templateName: "topics:extraction",
+        representedIdentity: "none",
+        style: "none",
       });
 
       const extractedData = result.topics;

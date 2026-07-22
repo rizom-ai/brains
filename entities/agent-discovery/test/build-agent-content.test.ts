@@ -17,7 +17,7 @@ describe("buildAgentFromCard", () => {
     ],
     anchor: {
       name: "My Little Phoney",
-      kind: "professional" as const,
+      kind: "person" as const,
       description: "A trusted contact.",
     },
   };

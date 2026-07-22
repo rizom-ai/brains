@@ -51,6 +51,8 @@ export class SummaryExtractor {
         prompt,
         templateName: SUMMARY_AI_TEMPLATE_NAME,
         data: { schema: summaryExtractionResultSchema },
+        representedIdentity: "none",
+        style: "none",
       });
       const result = summaryExtractionResultSchema.parse(raw);
 

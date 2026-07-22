@@ -152,7 +152,7 @@ function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
 
 function renderAnchorProfile(user: ResolvedUser): string {
   const frontmatter: Record<string, unknown> = {
-    kind: "professional",
+    kind: "person",
     name: user.anchorProfile.name,
     ...(user.anchorProfile.description
       ? { description: user.anchorProfile.description }

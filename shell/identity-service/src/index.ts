@@ -12,14 +12,6 @@ export {
   type BrainCharacterEntity,
 } from "./brain-character-schema";
 
-// Profile helpers (shared across layout packages)
-export {
-  baseProfileExtension,
-  professionalProfileExtension,
-  fetchAnchorProfile,
-  fetchAnchorProfileData,
-} from "./profile-helpers";
-
 // Anchor profile (was: profile)
 export {
   AnchorProfileService,
@@ -29,8 +21,10 @@ export { AnchorProfileAdapter } from "./anchor-profile-adapter";
 export {
   anchorProfileSchema,
   anchorProfileBodySchema,
+  anchorProfileKindSchema,
   type AnchorProfile,
   type AnchorProfileEntity,
+  type AnchorProfileKind,
 } from "./anchor-profile-schema";
 
 // Canonical identity links

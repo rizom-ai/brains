@@ -307,8 +307,8 @@ describe("GenerationJobHandler", () => {
       expect(createdStatus).toBe("draft");
     });
 
-    it("should pass content through AI generation when title is not provided", async () => {
-      spyOn(context.ai, "generate").mockResolvedValue({
+    it("should pass content through styled anchor generation when title is not provided", async () => {
+      const generate = spyOn(context.ai, "generate").mockResolvedValue({
         title: "AI Generated Title",
         content: "AI-shaped LinkedIn post content",
       });
@@ -328,6 +328,12 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       expect(result.entityId).toBeDefined();
+      expect(generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          representedIdentity: "anchor",
+          style: "voice",
+        }),
+      );
     });
 
     it("should report progress during generation", async () => {

@@ -105,9 +105,14 @@ describe("AIContentDataSource", () => {
     prompt: string,
     templateName = "test-template",
     conversationHistory?: string,
+    context: {
+      representedIdentity?: "brain" | "anchor" | "none";
+      style?: "voice" | "visual" | "both" | "none";
+      styleGuide?: { voice?: string; visual?: string };
+    } = {},
   ): Promise<Message> {
     return aiContentDataSource.generate(
-      { templateName, prompt, conversationHistory },
+      { templateName, prompt, conversationHistory, ...context },
       messageSchema,
     );
   }
@@ -171,7 +176,7 @@ describe("AIContentDataSource", () => {
 
       expect(mockGenerateObject.mock.calls.length).toBeGreaterThan(0);
       const systemPrompt = getSystemPrompt();
-      expect(systemPrompt).toContain("# Your Identity");
+      expect(systemPrompt).toContain("# Brain Identity");
       expect(systemPrompt).toContain("Personal knowledge assistant");
       expect(systemPrompt).toContain("Help organize and retrieve information");
       expect(systemPrompt).toContain("clarity");
@@ -184,7 +189,7 @@ describe("AIContentDataSource", () => {
 
       expect(mockGenerateObject.mock.calls.length).toBeGreaterThan(0);
       const systemPrompt = getSystemPrompt();
-      expect(systemPrompt).toContain("# About the Person You Represent");
+      expect(systemPrompt).toContain("# Represented Anchor");
       expect(systemPrompt).toContain("Jan Hein");
       expect(systemPrompt).toContain("Educator and technologist");
     });
@@ -196,6 +201,50 @@ describe("AIContentDataSource", () => {
       const systemPrompt = getSystemPrompt();
       expect(systemPrompt).toContain("# Instructions");
       expect(systemPrompt).toContain("You are a helpful assistant.");
+    });
+
+    it("includes only brain identity when the workflow represents the brain", async () => {
+      await generate("Hello", "test-template", undefined, {
+        representedIdentity: "brain",
+      });
+
+      expect(getSystemPrompt()).toContain("# Brain Identity");
+      expect(getSystemPrompt()).not.toContain("# Represented Anchor");
+    });
+
+    it("omits identity context for neutral workflows", async () => {
+      await generate("Hello", "test-template", undefined, {
+        representedIdentity: "none",
+      });
+
+      expect(getSystemPrompt()).not.toContain("# Brain Identity");
+      expect(getSystemPrompt()).not.toContain("# Represented Anchor");
+    });
+
+    it("injects style guidance independently of represented identity", async () => {
+      await generate("Hello", "test-template", undefined, {
+        representedIdentity: "none",
+        style: "voice",
+        styleGuide: {
+          voice: "Voice: concise and grounded",
+          visual: "Visual: bold geometric collage",
+        },
+      });
+
+      expect(getSystemPrompt()).toContain("# Style Guide");
+      expect(getSystemPrompt()).toContain("Voice: concise and grounded");
+      expect(getSystemPrompt()).not.toContain("bold geometric collage");
+      expect(getSystemPrompt()).not.toContain("# Brain Identity");
+    });
+
+    it("suppresses style guidance for an explicitly neutral workflow", async () => {
+      await generate("Hello", "test-template", undefined, {
+        style: "none",
+        styleGuide: { voice: "Voice: this must not be applied" },
+      });
+
+      expect(getSystemPrompt()).not.toContain("# Style Guide");
+      expect(getSystemPrompt()).not.toContain("this must not be applied");
     });
   });
 

@@ -6,10 +6,10 @@ const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
 
 export const AGENT_NETWORK_KINDS: readonly [
   "all",
-  "professional",
+  "person",
   "team",
-  "collective",
-] = ["all", "professional", "team", "collective"];
+  "organization",
+] = ["all", "person", "team", "organization"];
 
 export const agentNetworkAgentRowSchema: z.ZodObject<{
   id: z.ZodString;
@@ -60,9 +60,9 @@ export const agentNetworkWidgetDataSchema: z.ZodObject<{
   }>;
   agents: z.ZodObject<{
     all: z.ZodArray<typeof agentNetworkAgentRowSchema>;
-    professional: z.ZodArray<typeof agentNetworkAgentRowSchema>;
+    person: z.ZodArray<typeof agentNetworkAgentRowSchema>;
     team: z.ZodArray<typeof agentNetworkAgentRowSchema>;
-    collective: z.ZodArray<typeof agentNetworkAgentRowSchema>;
+    organization: z.ZodArray<typeof agentNetworkAgentRowSchema>;
   }>;
   skillFilters: z.ZodArray<typeof agentNetworkTagFilterSchema>;
   skills: z.ZodArray<typeof agentNetworkSkillRowSchema>;
@@ -73,9 +73,9 @@ export const agentNetworkWidgetDataSchema: z.ZodObject<{
   }),
   agents: z.object({
     all: z.array(agentNetworkAgentRowSchema),
-    professional: z.array(agentNetworkAgentRowSchema),
+    person: z.array(agentNetworkAgentRowSchema),
     team: z.array(agentNetworkAgentRowSchema),
-    collective: z.array(agentNetworkAgentRowSchema),
+    organization: z.array(agentNetworkAgentRowSchema),
   }),
   skillFilters: z.array(agentNetworkTagFilterSchema),
   skills: z.array(agentNetworkSkillRowSchema),

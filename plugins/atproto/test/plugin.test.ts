@@ -56,7 +56,7 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
     anchor: {
       did: "did:plc:test-anchor",
       name: "Rizom",
-      kind: "collective",
+      kind: "organization",
     },
     model: "test-brain",
     version: "0.2.0-test",
