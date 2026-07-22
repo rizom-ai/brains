@@ -2,180 +2,118 @@
 
 ## Status
 
-Proposed hosted-pilot follow-up. Current `@rizom/ops` supports the core fleet shape, per-user generated config, age-encrypted per-user secrets, content repo bootstrapping, Discord anchors, and preview-domain routing. The remaining scope here is the next batch's user-level customization and preflight workflow.
+Fact-checked against `@rizom/ops` and the live pilot 2026-07-22. The original
+Phase 1/2 machinery is shipped and proven in production; this plan now covers
+only what actually remains before a second batch: cohort-level version
+defaulting, the package authoring contract docs, and the batch rollout itself.
+
+### Shipped (verified)
+
+- **Per-user site/theme overrides** — `users/<handle>.yaml` `siteOverride:
+{package, version, theme}` (`packages/brains-ops/src/schema.ts`), rendered
+  into the generated `users/<handle>/brain.yaml` by `default-user-runner.ts`.
+  Refs are exact public npm packages; prerelease-exact allowed.
+- **Per-instance image identity** — `siteImageTag()` / `sitePackagesFor()` /
+  `requiredImages()` (`packages/brains-ops/src/images.ts`): default instances
+  share `brain-{version}`; a site override opts that one instance into
+  `brain-{version}-sites-{hash}`. Build and deploy resolve the tag through the
+  same helper, the Build workflow derives the required image set from declared
+  fleet state and builds only missing tags, and the Dockerfile installs
+  `$SITE_PACKAGES` alongside `@rizom/brain@$BRAIN_VERSION`. A ref change
+  rebuilds and redeploys exactly the affected instances.
+- **Custom-package canary flow** — exercised repeatedly in production:
+  `rizom-ai` (`@rizom/site-rizom-ai` + `@rizom/theme-rizom-ai`, custom domain)
+  and `docs` (`@rizom/site-docs`) run per-instance images through
+  choose-refs → reconcile → build → deploy → verify. Rollback is the documented
+  inverse (revert the YAML, reconcile, redeploy). Only operator-authored
+  packages so far — an external user's package has not yet been through it.
+- **`domainOverride`** — shipped and proven by the `rizom.ai` custom-domain
+  TLS cutover.
+
+### Not built
+
+- `siteOverride.version` is a required exact version — every release bumps the
+  cohort `brainVersionOverride` **and** each site user's `siteOverride.version`
+  (three files per train today).
+- No operator/user-facing doc of the site/theme package contract.
+- `previewDomainOverride` (zero references in the codebase).
+- `brains-ops preflight`.
 
 ## Goal
 
-Prepare the hosted Rover pilot flow for a second batch of users running `rover:default`, with safe per-user customization, predictable builds, and clear operator rollback.
+Prepare the hosted Rover pilot flow for a second batch of users running the
+default preset, with safe per-user customization, predictable builds, and clear
+operator rollback.
 
-## Active scope
+Batch constraints (unchanged): custom site/theme packages must be public npm
+packages; private registries, user edits to generated `brain.yaml`, and
+cohort-level site/theme inheritance stay out of scope.
 
-The next batch needs user-specific presentation without letting users edit generated deploy artifacts directly.
+## Phase 1 — Cohort version defaulting
 
-Operators should express desired state in `users/<handle>.yaml`; `brains-ops` should render the effective `users/<handle>/brain.yaml` and deploy metadata.
+Make `siteOverride.version` optional. When omitted, the registry resolves it to
+the user's effective brain version (cohort `brainVersionOverride`, else the
+pilot default) at load time; an explicit version remains a deliberate pin.
 
-For this batch:
+- Site and theme packages are published in lockstep with `@rizom/brain`, so
+  the effective brain version is the correct default; `sitePackagesFor()`
+  already rides the theme at the site version and needs no change.
+- Resolution happens in `load-registry.ts` so everything downstream
+  (`default-user-runner`, `images.ts`, deploy resolve) keeps receiving a
+  concrete `ResolvedSiteOverride` — image tags stay a pure function of
+  resolved refs, and a cohort version bump automatically rebuilds the site
+  images.
+- Tests first: registry resolution (omitted → cohort version, omitted →
+  pilot default, explicit pin wins), unchanged rendering/image derivation on
+  resolved output.
+- Follow-up in rover-pilot: drop the redundant `version` lines from
+  `users/rizom-ai.yaml` and `users/docs.yaml` so a release train bumps one
+  file.
 
-- custom site/theme packages must be public npm packages
-- private npm registry/auth support is out of scope
-- arbitrary user edits to generated `brain.yaml` are out of scope
-- cohort-level site/theme inheritance is out of scope
+## Phase 2 — Package authoring contract docs
 
-## Phase 1 — Per-user visual customization
+Document the contract before asking a batch to supply packages:
 
-### 1. Public npm package site/theme overrides
+- theme package exports a CSS string as default export;
+- site package exports a valid `SitePackage`;
+- packages must be compatible with the pinned `@rizom/brain` public API and
+  published publicly at the lockstep version;
+- pointer to `docs/site-mockup-migration.md` for building the package, plus
+  the fleet-specific pieces it does not cover (exact refs in
+  `users/<handle>.yaml`, per-instance images, canary/rollback flow).
 
-Add optional user-level site override fields with exact package refs:
+Starter templates (`rover-site-*` / `rover-theme-*`) only if the first
+external author actually gets stuck without them.
 
-```yaml
-# users/<handle>.yaml
-site:
-  package: "@scope/rover-site@1.2.3"
-  theme: "@scope/rover-theme@0.4.0"
-```
+## Phase 3 — The batch
 
-Behavior:
+1. One canary user with an externally authored package through the proven
+   flow: choose refs → apply to the canary's YAML → reconcile → build/deploy →
+   verify web/CMS/site/theme/sync/auth.
+2. Roll the remaining batch users on the default image; site overrides stay
+   the exception.
+3. Capture whatever friction the batch surfaces as follow-up work rather than
+   pre-building for it.
 
-- site/theme choices are per-user identity and branding choices, not cohort rollout controls
-- cohorts must not define site/theme overrides
-- no user/cohort merge behavior is needed for site/theme
-- `site.package` and `site.theme` are rendered into generated `users/<handle>/brain.yaml` when present
-- refs must be exact public npm package refs that can be installed without private registry credentials
-- no `latest`, semver ranges, `^`, `~`, or `*`; prerelease versions are allowed when exact
-- package upgrades and rollbacks must be explicit user YAML changes
-- if a package ref changes while the brain version stays the same, the fleet image must still rebuild and redeploy affected users
+## Phase 4 — Only if the batch demands it
 
-Update `packages/brains-ops`:
+- `previewDomainOverride` — no current user needs a custom preview domain;
+  build it when one does.
+- `brains-ops preflight` — the reconcile/build path already fails loudly on
+  bad refs and missing secrets; add a preflight command only if batch
+  onboarding shows operators need the dry-run.
 
-- `src/schema.ts`
-- `src/load-registry.ts`
-- `src/default-user-runner.ts`
-- `src/render-users-table.ts` if we want site/theme columns or a compact customization indicator
-- registry/reconcile/render tests
-- operator docs
+## Later: runtime package resolution
 
-Update deploy support:
-
-- fleet Dockerfile/build path must install selected public npm site/theme packages in addition to `@rizom/brain@$BRAIN_VERSION`
-- generated deploy metadata must include the effective package set, not just `brainVersion`
-- package-set metadata should be derived from registry/generated config, not stored in `.env`
-- GitHub build/deploy workflows must rebuild/redeploy when user site/theme refs change
-
-Suggested image identity:
-
-```text
-brain-${brainVersion}-pkg-${packageSetHash}
-```
-
-The package-set hash should be derived from the unique exact package refs used by the deployed users. A simpler first step is acceptable only if it reliably rebuilds whenever refs change.
-
-### Runtime vs install-time contract
-
-The app already dynamically imports package refs from `brain.yaml` at runtime through `registerOverridePackages()`, but those imports only work if the packages are already available in `node_modules`. The current fleet image only installs `@rizom/brain@$BRAIN_VERSION`, so custom site/theme packages still need an install step before runtime.
-
-For this batch:
-
-- user YAML should store exact install refs, including versions
-- generated `brain.yaml` should remain the canonical runtime declaration
-- `.env` should not store package refs, package hashes, or image identity
-- if runtime import needs a bare import specifier, derive it from the exact install ref rather than asking operators to enter two values
-- a generated checked-in manifest under `views/` is acceptable for derived build metadata, for example package set hash and image tag
-
-Target architecture later:
-
-- keep the same `brain.yaml` contract
-- move package installation/resolution into the app runtime with a persistent package cache and integrity checks
-- stop rebuilding the shared image just to change site/theme refs
-- migrate by changing the resolver/install implementation, not user config
-
-### 2. Package authoring docs/templates
-
-Document minimal package contracts before asking users/operators to supply packages:
-
-- theme package exports a CSS string as default export
-- site package exports a valid `SitePackage`
-- packages must be compatible with the pinned `@rizom/brain` public API
-- packages must be public npm packages for this batch
-
-Optionally add starter templates for:
-
-- `rover-theme-*`
-- `rover-site-*`
-
-### 3. Custom-theme canary procedure
-
-After site/theme refs and package docs exist, extend the canary flow:
-
-```text
-choose public npm site/theme package refs
-apply them to one canary user
-reconcile generated outputs
-build/redeploy
-verify web/CMS/site/theme/sync/auth
-then add remaining users
-```
-
-Rollback:
-
-- remove or change site/theme overrides if the package fails
-- reconcile generated outputs
-- rebuild/redeploy the affected user image/config
-
-## Phase 2 — Domain customization
-
-### 4. Per-user custom domain support
-
-Add optional user-level domain fields:
-
-```yaml
-# users/<handle>.yaml
-domainOverride: custom.example.com
-previewDomainOverride: custom-preview.example.com # optional
-```
-
-Update:
-
-- `packages/brains-ops/src/schema.ts`
-- `packages/brains-ops/src/load-registry.ts`
-- `packages/brains-ops/src/default-user-runner.ts`
-- `packages/brains-ops/templates/rover-pilot/deploy/scripts/resolve-user-config.ts`
-- registry, reconcile, and deploy config tests
-- operator docs and checklist
-
-Behavior:
-
-- default remains `<handle><domainSuffix>`
-- `domainOverride` replaces the primary domain for that user
-- `previewDomainOverride` replaces deploy's derived preview domain when provided
-- if the custom domain is outside the configured Cloudflare zone/cert coverage, docs should flag that manual DNS/cert work may be required
-
-## Phase 3 — Nice-to-have tooling
-
-### 5. Add `brains-ops preflight`
-
-Potential command:
-
-```sh
-bunx brains-ops preflight . --cohort batch-2
-```
-
-Checks:
-
-- registry loads
-- cohort exists
-- users resolve to expected preset/version/domain/site/theme
-- site/theme package refs are public-installable or at least syntactically valid package refs
-- encrypted secrets exist
-- generated config is present, or shows what would be generated
-- custom domain and preview domain assumptions are visible
-- warns if Discord is enabled without obvious bot-token staging
-- warns if default-preset users are missing browser/passkey handoff notes
+The install-time contract (image bakes the package set) is deliberate for this
+batch. The eventual shape stays as previously sketched: same `brain.yaml`
+contract, package installation moves into the app runtime with a persistent
+cache and integrity checks, and the shared image stops rebuilding for site/theme
+changes. Migrate by swapping the resolver implementation, not user config.
 
 ## Suggested implementation order
 
-1. Registry/schema/render support for per-user public npm site/theme refs
-2. Deploy image installation and image identity for effective package sets
-3. Package authoring docs/templates
-4. One-user custom-theme canary
-5. Per-user custom domains
-6. `preflight`, if still useful after the batch workflow is clearer
+1. Cohort version defaulting (Phase 1) + rover-pilot YAML cleanup
+2. Authoring contract docs (Phase 2)
+3. Canary with one external package, then the batch (Phase 3)
+4. Phase 4 items only on demonstrated need
