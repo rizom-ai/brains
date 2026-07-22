@@ -89,6 +89,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         this.sendMessage,
         data.siteConfig ?? this.cfg.defaultSiteConfig,
       );
+      const siteUrl =
+        environment === "preview"
+          ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
+          : this.cfg.siteUrl;
 
       // Perform the build
       const result = await this.cfg.siteBuilder.build(
@@ -100,6 +104,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           environment,
           cleanBeforeBuild: true,
           siteConfig,
+          siteUrl,
           layouts: this.cfg.layouts,
           themeCSS: this.cfg.themeCSS,
           slots: this.cfg.slots,
@@ -167,12 +172,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           `Emitting site:build:completed event for ${environment} environment`,
         );
 
-        // Select environment-specific URL from config
-        const url =
-          environment === "preview"
-            ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
-            : this.cfg.siteUrl;
-
         await this.sendMessage({
           type: "site:build:completed",
           payload: {
@@ -181,7 +180,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             routesBuilt: result.routesBuilt,
             siteConfig: {
               ...siteConfig,
-              url,
+              url: siteUrl,
             },
             generateEntityUrl: (entityType: string, slug: string) =>
               EntityUrlGenerator.getInstance().generateUrl(entityType, slug),

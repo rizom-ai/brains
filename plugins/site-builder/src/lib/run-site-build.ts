@@ -182,7 +182,10 @@ export async function runSiteBuild(
       outputDir: outputTarget.generationDir,
       environment: preparation.preparedBuild.environment,
       routesBuilt: preparation.preparedBuild.routes.length,
-      siteConfig: preparation.preparedBuild.site,
+      siteConfig: {
+        ...preparation.preparedBuild.site,
+        url: options.buildOptions.siteUrl,
+      },
       generateEntityUrl: (entityType, slug) =>
         EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
     };
@@ -210,6 +213,7 @@ export async function runSiteBuild(
       outputDir: outputTarget.generationDir,
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
+      siteUrl: options.buildOptions.siteUrl,
       signal: options.signal,
     });
 

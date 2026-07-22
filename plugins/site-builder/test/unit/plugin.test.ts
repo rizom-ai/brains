@@ -110,6 +110,7 @@ describe("SiteBuilderPlugin", () => {
       const result = await builder.build({
         environment: "preview",
         outputDir,
+        siteUrl: undefined,
         sharedImagesDir: join(testDir, "images"),
         enableContentGeneration: false,
         cleanBeforeBuild: true,

@@ -101,6 +101,7 @@ describe("SiteBuilder cancellation", () => {
         title: "Cancellation Site",
         description: "Cancellation fixture",
       },
+      siteUrl: undefined,
       layouts: { default: TestLayout },
     };
 

@@ -8,6 +8,7 @@ export interface WriteSiteBuildSeoFilesOptions {
   outputDir: string;
   preparedBuild: PreparedSiteBuild;
   logger: Logger;
+  siteUrl: string | undefined;
   signal: AbortSignal;
 }
 
@@ -16,7 +17,8 @@ export async function writeSiteBuildSeoFiles(
   options: WriteSiteBuildSeoFilesOptions,
 ): Promise<void> {
   options.signal.throwIfAborted();
-  const baseUrl = options.preparedBuild.site.url ?? "https://example.com";
+  const baseUrl =
+    options.siteUrl ?? options.preparedBuild.site.url ?? "https://example.com";
   const robotsTxt = generateRobotsTxt(
     baseUrl,
     options.preparedBuild.environment,

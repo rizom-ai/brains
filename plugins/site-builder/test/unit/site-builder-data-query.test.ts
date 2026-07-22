@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
+import type {
+  BuildResult,
+  SiteBuilderOptions,
+} from "../../src/types/site-builder-types";
 import type { ServicePluginContext } from "@brains/plugins";
 import {
   createSilentLogger,
@@ -16,8 +20,12 @@ import {
 import { z } from "@brains/utils/zod";
 import { h } from "preact";
 
+interface TestSiteBuilder {
+  build(options: Omit<SiteBuilderOptions, "siteUrl">): Promise<BuildResult>;
+}
+
 describe("SiteBuilder dataQuery handling", () => {
-  let siteBuilder: SiteBuilder;
+  let siteBuilder: TestSiteBuilder;
   let mockContext: ServicePluginContext;
   let mockRouteRegistry: RouteRegistry;
   let logger: ReturnType<typeof createSilentLogger>;
@@ -53,7 +61,7 @@ describe("SiteBuilder dataQuery handling", () => {
       getProfile: () => ({ name: "Test", kind: "professional" }),
     };
 
-    siteBuilder = SiteBuilder.createFresh(
+    const builder = SiteBuilder.createFresh(
       logger,
       createSiteBuilderServices(mockContext),
       mockRouteRegistry,
@@ -62,6 +70,10 @@ describe("SiteBuilder dataQuery handling", () => {
       undefined,
       createTestSiteBuildOutputLifecycle(),
     );
+    siteBuilder = {
+      build: (options): Promise<BuildResult> =>
+        builder.build({ ...options, siteUrl: undefined }),
+    };
   });
 
   describe("getContentForSection", () => {
