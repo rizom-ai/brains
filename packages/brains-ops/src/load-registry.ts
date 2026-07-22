@@ -165,10 +165,12 @@ export async function loadPilotRegistry(
         );
       }
 
+      const brainVersion =
+        cohort.data.brainVersionOverride ?? pilot.brainVersion;
       const identity: ResolvedUserIdentity = {
         handle: userFile.data.handle,
         cohort: cohort.id,
-        brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
+        brainVersion,
         model: pilot.model,
         preset: cohort.data.presetOverride ?? pilot.preset,
         domain:
@@ -184,7 +186,12 @@ export async function loadPilotRegistry(
           ? { addOverride: userFile.data.addOverride }
           : {}),
         ...(userFile.data.siteOverride
-          ? { siteOverride: userFile.data.siteOverride }
+          ? {
+              siteOverride: {
+                ...userFile.data.siteOverride,
+                version: userFile.data.siteOverride.version ?? brainVersion,
+              },
+            }
           : {}),
         discordEnabled: userFile.data.discord.enabled,
         ...(userFile.data.discord.anchorUserId

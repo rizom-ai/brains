@@ -99,11 +99,11 @@ const atprotoSchema: z.ZodObject<{
 
 const siteOverrideSchema: z.ZodObject<{
   package: z.ZodString;
-  version: typeof exactVersionSchema;
+  version: z.ZodOptional<typeof exactVersionSchema>;
   theme: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   package: z.string().min(1),
-  version: exactVersionSchema,
+  version: exactVersionSchema.optional(),
   theme: z.string().min(1).optional(),
 });
 

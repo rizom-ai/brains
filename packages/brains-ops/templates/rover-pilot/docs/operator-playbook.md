@@ -14,20 +14,25 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 The deploy scripts and workflows should read from that contract instead of inventing a second list.
 
-The shared pilot image tag is `brain-${brainVersion}`:
+The default pilot image tag is `brain-${brainVersion}`:
 
-- build publishes `brain-${brainVersion}`
+- build publishes `brain-${brainVersion}` for users without a site override
+- a site override gets an isolated `brain-${brainVersion}-sites-${packageHash}` image
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
-- deploy sets `VERSION=brain-${brainVersion}`
+- build and deploy derive the same effective image tag from the resolved registry
 
 ## Version bump flow
 
 When `pilot.yaml.brainVersion` changes and you push:
 
-1. build publishes the new shared image tag
+1. build publishes the new default image and any required site images
 2. reconcile refreshes generated `users/<handle>/.env`
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
+
+An omitted `siteOverride.version` follows the user's effective brain version, so a
+cohort or pilot version bump advances its site and theme packages automatically.
+Set an exact `siteOverride.version` only when that user needs a deliberate pin.
 
 When a push changes only deploy contract files and no generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files, the deploy workflow exits through its explicit no-op path and prints `No affected user configs; skipping deploy.`
 
@@ -131,6 +136,41 @@ Rollback:
 - move the canary back to a core cohort, or remove `presetOverride: default` from the cohort
 - reconcile generated outputs
 - rebuild/redeploy the affected user
+
+## Hosted site and theme package contract
+
+Start with the public [site mockup migration guide](https://github.com/rizom-ai/brains/blob/main/docs/site-mockup-migration.md), then apply these hosted-fleet requirements:
+
+- A site package must default-export a valid `SitePackage` and use documented public APIs such as `@rizom/brain/site`.
+- A theme package must default-export its CSS as a string. Hosted custom themes currently use the `@rizom/*` scope so the fleet image installs them with the site package; `@brains/*` themes are bundled with `@rizom/brain`.
+- Site and custom theme packages must be public npm packages that install without registry credentials.
+- Publish packages at the same exact version as the compatible `@rizom/brain` release. Hosted configuration resolves package names plus the effective version into exact npm refs.
+- Keep site structure and theme CSS in separate packages. Do not put private content or secrets in either package.
+
+Configure a user in `users/<handle>.yaml`:
+
+```yaml
+siteOverride:
+  package: "@rizom/site-example"
+  theme: "@rizom/theme-example"
+  # version: <exact-brain-version> # optional deliberate pin
+```
+
+When `version` is omitted, it defaults to the user's effective brain version
+(cohort override first, then `pilot.yaml.brainVersion`). A site override produces
+an isolated per-instance image; it never changes the fleet's shared default
+image.
+
+### Custom-package canary and rollback
+
+1. Confirm the exact site/theme versions are public-installable without npm credentials.
+2. Apply the package names to one healthy `rover:default` canary.
+3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
+4. Run `bunx brains-ops verify-user . <handle>`.
+5. Manually verify the site, theme, CMS, content sync, and passkey sign-in before adding more users.
+
+To roll back, remove or change `siteOverride`, reconcile, and redeploy that user.
+The default image and other users remain untouched.
 
 ## Setup email checklist
 
