@@ -10,6 +10,8 @@ import {
 export interface EditorShellOptions {
   /** Module path of the Bun-bundled React app. */
   assetPath: string;
+  /** Normalized configured mount used by client routing and API requests. */
+  basePath: string;
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];
   /** Sign-out link for the authenticated-session chip. */
@@ -26,6 +28,11 @@ export interface EditorShellOptions {
  * Component styles live in the app bundle.
  */
 export function renderEditorShellHtml(options: EditorShellOptions): string {
+  const basePath = options.basePath
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
   return `<!doctype html>
 <html lang="en" data-climate="paper">
   <head>
@@ -78,7 +85,7 @@ ${CONSOLE_THEME_CSS}
   </head>
   <body>
     ${renderConsoleStripHtml(options)}
-    <main id="root" data-cms-root><p class="boot">Opening the content studio…</p></main>
+    <main id="root" data-cms-root data-cms-base-path="${basePath}"><p class="boot">Opening the content studio…</p></main>
     <script type="module" src="${options.assetPath}"></script>
   </body>
 </html>`;

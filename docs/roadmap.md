@@ -88,6 +88,7 @@ Plans:
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
+- [topics-derivation.md](./plans/topics-derivation.md) — derived topic entities behind the knowledge map: extraction, reconciliation, projection, and corpus calibration are shipped; the live-fleet rebuild/verification tail remains.
 
 ### 2. The collective posture (active POC)
 
@@ -133,7 +134,7 @@ This includes:
 - speaker attribution and eventually identity linking;
 - runtime users and roles when the shared model needs them;
 - auth/runtime storage that is not git-synced content;
-- trusted inter-brain/agent collaboration through signed A2A.
+- trusted inter-brain/agent collaboration through signed A2A (RFC 9421 request signing, peer-trust grants, and task-caller binding shipped; the a2a-request-signing plan is retired).
 
 Plans:
 
@@ -141,7 +142,6 @@ Plans:
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
 - [auth-runtime-db.md](./plans/auth-runtime-db.md) — database-backed auth, People administration, Admin/Anchor invariants, session migration, normalized identity evidence, and the standalone Admin console are implemented on `feature/auth-runtime-db`; final validation precedes merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
-- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
 ### 4. Hosting & operations
 
@@ -156,7 +156,6 @@ This includes:
 
 Plans:
 
-- [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
 
@@ -167,7 +166,6 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 Plans:
 
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
-- [cms-path-routing.md](./plans/cms-path-routing.md) — replace CMS hash doors with typed path routing, browser-history ownership, deep-route shell delivery, and dirty-draft navigation protection without adding a cross-console router.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
@@ -196,8 +194,8 @@ These are real, but they should not masquerade as product bets. They reduce drag
 Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
-- [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [startup-readiness-signal.md](./plans/startup-readiness-signal.md) — stop capturing default identity at boot: move the atproto boot triggers to the plugin `ready()` hook and rename the pre-ready `system:plugins:ready` wire value so nothing is named "ready" before ready exists.
 
 Research probes (parked):
 

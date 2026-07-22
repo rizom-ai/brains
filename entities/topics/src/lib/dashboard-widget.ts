@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
@@ -16,7 +16,7 @@ export function registerTopicsDashboardWidget(params: {
   const { context, pluginId } = params;
 
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

@@ -26,7 +26,7 @@ const siteHealth = {
       },
     },
   ],
-  managementUrl: "/cms#/workspace/site",
+  managementUrl: "/cms/workspaces/site",
 };
 
 describe("SiteHealthWidget", () => {

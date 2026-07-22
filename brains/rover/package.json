@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.214",
+  "version": "0.2.0-alpha.218",
   "dependencies": {
     "@brains/a2a": "workspace:*",
     "@brains/admin": "workspace:*",

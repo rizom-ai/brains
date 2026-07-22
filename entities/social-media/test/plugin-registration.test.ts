@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -32,13 +33,13 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message after system:plugins:ready with linkedin provider", async () => {
+    it("should send publish:register message after plugins-registered with linkedin provider", async () => {
       await harness.installPlugin(
         new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
       );
 
       await harness.sendMessage(
-        "system:plugins:ready",
+        SYSTEM_CHANNELS.pluginsRegistered,
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
         true,

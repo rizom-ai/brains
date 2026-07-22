@@ -38,7 +38,7 @@ Do not optimistically rewrite entity content or advance the pinned content hash.
 
 Reducer actions are discriminated transitions; rejected transitions return the existing state. Add XState only if this reducer can no longer express the workflow without scattered timers or guards.
 
-CMS doors use `#/{encodedEntityType}` or `#/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `#/workspace/{encodedWorkspaceId}`. The hash selects the initial collection, entity, or workspace. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL.
+CMS doors use `{routePath}/entities/{encodedEntityType}` or `{routePath}/entities/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `{routePath}/workspaces/{encodedWorkspaceId}`. Package-local TanStack Router browser history owns the selected collection, entity, or workspace, including Back, Forward, refresh, and direct entry. Entity IDs are encoded as one value and may contain slashes. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL; navigation away from a dirty edit or creation draft requires explicit confirmation.
 
 ## Optional workspaces
 

@@ -92,7 +92,8 @@ describe("KnowledgeMap", () => {
 
     // public visual classes avoid leaking internal entity taxonomy.
     expect(html).toContain("kmap-point--source");
-    expect(html).toContain("kmap-point--ground");
+    expect(html).toContain("kmap-point--context");
+    expect(html).not.toContain("kmap-point--ground");
     expect(html).not.toContain("kmap-point--skill");
     expect(html).not.toContain("kmap-point--pearl");
 

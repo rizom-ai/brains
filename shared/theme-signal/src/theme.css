@@ -1,0 +1,357 @@
+/*
+ * Signal — an instrument-panel editorial theme.
+ *
+ * Bone paper and carbon ink carry the reading surface; safety orange marks
+ * action, while a cold cyan trace behaves like an oscilloscope reference.
+ * The system is deliberately square, typographic, and visibly mechanical.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@500;600;700&display=swap");
+
+@theme inline {
+  --font-display: var(--font-heading);
+  --font-body: var(--font-sans);
+  --font-label: var(--font-mono);
+  --color-signal: var(--color-accent);
+  --color-trace: var(--color-secondary);
+}
+
+@layer theme {
+  :root {
+    --layout-max-width: 76rem;
+    --spacing-section: clamp(5rem, 10vw, 9rem);
+    --radius-lg: 0.125rem;
+
+    --signal-bone: #efede6;
+    --signal-paper: #f8f6ef;
+    --signal-carbon: #151512;
+    --signal-graphite: #3e3e38;
+    --signal-fog: #d8d5ca;
+    --signal-orange: #f04b18;
+    --signal-orange-dark: #bd3210;
+    --signal-cyan: #007f82;
+    --signal-cyan-bright: #31c8c8;
+
+    --color-brand: var(--signal-orange);
+    --color-brand-dark: var(--signal-orange-dark);
+    --color-brand-light: #ff7040;
+    --color-accent: var(--signal-orange);
+    --color-accent-dark: var(--signal-orange-dark);
+    --color-accent-bright: #ff7040;
+    --color-accent-soft: rgb(from var(--signal-orange) r g b / 0.1);
+    --color-secondary: var(--signal-cyan);
+    --color-secondary-dark: #005e61;
+
+    --color-text: var(--signal-carbon);
+    --color-text-muted: var(--signal-graphite);
+    --color-text-light: #74736a;
+    --color-text-inverse: var(--signal-paper);
+    --color-text-on-dark: var(--signal-paper);
+    --color-heading: var(--signal-carbon);
+
+    --color-bg: var(--signal-bone);
+    --color-bg-subtle: var(--signal-paper);
+    --color-bg-muted: #e5e2d9;
+    --color-bg-dark: var(--signal-carbon);
+    --color-bg-deep: #dcd9ce;
+    --color-footer: var(--signal-carbon);
+    --color-footer-text: rgb(from var(--signal-paper) r g b / 0.72);
+
+    --color-border: #c4c0b4;
+    --color-border-light: rgb(255 255 255 / 0.72);
+    --color-rule: rgb(from var(--signal-carbon) r g b / 0.12);
+    --color-rule-strong: rgb(from var(--signal-carbon) r g b / 0.34);
+    --color-logo: var(--signal-carbon);
+    --color-selection-bg: rgb(from var(--signal-orange) r g b / 0.24);
+    --color-selection-text: var(--signal-carbon);
+
+    --color-gradient-start: var(--signal-paper);
+    --color-gradient-end: var(--signal-bone);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--color-gradient-start),
+      var(--color-gradient-end)
+    );
+    --color-pattern-dot: rgb(from var(--signal-carbon) r g b / 0.14);
+
+    --font-sans: "Instrument Sans", sans-serif;
+    --font-heading: "Syne", sans-serif;
+    --font-mono: "Azeret Mono", monospace;
+
+    --text-display-2xl: clamp(4.75rem, 10vw, 9rem);
+    --text-display-xl: clamp(3.75rem, 8vw, 7rem);
+    --text-display-lg: clamp(2.9rem, 6vw, 5rem);
+    --text-display-md: clamp(2.2rem, 4vw, 3.5rem);
+    --text-display-sm: clamp(1.7rem, 3vw, 2.5rem);
+  }
+
+  [data-theme="dark"] {
+    --signal-carbon: #eeece4;
+    --signal-graphite: #c3c0b8;
+    --signal-orange: #ff5b21;
+    --signal-orange-dark: #ff855f;
+    --signal-cyan: var(--signal-cyan-bright);
+
+    --color-text: var(--signal-carbon);
+    --color-text-muted: var(--signal-graphite);
+    --color-text-light: #8f8d86;
+    --color-text-inverse: #11110f;
+    --color-heading: var(--signal-carbon);
+
+    --color-bg: #11110f;
+    --color-bg-subtle: #181815;
+    --color-bg-muted: #24241f;
+    --color-bg-dark: #080806;
+    --color-bg-deep: #090907;
+    --color-footer: #080806;
+    --color-footer-text: rgb(238 236 228 / 0.68);
+
+    --color-border: rgb(238 236 228 / 0.18);
+    --color-border-light: rgb(238 236 228 / 0.08);
+    --color-rule: rgb(238 236 228 / 0.12);
+    --color-rule-strong: rgb(238 236 228 / 0.36);
+    --color-logo: var(--signal-carbon);
+    --color-pattern-dot: rgb(238 236 228 / 0.12);
+    --color-selection-bg: rgb(255 91 33 / 0.32);
+    --color-selection-text: var(--signal-carbon);
+
+    --color-gradient-start: #181815;
+    --color-gradient-end: #11110f;
+  }
+}
+
+@layer theme-override {
+  html {
+    background: var(--color-bg);
+  }
+
+  body {
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    background-image:
+      linear-gradient(var(--color-rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-rule) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 82% 12%,
+        rgb(from var(--color-secondary) r g b / 0.14),
+        transparent 25rem
+      ),
+      linear-gradient(
+        105deg,
+        transparent 0 68%,
+        rgb(from var(--color-accent) r g b / 0.08) 68% 68.3%,
+        transparent 68.3%
+      );
+  }
+
+  ::selection {
+    color: var(--color-selection-text);
+    background: var(--color-selection-bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 4px;
+  }
+
+  .bg-header {
+    background: rgb(from var(--color-bg) r g b / 0.9);
+    border-bottom: 1px solid var(--color-rule-strong);
+    backdrop-filter: blur(14px);
+  }
+
+  .bg-header::after {
+    content: "SIGNAL / LIVE";
+    position: absolute;
+    right: 1.25rem;
+    bottom: -1.7rem;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+  }
+
+  .text-logo {
+    color: var(--color-logo);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.06em;
+  }
+
+  .nav-link {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition:
+      color 140ms ease,
+      border-color 140ms ease;
+  }
+
+  .nav-link:hover {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .hero-bg-pattern {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        112deg,
+        transparent 0 72%,
+        rgb(from var(--color-accent) r g b / 0.16) 72% 72.4%,
+        transparent 72.4%
+      ),
+      var(--color-bg);
+  }
+
+  .hero-bg-pattern::after {
+    content: "";
+    position: absolute;
+    top: 18%;
+    right: -7rem;
+    width: 22rem;
+    aspect-ratio: 1;
+    border: 1px solid var(--color-secondary);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 2rem rgb(from var(--color-secondary) r g b / 0.04),
+      0 0 0 6rem rgb(from var(--color-secondary) r g b / 0.025);
+    opacity: 0.7;
+    pointer-events: none;
+    animation: signal-breathe 5s ease-in-out infinite;
+  }
+
+  .cta-bg-pattern {
+    color: var(--color-text-on-dark);
+    background:
+      linear-gradient(
+        90deg,
+        var(--color-accent) 0 0.45rem,
+        transparent 0.45rem
+      ),
+      var(--color-bg-dark);
+  }
+
+  .section-divider {
+    height: 1px;
+    background: var(--color-rule-strong);
+  }
+
+  .bg-footer {
+    background: var(--color-footer);
+    border-top: 0.45rem solid var(--color-accent);
+  }
+
+  .text-footer {
+    color: var(--color-footer-text);
+  }
+
+  .bg-theme-toggle {
+    background: transparent;
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 0;
+  }
+
+  .bg-theme-toggle-hover {
+    background: var(--color-secondary);
+  }
+
+  .text-theme-toggle-icon {
+    color: var(--color-text);
+  }
+
+  .prose {
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+  }
+
+  .prose h2 {
+    padding-top: 0.4em;
+    border-top: 1px solid var(--color-rule-strong);
+  }
+
+  .prose a {
+    color: var(--color-text);
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 0.14em;
+    text-underline-offset: 0.2em;
+  }
+
+  .prose a:hover {
+    color: var(--color-accent-dark);
+  }
+
+  .prose code,
+  .prose pre {
+    font-family: var(--font-mono);
+    border-radius: 0;
+  }
+
+  .btn-primary {
+    color: #fffaf2;
+    background: var(--color-accent);
+    border-radius: 0;
+    box-shadow: 0.35rem 0.35rem 0 var(--color-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-accent-dark);
+    box-shadow: 0.18rem 0.18rem 0 var(--color-secondary);
+    transform: translate(0.17rem, 0.17rem);
+  }
+
+  @keyframes signal-breathe {
+    0%,
+    100% {
+      opacity: 0.42;
+      transform: scale(0.96);
+    }
+    50% {
+      opacity: 0.78;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-bg-pattern::after {
+      animation: none;
+    }
+  }
+}

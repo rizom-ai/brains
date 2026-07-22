@@ -78,6 +78,46 @@ describe("A2A lifecycle characterization", () => {
     await turnSupervisor.close();
   });
 
+  it("preserves a completed task when a cancel fires after the turn finished", async () => {
+    const taskManager = new TaskManager();
+    const turnSupervisor = new A2ATurnSupervisor();
+    const started = deferred();
+    const release = deferred();
+    const result = handleStreamMessage(
+      1,
+      { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+      {
+        taskManager,
+        turnSupervisor,
+        agentService: slowAgent(started, release, () => {}),
+        callerPermissionLevel: "public",
+      },
+    );
+    if ("error" in result) throw new Error(result.error.message);
+
+    const reader = result.stream.getReader();
+    await reader.read();
+    await started.promise;
+    release.resolve();
+    // Observe completion before the supervisor's fiber teardown deregisters
+    // the turn — the window where a late cancel used to clobber the state.
+    while (
+      taskManager.getTask(result.taskId)?.task.status.state !== "completed"
+    ) {
+      await Promise.resolve();
+    }
+
+    turnSupervisor.cancel(result.taskId, new Error("late cancel"));
+    expect(taskManager.getTask(result.taskId)?.task.status.state).toBe(
+      "completed",
+    );
+    await reader.cancel();
+    expect(taskManager.getTask(result.taskId)?.task.status.state).toBe(
+      "completed",
+    );
+    await turnSupervisor.close();
+  });
+
   it("interrupts a polling turn when its task is canceled", async () => {
     const taskManager = new TaskManager();
     const turnSupervisor = new A2ATurnSupervisor();

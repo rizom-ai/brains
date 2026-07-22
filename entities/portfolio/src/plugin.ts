@@ -11,6 +11,7 @@ import type {
 } from "@brains/plugins";
 import {
   EntityPlugin,
+  SYSTEM_CHANNELS,
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
@@ -311,7 +312,7 @@ export class PortfolioPlugin extends EntityPlugin<
       publish: async (): Promise<PublishResult> => ({ id: "internal" }),
     };
 
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
         type: "publish:register",
         payload: {

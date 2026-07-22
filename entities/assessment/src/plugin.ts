@@ -1,5 +1,9 @@
 import type { Plugin, EntityPluginContext } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  emptyEntityPluginConfigSchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
 
@@ -102,7 +106,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
     });
 
     context.messaging.subscribe(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       async (): Promise<{ success: boolean }> => {
         await context.messaging.send({
           type: "dashboard:register-widget",

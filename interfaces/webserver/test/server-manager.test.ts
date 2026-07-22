@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
+import type { RegisteredWebRoute } from "@brains/plugins";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
@@ -210,6 +211,61 @@ describe("ServerManager (in-process)", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/yaml");
     expect(await res.text()).toContain("owner/repo");
+  });
+
+  it("matches contributed prefix routes by segment with exact and longest-prefix precedence", async () => {
+    testDir = join(tmpdir(), `webserver-prefix-routes-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const route = (
+      path: string,
+      body: string,
+      match: "exact" | "prefix" = "exact",
+    ): RegisteredWebRoute => ({
+      pluginId: "cms",
+      fullPath: path,
+      definition: {
+        path,
+        match,
+        method: "GET" as const,
+        public: true,
+        handler: async (): Promise<Response> => new Response(body),
+      },
+    });
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        route("/cms/entities", "entities-shell", "prefix"),
+        route("/cms/entities/post", "post-shell", "prefix"),
+        route("/cms/entities/post/featured", "featured-exact"),
+      ],
+    });
+    await manager.start();
+
+    const url = manager.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+
+    expect(await (await fetch(`${url}/cms/entities/note/one`)).text()).toBe(
+      "entities-shell",
+    );
+    expect(await (await fetch(`${url}/cms/entities/post/one`)).text()).toBe(
+      "post-shell",
+    );
+    expect(
+      await (await fetch(`${url}/cms/entities/post/featured`)).text(),
+    ).toBe("featured-exact");
+    expect((await fetch(`${url}/cms/entities-other`)).status).toBe(404);
+    expect(
+      (await fetch(`${url}/cms/entities/post/one`, { method: "POST" })).status,
+    ).toBe(404);
   });
 
   it("should reject non-public web routes with 401", async () => {

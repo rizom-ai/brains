@@ -292,7 +292,26 @@ describe("cms editor shell", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
     expect(html).toContain("/cms/assets/app.js");
+    expect(html).toContain('data-cms-base-path="/cms"');
     expect(html).not.toContain("sveltia");
+  });
+
+  it("serves the authenticated shell for a deep entity route", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/entities").handler(
+      apiRequest("/cms/entities/note/journal%2Fday-one", { cookie }),
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(html).toContain('data-cms-base-path="/cms"');
+    expect(html).toContain(
+      'href="/logout?return_to=%2Fcms%2Fentities%2Fnote%2Fjournal%252Fday-one"',
+    );
   });
 
   it("registers the editor asset route", async () => {

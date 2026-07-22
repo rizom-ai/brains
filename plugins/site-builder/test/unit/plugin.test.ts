@@ -213,7 +213,7 @@ describe("SiteBuilderPlugin", () => {
         registration = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/cms#/workspace/site" },
+          data: { workspaceUrl: "/cms/workspaces/site" },
         };
       },
     );
@@ -294,7 +294,7 @@ describe("SiteBuilderPlugin", () => {
     const dashboardData = await dashboardWidget?.dataProvider();
     expect(dashboardData).toMatchObject({
       site: { title: "Test Site" },
-      managementUrl: "/cms#/workspace/site",
+      managementUrl: "/cms/workspaces/site",
     });
     expect(dashboardWidget?.digestProvider(dashboardData)).toMatchObject({
       needsOperator: 0,

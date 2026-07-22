@@ -198,8 +198,8 @@ The unreleased representation implementation has been replaced by the target pee
 - **MCP OAuth**: per-session permissions from the authenticated user instead of global Admin authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
-- **CMS passkey login**: a valid authenticated browser session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
-- **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per [a2a-request-signing.md](./a2a-request-signing.md) decision 6 — trust grants must live on this runtime plane, never in git-synced content.
+- **CMS passkey login**: a valid authenticated Admin browser session gates release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
+- **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per the shipped A2A request-signing work — trust grants must live on this runtime plane, never in git-synced content.
 - **Admin console / future CLI**: Overview, member access, invitations, passkeys, connected channels, optional external-peer links, session revocation, and audit inspection.
 
 ## Core decisions

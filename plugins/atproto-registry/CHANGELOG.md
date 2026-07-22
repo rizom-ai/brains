@@ -1,5 +1,41 @@
 # @brains/atproto-registry
 
+## 0.2.0-alpha.218
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.218
+  - @brains/utils@0.2.0-alpha.218
+  - @brains/plugins@0.2.0-alpha.218
+
+## 0.2.0-alpha.217
+
+### Patch Changes
+
+- Updated dependencies [[`b737ed9`](https://github.com/rizom-ai/brains/commit/b737ed9b37f0cd38b0e5387e2fb3795ca5eeec04)]:
+  - @brains/plugins@0.2.0-alpha.217
+  - @brains/atproto-contracts@0.2.0-alpha.217
+  - @brains/utils@0.2.0-alpha.217
+
+## 0.2.0-alpha.216
+
+### Patch Changes
+
+- Updated dependencies [[`6cce234`](https://github.com/rizom-ai/brains/commit/6cce2342c28f7e68be2b047afcb9d82bbba540b2)]:
+  - @brains/atproto-contracts@0.2.0-alpha.216
+  - @brains/utils@0.2.0-alpha.216
+  - @brains/plugins@0.2.0-alpha.216
+
+## 0.2.0-alpha.215
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.215
+  - @brains/utils@0.2.0-alpha.215
+  - @brains/plugins@0.2.0-alpha.215
+
 ## 0.2.0-alpha.214
 
 ### Patch Changes

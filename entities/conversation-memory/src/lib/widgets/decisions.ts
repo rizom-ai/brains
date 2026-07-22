@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
@@ -73,7 +73,7 @@ export function registerDecisionsWidget(params: {
 }): void {
   const { context, pluginId } = params;
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

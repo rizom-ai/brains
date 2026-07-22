@@ -43,7 +43,7 @@ describe("buildConsoleJumpGroups", () => {
       id: "note/verdigris-pigments",
       title: "Verdigris pigments",
       sub: "note",
-      href: "/cms#/note/verdigris-pigments",
+      href: "/cms/entities/note/verdigris-pigments",
       tag: "edit in cms",
     });
   });

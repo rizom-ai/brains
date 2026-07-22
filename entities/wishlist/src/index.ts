@@ -5,7 +5,7 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { wishSchema, type WishEntity } from "./schemas/wish";
 
@@ -78,7 +78,7 @@ export class WishlistPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     // Dashboard widget
-    context.messaging.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
         type: "dashboard:register-widget",
         payload: {

@@ -11,9 +11,13 @@ export type WebRouteHandler = (
   request: Request,
 ) => Response | Promise<Response>;
 
+export type WebRouteMatch = "exact" | "prefix";
+
 export interface WebRouteDefinition {
   /** Absolute mounted path (e.g. "/cms" or "/cms-config") */
   path: string;
+  /** Match only `path` (default) or descendants on a segment boundary. */
+  match?: WebRouteMatch;
   /** HTTP method */
   method?: WebRouteMethod;
   /** Allow unauthenticated access */

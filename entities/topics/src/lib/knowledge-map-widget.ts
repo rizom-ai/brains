@@ -1,3 +1,4 @@
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
@@ -88,7 +89,7 @@ export function registerKnowledgeMapDashboardWidget(params: {
   const { context, pluginId } = params;
 
   context.messaging.subscribe(
-    "system:plugins:ready",
+    SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",

@@ -141,6 +141,10 @@ export interface AtprotoPublishFailedPayload {
 
 export const ATPROTO_PUBLISH_FAILED = "atproto:publish:failed";
 
+function entityTaskKey(payload: EntityTriggerPayload): string {
+  return `${payload.entityType}/${payload.entityId}`;
+}
+
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
@@ -154,6 +158,7 @@ export class AtprotoPlugin extends ServicePlugin<
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;
   private readonly activePublishingTasks = new Set<Promise<void>>();
+  private readonly publishingChains = new Map<string, Promise<void>>();
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
@@ -168,33 +173,12 @@ export class AtprotoPlugin extends ServicePlugin<
     await super.onRegister(context);
     if (!this.config.enabled) return;
 
-    context.messaging.subscribe("system:plugins:ready", async () => {
-      this.trackPublishingTask(() =>
-        this.runPublishingTrigger(
-          context,
-          {
-            operation: "publish-card",
-            entityType: "brain-card",
-            entityId: BRAIN_CARD_RKEY,
-            collection: BRAIN_CARD_COLLECTION,
-          },
-          () => this.publishBrainCard(context),
-        ),
-      );
-      if (this.config.lexiconAuthority) {
-        this.trackPublishingTask(() =>
-          this.publishCanonicalLexiconSchemas(context),
-        );
-      }
-      return { success: true };
-    });
-
     // publish:report:success is a request-style message consumed by the
     // publish pipeline. publish:completed is its broadcast fan-out event.
     context.messaging.subscribe(PUBLISH_COMPLETED, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
-        this.trackPublishingTask(() =>
+        void this.trackPublishingTask(entityTaskKey(payload.data), () =>
           this.reconcileProjectedEntity(context, payload.data),
         );
       }
@@ -204,7 +188,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context.messaging.subscribe("entity:updated", async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
-        this.trackPublishingTask(() =>
+        void this.trackPublishingTask(entityTaskKey(payload.data), () =>
           this.reconcileProjectedEntity(context, payload.data),
         );
       }
@@ -214,12 +198,45 @@ export class AtprotoPlugin extends ServicePlugin<
     context.messaging.subscribe("entity:deleted", async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
-        this.trackPublishingTask(() =>
+        void this.trackPublishingTask(entityTaskKey(payload.data), () =>
           this.deleteProjectedEntityFromTrigger(context, payload.data),
         );
       }
       return { success: true };
     });
+  }
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const tasks = [
+      this.trackPublishingTask(
+        BRAIN_CARD_COLLECTION + "/" + BRAIN_CARD_RKEY,
+        () =>
+          this.runPublishingTrigger(
+            context,
+            {
+              operation: "publish-card",
+              entityType: "brain-card",
+              entityId: BRAIN_CARD_RKEY,
+              collection: BRAIN_CARD_COLLECTION,
+            },
+            () => this.publishBrainCard(context),
+          ),
+      ),
+    ];
+
+    if (this.config.lexiconAuthority) {
+      tasks.push(
+        this.trackPublishingTask(LEXICON_SCHEMA_COLLECTION, () =>
+          this.publishCanonicalLexiconSchemas(context),
+        ),
+      );
+    }
+
+    await Promise.all(tasks);
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -710,16 +727,29 @@ export class AtprotoPlugin extends ServicePlugin<
     });
   }
 
-  private trackPublishingTask(operation: () => Promise<void>): void {
-    const task = operation().catch((error: unknown) => {
+  // Tasks sharing a key run in event order: publish:completed and
+  // entity:updated both fire for one mutation, and an in-flight upsert
+  // finishing after a delete would resurrect the deleted record on the PDS.
+  // Distinct keys still run concurrently.
+  private trackPublishingTask(
+    key: string,
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    const previous = this.publishingChains.get(key) ?? Promise.resolve();
+    const task = previous.then(operation).catch((error: unknown) => {
       this.logger.error("Unexpected AT Protocol publishing task failure", {
         error: getErrorMessage(error),
       });
     });
+    this.publishingChains.set(key, task);
     this.activePublishingTasks.add(task);
     void task.then(() => {
       this.activePublishingTasks.delete(task);
+      if (this.publishingChains.get(key) === task) {
+        this.publishingChains.delete(key);
+      }
     });
+    return task;
   }
 
   private async runPublishingTrigger(

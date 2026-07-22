@@ -15,7 +15,7 @@ export { knowledgeMapStyles };
  * The knowledge map renderer: the corpus as a centerless sky. Topics are
  * soft-bounded blob territories (mist + dashed border + floating label),
  * published work glows, supporting sources are quiet context marks, and
- * low-signal entities become faint ground. Deterministic by construction —
+ * low-signal entities become faint background marks. Deterministic by construction —
  * static site builds must not churn.
  */
 
@@ -466,7 +466,7 @@ function PointShape({
   }
   return (
     <circle
-      class="kmap-dot kmap-point--ground"
+      class="kmap-dot kmap-point--source kmap-point--context"
       cx={x}
       cy={y}
       r={1.5}

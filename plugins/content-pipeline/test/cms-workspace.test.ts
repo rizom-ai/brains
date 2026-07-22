@@ -63,7 +63,7 @@ describe("content-pipeline CMS workspace registration", () => {
       registration = message.payload;
       return {
         success: true,
-        data: { workspaceUrl: "/cms#/workspace/publishing" },
+        data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
 
@@ -78,7 +78,7 @@ describe("content-pipeline CMS workspace registration", () => {
       }),
     });
 
-    expect(href).toBe("/cms#/workspace/publishing");
+    expect(href).toBe("/cms/workspaces/publishing");
     expect(registration).toMatchObject({
       id: "publishing",
       pluginId: "content-pipeline",
@@ -134,7 +134,7 @@ describe("content-pipeline CMS workspace registration", () => {
       registration = message.payload;
       return {
         success: true,
-        data: { workspaceUrl: "/cms#/workspace/publishing" },
+        data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
     await registerCmsWorkspace(context, "content-pipeline", {
@@ -265,7 +265,7 @@ describe("content-pipeline CMS workspace registration", () => {
       registration = message.payload;
       return {
         success: true,
-        data: { workspaceUrl: "/cms#/workspace/publishing" },
+        data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
     await registerCmsWorkspace(context, "content-pipeline", {

@@ -35,6 +35,9 @@ export interface AtprotoLexiconObjectDef {
 export interface AtprotoLexicon {
   lexicon: 1;
   id: string;
+  // The index signature must include AtprotoLexiconRecordDef only so that
+  // `main` satisfies it — the parse schema's catchall enforces that every
+  // named def other than `main` is an object def, per the lexicon spec.
   defs: {
     main: AtprotoLexiconRecordDef;
   } & Record<string, AtprotoLexiconObjectDef | AtprotoLexiconRecordDef>;

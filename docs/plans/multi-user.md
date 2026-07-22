@@ -18,7 +18,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 
 - Permission levels are `public`, `trusted`, and `admin`; Anchor identity is exposed independently through `isAnchor`. Active connected users are authoritative before standalone channel grants. Exact `admins`/`trusted`/`anchors` entries resolve from DB-projected hashed rows, not configuration, at request time.
 - Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
-- Fresh setup and migrated installations use durable `usr_<uuid>` subjects; legacy files remain immutable migration backups.
+- Fresh setup uses durable `usr_<uuid>` subjects; legacy files are optional manual backups and are never read automatically.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.

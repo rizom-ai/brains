@@ -36,7 +36,7 @@ function createProviderContext(): {
           registration = message.payload as CmsWorkspaceRegistration;
           return {
             success: true,
-            data: { workspaceUrl: "/studio#/workspace/sync" },
+            data: { workspaceUrl: "/studio/workspaces/sync" },
           };
         }
         return { noop: true };
@@ -95,7 +95,7 @@ describe("directory-sync CMS workspace", () => {
     });
 
     expect(await provider.registerCmsWorkspace()).toBe(
-      "/studio#/workspace/sync",
+      "/studio/workspaces/sync",
     );
     const registration = getRegistration();
     expect(registration).toMatchObject({

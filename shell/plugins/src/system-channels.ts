@@ -1,13 +1,12 @@
 /**
  * Internal shell coordination channel names.
  *
- * The wire values are kept stable for backward compatibility with existing
- * plugins/tests, even when the semantic names are more precise than the
- * historical message names.
+ * Keep names aligned with their lifecycle timing: registration coordination is
+ * not the same as ready-state preparation.
  */
 export const SYSTEM_CHANNELS = {
   /** Emitted after every plugin has completed registration. */
-  pluginsRegistered: "system:plugins:ready",
+  pluginsRegistered: "system:plugins:registered",
   /** Emitted by directory-sync after startup import has completed. */
   initialSyncCompleted: "sync:initial:completed",
 } as const;

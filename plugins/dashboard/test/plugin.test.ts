@@ -264,14 +264,14 @@ describe("DashboardPlugin", () => {
           id: "note/verdigris-pigments",
           title: "Verdigris pigments",
           sub: "note",
-          href: "/cms#/note/verdigris-pigments",
+          href: "/cms/entities/note/verdigris-pigments",
           tag: "edit in cms",
         },
         {
           id: "note/untitled-note",
           title: "untitled-note",
           sub: "note",
-          href: "/cms#/note/untitled-note",
+          href: "/cms/entities/note/untitled-note",
           tag: "edit in cms",
         },
       ]);
@@ -393,7 +393,7 @@ describe("DashboardPlugin", () => {
           lastSync: null,
           totalFiles: 2,
           byEntityType: { note: 2 },
-          managementUrl: "/studio#/workspace/sync",
+          managementUrl: "/studio/workspaces/sync",
         },
       }));
       (
@@ -448,7 +448,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("2 files");
       expect(html).toContain("note 2");
       expect(html).toContain("Content sync");
-      expect(html).toContain('href="/studio#/workspace/sync"');
+      expect(html).toContain('href="/studio/workspaces/sync"');
       expect(html).toContain("Semantic index · ready · 0 active");
     });
 

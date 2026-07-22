@@ -70,7 +70,7 @@ beforeEach(() => {
             {
               title: "Verdigris pigments",
               sub: "note",
-              href: "/cms#/note/verdigris-pigments",
+              href: "/cms/entities/note/verdigris-pigments",
               tag: "edit in cms",
             },
           ],
@@ -178,7 +178,7 @@ describe("console palette behavior", () => {
       row.getAttribute("href"),
     );
     expect(hrefs).toEqual([
-      "/cms#/note/verdigris-pigments",
+      "/cms/entities/note/verdigris-pigments",
       "/#publishing",
       "/#system",
     ]);

@@ -9,34 +9,36 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --night: #14132b;
-    --night-deep: #100f24;
-    --white: #faf8f3;
-    --w70: rgba(250,248,243,0.72);
-    --w45: rgba(250,248,243,0.48);
-    --w28: rgba(250,248,243,0.30);
-    --rule: rgba(250,248,243,0.14);
-    --rule-soft: rgba(250,248,243,0.07);
-    --brass: #d4af37;
-    --brass-soft: #e8cc6a;
+    --night: #0a0819;
+    --night-deep: #05040f;
+    --card: #14112b;
+    --white: #f1eadd;
+    --w70: rgba(241,234,221,0.72);
+    --w45: rgba(241,234,221,0.40);
+    --w28: rgba(241,234,221,0.22);
+    --rule: rgba(241,234,221,0.14);
+    --rule-soft: rgba(241,234,221,0.07);
+    --brass: #ff8b3d;
+    --brass-soft: #f5c158;
     --moss: #9caf88;
-    --purple: #8c82c8;
+    --purple: #818cf8;
     --cyan: #76c7d1;
     --display: "Fraunces", serif;
     --ui: "IBM Plex Sans", sans-serif;
     --mono: "IBM Plex Mono", monospace;
   }
   html[data-theme="light"] {
-    --night: #faf8f3;
-    --night-deep: #f1ede2;
-    --white: #23213a;
-    --w70: rgba(35,33,58,0.76);
-    --w45: rgba(35,33,58,0.52);
-    --w28: rgba(35,33,58,0.34);
-    --rule: rgba(35,33,58,0.18);
-    --rule-soft: rgba(35,33,58,0.09);
-    --brass: #a8821c;
-    --brass-soft: #8a6a12;
+    --night: #ece5d6;
+    --night-deep: #dfd4bc;
+    --card: #faf7f0;
+    --white: #211d18;
+    --w70: rgba(33,29,24,0.62);
+    --w45: rgba(33,29,24,0.42);
+    --w28: rgba(33,29,24,0.22);
+    --rule: rgba(33,29,24,0.14);
+    --rule-soft: rgba(33,29,24,0.07);
+    --brass: #c44a1d;
+    --brass-soft: #7a4a05;
     --moss: #5e7a4e;
     --purple: #6b2fa0;
     --cyan: #287c8c;
@@ -56,9 +58,73 @@
   .lede { max-width: 74ch; margin-top: 14px; color: var(--w70); font-size: 14.5px; }
   .lede b { color: var(--white); font-weight: 500; }
 
-  .field-frame { margin-top: 34px; border: 1px solid var(--rule-soft); background: radial-gradient(900px 480px at 30% 20%, rgba(107,47,160,.13), transparent 62%), radial-gradient(800px 500px at 80% 75%, rgba(212,175,55,.05), transparent 66%), var(--night-deep); overflow: hidden; }
-  html[data-theme="light"] .field-frame { background: radial-gradient(900px 480px at 30% 20%, rgba(140,130,200,.12), transparent 62%), radial-gradient(800px 500px at 80% 75%, rgba(168,130,28,.06), transparent 66%), var(--night-deep); }
-  #field svg { display: block; width: 100%; height: auto; }
+  /* Dashboard card shell copied from the live yeehaa.io dashboard: the Agent
+     Proximity/Agent Network widgets are regular cards, not bespoke frames. */
+  .field-frame {
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 34px;
+    padding: 14px 18px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: inset 0 1px 0 rgba(250,248,243,.02), 0 24px 48px -24px rgba(0,0,0,.55);
+    overflow-wrap: anywhere;
+    container: dashboard-card / inline-size;
+  }
+  html[data-theme="light"] .field-frame { box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 24px 48px -28px rgba(35,33,58,.36); }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .card-title { font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--w45); }
+  .card-from { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: var(--w28); }
+
+  /* Match the agent proximity widget body: a frameless semantic pool that
+     dissolves into the dashboard card background. */
+  .kmap-field {
+    position: relative;
+    min-height: 420px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .kmap-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 36% 50%, rgba(212,175,55,.055), transparent 32%),
+      radial-gradient(circle at 54% 44%, rgba(140,130,200,.12), transparent 34%),
+      var(--night-deep);
+    -webkit-mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+    mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+  }
+  .kmap-field::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .04;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    -webkit-mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+    mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+  }
+  html[data-theme="light"] .kmap-field::before {
+    background:
+      radial-gradient(circle at 36% 50%, rgba(168,130,28,.075), transparent 32%),
+      radial-gradient(circle at 54% 44%, rgba(107,47,160,.10), transparent 34%),
+      var(--night-deep);
+  }
+  #field { position: relative; z-index: 1; }
+  #field svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 420px;
+    -webkit-mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+    mask-image: radial-gradient(ellipse 66% 92% at 50% 50%, #000 52%, transparent 99%);
+  }
 
   .foot { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: baseline; margin-top: 14px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--w45); }
   .foot b { color: var(--brass); font-weight: 600; }
@@ -72,6 +138,8 @@
   .kn-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: kbloom .7s cubic-bezier(.2,.9,.3,1.4) forwards; animation-delay: var(--d, 0s); }
   @keyframes kbloom { to { transform: scale(1); } }
   .kn-label { opacity: 0; animation: kfade .9s ease forwards; animation-delay: var(--d, 0s); }
+  .kn-label--topic { paint-order: stroke; stroke: var(--night-deep); stroke-width: 4px; stroke-linejoin: round; }
+  html[data-theme="light"] .kn-label--topic { stroke: var(--night-deep); stroke-width: 5px; }
   @keyframes kfade { to { opacity: 1; } }
   .kn-breathe { animation: kbreathe 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
   @keyframes kbreathe { 50% { opacity: .55; transform: scale(1.3); } }
@@ -85,19 +153,23 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="kicker">rizom.ai — the knowledge map · standalone mock · rev 12<button id="themeToggle">Light mode</button></div>
-  <h1>What this brain knows, as <em>a sky</em> — canonical territories, evidence-first labels.</h1>
+  <div class="kicker">rizom.ai — the knowledge map · standalone mock · rev 13<button id="themeToggle">Light mode</button></div>
+  <h1>What this brain knows, as <em>a framed field</em> — canonical territories, cartographic labels.</h1>
   <p class="lede">Every mark is a real entity from this brain's corpus, placed by a 2D
   projection of its embedding — near things mean near meanings. <b>Topics are
   territories</b>: soft-bounded zones of meaning that stretch only around filed
-  evidence. Labels are now <b>priority-aware</b>: high-evidence territories are
-  named first, then collision checks keep the sky quiet. Artifact topics from the
-  old map — landing pages, staging, action plans — are gone. <b>What's published
+  evidence. Labels are now <b>cartographic</b>: large territories carry their
+  names inside the mist; smaller ones become edge callouts with fine leader
+  lines, all still priority- and collision-aware. Artifact topics from the old
+  map — landing pages, staging, action plans — are gone. <b>What's published
   glows</b>; skills are moss; references are pearls; operational entities become
   ground spores. Sources outside every border remain visible as <b>unfiled
   knowledge</b>, not accidental new topics.</p>
 
-  <div class="field-frame"><div id="field"></div></div>
+  <article class="field-frame widget-card--wide">
+    <div class="card-head"><span class="card-title">Knowledge Map</span><span class="card-from">topics</span></div>
+    <div class="kmap-field"><div id="field"></div></div>
+  </article>
   <div class="foot">
     <span><b>50</b> sources · <b>10</b> canonical topics · labels by evidence</span>
     <span class="legend">
@@ -207,11 +279,33 @@
     var stats = memberStats(index);
     return topic.evidence * 10 + stats.members.length * 4 + stats.published * 3;
   }
-  function box(cx, cy, text) {
-    return { x: cx - text.length * 3.75, y: cy - 8, w: text.length * 7.5, h: 16 };
+  function box(cx, cy, text, anchor) {
+    var w = text.length * 7.5;
+    var x = anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2;
+    return { x: x - 6, y: cy - 9, w: w + 12, h: 18 };
   }
   function intersects(a, b) {
     return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  }
+  function inFrame(b) {
+    return b.x >= 26 && b.y >= 26 && b.x + b.w <= 1074 && b.y + b.h <= 532;
+  }
+  function labelCandidates(l, text) {
+    var half = text.length * 3.75;
+    var side = l.cx < 550 ? -1 : 1;
+    var internalOk = l.base > Math.max(38, half * .62);
+    var candidates = [];
+    if (internalOk) {
+      candidates.push({ x: l.cx, y: l.cy + 3, anchor: "middle", inside: true, leader: null });
+      candidates.push({ x: l.cx, y: l.cy - l.base * .34, anchor: "middle", inside: true, leader: null });
+    }
+    candidates.push(
+      { x: l.cx + side * (l.base + 18), y: l.cy + 4, anchor: side > 0 ? "start" : "end", inside: false, leader: { x1: l.cx + side * (l.base * .74), y1: l.cy + 2, x2: l.cx + side * (l.base + 10), y2: l.cy + 2 } },
+      { x: l.cx, y: l.cy - l.base - 13, anchor: "middle", inside: false, leader: { x1: l.cx, y1: l.cy - l.base * .72, x2: l.cx, y2: l.cy - l.base - 5 } },
+      { x: l.cx, y: l.cy + l.base + 18, anchor: "middle", inside: false, leader: { x1: l.cx, y1: l.cy + l.base * .72, x2: l.cx, y2: l.cy + l.base + 8 } },
+      { x: l.cx - side * (l.base + 18), y: l.cy + 4, anchor: side > 0 ? "end" : "start", inside: false, leader: { x1: l.cx - side * (l.base * .74), y1: l.cy + 2, x2: l.cx - side * (l.base + 10), y2: l.cy + 2 } }
+    );
+    return candidates;
   }
 
   function draw() {
@@ -293,11 +387,26 @@
         if (placed.length >= 7) return;
         if (l.members.length === 0) return;
         var text = l.topic.name + " · " + l.members.length;
-        var b = box(l.cx, l.cy - l.base - 9, text);
-        if (placed.some(function (other) { return intersects(b, other); })) return;
-        placed.push(b);
-        el(svg, "text", { class: "kn-label", x: l.cx, y: l.cy - l.base - 9,
-          "text-anchor": "middle", fill: p.purple,
+        var chosen = null;
+        for (var i = 0, cs = labelCandidates(l, text); i < cs.length; i++) {
+          var c = cs[i];
+          var b = box(c.x, c.y, text, c.anchor);
+          if (!inFrame(b)) continue;
+          if (placed.some(function (other) { return intersects(b, other); })) continue;
+          chosen = { candidate: c, box: b };
+          break;
+        }
+        if (!chosen) return;
+        placed.push(chosen.box);
+        if (chosen.candidate.leader) {
+          var g = chosen.candidate.leader;
+          el(svg, "path", { class: "kn-weave", pathLength: 1,
+            d: "M " + g.x1 + " " + g.y1 + " L " + g.x2 + " " + g.y2,
+            fill: "none", stroke: p.purple, "stroke-opacity": .34, "stroke-width": .7,
+            "stroke-linecap": "round", style: "--d:" + (0.9 + rank * 0.08) + "s" });
+        }
+        el(svg, "text", { class: "kn-label kn-label--topic", x: chosen.candidate.x, y: chosen.candidate.y,
+          "text-anchor": chosen.candidate.anchor, fill: p.purple,
           style: "--d:" + (0.95 + rank * 0.08) + "s;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase" },
           text);
       });

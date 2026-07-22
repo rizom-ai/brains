@@ -74,9 +74,9 @@ Plugins consume this service through a narrow, namespaced handle rather than a r
 - a plugin declares a typed store (its own tables/rows) and receives CRUD against it through plugin context, which already exposes `dataDir` (`shell/plugins/src/base/context.ts`)
 - a plugin never opens a database, never ships a migration, and never resolves its own `./data/<plugin>` path
 
-This is the "shell-owned runtime persistence" the onboarding plan defers to. The relative-path default is not a one-plugin quirk — auth-service (`./data/auth`) and the in-flight playbooks run store (default `./data/playbooks`) both default to a plugin-relative root that resolves under the Docker `WORKDIR` instead of the canonical `dataDir`. The service closes that footgun by owning the path.
+This is the "shell-owned runtime persistence" the onboarding plan defers to. The relative-path default footgun lives in auth-service (`./data/auth`), a plugin-relative root that resolves under the Docker `WORKDIR` instead of the canonical `dataDir`. The service closes that footgun by owning the path.
 
-The same plugin-facing shape is shared by the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs are a worked example of that shape, but as an **ephemeral-tier** consumer they live in the runtime state store, not here: the hand-rolled `runs.json` store (from the in-flight playbooks work) collapses into normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables there. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
+The same plugin-facing shape is shared by the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs already prove that shape: as an **ephemeral-tier** consumer they consume the namespaced runtime-state store (`plugins/playbooks/src/run-store.ts`), not this operator plane. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
 
 ## Incremental path
 

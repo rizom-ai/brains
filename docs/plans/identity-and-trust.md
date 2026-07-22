@@ -4,9 +4,10 @@
 
 Positioning doc for roadmap §3 (Trust & identity). Not an execution plan —
 the execution units are [multi-user.md](./multi-user.md),
-[auth-runtime-db.md](./auth-runtime-db.md),
-[a2a-request-signing.md](./a2a-request-signing.md), and the identity parts
-of [atproto-integration.md](./atproto-integration.md). This doc exists
+[auth-runtime-db.md](./auth-runtime-db.md), and the identity parts
+of [atproto-integration.md](./atproto-integration.md); A2A request signing
+shipped (RFC 9421 via `shared/http-signatures`, peer-trust store,
+task-caller binding) and its plan is retired. This doc exists
 because those plans each answer a slice of "who is talking to the brain,
 and why do we believe them" and were starting to invent parallel
 primitives. It states the shared model once and settles the cross-cutting
@@ -20,7 +21,7 @@ Three kinds of subject talk to a brain, over five kinds of channel:
 | -------------------------------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------- |
 | Humans (operator, collaborators) | Session interfaces (dashboard, web-chat, CMS) | Passkey → `usr_<uuid>` session              | [multi-user.md](./multi-user.md)                   |
 | External clients (agents, IDEs)  | MCP over HTTP                                 | OAuth bearer, `sub` = user id               | [multi-user.md](./multi-user.md)                   |
-| Peer brains (directed RPC)       | A2A                                           | Domain, proven by RFC 9421 signature        | [a2a-request-signing.md](./a2a-request-signing.md) |
+| Peer brains (directed RPC)       | A2A                                           | Domain, proven by RFC 9421 signature        | shipped (`shared/http-signatures`)                 |
 | Peer brains (ambient pub/sub)    | AT Protocol                                   | DID (`did:web:<domain>` by convention)      | [atproto-integration.md](./atproto-integration.md) |
 | Platform users                   | Discord (and future platform adapters)        | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
 
@@ -69,7 +70,7 @@ lifecycle (generate on first boot, persist under runtime auth storage,
 reload, rotate) for both:
 
 - **ES256** — OAuth/JWT signing (exists today).
-- **Ed25519** — A2A request signing (added by a2a-request-signing).
+- **Ed25519** — A2A request signing (shipped with the request-signing work).
 
 Both are published in the single `/.well-known/jwks.json`, distinguished
 by `alg`. Purpose separation is deliberate: rotating the OAuth key must
@@ -117,7 +118,7 @@ Peer-first invitation may create an invited local account and the independent pe
 
 ## What this settles in the execution plans
 
-**a2a-request-signing.md** — its open questions resolve here: package
+**A2A request signing** (shipped; plan retired) — its open questions resolved here: package
 home is `shared/http-signatures` (standalone library, no brain-specific
 deps); multi-key rollover is supported via JWKS multi-key publishing and
 `kid` matching; `JwksResolver` is a brain-level singleton; v1 signs
@@ -139,7 +140,7 @@ provider-connection dependency:
 
 - **Humans**: auth-runtime-db → multi-user phases 1–2 (real users, roles,
   per-session MCP permissions).
-- **Brains**: a2a-request-signing phases 1–6 (keys, signing, verification,
+- **Brains**: A2A request signing shipped (keys, signing, verification,
   task binding); ATProto protocol work remains independent.
 - **Outbound ATProto OAuth**: auth-runtime-db must land first. Bluesky access
   tokens, rotating refresh tokens, and DPoP key material are received provider

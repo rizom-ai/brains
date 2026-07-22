@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -8,7 +9,7 @@ import {
 /**
  * Regression test: publish:register must work regardless of plugin
  * registration order. social-media defers publish:register to
- * system:plugins:ready so all plugins have subscribed before the
+ * plugins-registered so all plugins have subscribed before the
  * message is sent.
  */
 describe("publish:register ordering", () => {
@@ -20,7 +21,7 @@ describe("publish:register ordering", () => {
     });
   });
 
-  it("should deliver publish:register to a late subscriber after system:plugins:ready", async () => {
+  it("should deliver publish:register to a late subscriber after plugins-registered", async () => {
     await harness.installPlugin(
       new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
     );
@@ -33,7 +34,7 @@ describe("publish:register ordering", () => {
     });
 
     await harness.sendMessage(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       { timestamp: new Date().toISOString(), pluginCount: 2 },
       "shell",
       true,
@@ -44,7 +45,7 @@ describe("publish:register ordering", () => {
     expect(received[0]?.provider).toHaveProperty("name", "linkedin");
   });
 
-  it("should deliver publish:register to an early subscriber after system:plugins:ready", async () => {
+  it("should deliver publish:register to an early subscriber after plugins-registered", async () => {
     // Subscribe BEFORE plugin registered (early subscriber)
     const received: Array<{ entityType: string; provider: unknown }> = [];
     harness.subscribe("publish:register", async (msg) => {
@@ -59,7 +60,7 @@ describe("publish:register ordering", () => {
     expect(received.length).toBe(0);
 
     await harness.sendMessage(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       { timestamp: new Date().toISOString(), pluginCount: 2 },
       "shell",
       true,
@@ -79,7 +80,7 @@ describe("publish:register ordering", () => {
     await harness.installPlugin(new SocialMediaPlugin({}));
 
     await harness.sendMessage(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       { timestamp: new Date().toISOString(), pluginCount: 1 },
       "shell",
       true,

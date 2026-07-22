@@ -1,5 +1,6 @@
 import {
   PluginConfigValidationError,
+  SYSTEM_CHANNELS,
   type IShell,
   type Plugin,
   type PluginCapabilities,
@@ -308,7 +309,7 @@ class DeclarativeSitePlugin implements Plugin {
 
     if (this.site.headScripts?.length) {
       const messaging = shell.getMessageBus();
-      messaging.subscribe("system:plugins:ready", async () => {
+      messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
         for (const [index, script] of this.site.headScripts?.entries() ?? []) {
           await messaging.send({
             type: "plugin:site-builder:head-script:register",

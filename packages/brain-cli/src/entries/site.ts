@@ -115,12 +115,10 @@ interface RuntimePluginShape {
 }
 
 function toPublicPlugin(plugin: RuntimePluginShape): Plugin {
-  return {
-    id: plugin.id,
-    version: plugin.version,
-    type: plugin.type,
-    packageName: plugin.packageName,
-  };
+  // Preserve the runtime instance. Rebuilding the opaque public shape here
+  // strips prototype methods such as register(), leaving externally authored
+  // SitePackages with a plugin that typechecks but cannot initialize.
+  return plugin;
 }
 
 export const PersonalLayout: ComponentType<Record<string, unknown>> =

@@ -2,13 +2,13 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium, type Page } from "playwright-core";
 import sharp from "sharp";
-import { renderChatPage } from "../interfaces/web-chat/src/chat-page";
-import { renderEditorShellHtml } from "../plugins/cms/src/editor-shell";
+import { renderChatPage } from "@brains/web-chat";
+import { renderEditorShellHtml } from "@brains/cms";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
-} from "../plugins/dashboard/src/dashboard-page";
-import { createMockAppInfo } from "../shared/test-utils/src/mock-app-info";
+} from "@brains/dashboard";
+import { createMockAppInfo } from "@brains/test-utils";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
@@ -494,11 +494,16 @@ const server = Bun.serve({
           id === "cards" ? cardMessages : id === "empty" ? [] : messages,
       });
     }
-    if (url.pathname === "/cms")
+    if (
+      url.pathname === "/cms" ||
+      url.pathname.startsWith("/cms/entities/") ||
+      url.pathname.startsWith("/cms/workspaces/")
+    )
       return new Response(
         climateHtml(
           renderEditorShellHtml({
             assetPath: "/cms/assets/cms-app.js",
+            basePath: "/cms",
             surfaces: activeSurfaces("cms"),
             sessionHref: "/logout",
           }),
@@ -680,12 +685,14 @@ try {
         );
         const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
         const route =
-          surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
-        const hash = isCmsEditor
-          ? "#/posts/field-notes"
-          : isChat
-            ? `#s/${conversationId}`
-            : "";
+          surface === "dashboard"
+            ? "/dashboard"
+            : isChat
+              ? "/chat"
+              : isCmsEditor
+                ? "/cms/entities/posts/field-notes"
+                : "/cms";
+        const hash = isChat ? `#s/${conversationId}` : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },

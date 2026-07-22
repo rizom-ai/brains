@@ -313,32 +313,28 @@ function getBatchSourcePolicy(params: {
   sourceRolePolicies: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
   sourceRoleOverrides: Record<string, ProjectionSourceRole>;
 }): { weight: number; canMint: boolean } {
-  const hasLegacyPolicy =
-    Object.keys(params.sourceWeights).length > 0 ||
-    params.mintableEntityTypes.size > 0;
+  // Each deprecated field overrides only its own dimension: a config that
+  // sets sourceWeights alone must not silently empty the mint allow-list.
+  const hasLegacyWeights = Object.keys(params.sourceWeights).length > 0;
+  const hasLegacyMintList = params.mintableEntityTypes.size > 0;
 
   return params.batch.reduce<{ weight: number; canMint: boolean }>(
     (policy, entity) => {
-      if (hasLegacyPolicy) {
-        return {
-          weight: Math.max(
-            policy.weight,
-            params.sourceWeights[entity.entityType] ?? 1,
-          ),
-          canMint:
-            policy.canMint || params.mintableEntityTypes.has(entity.entityType),
-        };
-      }
-
       const config = params.getEntityTypeConfig(entity.entityType);
       const role =
         params.sourceRoleOverrides[entity.entityType] ??
         config.projectionSourceRole ??
         (config.projectionSource === false ? "excluded" : "primary");
       const rolePolicy = params.sourceRolePolicies[role];
+      const weight = hasLegacyWeights
+        ? (params.sourceWeights[entity.entityType] ?? 1)
+        : rolePolicy.weight;
+      const canMint = hasLegacyMintList
+        ? params.mintableEntityTypes.has(entity.entityType)
+        : rolePolicy.canMint;
       return {
-        weight: Math.max(policy.weight, rolePolicy.weight),
-        canMint: policy.canMint || rolePolicy.canMint,
+        weight: Math.max(policy.weight, weight),
+        canMint: policy.canMint || canMint,
       };
     },
     { weight: 0, canMint: false },

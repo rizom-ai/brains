@@ -8,6 +8,7 @@ import type {
 import { CMS_WORKSPACE_REGISTER_MESSAGE, ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CmsEntityDisplayMap } from "./config";
+import { cmsWorkspacePath } from "./cms-paths";
 import { createEditorRoutes } from "./editor-routes";
 import { CmsWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
@@ -86,7 +87,7 @@ export class CmsPlugin extends ServicePlugin<
         return {
           success: true,
           data: {
-            workspaceUrl: `${this.config.routePath}#/workspace/${encodeURIComponent(workspace.id)}`,
+            workspaceUrl: cmsWorkspacePath(this.config.routePath, workspace.id),
           },
         };
       } catch (error) {

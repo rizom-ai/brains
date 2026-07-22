@@ -104,7 +104,7 @@ describe("optional CMS workspaces", () => {
 
     expect(response).toEqual({
       success: true,
-      data: { workspaceUrl: "/studio#/workspace/publishing" },
+      data: { workspaceUrl: "/studio/workspaces/publishing" },
     });
   });
 

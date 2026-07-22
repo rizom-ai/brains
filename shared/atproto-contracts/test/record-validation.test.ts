@@ -35,6 +35,34 @@ const lexicon = parseAtprotoLexicon({
   },
 });
 
+const refLexicon = parseAtprotoLexicon({
+  lexicon: 1,
+  id: "ai.rizom.brain.refTest",
+  defs: {
+    main: {
+      type: "record",
+      key: "tid",
+      record: {
+        type: "object",
+        required: ["detail", "createdAt"],
+        properties: {
+          detail: { type: "ref", ref: "#detail" },
+          dangling: { type: "ref", ref: "#missing" },
+          createdAt: { type: "string", format: "datetime" },
+        },
+      },
+    },
+    detail: {
+      type: "object",
+      required: ["label"],
+      properties: {
+        label: { type: "string", maxLength: 20 },
+        kind: { type: "string", knownValues: ["one", "two"] },
+      },
+    },
+  },
+});
+
 describe("ATProto Zod-backed record schemas", () => {
   it("exports one canonical record schema for every canonical lexicon", () => {
     expect(Object.keys(canonicalAtprotoRecordSchemas).sort()).toEqual(
@@ -226,6 +254,124 @@ describe("ATProto Zod-backed record schemas", () => {
         anchorDid: "did:web:brain.example.com:anchor",
         a2aEndpoint: "https://brain.example.com/a2a",
         agentCardUrl: "https://brain.example.com/.well-known/agent-card.json",
+      }),
+    ).toThrow();
+  });
+
+  it("validates ref-typed fields against their named object defs", () => {
+    const schema = buildAtprotoRecordSchema(refLexicon);
+    const createdAt = "2026-05-31T10:00:00.000Z";
+
+    expect(() =>
+      schema.parse({ detail: { label: "Valid", kind: "one" }, createdAt }),
+    ).not.toThrow();
+    expect(() =>
+      schema.parse({ detail: "not-an-object", createdAt }),
+    ).toThrow();
+    expect(() => schema.parse({ detail: {}, createdAt })).toThrow();
+    expect(() =>
+      schema.parse({
+        detail: { label: "this label is far too long for the def" },
+        createdAt,
+      }),
+    ).toThrow();
+    expect(() =>
+      schema.parse({ detail: { label: "Valid", kind: "three" }, createdAt }),
+    ).toThrow();
+  });
+
+  it("fails closed on unresolvable refs", () => {
+    const schema = buildAtprotoRecordSchema(refLexicon);
+    const createdAt = "2026-05-31T10:00:00.000Z";
+
+    expect(() =>
+      schema.parse({
+        detail: { label: "Valid" },
+        dangling: { anything: true },
+        createdAt,
+      }),
+    ).toThrow();
+    // Absent optional field with a dangling ref does not block the record.
+    expect(() =>
+      schema.parse({ detail: { label: "Valid" }, createdAt }),
+    ).not.toThrow();
+  });
+
+  it("rejects canonical brain cards with malformed ref-typed identity", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
+    const validCard = {
+      $type: "ai.rizom.brain.card",
+      siteUrl: "https://brain.example.com",
+      brain: {
+        did: "did:web:brain.example.com",
+        name: "Test Brain",
+        role: "assistant",
+        purpose: "Help with testing",
+        values: ["reliable"],
+      },
+      anchor: {
+        did: "did:web:brain.example.com:anchor",
+        name: "Test Owner",
+        kind: "professional",
+      },
+      skills: [],
+      model: "test-brain",
+      version: "1.0.0",
+      createdAt: "2026-05-31T10:00:00.000Z",
+    };
+
+    expect(() =>
+      schema.parse({ ...validCard, brain: "not-an-object" }),
+    ).toThrow();
+    expect(() => schema.parse({ ...validCard, anchor: {} })).toThrow();
+    expect(() =>
+      schema.parse({
+        ...validCard,
+        anchor: { ...validCard.anchor, kind: "invalid-kind" },
+      }),
+    ).toThrow();
+    expect(() => schema.parse({ ...validCard, skills: [42] })).toThrow();
+    expect(() =>
+      schema.parse({
+        ...validCard,
+        skills: [{ id: "s1", name: "Skill" }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects canonical link records with malformed ref-typed source", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.link"];
+    const validLink = {
+      $type: "ai.rizom.brain.link",
+      title: "Link",
+      url: "https://example.com",
+      createdAt: "2026-05-31T10:00:00.000Z",
+    };
+
+    expect(() => schema.parse({ ...validLink, source: 123 })).toThrow();
+    expect(() =>
+      schema.parse({ ...validLink, source: { ref: "conv-1" } }),
+    ).toThrow();
+    expect(() =>
+      schema.parse({
+        ...validLink,
+        source: { ref: "conv-1", label: "Conversation" },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects canonical post records with malformed ref-typed coverImage", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.post"];
+
+    expect(() =>
+      schema.parse({
+        $type: "ai.rizom.brain.post",
+        title: "Post",
+        body: "# Post",
+        sourceEntityType: "post",
+        sourceEntityId: "post-1",
+        createdAt: "2026-05-31T10:00:00.000Z",
+        coverImage: "garbage",
       }),
     ).toThrow();
   });

@@ -321,10 +321,15 @@ export class ApiError extends Error {
   }
 }
 
+let cmsApiBasePath = "/cms";
+
+/** Configure the API mount from the server-rendered CMS shell. */
+export function configureCmsApiBasePath(routePath: string): void {
+  cmsApiBasePath = routePath === "/" ? "" : routePath.replace(/\/+$/, "");
+}
+
 export function cmsApiPath(suffix: string, routePath?: string): string {
-  const pathname =
-    routePath ??
-    (typeof window === "undefined" ? "/cms" : window.location.pathname);
+  const pathname = routePath ?? cmsApiBasePath;
   const base = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
   return `${base}/api/${suffix.replace(/^\/+/, "")}`;
 }

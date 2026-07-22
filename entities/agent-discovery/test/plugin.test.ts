@@ -2,6 +2,7 @@ import { afterEach, describe, it, expect } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   createPluginHarness,
   expectConfirmation,
@@ -681,7 +682,7 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
-  it("should register dashboard widgets on plugins ready", async () => {
+  it("should register dashboard widgets on plugins-registered", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
     const registrations: Array<{
@@ -714,7 +715,7 @@ describe("AgentDiscoveryPlugin", () => {
     });
 
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "shell");
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
 
     expect(registrations).toEqual([
       {

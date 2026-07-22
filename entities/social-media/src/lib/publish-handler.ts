@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishProvider } from "@brains/contracts";
 import {
@@ -18,9 +18,9 @@ export function registerWithPublishPipeline(
     return;
   }
 
-  // Defer to system:plugins:ready so content-pipeline has subscribed
+  // Defer to plugins-registered so content-pipeline has subscribed
   // to publish:register before we send it (order-independent)
-  context.messaging.subscribe("system:plugins:ready", async () => {
+  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
     const provider = providers.values().next().value;
 
     await context.messaging.send({

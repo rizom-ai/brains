@@ -68,7 +68,7 @@ Secrets should be supplied through environment variables or app secret configura
 
 The plugin exposes no agent tools. When `identifier` and `appPassword` are configured, it publishes automatically:
 
-- `system:plugins:ready` upserts the public brain card as `ai.rizom.brain.card/self`. On the designated lexicon authority, it also converges canonical schemas under `com.atproto.lexicon.schema/<nsid>`.
+- the plugin `ready()` lifecycle hook upserts the public brain card as `ai.rizom.brain.card/self`. On the designated lexicon authority, it also converges canonical schemas under `com.atproto.lexicon.schema/<nsid>`.
 - `publish:completed` upserts the source entity when its entity package has registered an ATProto projection and the entity is public.
 - `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record.
 - `entity:deleted` deletes the projected record when the deleted entity was public.
