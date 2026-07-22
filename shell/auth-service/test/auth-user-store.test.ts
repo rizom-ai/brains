@@ -10,6 +10,7 @@ import {
   setupTokens,
 } from "../src/runtime-schema";
 import { setupTokenId } from "../src/setup-state-store";
+import { TargetedSetupService } from "../src/targeted-setup-service";
 import { AuthUserStore } from "../src/user-store";
 import { sha256Hex } from "@brains/utils/hash";
 
@@ -26,6 +27,7 @@ async function withUserStore<T>(
     store: AuthUserStore,
     database: AuthRuntimeDatabase,
     identities: AuthIdentityStore,
+    targetedSetup: TargetedSetupService,
   ) => Promise<T>,
 ): Promise<T> {
   const database = new AuthRuntimeDatabase({
@@ -35,9 +37,10 @@ async function withUserStore<T>(
   try {
     const identities = new AuthIdentityStore(database.db);
     return await callback(
-      new AuthUserStore(database.db, identities),
+      new AuthUserStore(database.db),
       database,
       identities,
+      new TargetedSetupService(database.db, identities),
     );
   } finally {
     await database.stop();
@@ -189,7 +192,7 @@ describe("AuthUserStore", () => {
   });
 
   it("atomically binds a confirmed setup delivery and activates its invited user", async () => {
-    await withUserStore(async (store, database, identities) => {
+    await withUserStore(async (store, database, identities, targetedSetup) => {
       const user = await store.createUser({
         displayName: "Invited Person",
         role: "trusted",
@@ -221,7 +224,7 @@ describe("AuthUserStore", () => {
         deliveryId: "email_1",
       });
 
-      const completed = await store.completeTargetedSetup({
+      const completed = await targetedSetup.complete({
         userId: user.id,
         setupTokenId: tokenHash,
       });
@@ -262,7 +265,7 @@ describe("AuthUserStore", () => {
       );
 
       await expectRejectsWithMessage(
-        store.completeTargetedSetup({
+        targetedSetup.complete({
           userId: user.id,
           setupTokenId: tokenHash,
         }),
@@ -272,7 +275,7 @@ describe("AuthUserStore", () => {
   });
 
   it("refuses wrong-user and suspended setup delivery claims without consuming them", async () => {
-    await withUserStore(async (store, database, identities) => {
+    await withUserStore(async (store, database, identities, targetedSetup) => {
       const owner = await store.createUser({
         displayName: "Claim Owner",
         role: "trusted",
@@ -310,7 +313,7 @@ describe("AuthUserStore", () => {
       });
 
       await expectRejectsWithMessage(
-        store.completeTargetedSetup({
+        targetedSetup.complete({
           userId: target.id,
           setupTokenId: wrongTokenHash,
         }),
@@ -318,7 +321,7 @@ describe("AuthUserStore", () => {
       );
       await store.updateUserStatus(target.id, "suspended");
       await expectRejectsWithMessage(
-        store.completeTargetedSetup({
+        targetedSetup.complete({
           userId: target.id,
           setupTokenId: wrongTokenHash,
         }),
@@ -348,7 +351,7 @@ describe("AuthUserStore", () => {
         createdAt: Math.floor(Date.now() / 1000),
       });
       await expectRejectsWithMessage(
-        store.completeTargetedSetup({
+        targetedSetup.complete({
           userId: owner.id,
           setupTokenId: undeliveredTokenHash,
         }),

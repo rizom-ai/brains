@@ -92,6 +92,7 @@ import {
   type PasskeySetupRequired,
   type ResolvedSetupToken,
 } from "./setup-flow";
+import { TargetedSetupService } from "./targeted-setup-service";
 import type {
   A2APrivateJwk,
   AuthorizationServerMetadata,
@@ -198,6 +199,7 @@ export class AuthService {
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
   private identityStore: AuthIdentityStore | undefined;
+  private targetedSetupService: TargetedSetupService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
@@ -364,6 +366,7 @@ export class AuthService {
     await this.oauthEndpoints.stopClientMaintenance();
     this.userStore = undefined;
     this.identityStore = undefined;
+    this.targetedSetupService = undefined;
     this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
@@ -379,7 +382,8 @@ export class AuthService {
     }
     await this.runtimeDatabase.start();
     this.identityStore = new AuthIdentityStore(this.runtimeDatabase.db);
-    this.userStore = new AuthUserStore(
+    this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.targetedSetupService = new TargetedSetupService(
       this.runtimeDatabase.db,
       this.identityStore,
     );
@@ -405,6 +409,13 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.identityStore;
+  }
+
+  private getTargetedSetupService(): TargetedSetupService {
+    if (!this.targetedSetupService) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.targetedSetupService;
   }
 
   private getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -1248,7 +1259,7 @@ export class AuthService {
   private async validateTargetedRegistration(
     setup: ResolvedSetupToken & { targetUserId: string },
   ): Promise<void> {
-    await this.getUserStore().validateTargetedSetup({
+    await this.getTargetedSetupService().validate({
       userId: setup.targetUserId,
       setupTokenId: setupTokenId(setup.token),
     });
@@ -1258,7 +1269,7 @@ export class AuthService {
     setup: ResolvedSetupToken & { targetUserId: string },
   ): Promise<void> {
     const before = await this.getUserStore().getUser(setup.targetUserId);
-    const completed = await this.getUserStore().completeTargetedSetup({
+    const completed = await this.getTargetedSetupService().complete({
       userId: setup.targetUserId,
       setupTokenId: setupTokenId(setup.token),
     });

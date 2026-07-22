@@ -111,7 +111,7 @@ Non-blocking cleanup surfaced by the merge-readiness pass over the six hardening
 
 - [x] **De-duplicate `updateUserRole` / `updateUserStatus`** [fixed] — both methods delegate to one `applyGuardedUserMutation` path for personal-Anchor and last-active-Admin checks. Mixed concurrent role/status coverage verifies that only one removal succeeds and an active Admin remains.
 - [x] **Extract `AuthIdentityStore`** [cohesion split] — the identity/evidence/claims cluster (`ensureIdentity`, `attachIdentity`, `list/detach/resolveIdentity*`, plus the `identityRecordFromEvidence` / `normalizeIdentityKey` / `hashIdentityKey` helpers) now lives in its own bounded store over `authIdentities` + `authIdentityEvidence`. `AuthService` composes the user and identity stores independently, while each store keeps its own narrow user lookup; `user-store.ts` is reduced to the user/person, Anchor, invariant, and still-to-move targeted-setup responsibilities.
-- [ ] **Relocate targeted-setup completion to the setup domain** [altitude] — `validateTargetedSetup` / `completeTargetedSetup` and the free `resolveTargetedSetup` / `requireTargetedSetupContext` helpers operate on `setupTokens` / `setupTokenDeliveries` and belong beside `setup-flow.ts` / `setup-state-store.ts`, not in the user store.
+- [x] **Relocate targeted-setup completion to the setup domain** [altitude] — `TargetedSetupService` now owns delivery validation, atomic user activation, identity verification, and token consumption beside `setup-flow.ts` / `setup-state-store.ts`. `AuthService` composes it directly, leaving `AuthUserStore` independent of setup tokens, delivery records, and identity evidence.
 
 Sequencing: setup-delivery binding is committed and green, so these decomposition items are now unblocked.
 
