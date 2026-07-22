@@ -285,6 +285,33 @@ describe("SiteBuilderPlugin", () => {
         },
       ),
     ).rejects.toThrow("Invalid site workspace action");
+    expect(
+      actionHandler(
+        { type: "build-preview" },
+        {
+          interfaceType: "cms",
+          userId: "viewer",
+          userPermissionLevel: "public",
+        },
+      ),
+    ).rejects.toThrow("Site build requires anchor permission");
+    expect(
+      await actionHandler(
+        { type: "build-production", confirmed: true },
+        {
+          interfaceType: "cms",
+          userId: "operator",
+          userPermissionLevel: "anchor",
+        },
+      ),
+    ).toEqual({ accepted: true, environment: "production" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(await registration.dataProvider()).toMatchObject({
+      environments: [
+        { environment: "preview", active: { state: "queued" } },
+        { environment: "production", active: { state: "queued" } },
+      ],
+    });
     expect(dashboardWidget).toMatchObject({
       id: "site-health",
       group: "publishing",
