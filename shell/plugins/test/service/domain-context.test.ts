@@ -64,14 +64,14 @@ describe("Top-level context properties", () => {
       expect(context.previewUrl).toBeUndefined();
     });
 
-    it("should handle subdomain domains", () => {
+    it("should use a sibling preview host for rizom.ai tenants", () => {
       const shell = createMockShell({
         logger,
         domain: "recall.rizom.ai",
       });
       const context = createBasePluginContext(shell, "test-plugin");
 
-      expect(context.previewUrl).toBe("https://preview.recall.rizom.ai");
+      expect(context.previewUrl).toBe("https://recall-preview.rizom.ai");
     });
   });
 
