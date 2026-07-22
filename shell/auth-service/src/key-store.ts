@@ -1,7 +1,5 @@
 import { generateKeyPairSync } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { and, eq } from "drizzle-orm";
 import type { AuthRuntimeDatabase } from "./runtime-db";
@@ -12,9 +10,6 @@ import type {
   OAuthPrivateJwk,
   OAuthPublicJwk,
 } from "./types";
-
-const DEFAULT_KEY_FILE = "oauth-signing-key.jwk";
-const DEFAULT_A2A_KEY_FILE = "a2a-signing-key.jwk";
 
 const oauthPrivateJwkSchema = z.object({
   kty: z.literal("EC"),
@@ -32,12 +27,6 @@ const a2aPrivateJwkSchema = z.object({
   d: z.string(),
   kid: z.string().optional(),
 });
-
-export interface AuthKeyStoreOptions {
-  storageDir: string;
-  keyFile?: string;
-  runtimeDatabase?: AuthRuntimeDatabase;
-}
 
 function ecThumbprint(
   publicJwk: Pick<OAuthPublicJwk, "crv" | "kty" | "x" | "y">,
@@ -147,17 +136,12 @@ function normalizeA2APrivateJwk(
 }
 
 export class AuthKeyStore {
-  private readonly keyFile: string;
-  private readonly runtimeDatabase: AuthRuntimeDatabase | undefined;
+  private readonly runtimeDatabase: AuthRuntimeDatabase;
   private cachedKey: OAuthPrivateJwk | undefined;
   private loadPromise: Promise<OAuthPrivateJwk> | undefined;
 
-  constructor(options: AuthKeyStoreOptions) {
-    this.keyFile = join(
-      options.storageDir,
-      options.keyFile ?? DEFAULT_KEY_FILE,
-    );
-    this.runtimeDatabase = options.runtimeDatabase;
+  constructor(runtimeDatabase: AuthRuntimeDatabase) {
+    this.runtimeDatabase = runtimeDatabase;
   }
 
   async getPrivateJwk(): Promise<OAuthPrivateJwk> {
@@ -174,23 +158,6 @@ export class AuthKeyStore {
   }
 
   private async loadOrCreateKey(): Promise<OAuthPrivateJwk> {
-    if (this.runtimeDatabase) {
-      return this.loadOrCreateDatabaseKey();
-    }
-
-    const existing = await this.readExistingKey();
-    if (existing) return existing;
-
-    const generated = await generateOAuthPrivateJwk();
-    await writePrivateJwk(this.keyFile, generated);
-    return generated;
-  }
-
-  private async loadOrCreateDatabaseKey(): Promise<OAuthPrivateJwk> {
-    if (!this.runtimeDatabase) {
-      throw new Error("Auth runtime database is not configured");
-    }
-
     await this.runtimeDatabase.start();
     const [active] = await this.runtimeDatabase.db
       .select()
@@ -206,8 +173,7 @@ export class AuthKeyStore {
       return this.parseStoredKey(active.privateJwk, active.kid);
     }
 
-    const key =
-      (await this.readExistingKey()) ?? (await generateOAuthPrivateJwk());
+    const key = await generateOAuthPrivateJwk();
     await this.runtimeDatabase.db.insert(oauthSigningKeys).values({
       kid: key.kid,
       purpose: "oauth",
@@ -238,39 +204,15 @@ export class AuthKeyStore {
     }
     return normalized;
   }
-
-  private async readExistingKey(): Promise<OAuthPrivateJwk | undefined> {
-    try {
-      const parsed = oauthPrivateJwkSchema.safeParse(
-        JSON.parse(await readFile(this.keyFile, "utf8")),
-      );
-      if (!parsed.success) {
-        throw new Error(
-          `OAuth signing key at ${this.keyFile} is not a private P-256 JWK`,
-        );
-      }
-      return normalizeOAuthPrivateJwk(parsed.data);
-    } catch (error) {
-      if (isFileNotFound(error)) {
-        return undefined;
-      }
-      throw error;
-    }
-  }
 }
 
 export class A2AKeyStore {
-  private readonly keyFile: string;
-  private readonly runtimeDatabase: AuthRuntimeDatabase | undefined;
+  private readonly runtimeDatabase: AuthRuntimeDatabase;
   private cachedKey: A2APrivateJwk | undefined;
   private loadPromise: Promise<A2APrivateJwk> | undefined;
 
-  constructor(options: AuthKeyStoreOptions) {
-    this.keyFile = join(
-      options.storageDir,
-      options.keyFile ?? DEFAULT_A2A_KEY_FILE,
-    );
-    this.runtimeDatabase = options.runtimeDatabase;
+  constructor(runtimeDatabase: AuthRuntimeDatabase) {
+    this.runtimeDatabase = runtimeDatabase;
   }
 
   async getPrivateJwk(): Promise<A2APrivateJwk> {
@@ -287,23 +229,6 @@ export class A2AKeyStore {
   }
 
   private async loadOrCreateKey(): Promise<A2APrivateJwk> {
-    if (this.runtimeDatabase) {
-      return this.loadOrCreateDatabaseKey();
-    }
-
-    const existing = await this.readExistingKey();
-    if (existing) return existing;
-
-    const generated = generateA2APrivateJwk();
-    await writePrivateJwk(this.keyFile, generated);
-    return generated;
-  }
-
-  private async loadOrCreateDatabaseKey(): Promise<A2APrivateJwk> {
-    if (!this.runtimeDatabase) {
-      throw new Error("Auth runtime database is not configured");
-    }
-
     await this.runtimeDatabase.start();
     const [active] = await this.runtimeDatabase.db
       .select()
@@ -319,7 +244,7 @@ export class A2AKeyStore {
       return this.parseStoredKey(active.privateJwk, active.kid);
     }
 
-    const key = (await this.readExistingKey()) ?? generateA2APrivateJwk();
+    const key = generateA2APrivateJwk();
     await this.runtimeDatabase.db.insert(oauthSigningKeys).values({
       kid: key.kid,
       purpose: "a2a",
@@ -350,38 +275,4 @@ export class A2AKeyStore {
     }
     return normalized;
   }
-
-  private async readExistingKey(): Promise<A2APrivateJwk | undefined> {
-    try {
-      const parsed = a2aPrivateJwkSchema.safeParse(
-        JSON.parse(await readFile(this.keyFile, "utf8")),
-      );
-      if (!parsed.success) {
-        throw new Error(
-          `A2A signing key at ${this.keyFile} is not a private Ed25519 JWK`,
-        );
-      }
-      return normalizeA2APrivateJwk(parsed.data);
-    } catch (error) {
-      if (isFileNotFound(error)) {
-        return undefined;
-      }
-      throw error;
-    }
-  }
-}
-
-async function writePrivateJwk(
-  keyFile: string,
-  jwk: OAuthPrivateJwk | A2APrivateJwk,
-): Promise<void> {
-  await mkdir(dirname(keyFile), { recursive: true, mode: 0o700 });
-  await writeFile(keyFile, `${JSON.stringify(jwk, null, 2)}\n`, {
-    mode: 0o600,
-  });
-  await chmod(keyFile, 0o600);
-}
-
-function isFileNotFound(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

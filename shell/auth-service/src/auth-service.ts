@@ -2,7 +2,6 @@ import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
-import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
@@ -16,23 +15,14 @@ import type {
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
-import {
-  AuthorizationCodeStore,
-  RuntimeAuthorizationCodeStore,
-} from "./auth-code-store";
-import { OAuthClientStore, RuntimeOAuthClientStore } from "./client-store";
+import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
+import { RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
-import {
-  LEGACY_AUTH_FILES_IMPORT,
-  LEGACY_SETUP_DELIVERIES_IMPORT,
-  LegacyAuthImportStore,
-} from "./legacy-import-store";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
 } from "./passkey-service";
-import { PasskeyStore } from "./passkey-store";
 import {
   InterfacePrincipalStore,
   type ConfiguredInterfacePrincipals,
@@ -40,7 +30,6 @@ import {
 } from "./interface-principal-store";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
 import {
-  A2APeerTrustStore,
   RuntimeA2APeerTrustStore,
   type A2APeerTrustRecord,
   type GrantA2APeerTrustInput,
@@ -62,17 +51,9 @@ import {
   type CreateAuthUserInput,
   type ResolveAuthIdentityInput,
 } from "./user-store";
+import { RuntimeRefreshTokenStore } from "./refresh-token-store";
+import { RuntimeSetupStateStore, setupTokenId } from "./setup-state-store";
 import {
-  RefreshTokenStore,
-  RuntimeRefreshTokenStore,
-} from "./refresh-token-store";
-import {
-  RuntimeSetupStateStore,
-  SetupStateStore,
-  setupTokenId,
-} from "./setup-state-store";
-import {
-  AuthSessionStore,
   clearAuthSessionCookies,
   RuntimeAuthSessionStore,
   type AuthSessionRecord,
@@ -118,7 +99,7 @@ import type {
 
 export type { PasskeySetupRequired } from "./setup-flow";
 
-const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
+const LEGACY_SINGLE_OPERATOR_SUBJECT = "single-operator";
 const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
 
 export interface AuthPrincipal {
@@ -222,20 +203,12 @@ export class AuthService {
   private closePromise: Promise<void> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
-  private readonly legacyClientStore: OAuthClientStore;
   private readonly clientStore: RuntimeOAuthClientStore;
-  private readonly legacyAuthCodeStore: AuthorizationCodeStore;
   private readonly authCodeStore: RuntimeAuthorizationCodeStore;
-  private readonly legacySessionStore: AuthSessionStore;
   private readonly sessionStore: RuntimeAuthSessionStore;
-  private readonly legacyRefreshTokenStore: RefreshTokenStore;
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
-  private readonly legacyPeerTrustStore: A2APeerTrustStore;
   private readonly peerTrustStore: RuntimeA2APeerTrustStore;
-  private readonly legacyPasskeyStore: PasskeyStore;
-  private readonly legacyImportStore: LegacyAuthImportStore;
   private readonly passkeyService: PasskeyService;
-  private readonly legacySetupStateStore: SetupStateStore;
   private readonly setupStateStore: RuntimeSetupStateStore;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
@@ -259,47 +232,18 @@ export class AuthService {
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
     });
-    this.keyStore = new AuthKeyStore({
-      storageDir: options.storageDir,
-      runtimeDatabase: this.runtimeDatabase,
-    });
-    this.a2aKeyStore = new A2AKeyStore({
-      storageDir: options.storageDir,
-      runtimeDatabase: this.runtimeDatabase,
-    });
-    this.legacyClientStore = new OAuthClientStore({
-      storageDir: options.storageDir,
-    });
+    this.keyStore = new AuthKeyStore(this.runtimeDatabase);
+    this.a2aKeyStore = new A2AKeyStore(this.runtimeDatabase);
     this.clientStore = new RuntimeOAuthClientStore(this.runtimeDatabase);
-    this.legacyAuthCodeStore = new AuthorizationCodeStore({
-      storageDir: options.storageDir,
-    });
     this.authCodeStore = new RuntimeAuthorizationCodeStore(
       this.runtimeDatabase,
     );
-    this.legacySessionStore = new AuthSessionStore({
-      storageDir: options.storageDir,
-    });
     this.sessionStore = new RuntimeAuthSessionStore(this.runtimeDatabase);
-    this.legacyRefreshTokenStore = new RefreshTokenStore({
-      storageDir: options.storageDir,
-    });
     this.refreshTokenStore = new RuntimeRefreshTokenStore(this.runtimeDatabase);
-    this.legacyPeerTrustStore = new A2APeerTrustStore({
-      storageDir: options.storageDir,
-    });
     this.peerTrustStore = new RuntimeA2APeerTrustStore(this.runtimeDatabase);
-    this.legacyPasskeyStore = new PasskeyStore({
-      storageDir: options.storageDir,
-    });
-    this.legacyImportStore = new LegacyAuthImportStore(this.runtimeDatabase);
     this.passkeyService = new PasskeyService({
-      storageDir: options.storageDir,
       runtimeDatabase: this.runtimeDatabase,
       ...(options.logger ? { logger: options.logger } : {}),
-    });
-    this.legacySetupStateStore = new SetupStateStore({
-      storageDir: options.storageDir,
     });
     this.setupStateStore = new RuntimeSetupStateStore(this.runtimeDatabase);
     this.setupFlow = new SetupFlow({
@@ -385,33 +329,10 @@ export class AuthService {
   private async initializeInternal(): Promise<void> {
     await this.ensureUserStoreStarted();
     await this.projectConfiguredBrainAnchor();
-    const legacyImportComplete = await this.legacyImportStore.isComplete(
-      LEGACY_AUTH_FILES_IMPORT,
-    );
-    const legacySetupDeliveriesImportComplete =
-      await this.legacyImportStore.isComplete(LEGACY_SETUP_DELIVERIES_IMPORT);
-    if (!legacyImportComplete) {
-      await this.migrateLegacyPasskeys();
-      await this.migrateLegacySessions();
-      await this.migrateLegacyOAuthClients();
-      await this.migrateLegacyAuthorizationCodes();
-      await this.migrateLegacyRefreshTokens();
-      await this.migrateLegacySetupState();
-      await this.migrateLegacyPeerTrust();
-    }
     await Promise.all([
       this.keyStore.getPrivateJwk(),
       this.a2aKeyStore.getPrivateJwk(),
     ]);
-    if (!legacyImportComplete) {
-      await this.legacyImportStore.markComplete(LEGACY_AUTH_FILES_IMPORT);
-    }
-    if (!legacySetupDeliveriesImportComplete) {
-      if (legacyImportComplete) {
-        await this.migrateLegacySetupState();
-      }
-      await this.legacyImportStore.markComplete(LEGACY_SETUP_DELIVERIES_IMPORT);
-    }
     this.logger?.debug("Auth service signing keys loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
@@ -461,199 +382,6 @@ export class AuthService {
     );
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
-  }
-
-  private async migrateLegacyRecords<T>(
-    listRecords: () => Promise<readonly T[]>,
-    importRecord: (record: T) => Promise<boolean>,
-    label: string,
-    metadata?: () => Record<string, unknown>,
-  ): Promise<void> {
-    let migrated = 0;
-    for (const record of await listRecords()) {
-      if (await importRecord(record)) migrated += 1;
-    }
-
-    const details = metadata?.() ?? {};
-    const hasSkippedRecords = Object.values(details).some(
-      (value) => typeof value === "number" && value > 0,
-    );
-    if (migrated > 0 || hasSkippedRecords) {
-      this.logger?.info(label, { migrated, ...details });
-    }
-  }
-
-  private async migrateLegacyPasskeys(): Promise<void> {
-    let skipped = 0;
-    let adminUser: AuthUser | undefined;
-    await this.migrateLegacyRecords(
-      () => this.legacyPasskeyStore.listCredentials(),
-      async (credential): Promise<boolean> => {
-        const user =
-          credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (adminUser ??= await this.ensureFirstAdminUser())
-            : await this.getUserStore().getUser(credential.subject);
-        if (!user) {
-          skipped += 1;
-          return false;
-        }
-
-        const stored = await this.getCredentialStore().getPasskeyRecord(
-          credential.id,
-        );
-        if (stored && stored.userId !== user.id) {
-          skipped += 1;
-          return false;
-        }
-
-        if (!stored) {
-          await this.getCredentialStore().addPasskey({
-            id: credential.id,
-            userId: user.id,
-            publicKey: credential.public_key,
-            counter: credential.counter,
-            ...(credential.transports
-              ? { transports: credential.transports }
-              : {}),
-            credentialDeviceType: credential.credential_device_type,
-            credentialBackedUp: credential.credential_backed_up,
-            createdAt: legacyTimestampToMilliseconds(credential.created_at),
-            updatedAt: legacyTimestampToMilliseconds(credential.updated_at),
-          });
-          await this.getAuditStore().append({
-            action: "auth.passkey.migrated",
-            targetType: "passkey",
-            targetId: credential.id,
-            metadata: { userId: user.id },
-          });
-        } else if (stored.revokedAt !== undefined) {
-          return false;
-        }
-
-        await this.getUserStore().ensureIdentity({
-          userId: user.id,
-          type: "passkey",
-          subject: credential.id,
-          label: "Passkey credential",
-          verifiedAt: legacyTimestampToMilliseconds(credential.created_at),
-          source: { kind: "migration", id: "legacy-passkeys.json" },
-        });
-        return stored === undefined;
-      },
-      "Migrated legacy passkey credentials",
-      () => ({
-        skipped,
-        ...(adminUser ? { userId: adminUser.id } : {}),
-      }),
-    );
-  }
-
-  private async migrateLegacySessions(): Promise<void> {
-    let skipped = 0;
-    let adminUser: AuthUser | undefined;
-    await this.migrateLegacyRecords(
-      () => this.legacySessionStore.listSessions(),
-      async (session): Promise<boolean> => {
-        if (session.expires_at <= nowSeconds()) return false;
-        const user =
-          session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (adminUser ??= await this.ensureFirstAdminUser())
-            : await this.getUserStore().getUser(session.subject);
-        if (!user) {
-          skipped += 1;
-          return false;
-        }
-        return this.sessionStore.importSession(session, user.id);
-      },
-      "Migrated legacy browser sessions",
-      () => ({
-        skipped,
-        ...(adminUser ? { userId: adminUser.id } : {}),
-      }),
-    );
-  }
-
-  private async migrateLegacyOAuthClients(): Promise<void> {
-    await this.migrateLegacyRecords(
-      () => this.legacyClientStore.listClients(),
-      (client) => this.clientStore.importClient(client),
-      "Migrated legacy OAuth clients",
-    );
-  }
-
-  private async migrateLegacyAuthorizationCodes(): Promise<void> {
-    let skipped = 0;
-    let adminUser: AuthUser | undefined;
-    await this.migrateLegacyRecords(
-      () => this.legacyAuthCodeStore.listCodes(),
-      async (code): Promise<boolean> => {
-        if (code.consumed_at !== undefined || code.expires_at <= nowSeconds()) {
-          return false;
-        }
-        if (!(await this.clientStore.getClient(code.client_id))) {
-          skipped += 1;
-          return false;
-        }
-        const user =
-          code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-            ? (adminUser ??= await this.ensureFirstAdminUser())
-            : await this.getUserStore().getUser(code.subject);
-        if (!user) {
-          skipped += 1;
-          return false;
-        }
-        return this.authCodeStore.importCode(code, user.id);
-      },
-      "Migrated legacy OAuth authorization codes",
-      () => ({ skipped }),
-    );
-  }
-
-  private async migrateLegacyPeerTrust(): Promise<void> {
-    await this.migrateLegacyRecords(
-      () => this.legacyPeerTrustStore.listPeers(),
-      (peer) => this.peerTrustStore.importPeer(peer),
-      "Migrated legacy A2A peer trust",
-    );
-  }
-
-  private async migrateLegacySetupState(): Promise<void> {
-    await this.migrateLegacyRecords(
-      async () => [await this.legacySetupStateStore.getMigrationState()],
-      (state) => this.setupStateStore.importState(state),
-      "Migrated legacy passkey setup state",
-    );
-  }
-
-  private async migrateLegacyRefreshTokens(): Promise<void> {
-    let skippedLegacy = 0;
-    let skippedInvalid = 0;
-    await this.migrateLegacyRecords(
-      () => this.legacyRefreshTokenStore.listTokens(),
-      async (token): Promise<boolean> => {
-        if (
-          token.revoked_at !== undefined ||
-          token.expires_at <= nowSeconds()
-        ) {
-          return false;
-        }
-        if (token.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT) {
-          skippedLegacy += 1;
-          return false;
-        }
-        const [user, client] = await Promise.all([
-          this.getUserStore().getUser(token.subject),
-          this.clientStore.getClient(token.client_id),
-        ]);
-        if (!user || !client) {
-          skippedInvalid += 1;
-          return false;
-        }
-        return this.refreshTokenStore.importToken(token);
-      },
-      "Migrated legacy OAuth refresh tokens",
-      () => ({ skippedLegacy, skippedInvalid }),
-    );
   }
 
   private getUserStore(): AuthUserStore {
@@ -1323,7 +1051,7 @@ export class AuthService {
   ): Promise<CreateAuthSessionResult> {
     await this.ensureUserStoreStarted();
     const sessionSubject =
-      !subject || subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+      !subject || subject === LEGACY_SINGLE_OPERATOR_SUBJECT
         ? (await this.ensureFirstAdminUser()).id
         : subject;
     return this.sessionStore.createSession(sessionSubject, options);
@@ -1780,10 +1508,6 @@ function auditActor(context: AuthMutationContext): {
   actorUserId?: string;
 } {
   return context.actorUserId ? { actorUserId: context.actorUserId } : {};
-}
-
-function legacyTimestampToMilliseconds(timestamp: number): number {
-  return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
 }
 
 function brainAnchorSummary(

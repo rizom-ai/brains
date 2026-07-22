@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding is implemented. Standalone-grant Admin CRUD and automated provider delivery/resend remain follow-on work. Legacy JSON/JWK files remain immutable migration backups, never `AuthService` runtime truth.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Standalone-grant Admin CRUD and automated provider delivery/resend remain follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -14,7 +14,7 @@ The database is runtime state. It must never live under `brain-data`, be exporte
 
 ## Source of truth
 
-This plan owns auth-specific schema, auth storage APIs, JSON/JWK migration, and the `single-operator` to `usr_<uuid>` migration. Broader runtime storage location, deploy persistence, and backup/restore policy belong to [Operator runtime database](./operator-runtime-db.md). Product behavior, permissions, user-management UX, and attribution phases belong to [Multi-User & Permissions](./multi-user.md).
+This plan owns the auth-specific schema, auth storage APIs, clean JSON/JWK cutover, and `usr_<uuid>` subjects. Broader runtime storage location, deploy persistence, and backup/restore policy belong to [Operator runtime database](./operator-runtime-db.md). Product behavior, permissions, user-management UX, and attribution phases belong to [Multi-User & Permissions](./multi-user.md).
 
 ## Current baseline
 
@@ -38,7 +38,7 @@ Implemented on `feature/auth-runtime-db`:
 
 - Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, generated Drizzle Kit migration assets, and a release-gated one-time bridge for pre-Drizzle schemas.
 - Database-backed users, identities, passkeys, WebAuthn challenges, sessions, OAuth clients/codes/refresh tokens, setup tokens, OAuth and A2A signing keys, A2A peer trust, and structured audit events.
-- Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
+- Clean auth-file cutover: only `auth.db` is runtime truth; legacy JSON/JWK files remain untouched and require one-time re-onboarding rather than automatic import.
 - Transactional first-Admin creation, personal-Anchor binding, and last-active-Admin protection with concurrent mutation coverage.
 - Session, bearer, and linked-identity principal APIs with role/status revocation behavior.
 - Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and explicit `resolved`/`denied`/`unbound` identity handling so inactive or revoked bindings cannot fall through to static rules.
@@ -55,7 +55,7 @@ A local CLI and invitation delivery remain optional. Cross-consumer validation c
 
 ## Review findings — 2026-07-16
 
-High-effort multi-agent review of the full `main...HEAD` branch diff (8 finder angles, per-candidate adversarial verification). 17 findings confirmed against the code. The dominant theme: **this branch makes non-admin users possible for the first time (person promotion → invited user → passkey login), but several surfaces still equate "has a session cookie" with "is an Admin," turning previously-safe single-operator gates into privilege escalations.** A second cluster is that legacy JSON→DB migrations re-run unconditionally on every `initialize()`, so one bad or orphaned legacy row bricks startup or resurrects revoked state.
+High-effort multi-agent review of the full `main...HEAD` branch diff (8 finder angles, per-candidate adversarial verification). 17 findings confirmed against the code. The dominant theme: **this branch makes non-admin users possible for the first time (person promotion → invited user → passkey login), but several surfaces still equate "has a session cookie" with "is an Admin," turning previously-safe single-operator gates into privilege escalations.** A second cluster concerned the now-removed legacy JSON→DB import layer, where repeated imports could brick startup or resurrect revoked state.
 
 Each item is `file:line — problem → fix`. Verified severity in brackets.
 
@@ -65,14 +65,14 @@ Each item is `file:line — problem → fix`. Verified severity in brackets.
 - [x] **Sveltia token endpoint released the content-repo PAT to any session** [fixed] — passkey CMS shell/login gates and `/auth/cms-token` resolve the active principal and require Admin permission; non-Admin token requests return 403.
 - [x] **MCP trusted client-supplied `_meta.userId`** [fixed] — tool registration derives user identity only from the server-verified auth subject. Unauthenticated metadata receives the non-user `mcp-user` sentinel, with spoofing coverage.
 
-### P0 — Boot crash-loop / integrity (legacy migrations re-run every `initialize()`)
+### P0 — Boot crash-loop / integrity (legacy imports removed)
 
-Findings below share one root cause: `migrateLegacy*` imports run unconditionally on every startup with no "legacy import complete" marker. **Deeper fix that resolves the first and fourth together:** record legacy-import completion once (a row in `auth_schema_migrations` or a dedicated one-shot guard) so imports never re-read the immutable JSON after the first success. Individual fixes still listed in case the one-shot guard is deferred.
+The file-import findings below were first mitigated with one-shot guards, then eliminated by the 2026-07-22 clean-cutover decision. `AuthService` never reads legacy JSON/JWK files; existing operators re-onboard once.
 
-- [x] **Unknown legacy subjects caused startup failure** [fixed] — one-time legacy import now filters expired/consumed records before relationship lookup and aggregate-log-skips orphaned users rather than blocking auth startup.
-- [x] **Legacy grant FK failures blocked startup** [fixed] — authorization-code and refresh-token import verifies that the referenced client and user were imported before insertion, skips invalid relationships, and preserves the immutable backup.
-- [x] **`AuthRuntimeDatabase.start()` first-init race** [fixed] — startup now caches and reuses one in-flight promise, publishes the active client only after migration succeeds, and closes only the failed local client. Concurrent-start coverage verifies one initialization path.
-- [x] **Revoked A2A peer trust resurrected on restart** [fixed] — `auth_legacy_imports` records successful completion of the immutable JSON/JWK import set. Later restarts never reread legacy trust grants; revocation persistence has restart coverage.
+- [x] **Unknown legacy subjects caused startup failure** [removed] — there is no file-import relationship lookup during startup.
+- [x] **Legacy grant FK failures blocked startup** [removed] — authorization codes and refresh tokens begin in `auth.db`; legacy files are never inserted.
+- [x] **`AuthRuntimeDatabase.start()` first-init race** [fixed] — startup caches and reuses one in-flight promise, publishes the active client only after migration succeeds, and closes only the failed local client. Concurrent-start coverage verifies one initialization path.
+- [x] **Revoked A2A peer trust resurrected on restart** [removed] — peer trust is read only from `auth.db`, so a stale JSON file cannot restore a revoked grant.
 
 ### P1 — Correctness / data loss
 
@@ -80,7 +80,7 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 - [x] **Conversation-memory recall loss for legacy participants** [fixed] — legacy summary/decision/action actor references now retain deduplicated opaque `ActorRef` aliases derived from historical actor/source ids, and retrieval matches those aliases without restoring raw provider subjects.
 - [x] **Action-item / decision attribution was lost for label-less actors** [fixed] — attribution matching now consistently falls back to the stable `actorRefKey`, matching the prompt speaker label without exposing or depending on raw legacy ids.
 - [x] **Already-delivered setup link was invalidated on restart** [fixed] — hidden setup URL retrieval now refuses to rotate while an active delivered token exists. Restart coverage keeps the delivered link valid and hash-only.
-- [x] **Per-recipient setup-delivery dedupe collapsed** [fixed] — `setup_token_deliveries` now retains one hash-only dedupe row per token and recipient, including provider delivery ids when available. The generated migration backfills the pre-normalized hash, while a one-shot compatibility import recovers every recipient still present in the immutable legacy setup-state backup.
+- [x] **Per-recipient setup-delivery dedupe collapsed** [fixed] — `setup_token_deliveries` retains one hash-only dedupe row per token and recipient, including provider delivery ids when available. The generated migration backfills existing database rows; legacy setup-state files are not imported.
 
 ### P2 — Efficiency
 
@@ -96,7 +96,7 @@ Findings below share one root cause: `migrateLegacy*` imports run unconditionall
 - [x] **ActorRef is flattened back to a stringly-typed `userId`** [fixed] — `ToolContext`, AI call options, tool events, MCP routing, create interceptors, and job metadata now carry a required discriminated `ActorRef`. The flattened `userId`/`canonicalId` context fields and agent/MCP sentinels were removed rather than deprecated. `authenticatedUserId(context)` is the only user projection policy; jobs retain `requestedByActor` for every actor kind and set `requestedByUserId` only for a user actor.
 - [x] **Divergent auth migration stack** [fixed] — the current schema is defined once in Drizzle, migration SQL/journal/snapshots are generated by Drizzle Kit, runtime startup uses the standard Drizzle migrator, and the CLI bundles the generated assets. A marker-detected pre-Drizzle bridge remains only until the compatibility release gate permits removal.
 - [x] **People administration is a management surface miscast as a dashboard tab** [fixed] — administration now lives in the standalone four-section `@brains/admin` React console at `/admin`; the monitoring dashboard no longer embeds People mutations, and the unreleased self-service representation view is removed.
-- [x] **Duplicated migration/hash scaffolding** [fixed] — legacy record imports now share one ordered `migrateLegacyRecords(lister, importer, label)` path for counting and structured logging while retaining record-specific validation. The former handwritten runtime migration runners were already removed by the generated Drizzle migration work. Persisted hex and base64url SHA-256 keys now use pinned shared utilities, preventing store-specific encoding drift.
+- [x] **Duplicated migration/hash scaffolding** [fixed] — the handwritten migration runners and later file-import layer are removed; generated Drizzle migrations are the only runtime schema path. Persisted hex and base64url SHA-256 keys use pinned shared utilities, preventing store-specific encoding drift.
 
 ### Refactoring follow-ups (2026-07-18 post-merge review)
 
@@ -113,15 +113,15 @@ Non-blocking cleanup surfaced by the merge-readiness pass over the six hardening
 - [ ] **Extract `AuthIdentityStore`** [cohesion split] — the identity/evidence/claims cluster (`ensureIdentity`, `attachIdentity`, `list/detach/resolveIdentity*`, plus the `identityRecordFromEvidence` / `normalizeIdentityKey` / `hashIdentityKey` helpers, ~220 loc) is a self-contained bounded context over `authIdentities` + `authIdentityEvidence`. Move it to its own store and let `AuthService` compose both; drops user-store to ~630. Coupling to migrate: the shared `requireUser` / `getUser` lookups — inject the db plus a user-lookup, or keep a thin `requireUser` on each store.
 - [ ] **Relocate targeted-setup completion to the setup domain** [altitude] — `validateTargetedSetup` / `completeTargetedSetup` and the free `resolveTargetedSetup` / `requireTargetedSetupContext` helpers operate on `setupTokens` / `setupTokenDeliveries` and belong beside `setup-flow.ts` / `setup-state-store.ts`, not in the user store.
 
-Sequencing: do these **after** the in-flight setup-delivery-binding WIP (currently uncommitted across `user-store.ts`, `setup-flow.ts`, `setup-state-store.ts`, the `0006` migration, and `setup-delivery-binding.test.ts`) is committed and green — it lands in exactly this region and the third item overlaps it directly.
+Sequencing: setup-delivery binding is committed and green, so these decomposition items are now unblocked.
 
 **`auth-service.ts` must come down from ~1812 loc (2026-07-22 review).** 1812 loc is not defensible as "it's the facade" — a composition root wires stores and delegates; it does not inline session/login orchestration, bearer resolution, identity reconciliation, setup delivery, and a whole migration importer. The size is inlined responsibility, and the target end state is a thin wiring + dispatch root (a few hundred loc) over domain services. Work, highest payoff first:
 
-- [x] **Decision: drop the legacy file→DB import entirely (clean cutover)** [decided 2026-07-22, biggest single cut] — the 7 `legacy*Store`s (`OAuthClientStore`, `AuthorizationCodeStore`, `AuthSessionStore`, `RefreshTokenStore`, `A2APeerTrustStore`, `PasskeyStore`, `SetupStateStore` legacy variants), `LegacyAuthImportStore`, their constructions, the `migrateLegacy*` methods, and the ~140-loc import block (~L460-640) are removed. DB-backed auth never shipped, so there is no seamless-migration promise to honor; existing installs re-onboard once (re-register passkeys, re-approve MCP clients, re-login — the regenerated JWK key forces token re-auth anyway). Delete `legacy-import-store.ts` and the legacy file-store modules once no longer referenced. See revised **Migration strategy** below.
+- [x] **Drop the legacy file→DB import entirely (clean cutover)** [implemented 2026-07-22] — the seven JSON stores, JWK readers, `LegacyAuthImportStore`, import orchestration, and compatibility tests are removed. Generated migration `0007_numerous_namorita.sql` drops the obsolete import-marker table. DB-backed auth never shipped, so existing file-store installs re-onboard once: re-register passkeys, re-approve MCP clients, and re-login. `clean-cutover.test.ts` verifies malformed legacy files are ignored, remain unchanged, and cannot populate `auth.db`.
 - [ ] **Extract domain services from the remaining orchestration** [the actual decomposition] — pull session/login, bearer/token verification, identity reconciliation, and user-role management out of `AuthService` into their own units, mirroring how `OAuthEndpoints` / `WebAuthnEndpoints` / `SetupFlow` are already separated. `AuthService` retains only construction, `initialize`/`close`, and `handleRequest` dispatch.
 - [ ] **Flatten `handleRequest` into a route table** [altitude] — the ~105-loc dispatcher already delegates to sub-handlers; a `{ method, path → handler }` table shrinks it without moving logic.
 
-`runtime-schema.ts` (~1113 loc) is genuinely fine — 21 pure `sqliteTable` definitions, zero logic; length is inherent to the table count, and a split would be arbitrary. It is the one large auth file the size rule does not indict.
+`runtime-schema.ts` (~1095 loc) is genuinely fine — 20 pure `sqliteTable` definitions, zero logic; length is inherent to the table count, and a split would be arbitrary. It is the one large auth file the size rule does not indict.
 
 ### OAuth surface — endpoint hardening (2026-07-16 endpoint audit)
 
@@ -145,8 +145,8 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 
 ### Cleared — do not re-litigate
 
-- **Refresh-token `single-operator` drop** (`auth-service.ts:507`) — **not a bug.** Deliberate, documented (plan lines 39/249, `multi-user.md:251`), logged as `skippedLegacy`. Forced one-time re-auth is the intended behavior.
-- **MCP access tokens with `single-operator` subject rejected post-migration** (`mcp-interface.ts:136`) — **intended one-time re-auth**, not a lockout: 15-min access-token TTL, and the operator's passkey is migrated to the first Admin user, so it's a one-time OAuth re-consent.
+- **File-store refresh tokens and access tokens are not imported** — **not a bug.** The clean cutover deliberately forces one-time re-authentication and OAuth re-consent.
+- **File-store passkeys are not imported** — **intended re-onboarding**, not silent data loss: DB-backed auth never shipped, legacy files remain untouched as optional manual backups, and the setup flow creates a new `usr_<uuid>` Admin.
 - **Drizzle `.notNull()` vs nullable `ALTER` on `person_id`** (`runtime-schema.ts:164`) — **refuted.** Migration 6 backfills every row and all insert paths set `person_id`; no NULL row is constructible.
 
 ### Completed: Admin permission + Anchor identity (multi-user decision 12)
@@ -213,7 +213,7 @@ The unreleased representation implementation has been replaced by the target pee
    - Content entities may reference safe public/person labels later, but never become the source of auth truth.
 3. **`usr_<uuid>` replaces `single-operator`.**
    - Fresh setup creates the first active admin user.
-   - Existing stores migrate lazily and revoke old `single-operator` refresh tokens.
+   - Existing file-store installs re-onboard once; pre-Drizzle database rows use the bounded schema bridge.
 4. **Identity binding is explicit.**
    - No display-name matching or inferred cross-platform linking.
    - Claiming a user-targeted setup link through verified email or Discord is an explicit binding ceremony; otherwise bindings require an authorized Admin/provider flow.
@@ -224,7 +224,7 @@ The unreleased representation implementation has been replaced by the target pee
    - Store raw provider tokens or subjects only when a concrete protocol requires them, and keep them runtime-private.
 6. **Role resolution is deny-by-default for authenticated or connected invalid users.**
    - A valid token/session or connected channel whose user is missing or suspended is denied.
-   - Unconnected interface-local callers may use only their standalone DB principal grant. Request-time config fallback remains a temporary migration bridge.
+   - Unconnected interface-local callers may use only their standalone DB principal grant. There is no request-time exact-config fallback.
 
 ## Data model sketch
 
@@ -409,28 +409,28 @@ Operators with old JSON auth files may keep them as a manual backup; nothing rea
 
 - Add auth DB open/close lifecycle and migrations.
 - Add repositories and tests against a temp SQLite DB.
-- Keep existing JSON stores as runtime source until migration code is ready.
+- Keep legacy JSON/JWK files untouched but outside runtime reads.
 
 Validation: migrations are idempotent; file permissions are private; DB opens in local and test environments.
 
 ### Phase 2 — Users and passkeys
 
-**Status: implemented.** Users, identities, first-Admin/passkey setup, passkey credentials/challenges, legacy subject rebinding, and transactional anchor invariants use the runtime database.
+**Status: implemented.** Users, identities, first-Admin/passkey setup, passkey credentials/challenges, and transactional Anchor invariants use the runtime database.
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
 - First setup creates an admin user and, for a personal brain, binds that person's Anchor identity.
 - New passkeys bind to user ids.
-- Migrate `single-operator` passkeys.
+- Require one-time passkey re-registration for file-store installs.
 - Add atomic last-active-Admin and personal-Anchor protection.
 
-Validation: fresh setup, login, and old passkey migration all produce `usr_<uuid>` subjects.
+Validation: fresh setup, re-onboarding, and login all produce `usr_<uuid>` subjects.
 
 ### Phase 3 — OAuth/session stores
 
-**Status: implemented.** OAuth/session/setup/signing stores use the runtime database, with idempotent legacy imports and revocation checks.
+**Status: implemented.** OAuth/session/setup/signing stores use the runtime database with no legacy file readers.
 
 - Move clients, auth codes, sessions, refresh tokens, setup tokens, and signing keys into DB-backed stores.
-- Revoke old `single-operator` refresh tokens.
+- Leave old file-store refresh tokens unreadable and force one-time re-authentication.
 - Add user-status checks for sessions and bearer tokens.
 - Revoke a user's sessions/refresh tokens when role/status/identity changes require it.
 
@@ -481,7 +481,7 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
   - `shell/auth-service/auth-session-compat.json` records the cookie and Drizzle-migration introduction releases plus the minimum supported upgrade version. The release workflow stamps introduction versions after the auth-service package is versioned.
   - Remove either the legacy cookie reader or pre-Drizzle database bridge only when the recorded minimum supported upgrade version is at least that compatibility path's introduction version.
 - [x] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to generic passkey/authenticated-session language.
-- [x] Keep `single-operator` only as an immutable historical migration alias.
+- [x] Keep `single-operator` only as a bounded API compatibility alias; never write it to runtime state.
 - [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as Admin.
 - [x] Add the `/admin` React console, Admin-only roster administration, canonical role labels plus a separate Anchor facet, route-derived console navigation, and a ⌘K Admin door.
 - [x] Replace current navigation with Overview, Members/People, Invitations, and Audit.

@@ -11,17 +11,13 @@ import {
 } from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { RuntimePasskeyStore } from "./credential-store";
 import {
-  base64UrlToBytes,
-  bytesToBase64Url,
-  PasskeyStore,
+  RuntimePasskeyStore,
   type StoredPasskeyCredential,
-} from "./passkey-store";
+} from "./credential-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
 const DEFAULT_USER_NAME = "Anchor";
-const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
 const DEFAULT_RP_NAME = "Brain";
 
 const clientDataSchema = z.looseObject({
@@ -29,8 +25,7 @@ const clientDataSchema = z.looseObject({
 });
 
 export interface PasskeyServiceOptions {
-  storageDir: string;
-  runtimeDatabase?: AuthRuntimeDatabase;
+  runtimeDatabase: AuthRuntimeDatabase;
   rpName?: string;
   logger?: Logger;
 }
@@ -57,14 +52,12 @@ export interface AuthenticationVerifyResult {
 }
 
 export class PasskeyService {
-  private readonly store: PasskeyStore | RuntimePasskeyStore;
+  private readonly store: RuntimePasskeyStore;
   private readonly rpName: string;
   private readonly logger: Logger | undefined;
 
   constructor(options: PasskeyServiceOptions) {
-    this.store = options.runtimeDatabase
-      ? new RuntimePasskeyStore(options.runtimeDatabase)
-      : new PasskeyStore({ storageDir: options.storageDir });
+    this.store = new RuntimePasskeyStore(options.runtimeDatabase);
     this.rpName = options.rpName ?? DEFAULT_RP_NAME;
     this.logger = options.logger;
   }
@@ -159,19 +152,6 @@ export class PasskeyService {
     return this.store.listCredentials();
   }
 
-  async rebindCredentialSubject(
-    fromSubject: string,
-    toSubject: string,
-    userName: string,
-  ): Promise<number> {
-    if (!(this.store instanceof PasskeyStore)) {
-      throw new Error(
-        "Runtime passkey subjects are managed through auth users",
-      );
-    }
-    return this.store.rebindCredentialSubject(fromSubject, toSubject, userName);
-  }
-
   async generateAuthenticationOptions(
     context: WebAuthnRequestContext,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
@@ -185,10 +165,7 @@ export class PasskeyService {
       })),
     });
 
-    await this.store.saveAuthenticationChallenge(
-      options.challenge,
-      AUTHENTICATION_CHALLENGE_SUBJECT,
-    );
+    await this.store.saveAuthenticationChallenge(options.challenge);
     return options;
   }
 
@@ -233,6 +210,19 @@ export class PasskeyService {
     );
     return { verified: true, subject: credential.subject };
   }
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("base64url");
+}
+
+function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
+  const buffer = Buffer.from(value, "base64url");
+  const arrayBuffer = buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  );
+  return new Uint8Array(arrayBuffer);
 }
 
 function toWebAuthnCredential(

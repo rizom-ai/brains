@@ -1,14 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
 import { and, eq, gt, inArray, isNull } from "drizzle-orm";
-import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
-import { z } from "@brains/utils/zod";
-import { join } from "node:path";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { authSessions } from "./runtime-schema";
 
-const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 export const AUTH_SESSION_COOKIE = "brains_auth_session";
 /**
@@ -31,19 +27,10 @@ export interface AuthSessionRecord {
   expires_at: number;
 }
 
-interface SessionStoreFile {
-  sessions: AuthSessionRecord[];
-}
-
 export interface CreateAuthSessionResult {
   subject: string;
   cookie: string;
   expiresAt: number;
-}
-
-export interface AuthSessionStoreOptions {
-  storageDir: string;
-  storeFile?: string;
 }
 
 export interface AuthSessionPersistence {
@@ -60,23 +47,6 @@ export interface AuthSessionPersistence {
 
 function hashToken(token: string): string {
   return sha256Base64Url(token);
-}
-
-const authSessionRecordSchema = z.looseObject({
-  id: z.string(),
-  token_hash: z.string(),
-  subject: z.string(),
-  created_at: z.number(),
-  expires_at: z.number(),
-});
-
-const sessionStoreFileSchema = z.looseObject({
-  sessions: z.array(authSessionRecordSchema).optional(),
-});
-
-function parseStoreFile(value: unknown): SessionStoreFile {
-  const parsed = sessionStoreFileSchema.safeParse(value);
-  return { sessions: parsed.success ? (parsed.data.sessions ?? []) : [] };
 }
 
 function sessionCookie(
@@ -113,24 +83,6 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
 
   constructor(database: AuthRuntimeDatabase) {
     this.database = database;
-  }
-
-  async importSession(
-    session: AuthSessionRecord,
-    userId: string,
-  ): Promise<boolean> {
-    const inserted = await this.database.db
-      .insert(authSessions)
-      .values({
-        tokenHash: session.token_hash,
-        userId,
-        expiresAt: session.expires_at,
-        revokedAt: null,
-        createdAt: session.created_at,
-      })
-      .onConflictDoNothing()
-      .returning({ tokenHash: authSessions.tokenHash });
-    return inserted.length > 0;
   }
 
   async createSession(
@@ -209,136 +161,6 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
       )
       .returning({ tokenHash: authSessions.tokenHash });
     return revoked.length;
-  }
-}
-
-/**
- * Legacy JSON session store retained only for immutable migration input and
- * standalone-store compatibility.
- */
-export class AuthSessionStore implements AuthSessionPersistence {
-  private readonly store: JsonFileStore<SessionStoreFile>;
-
-  constructor(options: AuthSessionStoreOptions) {
-    this.store = new JsonFileStore({
-      filePath: join(
-        options.storageDir,
-        options.storeFile ?? DEFAULT_SESSION_STORE_FILE,
-      ),
-      parse: parseStoreFile,
-      empty: (): SessionStoreFile => ({ sessions: [] }),
-    });
-  }
-
-  async createSession(
-    subject: string,
-    options: { secure?: boolean } = {},
-  ): Promise<CreateAuthSessionResult> {
-    const token = `sess_${randomUUID()}`;
-    const createdAt = nowSeconds();
-    const expiresAt = createdAt + SESSION_TTL_SECONDS;
-    const record: AuthSessionRecord = {
-      id: randomUUID(),
-      token_hash: hashToken(token),
-      subject,
-      created_at: createdAt,
-      expires_at: expiresAt,
-    };
-
-    await this.store.enqueueWrite(async () => {
-      const store = await this.store.read();
-      store.sessions = store.sessions.filter(
-        (session) => session.expires_at > createdAt,
-      );
-      store.sessions.push(record);
-      await this.store.write(store);
-    });
-
-    return {
-      subject,
-      cookie: sessionCookie(token, expiresAt, options.secure ?? false),
-      expiresAt,
-    };
-  }
-
-  async listSessions(): Promise<AuthSessionRecord[]> {
-    const store = await this.store.read();
-    const now = nowSeconds();
-    return store.sessions.filter((session) => session.expires_at > now);
-  }
-
-  async rebindSessionSubject(
-    fromSubject: string,
-    toSubject: string,
-  ): Promise<number> {
-    let updated = 0;
-    await this.store.enqueueWrite(async () => {
-      const store = await this.store.read();
-      for (const session of store.sessions) {
-        if (session.subject === fromSubject) {
-          session.subject = toSubject;
-          updated += 1;
-        }
-      }
-      if (updated > 0) {
-        await this.store.write(store);
-      }
-    });
-    return updated;
-  }
-
-  async getSessionFromRequest(
-    request: Request,
-  ): Promise<AuthSessionRecord | undefined> {
-    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
-    if (tokenHashes.length === 0) return undefined;
-
-    const now = nowSeconds();
-    const store = await this.store.read();
-    for (const tokenHash of tokenHashes) {
-      const session = store.sessions.find(
-        (candidate) =>
-          candidate.token_hash === tokenHash && candidate.expires_at > now,
-      );
-      if (session) return session;
-    }
-    return undefined;
-  }
-
-  async revokeSessionFromRequest(request: Request): Promise<boolean> {
-    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
-    if (tokenHashes.length === 0) return false;
-
-    let revoked = false;
-    await this.store.enqueueWrite(async () => {
-      const store = await this.store.read();
-      const before = store.sessions.length;
-      store.sessions = store.sessions.filter(
-        (session) => !tokenHashes.includes(session.token_hash),
-      );
-      revoked = store.sessions.length !== before;
-      if (revoked) {
-        await this.store.write(store);
-      }
-    });
-
-    return revoked;
-  }
-
-  async revokeSessionsForSubject(subject: string): Promise<number> {
-    let revoked = 0;
-    await this.store.enqueueWrite(async () => {
-      const store = await this.store.read();
-      const before = store.sessions.length;
-      store.sessions = store.sessions.filter(
-        (session) => session.subject !== subject,
-      );
-      revoked = before - store.sessions.length;
-      if (revoked > 0) {
-        await this.store.write(store);
-      }
-    });
-    return revoked;
   }
 }
 

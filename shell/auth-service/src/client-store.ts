@@ -1,10 +1,8 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
 import { and, eq, lt, notExists } from "drizzle-orm";
-import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
-import { join } from "node:path";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import {
   oauthAuthCodes,
@@ -12,8 +10,6 @@ import {
   oauthRefreshTokens,
 } from "./runtime-schema";
 import type { RegisteredOAuthClient } from "./types";
-
-const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
 
 type TokenEndpointAuthMethod =
   "none" | "client_secret_basic" | "client_secret_post";
@@ -64,10 +60,6 @@ const clientRegistrationRequestSchema: z.ZodType<
   contacts: z.array(z.string()).optional(),
 });
 
-interface ClientStoreFile {
-  clients: RegisteredOAuthClient[];
-}
-
 const persistedOAuthClientSchema = z
   .looseObject({
     client_id: z.string(),
@@ -108,15 +100,6 @@ const persistedOAuthClientSchema = z
       : {}),
   }));
 
-const clientStoreFileSchema = z.looseObject({
-  clients: z.array(z.unknown()).optional(),
-});
-
-export interface OAuthClientStoreOptions {
-  storageDir: string;
-  storeFile?: string;
-}
-
 export interface OAuthClientPersistence {
   registerClient(input: unknown): Promise<RegisteredOAuthClient>;
   getClient(clientId: string): Promise<RegisteredOAuthClient | undefined>;
@@ -131,34 +114,11 @@ function createClientSecret(): string {
   return `ocs_${randomUUID().replaceAll("-", "")}`;
 }
 
-function parseStoreFile(value: unknown): ClientStoreFile {
-  const parsed = clientStoreFileSchema.safeParse(value);
-  if (!parsed.success) return { clients: [] };
-
-  return {
-    clients: parsed.data.clients?.flatMap(parsePersistedClient) ?? [],
-  };
-}
-
-function parsePersistedClient(value: unknown): RegisteredOAuthClient[] {
-  const parsed = persistedOAuthClientSchema.safeParse(value);
-  return parsed.success ? [parsed.data] : [];
-}
-
 export class RuntimeOAuthClientStore implements OAuthClientPersistence {
   private readonly database: AuthRuntimeDatabase;
 
   constructor(database: AuthRuntimeDatabase) {
     this.database = database;
-  }
-
-  async importClient(client: RegisteredOAuthClient): Promise<boolean> {
-    const inserted = await this.database.db
-      .insert(oauthClients)
-      .values(clientToRow(client))
-      .onConflictDoNothing()
-      .returning({ clientId: oauthClients.clientId });
-    return inserted.length > 0;
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
@@ -221,62 +181,6 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
       )
       .returning({ clientId: oauthClients.clientId });
     return deleted.length;
-  }
-}
-
-export class OAuthClientStore implements OAuthClientPersistence {
-  private readonly store: JsonFileStore<ClientStoreFile>;
-
-  constructor(options: OAuthClientStoreOptions) {
-    this.store = new JsonFileStore({
-      filePath: join(
-        options.storageDir,
-        options.storeFile ?? DEFAULT_CLIENT_STORE_FILE,
-      ),
-      parse: parseStoreFile,
-      empty: (): ClientStoreFile => ({ clients: [] }),
-    });
-  }
-
-  async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
-    const client = createRegisteredClient(input);
-
-    await this.store.enqueueWrite(async () => {
-      const store = await this.store.read();
-      store.clients.push(client);
-      await this.store.write(store);
-    });
-
-    return client;
-  }
-
-  async getClient(
-    clientId: string,
-  ): Promise<RegisteredOAuthClient | undefined> {
-    const store = await this.store.read();
-    return store.clients.find((client) => client.client_id === clientId);
-  }
-
-  async listClients(): Promise<RegisteredOAuthClient[]> {
-    return (await this.store.read()).clients;
-  }
-
-  async validateClientCredentials(
-    clientId: string,
-    clientSecret?: string,
-  ): Promise<string | undefined> {
-    const client = await this.getClient(clientId);
-    if (!client) return "Unknown client_id";
-    if (client.client_secret && client.client_secret !== clientSecret) {
-      return "Invalid client secret";
-    }
-    return undefined;
-  }
-
-  async pruneStaleUnconsentedClients(_createdBefore: number): Promise<number> {
-    // The legacy standalone store has no authorization-code or refresh-token
-    // relationship to distinguish consented clients, so pruning it is unsafe.
-    return 0;
   }
 }
 

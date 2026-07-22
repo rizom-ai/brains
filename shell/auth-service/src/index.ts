@@ -37,14 +37,12 @@ export type { ReinitializeAuthAccessResult } from "./access-reinitialization";
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 export {
-  AuthorizationCodeStore,
   InvalidGrantError,
   RuntimeAuthorizationCodeStore,
 } from "./auth-code-store";
 export type {
   AuthorizationCodePersistence,
   AuthorizationCodeRecord,
-  AuthorizationCodeStoreOptions,
   ConsumeAuthorizationCodeInput,
   CreateAuthorizationCodeInput,
 } from "./auth-code-store";
@@ -71,21 +69,16 @@ export type {
   AuthServiceConfigInput,
 } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
-export type { AuthKeyStoreOptions } from "./key-store";
 export { PersonExternalPeerStore } from "./person-external-peer-store";
 export type {
   InvitedExternalPeerPerson,
   InviteExternalPeerPersonInput,
   LinkExternalPeerInput,
 } from "./person-external-peer-store";
-export {
-  A2APeerTrustStore,
-  RuntimeA2APeerTrustStore,
-} from "./peer-trust-store";
+export { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 export type {
   A2APeerTrustPersistence,
   A2APeerTrustRecord,
-  A2APeerTrustStoreOptions,
   GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 export { AuthRuntimeDatabase } from "./runtime-db";
@@ -97,7 +90,6 @@ export type {
 } from "./runtime-schema";
 export {
   InvalidClientMetadataError,
-  OAuthClientStore,
   RuntimeOAuthClientStore,
 } from "./client-store";
 export { AuthCredentialStore } from "./credential-store";
@@ -106,12 +98,13 @@ export type {
   SaveWebAuthnChallengeInput,
   StoredAuthChallenge,
   StoredPasskey,
+  StoredPasskeyCredential,
+  StoredWebAuthnChallenge,
   WebAuthnChallengeKind,
 } from "./credential-store";
 export type {
   ClientRegistrationRequest,
   OAuthClientPersistence,
-  OAuthClientStoreOptions,
 } from "./client-store";
 export {
   absoluteUrl,
@@ -126,16 +119,6 @@ export type {
   RegistrationVerifyResult,
   WebAuthnRequestContext,
 } from "./passkey-service";
-export {
-  base64UrlToBytes,
-  bytesToBase64Url,
-  PasskeyStore,
-} from "./passkey-store";
-export type {
-  PasskeyStoreOptions,
-  StoredPasskeyCredential,
-  StoredWebAuthnChallenge,
-} from "./passkey-store";
 export { signJwt } from "./jwt";
 export { getBearerToken, verifyAccessToken } from "./token-verifier";
 export type {
@@ -144,7 +127,6 @@ export type {
 } from "./token-verifier";
 export {
   InvalidRefreshTokenError,
-  RefreshTokenStore,
   RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
 export type {
@@ -153,11 +135,9 @@ export type {
   IssueRefreshTokenInput,
   RefreshTokenPersistence,
   RefreshTokenRecord,
-  RefreshTokenStoreOptions,
 } from "./refresh-token-store";
 export {
   AUTH_SESSION_COOKIE,
-  AuthSessionStore,
   clearAuthSessionCookie,
   clearAuthSessionCookies,
   RuntimeAuthSessionStore,
@@ -170,7 +150,6 @@ export {
 export type {
   AuthSessionPersistence,
   AuthSessionRecord,
-  AuthSessionStoreOptions,
   CreateAuthSessionResult,
 } from "./session-store";
 export type {

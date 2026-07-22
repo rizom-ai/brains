@@ -2,16 +2,32 @@ import { sha256Base64Url } from "@brains/utils/hash";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
-import type {
-  StoredPasskeyCredential,
-  StoredWebAuthnChallenge,
-} from "./passkey-store";
 import { passkeyCredentials, webauthnChallenges } from "./runtime-schema";
 import { AuthUserStore } from "./user-store";
 import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
 export type WebAuthnChallengeKind = "registration" | "authentication";
+
+export interface StoredPasskeyCredential {
+  id: string;
+  public_key: string;
+  counter: number;
+  transports?: AuthenticatorTransportFuture[];
+  subject: string;
+  user_name: string;
+  credential_device_type: string;
+  credential_backed_up: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StoredWebAuthnChallenge {
+  challenge: string;
+  subject: string;
+  created_at: number;
+  expires_at: number;
+}
 
 export interface SaveWebAuthnChallengeInput {
   challenge: string;

@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService, PasskeyStore, authServicePlugin } from "../src";
+import { AuthService, authServicePlugin } from "../src";
+import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
@@ -17,18 +18,7 @@ async function createService(
   const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-admin-"));
   tempDirs.push(storageDir);
   if (options.withPasskey) {
-    const now = Math.floor(Date.now() / 1000);
-    await new PasskeyStore({ storageDir }).addCredential({
-      id: "anchor-credential",
-      public_key: Buffer.from("public-key").toString("base64url"),
-      counter: 0,
-      subject: "single-operator",
-      user_name: "Anchor",
-      credential_device_type: "singleDevice",
-      credential_backed_up: false,
-      created_at: now,
-      updated_at: now,
-    });
+    await seedRuntimePasskeyCredential(storageDir, "anchor-credential");
   }
   const service = new AuthService({
     storageDir,

@@ -14,13 +14,13 @@ import {
 } from "@brains/contracts";
 import {
   AuthService,
-  PasskeyStore,
   authServicePlugin,
   normalizeIssuer,
   reinitializeAuthAccessStorage,
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import type { AuthServicePlugin } from "../src";
+import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 
 const setupRequiredToolDataSchema = z.object({
   status: z.literal("setup_required"),
@@ -47,18 +47,7 @@ async function readyAuthPlugin(
 }
 
 async function seedPasskeyCredential(storageDir: string): Promise<void> {
-  const now = Math.floor(Date.now() / 1000);
-  await new PasskeyStore({ storageDir }).addCredential({
-    id: "credential-id",
-    public_key: Buffer.from("public-key").toString("base64url"),
-    counter: 0,
-    subject: "single-operator",
-    user_name: "Operator",
-    credential_device_type: "singleDevice",
-    credential_backed_up: false,
-    created_at: now,
-    updated_at: now,
-  });
+  await seedRuntimePasskeyCredential(storageDir);
 }
 
 async function pkceChallenge(verifier: string): Promise<string> {

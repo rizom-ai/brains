@@ -995,22 +995,6 @@ export const authAuditEvents: AuthAuditEventsTable = sqliteTable(
   }),
 );
 
-type AuthLegacyImportsTable = AuthTable<
-  "auth_legacy_imports",
-  {
-    source: AuthTextColumn<"auth_legacy_imports", "source", true, true>;
-    completedAt: AuthIntegerColumn<"auth_legacy_imports", "completed_at", true>;
-  }
->;
-
-export const authLegacyImports: AuthLegacyImportsTable = sqliteTable(
-  "auth_legacy_imports",
-  {
-    source: text("source").primaryKey(),
-    completedAt: integer("completed_at").notNull(),
-  },
-);
-
 type A2aPeerTrustTable = AuthTable<
   "a2a_peer_trust",
   {
@@ -1055,7 +1039,6 @@ export const authRuntimeSchema: {
   authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
   authIdentityEvidence: AuthIdentityEvidenceTable;
-  authLegacyImports: AuthLegacyImportsTable;
   authPeople: AuthPeopleTable;
   authUsers: AuthUsersTable;
   interfaceAnchorBindings: InterfaceAnchorBindingsTable;
@@ -1077,7 +1060,6 @@ export const authRuntimeSchema: {
   authBrainAnchor,
   authIdentities,
   authIdentityEvidence,
-  authLegacyImports,
   authPeople,
   authUsers,
   interfaceAnchorBindings,

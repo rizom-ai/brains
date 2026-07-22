@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService, PasskeyStore } from "../src";
+import { AuthService } from "../src";
+import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 import type { RegisteredOAuthClient } from "../src";
 
 /**
@@ -53,18 +54,7 @@ async function pkceChallenge(verifier: string): Promise<string> {
 }
 
 async function seedPasskeyCredential(storageDir: string): Promise<void> {
-  const now = Math.floor(Date.now() / 1000);
-  await new PasskeyStore({ storageDir }).addCredential({
-    id: "credential-id",
-    public_key: Buffer.from("public-key").toString("base64url"),
-    counter: 0,
-    subject: "single-operator",
-    user_name: "Operator",
-    credential_device_type: "singleDevice",
-    credential_backed_up: false,
-    created_at: now,
-    updated_at: now,
-  });
+  await seedRuntimePasskeyCredential(storageDir);
 }
 
 function tokenRequest(body: Record<string, string>): Request {

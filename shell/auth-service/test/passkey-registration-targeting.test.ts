@@ -47,10 +47,7 @@ describe("targeted passkey registration", () => {
       createdAt: now,
       updatedAt: now,
     });
-    const service = new PasskeyService({
-      storageDir,
-      runtimeDatabase: database,
-    });
+    const service = new PasskeyService({ runtimeDatabase: database });
 
     const options = await service.generateRegistrationOptions(
       { origin: "https://brain.example.com", rpID: "brain.example.com" },
@@ -71,10 +68,7 @@ describe("targeted passkey registration", () => {
     const user = await new AuthUserStore(database.db).createUser({
       displayName: "Mira",
     });
-    const service = new PasskeyService({
-      storageDir,
-      runtimeDatabase: database,
-    });
+    const service = new PasskeyService({ runtimeDatabase: database });
     const context = {
       origin: "https://brain.example.com",
       rpID: "brain.example.com",

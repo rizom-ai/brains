@@ -44,8 +44,8 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - `admins`, `anchors`, and `trusted` have clean, independent seed semantics; decision 14 removes request-time config fallback.
 4. **Real user ids replace `single-operator` as the canonical subject.**
    - Fresh setups use `usr_<uuid>` as the passkey/session/OAuth subject.
-   - Existing `single-operator` installs migrate lazily to a real user id.
-   - `single-operator` remains only a compatibility/migration alias, not new canonical state.
+   - Existing file-store installs re-onboard once into a real user id; pre-Drizzle database rows retain their bounded schema bridge.
+   - `single-operator` remains only a compatibility input alias, not new canonical state.
 5. **First passkey setup creates the first admin, who is the anchor on a personal brain.**
    - First setup creates one active **`admin`** user, binds the passkey to that user, and configures that person's subject as the personal Anchor.
    - On a **personal** brain that first admin is also the **anchor/owner** (admin _is_ anchor). On a **collective** brain the anchor is the team/org; the first admin runs it but is not the anchor.
@@ -311,19 +311,13 @@ The external brain remains a separate peer actor; it does not represent the pers
 3. Passkey credential stores `subject = usr_<uuid>`.
 4. Authenticated browser sessions and OAuth tokens use `sub = usr_<uuid>`.
 
-### Existing installs with `single-operator`
+### Existing file-store installs
 
-On startup or first successful login:
-
-1. Detect passkeys or sessions with `subject = "single-operator"`.
-2. If no users exist, create first admin user.
-3. Rebind passkey credentials from `single-operator` to that user id.
-4. Future sessions/tokens use the real user id.
-5. Revoke old `single-operator` refresh tokens during migration for safety and force affected OAuth clients through a clean one-time re-auth.
+Use a clean cutover. Legacy JSON/JWK files are never read automatically and remain optional manual backups. Existing operators re-register a passkey, re-approve MCP/OAuth clients, and log in again. The new setup writes only real `usr_<uuid>` subjects to `auth.db`; pre-Drizzle database rows continue through the bounded schema bridge.
 
 ## Phased implementation
 
-### Phase 1 — Real admin user and `single-operator` migration
+### Phase 1 — Real Admin user and clean cutover
 
 **Status: implemented.**
 
@@ -334,15 +328,14 @@ This is the safest first slice: real users without trusted-user management yet.
 - Let setup collect an optional display name; use `Anchor` only as a temporary fallback.
 - Bind new passkey credentials to `usr_<uuid>` instead of `single-operator`.
 - Login sessions and OAuth tokens use user-id `sub`.
-- Lazily migrate old `single-operator` passkey credentials/sessions to the first admin user.
-- Revoke old `single-operator` refresh tokens during migration.
+- Ignore old file-store credentials and tokens; require one-time re-onboarding without modifying the backup files.
 
 Validation:
 
 - fresh setup creates user + passkey
 - login session subject is user id
 - OAuth token `sub` is user id
-- old `single-operator` passkey store migrates
+- legacy auth files remain unchanged and cannot populate `auth.db`
 - static-token MCP fallback remains unchanged
 
 ### Phase 2 — Roles, active-user checks, and MCP per-session permissions
@@ -500,7 +493,7 @@ Validation:
 ## Done when
 
 1. Fresh setup creates a durable auth user instead of `single-operator`.
-2. Existing single-operator installs migrate safely.
+2. Existing file-store installs re-onboard safely while legacy files remain untouched.
 3. Permission resolution uses connected auth users before standalone DB principal grants and never reads config at request time.
 4. MCP OAuth sessions receive per-user permissions.
 5. Admins can manage users through a dedicated authenticated admin surface, never through model-visible tools.

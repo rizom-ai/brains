@@ -1,36 +1,13 @@
-import { join } from "node:path";
-import { z } from "@brains/utils/zod";
 import { eq } from "drizzle-orm";
 import { AuthAuditStore } from "./audit-store";
-import { JsonFileStore } from "./json-file-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { a2aPeerTrust } from "./runtime-schema";
-
-const PEER_TRUST_FILE = "a2a-peer-trust.json";
 
 export interface A2APeerTrustRecord {
   domain: string;
   keyFingerprint: string;
   grantedLevel: "public" | "trusted";
 }
-
-interface A2APeerTrustStoreFile {
-  peers: A2APeerTrustRecord[];
-}
-
-const peerTrustRecordSchema: z.ZodType<A2APeerTrustRecord> = z
-  .object({
-    domain: z.string().min(1),
-    keyFingerprint: z.string().min(1),
-    grantedLevel: z.enum(["public", "trusted"]),
-  })
-  .strict();
-
-const peerTrustStoreFileSchema: z.ZodType<A2APeerTrustStoreFile> = z
-  .object({
-    peers: z.array(peerTrustRecordSchema),
-  })
-  .strict();
 
 export interface GrantA2APeerTrustInput {
   domain: string;
@@ -40,11 +17,6 @@ export interface GrantA2APeerTrustInput {
 
 export interface PeerTrustMutationContext {
   actorUserId?: string;
-}
-
-export interface A2APeerTrustStoreOptions {
-  storageDir: string;
-  fileName?: string;
 }
 
 export interface A2APeerTrustPersistence {
@@ -61,22 +33,6 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
 
   constructor(database: AuthRuntimeDatabase) {
     this.database = database;
-  }
-
-  async importPeer(record: A2APeerTrustRecord): Promise<boolean> {
-    const now = Date.now();
-    const inserted = await this.database.db
-      .insert(a2aPeerTrust)
-      .values({
-        domain: normalizePeerDomain(record.domain),
-        keyFingerprint: record.keyFingerprint,
-        grantedLevel: record.grantedLevel,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflictDoNothing()
-      .returning({ domain: a2aPeerTrust.domain });
-    return inserted.length > 0;
   }
 
   async get(domain: string): Promise<A2APeerTrustRecord | undefined> {
@@ -154,60 +110,6 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
         targetId: normalizedDomain,
       });
     }
-  }
-}
-
-export class A2APeerTrustStore implements A2APeerTrustPersistence {
-  private readonly store: JsonFileStore<A2APeerTrustStoreFile>;
-
-  constructor(options: A2APeerTrustStoreOptions) {
-    this.store = new JsonFileStore({
-      filePath: join(options.storageDir, options.fileName ?? PEER_TRUST_FILE),
-      parse: (value): A2APeerTrustStoreFile =>
-        peerTrustStoreFileSchema.parse(value),
-      empty: (): A2APeerTrustStoreFile => ({ peers: [] }),
-      onCorrupt: "throw",
-    });
-  }
-
-  async get(domain: string): Promise<A2APeerTrustRecord | undefined> {
-    const normalizedDomain = normalizePeerDomain(domain);
-    const file = await this.store.read();
-    return file.peers.find((peer) => peer.domain === normalizedDomain);
-  }
-
-  async listPeers(): Promise<A2APeerTrustRecord[]> {
-    return (await this.store.read()).peers;
-  }
-
-  async grant(input: GrantA2APeerTrustInput): Promise<A2APeerTrustRecord> {
-    if (input.grantedLevel === "admin") {
-      throw new Error("A2A peer trust grants must be trusted or public");
-    }
-
-    const record: A2APeerTrustRecord = {
-      domain: normalizePeerDomain(input.domain),
-      keyFingerprint: input.keyFingerprint,
-      grantedLevel: input.grantedLevel,
-    };
-
-    await this.store.enqueueWrite(async () => {
-      const file = await this.store.read();
-      const peers = file.peers.filter((peer) => peer.domain !== record.domain);
-      await this.store.write({ peers: [...peers, record] });
-    });
-
-    return record;
-  }
-
-  async revoke(domain: string): Promise<void> {
-    const normalizedDomain = normalizePeerDomain(domain);
-    await this.store.enqueueWrite(async () => {
-      const file = await this.store.read();
-      await this.store.write({
-        peers: file.peers.filter((peer) => peer.domain !== normalizedDomain),
-      });
-    });
   }
 }
 
