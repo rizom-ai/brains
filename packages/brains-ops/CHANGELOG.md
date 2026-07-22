@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.214
+
+## 0.2.0-alpha.213
+
+## 0.2.0-alpha.212
+
+### Patch Changes
+
+- [#65](https://github.com/rizom-ai/brains/pull/65) [`2708fb2`](https://github.com/rizom-ai/brains/commit/2708fb232f4aa2fa2e497a544bca117d31b7c1eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Default omitted rover-pilot `siteOverride.version` values to each user's effective brain version while preserving explicit exact pins. Document the hosted public site/theme package contract, per-instance image behavior, canary verification, and rollback flow in the scaffolded operator guides.
+
 ## 0.2.0-alpha.211
 
 ## 0.2.0-alpha.210

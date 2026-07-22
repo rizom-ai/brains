@@ -14,9 +14,9 @@ export { knowledgeMapStyles };
 /**
  * The knowledge map renderer: the corpus as a centerless sky. Topics are
  * soft-bounded blob territories (mist + dashed border + floating label),
- * published work glows, skills are moss, notes are pearls, operational
- * entities are ground spores. Deterministic by construction — static site
- * builds must not churn.
+ * published work glows, supporting sources are quiet context marks, and
+ * low-signal entities become faint ground. Deterministic by construction —
+ * static site builds must not churn.
  */
 
 const WIDTH = 1100;
@@ -24,7 +24,6 @@ const HEIGHT = 560;
 const PAD = 60;
 /** How many zone labels the sky can carry before empty zones go quiet. */
 const LABEL_BUDGET = 7;
-const UNFILED_LABEL_BUDGET = 4;
 const LABEL_HEIGHT = 18;
 /** Rough mono glyph advance at the label sizes — enough for collision boxes. */
 const LABEL_CHAR_WIDTH = 7.5;
@@ -407,89 +406,17 @@ function ZoneShape({
   );
 }
 
-function unfiledLabelAnchor(x: number): {
-  anchor: "start" | "end";
-  dx: number;
-} {
-  const anchor = x > WIDTH - 150 ? "end" : "start";
-  return { anchor, dx: anchor === "start" ? 11 : -11 };
-}
-
-function UnfiledPointShape({
-  point,
-  index,
-  surface,
-  showLabel,
-}: {
-  point: KnowledgeMapPoint;
-  index: number;
-  surface: string;
-  showLabel: boolean;
-}): JSX.Element {
-  const { x, y } = toPx(point.x, point.y);
-  const delay = (0.5 + index * 0.05).toFixed(2);
-  const { anchor, dx } = unfiledLabelAnchor(x);
-  return (
-    <g class={`kmap-point--${point.kind} kmap-point--unfiled`}>
-      <circle
-        class="kmap-dot kmap-breathe"
-        cx={x}
-        cy={y}
-        r={10.4}
-        fill={`url(#kmap-unfiled-${surface})`}
-        opacity={0.28}
-        style={`--d:${delay}s`}
-      />
-      <circle
-        class="kmap-dot"
-        cx={x}
-        cy={y}
-        r={3.2}
-        fill="var(--kmap-unfiled)"
-        opacity={0.72}
-        style={`--d:${delay}s`}
-      />
-      {showLabel && (
-        <text
-          class="kmap-label kmap-label--unfiled"
-          x={x + dx}
-          y={y + 3.5}
-          text-anchor={anchor}
-          fill="var(--kmap-label-dim)"
-          font-size="9"
-          letter-spacing="0.06em"
-          style={`--d:${(1.3 + index * 0.05).toFixed(2)}s`}
-        >
-          {point.title} · unfiled
-        </text>
-      )}
-    </g>
-  );
-}
-
 function PointShape({
   point,
   index,
   surface,
-  showUnfiledLabel = false,
 }: {
   point: KnowledgeMapPoint;
   index: number;
   surface: string;
-  showUnfiledLabel?: boolean;
 }): JSX.Element {
   const { x, y } = toPx(point.x, point.y);
   const delay = (0.5 + index * 0.05).toFixed(2);
-  if (point.zoneId === null && point.kind !== "ground") {
-    return (
-      <UnfiledPointShape
-        point={point}
-        index={index}
-        surface={surface}
-        showLabel={showUnfiledLabel}
-      />
-    );
-  }
   if (point.kind === "published") {
     return (
       <g class="kmap-point--published">
@@ -523,28 +450,16 @@ function PointShape({
       </g>
     );
   }
-  if (point.kind === "skill") {
+  if (point.kind === "skill" || point.kind === "pearl") {
     return (
       <circle
-        class="kmap-dot kmap-point--skill"
+        class="kmap-dot kmap-point--source"
         cx={x}
         cy={y}
-        r={3.4}
-        fill="var(--kmap-skill)"
-        style={`--d:${delay}s`}
-      />
-    );
-  }
-  if (point.kind === "pearl") {
-    return (
-      <circle
-        class="kmap-dot kmap-point--pearl"
-        cx={x}
-        cy={y}
-        r={2.8}
+        r={2.9}
         fill="none"
         stroke="var(--kmap-ink-dim)"
-        stroke-width={1.3}
+        stroke-width={1.2}
         style={`--d:${delay}s`}
       />
     );
@@ -563,17 +478,14 @@ function PointShape({
 
 function KnowledgeMapLegend(): JSX.Element {
   const items = [
-    { label: "topic zones", kind: "zone" },
+    { label: "topics", kind: "zone" },
+    { label: "sources", kind: "source" },
     { label: "published", kind: "published" },
-    { label: "skills", kind: "skill" },
-    { label: "references", kind: "pearl" },
-    { label: "unfiled", kind: "unfiled" },
-    { label: "operational", kind: "ground" },
   ] as const;
   return (
     <g class="kmap-legend" aria-hidden="true">
       {items.map((item, index) => {
-        const x = 560 + index * 82;
+        const x = 720 + index * 95;
         const y = HEIGHT - 23;
         return (
           <g key={item.label} transform={`translate(${x} ${y})`}>
@@ -589,21 +501,15 @@ function KnowledgeMapLegend(): JSX.Element {
               />
             ) : item.kind === "published" ? (
               <circle cx={0} cy={0} r={4} fill="var(--kmap-glow)" />
-            ) : item.kind === "skill" ? (
-              <circle cx={0} cy={0} r={3.4} fill="var(--kmap-skill)" />
-            ) : item.kind === "pearl" ? (
+            ) : (
               <circle
                 cx={0}
                 cy={0}
-                r={3.5}
+                r={3.3}
                 fill="none"
                 stroke="var(--kmap-ink-dim)"
                 stroke-width={1.1}
               />
-            ) : item.kind === "unfiled" ? (
-              <circle cx={0} cy={0} r={3.2} fill="var(--kmap-unfiled)" />
-            ) : (
-              <circle cx={0} cy={0} r={2.2} fill="var(--kmap-ink-faint)" />
             )}
             <text x={9} y={3.5} class="kmap-label kmap-label--legend">
               {item.label}
@@ -630,15 +536,9 @@ export function KnowledgeMap({
     .filter((layout) => layout.label)
     .map((layout) => layout.zone.name)
     .slice(0, 4);
-  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, unfiled evidence is cyan, and operational entities are ground spores.`;
+  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows; other source material appears as quiet context marks.`;
   const groundPoints = data.points.filter((point) => point.kind === "ground");
   const evidencePoints = data.points.filter((point) => point.kind !== "ground");
-  const labeledUnfiledIds = new Set(
-    evidencePoints
-      .filter((point) => point.zoneId === null)
-      .slice(0, UNFILED_LABEL_BUDGET)
-      .map((point) => point.id),
-  );
   return (
     <svg
       class={`kmap kmap--${surface}`}
@@ -666,18 +566,6 @@ export function KnowledgeMap({
             stop-opacity="0.09"
           />
           <stop offset="100%" stop-color="var(--kmap-zone)" stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id={`kmap-unfiled-${surface}`}>
-          <stop
-            offset="0%"
-            stop-color="var(--kmap-unfiled)"
-            stop-opacity="0.75"
-          />
-          <stop
-            offset="100%"
-            stop-color="var(--kmap-unfiled)"
-            stop-opacity="0"
-          />
         </radialGradient>
       </defs>
       {groundPoints.map((point, index) => (
@@ -709,7 +597,6 @@ export function KnowledgeMap({
           point={point}
           index={index}
           surface={surface}
-          showUnfiledLabel={labeledUnfiledIds.has(point.id)}
         />
       ))}
       <KnowledgeMapLegend />

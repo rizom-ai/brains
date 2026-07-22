@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.214
+
+### Patch Changes
+
+- [`7c26353`](https://github.com/rizom-ai/brains/commit/7c263531813efa805b40010b5c3e106cf312d681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Simplify the knowledge map legend to topics, sources, and published work so the widget no longer exposes internal source-type jargon.
+
+## 0.2.0-alpha.213
+
+### Patch Changes
+
+- [`0da54ac`](https://github.com/rizom-ai/brains/commit/0da54ace0708e3f5236ac76a598f8201504fbf9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the confusing unfiled knowledge map highlight and keep unassigned evidence styled by its normal entity kind.
+
+## 0.2.0-alpha.212
+
 ## 0.2.0-alpha.211
 
 ### Patch Changes

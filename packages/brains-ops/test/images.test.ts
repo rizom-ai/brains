@@ -251,7 +251,6 @@ discord:
       "users/new.yaml": `handle: new
 siteOverride:
   package: "@rizom/site-rizom-ai"
-  version: "0.2.0-alpha.167"
   theme: "@rizom/theme-rizom-ai"
 discord:
   enabled: false

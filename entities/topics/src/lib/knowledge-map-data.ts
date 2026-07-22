@@ -8,7 +8,7 @@ import { z } from "@brains/utils/zod";
  * projected entity becomes a point with a render kind. Membership is
  * decided in the projected plane (nearest zone within a radius), so a
  * zone always visually contains its members. Points outside every border
- * are unfiled.
+ * still render as ordinary source/background marks.
  */
 
 const TOPIC_TYPE = "topic";
@@ -49,7 +49,7 @@ const knowledgeMapPointSchema: z.ZodObject<{
   kind: z.enum(["published", "skill", "pearl", "ground"]),
   x: z.number(),
   y: z.number(),
-  /** The zone this point is filed under; null means unfiled. */
+  /** The zone this point is filed under; null means outside a topic territory. */
   zoneId: z.string().nullable(),
 });
 export type KnowledgeMapPoint = z.infer<typeof knowledgeMapPointSchema>;

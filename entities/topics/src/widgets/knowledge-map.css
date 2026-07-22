@@ -59,9 +59,6 @@
   --kmap-glow: var(--console-accent);
   --kmap-hot: var(--console-text);
   --kmap-zone: var(--console-secondary);
-  --kmap-skill: var(--kmap-moss, var(--console-secondary));
-  --kmap-unfiled: var(--console-ok);
-  --kmap-label-dim: var(--console-text-muted);
   --kmap-ink-dim: color-mix(in srgb, var(--console-text) 50%, transparent);
   --kmap-ink-faint: color-mix(in srgb, var(--console-text) 22%, transparent);
   position: relative;
@@ -120,9 +117,6 @@
 }
 html[data-theme="light"] .kmap-label--zone {
   stroke-width: 5px;
-}
-.kmap-label--unfiled {
-  fill: var(--kmap-label-dim);
 }
 .kmap-label--legend {
   fill: var(--kmap-ink-dim);
