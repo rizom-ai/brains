@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-sections",
-  "version": "0.2.0-alpha.219",
+  "version": "0.2.0-alpha.220",
   "description": "Schema-first content section authoring for Rizom site packages",
   "type": "module",
   "exports": {
@@ -16,7 +16,7 @@
     "lint:fix": "eslint . --max-warnings 0 --fix"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.219",
+    "@rizom/site": "0.2.0-alpha.220",
     "zod": "^4.1.8"
   },
   "peerDependencies": {

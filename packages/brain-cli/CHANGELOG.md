@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- [`470e240`](https://github.com/rizom-ai/brains/commit/470e2401c8cb87f27c464b840e26532098fedb9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make topic source selection default-open with an excludeEntityTypes blacklist, add a secondary source role for discounted minting, remove model-level source allow-lists, and allow public notes to mint topics by default.
+
 ## 0.2.0-alpha.219
 
 ## 0.2.0-alpha.218

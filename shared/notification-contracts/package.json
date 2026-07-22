@@ -1,6 +1,6 @@
 {
   "name": "@brains/notification-contracts",
-  "version": "0.2.0-alpha.219",
+  "version": "0.2.0-alpha.220",
   "description": "Shared notification routing contracts",
   "dependencies": {
     "@brains/utils": "workspace:*"

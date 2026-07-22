@@ -1,6 +1,6 @@
 {
   "name": "@brains/link",
-  "version": "0.2.0-alpha.219",
+  "version": "0.2.0-alpha.220",
   "description": "Web content capture plugin with AI-powered extraction and structured storage",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
