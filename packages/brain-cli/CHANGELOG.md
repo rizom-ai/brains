@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.211
+
+### Patch Changes
+
+- [`320061d`](https://github.com/rizom-ai/brains/commit/320061d6b494a66d57f3b1fa41b8c7dd68b1b50c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Finish aligning the knowledge map renderer with the latest cartographic mock labels, semantic links, unfiled callouts, and legend treatment.
+
 ## 0.2.0-alpha.210
 
 ### Patch Changes

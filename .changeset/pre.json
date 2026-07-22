@@ -222,6 +222,7 @@
     "entity-memory-metadata",
     "entity-service-effect-layer",
     "externalize-preact",
+    "fair-knowledge-map-labels",
     "fix-a2a-proxied-signatures",
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",

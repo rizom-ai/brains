@@ -17,6 +17,7 @@ import {
   PasskeyStore,
   authServicePlugin,
   normalizeIssuer,
+  reinitializeAuthAccessStorage,
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import type { AuthServicePlugin } from "../src";
@@ -505,8 +506,9 @@ describe("AuthService", () => {
   });
 
   it("reinitializes access from config without deleting users and revokes sessions", async () => {
+    const storageDir = await tempStorageDir();
     const service = new AuthService({
-      storageDir: await tempStorageDir(),
+      storageDir,
       issuer: "https://brain.example.com",
     });
     await service.initializeConfiguredInterfacePrincipals({
@@ -516,18 +518,23 @@ describe("AuthService", () => {
     });
     const session = await service.createAuthSession();
     const userCount = (await service.listUsers()).length;
+    await service.close();
 
-    const state = await service.reinitializeConfiguredInterfacePrincipals({
+    const { state } = await reinitializeAuthAccessStorage(storageDir, {
       admins: ["discord:new-admin"],
       trusted: ["discord:new-trusted"],
       anchors: ["discord:new-owner"],
     });
 
+    const reopened = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
     expect(
-      await service.resolveInterfacePrincipal("discord", "old-admin"),
+      await reopened.resolveInterfacePrincipal("discord", "old-admin"),
     ).toBeUndefined();
     expect(
-      await service.resolveInterfacePrincipal("discord", "new-admin"),
+      await reopened.resolveInterfacePrincipal("discord", "new-admin"),
     ).toEqual({ permissionLevel: "admin", isAnchor: false });
     expect(state.grants.map((grant) => grant.permissionLevel).sort()).toEqual([
       "admin",
@@ -535,19 +542,19 @@ describe("AuthService", () => {
     ]);
     expect(state.anchors).toHaveLength(1);
     expect(
-      await service.resolveSession(
+      await reopened.resolveSession(
         new Request("https://brain.example.com/admin", {
           headers: { cookie: session.cookie },
         }),
       ),
     ).toBeUndefined();
-    expect((await service.listUsers()).length).toBe(userCount);
-    expect(await service.listAuditEvents()).toEqual(
+    expect((await reopened.listUsers()).length).toBe(userCount);
+    expect(await reopened.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ action: "auth.access.reinitialized" }),
       ]),
     );
-    await service.close();
+    await reopened.close();
   });
 
   it("reprojects persisted ownership when brain configuration changes", async () => {

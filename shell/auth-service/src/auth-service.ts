@@ -4,7 +4,6 @@ import type {
 } from "@brains/contracts";
 import { nowSeconds } from "@brains/utils/date";
 import type { Logger } from "@brains/utils/logger";
-import { reinitializeAuthAccessStores } from "./access-reinitialization";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
   AuthAdminUserSummary,
@@ -685,25 +684,6 @@ export class AuthService {
     const store = this.getInterfacePrincipalStore();
     await store.seedConfigOnce(config);
     return store.listActiveState();
-  }
-
-  async reinitializeConfiguredInterfacePrincipals(
-    config: ConfiguredInterfacePrincipals,
-    context: AuthMutationContext = {},
-  ): Promise<RuntimeInterfacePrincipalState> {
-    await this.initialize();
-    const result = await reinitializeAuthAccessStores(
-      {
-        principalStore: this.getInterfacePrincipalStore(),
-        userStore: this.getUserStore(),
-        sessionStore: this.sessionStore,
-        refreshTokenStore: this.refreshTokenStore,
-        auditStore: this.getAuditStore(),
-      },
-      config,
-      context.actorUserId,
-    );
-    return result.state;
   }
 
   async resolveInterfacePrincipal(

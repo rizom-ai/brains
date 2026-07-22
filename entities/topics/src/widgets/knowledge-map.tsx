@@ -19,14 +19,15 @@ export { knowledgeMapStyles };
  * builds must not churn.
  */
 
-const WIDTH = 1000;
+const WIDTH = 1100;
 const HEIGHT = 560;
 const PAD = 60;
 /** How many zone labels the sky can carry before empty zones go quiet. */
-const LABEL_BUDGET = 6;
-const LABEL_HEIGHT = 14;
+const LABEL_BUDGET = 7;
+const UNFILED_LABEL_BUDGET = 4;
+const LABEL_HEIGHT = 18;
 /** Rough mono glyph advance at the label sizes — enough for collision boxes. */
-const LABEL_CHAR_WIDTH = 7.3;
+const LABEL_CHAR_WIDTH = 7.5;
 
 function mulberry32(seed: number): () => number {
   let value = seed >>> 0;
@@ -151,7 +152,7 @@ function layoutZones(data: KnowledgeMapData): {
     const text = `${layout.zone.name} · ${layout.zone.memberIds.length}`;
     const placement = chooseLabelPlacement(layout, text, placed);
     if (!placement) continue;
-    placed.push(placement.box, territoryBox(layout));
+    placed.push(placement.box);
     layout.label = placement.label;
     budget--;
   }
@@ -197,21 +198,12 @@ function labelBox(
   };
 }
 
-function territoryBox(layout: ZoneLayout): LabelBox {
-  return {
-    x: layout.cx - layout.base - 8,
-    y: layout.cy - layout.base * 0.86 - 8,
-    w: layout.base * 2 + 16,
-    h: layout.base * 1.72 + 16,
-  };
-}
-
 function isInFrame(box: LabelBox): boolean {
   return (
-    box.x >= 24 &&
-    box.y >= 24 &&
-    box.x + box.w <= WIDTH - 24 &&
-    box.y + box.h <= HEIGHT - 24
+    box.x >= 26 &&
+    box.y >= 26 &&
+    box.x + box.w <= WIDTH - 26 &&
+    box.y + box.h <= HEIGHT - 28
   );
 }
 
@@ -307,6 +299,56 @@ function intersects(a: LabelBox, b: LabelBox): boolean {
   );
 }
 
+interface ZoneLink {
+  first: ZoneLayout;
+  second: ZoneLayout;
+  path: string;
+}
+
+function buildZoneLinks(layouts: ZoneLayout[]): ZoneLink[] {
+  const random = mulberry32(211);
+  return layouts
+    .flatMap((first, leftIndex) =>
+      layouts.slice(leftIndex + 1).map((second) => ({
+        first,
+        second,
+        distance: Math.hypot(second.cx - first.cx, second.cy - first.cy),
+      })),
+    )
+    .sort((left, right) => left.distance - right.distance)
+    .slice(0, 8)
+    .map(({ first, second }) => {
+      const middleX = (first.cx + second.cx) / 2 + (random() - 0.5) * 34;
+      const middleY = (first.cy + second.cy) / 2 + (random() - 0.5) * 34;
+      return {
+        first,
+        second,
+        path: `M ${first.cx} ${first.cy} Q ${middleX} ${middleY}, ${second.cx} ${second.cy}`,
+      };
+    });
+}
+
+function ZoneLinkShape({
+  link,
+  index,
+}: {
+  link: ZoneLink;
+  index: number;
+}): JSX.Element {
+  return (
+    <path
+      class="kmap-weave kmap-topic-link"
+      pathLength={1}
+      d={link.path}
+      fill="none"
+      stroke="var(--kmap-glow)"
+      stroke-opacity={0.11}
+      stroke-width={0.75}
+      style={`--d:${(1.15 + index * 0.11).toFixed(2)}s`}
+    />
+  );
+}
+
 function ZoneShape({
   layout,
   index,
@@ -328,7 +370,7 @@ function ZoneShape({
         fill="none"
         stroke="var(--kmap-zone)"
         stroke-opacity={0.32}
-        stroke-width={1.2}
+        stroke-width={1}
         stroke-dasharray="3 5"
         stroke-linecap="round"
         style={`--d:${(0.2 + index * 0.08).toFixed(2)}s`}
@@ -353,12 +395,72 @@ function ZoneShape({
           y={label.y}
           text-anchor={label.anchor}
           fill="var(--kmap-zone)"
-          font-size="11"
+          font-size="9"
           font-weight="600"
           letter-spacing="0.18em"
-          style={`--d:${(1 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
+          style={`--d:${(0.95 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
         >
           {count > 0 ? `${zone.name} · ${count}` : zone.name}
+        </text>
+      )}
+    </g>
+  );
+}
+
+function unfiledLabelAnchor(x: number): {
+  anchor: "start" | "end";
+  dx: number;
+} {
+  const anchor = x > WIDTH - 150 ? "end" : "start";
+  return { anchor, dx: anchor === "start" ? 11 : -11 };
+}
+
+function UnfiledPointShape({
+  point,
+  index,
+  surface,
+  showLabel,
+}: {
+  point: KnowledgeMapPoint;
+  index: number;
+  surface: string;
+  showLabel: boolean;
+}): JSX.Element {
+  const { x, y } = toPx(point.x, point.y);
+  const delay = (0.5 + index * 0.05).toFixed(2);
+  const { anchor, dx } = unfiledLabelAnchor(x);
+  return (
+    <g class={`kmap-point--${point.kind} kmap-point--unfiled`}>
+      <circle
+        class="kmap-dot kmap-breathe"
+        cx={x}
+        cy={y}
+        r={10.4}
+        fill={`url(#kmap-unfiled-${surface})`}
+        opacity={0.28}
+        style={`--d:${delay}s`}
+      />
+      <circle
+        class="kmap-dot"
+        cx={x}
+        cy={y}
+        r={3.2}
+        fill="var(--kmap-unfiled)"
+        opacity={0.72}
+        style={`--d:${delay}s`}
+      />
+      {showLabel && (
+        <text
+          class="kmap-label kmap-label--unfiled"
+          x={x + dx}
+          y={y + 3.5}
+          text-anchor={anchor}
+          fill="var(--kmap-label-dim)"
+          font-size="9"
+          letter-spacing="0.06em"
+          style={`--d:${(1.3 + index * 0.05).toFixed(2)}s`}
+        >
+          {point.title} · unfiled
         </text>
       )}
     </g>
@@ -369,13 +471,25 @@ function PointShape({
   point,
   index,
   surface,
+  showUnfiledLabel = false,
 }: {
   point: KnowledgeMapPoint;
   index: number;
   surface: string;
+  showUnfiledLabel?: boolean;
 }): JSX.Element {
   const { x, y } = toPx(point.x, point.y);
   const delay = (0.5 + index * 0.05).toFixed(2);
+  if (point.zoneId === null && point.kind !== "ground") {
+    return (
+      <UnfiledPointShape
+        point={point}
+        index={index}
+        surface={surface}
+        showLabel={showUnfiledLabel}
+      />
+    );
+  }
   if (point.kind === "published") {
     return (
       <g class="kmap-point--published">
@@ -453,12 +567,13 @@ function KnowledgeMapLegend(): JSX.Element {
     { label: "published", kind: "published" },
     { label: "skills", kind: "skill" },
     { label: "references", kind: "pearl" },
+    { label: "unfiled", kind: "unfiled" },
     { label: "operational", kind: "ground" },
   ] as const;
   return (
     <g class="kmap-legend" aria-hidden="true">
       {items.map((item, index) => {
-        const x = 560 + index * 84;
+        const x = 560 + index * 82;
         const y = HEIGHT - 23;
         return (
           <g key={item.label} transform={`translate(${x} ${y})`}>
@@ -485,6 +600,8 @@ function KnowledgeMapLegend(): JSX.Element {
                 stroke="var(--kmap-ink-dim)"
                 stroke-width={1.1}
               />
+            ) : item.kind === "unfiled" ? (
+              <circle cx={0} cy={0} r={3.2} fill="var(--kmap-unfiled)" />
             ) : (
               <circle cx={0} cy={0} r={2.2} fill="var(--kmap-ink-faint)" />
             )}
@@ -506,16 +623,21 @@ export function KnowledgeMap({
   surface?: "dashboard" | "site";
 }): JSX.Element {
   const { layouts: zones } = layoutZones(data);
+  const zoneLinks = buildZoneLinks(zones);
   const titleId = `kmap-title-${surface}`;
   const descId = `kmap-desc-${surface}`;
   const labeledZones = zones
     .filter((layout) => layout.label)
     .map((layout) => layout.zone.name)
     .slice(0, 4);
-  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, and operational entities are ground spores.`;
-  // Ground first so territories and lights paint over the spores.
-  const points = [...data.points].sort(
-    (a, b) => (a.kind === "ground" ? 0 : 1) - (b.kind === "ground" ? 0 : 1),
+  const desc = `Semantic knowledge map with ${data.counts.entities} entities and ${data.counts.topics} topics. Labeled territories include ${labeledZones.join(", ") || "none yet"}. Published work glows, skills are moss, references are pearls, unfiled evidence is cyan, and operational entities are ground spores.`;
+  const groundPoints = data.points.filter((point) => point.kind === "ground");
+  const evidencePoints = data.points.filter((point) => point.kind !== "ground");
+  const labeledUnfiledIds = new Set(
+    evidencePoints
+      .filter((point) => point.zoneId === null)
+      .slice(0, UNFILED_LABEL_BUDGET)
+      .map((point) => point.id),
   );
   return (
     <svg
@@ -537,15 +659,42 @@ export function KnowledgeMap({
           <feGaussianBlur stdDeviation="2.4" />
         </filter>
         <radialGradient id={`kmap-mist-${surface}`}>
-          <stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.13" />
+          <stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.25" />
           <stop
             offset="70%"
             stop-color="var(--kmap-zone)"
-            stop-opacity="0.05"
+            stop-opacity="0.09"
           />
           <stop offset="100%" stop-color="var(--kmap-zone)" stop-opacity="0" />
         </radialGradient>
+        <radialGradient id={`kmap-unfiled-${surface}`}>
+          <stop
+            offset="0%"
+            stop-color="var(--kmap-unfiled)"
+            stop-opacity="0.75"
+          />
+          <stop
+            offset="100%"
+            stop-color="var(--kmap-unfiled)"
+            stop-opacity="0"
+          />
+        </radialGradient>
       </defs>
+      {groundPoints.map((point, index) => (
+        <PointShape
+          key={point.id}
+          point={point}
+          index={index}
+          surface={surface}
+        />
+      ))}
+      {zoneLinks.map((link, index) => (
+        <ZoneLinkShape
+          key={`${link.first.zone.id}:${link.second.zone.id}`}
+          link={link}
+          index={index}
+        />
+      ))}
       {zones.map((layout, index) => (
         <ZoneShape
           key={layout.zone.id}
@@ -554,12 +703,13 @@ export function KnowledgeMap({
           surface={surface}
         />
       ))}
-      {points.map((point, index) => (
+      {evidencePoints.map((point, index) => (
         <PointShape
           key={point.id}
           point={point}
           index={index}
           surface={surface}
+          showUnfiledLabel={labeledUnfiledIds.has(point.id)}
         />
       ))}
       <KnowledgeMapLegend />
