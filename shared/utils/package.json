@@ -1,6 +1,6 @@
 {
   "name": "@brains/utils",
-  "version": "0.2.0-alpha.216",
+  "version": "0.2.0-alpha.217",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",

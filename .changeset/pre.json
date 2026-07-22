@@ -174,6 +174,7 @@
     "cms-frontmatter-assists",
     "cms-notes-and-rover-pilot-onboarding",
     "cms-operator-login",
+    "cms-path-routing",
     "cms-publishing-workspace",
     "cms-rover-env",
     "cms-secondary-state-fixes",

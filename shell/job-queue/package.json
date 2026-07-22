@@ -1,6 +1,6 @@
 {
   "name": "@brains/job-queue",
-  "version": "0.2.0-alpha.216",
+  "version": "0.2.0-alpha.217",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/mcp-service": "workspace:*",

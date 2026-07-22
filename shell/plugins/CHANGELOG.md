@@ -1,5 +1,24 @@
 # @brains/plugins
 
+## 0.2.0-alpha.217
+
+### Patch Changes
+
+- [#64](https://github.com/rizom-ai/brains/pull/64) [`b737ed9`](https://github.com/rizom-ai/brains/commit/b737ed9b37f0cd38b0e5387e2fb3795ca5eeec04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace CMS hash doors with canonical path routing. Collections, entities, and optional workspaces now support direct loading, refresh, browser Back and Forward, custom CMS mounts, and dirty-draft navigation protection. Dashboard entity doors use canonical CMS detail paths, and the web route contract supports explicit segment-aware prefix routes for authenticated SPA shells.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.217
+  - @brains/contracts@0.2.0-alpha.217
+  - @brains/site-composition@0.2.0-alpha.217
+  - @brains/utils@0.2.0-alpha.217
+  - @brains/conversation-service@0.2.0-alpha.217
+  - @brains/identity-service@0.2.0-alpha.217
+  - @brains/job-queue@0.2.0-alpha.217
+  - @brains/messaging-service@0.2.0-alpha.217
+  - @brains/recurring-checks@0.2.0-alpha.217
+  - @brains/runtime-state@0.2.0-alpha.217
+  - @brains/templates@0.2.0-alpha.217
+
 ## 0.2.0-alpha.216
 
 ### Patch Changes
