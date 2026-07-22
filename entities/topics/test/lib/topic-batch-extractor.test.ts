@@ -534,6 +534,38 @@ describe("extractTopicsBatched", () => {
       expect(result.skipped).toBe(1);
     });
 
+    it("keeps role-policy minting when only legacy source weights are set", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Post Operations",
+            content: "Post content with a strong signal.",
+            relevanceScore: 0.9,
+          },
+        ],
+      });
+
+      // Legacy sourceWeights without a mintableEntityTypes list must only
+      // override weights — minting still follows the role policy, so a
+      // primary source can mint.
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Post content")],
+        context,
+        logger,
+        {
+          autoMerge: false,
+          sourceWeights: { link: 0.5 },
+        },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.skipped).toBe(0);
+    });
+
     it("does not create beyond the soft ceiling without a merge candidate", async () => {
       const logger = createSilentLogger();
       const mockShell = createMockShell({ logger });
