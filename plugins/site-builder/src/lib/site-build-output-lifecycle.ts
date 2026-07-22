@@ -3,7 +3,7 @@ import type {
   SiteBuildArtifactManifest,
 } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
-import { promises as fs } from "fs";
+import { promises as nodeFs } from "fs";
 import { basename, dirname, join, relative, resolve } from "path";
 import {
   createSiteBuildArtifactManifest,
@@ -45,20 +45,76 @@ export interface SiteBuildOutputLifecycle {
   abort(target: SiteBuildOutputTarget): Promise<void>;
 }
 
+/** Directory entry shape used while scanning generation directories. */
+export interface SiteBuildDirent {
+  name: string;
+  isDirectory(): boolean;
+}
+
+/** The single stat field the lifecycle depends on. */
+export interface SiteBuildFileStat {
+  mtimeMs: number;
+}
+
+/** The single lstat field the lifecycle depends on. */
+export interface SiteBuildFileType {
+  isSymbolicLink(): boolean;
+}
+
+/**
+ * Narrow filesystem seam for the output lifecycle. The signatures are
+ * deliberately non-overloaded (e.g. `stat` resolves to one plain shape) so
+ * tests can supply a fake by spreading the default adapter and overriding a
+ * single method without casts.
+ */
+export interface SiteBuildOutputFs {
+  mkdir(path: string, options: { recursive: true }): Promise<unknown>;
+  rm(
+    path: string,
+    options: { recursive?: boolean; force?: boolean },
+  ): Promise<void>;
+  readdir(
+    path: string,
+    options: { withFileTypes: true },
+  ): Promise<SiteBuildDirent[]>;
+  stat(path: string): Promise<SiteBuildFileStat>;
+  access(path: string): Promise<void>;
+  symlink(target: string, path: string, type: "dir"): Promise<void>;
+  rename(oldPath: string, newPath: string): Promise<void>;
+  readlink(path: string): Promise<string>;
+  lstat(path: string): Promise<SiteBuildFileType>;
+}
+
+/** Default adapter delegating to `fs.promises`. */
+export const nodeSiteBuildOutputFs: SiteBuildOutputFs = {
+  mkdir: (path, options) => nodeFs.mkdir(path, options),
+  rm: (path, options) => nodeFs.rm(path, options),
+  readdir: (path, options) => nodeFs.readdir(path, options),
+  stat: (path) => nodeFs.stat(path),
+  access: (path) => nodeFs.access(path),
+  symlink: (target, path, type) => nodeFs.symlink(target, path, type),
+  rename: (oldPath, newPath) => nodeFs.rename(oldPath, newPath),
+  readlink: (path) => nodeFs.readlink(path),
+  lstat: (path) => nodeFs.lstat(path),
+};
+
 /** Filesystem-backed generation staging and active-output publication. */
 export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
   private readonly logger: Logger;
   private readonly retainedGenerations: number;
   private readonly staleGenerationAgeMs: number;
+  private readonly fs: SiteBuildOutputFs;
 
   constructor(
     logger: Logger,
     retainedGenerations: number = 3,
     staleGenerationAgeMs: number = 24 * 60 * 60 * 1_000,
+    fs: SiteBuildOutputFs = nodeSiteBuildOutputFs,
   ) {
     this.logger = logger.child("SiteBuildOutput");
     this.retainedGenerations = Math.max(1, retainedGenerations);
     this.staleGenerationAgeMs = Math.max(0, staleGenerationAgeMs);
+    this.fs = fs;
   }
 
   async begin(
@@ -81,8 +137,9 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
           options.buildId,
         );
 
-    await fs.mkdir(environmentDir, { recursive: true });
+    await this.fs.mkdir(environmentDir, { recursive: true });
     const staleGenerations = await removeStaleUncommittedGenerations(
+      this.fs,
       environmentDir,
       generationDir,
       this.staleGenerationAgeMs,
@@ -92,9 +149,9 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
         `Removed ${staleGenerations} stale uncommitted site generation(s)`,
       );
     }
-    await fs.rm(generationDir, { recursive: true, force: true });
-    await fs.rm(workingDir, { recursive: true, force: true });
-    await fs.mkdir(generationDir, { recursive: true });
+    await this.fs.rm(generationDir, { recursive: true, force: true });
+    await this.fs.rm(workingDir, { recursive: true, force: true });
+    await this.fs.mkdir(generationDir, { recursive: true });
 
     return {
       activeOutputDir,
@@ -114,11 +171,15 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
       warnings: options.warnings,
     });
 
-    await publishGeneration(options.target);
+    await publishGeneration(this.fs, options.target);
 
     try {
-      await fs.rm(options.target.workingDir, { recursive: true, force: true });
+      await this.fs.rm(options.target.workingDir, {
+        recursive: true,
+        force: true,
+      });
       await pruneGenerations(
+        this.fs,
         options.target.environmentDir,
         options.target.generationDir,
         this.retainedGenerations,
@@ -141,13 +202,16 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
 
   async abort(target: SiteBuildOutputTarget): Promise<void> {
     await Promise.allSettled([
-      fs.rm(target.generationDir, { recursive: true, force: true }),
-      fs.rm(target.workingDir, { recursive: true, force: true }),
+      this.fs.rm(target.generationDir, { recursive: true, force: true }),
+      this.fs.rm(target.workingDir, { recursive: true, force: true }),
     ]);
   }
 }
 
-async function publishGeneration(target: SiteBuildOutputTarget): Promise<void> {
+async function publishGeneration(
+  fs: SiteBuildOutputFs,
+  target: SiteBuildOutputTarget,
+): Promise<void> {
   const activeParent = dirname(target.activeOutputDir);
   await fs.mkdir(activeParent, { recursive: true });
   const temporaryLink = join(
@@ -161,11 +225,11 @@ async function publishGeneration(target: SiteBuildOutputTarget): Promise<void> {
     "dir",
   );
 
-  const activeEntry = await lstatIfPresent(target.activeOutputDir);
+  const activeEntry = await lstatIfPresent(fs, target.activeOutputDir);
   if (!activeEntry) {
     try {
       await fs.rename(temporaryLink, target.activeOutputDir);
-      await verifyActiveGeneration(target);
+      await verifyActiveGeneration(fs, target);
       return;
     } catch (error) {
       await fs.rm(temporaryLink, { force: true });
@@ -178,10 +242,10 @@ async function publishGeneration(target: SiteBuildOutputTarget): Promise<void> {
     const previousTarget = await fs.readlink(target.activeOutputDir);
     try {
       await fs.rename(temporaryLink, target.activeOutputDir);
-      await verifyActiveGeneration(target);
+      await verifyActiveGeneration(fs, target);
       return;
     } catch (error) {
-      await restoreSymbolicLink(target.activeOutputDir, previousTarget);
+      await restoreSymbolicLink(fs, target.activeOutputDir, previousTarget);
       await fs.rm(temporaryLink, { force: true });
       throw error;
     }
@@ -195,7 +259,7 @@ async function publishGeneration(target: SiteBuildOutputTarget): Promise<void> {
   await fs.rename(target.activeOutputDir, legacyBackup);
   try {
     await fs.rename(temporaryLink, target.activeOutputDir);
-    await verifyActiveGeneration(target);
+    await verifyActiveGeneration(fs, target);
   } catch (error) {
     await fs.rm(target.activeOutputDir, { recursive: true, force: true });
     await fs.rename(legacyBackup, target.activeOutputDir);
@@ -205,6 +269,7 @@ async function publishGeneration(target: SiteBuildOutputTarget): Promise<void> {
 }
 
 async function restoreSymbolicLink(
+  fs: SiteBuildOutputFs,
   activeOutputDir: string,
   previousTarget: string,
 ): Promise<void> {
@@ -215,6 +280,7 @@ async function restoreSymbolicLink(
 }
 
 async function verifyActiveGeneration(
+  fs: SiteBuildOutputFs,
   target: SiteBuildOutputTarget,
 ): Promise<void> {
   const activeLink = await fs.readlink(target.activeOutputDir);
@@ -228,8 +294,9 @@ async function verifyActiveGeneration(
 }
 
 async function lstatIfPresent(
+  fs: SiteBuildOutputFs,
   path: string,
-): Promise<Awaited<ReturnType<typeof fs.lstat>> | undefined> {
+): Promise<SiteBuildFileType | undefined> {
   try {
     return await fs.lstat(path);
   } catch (error) {
@@ -239,6 +306,7 @@ async function lstatIfPresent(
 }
 
 async function removeStaleUncommittedGenerations(
+  fs: SiteBuildOutputFs,
   environmentDir: string,
   currentGenerationDir: string,
   staleGenerationAgeMs: number,
@@ -251,7 +319,7 @@ async function removeStaleUncommittedGenerations(
     if (!entry.isDirectory() || entry.name.startsWith("legacy-")) continue;
     const path = join(environmentDir, entry.name);
     if (resolve(path) === resolve(currentGenerationDir)) continue;
-    if (await hasArtifactManifest(path)) continue;
+    if (await hasArtifactManifest(fs, path)) continue;
     const stat = await fs.stat(path);
     if (now - stat.mtimeMs < staleGenerationAgeMs) continue;
     staleDirectories.push(path);
@@ -265,7 +333,10 @@ async function removeStaleUncommittedGenerations(
   return staleDirectories.length;
 }
 
-async function hasArtifactManifest(directory: string): Promise<boolean> {
+async function hasArtifactManifest(
+  fs: SiteBuildOutputFs,
+  directory: string,
+): Promise<boolean> {
   try {
     await fs.access(join(directory, SITE_BUILD_MANIFEST_FILE));
     return true;
@@ -276,6 +347,7 @@ async function hasArtifactManifest(directory: string): Promise<boolean> {
 }
 
 async function pruneGenerations(
+  fs: SiteBuildOutputFs,
   environmentDir: string,
   activeGenerationDir: string,
   retainedGenerations: number,

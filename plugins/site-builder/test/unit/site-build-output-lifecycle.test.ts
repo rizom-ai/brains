@@ -5,7 +5,9 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  nodeSiteBuildOutputFs,
   TransactionalSiteBuildOutput,
+  type SiteBuildOutputFs,
   type SiteBuildOutputTarget,
 } from "../../src/lib/site-build-output-lifecycle";
 
@@ -248,6 +250,77 @@ describe("TransactionalSiteBuildOutput", () => {
     );
     expect(remaining).not.toContain("stale-build");
     await lifecycle.abort(target);
+  });
+
+  it("keeps pruning old generations when one vanishes mid-scan", async () => {
+    // A committed generation whose directory disappears after its manifest is
+    // observed but before it can be stat'd during pruning. The injected fs
+    // fails stat for that one path and delegates everything else to disk.
+    let phantomDir = "";
+    const failingStatFs: SiteBuildOutputFs = {
+      ...nodeSiteBuildOutputFs,
+      stat: (path) =>
+        path === phantomDir
+          ? Promise.reject(
+              Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+            )
+          : nodeSiteBuildOutputFs.stat(path),
+    };
+    const retainingLifecycle = new TransactionalSiteBuildOutput(
+      createSilentLogger(),
+      1,
+      1_000,
+      failingStatFs,
+    );
+
+    const firstBuild = createPreparedBuild("build-one");
+    const firstTarget = await retainingLifecycle.begin({
+      outputDir,
+      environment: "preview",
+      buildId: firstBuild.buildId,
+    });
+    await writeCompleteGeneration(firstTarget, "first output");
+    await retainingLifecycle.commit({
+      target: firstTarget,
+      preparedBuild: firstBuild,
+      warnings: [],
+    });
+
+    phantomDir = join(firstTarget.environmentDir, "phantom-build");
+    await fs.mkdir(phantomDir, { recursive: true });
+    await fs.writeFile(join(phantomDir, ".site-build-manifest.json"), "{}");
+
+    const secondBuild = createPreparedBuild("build-two");
+    const secondTarget = await retainingLifecycle.begin({
+      outputDir,
+      environment: "preview",
+      buildId: secondBuild.buildId,
+    });
+    await writeCompleteGeneration(secondTarget, "second output");
+    await retainingLifecycle.commit({
+      target: secondTarget,
+      preparedBuild: secondBuild,
+      warnings: [],
+    });
+
+    // The vanished generation must not abort the whole prune: the oldest
+    // committed generation is still removed, the newest stays active, and the
+    // phantom directory is left untouched.
+    expect(
+      await fs
+        .access(firstTarget.generationDir)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(false);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "second output",
+    );
+    expect(
+      await fs
+        .access(phantomDir)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(true);
   });
 
   it("rolls a legacy directory back when its first pointer switch fails", async () => {
