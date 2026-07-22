@@ -27,6 +27,7 @@ import {
   type ResolveAuthIdentityInput,
 } from "./identity-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
+import { auditActor, type AuthMutationContext } from "./mutation-context";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
@@ -93,6 +94,7 @@ import {
   type ResolvedSetupToken,
 } from "./setup-flow";
 import { TargetedSetupService } from "./targeted-setup-service";
+import { AuthUserManagementService } from "./user-management-service";
 import type {
   A2APrivateJwk,
   AuthorizationServerMetadata,
@@ -121,11 +123,6 @@ export type AuthIdentityAccessResolution =
   | { state: "resolved"; principal: AuthPrincipal }
   | { state: "denied" }
   | { state: "unbound" };
-
-export interface AuthMutationContext {
-  /** Authenticated user performing the mutation, for audit attribution. */
-  actorUserId?: string;
-}
 
 export interface UserPasskeyRegistration {
   setupUrl: string;
@@ -200,6 +197,7 @@ export class AuthService {
   private userStore: AuthUserStore | undefined;
   private identityStore: AuthIdentityStore | undefined;
   private targetedSetupService: TargetedSetupService | undefined;
+  private userManagementService: AuthUserManagementService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private personExternalPeerStore: PersonExternalPeerStore | undefined;
   private auditStore: AuthAuditStore | undefined;
@@ -367,6 +365,7 @@ export class AuthService {
     this.userStore = undefined;
     this.identityStore = undefined;
     this.targetedSetupService = undefined;
+    this.userManagementService = undefined;
     this.interfacePrincipalStore = undefined;
     this.personExternalPeerStore = undefined;
     this.auditStore = undefined;
@@ -394,6 +393,12 @@ export class AuthService {
       this.runtimeDatabase.db,
     );
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
+    this.userManagementService = new AuthUserManagementService({
+      users: this.userStore,
+      audit: this.auditStore,
+      sessions: this.sessionStore,
+      refreshTokens: this.refreshTokenStore,
+    });
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
 
@@ -416,6 +421,13 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.targetedSetupService;
+  }
+
+  private getUserManagementService(): AuthUserManagementService {
+    if (!this.userManagementService) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.userManagementService;
   }
 
   private getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -662,14 +674,10 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const user = await this.getUserStore().createUser(input);
-    await this.getAuditStore().append({
-      ...auditActor(context),
-      action: "auth.user.created",
-      targetType: "user",
-      targetId: user.id,
-      metadata: { role: user.role, status: user.status },
-    });
+    const user = await this.getUserManagementService().createUser(
+      input,
+      context,
+    );
     return this.principalFromUser(user);
   }
 
@@ -907,18 +915,11 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const current = await this.getUserStore().getUser(userId);
-    const updated = await this.getUserStore().updateUserRole(userId, role);
-    if (current && current.role !== updated.role) {
-      await this.revokeUserSessionsAndRefreshTokens(userId);
-      await this.getAuditStore().append({
-        ...auditActor(context),
-        action: "auth.user.role_updated",
-        targetType: "user",
-        targetId: userId,
-        metadata: { from: current.role, to: updated.role },
-      });
-    }
+    const updated = await this.getUserManagementService().updateRole(
+      userId,
+      role,
+      context,
+    );
     return this.principalFromUser(updated);
   }
 
@@ -928,18 +929,11 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    const current = await this.getUserStore().getUser(userId);
-    const updated = await this.getUserStore().updateUserStatus(userId, status);
-    if (current && current.status !== updated.status) {
-      await this.revokeUserSessionsAndRefreshTokens(userId);
-      await this.getAuditStore().append({
-        ...auditActor(context),
-        action: "auth.user.status_updated",
-        targetType: "user",
-        targetId: userId,
-        metadata: { from: current.status, to: updated.status },
-      });
-    }
+    const updated = await this.getUserManagementService().updateStatus(
+      userId,
+      status,
+      context,
+    );
     return this.principalFromUser(updated);
   }
 
@@ -954,20 +948,8 @@ export class AuthService {
     userId: string,
     context: AuthMutationContext = {},
   ): Promise<{ sessions: number; refreshTokens: number }> {
-    const [sessions, refreshTokens] = await Promise.all([
-      this.sessionStore.revokeSessionsForSubject(userId),
-      this.refreshTokenStore.revokeTokensForSubject(userId),
-    ]);
-    if (context.actorUserId) {
-      await this.getAuditStore().append({
-        ...auditActor(context),
-        action: "auth.user.grants_revoked",
-        targetType: "user",
-        targetId: userId,
-        metadata: { sessions, refreshTokens },
-      });
-    }
-    return { sessions, refreshTokens };
+    await this.ensureUserStoreStarted();
+    return this.getUserManagementService().revokeGrants(userId, context);
   }
 
   async attachIdentity(
@@ -1529,12 +1511,6 @@ function groupBy<T>(
     grouped.set(key, group);
   }
   return grouped;
-}
-
-function auditActor(context: AuthMutationContext): {
-  actorUserId?: string;
-} {
-  return context.actorUserId ? { actorUserId: context.actorUserId } : {};
 }
 
 function brainAnchorSummary(
