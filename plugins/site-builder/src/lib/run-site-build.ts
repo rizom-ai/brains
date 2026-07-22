@@ -124,6 +124,7 @@ export async function runSiteBuild(
     });
     const preparation = await prepareSiteBuild({
       buildId: randomUUID(),
+      preparedAt: new Date().toISOString(),
       routes,
       parsedOptions,
       buildOptions: options.buildOptions,

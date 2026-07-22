@@ -6,13 +6,7 @@ interface SitemapEntry {
   url: string;
   lastmod: string;
   changefreq?:
-    | "always"
-    | "hourly"
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "never";
+    "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: number;
 }
 
@@ -36,9 +30,8 @@ function escapeXml(text: string): string {
 export function generateSitemap(
   routes: SitemapRoute[],
   baseUrl: string,
+  lastmod: string = new Date().toISOString(),
 ): string {
-  const lastmod = new Date().toISOString();
-
   const entries: SitemapEntry[] = routes.map((route) => ({
     url: `${baseUrl}${route.path}`,
     lastmod,

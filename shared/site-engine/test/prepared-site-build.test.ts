@@ -9,6 +9,7 @@ import {
 function createPreparedBuild(): PreparedSiteBuild {
   return {
     buildId: "build-123",
+    preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "preview",
     site: {
       title: "Prepared Site",

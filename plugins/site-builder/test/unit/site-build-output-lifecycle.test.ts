@@ -12,6 +12,7 @@ import {
 function createPreparedBuild(buildId: string): PreparedSiteBuild {
   return {
     buildId,
+    preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "preview",
     site: {
       title: "Transactional Site",
@@ -101,9 +102,18 @@ describe("TransactionalSiteBuildOutput", () => {
       routes: [{ routeId: "home", urlPath: "/", outputFile: "index.html" }],
       publicAssets: ["public-logo.bin"],
       files: expect.arrayContaining([
-        { path: "public-logo.bin", kind: "public", size: 4 },
-        { path: "robots.txt", kind: "seo", size: 6 },
-        { path: "sitemap.xml", kind: "seo", size: 7 },
+        expect.objectContaining({
+          path: "public-logo.bin",
+          kind: "public",
+          size: 4,
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+        expect.objectContaining({ path: "robots.txt", kind: "seo", size: 6 }),
+        expect.objectContaining({
+          path: "sitemap.xml",
+          kind: "seo",
+          size: 7,
+        }),
       ]),
     });
     expect(
@@ -195,6 +205,49 @@ describe("TransactionalSiteBuildOutput", () => {
         .then(() => true)
         .catch(() => false),
     ).toBe(false);
+  });
+
+  it("removes only stale uncommitted generations before staging", async () => {
+    const environmentDir = join(testDir, ".site-builds", "preview");
+    const staleDir = join(environmentDir, "stale-build");
+    const recentDir = join(environmentDir, "recent-build");
+    const legacyDir = join(environmentDir, "legacy-old-build");
+    const committedDir = join(environmentDir, "committed-build");
+    await Promise.all(
+      [staleDir, recentDir, legacyDir, committedDir].map((directory) =>
+        fs.mkdir(directory, { recursive: true }),
+      ),
+    );
+    await fs.writeFile(join(committedDir, ".site-build-manifest.json"), "{}");
+    const oldDate = new Date(Date.now() - 10_000);
+    await Promise.all([
+      fs.utimes(staleDir, oldDate, oldDate),
+      fs.utimes(legacyDir, oldDate, oldDate),
+      fs.utimes(committedDir, oldDate, oldDate),
+    ]);
+    lifecycle = new TransactionalSiteBuildOutput(
+      createSilentLogger(),
+      3,
+      1_000,
+    );
+
+    const target = await lifecycle.begin({
+      outputDir,
+      environment: "preview",
+      buildId: "new-build",
+    });
+
+    const remaining = await fs.readdir(environmentDir);
+    expect(remaining).toEqual(
+      expect.arrayContaining([
+        "committed-build",
+        "legacy-old-build",
+        "new-build",
+        "recent-build",
+      ]),
+    );
+    expect(remaining).not.toContain("stale-build");
+    await lifecycle.abort(target);
   });
 
   it("rolls a legacy directory back when its first pointer switch fails", async () => {
