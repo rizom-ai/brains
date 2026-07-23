@@ -424,11 +424,11 @@ Validation: migrations are idempotent; file permissions are private; DB opens in
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
 - First setup creates an admin user and, for a personal brain, binds that person's Anchor identity.
-- New passkeys bind to user ids.
+- New passkeys bind to user ids and require discoverable credentials. Authentication omits a server-side credential allowlist so the authenticator presents its native account picker when one device holds multiple Anchor/Admin/Trusted credentials; the verified credential id still resolves the exact runtime user.
 - Require one-time passkey re-registration for file-store installs.
 - Add atomic last-active-Admin and personal-Anchor protection.
 
-Validation: fresh setup, re-onboarding, and login all produce `usr_<uuid>` subjects.
+Validation: fresh setup, re-onboarding, and login all produce `usr_<uuid>` subjects; two discoverable credentials for the same brain remain selectable through the authenticator without publishing account names from the server.
 
 ### Phase 3 — OAuth/session stores
 

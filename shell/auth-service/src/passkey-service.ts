@@ -80,7 +80,7 @@ export class PasskeyService {
       userDisplayName,
       attestationType: "none",
       authenticatorSelection: {
-        residentKey: "preferred",
+        residentKey: "required",
         userVerification: "required",
       },
       excludeCredentials: existingCredentials.map((credential) => ({
@@ -155,14 +155,9 @@ export class PasskeyService {
   async generateAuthenticationOptions(
     context: WebAuthnRequestContext,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const credentials = await this.store.listCredentials();
     const options = await generateAuthenticationOptions({
       rpID: context.rpID,
       userVerification: "required",
-      allowCredentials: credentials.map((credential) => ({
-        id: credential.id,
-        ...(credential.transports ? { transports: credential.transports } : {}),
-      })),
     });
 
     await this.store.saveAuthenticationChallenge(options.challenge);

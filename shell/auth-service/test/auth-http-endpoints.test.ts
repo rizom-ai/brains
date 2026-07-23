@@ -136,7 +136,7 @@ describe("login page", () => {
     expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain("Passkey login");
-    expect(html).toContain("Continue with passkey");
+    expect(html).toContain("Choose account");
     expect(html).toContain(JSON.stringify("/dashboard"));
   });
 
@@ -717,9 +717,7 @@ describe("webauthn endpoints", () => {
     const options = await response.json();
     expect(typeof options.challenge).toBe("string");
     expect(options.userVerification).toBe("required");
-    expect(options.allowCredentials).toEqual([
-      { id: "credential-id", type: "public-key" },
-    ]);
+    expect(options.allowCredentials).toBeUndefined();
   });
 
   it("rejects authentication verify when no challenge was issued", async () => {

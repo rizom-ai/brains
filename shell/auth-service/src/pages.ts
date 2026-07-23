@@ -78,8 +78,8 @@ export function renderLoginPage(
   <body>
     <main class="card">
       <h1>${escapeHtml(title)}</h1>
-      <p>Use your passkey to continue.</p>
-      <button type="button" id="login">Continue with passkey</button>
+      <p>Choose the account for this brain in your passkey provider.</p>
+      <button type="button" id="login">Choose account</button>
       <p id="status" role="status"></p>
     </main>
     <script>${webauthnBrowserHelpers()}

@@ -57,6 +57,49 @@ describe("targeted passkey registration", () => {
     expect(options.excludeCredentials).toEqual([
       expect.objectContaining({ id: "target-credential" }),
     ]);
+    expect(options.authenticatorSelection?.residentKey).toBe("required");
+    await database.stop();
+  });
+
+  it("lets the authenticator choose between multiple discoverable accounts", async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), "passkey-targeting-"));
+    tempDirs.push(storageDir);
+    const database = new AuthRuntimeDatabase({ storageDir });
+    await database.start();
+    const users = new AuthUserStore(database.db);
+    const anchor = await users.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const trusted = await users.createUser({
+      displayName: "Trusted",
+      role: "trusted",
+    });
+    const credentials = new AuthCredentialStore(database.db);
+    const now = Date.now();
+    for (const [id, userId] of [
+      ["anchor-credential", anchor.id],
+      ["trusted-credential", trusted.id],
+    ] as const) {
+      await credentials.addPasskey({
+        id,
+        userId,
+        publicKey: `${id}-public-key`,
+        counter: 0,
+        credentialBackedUp: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    const service = new PasskeyService({ runtimeDatabase: database });
+
+    const options = await service.generateAuthenticationOptions({
+      origin: "https://brain.example.com",
+      rpID: "brain.example.com",
+    });
+
+    expect(options.allowCredentials).toBeUndefined();
+    expect(options.userVerification).toBe("required");
     await database.stop();
   });
 
