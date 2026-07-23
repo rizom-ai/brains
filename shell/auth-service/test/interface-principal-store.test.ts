@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { InterfacePrincipalStore } from "../src/interface-principal-store";
@@ -129,72 +129,6 @@ describe("InterfacePrincipalStore", () => {
       const state = await store.listActiveState();
       expect(state.grants[0]?.principalKeyHash).toMatch(/^[a-f0-9]{64}$/);
       expect(JSON.stringify(state)).not.toContain("123456789");
-    });
-  });
-
-  it("creates, updates, lists, and revokes labeled Admin grants without returning subjects or hashes", async () => {
-    await withStore(async (store, storageDir) => {
-      const created = await store.upsertAdminGrant({
-        interfaceType: " Discord ",
-        subject: "123456789",
-        label: "Operations room",
-        permissionLevel: "trusted",
-      });
-
-      expect(created).toMatchObject({
-        interfaceType: "discord",
-        label: "Operations room",
-        permissionLevel: "trusted",
-        source: "admin",
-      });
-      expect(JSON.stringify(created)).not.toContain("123456789");
-      expect(JSON.stringify(created)).not.toMatch(/[a-f0-9]{64}/);
-      const persistedBytes = Buffer.concat(
-        await Promise.all(
-          (await readdir(storageDir)).map(async (name) =>
-            Buffer.from(await Bun.file(join(storageDir, name)).arrayBuffer()),
-          ),
-        ),
-      ).toString("utf8");
-      expect(persistedBytes).not.toContain("123456789");
-      expect(await store.resolve("discord", "123456789")).toEqual({
-        permissionLevel: "trusted",
-        isAnchor: false,
-      });
-      let unsafeLabelError: unknown;
-      try {
-        await store.upsertAdminGrant({
-          interfaceType: "discord",
-          subject: "private-subject",
-          label: "Discord private-subject",
-          permissionLevel: "trusted",
-        });
-      } catch (error) {
-        unsafeLabelError = error;
-      }
-      expect(unsafeLabelError).toEqual(
-        new Error("Grant label must not contain the principal subject"),
-      );
-
-      const updated = await store.upsertAdminGrant({
-        interfaceType: "discord",
-        subject: "123456789",
-        label: "Operations Admin",
-        permissionLevel: "admin",
-      });
-      expect(updated).toMatchObject({
-        id: created.id,
-        label: "Operations Admin",
-        permissionLevel: "admin",
-      });
-      expect(await store.listAdminGrants()).toEqual([updated]);
-
-      expect(await store.revokeAdminGrant(created.id)).toMatchObject({
-        ...updated,
-        updatedAt: expect.any(Number),
-      });
-      expect(await store.listAdminGrants()).toEqual([]);
-      expect(await store.resolve("discord", "123456789")).toBeUndefined();
     });
   });
 });

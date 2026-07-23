@@ -8,4 +8,4 @@
 "@rizom/brain": minor
 ---
 
-Persist exact interface grants and Anchor bindings in private auth runtime storage, seed declarations only on first initialization, make connected accounts authoritative, add privacy-preserving standalone-grant management to the Admin console, and provide explicit access-only CLI recovery.
+Persist exact interface grants and Anchor bindings in private auth runtime storage, seed declarations only on first initialization, make connected accounts authoritative, keep the no-login channel allowlist out of the person-centered Admin console, and provide explicit access-only CLI recovery.

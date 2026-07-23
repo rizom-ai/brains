@@ -20,9 +20,6 @@ const bootstrap: PeopleBootstrap = {
   isAnchor: root.dataset["peopleIsAnchor"] === "true",
   brainName: root.dataset["peopleBrainName"] ?? "brain",
   routePath: root.dataset["peopleRoute"] ?? "/admin",
-  registeredInterfaces: (root.dataset["peopleInterfaces"] ?? "")
-    .split(",")
-    .filter(Boolean),
 };
 
 const queryClient = createAdminQueryClient();

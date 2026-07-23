@@ -436,6 +436,30 @@ describe("DiscordInterface", () => {
       );
     });
 
+    it("should use a config-seeded channel grant when no account is connected", async () => {
+      mockActiveAuthService = {
+        resolveIdentityAccess: mock(async () => ({
+          state: "unbound" as const,
+        })),
+      };
+
+      const msg = createDiscordMessage({
+        author: { id: "trusted-user", username: "mira", globalName: "Mira" },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello bot",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          interfaceType: "discord",
+          userPermissionLevel: "trusted",
+        }),
+        expect.any(AbortSignal),
+      );
+    });
+
     it("should let a connected account override standalone config grants", async () => {
       mockActiveAuthService = {
         resolveIdentityAccess: mock(async () => ({

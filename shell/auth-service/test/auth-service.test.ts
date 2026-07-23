@@ -490,25 +490,7 @@ describe("AuthService", () => {
     expect(
       firstHarness.getPermissionService().isAnchor("discord", "first-owner"),
     ).toBe(true);
-    const firstService = firstHarness.getPlugin().getService();
-    const runtimeGrant = await firstService.upsertInterfaceGrant({
-      interfaceType: "discord",
-      subject: "runtime-trusted",
-      label: "Runtime trusted",
-      permissionLevel: "trusted",
-    });
-    expect(
-      firstHarness
-        .getPermissionService()
-        .determineUserLevel("discord", "runtime-trusted"),
-    ).toBe("trusted");
-    await firstService.revokeInterfaceGrant(runtimeGrant.id);
-    expect(
-      firstHarness
-        .getPermissionService()
-        .determineUserLevel("discord", "runtime-trusted"),
-    ).toBe("public");
-    await firstService.close();
+    await firstHarness.getPlugin().getService().close();
 
     const restartHarness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",

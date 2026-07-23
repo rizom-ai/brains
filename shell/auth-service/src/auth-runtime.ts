@@ -1,4 +1,3 @@
-import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
 import { AuthAdministrationService } from "./administration-service";
@@ -9,7 +8,6 @@ import { AuthCredentialStore } from "./credential-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { AuthIdentityStore } from "./identity-store";
 import { errorMessage } from "./http-responses";
-import { InterfaceAccessAdministrationService } from "./interface-access-administration-service";
 import { InterfacePrincipalStore } from "./interface-principal-store";
 import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
@@ -56,9 +54,6 @@ export interface AuthRuntimeOptions {
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
   oauthClientMaintenanceIntervalMs?: number;
-  onInterfacePrincipalStateChange?: (
-    state: RuntimeInterfacePrincipalState,
-  ) => void;
   logger?: Logger;
 }
 
@@ -84,9 +79,6 @@ export class AuthRuntime {
   private readonly resolveProfileDisplayName:
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly logger: Logger | undefined;
-  private readonly publishInterfacePrincipalState: (
-    state: RuntimeInterfacePrincipalState,
-  ) => void;
   private userStore: AuthUserStore | undefined;
   private identityReconciliationService:
     IdentityReconciliationService | undefined;
@@ -95,8 +87,6 @@ export class AuthRuntime {
   private principalService: AuthPrincipalService | undefined;
   private administrationService: AuthAdministrationService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
-  private interfaceAccessAdministrationService:
-    InterfaceAccessAdministrationService | undefined;
   private auditStore: AuthAuditStore | undefined;
   private initialization: Promise<void> | undefined;
   private firstAdminInitialization: Promise<AuthUser> | undefined;
@@ -110,8 +100,6 @@ export class AuthRuntime {
     this.anchorProfileEntityId = options.anchorProfileEntityId;
     this.resolveProfileDisplayName = options.resolveProfileDisplayName;
     this.logger = options.logger;
-    this.publishInterfacePrincipalState =
-      options.onInterfacePrincipalStateChange ?? ((): void => undefined);
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
       ...(options.replica ? { replica: options.replica } : {}),
@@ -233,12 +221,6 @@ export class AuthRuntime {
       this.runtimeDatabase.db,
     );
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
-    this.interfaceAccessAdministrationService =
-      new InterfaceAccessAdministrationService({
-        store: this.interfacePrincipalStore,
-        audit: this.auditStore,
-        publishState: this.publishInterfacePrincipalState,
-      });
     this.passkeySetupCoordinator = new PasskeySetupCoordinator({
       issuer: this.issuer,
       users: this.userStore,
@@ -313,10 +295,6 @@ export class AuthRuntime {
     return required(this.interfacePrincipalStore);
   }
 
-  getInterfaceAccessAdministrationService(): InterfaceAccessAdministrationService {
-    return required(this.interfaceAccessAdministrationService);
-  }
-
   getAuditStore(): AuthAuditStore {
     return required(this.auditStore);
   }
@@ -375,7 +353,6 @@ export class AuthRuntime {
     this.principalService = undefined;
     this.administrationService = undefined;
     this.interfacePrincipalStore = undefined;
-    this.interfaceAccessAdministrationService = undefined;
     this.auditStore = undefined;
     this.initialization = undefined;
     this.firstAdminInitialization = undefined;

@@ -81,7 +81,7 @@ describe("admin console plugin", () => {
     expect(html).toContain('data-climate="instrument"');
     expect(html).toContain('data-people-role="trusted"');
     expect(html).toContain("data-people-brain-name=");
-    expect(html).toContain('data-people-interfaces="discord"');
+    expect(html).not.toContain("data-people-interfaces");
     expect(html).toContain("Mira Reyes");
     expect(html).toContain('src="/admin/assets/app.js"');
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');

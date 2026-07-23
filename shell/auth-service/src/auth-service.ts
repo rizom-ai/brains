@@ -16,7 +16,6 @@ import type {
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
-  AuthInterfacePrincipalGrantSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
@@ -99,10 +98,6 @@ export interface AuthServiceOptions {
   setupTokenTtlSeconds?: number;
   /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
   oauthClientMaintenanceIntervalMs?: number;
-  /** Refresh the shell's in-memory exact-principal projection after Admin mutations. */
-  onInterfacePrincipalStateChange?: (
-    state: RuntimeInterfacePrincipalState,
-  ) => void;
   logger?: Logger;
 }
 
@@ -140,12 +135,6 @@ export class AuthService {
         ? {
             oauthClientMaintenanceIntervalMs:
               options.oauthClientMaintenanceIntervalMs,
-          }
-        : {}),
-      ...(options.onInterfacePrincipalStateChange
-        ? {
-            onInterfacePrincipalStateChange:
-              options.onInterfacePrincipalStateChange,
           }
         : {}),
       ...(options.logger ? { logger: options.logger } : {}),
@@ -199,36 +188,6 @@ export class AuthService {
     return this.runtime
       .getInterfacePrincipalStore()
       .resolve(interfaceType, subject);
-  }
-
-  async listInterfaceGrants(): Promise<AuthInterfacePrincipalGrantSummary[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getInterfaceAccessAdministrationService().listGrants();
-  }
-
-  async upsertInterfaceGrant(
-    input: {
-      interfaceType: string;
-      subject: string;
-      label: string;
-      permissionLevel: "admin" | "trusted";
-    },
-    context: AuthMutationContext = {},
-  ): Promise<AuthInterfacePrincipalGrantSummary> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getInterfaceAccessAdministrationService()
-      .upsertGrant(input, context);
-  }
-
-  async revokeInterfaceGrant(
-    grantId: string,
-    context: AuthMutationContext = {},
-  ): Promise<AuthInterfacePrincipalGrantSummary> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getInterfaceAccessAdministrationService()
-      .revokeGrant(grantId, context);
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -633,7 +592,6 @@ export class AuthService {
       listUsers: () => this.listUsers(),
       getBrainAnchor: () => this.getBrainAnchor(),
       listAuditEvents: () => this.listAuditEvents(),
-      listInterfaceGrants: () => this.listInterfaceGrants(),
       listAdminUsers: () => this.listAdminUsers(),
       reconcileIdentityProposals: (claims) =>
         this.reconcileIdentityProposals(claims),
@@ -670,10 +628,6 @@ export class AuthService {
         this.startPasskeyRegistrationForUser(userId, { actorUserId }, delivery),
       revokeUserSessionsAndRefreshTokens: (userId, actorUserId) =>
         this.revokeUserSessionsAndRefreshTokens(userId, { actorUserId }),
-      upsertInterfaceGrant: (input, actorUserId) =>
-        this.upsertInterfaceGrant(input, { actorUserId }),
-      revokeInterfaceGrant: (grantId, actorUserId) =>
-        this.revokeInterfaceGrant(grantId, { actorUserId }),
     });
   }
 

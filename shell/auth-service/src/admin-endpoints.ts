@@ -18,7 +18,6 @@ import {
   type AuthBrainAnchorSummary,
   type AuthExternalPeerSummary,
   type AuthIdentitySummary,
-  type AuthInterfacePrincipalGrantSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
 } from "./admin-contracts";
@@ -31,7 +30,6 @@ export interface AuthAdminOperations {
   listUsers(): Promise<AuthAdminPrincipal[]>;
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
   listAuditEvents(): Promise<AuthAuditEventSummary[]>;
-  listInterfaceGrants(): Promise<AuthInterfacePrincipalGrantSummary[]>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   reconcileIdentityProposals(
     claims: AuthIdentityProposalInput[],
@@ -99,19 +97,6 @@ export interface AuthAdminOperations {
     userId: string,
     actorUserId: string,
   ): Promise<{ sessions: number; refreshTokens: number }>;
-  upsertInterfaceGrant(
-    input: {
-      interfaceType: string;
-      subject: string;
-      label: string;
-      permissionLevel: "admin" | "trusted";
-    },
-    actorUserId: string,
-  ): Promise<AuthInterfacePrincipalGrantSummary>;
-  revokeInterfaceGrant(
-    grantId: string,
-    actorUserId: string,
-  ): Promise<AuthInterfacePrincipalGrantSummary>;
 }
 
 const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
@@ -207,22 +192,6 @@ const adminMutationSchema = z.union([
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions),
     userId: z.string().min(1),
   }),
-  z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant),
-    interfaceType: z
-      .string()
-      .trim()
-      .regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/),
-    subject: z.string().trim().min(1).max(2_000),
-    label: z.string().trim().min(1).max(200),
-    permissionLevel: z.enum(["admin", "trusted"]),
-  }),
-  z.strictObject({
-    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant),
-    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant),
-    grantId: z.string().min(1).max(200),
-  }),
 ]);
 
 type AdminMutation = z.infer<typeof adminMutationSchema>;
@@ -257,14 +226,6 @@ const adminRoutes = new AuthRouteTable<AdminRouteContext>([
     handler: async (_request, context): Promise<Response> =>
       privateJsonResponse({
         events: await context.operations.listAuditEvents(),
-      }),
-  },
-  {
-    method: "GET",
-    path: "/auth/admin/interface-grants",
-    handler: async (_request, context): Promise<Response> =>
-      privateJsonResponse({
-        grants: await context.operations.listInterfaceGrants(),
       }),
   },
   {
@@ -467,21 +428,6 @@ async function executeMutation(
           actorUserId,
         ),
       };
-    case "upsertInterfaceGrant":
-      return {
-        grant: await operations.upsertInterfaceGrant(
-          {
-            interfaceType: mutation.interfaceType,
-            subject: mutation.subject,
-            label: mutation.label,
-            permissionLevel: mutation.permissionLevel,
-          },
-          actorUserId,
-        ),
-      };
-    case "revokeInterfaceGrant":
-      await operations.revokeInterfaceGrant(mutation.grantId, actorUserId);
-      return { grantId: mutation.grantId, revoked: true };
   }
 }
 

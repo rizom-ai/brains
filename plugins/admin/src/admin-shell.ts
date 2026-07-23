@@ -16,7 +16,6 @@ export interface AdminShellOptions {
   role: AuthAdminRole;
   isAnchor: boolean;
   brainName: string;
-  registeredInterfaces: string[];
   surfaces: ConsoleSurface[];
   sessionHref: string;
 }
@@ -81,7 +80,6 @@ ${CONSOLE_THEME_CSS}
       data-people-role="${options.role}"
       data-people-is-anchor="${String(options.isAnchor)}"
       data-people-brain-name="${escapeAttribute(options.brainName)}"
-      data-people-interfaces="${escapeAttribute(options.registeredInterfaces.join(","))}"
       data-people-name="${escapeAttribute(options.displayName)}"
       data-people-route="${escapeAttribute(options.routePath)}"
     ><p class="boot">Opening the admin console…</p></main>

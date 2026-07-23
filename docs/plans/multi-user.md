@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. Admin CRUD for standalone grants and automated invitation delivery/resend remain follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 

@@ -26,8 +26,6 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
   revokePasskey: "revokePasskey",
   startPasskeyRegistration: "startPasskeyRegistration",
   revokeUserSessions: "revokeUserSessions",
-  upsertInterfaceGrant: "upsertInterfaceGrant",
-  revokeInterfaceGrant: "revokeInterfaceGrant",
 } as const;
 
 export type AuthAdminRole = (typeof AUTH_USER_ROLES)[number];
@@ -89,16 +87,6 @@ export interface AuthPasskeySummary {
   transports?: string[];
   credentialDeviceType?: string;
   credentialBackedUp: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface AuthInterfacePrincipalGrantSummary {
-  id: string;
-  interfaceType: string;
-  label: string;
-  permissionLevel: Extract<AuthAdminRole, "admin" | "trusted">;
-  source: "config" | "admin";
   createdAt: number;
   updatedAt: number;
 }
@@ -236,19 +224,6 @@ export type AuthAdminMutation =
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
       userId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.upsertInterfaceGrant;
-      interfaceType: string;
-      subject: string;
-      label: string;
-      permissionLevel: Extract<AuthAdminRole, "admin" | "trusted">;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeInterfaceGrant;
-      grantId: string;
     };
 
 export interface AuthAdminUsersResponse {
@@ -257,8 +232,4 @@ export interface AuthAdminUsersResponse {
 
 export interface AuthAdminAuditResponse {
   events: AuthAuditEventSummary[];
-}
-
-export interface AuthAdminInterfaceGrantsResponse {
-  grants: AuthInterfacePrincipalGrantSummary[];
 }

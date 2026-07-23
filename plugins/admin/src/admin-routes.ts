@@ -48,13 +48,6 @@ export function createAdminRoutes(
             role: principal.role,
             isAnchor: principal.isAnchor,
             brainName: appInfo.model,
-            registeredInterfaces: [
-              "a2a",
-              "discord",
-              "email-resend",
-              "mcp",
-              "web-chat",
-            ].filter((pluginId) => context.plugins.has(pluginId)),
             surfaces: deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: "admin",
               self: { id: "admin", href: options.routePath },

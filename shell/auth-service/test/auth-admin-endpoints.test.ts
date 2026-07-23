@@ -76,16 +76,17 @@ describe("auth admin API", () => {
           path: "/auth/admin/reconciliation",
           method: "POST",
         }),
-        expect.objectContaining({
-          path: "/auth/admin/interface-grants",
-          method: "GET",
-        }),
       ]),
     );
     expect(
       plugin
         .getWebRoutes()
         .some((route) => route.path.includes("representations")),
+    ).toBe(false);
+    expect(
+      plugin
+        .getWebRoutes()
+        .some((route) => route.path === "/auth/admin/interface-grants"),
     ).toBe(false);
   });
 
@@ -738,81 +739,6 @@ describe("auth admin API", () => {
           actorUserId: anchor.userId,
           action: "auth.passkey.revoked",
           targetId: "anchor-credential",
-        }),
-      ]),
-    );
-  });
-
-  it("manages labeled standalone grants without exposing subjects or hashes", async () => {
-    const service = await createService();
-    const admin = await service.createUser({
-      displayName: "Admin",
-      role: "admin",
-    });
-    const session = await service.createAuthSession(admin.userId);
-
-    const created = await service.handleRequest(
-      adminRequest("/auth/admin/mutations", session.cookie, {
-        action: "upsertInterfaceGrant",
-        confirmation: "upsertInterfaceGrant",
-        interfaceType: "discord",
-        subject: "123456789",
-        label: "Operations room",
-        permissionLevel: "trusted",
-      }),
-    );
-    const createdText = await created.text();
-
-    expect(created.status).toBe(200);
-    const grant = JSON.parse(createdText).grant as {
-      id: string;
-      interfaceType: string;
-      label: string;
-      permissionLevel: string;
-    };
-    expect(grant).toMatchObject({
-      interfaceType: "discord",
-      label: "Operations room",
-      permissionLevel: "trusted",
-    });
-    expect(createdText).not.toContain("123456789");
-    expect(createdText).not.toMatch(/[a-f0-9]{64}/);
-    expect(
-      await service.resolveInterfacePrincipal("discord", "123456789"),
-    ).toEqual({ permissionLevel: "trusted", isAnchor: false });
-
-    const listed = await service.handleRequest(
-      adminRequest("/auth/admin/interface-grants", session.cookie),
-    );
-    const listedText = await listed.text();
-    expect(listed.status).toBe(200);
-    expect(JSON.parse(listedText)).toEqual({ grants: [grant] });
-    expect(listedText).not.toContain("123456789");
-    expect(listedText).not.toMatch(/[a-f0-9]{64}/);
-
-    const revoked = await service.handleRequest(
-      adminRequest("/auth/admin/mutations", session.cookie, {
-        action: "revokeInterfaceGrant",
-        confirmation: "revokeInterfaceGrant",
-        grantId: grant.id,
-      }),
-    );
-    expect(revoked.status).toBe(200);
-    expect(await revoked.json()).toEqual({ grantId: grant.id, revoked: true });
-    expect(
-      await service.resolveInterfacePrincipal("discord", "123456789"),
-    ).toBeUndefined();
-    expect(await service.listAuditEvents()).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          actorUserId: admin.userId,
-          action: "auth.interface_grant.upserted",
-          targetId: grant.id,
-        }),
-        expect.objectContaining({
-          actorUserId: admin.userId,
-          action: "auth.interface_grant.revoked",
-          targetId: grant.id,
         }),
       ]),
     );

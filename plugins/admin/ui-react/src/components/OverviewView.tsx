@@ -1,24 +1,15 @@
 import type {
   AuthAdminUserSummary,
   AuthBrainAnchorSummary,
-  AuthInterfacePrincipalGrantSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
 import { AnchorPanel } from "./AnchorPanel";
-import {
-  StandaloneAccessPanel,
-  type StandaloneGrantInput,
-} from "./StandaloneAccessPanel";
 
 export function OverviewView(props: {
   anchor: AuthBrainAnchorSummary | undefined;
   users: AuthAdminUserSummary[];
-  interfaceGrants: AuthInterfacePrincipalGrantSummary[];
-  registeredInterfaces?: string[];
   onOpenMembers: () => void;
   onOpenInvitations: () => void;
-  onUpsertInterfaceGrant: (input: StandaloneGrantInput) => Promise<void>;
-  onRevokeInterfaceGrant: (grant: AuthInterfacePrincipalGrantSummary) => void;
 }): ReactElement {
   const activeMembers = props.users.filter(
     (user) => user.status === "active",
@@ -78,15 +69,6 @@ export function OverviewView(props: {
           </small>
         </div>
       </div>
-
-      <StandaloneAccessPanel
-        grants={props.interfaceGrants}
-        {...(props.registeredInterfaces
-          ? { registeredInterfaces: props.registeredInterfaces }
-          : {})}
-        onUpsert={props.onUpsertInterfaceGrant}
-        onRevoke={props.onRevokeInterfaceGrant}
-      />
     </section>
   );
 }

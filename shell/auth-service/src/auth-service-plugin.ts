@@ -190,9 +190,6 @@ export class AuthServicePlugin extends ServicePlugin<
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
       setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
-      onInterfacePrincipalStateChange: (state): void => {
-        context.permissions.replaceRuntimePrincipalState(state);
-      },
       logger: context.logger,
     });
     await this.service.initialize();
@@ -418,12 +415,6 @@ export class AuthServicePlugin extends ServicePlugin<
       },
       {
         path: "/auth/admin/audit",
-        method: "GET",
-        public: true,
-        handler,
-      },
-      {
-        path: "/auth/admin/interface-grants",
         method: "GET",
         public: true,
         handler,
