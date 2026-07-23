@@ -129,11 +129,10 @@ describe("AuthUserStore", () => {
     });
   });
 
-  it("creates an invited user facet for an existing person", async () => {
+  it("does not attach hosted profiles to non-Anchor people", async () => {
     await withUserStore(async (store) => {
       const person = await store.createPerson({
         displayName: "Promoted Person",
-        profileEntityId: "person-profile/promoted-person",
       });
       const user = await store.createUser({
         displayName: "Promoted Person",
@@ -148,6 +147,7 @@ describe("AuthUserStore", () => {
         status: "invited",
       });
       expect(await store.getPerson(person.id)).toEqual(person);
+      expect(person.profileEntityId).toBeNull();
     });
   });
 
@@ -599,6 +599,15 @@ describe("AuthUserStore", () => {
       });
       expect(await store.getPerson(first.personId)).toMatchObject({
         profileEntityId: "anchor-profile/anchor-profile",
+      });
+
+      await store.configureBrainAnchor({
+        kind: "collective",
+        displayName: "Alice's Team",
+        profileEntityId: "anchor-profile/anchor-profile",
+      });
+      expect(await store.getPerson(first.personId)).toMatchObject({
+        profileEntityId: null,
       });
     });
   });

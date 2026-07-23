@@ -166,7 +166,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Source the Anchor kind from `brain.yaml`** — the shipped `person | team | organization` values resolve at startup and project into the binary persisted ownership behavior.
 - [x] **Resolve the displayed Anchor name from the CMS profile** — `profileEntityId` points at CMS content and the console deep-links the brain's own profile to `/cms`.
 - [x] **Retain the stable configuration vocabulary `person | team | organization`** — these values describe the Anchor subject clearly and remain backward compatible without aliases or migration machinery. Profile/UI flavor maps `person` to professional presentation and `organization` to collective presentation; that display vocabulary does not replace the config contract.
-- [ ] **Stop synthesizing local member profiles** — a linked external brain may supply a read-only published profile; a member without an external brain has no profile for now and uses only the auth display name.
+- [x] **Stop synthesizing local member profiles** — hosted-person creation accepts no profile reference, and Anchor reconfiguration clears stale member profile projections before assigning the configured personal Anchor profile. A linked external brain may supply a read-only published profile; a member without an external brain has no profile and uses only the auth display name.
 
 ### Direction: access is runtime state, with explicit bootstrap and recovery (multi-user decision 14)
 

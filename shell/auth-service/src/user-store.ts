@@ -1,4 +1,4 @@
-import { and, eq, exists, ne, notExists, or } from "drizzle-orm";
+import { and, eq, exists, isNotNull, ne, notExists, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
@@ -16,7 +16,6 @@ export type AuthUserStatus = AuthUser["status"];
 
 export interface CreateAuthPersonInput {
   displayName: string;
-  profileEntityId?: string;
 }
 
 export interface ConfigureBrainAnchorInput {
@@ -164,6 +163,13 @@ export class AuthUserStore {
       const now = Date.now();
       let subjectId: string;
 
+      // Hosted profiles belong only to the configured personal Anchor. Clear
+      // stale member projections before applying the current Anchor config.
+      await tx
+        .update(authPeople)
+        .set({ profileEntityId: null, updatedAt: now })
+        .where(isNotNull(authPeople.profileEntityId));
+
       if (input.kind === "person") {
         const currentPersonId =
           current?.kind === "person" ? current.subjectId : undefined;
@@ -221,7 +227,7 @@ export class AuthUserStore {
     const person = {
       id: createPrefixedId("prsn"),
       displayName: input.displayName,
-      profileEntityId: input.profileEntityId ?? null,
+      profileEntityId: null,
       createdAt: now,
       updatedAt: now,
     } satisfies typeof authPeople.$inferInsert;
