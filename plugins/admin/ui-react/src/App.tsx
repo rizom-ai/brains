@@ -189,7 +189,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     setModal({
       kind: "setup",
       setupUrl: registration.setupUrl,
-      copy: `This single-use link is bound to ${destination}. Deliver it only through that confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+      copy: `This single-use link is bound to ${destination}. Deliver it only through that confirmed private channel, and open it in the intended person’s browser or a private window—not an existing Admin session. It expires ${formatDate(registration.expiresAt * 1000)}.`,
     });
   };
 

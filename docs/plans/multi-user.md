@@ -301,7 +301,7 @@ Add-a-person is **peer-first**, with a no-brain fallback (see the [professional 
 3. **No-brain fallback** — enter a local display name and email. Create the invited account without a profile.
 4. Select only **Trusted** or **Admin** and confirm the exact person, destination, role, and single-use setup delivery.
 
-The external brain remains a separate peer actor; it does not represent the person or inherit the person's role. Claiming a setup link proves control of the delivery channel, binds that verified email or Discord identity to the account, registers the passkey, and activates the invited user. Retried links reuse the newest eligible confirmed delivery claim rather than issuing an unbound token. The local account and external peer link remain separate visible facets.
+The external brain remains a separate peer actor; it does not represent the person or inherit the person's role. Claiming a setup link proves control of the delivery channel, binds that verified email or Discord identity to the account, registers the passkey, and activates the invited user. The setup page and registration endpoints refuse the ceremony when a different active account is already signed in, preserving that browser session and directing the recipient to a private window or an explicit sign-out. Retried links reuse the newest eligible confirmed delivery claim rather than issuing an unbound token. The local account and external peer link remain separate visible facets.
 
 ## Migration strategy
 

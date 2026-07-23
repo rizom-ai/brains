@@ -6,7 +6,7 @@ import {
 } from "./setup-state-store";
 import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
-import { renderSetupPage } from "./pages";
+import { renderSetupPage, renderSetupSessionConflictPage } from "./pages";
 
 export const DEFAULT_SETUP_TOKEN_TTL_SECONDS: number = 24 * 60 * 60;
 
@@ -31,6 +31,7 @@ export interface SetupFlowOptions {
   setupStateStore: TargetedSetupStatePersistence;
   passkeyService: PasskeyService;
   setupTokenTtlSeconds?: number;
+  resolveSessionUserId?: (request: Request) => Promise<string | undefined>;
 }
 
 /**
@@ -41,6 +42,8 @@ export class SetupFlow {
   private readonly setupStateStore: TargetedSetupStatePersistence;
   private readonly passkeyService: PasskeyService;
   private readonly setupTokenTtlSeconds: number;
+  private readonly resolveSessionUserId:
+    ((request: Request) => Promise<string | undefined>) | undefined;
   private setupToken: SetupTokenState | undefined;
 
   constructor(options: SetupFlowOptions) {
@@ -48,6 +51,7 @@ export class SetupFlow {
     this.passkeyService = options.passkeyService;
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
+    this.resolveSessionUserId = options.resolveSessionUserId;
   }
 
   async ensureSetupToken(): Promise<SetupTokenState | undefined> {
@@ -105,6 +109,15 @@ export class SetupFlow {
 
   async hasValidSetupToken(request: Request): Promise<boolean> {
     return Boolean(await this.resolveSetupToken(request));
+  }
+
+  async hasConflictingAccountSession(
+    request: Request,
+    setup: ResolvedSetupToken,
+  ): Promise<boolean> {
+    if (!setup.targetUserId || !this.resolveSessionUserId) return false;
+    const sessionUserId = await this.resolveSessionUserId(request);
+    return sessionUserId !== undefined && sessionUserId !== setup.targetUserId;
   }
 
   /** Consume the supplied setup token once registration completes. */
@@ -188,6 +201,13 @@ export class SetupFlow {
     }
     if (!setup) {
       return new Response("Not Found", { status: 404 });
+    }
+    if (await this.hasConflictingAccountSession(request, setup)) {
+      const url = new URL(request.url);
+      return htmlResponse(
+        renderSetupSessionConflictPage(`${url.pathname}${url.search}`),
+        409,
+      );
     }
 
     return htmlResponse(renderSetupPage(setup.token));

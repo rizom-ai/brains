@@ -681,6 +681,72 @@ describe("auth admin API", () => {
     );
   });
 
+  it("does not let a targeted setup link replace another active account session", async () => {
+    const service = await createService({ withPasskey: true });
+    const [anchor] = await service.listUsers();
+    if (!anchor) throw new Error("Expected migrated anchor");
+    const invited = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+      status: "invited",
+    });
+    const registration = await service.startPasskeyRegistrationForUser(
+      invited.userId,
+      { actorUserId: anchor.userId },
+      { type: "email", subject: "mira@example.com" },
+    );
+    const anchorSession = await service.createAuthSession(anchor.userId);
+    const cookie = cookieHeader(anchorSession.cookie);
+    const token = new URL(registration.setupUrl).searchParams.get("token");
+
+    const setupPage = await service.handleRequest(
+      new Request(registration.setupUrl, { headers: { cookie } }),
+    );
+    expect(setupPage.status).toBe(409);
+    const setupPageHtml = await setupPage.text();
+    expect(setupPageHtml).toContain("Another account is already signed in");
+    expect(setupPageHtml).toContain("private window");
+    expect(setupPageHtml).toContain(
+      `/logout?return_to=${encodeURIComponent(`/setup?token=${token}`)}`,
+    );
+
+    for (const path of ["options", "verify"]) {
+      const response = await service.handleRequest(
+        new Request(
+          `${ISSUER}/webauthn/register/${path}?setup_token=${encodeURIComponent(token ?? "")}`,
+          {
+            method: "POST",
+            headers: {
+              cookie,
+              ...(path === "verify"
+                ? { "content-type": "application/json" }
+                : {}),
+            },
+            ...(path === "verify" ? { body: "{}" } : {}),
+          },
+        ),
+      );
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: "access_denied",
+        error_description:
+          "Sign out before using a setup link for another account",
+      });
+    }
+
+    const anonymousSetupPage = await service.handleRequest(
+      new Request(registration.setupUrl),
+    );
+    expect(anonymousSetupPage.status).toBe(200);
+    expect(
+      (await service.listUsers()).find(
+        (user) => user.userId === invited.userId,
+      ),
+    ).toMatchObject({
+      status: "invited",
+    });
+  });
+
   it("creates user-specific passkey registration links after first setup", async () => {
     const service = await createService({ withPasskey: true });
     const [anchor] = await service.listUsers();

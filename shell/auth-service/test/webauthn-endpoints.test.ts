@@ -36,6 +36,7 @@ describe("WebAuthnEndpoints", () => {
           targetUserId: "usr_invited",
           deliveryClaimId: "aid_email",
         }),
+        hasConflictingAccountSession: async () => false,
         consumeSetupToken: async () => {
           calls.push("consume");
         },
@@ -98,6 +99,7 @@ describe("WebAuthnEndpoints", () => {
           targetUserId: "usr_invited",
           deliveryClaimId: "aid_wrong_person",
         }),
+        hasConflictingAccountSession: async () => false,
       } as unknown as SetupFlow,
       registrationUserProvider: async (): Promise<{
         subject: string;

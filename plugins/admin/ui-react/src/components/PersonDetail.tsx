@@ -100,7 +100,7 @@ export function PersonDetail(props: {
         ).registration;
         props.onSetup(
           registration.setupUrl,
-          `This single-use link is bound to ${registration.delivery.label}. Deliver it only through that confirmed private channel. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+          `This single-use link is bound to ${registration.delivery.label}. Deliver it only through that confirmed private channel, and open it in the intended person’s browser or a private window—not an existing Admin session. It expires ${formatDate(registration.expiresAt * 1000)}.`,
         );
       })
       .catch(() => undefined);

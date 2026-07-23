@@ -3,6 +3,27 @@ import type { ValidAuthorizationRequest } from "./types";
 const AUTH_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
 
+export function renderSetupSessionConflictPage(returnTo: string): string {
+  const continueHref = `/logout?return_to=${encodeURIComponent(returnTo)}`;
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Different account signed in</title>
+    ${authPageHeadAssets()}
+  </head>
+  <body>
+    <main class="card">
+      <h1>Another account is already signed in</h1>
+      <p>This setup link belongs to a different account. Registration has not started, so your current session is still protected.</p>
+      <p>Open the setup link in a private window on the intended person’s device. If this is their device, sign out the current account first.</p>
+      <a class="button-link" href="${escapeHtml(continueHref)}">Sign out and continue</a>
+    </main>
+  </body>
+</html>`;
+}
+
 export function renderSetupPage(setupToken: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -167,7 +188,8 @@ function authPageHeadAssets(): string {
         letter-spacing: -0.03em;
       }
       p { color: var(--paper-dim); margin: 18px 0 0; }
-      button {
+      button,
+      .button-link {
         margin-top: 24px;
         border: 0;
         border-radius: 8px;
@@ -179,7 +201,12 @@ function authPageHeadAssets(): string {
         color: var(--ink-deep);
         cursor: pointer;
       }
-      button:hover { filter: brightness(1.06); }
+      .button-link {
+        display: inline-block;
+        text-decoration: none;
+      }
+      button:hover,
+      .button-link:hover { filter: brightness(1.06); }
       code {
         overflow-wrap: anywhere;
         color: var(--paper);

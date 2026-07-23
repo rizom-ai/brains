@@ -84,6 +84,12 @@ export class WebAuthnEndpoints {
     if (!setup) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
+    if (await this.setupFlow.hasConflictingAccountSession(request, setup)) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Sign out before using a setup link for another account",
+      );
+    }
 
     try {
       const options = await this.passkeyService.generateRegistrationOptions(
@@ -112,6 +118,12 @@ export class WebAuthnEndpoints {
     }
     if (!setup) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
+    }
+    if (await this.setupFlow.hasConflictingAccountSession(request, setup)) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Sign out before using a setup link for another account",
+      );
     }
 
     if (setup.targetUserId) {

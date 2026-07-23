@@ -123,6 +123,8 @@ export class AuthRuntime {
       passkeyService: this.passkeyService,
       setupTokenTtlSeconds:
         options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS,
+      resolveSessionUserId: async (request): Promise<string | undefined> =>
+        (await this.resolveActiveSession(request))?.user.id,
     });
     this.oauthEndpoints = new OAuthEndpoints({
       clientStore: this.clientStore,
