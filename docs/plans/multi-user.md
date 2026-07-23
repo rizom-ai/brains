@@ -2,13 +2,13 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16 adds the next browser-surface slice: Trusted web chat, strict Admin-console admission, a separate self-service account surface, and the [Permission-aware CMS](./permission-aware-cms.md) follow-up. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
 Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-Admin/self-hosted path.
 
-The first version should stay small: coarse permission levels, explicit Admin-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed.
+The first version should stay small: coarse permission levels, explicit Admin-managed users, no SaaS account system, and no per-entity ownership or arbitrary RBAC. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed; browser surfaces must now consume those permissions without flattening every authenticated user to either Admin or denied.
 
 ## Source of truth
 
@@ -20,11 +20,11 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
 - Fresh setup uses durable `usr_<uuid>` subjects; legacy files are optional manual backups and are never read automatically.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
-- Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
+- Discord, OAuth-authenticated MCP, and Admin-authenticated web chat propagate canonical runtime principals into conversations. The current web-chat browser gate still rejects Trusted sessions instead of running them at Trusted permission; decision 16 corrects that over-restriction.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
-- The standalone admin console is implemented by `@brains/admin` at `/admin` with Overview, Members/People, Invitations, and Audit. External peer links are access-neutral; the unreleased representation API and self-service consent view have been removed.
+- The standalone admin console is implemented by `@brains/admin` at `/admin` with Overview, Members/People, Invitations, and Audit. Its shell currently renders an inert “Admin access required” state to Trusted users; decision 16 makes `/admin` strictly Admin-only and moves safe own-account operations to `/account`. External peer links are access-neutral; the unreleased representation API and representation-consent view remain removed.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -102,17 +102,24 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **Durability is a libSQL backup destination, not git.** `auth.db` gets a private sync/backup target (embedded replica → remote primary, or scheduled encrypted snapshots). Point-in-time recovery comes from that durable store; config remains a bootstrap/recovery template, not live GitOps authorization.
     - **Implemented runtime path.** Generated migration `0005_round_kat_farrell.sql` adds hashed exact-principal grants, independent Anchor bindings, and a one-time seed marker. Startup seeds explicit declarations only when the marker is absent, then replaces the synchronous permission projection from DB rows. Ordinary restarts do not reread exact config entries. `brain auth reinitialize-access --yes` deliberately replaces access rows and revokes sessions while preserving durable auth subjects and credentials.
     - **Contextual policy stays configuration-derived.** Pattern rules and shared-space selectors are request-context policy rather than exact principal grants, so they remain configuration inputs. The deprecated static MCP token remains a transport-level Admin fallback and never establishes Anchor identity. Neither path overrides a connected account's current role/status.
-    - **Remaining administration work.** Add explicit `/admin` CRUD for standalone DB grants before treating decision 14's management surface as complete. The runtime no longer uses request-time exact-config fallback; this follow-on does not require a dual read path.
+    - **Administration boundary.** Raw standalone grant CRUD stays out of `/admin`; the channel allowlist remains config-seeded and CLI-managed through `brain auth reinitialize-access --yes`. The runtime has one DB read path and no browser/config dual-write surface.
 15. **The Admin console manages people and peer brains; it does not model agents as representatives of people.** _(Adopted 2026-07-21; supersedes the Phase 6 representation direction.)_
     - **Four permanent sections:** Overview, Members/People, Invitations, and Audit. Overview owns the read-only Anchor summary, administrator posture, and attention items. The roster never repeats the Anchor panel.
     - **Members are local accounts.** Role, status, passkeys, connected channels, session revocation, and suspension are ordinary person-detail actions. Internal IDs, evidence provenance, raw provider subjects, and per-session metadata stay out of the UI; there is no generic Advanced drawer.
-    - **Sign-in and channels are distinct.** Passkeys appear under Sign-in. Verified email and Discord appear under Connected channels, with full human-facing addresses visible to Admins. Claiming a setup link delivered through a channel binds that verified channel to the new account. Passkeys are discoverable credentials: when one device holds multiple accounts for the same brain, the authenticator—not a public server-side roster—presents the account picker and the verified credential resolves the exact user and role.
+    - **Sign-in and channels are distinct.** Passkeys appear under Sign-in. Verified email and Discord appear under Connected channels, with full human-facing addresses visible to Admins. Claiming a setup link delivered through a channel binds that verified channel to the new account. Passkeys are discoverable credentials: when one device holds multiple accounts for the same brain, the authenticator—not a public server-side roster—presents the account picker and the verified credential resolves the exact user and role. Registry-driven Admin connection of additional messaging channels is specified in [Connected channels](./connected-channels.md).
     - **External brains are optional peer links.** Local membership and a linked external brain are independent facts and both appear in the person detail. The peer remains a separate actor and never inherits the person's role, identity claims, or attribution.
     - **No representation consent model.** The permanent My agents view and pending/active agent-person workflow are removed. Because that schema never shipped outside this feature branch, generated pre-release migrations replace it directly with `person_external_peers`; there is no historical representation-data transform or permanent dual-read path.
     - **Invitation roles are deliberate.** Add person offers Trusted or Admin only. `invited` remains a status, not a role; the intended role is retained and shown on the invitation. A member without a brain receives a local account and setup delivery but no profile.
     - **Suspension is a quarantine boundary.** A suspended account cannot change roles, and its detail view exposes no credential or session mutations. Admins may only reactivate it or confirm permanent deletion. Deletion is limited to suspended non-Anchor accounts, removes the account and person-owned auth facets, and retains the audit record.
     - **Peer-first add is an Admin escalation.** Selecting a known peer or entering a peer URL resolves its published profile and proposed email. The final confirmation names the person, exact destination, role, and setup delivery. A no-brain fallback asks for local display name and email and creates no profile.
     - **Audit is first-class.** Existing audit storage remains authoritative and is exposed through an Admin-only read endpoint and plain-language viewer under the permanent Audit tab.
+16. **Browser surfaces must preserve the caller's role and separate administration from self-service.** _(Adopted 2026-07-23.)_
+    - **Web chat admits active Trusted and Admin users at their exact permission.** A Trusted browser session enters `/chat` as Trusted, carries its verified `AuthPrincipal`/`ActorRef`, sees only Trusted-visible tools and content, and never receives Admin approvals or actions. Public, invited, and suspended accounts remain denied from the private browser chat.
+    - **CMS becomes permission-aware rather than permanently Admin-only.** The current Admin gate remains the containment boundary until every CMS read, write, assist, upload, and workspace route enforces visibility, entity action policy, and actor attribution. The rollout is owned by [Permission-aware CMS](./permission-aware-cms.md); there is no permanent legacy/privileged parallel CMS.
+    - **`/admin` is truly Admin-only.** Non-Admins do not receive an inert administration SPA or Admin queries. Anonymous users authenticate, then an authenticated non-Admin receives a clear denial or is directed to `/account` without learning roster, audit, invitation, or Anchor-administration data.
+    - **Self-service lives at `/account`, not `/admin` or CMS.** The first slice lets any active user inspect their own account, update their local auth display name, inspect connected channels, add a passkey, revoke a non-last passkey, and revoke their own sessions. The server derives the user id from the session; requests never accept another target user id.
+    - **Self-service cannot mutate authority.** Role, status, Anchor identity/profile, standalone interface grants, connected-channel ownership, external-peer links, invitations, other users, and audit remain Admin-owned. Suspended/invited users cannot use self-service. Updating the auth display name does not synthesize a CMS member profile or rewrite an external profile.
+    - **Use separate contracts and routes.** `/auth/account/*` exposes a narrow same-origin contract backed by auth-service; `/auth/admin/*` remains Admin-only. Role checks and last-passkey/session protections are server-enforced at each mutation endpoint, not inferred from UI state.
 
 ## Terminology contract
 
@@ -266,6 +273,19 @@ Keep the target UX small and explicit:
 - **The Anchor is read-only here (decision 13).** The console renders the config-declared kind and CMS-held Anchor profile; it does not set the kind or edit ownership.
 - Manual raw identity attachment, internal IDs, evidence provenance, raw subjects, and individual session metadata have no ordinary Admin UI. Keep support APIs private until a concrete product workflow requires them.
 - Do not build public signup or route-wide CMS/dashboard lock-down.
+
+### Self-service account surface
+
+Add a separate `/account` browser surface backed by narrow `/auth/account/*` endpoints. It is available to active authenticated users and resolves the subject exclusively from the session.
+
+The first slice supports:
+
+- reading the caller's own display name, canonical role label, passkeys, and redacted connected-channel labels;
+- updating only the local auth display name;
+- registering another passkey and revoking an owned passkey only when another active passkey remains; and
+- revoking the caller's own other sessions or all sessions with explicit re-authentication behavior.
+
+It does not accept a target user id and does not expose role/status mutation, Anchor/profile mutation, channel reassignment, external peers, invitations, roster data, or audit. Self-service mutations use same-origin JSON, explicit confirmations for credential/session revocation, actor-attributed audit events, and `no-store` responses.
 
 ### CLI
 
@@ -471,6 +491,25 @@ Validation:
 - [ ] automate provider delivery plus resend, expiry, cancel, and delivery-state UX
 - [x] provide an Admin-only audit read endpoint and plain-language event viewer
 
+### Phase 8 — Role-correct browser surfaces and self-service
+
+**Status: proposed.** CMS implementation is specified separately in [Permission-aware CMS](./permission-aware-cms.md).
+
+- [ ] Admit active Trusted users to web chat and propagate `permissionLevel: "trusted"` plus their verified `ActorRef` through chat, conversations, confirmations, attachments, and jobs.
+- [ ] Keep Admin-only actions unavailable to Trusted chat and add role/suspension-change coverage for active browser sessions.
+- [ ] Make `/admin` reject or redirect authenticated non-Admins before rendering the administration SPA.
+- [ ] Add `/account` and narrow `/auth/account/*` contracts for own display name, passkeys, connected-channel labels, and session revocation.
+- [ ] Derive the account subject from the session and enforce non-last-passkey, same-origin, confirmation, redaction, and audit rules server-side.
+- [ ] Implement the permission-aware CMS plan atomically before advertising CMS to Trusted users.
+
+Validation:
+
+- Trusted chat runs with Trusted—not Public or Admin—tool/content visibility and actor attribution.
+- Trusted users cannot load Admin roster/audit APIs or mutations.
+- Account APIs cannot read or mutate another user even with forged ids.
+- An account cannot revoke its last passkey through self-service.
+- CMS remains Admin-only until its complete role/visibility/action matrix is green.
+
 ## Security notes
 
 - Auth-user records are runtime auth state and should use `0600` file permissions.
@@ -480,6 +519,8 @@ Validation:
 - Role downgrades, suspension, and identity detach revoke that user's sessions and refresh tokens immediately.
 - Demoting, suspending, or deleting the last active Admin must be rejected; a personal Anchor must remain an active Admin.
 - Identity binding must be explicit; do not auto-link two identities just because display names match. Claiming a user-targeted link delivered through a verified email or Discord channel is the explicit binding ceremony.
+- Self-service endpoints derive the subject from the active session and never accept another target user id, role, status, Anchor, grant, or channel-owner mutation.
+- Trusted browser chat and CMS must propagate the verified role without elevating it; UI capability hiding is never an authorization check.
 
 ## Non-goals for first slice
 
@@ -489,7 +530,7 @@ Validation:
 - public registration
 - invitation emails
 - sharing auth state through `brain-data`
-- rewriting CMS auth
+- per-entity ownership, ACLs, or arbitrary RBAC (the permission-aware CMS reuses coarse roles, visibility, and entity action policy)
 
 ## Done when
 
@@ -505,3 +546,7 @@ Validation:
 10. External brains remain distinct peer actors linked optionally to local people; no representation consent or inherited person permission remains.
 11. Passkeys are shown as Sign-in, verified email/Discord as Connected channels, and setup-link claim binds the delivery channel.
 12. Runtime permission reads use DB state only, while explicit config seeds and access-only reinitialization provide bootstrap and recovery.
+13. Active Trusted browser sessions can use web chat at exactly Trusted permission with canonical attribution.
+14. `/admin` admits only Admins, while `/account` exposes only session-derived own-account operations.
+15. Self-service cannot mutate roles, status, Anchor identity, standalone grants, channel ownership, peers, invitations, or other users.
+16. The first-party CMS admits Trusted users only after the permission-aware CMS plan enforces visibility, central entity action policy, workspace policy, and actor attribution on every route.

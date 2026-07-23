@@ -139,8 +139,9 @@ This includes:
 Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
-- [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
+- [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, management surfaces, Trusted browser chat, and own-account self-service.
 - [auth-runtime-db.md](./plans/auth-runtime-db.md) — database-backed auth, People administration, Admin/Anchor invariants, session migration, normalized identity evidence, and the standalone Admin console are implemented on `feature/auth-runtime-db`; final validation precedes merge.
+- [connected-channels.md](./plans/connected-channels.md) — registry-driven, person-centered channel identity attachment without channel enums in auth schema or console code.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 
 ### 4. Hosting & operations
@@ -167,6 +168,7 @@ Plans:
 
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
+- [permission-aware-cms.md](./plans/permission-aware-cms.md) — replace the first-party CMS blanket Admin gate with principal-derived visibility, central entity action policy, actor-aware workspaces, and Trusted collaboration without exposing the shared repository credential.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
