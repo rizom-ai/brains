@@ -38,6 +38,7 @@ import type {
   A2APeerTrustRecord,
   GrantA2APeerTrustInput,
 } from "./peer-trust-store";
+import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import type { PersonExternalPeer } from "./runtime-schema";
 import type {
   AuthUserRole,
@@ -78,6 +79,8 @@ export interface A2ASigningKey {
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
   storageDir: string;
+  /** Private remote libSQL primary for embedded-replica backup and PITR. */
+  replica?: AuthRuntimeReplicaOptions;
   /** Anchor profile flavor declared by brain configuration. */
   anchor?: AuthBrainAnchorConfigKind;
   /** CMS profile reference projected into auth runtime state. */
@@ -114,6 +117,7 @@ export class AuthService {
     this.logger = options.logger;
     this.runtime = new AuthRuntime({
       storageDir: options.storageDir,
+      ...(options.replica ? { replica: options.replica } : {}),
       issuer: this.issuer,
       trustedIssuers: new Set([
         this.issuer,

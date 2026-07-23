@@ -19,6 +19,7 @@ import {
   type AuthBrainAnchorConfigKind,
 } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
+import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
@@ -52,6 +53,7 @@ export interface AuthServiceConfig {
   trustedIssuers: string[];
   allowLocalhostIssuers?: boolean | undefined;
   storageDir?: string | undefined;
+  replica?: AuthRuntimeReplicaOptions | undefined;
   setupTokenTtlSeconds: number;
   setupEmail?: SetupEmailConfig | undefined;
 }
@@ -62,9 +64,27 @@ export interface AuthServiceConfigInput {
   trustedIssuers?: string[] | undefined;
   allowLocalhostIssuers?: boolean | undefined;
   storageDir?: string | undefined;
+  replica?: AuthRuntimeReplicaOptions | undefined;
   setupTokenTtlSeconds?: number | undefined;
   setupEmail?: SetupEmailConfig | undefined;
 }
+
+const authRuntimeReplicaSchema: z.ZodType<
+  AuthRuntimeReplicaOptions,
+  AuthRuntimeReplicaOptions
+> = z
+  .object({
+    /** Private remote libSQL primary URL. */
+    syncUrl: z
+      .string()
+      .url()
+      .regex(/^(?:libsql|https):\/\//),
+    /** Authentication token for the private remote primary. */
+    authToken: z.string().min(1),
+    /** Remote-to-local sync cadence in milliseconds. */
+    syncIntervalMs: z.number().int().positive().optional(),
+  })
+  .strict();
 
 const authServiceConfigSchema: z.ZodType<
   AuthServiceConfig,
@@ -80,6 +100,8 @@ const authServiceConfigSchema: z.ZodType<
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Defaults to ./data/auth, outside brain-data/content. */
   storageDir: z.string().optional(),
+  /** Private remote libSQL primary for embedded-replica backup and PITR. */
+  replica: authRuntimeReplicaSchema.optional(),
   /** First-passkey setup token lifetime in seconds. */
   setupTokenTtlSeconds: z
     .number()
@@ -155,6 +177,7 @@ export class AuthServicePlugin extends ServicePlugin<
         : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
       storageDir: resolveAuthStorageDir(this.config.storageDir),
+      ...(this.config.replica ? { replica: this.config.replica } : {}),
       anchor: this.config.anchor,
       anchorProfileEntityId: "anchor-profile/anchor-profile",
       resolveProfileDisplayName: (

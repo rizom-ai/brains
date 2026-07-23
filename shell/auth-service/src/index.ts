@@ -101,7 +101,11 @@ export type {
   GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 export { AuthRuntimeDatabase } from "./runtime-db";
-export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
+export type {
+  AuthRuntimeDatabaseOptions,
+  AuthRuntimeDB,
+  AuthRuntimeReplicaOptions,
+} from "./runtime-db";
 export type {
   AuthBrainAnchor,
   AuthPerson,

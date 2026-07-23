@@ -1,4 +1,4 @@
-import { createClient, type Client } from "@libsql/client";
+import { createClient, type Client, type Config } from "@libsql/client";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
@@ -8,12 +8,71 @@ import { authRuntimeSchema } from "./runtime-schema";
 
 export type AuthRuntimeDB = LibSQLDatabase<typeof authRuntimeSchema>;
 
+export interface AuthRuntimeReplicaOptions {
+  /** Private remote libSQL primary used by the local embedded replica. */
+  syncUrl: string;
+  /** Authentication token for the private remote primary. */
+  authToken: string;
+  /** Remote-to-local sync cadence. Defaults to 60 seconds. */
+  syncIntervalMs?: number | undefined;
+}
+
 export interface AuthRuntimeDatabaseOptions {
   /** Directory for the local auth runtime database. Ignored when url is set. */
   storageDir?: string;
   /** libSQL URL. Defaults to file:<storageDir>/auth.db. */
   url?: string;
   authToken?: string;
+  /** Optional private remote primary for durable embedded-replica backup/PITR. */
+  replica?: AuthRuntimeReplicaOptions;
+}
+
+interface AuthRuntimeClientConfigOptions {
+  url: string;
+  authToken?: string;
+  replica?: AuthRuntimeReplicaOptions;
+}
+
+export function buildAuthRuntimeClientConfig(
+  options: AuthRuntimeClientConfigOptions,
+): Config {
+  if (!options.replica) {
+    return {
+      url: options.url,
+      ...(options.authToken ? { authToken: options.authToken } : {}),
+    };
+  }
+  if (!isLocalFileUrl(options.url)) {
+    throw new Error("Auth embedded replicas require a local file database");
+  }
+  if (!isRemoteReplicaUrl(options.replica.syncUrl)) {
+    throw new Error("Auth embedded replicas require a remote libSQL URL");
+  }
+  if (!options.replica.authToken.trim()) {
+    throw new Error("Auth embedded replicas require a private auth token");
+  }
+  const syncInterval = options.replica.syncIntervalMs ?? 60_000;
+  if (!Number.isInteger(syncInterval) || syncInterval <= 0) {
+    throw new Error("Auth embedded replica sync interval must be positive");
+  }
+  return {
+    url: options.url,
+    syncUrl: options.replica.syncUrl,
+    authToken: options.replica.authToken,
+    syncInterval,
+  };
+}
+
+export function authRuntimeConnectionPragmas(
+  url: string,
+  embeddedReplica: boolean,
+): string[] {
+  return [
+    "PRAGMA foreign_keys = ON",
+    ...(isLocalFileUrl(url) && !embeddedReplica
+      ? ["PRAGMA journal_mode = WAL", "PRAGMA busy_timeout = 5000"]
+      : []),
+  ];
 }
 
 interface StartedDatabase {
@@ -26,6 +85,7 @@ export class AuthRuntimeDatabase {
   private readonly storageDir: string;
   private readonly configuredUrl: string | undefined;
   private readonly authToken: string | undefined;
+  private readonly replica: AuthRuntimeReplicaOptions | undefined;
   private active: StartedDatabase | undefined;
   private starting: Promise<void> | undefined;
 
@@ -33,6 +93,7 @@ export class AuthRuntimeDatabase {
     this.storageDir = options.storageDir ?? join(".", "data", "auth");
     this.configuredUrl = options.url;
     this.authToken = options.authToken;
+    this.replica = options.replica;
   }
 
   get client(): Client {
@@ -82,12 +143,17 @@ export class AuthRuntimeDatabase {
 
   private async startDatabase(): Promise<void> {
     await this.prepareLocalDatabasePath();
-    const client = this.authToken
-      ? createClient({ url: this.url, authToken: this.authToken })
-      : createClient({ url: this.url });
+    const client = createClient(
+      buildAuthRuntimeClientConfig({
+        url: this.url,
+        ...(this.authToken ? { authToken: this.authToken } : {}),
+        ...(this.replica ? { replica: this.replica } : {}),
+      }),
+    );
     const db = drizzle(client, { schema: authRuntimeSchema });
 
     try {
+      if (this.replica) await client.sync();
       await this.configureConnection(client);
       await upgradeLegacyAuthDatabase(client);
       await migrate(db, { migrationsFolder: authMigrationsFolder() });
@@ -100,10 +166,11 @@ export class AuthRuntimeDatabase {
   }
 
   private async configureConnection(client: Client): Promise<void> {
-    await client.execute("PRAGMA foreign_keys = ON");
-    if (isLocalFileUrl(this.url)) {
-      await client.execute("PRAGMA journal_mode = WAL");
-      await client.execute("PRAGMA busy_timeout = 5000");
+    for (const pragma of authRuntimeConnectionPragmas(
+      this.url,
+      this.replica !== undefined,
+    )) {
+      await client.execute(pragma);
     }
   }
 
@@ -128,6 +195,15 @@ function authMigrationsFolder(): string {
 
 function isLocalFileUrl(url: string): boolean {
   return url.startsWith("file:");
+}
+
+function isRemoteReplicaUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === "libsql:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function localPathFromFileUrl(url: string): string | undefined {

@@ -26,7 +26,10 @@ import { PersonExternalPeerStore } from "./person-external-peer-store";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
-import { AuthRuntimeDatabase } from "./runtime-db";
+import {
+  AuthRuntimeDatabase,
+  type AuthRuntimeReplicaOptions,
+} from "./runtime-db";
 import type { AuthUser } from "./runtime-schema";
 import {
   RuntimeAuthSessionStore,
@@ -42,6 +45,7 @@ import { WebAuthnEndpoints } from "./webauthn-endpoints";
 
 export interface AuthRuntimeOptions {
   storageDir: string;
+  replica?: AuthRuntimeReplicaOptions;
   issuer: string;
   trustedIssuers: Set<string>;
   allowLocalhostIssuers: boolean;
@@ -110,6 +114,7 @@ export class AuthRuntime {
       options.onInterfacePrincipalStateChange ?? ((): void => undefined);
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
+      ...(options.replica ? { replica: options.replica } : {}),
     });
     this.keyStore = new AuthKeyStore(this.runtimeDatabase);
     this.a2aKeyStore = new A2AKeyStore(this.runtimeDatabase);

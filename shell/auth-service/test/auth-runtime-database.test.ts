@@ -3,7 +3,11 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@libsql/client";
-import { AuthRuntimeDatabase } from "../src/runtime-db";
+import {
+  AuthRuntimeDatabase,
+  authRuntimeConnectionPragmas,
+  buildAuthRuntimeClientConfig,
+} from "../src/runtime-db";
 
 const tempDirs: string[] = [];
 const legacyAuthV4Fixture = await Bun.file(
@@ -60,6 +64,46 @@ async function tableNames(database: AuthRuntimeDatabase): Promise<string[]> {
 }
 
 describe("AuthRuntimeDatabase", () => {
+  it("configures a private embedded replica for remote backup and PITR", () => {
+    expect(
+      buildAuthRuntimeClientConfig({
+        url: "file:/srv/auth/auth.db",
+        replica: {
+          syncUrl: "libsql://private-auth.example.turso.io",
+          authToken: "secret-token",
+        },
+      }),
+    ).toEqual({
+      url: "file:/srv/auth/auth.db",
+      syncUrl: "libsql://private-auth.example.turso.io",
+      authToken: "secret-token",
+      syncInterval: 60_000,
+    });
+
+    expect(() =>
+      buildAuthRuntimeClientConfig({
+        url: "libsql://primary.example.turso.io",
+        replica: {
+          syncUrl: "libsql://backup.example.turso.io",
+          authToken: "secret-token",
+        },
+      }),
+    ).toThrow("Auth embedded replicas require a local file database");
+    expect(() =>
+      buildAuthRuntimeClientConfig({
+        url: "file:/srv/auth/auth.db",
+        replica: {
+          syncUrl: "file:/srv/auth/not-a-remote.db",
+          authToken: "secret-token",
+        },
+      }),
+    ).toThrow("Auth embedded replicas require a remote libSQL URL");
+
+    expect(
+      authRuntimeConnectionPragmas("file:/srv/auth/auth.db", true),
+    ).toEqual(["PRAGMA foreign_keys = ON"]);
+  });
+
   it("creates a private local auth database with the initial schema", async () => {
     const storageDir = await tempStorageDir();
     const database = new AuthRuntimeDatabase({ storageDir });

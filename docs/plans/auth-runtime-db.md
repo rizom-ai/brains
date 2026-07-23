@@ -123,6 +123,11 @@ Sequencing: setup-delivery binding is committed and green, so these decompositio
 
 `runtime-schema.ts` (~1095 loc) is genuinely fine — 20 pure `sqliteTable` definitions, zero logic; length is inherent to the table count, and a split would be arbitrary. It is the one large auth file the size rule does not indict.
 
+**Deterministic "first active Admin" ordering (2026-07-22 review).**
+
+- [x] **Tie-break creation-ordered `authUsers` selects on `rowid`** [fixed] — `ensureFirstAdminUser`, `configureBrainAnchor`, and `listUsers` ordered only by `authUsers.createdAt` (millisecond precision). Two admins created in the same millisecond made "the first active Admin" — which the personal Anchor projects onto and the last-Admin guard protects — nondeterministic, surfacing as a ~1-in-7 flake in the anchor-projection user-store tests. Now `ORDER BY createdAt, rowid`, so ties resolve by monotonic insertion order. Confirmed via 50 consecutive full-suite runs with zero anchor-projection failures.
+- [ ] **Consider a time-sortable `createPrefixedId`** [broader follow-up, `@brains/utils`] — ids are `prefix_ + nanoid(12)` (random), so `ORDER BY id` is meaningless and every "earliest row" query must lean on `createdAt`/`rowid`. A ULID-style helper (millisecond prefix + random suffix) would make ids monotonic and give sub-millisecond ordering to every table for free. Repo-wide id-format change — its own pass, not smuggled under a flake fix; verify no consumer asserts the current id shape first.
+
 ### OAuth surface — endpoint hardening (2026-07-16 endpoint audit)
 
 A follow-up audit of the full HTTP surface confirmed the admin/session/identity/representation/WebAuthn endpoints are well-gated (`resolveSession` → active Admin, same-origin + action-matched `confirmation`, thorough secret redaction; `acceptRepresentation` enforces `user.personId === link.personId`). The lower-severity OAuth authorization-server findings were defense-in-depth rather than access holes and are now fixed.
@@ -179,7 +184,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **Add access-only reinitialization.** `brain auth reinitialize-access --yes` deliberately reapplies config, preserves users, identities, passkeys, external-peer links, keys, clients, and audit history, revokes active sessions/refresh tokens, and appends an audit event. It never runs automatically. `reset-passkeys` remains separate.
 - [x] **Remove request-time exact-config fallback.** `PermissionService` starts with a boot bridge, then auth-service registration atomically replaces exact Admin/trusted/Anchor sets with the DB projection before interfaces run. Pattern rules and shared-space selectors remain intentional contextual config policy; static MCP token auth remains a deprecated transport-level Admin fallback with no Anchor identity.
 - [x] **Add standalone-grant Admin CRUD.** The non-model-visible Overview panel creates, updates, lists, and revokes labeled exact grants. Subjects are normalized and hashed on write, and neither raw subjects nor hashes appear in persisted labels, responses, or audits. Every mutation refreshes the shell's in-memory DB projection immediately; connected accounts remain authoritative.
-- [ ] **Add a private libSQL backup destination.** Use an embedded replica/remote primary or scheduled encrypted snapshots for durability and point-in-time recovery; never git.
+- [x] **Add a private libSQL backup destination.** Optional `auth-service.replica` configuration keeps the private local auth database as an embedded replica of an authenticated remote libSQL primary, performs initial sync before migrations, and supports provider-managed retention and point-in-time recovery. Local-file and secure remote-URL validation fail closed; credentials remain secret-backed and auth state never enters Git or `brain-data`.
 
 ### Correction: people link to peer brains, not representative agents (multi-user decision 15)
 

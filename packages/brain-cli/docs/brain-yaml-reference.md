@@ -300,6 +300,12 @@ plugins:
     git:
       repo: your-org/brain-data
       authToken: ${GIT_SYNC_TOKEN}
+  # Optional private libSQL primary for auth backup and provider-managed PITR:
+  # auth-service:
+  #   replica:
+  #     syncUrl: ${AUTH_DATABASE_URL}
+  #     authToken: ${AUTH_DATABASE_AUTH_TOKEN}
+  #     syncIntervalMs: 60000
   # Optional deprecated fallback for MCP clients that cannot use OAuth:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
@@ -308,6 +314,8 @@ plugins:
 ```
 
 These values are merged into the selected capability or interface config. When `auth-service` is enabled, HTTP MCP uses the built-in OAuth/passkey provider by default; set `plugins.mcp.authToken` only for non-OAuth clients or emergency static-token access.
+
+`auth-service.replica` keeps `./data/auth/auth.db` as an embedded replica of a private remote libSQL primary. Startup performs an initial sync before migrations, and libSQL then syncs at the configured interval (60 seconds by default). Configure backup retention and point-in-time recovery on the remote provider. For an existing local database, stop the brain and import that database into the remote primary before enabling the replica; never point populated local auth state at an empty primary. The URL and token belong in secret-backed environment variables, never Git or `brain-data`.
 
 External plugin packages use the same keyed map with a reserved `package` field and optional nested `config` object:
 

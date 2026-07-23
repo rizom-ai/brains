@@ -14,12 +14,13 @@ import {
 } from "@brains/contracts";
 import {
   AuthService,
+  AuthServicePlugin,
   authServicePlugin,
   normalizeIssuer,
   reinitializeAuthAccessStorage,
+  type AuthServiceConfig,
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
-import type { AuthServicePlugin } from "../src";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 
 const setupRequiredToolDataSchema = z.object({
@@ -77,6 +78,27 @@ describe("AuthService", () => {
   it("keeps default auth storage outside the synchronized content tree", () => {
     expect(resolveAuthStorageDir(undefined)).toBe(join(".", "data", "auth"));
     expect(resolveAuthStorageDir("/srv/brain-auth")).toBe("/srv/brain-auth");
+  });
+
+  it("retains private embedded-replica configuration", () => {
+    class InspectableAuthServicePlugin extends AuthServicePlugin {
+      get parsedConfig(): AuthServiceConfig {
+        return this.config;
+      }
+    }
+    const plugin = new InspectableAuthServicePlugin({
+      replica: {
+        syncUrl: "libsql://private-auth.example.turso.io",
+        authToken: "secret-token",
+        syncIntervalMs: 30_000,
+      },
+    });
+
+    expect(plugin.parsedConfig.replica).toEqual({
+      syncUrl: "libsql://private-auth.example.turso.io",
+      authToken: "secret-token",
+      syncIntervalMs: 30_000,
+    });
   });
 
   it("joins repeated shutdown calls", async () => {
