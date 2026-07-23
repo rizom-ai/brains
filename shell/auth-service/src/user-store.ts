@@ -1,4 +1,13 @@
-import { and, eq, exists, isNotNull, ne, notExists, or } from "drizzle-orm";
+import {
+  and,
+  eq,
+  exists,
+  isNotNull,
+  ne,
+  notExists,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
@@ -64,7 +73,7 @@ export class AuthUserStore {
         .select()
         .from(authUsers)
         .where(and(eq(authUsers.role, "admin"), eq(authUsers.status, "active")))
-        .orderBy(authUsers.createdAt)
+        .orderBy(authUsers.createdAt, sql`rowid`)
         .limit(1);
       if (existingAdmin) {
         const [existingAnchor] = await tx
@@ -179,7 +188,7 @@ export class AuthUserStore {
           .where(
             and(eq(authUsers.role, "admin"), eq(authUsers.status, "active")),
           )
-          .orderBy(authUsers.createdAt);
+          .orderBy(authUsers.createdAt, sql`rowid`);
         const anchorAdmin =
           activeAdmins.find((user) => user.personId === currentPersonId) ??
           activeAdmins[0];
@@ -284,7 +293,10 @@ export class AuthUserStore {
   }
 
   async listUsers(): Promise<AuthUser[]> {
-    return this.db.select().from(authUsers).orderBy(authUsers.createdAt);
+    return this.db
+      .select()
+      .from(authUsers)
+      .orderBy(authUsers.createdAt, sql`rowid`);
   }
 
   async listPeople(): Promise<AuthPerson[]> {
