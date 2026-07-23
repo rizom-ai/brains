@@ -1,5 +1,15 @@
 # @brains/social-media
 
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies [[`09ee4c2`](https://github.com/rizom-ai/brains/commit/09ee4c2d56b5f5c7044aa1ee3785a0ec74d29328)]:
+  - @brains/atproto-contracts@0.2.0-alpha.223
+  - @brains/contracts@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/plugins@0.2.0-alpha.223
+
 ## 0.2.0-alpha.222
 
 ### Patch Changes

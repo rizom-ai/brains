@@ -137,6 +137,7 @@
     "agent-sightings",
     "align-preview-domain-routing",
     "atproto-ambient-publishing",
+    "atproto-boot-hardening",
     "atproto-contracts-lexicon-description",
     "atproto-discovery-agent-events",
     "atproto-lexicon-authority",
