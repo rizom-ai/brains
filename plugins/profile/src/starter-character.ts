@@ -11,6 +11,7 @@ const MAX_CAPABILITIES = 50;
 const MAX_CONTENT_SIGNALS = 12;
 const MAX_CONTEXT_SIGNALS = 12;
 const MAX_SIGNAL_LENGTH = 160;
+const NON_IDENTITY_MODEL_LABEL_PATTERN = /\b(?:ranger|relay|rover)\b/iu;
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -233,7 +234,7 @@ async function collectContentSignals(
 
     for (const entity of entities) {
       const label = extractContentSignal(entity);
-      if (!label) continue;
+      if (!label || NON_IDENTITY_MODEL_LABEL_PATTERN.test(label)) continue;
       signals.push({ entityType, label });
       if (signals.length >= MAX_CONTENT_SIGNALS) return signals;
     }

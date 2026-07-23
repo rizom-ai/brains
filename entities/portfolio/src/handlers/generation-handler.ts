@@ -6,6 +6,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**
@@ -90,9 +91,15 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
       message: "Generating project content with AI",
     });
 
+    const voiceGuidance = formatVoiceGuidance(
+      await fetchStyleGuide(this.context.entityService),
+    );
     const generated = await this.context.ai.generate<GeneratedProjectContent>({
       prompt: buildProjectGenerationPrompt(data),
       templateName: "portfolio:generation",
+      representedIdentity: "anchor",
+      style: "voice",
+      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });
 
     const title = data.title ?? generated.title;

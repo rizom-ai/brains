@@ -576,6 +576,37 @@ This note has frontmatter metadata.`;
       expect(result.success).toBe(true);
     });
 
+    test("should preserve extension-level refinements", () => {
+      const { registry: profileRegistry } = createProfileRegistry();
+
+      profileRegistry.extendFrontmatterSchema(
+        "profile",
+        z
+          .object({ tagline: z.string().optional() })
+          .strict()
+          .superRefine(({ tagline }, context) => {
+            if (tagline === "forbidden") {
+              context.addIssue({
+                code: "custom",
+                path: ["tagline"],
+                message: "Forbidden tagline",
+              });
+            }
+          }),
+      );
+
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBeDefined();
+      if (!effective) return;
+      expect(
+        effective.safeParse({ name: "Test", tagline: "allowed" }).success,
+      ).toBe(true);
+      expect(
+        effective.safeParse({ name: "Test", tagline: "forbidden" }).success,
+      ).toBe(false);
+    });
+
     test("should return base schema when no extensions registered", () => {
       const { registry: profileRegistry, adapter: adapterWithSchema } =
         createProfileRegistry();

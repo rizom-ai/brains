@@ -348,10 +348,12 @@ export async function seedOrMigrateStarterIdentity(options: {
     entityService.getEntity({
       entityType: "brain-character",
       id: "brain-character",
+      visibilityScope: "restricted",
     }),
     entityService.getEntity({
       entityType: "anchor-profile",
       id: "anchor-profile",
+      visibilityScope: "restricted",
     }),
   ]);
 

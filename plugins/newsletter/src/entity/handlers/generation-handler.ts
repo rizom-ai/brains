@@ -12,6 +12,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { type GenerationResult } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** Source entity shape consumed by newsletter generation */
@@ -140,12 +141,18 @@ The newsletter should:
         ? `${baseInstructions}\n\nAdditional instructions: ${prompt}`
         : baseInstructions;
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         subject: string;
         content: string;
       }>({
         prompt: finalPrompt,
         templateName: NEWSLETTER_CHANNELS.generation,
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       subject = subject ?? generated.subject;
@@ -163,12 +170,18 @@ The newsletter should:
         message: "Generating newsletter with AI",
       });
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         subject: string;
         content: string;
       }>({
         prompt,
         templateName: NEWSLETTER_CHANNELS.generation,
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       subject = subject ?? generated.subject;

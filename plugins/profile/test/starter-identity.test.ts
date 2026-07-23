@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
   brainCharacterBodySchema,
@@ -246,6 +246,35 @@ describe("starter character generation", () => {
     expect(serialized).not.toContain("PRIVATE CONTENT BODY");
     expect(serialized).not.toContain("PRIVATE ANCHOR BODY");
     expect(serialized).not.toContain("PRIVATE STYLE BODY");
+  });
+
+  test("excludes content signals containing non-identity model labels", async () => {
+    const harness = createHarness();
+    harness.addEntities([
+      {
+        id: "legacy-model-topic",
+        entityType: "topic",
+        content: "---\ntitle: Rover migration notes\n---\n",
+        metadata: {},
+      },
+      {
+        id: "safe-topic",
+        entityType: "topic",
+        content: "---\ntitle: Knowledge graph design\n---\n",
+        metadata: {},
+      },
+    ]);
+
+    const brief = await buildStarterCharacterBrief({
+      entityService: harness.getEntityService(),
+      anchorKind: "person",
+      anchorEntity: null,
+      includeAnchor: false,
+    });
+    const serialized = JSON.stringify(brief);
+
+    expect(serialized).toContain("Knowledge graph design");
+    expect(serialized).not.toContain("Rover migration notes");
   });
 });
 
@@ -496,6 +525,80 @@ values:
     });
     expect(brain?.content).toBe(customBrain);
     expect(anchor?.content).toContain("name: Anchor for Atlas");
+    expect(generationCalls).toBe(0);
+  });
+
+  test("preserves non-public authored identity without taking the create branch", async () => {
+    const harness = createHarness();
+    let generationCalls = 0;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        onGenerate: () => {
+          generationCalls += 1;
+        },
+      }),
+    );
+    await signalShellReady(harness);
+
+    const customBrain = `---
+name: Atlas
+role: Research partner
+purpose: Keep project knowledge connected
+values:
+  - context
+---
+`;
+    const customAnchor = `---
+name: Ada
+kind: person
+intro: Custom profile
+---
+Authored story.
+`;
+    const entityService = harness.getEntityService();
+    await entityService.createEntity({
+      entity: {
+        id: "brain-character",
+        entityType: "brain-character",
+        content: customBrain,
+        metadata: {},
+      },
+    });
+    await entityService.createEntity({
+      entity: {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: customAnchor,
+        metadata: {},
+        visibility: "restricted",
+      },
+    });
+    const createEntity = spyOn(entityService, "createEntity");
+    const getEntity = spyOn(entityService, "getEntity");
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+
+    const anchor = await entityService.getEntity({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      visibilityScope: "restricted",
+    });
+    expect(anchor?.content).toBe(customAnchor);
+    expect(getEntity).toHaveBeenCalledWith({
+      entityType: "brain-character",
+      id: "brain-character",
+      visibilityScope: "restricted",
+    });
+    expect(getEntity).toHaveBeenCalledWith({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      visibilityScope: "restricted",
+    });
+    expect(createEntity).not.toHaveBeenCalled();
     expect(generationCalls).toBe(0);
   });
 

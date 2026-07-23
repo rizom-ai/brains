@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
 import { DecksPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -49,6 +49,37 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         return { success: true };
       });
     }
+  });
+
+  describe("generation evals", () => {
+    it("keeps source-style-preserving description evals neutral", async () => {
+      let descriptionHandler: EvalHandler | undefined;
+      const mockShell = harness.getMockShell();
+      mockShell.registerEvalHandler = (_pluginId, handlerId, handler): void => {
+        if (handlerId === "generateDescription") descriptionHandler = handler;
+      };
+      const generateContent = spyOn(
+        mockShell,
+        "generateContent",
+      ).mockResolvedValue({ description: "Source-matched description" });
+
+      await harness.installPlugin(new DecksPlugin());
+      if (!descriptionHandler) {
+        throw new Error("Deck description eval handler was not registered");
+      }
+      await descriptionHandler({
+        title: "Existing Deck",
+        content: "Opinionated presentation content",
+      });
+
+      expect(generateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "decks:description",
+          representedIdentity: "none",
+          style: "none",
+        }),
+      );
+    });
   });
 
   describe("provider registration", () => {

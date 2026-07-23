@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  formatStyleGuidance,
   formatVisualGuidance,
   formatVoiceGuidance,
   styleGuideAdapter,
@@ -22,6 +23,30 @@ describe("style guide", () => {
     expect(parsed.guidance).toBe("Use concrete examples.");
     expect(formatVoiceGuidance(parsed)).toContain("Clear and direct");
     expect(formatVisualGuidance(parsed)).toContain("#3921D7");
+  });
+
+  test("includes shared body guidance once when composing both facets", () => {
+    const styleGuide = styleGuideAdapter.parseStyleGuide(
+      styleGuideAdapter.createStyleGuideContent(
+        {
+          name: "Combined",
+          voice: { summary: "Direct and grounded" },
+          visual: { artDirection: "Editorial diagrams" },
+        },
+        "Shared rationale and exceptions.",
+      ),
+    );
+
+    const guidance = formatStyleGuidance(styleGuide, "both");
+    const combined = [guidance.voice, guidance.visual]
+      .filter((value) => value !== undefined)
+      .join("\n");
+
+    expect(combined).toContain("Direct and grounded");
+    expect(combined).toContain("Editorial diagrams");
+    expect(combined.match(/Shared rationale and exceptions\./g)).toHaveLength(
+      1,
+    );
   });
 
   test("preserves imported extension fields during markdown serialization", () => {

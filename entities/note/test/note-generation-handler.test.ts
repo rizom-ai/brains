@@ -57,6 +57,26 @@ describe("NoteGenerationJobHandler", () => {
   });
 
   describe("process - entity creation", () => {
+    it("classifies internal note generation as neutral", async () => {
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        title: "Neutral Note",
+        body: "Body text",
+      });
+
+      await handler.process(
+        { prompt: "Write a note" },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(mockContext.ai.generate).toHaveBeenCalledWith({
+        prompt: "Write a note",
+        templateName: "note:generation",
+        representedIdentity: "none",
+        style: "none",
+      });
+    });
+
     it("should slugify the title for the entity id and dedupe", async () => {
       spyOn(mockContext.ai, "generate").mockResolvedValue({
         title: "My Fancy Note!",

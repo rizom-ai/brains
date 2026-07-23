@@ -163,24 +163,81 @@ export const organizationProfileSchema: z.ZodType<OrganizationProfile> =
     })
     .strict();
 
-export const profileFrontmatterExtension: z.ZodObject<z.ZodRawShape> = z.object(
-  {
+export const profileFrontmatterExtension: z.ZodObject<z.ZodRawShape> = z
+  .object({
+    ...anchorProfileBodySchema.shape,
     tagline: z.string().optional(),
     intro: z.string().optional(),
     audience: z.string().optional(),
-    role: z.string().optional(),
-    expertise: z.array(z.string()).optional(),
-    currentFocus: z.string().optional(),
-    availability: z.string().optional(),
-    purpose: z.string().optional(),
-    focusAreas: z.array(z.string()).optional(),
-    capabilities: z.array(z.string()).optional(),
-    workingPrinciples: z.array(z.string()).optional(),
-    mission: z.string().optional(),
-    offerings: z.array(z.string()).optional(),
-    values: z.array(z.string()).optional(),
-  },
-);
+    role: z
+      .string()
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "person" } }),
+    expertise: z
+      .array(z.string())
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "person" } }),
+    currentFocus: z
+      .string()
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "person" } }),
+    availability: z
+      .string()
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "person" } }),
+    purpose: z
+      .string()
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "team" } }),
+    focusAreas: z
+      .array(z.string())
+      .optional()
+      .meta({
+        cmsCondition: {
+          field: "kind",
+          value: ["team", "organization"],
+        },
+      }),
+    capabilities: z
+      .array(z.string())
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "team" } }),
+    workingPrinciples: z
+      .array(z.string())
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "team" } }),
+    mission: z
+      .string()
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
+    offerings: z
+      .array(z.string())
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
+    values: z
+      .array(z.string())
+      .optional()
+      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
+  })
+  .strict()
+  .superRefine((profile, context) => {
+    const result =
+      profile["kind"] === "person"
+        ? professionalProfileSchema.safeParse(profile)
+        : profile["kind"] === "team"
+          ? teamProfileSchema.safeParse(profile)
+          : organizationProfileSchema.safeParse(profile);
+
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        context.addIssue({
+          code: "custom",
+          path: [...issue.path],
+          message: issue.message,
+        });
+      }
+    }
+  });
 
 const unknownFrontmatterSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
   z.record(z.string(), z.unknown());

@@ -21,6 +21,7 @@ import { DirectorySyncWorkspace } from "./directory-sync-workspace";
 import {
   Field,
   FieldAssistControls,
+  isFieldVisible,
   TypeSwitcher,
   typeHasPublicationField,
   type FieldAssistState,
@@ -355,30 +356,32 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                     : entityPublicationState(mode.entity)}
                 </span>
               </div>
-              {entitySchema.fields.map((descriptor) => (
-                <div key={descriptor.name} className="field-with-assist">
-                  <Field
-                    descriptor={descriptor}
-                    value={draft[descriptor.name]}
-                    onChange={(raw) =>
-                      dispatchEditor({
-                        type: "fieldChanged",
-                        descriptor,
-                        raw,
-                      })
-                    }
-                  />
-                  {entitySchema.hasBody && body.trim().length > 0 && (
-                    <FieldAssistControls
+              {entitySchema.fields
+                .filter((descriptor) => isFieldVisible(descriptor, draft))
+                .map((descriptor) => (
+                  <div key={descriptor.name} className="field-with-assist">
+                    <Field
                       descriptor={descriptor}
-                      state={fieldAssistState}
-                      onRun={runFieldAssist}
-                      onApply={applyFieldAssist}
-                      onDiscard={() => setFieldAssistState({ kind: "idle" })}
+                      value={draft[descriptor.name]}
+                      onChange={(raw) =>
+                        dispatchEditor({
+                          type: "fieldChanged",
+                          descriptor,
+                          raw,
+                        })
+                      }
                     />
-                  )}
-                </div>
-              ))}
+                    {entitySchema.hasBody && body.trim().length > 0 && (
+                      <FieldAssistControls
+                        descriptor={descriptor}
+                        state={fieldAssistState}
+                        onRun={runFieldAssist}
+                        onApply={applyFieldAssist}
+                        onDiscard={() => setFieldAssistState({ kind: "idle" })}
+                      />
+                    )}
+                  </div>
+                ))}
               {entitySchema.fields.length === 0 && (
                 <p className="status">
                   This type is raw markdown — the whole document is the body.

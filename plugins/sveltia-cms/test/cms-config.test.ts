@@ -44,6 +44,26 @@ describe("zodFieldToCmsWidget", () => {
     expect(result.widget).toBe("string");
     expect(result.required).toBe(false);
   });
+
+  it("should preserve CMS field conditions from schema metadata", () => {
+    const result = zodFieldToCmsWidget(
+      "focusAreas",
+      z
+        .array(z.string())
+        .optional()
+        .meta({
+          cmsCondition: {
+            field: "kind",
+            value: ["team", "organization"],
+          },
+        }),
+    );
+
+    expect(result.condition).toEqual({
+      field: "kind",
+      value: ["team", "organization"],
+    });
+  });
 });
 
 describe("generateCmsConfig", () => {

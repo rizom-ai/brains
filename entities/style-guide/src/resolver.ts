@@ -25,7 +25,7 @@ function addList(lines: string[], label: string, values?: string[]): void {
   }
 }
 
-export function formatVoiceGuidance(styleGuide: StyleGuide): string {
+function formatVoiceFacet(styleGuide: StyleGuide): string {
   const lines: string[] = [];
   const { messaging, voice } = styleGuide;
   addList(lines, "Audiences", messaging?.audiences);
@@ -37,11 +37,10 @@ export function formatVoiceGuidance(styleGuide: StyleGuide): string {
   addList(lines, "Voice principles", voice?.principles);
   addList(lines, "Preferred terms", voice?.preferredTerms);
   addList(lines, "Avoid", voice?.avoid);
-  if (styleGuide.guidance) lines.push(styleGuide.guidance);
   return lines.join("\n");
 }
 
-export function formatVisualGuidance(styleGuide: StyleGuide): string {
+function formatVisualFacet(styleGuide: StyleGuide): string {
   const lines: string[] = [];
   const { visual } = styleGuide;
   if (visual?.artDirection) {
@@ -52,6 +51,45 @@ export function formatVisualGuidance(styleGuide: StyleGuide): string {
   if (visual?.mood) lines.push(`Mood: ${visual.mood}`);
   addList(lines, "Prefer", visual?.preferred);
   addList(lines, "Avoid", visual?.avoid);
-  if (styleGuide.guidance) lines.push(styleGuide.guidance);
   return lines.join("\n");
+}
+
+function appendSharedGuidance(facet: string, guidance: string): string {
+  return [facet, guidance].filter(Boolean).join("\n");
+}
+
+export interface FormattedStyleGuidance {
+  voice?: string | undefined;
+  visual?: string | undefined;
+}
+
+export function formatStyleGuidance(
+  styleGuide: StyleGuide,
+  style: "voice" | "visual" | "both",
+): FormattedStyleGuidance {
+  let voice =
+    style === "voice" || style === "both" ? formatVoiceFacet(styleGuide) : "";
+  let visual =
+    style === "visual" || style === "both" ? formatVisualFacet(styleGuide) : "";
+
+  if (styleGuide.guidance) {
+    if (style === "voice" || style === "both") {
+      voice = appendSharedGuidance(voice, styleGuide.guidance);
+    } else {
+      visual = appendSharedGuidance(visual, styleGuide.guidance);
+    }
+  }
+
+  return {
+    ...(voice && { voice }),
+    ...(visual && { visual }),
+  };
+}
+
+export function formatVoiceGuidance(styleGuide: StyleGuide): string {
+  return formatStyleGuidance(styleGuide, "voice").voice ?? "";
+}
+
+export function formatVisualGuidance(styleGuide: StyleGuide): string {
+  return formatStyleGuidance(styleGuide, "visual").visual ?? "";
 }

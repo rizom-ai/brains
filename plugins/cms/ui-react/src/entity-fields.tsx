@@ -55,6 +55,31 @@ export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
   );
 }
 
+export function isFieldVisible(
+  field: FieldDescriptor,
+  values: Record<string, unknown>,
+): boolean {
+  if (!field.condition) return true;
+  const expected = field.condition.value;
+  const actual = values[field.condition.field];
+  return Array.isArray(expected)
+    ? expected.some((value) => value === actual)
+    : expected === actual;
+}
+
+export function visibleFieldValues(
+  fields: FieldDescriptor[],
+  values: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    fields.flatMap((field) =>
+      isFieldVisible(field, values) && Object.hasOwn(values, field.name)
+        ? [[field.name, values[field.name]]]
+        : [],
+    ),
+  );
+}
+
 export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;

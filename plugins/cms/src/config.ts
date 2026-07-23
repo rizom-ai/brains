@@ -19,6 +19,11 @@ export type CmsEntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;
  * Field widget descriptor the editor form renderer consumes.
  * (Inherited from the Sveltia widget vocabulary; now first-party.)
  */
+export interface CmsFieldCondition {
+  field: string;
+  value: unknown;
+}
+
 export interface CmsFieldWidget {
   name: string;
   label: string;
@@ -26,6 +31,7 @@ export interface CmsFieldWidget {
   required?: boolean;
   default?: unknown;
   options?: string[];
+  condition?: CmsFieldCondition;
   field?: CmsFieldWidget;
   fields?: CmsFieldWidget[];
 }
@@ -84,6 +90,23 @@ function getDefinition(schema: unknown): Record<string, unknown> | undefined {
 function getKind(schema: unknown): string | undefined {
   const type = getDefinition(schema)?.["type"];
   return typeof type === "string" ? type : undefined;
+}
+
+function readCmsCondition(schema: unknown): CmsFieldCondition | undefined {
+  if (!isRecord(schema)) return undefined;
+  const readMetadata = schema["meta"];
+  if (typeof readMetadata !== "function") return undefined;
+  const metadata: unknown = readMetadata.call(schema);
+  if (!isRecord(metadata)) return undefined;
+  const condition = metadata["cmsCondition"];
+  if (
+    !isRecord(condition) ||
+    typeof condition["field"] !== "string" ||
+    !Object.hasOwn(condition, "value")
+  ) {
+    return undefined;
+  }
+  return { field: condition["field"], value: condition["value"] };
 }
 
 function readDefaultValue(value: unknown): unknown {
@@ -162,6 +185,7 @@ export function zodFieldToCmsWidget(
   const { inner, isOptional, defaultValue } = unwrapZodType(fieldSchema);
   const kind = getKind(inner);
   const effectiveDefault = defaultValue ?? readLiteralDefault(inner);
+  const condition = readCmsCondition(fieldSchema);
 
   const base: CmsFieldWidget = {
     name,
@@ -169,6 +193,7 @@ export function zodFieldToCmsWidget(
     widget: "string",
     ...(isOptional && { required: false }),
     ...(effectiveDefault !== undefined && { default: effectiveDefault }),
+    ...(condition && { condition }),
   };
 
   switch (kind) {

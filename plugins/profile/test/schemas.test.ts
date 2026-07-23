@@ -3,6 +3,7 @@ import {
   fetchAnchorProfileData,
   organizationProfileSchema,
   professionalProfileSchema,
+  profileFrontmatterExtension,
   teamProfileSchema,
   validateProfileContent,
 } from "../src";
@@ -47,6 +48,25 @@ describe("profile variants", () => {
         `---\nname: Team\nkind: team\nrole: Advisor\n---\n`,
       ),
     ).toThrow();
+  });
+
+  test("exposes a kind-aware frontmatter extension to editors", () => {
+    expect(profileFrontmatterExtension.shape).toHaveProperty("name");
+    expect(profileFrontmatterExtension.shape).toHaveProperty("kind");
+    expect(
+      profileFrontmatterExtension.safeParse({
+        name: "Ada",
+        kind: "person",
+        role: "Advisor",
+      }).success,
+    ).toBe(true);
+    expect(
+      profileFrontmatterExtension.safeParse({
+        name: "Ada",
+        kind: "person",
+        mission: "Mismatch",
+      }).success,
+    ).toBe(false);
   });
 
   test("rejects story stored in frontmatter instead of the markdown body", () => {

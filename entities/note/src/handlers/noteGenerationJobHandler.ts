@@ -63,6 +63,8 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
     }>({
       prompt: data.prompt,
       templateName: "note:generation",
+      representedIdentity: "none",
+      style: "none",
     });
 
     const title = data.title ?? generated.title;

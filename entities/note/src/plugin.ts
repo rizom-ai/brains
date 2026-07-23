@@ -192,6 +192,8 @@ export class NotePlugin extends EntityPlugin<
       return context.ai.generate<{ title: string; body: string }>({
         prompt: parsed.prompt,
         templateName: "note:generation",
+        representedIdentity: "none",
+        style: "none",
       });
     });
 

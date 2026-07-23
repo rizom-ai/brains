@@ -299,8 +299,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
-    createEntity: async (request: { entity: BaseEntity }) => {
-      const entity = request.entity;
+    createEntity: async (request: {
+      entity: Omit<BaseEntity, "visibility"> & {
+        visibility?: BaseEntity["visibility"];
+      };
+    }) => {
+      const entity = {
+        ...request.entity,
+        visibility: request.entity.visibility ?? "public",
+      } satisfies BaseEntity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const { content, metadata } = serializeViaAdapter({ ...entity, id });
@@ -309,6 +316,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         id,
         content,
         metadata,
+        visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
       return { entityId: id, jobId: `job-${id}`, skipped: false };
@@ -442,6 +450,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         id,
         content,
         metadata,
+        visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
       return {

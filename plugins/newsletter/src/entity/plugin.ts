@@ -18,6 +18,7 @@ import {
   type PublishProvider,
 } from "@brains/contracts";
 import { h } from "preact";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {
@@ -231,9 +232,15 @@ export class NewsletterPlugin extends EntityPlugin<
         ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
         : (parsed.prompt ?? "Write an engaging newsletter");
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(context.entityService),
+      );
       return context.ai.generate<{ subject: string; content: string }>({
         prompt: generationPrompt,
         templateName: NEWSLETTER_CHANNELS.generation,
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
   }

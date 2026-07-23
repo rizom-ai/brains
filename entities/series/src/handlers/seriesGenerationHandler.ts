@@ -82,6 +82,8 @@ export class SeriesGenerationHandler implements JobHandler<
     }>({
       prompt,
       templateName: "series:description",
+      representedIdentity: "none",
+      style: "none",
     });
 
     if (!generated.description) {

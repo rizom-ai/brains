@@ -3,8 +3,10 @@ export { StyleGuideAdapter, styleGuideAdapter } from "./adapter";
 export {
   DEFAULT_STYLE_GUIDE,
   fetchStyleGuide,
+  formatStyleGuidance,
   formatVoiceGuidance,
   formatVisualGuidance,
+  type FormattedStyleGuidance,
 } from "./resolver";
 export {
   styleGuideEntitySchema,

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   GenerationJobHandler,
   generationJobSchema,
@@ -107,6 +107,26 @@ describe("GenerationJobHandler", () => {
   });
 
   describe("process", () => {
+    it("classifies newsletter generation as anchor-authored voice content", async () => {
+      spyOn(context.ai, "generate").mockResolvedValue({
+        subject: "Grounded systems update",
+        content: "Newsletter content",
+      });
+
+      await handler.process(
+        { prompt: "Write a systems update" },
+        "job-123",
+        progressReporter,
+      );
+
+      expect(context.ai.generate).toHaveBeenCalledWith({
+        prompt: "Write a systems update",
+        templateName: "newsletter:generation",
+        representedIdentity: "anchor",
+        style: "voice",
+      });
+    });
+
     it("should fail when no content source provided", async () => {
       const jobData: GenerationJobData = {
         addToQueue: true,

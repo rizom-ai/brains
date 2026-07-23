@@ -1,4 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { z } from "@brains/utils/zod";
 
 const generatePostInputSchema = z.object({
@@ -19,6 +20,9 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const parsed: GeneratePostInput = generatePostInputSchema.parse(input);
     const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
 
+    const voiceGuidance = formatVoiceGuidance(
+      await fetchStyleGuide(context.entityService),
+    );
     return context.ai.generate<{
       title: string;
       content: string;
@@ -26,6 +30,9 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     }>({
       prompt: generationPrompt,
       templateName: "blog:generation",
+      representedIdentity: "anchor",
+      style: "voice",
+      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });
   });
 
@@ -38,6 +45,8 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     }>({
       prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
       templateName: "blog:excerpt",
+      representedIdentity: "none",
+      style: "none",
     });
   });
 }

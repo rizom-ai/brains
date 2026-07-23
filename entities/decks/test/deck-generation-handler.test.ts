@@ -1,16 +1,28 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { DeckGenerationJobHandler } from "../src/handlers/deckGenerationJobHandler";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import type { EntityPluginContext } from "@brains/plugins";
+import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
 import {
-  createSilentLogger,
   createMockEntityPluginContext,
+  createMockProgressReporter,
+  createSilentLogger,
+  createTestEntity,
 } from "@brains/test-utils";
+import { DeckGenerationJobHandler } from "../src/handlers/deckGenerationJobHandler";
 
 describe("DeckGenerationJobHandler", () => {
   let handler: DeckGenerationJobHandler;
+  let mockContext: EntityPluginContext;
 
   beforeEach(() => {
-    const mockContext = createMockEntityPluginContext({
+    mockContext = createMockEntityPluginContext({
       returns: {
+        ai: {
+          generate: {
+            title: "Generated Deck",
+            content: "# Opening\n\n---\n\n# Close",
+            description: "Generated description",
+          },
+        },
         entityService: {
           getEntity: null,
           listEntities: [],
@@ -23,6 +35,56 @@ describe("DeckGenerationJobHandler", () => {
       createSilentLogger("test"),
       mockContext,
     );
+  });
+
+  describe("generation context", () => {
+    it("passes anchor voice style guidance into deck generation", async () => {
+      const styleEntity = createTestEntity<StyleGuideEntity>("style-guide", {
+        id: "style-guide",
+        content: styleGuideAdapter.createStyleGuideContent({
+          name: "Deck voice",
+          voice: { summary: "Decisive and evidence-led" },
+        }),
+        metadata: {},
+      });
+      const getEntity = spyOn(mockContext.entityService, "getEntity");
+      getEntity.mockResolvedValueOnce(styleEntity).mockResolvedValueOnce(null);
+
+      await handler.process(
+        { prompt: "Create a deck about resilient systems" },
+        "job-123",
+        createMockProgressReporter(),
+      );
+
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          representedIdentity: "anchor",
+          style: "voice",
+          styleGuide: {
+            voice: expect.stringContaining("Decisive and evidence-led"),
+          },
+        }),
+      );
+    });
+
+    it("keeps source-style-preserving descriptions neutral", async () => {
+      await handler.process(
+        {
+          title: "Existing Deck",
+          content: "# Opinionated opening\n\n---\n\n# Conclusion",
+        },
+        "job-123",
+        createMockProgressReporter(),
+      );
+
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "decks:description",
+          representedIdentity: "none",
+          style: "none",
+        }),
+      );
+    });
   });
 
   describe("validateAndParse", () => {

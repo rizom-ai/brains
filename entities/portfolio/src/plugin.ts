@@ -25,6 +25,7 @@ import {
   type PublishResult,
 } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {
   projectSchema,
   projectFrontmatterSchema,
@@ -297,6 +298,9 @@ export class PortfolioPlugin extends EntityPlugin<
     context.eval.registerHandler("generateProject", async (input: unknown) => {
       const parsed: GenerateProjectEvalInput =
         generateProjectEvalInputSchema.parse(input);
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(context.entityService),
+      );
       return context.ai.generate<{
         title: string;
         description: string;
@@ -307,6 +311,9 @@ export class PortfolioPlugin extends EntityPlugin<
       }>({
         prompt: buildProjectGenerationPrompt(parsed),
         templateName: "portfolio:generation",
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
   }

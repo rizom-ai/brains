@@ -4,6 +4,8 @@
 
 Implemented in the repository, including the revised Phase 7 safe deterministic agent aliases, bounded structured character generation, and strict legacy-default backfill. Deployment, live backfill, and republication of the existing ATProto card remain operational follow-up work.
 
+A post-implementation review confirmed the anchor-kind cutover is complete and consistent and the alias/backfill/style-guide work matches intent. All six findings from that review have now been implemented and validated; see [Post-implementation review follow-ups](#post-implementation-review-follow-ups).
+
 This plan concerns git-synced, markdown-backed identity and generation guidance. Runtime
 users, authentication, roles, and authorization remain owned by the runtime identity
 plans.
@@ -538,6 +540,115 @@ Exit gate: fresh installs and brains still carrying exact historical defaults ha
 distinct deterministic agent alias plus a grounded, generated character in their card,
 agent card, and directory entry; authored identities are unchanged; alias generation uses
 no runtime randomness; generated semantics become stable through one-time persistence.
+
+## Post-implementation review follow-ups
+
+Concrete, self-contained tasks from the post-implementation review. Ordered by
+severity. Each is scoped so it can be picked up independently. Write the test
+first in every case.
+
+### F1 — Backfill read path fails closed on non-public identity (correctness)
+
+**Status: completed.**
+
+`seedOrMigrateStarterIdentity` in `plugins/profile/src/starter-identity.ts:347-356`
+reads the `brain-character` and `anchor-profile` singletons via `getEntity`
+**without** a `visibilityScope`. Per `shell/entity-service/src/entity-queries.ts:110`
+an undefined scope fails closed to public-only. The sibling brief-builder reads the
+same two singletons at `visibilityScope: "restricted"`
+(`plugins/profile/src/starter-character.ts:271-274`), so the two read paths disagree.
+
+Consequence: if a user authors either singleton as `shared` or `restricted`, the
+backfill reads `null`, concludes the identity is missing, and takes the **create**
+branch — duplicating or overwriting authored identity. Latent today because entities
+default to `public`.
+
+Fix: pass `visibilityScope: "restricted"` on both `getEntity` calls at
+`starter-identity.ts:348` and `:352`, matching the brief-builder.
+
+Test first: author a non-public `anchor-profile` (or `brain-character`), run the
+backfill, and assert the authored singleton is neither overwritten nor duplicated
+(no create-branch call). This closes the coverage gap noted below.
+
+### F2 — Redact legacy model labels from the character brief (plan conformance)
+
+**Status: completed.** These are treated as non-identity model labels, not as a compatibility layer.
+
+Per decisions in Phase 7 (lines 500, 524-526), legacy Rover/Relay/Ranger model
+labels must not enter the factual brief **as evidence**. Credentials, auth state,
+and conversations are excluded structurally, but a `topic`/`summary`/`title` whose
+text contains a legacy model name flows verbatim into `contentSignals` in
+`plugins/profile/src/starter-character.ts` (`collectContentSignals`, ~`:207-243`,
+serialized ~`:292-311`). The only current defense is a prompt line
+(`Do not use legacy brain-model names as identity evidence`, ~`:306`).
+
+Fix: apply a structural redaction/exclusion pass on collected content signals
+against the known legacy model-label set before serialization, so the constraint
+does not rely on prompt compliance.
+
+Test first: a content signal containing a legacy model label is excluded from (or
+redacted in) the serialized brief.
+
+### F3 — Add deck style-wiring test coverage (test gap)
+
+**Status: completed.**
+
+`entities/decks/src/handlers/deckGenerationJobHandler.ts` fetches the style guide
+and passes `representedIdentity: "anchor"` / `style: "voice"` plus voice guidance
+(~`:120-161`), but there is no `entities/decks/test/handlers/` coverage. Blog and
+social-media handler tests were updated to assert these flags; deck was missed.
+
+Fix: add a deck generation-handler test asserting the represented-identity/style
+flags and that non-empty voice guidance populates the `styleGuide` payload.
+
+### F4 — Reconcile CMS frontmatter schema with the persist validator (soundness)
+
+**Status: completed.** Kind-aware schema refinements now survive frontmatter
+extension merging, and CMS condition metadata hides fields that do not apply to
+the selected anchor kind.
+
+`plugins/profile/src/schemas.ts` registered `profileFrontmatterExtension` as a
+flat, non-strict union of all variant fields, while `validateProfileContent`
+enforced a strict per-kind schema. The CMS
+editor therefore accepts fields (e.g. `mission` on a `kind: person` profile) that
+the persist validator then rejects. The validator is the correct gate; the editor
+should not advertise fields it cannot save.
+
+Fix: make the CMS-facing frontmatter schema kind-aware (or otherwise narrow it) so
+editing surfaces only fields the persist validator accepts. Confirm the base schema
+(`kind`/`name`) is merged into the editing schema.
+
+### F5 — Guidance body duplicated when `style: "both"` with both facets (latent)
+
+**Status: completed.**
+
+`formatVoiceGuidance` and `formatVisualGuidance` in
+`entities/style-guide/src/resolver.ts` each append `styleGuide.guidance`
+(~`:40`, `:55`). A future `style: "both"` caller that populates both `voice` and
+`visual` strings would get the markdown body twice in the system prompt. No current
+caller hits this, but the datasource `"both"` branch
+(`shell/core/src/datasources/ai-content-datasource.ts:174-181`) is designed to
+accept both.
+
+Fix: append the shared `guidance` body once when composing `"both"`, not per facet.
+
+### F6 — Classify remaining unclassified generation paths (Phase 4 step 5)
+
+**Status: completed.** Note and series generation are explicitly neutral;
+portfolio and newsletter generation represent the anchor and consume voice
+guidance; source-derived deck descriptions and blog excerpts preserve source
+style without injected identity.
+
+Phase 4 step 5 ("classify templates as styled, neutral, or source-style-preserving")
+was not applied to several callers that omit `representedIdentity` and therefore
+inherit the default that injects **both** brain and anchor identity: note
+(`entities/note/src/handlers/noteGenerationJobHandler.ts:65`), portfolio,
+series, newsletter, and the `decks:description` eval (`entities/decks/src/plugin.ts:261`). Notably
+`decks:description`'s template says "Match the voice of the presentation"
+(source-style-preserving intent) yet gets brain+anchor identity injected.
+
+Fix: set an explicit `representedIdentity`/`style` on each of these paths per its
+intent (`decks:description` is source-style-preserving → `representedIdentity: "none"`).
 
 ## Validation
 

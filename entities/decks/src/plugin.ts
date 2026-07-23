@@ -14,6 +14,7 @@ import {
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";
@@ -243,6 +244,9 @@ export class DecksPlugin extends EntityPlugin<
     context.eval.registerHandler("generateDeck", async (input: unknown) => {
       const parsed: GenerateDeckEvalInput =
         generateDeckEvalInputSchema.parse(input);
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(context.entityService),
+      );
       return context.ai.generate<{
         title: string;
         content: string;
@@ -250,6 +254,9 @@ export class DecksPlugin extends EntityPlugin<
       }>({
         prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
         templateName: "decks:generation",
+        representedIdentity: "anchor",
+        style: "voice",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
 
@@ -261,6 +268,8 @@ export class DecksPlugin extends EntityPlugin<
         return context.ai.generate<{ description: string }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",
+          representedIdentity: "none",
+          style: "none",
         });
       },
     );

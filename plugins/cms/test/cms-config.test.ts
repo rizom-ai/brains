@@ -41,6 +41,18 @@ describe("zodFieldToCmsWidget", () => {
     expect(result.required).toBe(false);
   });
 
+  it("should preserve CMS field conditions from schema metadata", () => {
+    const result = zodFieldToCmsWidget(
+      "role",
+      z
+        .string()
+        .optional()
+        .meta({ cmsCondition: { field: "kind", value: "person" } }),
+    );
+
+    expect(result.condition).toEqual({ field: "kind", value: "person" });
+  });
+
   it("should map image-entity reference fields to the image widget", () => {
     // Image references are string ids into the image entity type, named by
     // the <role>ImageId convention (coverImageId, ogImageId, ...).

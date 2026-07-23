@@ -112,6 +112,8 @@ describe("ProjectGenerationJobHandler", () => {
       expect(context.ai.generate).toHaveBeenCalledWith({
         prompt: buildProjectGenerationPrompt(data),
         templateName: "portfolio:generation",
+        representedIdentity: "anchor",
+        style: "voice",
       });
     });
 
