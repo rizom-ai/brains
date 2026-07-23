@@ -6,6 +6,17 @@ export {
 } from "./plugin";
 export { fetchAnchorProfile, fetchAnchorProfileData } from "./helpers";
 export {
+  buildStarterCharacterBrief,
+  buildStarterCharacterPrompt,
+  generateStarterCharacter,
+  generatedStarterCharacterSchema,
+  type GeneratedStarterCharacter,
+  type StarterCharacterBrief,
+  type StarterCharacterCapability,
+  type StarterCharacterContentSignal,
+} from "./starter-character";
+export {
+  STARTER_ALIAS_REGISTER,
   createStarterAnchorProfileContent,
   createStarterBrainCharacterContent,
   deriveStarterIdentity,
@@ -13,6 +24,7 @@ export {
   isLegacyBrainCharacterContent,
   resolveStarterIdentityIdentifier,
   seedOrMigrateStarterIdentity,
+  type StarterCharacterGenerationRequest,
   type StarterIdentity,
   type StarterIdentityMigrationResult,
   type StarterIdentitySource,

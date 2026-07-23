@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1–6 are implemented in the repository. Phase 7 has an initial deterministic starter-identity and strict legacy-default backfill implementation, but its kind-specific name registers and fixed character archetypes are superseded by the revised Phase 7 decisions below. That redesign must land before deployment, live backfill, and republication of the existing ATProto card.
+Implemented in the repository, including the revised Phase 7 safe deterministic agent aliases, bounded structured character generation, and strict legacy-default backfill. Deployment, live backfill, and republication of the existing ATProto card remain operational follow-up work.
 
 This plan concerns git-synced, markdown-backed identity and generation guidance. Runtime
 users, authentication, roles, and authorization remain owned by the runtime identity
@@ -454,9 +454,11 @@ Decisions:
 - **Durable, content-plane identity.** The starter name and character are written into
   `brain-data` as ordinary `brain-character` and `anchor-profile` content. Identity
   service, cards, A2A, and directories consume it without a parallel runtime identity.
-- **Seed new repositories after content discovery.** Bootstrap waits until initial content
-  discovery confirms that identity is absent, so imported identity always wins. Repeated
-  bootstrap is idempotent.
+- **Cross both startup barriers before generation.** Bootstrap records successful initial
+  content discovery first, so imported identity always wins, then waits for the normal-boot
+  `system:shell:ready` lifecycle event before calling guarded AI APIs. Shell readiness is
+  emitted only after ready hooks and runtime startup complete; register-only and
+  startup-check modes do not emit it. Repeated bootstrap is idempotent.
 - **Backfill exact legacy defaults.** After initial directory sync, a migration compares
   parsed identity values against a versioned registry of known historical defaults. It
   does not compare raw markdown formatting. The initial fingerprints include:
@@ -526,10 +528,11 @@ Decisions:
 
 Tests first: canonical-domain normalization, deterministic alias derivation, same-register
 behavior across anchor kinds, unsafe-term exclusion, bounded-context selection and
-redaction, structured-output validation, AI failure without mutation, successful retry,
-fresh-repository seeding, every known legacy fingerprint, independent singleton migration,
-unknown-field preservation, partial customization, false-positive prevention, no AI call
-for authored character content, and repeated-run idempotence.
+redaction, structured-output validation, shell-ready ordering and the initial-sync/ready
+dual barrier, AI failure without mutation, successful retry, fresh-repository seeding,
+every known legacy fingerprint, independent singleton migration, unknown-field
+preservation, partial customization, false-positive prevention, no AI call for authored
+character content, and repeated-run idempotence.
 
 Exit gate: fresh installs and brains still carrying exact historical defaults have a
 distinct deterministic agent alias plus a grounded, generated character in their card,

@@ -83,7 +83,7 @@ describe("AgentAdapter", () => {
     it("should persist remote card freshness fields", () => {
       const content = adapter.createAgentContent({
         name: "Peer",
-        kind: "professional",
+        kind: "person",
         brainName: "Peer Brain",
         url: "https://peer.example.com",
         status: "discovered",

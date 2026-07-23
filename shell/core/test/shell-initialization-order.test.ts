@@ -311,6 +311,43 @@ describe("Shell initialization order", () => {
     );
   });
 
+  it("should emit shell-ready only after ready hooks and guarded APIs are available", async () => {
+    const lifecyclePlugin: Plugin = {
+      id: "shell-ready-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Checks shell-ready ordering",
+      packageName: "@test/shell-ready",
+      register: async (shellInstance) => {
+        shellInstance
+          .getMessageBus()
+          .subscribe("system:shell:ready", async () => {
+            initOrder.push(
+              shell.isInitialized()
+                ? "shell-ready-initialized"
+                : "shell-ready-uninitialized",
+            );
+            return { success: true };
+          });
+        return { tools: [], resources: [] };
+      },
+      ready: async () => {
+        initOrder.push("ready");
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [lifecyclePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    expect(initOrder).toContain("shell-ready-initialized");
+    expect(initOrder).not.toContain("shell-ready-uninitialized");
+    expect(initOrder.indexOf("ready")).toBeLessThan(
+      initOrder.indexOf("shell-ready-initialized"),
+    );
+  });
+
   it("should run ready hooks without signals, daemons, or jobs in startup-check mode", async () => {
     const daemon: Daemon = {
       start: async () => {
@@ -335,6 +372,12 @@ describe("Shell initialization order", () => {
             initOrder.push("plugins-ready");
             return { success: true };
           });
+        shellInstance
+          .getMessageBus()
+          .subscribe(SYSTEM_CHANNELS.shellReady, async () => {
+            initOrder.push("shell-ready");
+            return { success: true };
+          });
         shellInstance.registerDaemon(
           "startup-check-daemon",
           daemon,
@@ -355,6 +398,7 @@ describe("Shell initialization order", () => {
     expect(initOrder).toContain("register");
     expect(initOrder).toContain("ready");
     expect(initOrder).not.toContain("plugins-ready");
+    expect(initOrder).not.toContain("shell-ready");
     expect(initOrder).not.toContain("daemon-started");
 
     const shellWithServices = shell as unknown as {

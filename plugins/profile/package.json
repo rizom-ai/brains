@@ -1,7 +1,7 @@
 {
   "name": "@brains/profile",
-  "version": "0.2.0-alpha.221",
-  "description": "Anchor-profile extensions and deterministic starter identity lifecycle",
+  "version": "0.2.0-alpha.223",
+  "description": "Anchor-profile extensions and context-generated starter identity lifecycle",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"

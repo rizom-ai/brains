@@ -26,6 +26,7 @@ import {
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
+  SYSTEM_CHANNELS,
 } from "@brains/plugins";
 
 // Entity service types
@@ -241,8 +242,18 @@ export class Shell implements IShell {
       if (this.lifecycleState === "booting") {
         this.lifecycleState = "running";
         this.initialized = true;
+        if (options?.mode === undefined) {
+          await this.services.messageBus.send({
+            type: SYSTEM_CHANNELS.shellReady,
+            payload: { timestamp: new Date().toISOString() },
+            sender: "shell",
+            broadcast: true,
+          });
+          this.services.logger.debug("Emitted shell ready event");
+        }
       }
     } catch (error) {
+      this.initialized = false;
       this.services.logger.error("Failed to initialize Shell", error);
       if (this.lifecycleState !== "closing") {
         this.lifecycleState = "failed";

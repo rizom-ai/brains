@@ -36,8 +36,8 @@ export interface AtprotoBrainCardAnchor extends Record<string, unknown> {
  * rather than widening the published lexicon.
  */
 const ANCHOR_KIND_ALIASES: Record<string, AtprotoBrainCardAnchor["kind"]> = {
-  person: "professional",
-  organization: "collective",
+  professional: "person",
+  collective: "organization",
 };
 
 /**

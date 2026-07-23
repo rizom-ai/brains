@@ -343,7 +343,7 @@ describe("atproto plugin", () => {
       anchor: {
         did: "did:plc:test-anchor",
         name: "Future Peer",
-        kind: "organization",
+        kind: "collective",
       },
     };
     const plugin = new AtprotoPlugin(
@@ -390,7 +390,7 @@ describe("atproto plugin", () => {
         record: expect.objectContaining({
           anchor: expect.objectContaining({
             name: "Future Peer",
-            kind: "collective",
+            kind: "organization",
           }),
         }),
       }),

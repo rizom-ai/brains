@@ -13,6 +13,12 @@ import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { profileFrontmatterExtension, validateProfileContent } from "./schemas";
 import {
+  buildStarterCharacterBrief,
+  generateStarterCharacter,
+  type GeneratedStarterCharacter,
+  type StarterCharacterBrief,
+} from "./starter-character";
+import {
   resolveStarterIdentityIdentifier,
   seedOrMigrateStarterIdentity,
 } from "./starter-identity";
@@ -20,15 +26,11 @@ import {
 interface StarterIdentityConfig {
   enabled: boolean;
   anchorKind: AnchorProfileKind;
-  did?: string | undefined;
-  handle?: string | undefined;
 }
 
 export interface StarterIdentityConfigInput {
   enabled?: boolean | undefined;
   anchorKind?: AnchorProfileKind | undefined;
-  did?: string | undefined;
-  handle?: string | undefined;
 }
 
 interface ProfileConfig {
@@ -45,8 +47,6 @@ const starterIdentityConfigSchema: z.ZodType<
 > = z.object({
   enabled: z.boolean().default(true),
   anchorKind: anchorProfileKindSchema.default("person"),
-  did: z.string().min(1).optional(),
-  handle: z.string().min(1).optional(),
 });
 
 const profileConfigSchema: z.ZodType<ProfileConfig, ProfileConfigInput> =
@@ -65,6 +65,13 @@ export class ProfilePlugin extends ServicePlugin<
     super("profile", packageJson, config, profileConfigSchema);
   }
 
+  protected async generateCharacter(
+    context: ServicePluginContext,
+    brief: StarterCharacterBrief,
+  ): Promise<GeneratedStarterCharacter> {
+    return generateStarterCharacter(context.ai, brief);
+  }
+
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
@@ -81,33 +88,79 @@ export class ProfilePlugin extends ServicePlugin<
 
     if (!this.config.starterIdentity.enabled) return;
 
-    context.messaging.subscribe(
-      SYSTEM_CHANNELS.initialSyncCompleted,
-      async (message) => {
-        const payload = message.payload as { success?: boolean };
-        if (payload.success !== true) return { success: true };
+    let initialSyncSucceeded = false;
+    let shellReady = false;
+    let generationInFlight: Promise<void> | undefined;
 
-        const identifier = resolveStarterIdentityIdentifier({
-          did: this.config.starterIdentity.did,
-          handle: this.config.starterIdentity.handle,
-          domain: context.domain,
-        });
-        if (!identifier) {
-          this.logger.warn(
-            "Starter identity skipped: configure a DID, handle, or brain domain",
-          );
-          return { success: true };
-        }
+    const runStarterIdentity = async (): Promise<void> => {
+      const identifier = resolveStarterIdentityIdentifier({
+        domain: context.domain,
+      });
+      if (!identifier) {
+        this.logger.warn(
+          "Starter identity deferred: configure a canonical brain domain",
+        );
+        return;
+      }
 
+      try {
         await seedOrMigrateStarterIdentity({
           entityService: context.entityService,
           identifier,
           defaultAnchorKind: this.config.starterIdentity.anchorKind,
+          generateBrainCharacter: async ({
+            anchorKind,
+            anchorEntity,
+            anchorIsAuthored,
+          }) => {
+            const brief = await buildStarterCharacterBrief({
+              entityService: context.entityService,
+              anchorKind,
+              anchorEntity,
+              includeAnchor: anchorIsAuthored,
+            });
+            return this.generateCharacter(context, brief);
+          },
           logger: this.logger,
         });
+      } catch (error) {
+        this.logger.warn("Starter character generation deferred", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    const attemptStarterIdentity = async (): Promise<void> => {
+      if (!initialSyncSucceeded || !shellReady) return;
+      if (generationInFlight) {
+        await generationInFlight;
+        return;
+      }
+
+      generationInFlight = runStarterIdentity();
+      try {
+        await generationInFlight;
+      } finally {
+        generationInFlight = undefined;
+      }
+    };
+
+    context.messaging.subscribe<{ success?: boolean }>(
+      SYSTEM_CHANNELS.initialSyncCompleted,
+      async (message) => {
+        if (message.payload.success === true) {
+          initialSyncSucceeded = true;
+          await attemptStarterIdentity();
+        }
         return { success: true };
       },
     );
+
+    context.messaging.subscribe(SYSTEM_CHANNELS.shellReady, async () => {
+      shellReady = true;
+      await attemptStarterIdentity();
+      return { success: true };
+    });
   }
 }
 

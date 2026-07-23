@@ -15,72 +15,70 @@ import { z } from "@brains/utils/zod";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
-const PERSON_NAME_PARTS = {
+export const STARTER_ALIAS_REGISTER = {
   first: [
-    "Amber",
-    "Brisk",
-    "Cinder",
-    "Fable",
-    "Moss",
-    "Paper",
+    "Arcane",
+    "Astonishing",
+    "Bold",
+    "Cosmic",
+    "Daring",
+    "Deep",
+    "Dynamic",
+    "Electric",
+    "Endless",
+    "Fearless",
+    "Hidden",
+    "Infinite",
+    "Keen",
+    "Lucky",
+    "Midnight",
+    "Mighty",
+    "Mystic",
+    "Noble",
+    "Phantom",
+    "Profound",
     "Quiet",
-    "Signal",
-    "Silver",
-    "Woven",
+    "Radiant",
+    "Silent",
+    "Solar",
+    "Sonic",
+    "Supreme",
+    "Swift",
+    "Thunderous",
+    "Uncommon",
+    "Vivid",
   ],
   second: [
-    "Badger",
-    "Finch",
-    "Kite",
-    "Lynx",
-    "Moth",
-    "Otter",
-    "Rook",
-    "Tiger",
-    "Wren",
+    "Architect",
+    "Cipher",
+    "Diplomat",
+    "Dreamer",
+    "Explorer",
+    "Genius",
+    "Guide",
+    "Herald",
+    "Inventor",
+    "Luminary",
+    "Magician",
+    "Mastermind",
+    "Navigator",
+    "Observer",
+    "Operator",
+    "Oracle",
+    "Pioneer",
+    "Sage",
+    "Scholar",
+    "Scribe",
+    "Seeker",
+    "Specialist",
+    "Strategist",
+    "Thinker",
+    "Voyager",
+    "Watcher",
+    "Weaver",
+    "Wizard",
   ],
 } as const;
-
-const TEAM_NAME_PARTS = {
-  first: ["Common", "Field", "Open", "Signal", "Steady", "Woven"],
-  second: ["Assembly", "Crew", "Guild", "Table", "Thread", "Workshop"],
-} as const;
-
-const ORGANIZATION_NAME_PARTS = {
-  first: [
-    "Northfield",
-    "Plainview",
-    "Redwood",
-    "Signal",
-    "Stonebridge",
-    "Wayfinder",
-  ],
-  second: ["Foundation", "House", "Institute", "Office", "Works"],
-} as const;
-
-const STARTER_CHARACTERS = [
-  {
-    role: "Knowledge cartographer",
-    purpose: "Map scattered knowledge into clear paths for useful work",
-    values: ["curiosity", "context", "clarity"],
-  },
-  {
-    role: "Research steward",
-    purpose: "Keep important knowledge durable, grounded, and ready to use",
-    values: ["care", "accuracy", "continuity"],
-  },
-  {
-    role: "Pattern scout",
-    purpose:
-      "Notice meaningful connections and turn them into practical insight",
-    values: ["attention", "synthesis", "usefulness"],
-  },
-  {
-    role: "Editorial companion",
-    purpose: "Shape rough knowledge into precise and expressive artifacts",
-    values: ["craft", "clarity", "follow-through"],
-  },
-] as const satisfies readonly Omit<BrainCharacter, "name">[];
 
 const LEGACY_BRAIN_CHARACTER_FINGERPRINTS = [
   {
@@ -117,14 +115,20 @@ const LEGACY_ANCHOR_PROFILE_FINGERPRINTS = [
 ] as const;
 
 export interface StarterIdentitySource {
-  did?: string | undefined;
-  handle?: string | undefined;
   domain?: string | undefined;
+  didWeb?: string | undefined;
 }
 
 export interface StarterIdentity {
-  brainCharacter: BrainCharacter;
+  name: string;
   anchorKind: AnchorProfileKind;
+}
+
+export interface StarterCharacterGenerationRequest {
+  starterName: string;
+  anchorKind: AnchorProfileKind;
+  anchorEntity: BaseEntity | null;
+  anchorIsAuthored: boolean;
 }
 
 export interface StarterIdentityMigrationResult {
@@ -133,30 +137,46 @@ export interface StarterIdentityMigrationResult {
   starterName: string;
 }
 
-function normalizeIdentifier(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/^@/, "")
-    .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+function normalizeDomain(value: string): string | null {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  let host: string;
+  try {
+    const url = new URL(
+      /^[a-z][a-z\d+.-]*:\/\//u.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+    host = url.host;
+  } catch {
+    return null;
+  }
+
+  const normalized = host.replace(/\.$/u, "");
+  return normalized || null;
 }
 
-/** Resolve the stable derivation key in DID → handle → domain order. */
+function domainFromDidWeb(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized.startsWith("did:web:")) return null;
+  const parts = normalized.slice("did:web:".length).split(":");
+  if (parts.length !== 1 || !parts[0]) return null;
+  try {
+    return normalizeDomain(decodeURIComponent(parts[0]));
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve the canonical brain-domain derivation key. */
 export function resolveStarterIdentityIdentifier(
   source: StarterIdentitySource,
 ): string | null {
-  const candidates = [
-    ["did", source.did],
-    ["handle", source.handle],
-    ["domain", source.domain],
-  ] as const;
-
-  for (const [kind, value] of candidates) {
-    if (!value?.trim()) continue;
-    return `${kind}:${normalizeIdentifier(value)}`;
-  }
-  return null;
+  const domain = source.domain
+    ? normalizeDomain(source.domain)
+    : source.didWeb
+      ? domainFromDidWeb(source.didWeb)
+      : null;
+  return domain ? `domain:${domain}` : null;
 }
 
 function digestIdentifier(identifier: string): Buffer {
@@ -171,38 +191,13 @@ function select<T>(values: readonly T[], digest: Buffer, offset: number): T {
   return value;
 }
 
-function getNameParts(kind: AnchorProfileKind): {
-  first: readonly string[];
-  second: readonly string[];
-} {
-  switch (kind) {
-    case "person":
-      return PERSON_NAME_PARTS;
-    case "team":
-      return TEAM_NAME_PARTS;
-    case "organization":
-      return ORGANIZATION_NAME_PARTS;
-  }
-}
-
 export function deriveStarterIdentity(
   identifier: string,
   anchorKind: AnchorProfileKind,
 ): StarterIdentity {
-  const digest = digestIdentifier(identifier);
-  const nameParts = getNameParts(anchorKind);
-  const name = `${select(nameParts.first, digest, 0)} ${select(nameParts.second, digest, 1)}`;
-  const character = select(STARTER_CHARACTERS, digest, 2);
-
-  return {
-    anchorKind,
-    brainCharacter: {
-      name,
-      role: character.role,
-      purpose: character.purpose,
-      values: [...character.values],
-    },
-  };
+  const digest = digestIdentifier(`starter-alias:v1:${identifier}`);
+  const name = `${select(STARTER_ALIAS_REGISTER.first, digest, 0)} ${select(STARTER_ALIAS_REGISTER.second, digest, 1)}`;
+  return { name, anchorKind };
 }
 
 function parseRawContent(content: string): {
@@ -288,9 +283,9 @@ function readBrainName(entity: BaseEntity | null): string | null {
 }
 
 export function createStarterBrainCharacterContent(
-  identity: StarterIdentity,
+  character: BrainCharacter,
 ): string {
-  return generateMarkdownWithFrontmatter("", identity.brainCharacter);
+  return generateMarkdownWithFrontmatter("", character);
 }
 
 export function createStarterAnchorProfileContent(
@@ -337,9 +332,18 @@ export async function seedOrMigrateStarterIdentity(options: {
   entityService: IEntityService;
   identifier: string;
   defaultAnchorKind: AnchorProfileKind;
+  generateBrainCharacter: (
+    request: StarterCharacterGenerationRequest,
+  ) => Promise<Omit<BrainCharacter, "name">>;
   logger?: Logger | undefined;
 }): Promise<StarterIdentityMigrationResult> {
-  const { entityService, identifier, defaultAnchorKind, logger } = options;
+  const {
+    entityService,
+    identifier,
+    defaultAnchorKind,
+    generateBrainCharacter,
+    logger,
+  } = options;
   const [brainEntity, anchorEntity] = await Promise.all([
     entityService.getEntity({
       entityType: "brain-character",
@@ -353,22 +357,38 @@ export async function seedOrMigrateStarterIdentity(options: {
 
   const anchorKind = readAnchorKind(anchorEntity, defaultAnchorKind);
   const starter = deriveStarterIdentity(identifier, anchorKind);
+  const brainNeedsGeneration =
+    !brainEntity || isLegacyBrainCharacterContent(brainEntity.content);
+  const anchorIsAuthored = Boolean(
+    anchorEntity && !isLegacyAnchorProfileContent(anchorEntity.content),
+  );
+
+  let generatedCharacter: BrainCharacter | null = null;
+  if (brainNeedsGeneration) {
+    const generated = await generateBrainCharacter({
+      starterName: starter.name,
+      anchorKind,
+      anchorEntity,
+      anchorIsAuthored,
+    });
+    generatedCharacter = { name: starter.name, ...generated };
+    brainCharacterBodySchema.parse(generatedCharacter);
+  }
 
   let brainCharacter: StarterIdentityMigrationResult["brainCharacter"] =
     "unchanged";
-  if (!brainEntity || isLegacyBrainCharacterContent(brainEntity.content)) {
+  if (generatedCharacter) {
     brainCharacter = await persistIdentityEntity(
       entityService,
       brainEntity,
       "brain-character",
-      createStarterBrainCharacterContent(starter),
+      createStarterBrainCharacterContent(generatedCharacter),
     );
   }
 
-  const representedBrainName =
-    brainCharacter === "unchanged"
-      ? (readBrainName(brainEntity) ?? starter.brainCharacter.name)
-      : starter.brainCharacter.name;
+  const representedBrainName = generatedCharacter
+    ? generatedCharacter.name
+    : (readBrainName(brainEntity) ?? starter.name);
 
   let anchorProfile: StarterIdentityMigrationResult["anchorProfile"] =
     "unchanged";
@@ -384,11 +404,11 @@ export async function seedOrMigrateStarterIdentity(options: {
   const result = {
     brainCharacter,
     anchorProfile,
-    starterName: starter.brainCharacter.name,
+    starterName: starter.name,
   } satisfies StarterIdentityMigrationResult;
 
   if (brainCharacter !== "unchanged" || anchorProfile !== "unchanged") {
-    logger?.info("Seeded or migrated deterministic starter identity", result);
+    logger?.info("Seeded or migrated starter identity", result);
   }
 
   return result;

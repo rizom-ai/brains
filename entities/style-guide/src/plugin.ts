@@ -3,7 +3,11 @@ import type {
   EntityTypeConfig,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "@brains/plugins";
 import packageJson from "../package.json";
 import { styleGuideAdapter, type StyleGuideAdapter } from "./adapter";
 import { styleGuideEntitySchema, type StyleGuideEntity } from "./schema";
@@ -28,25 +32,29 @@ export class StyleGuidePlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      const existing = await context.entityService.getEntity<StyleGuideEntity>({
-        entityType: "style-guide",
-        id: "style-guide",
-      });
-      if (existing) return { success: true };
+    context.messaging.subscribe(
+      DIRECTORY_SYNC_CHANNELS.initialCompleted,
+      async () => {
+        const existing =
+          await context.entityService.getEntity<StyleGuideEntity>({
+            entityType: "style-guide",
+            id: "style-guide",
+          });
+        if (existing) return { success: true };
 
-      await context.entityService.createEntity({
-        entity: {
-          id: "style-guide",
-          entityType: "style-guide",
-          content: styleGuideAdapter.createStyleGuideContent({
-            name: "Default style guide",
-          }),
-          metadata: {},
-        },
-      });
-      return { success: true };
-    });
+        await context.entityService.createEntity({
+          entity: {
+            id: "style-guide",
+            entityType: "style-guide",
+            content: styleGuideAdapter.createStyleGuideContent({
+              name: "Default style guide",
+            }),
+            metadata: {},
+          },
+        });
+        return { success: true };
+      },
+    );
   }
 }
 

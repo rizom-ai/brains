@@ -3,15 +3,23 @@ import { randomUUID } from "node:crypto";
 import {
   brainCharacterBodySchema,
   parseMarkdownWithFrontmatter,
+  type ServicePluginContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import {
+  STARTER_ALIAS_REGISTER,
+  buildStarterCharacterBrief,
+  buildStarterCharacterPrompt,
   deriveStarterIdentity,
+  generatedStarterCharacterSchema,
   isLegacyAnchorProfileContent,
   isLegacyBrainCharacterContent,
   ProfilePlugin,
   resolveStarterIdentityIdentifier,
+  type GeneratedStarterCharacter,
+  type ProfileConfigInput,
+  type StarterCharacterBrief,
 } from "../src";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
@@ -23,6 +31,54 @@ function createHarness(
     dataDir: `/tmp/test-starter-identity-${randomUUID()}`,
     domain,
   });
+}
+
+const generatedCharacter: GeneratedStarterCharacter = {
+  role: "Connected knowledge operator",
+  purpose:
+    "Connect available knowledge into grounded material that people can use.",
+  values: ["source fidelity", "clear context", "useful synthesis"],
+};
+
+interface TestProfilePluginOptions {
+  config?: ProfileConfigInput;
+  character?: GeneratedStarterCharacter;
+  onGenerate?: (prompt: string) => void;
+  generateCharacter?: (
+    brief: StarterCharacterBrief,
+  ) => Promise<GeneratedStarterCharacter>;
+}
+
+class TestProfilePlugin extends ProfilePlugin {
+  private readonly testOptions: TestProfilePluginOptions;
+
+  constructor(options: TestProfilePluginOptions = {}) {
+    super(options.config);
+    this.testOptions = options;
+  }
+
+  protected override async generateCharacter(
+    _context: ServicePluginContext,
+    brief: StarterCharacterBrief,
+  ): Promise<GeneratedStarterCharacter> {
+    this.testOptions.onGenerate?.(buildStarterCharacterPrompt(brief));
+    if (this.testOptions.generateCharacter) {
+      return this.testOptions.generateCharacter(brief);
+    }
+    return this.testOptions.character ?? generatedCharacter;
+  }
+}
+
+function createTestProfilePlugin(
+  options: TestProfilePluginOptions = {},
+): ProfilePlugin {
+  return new TestProfilePlugin(options);
+}
+
+async function signalShellReady(
+  harness: ReturnType<typeof createHarness>,
+): Promise<void> {
+  await harness.sendMessage("system:shell:ready", {}, "shell");
 }
 
 const currentLegacyBrain = `---
@@ -54,45 +110,142 @@ kind: person
 `;
 
 describe("starter identity derivation", () => {
-  test("is deterministic for the same identifier", () => {
+  test("is deterministic for the same canonical domain", () => {
     const first = deriveStarterIdentity("domain:notes.example.com", "person");
     const second = deriveStarterIdentity("domain:notes.example.com", "person");
 
     expect(second).toEqual(first);
   });
 
-  test("uses kind-specific naming registers", () => {
+  test("uses the same agent alias register for every anchor kind", () => {
     const identifier = "domain:notes.example.com";
     const person = deriveStarterIdentity(identifier, "person");
     const team = deriveStarterIdentity(identifier, "team");
     const organization = deriveStarterIdentity(identifier, "organization");
 
-    expect(
-      new Set([
-        person.brainCharacter.name,
-        team.brainCharacter.name,
-        organization.brainCharacter.name,
-      ]).size,
-    ).toBe(3);
+    expect(team.name).toBe(person.name);
+    expect(organization.name).toBe(person.name);
+    expect([
+      person.anchorKind,
+      team.anchorKind,
+      organization.anchorKind,
+    ]).toEqual(["person", "team", "organization"]);
   });
 
-  test("resolves identifiers in DID, handle, domain order", () => {
+  test("keeps unsafe classic-generator terms out of the local register", () => {
+    const terms = [
+      ...STARTER_ALIAS_REGISTER.first,
+      ...STARTER_ALIAS_REGISTER.second,
+    ].map((term) => term.toLowerCase());
+    const prohibited = [
+      "assassin",
+      "bastard",
+      "criminal",
+      "destroyer",
+      "drunken",
+      "killah",
+      "violent",
+      "vulgar",
+    ];
+
+    expect(terms.filter((term) => prohibited.includes(term))).toEqual([]);
+  });
+
+  test("normalizes the canonical domain and equivalent did:web spelling", () => {
     expect(
       resolveStarterIdentityIdentifier({
-        did: "did:plc:abc",
-        handle: "brain.example.com",
-        domain: "example.com",
+        domain: "https://Notes.Example.com/anything",
       }),
-    ).toBe("did:did:plc:abc");
+    ).toBe("domain:notes.example.com");
     expect(
       resolveStarterIdentityIdentifier({
-        handle: "@Brain.Example.com",
-        domain: "example.com",
+        didWeb: "did:web:Notes.Example.com",
       }),
-    ).toBe("handle:brain.example.com");
+    ).toBe("domain:notes.example.com");
     expect(
-      resolveStarterIdentityIdentifier({ domain: "https://Example.com/" }),
-    ).toBe("domain:example.com");
+      resolveStarterIdentityIdentifier({ didWeb: "did:plc:account" }),
+    ).toBeNull();
+    expect(
+      resolveStarterIdentityIdentifier({
+        didWeb: "did:web:notes.example.com:brain",
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("starter character generation", () => {
+  test("validates concise structured character fields", () => {
+    expect(generatedStarterCharacterSchema.parse(generatedCharacter)).toEqual(
+      generatedCharacter,
+    );
+    expect(
+      generatedStarterCharacterSchema.safeParse({
+        ...generatedCharacter,
+        values: ["clear context", "clear context", "source fidelity"],
+      }).success,
+    ).toBe(false);
+    expect(
+      generatedStarterCharacterSchema.safeParse({
+        ...generatedCharacter,
+        role: "Agent",
+      }).success,
+    ).toBe(false);
+  });
+
+  test("builds a bounded factual brief without markdown bodies", async () => {
+    const harness = createHarness();
+    const longTitle = `Signal ${"x".repeat(220)}`;
+    harness.addEntities([
+      {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content:
+          "---\nname: Example Team\nkind: team\npurpose: Share reliable context\n---\nPRIVATE ANCHOR BODY",
+        metadata: {},
+      },
+      {
+        id: "style-guide",
+        entityType: "style-guide",
+        content:
+          "---\nname: House style\nmessaging:\n  positioning: Evidence before assertion\nvoice:\n  traits:\n    - direct\n---\nPRIVATE STYLE BODY",
+        metadata: {},
+      },
+      ...Array.from({ length: 16 }, (_, index) => ({
+        id: `topic-${index}`,
+        entityType: "topic",
+        content: `---\ntitle: ${index === 0 ? longTitle : `Topic ${index}`}\nsummary: Useful topic ${index}\n---\nPRIVATE CONTENT BODY ${index}`,
+        metadata: {},
+      })),
+    ]);
+
+    const anchorEntity = await harness.getEntityService().getEntity({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      visibilityScope: "restricted",
+    });
+    const brief = await buildStarterCharacterBrief({
+      entityService: harness.getEntityService(),
+      anchorKind: "team",
+      anchorEntity,
+      includeAnchor: true,
+    });
+    const serialized = JSON.stringify(brief);
+
+    expect(brief.capabilities).toContainEqual({
+      entityType: "topic",
+      count: 16,
+    });
+    expect(brief.contentSignals).toHaveLength(12);
+    expect(brief.contentSignals.every(({ label }) => label.length <= 160)).toBe(
+      true,
+    );
+    expect(brief.anchorSignals).toContain("name: Example Team");
+    expect(brief.styleSignals).toContain(
+      "messaging.positioning: Evidence before assertion",
+    );
+    expect(serialized).not.toContain("PRIVATE CONTENT BODY");
+    expect(serialized).not.toContain("PRIVATE ANCHOR BODY");
+    expect(serialized).not.toContain("PRIVATE STYLE BODY");
   });
 });
 
@@ -137,13 +290,54 @@ describe("legacy default fingerprints", () => {
 });
 
 describe("starter identity lifecycle", () => {
-  test("seeds missing identity after successful initial sync", async () => {
+  test("waits for shell readiness after successful initial sync", async () => {
     const harness = createHarness();
+    let generationCalls = 0;
     await harness.installPlugin(
-      new ProfilePlugin({
-        starterIdentity: { anchorKind: "team" },
+      createTestProfilePlugin({
+        onGenerate: () => {
+          generationCalls += 1;
+        },
       }),
     );
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+
+    expect(generationCalls).toBe(0);
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).toBeNull();
+
+    await harness.sendMessage("system:shell:ready", {}, "shell");
+
+    expect(generationCalls).toBe(1);
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).not.toBeNull();
+  });
+
+  test("seeds missing identity after successful initial sync", async () => {
+    const harness = createHarness();
+    let generationPrompt = "";
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        config: { starterIdentity: { anchorKind: "team" } },
+        onGenerate: (prompt) => {
+          generationPrompt = prompt;
+        },
+      }),
+    );
+    await signalShellReady(harness);
 
     await harness.sendMessage(
       "sync:initial:completed",
@@ -174,14 +368,26 @@ describe("starter identity lifecycle", () => {
     );
 
     expect(character.name).not.toBe("Brain");
+    expect(character.role).toBe(generatedCharacter.role);
+    expect(character.purpose).toBe(generatedCharacter.purpose);
+    expect(character.values).toEqual(generatedCharacter.values);
     expect(profile.metadata["kind"]).toBe("team");
     expect(profile.metadata["name"]).toBe(`Anchor for ${character.name}`);
     expect(profile.content).toContain("picked");
+    expect(generationPrompt).toContain('"anchorKind": "team"');
   });
 
   test("migrates exact defaults and is idempotent", async () => {
     const harness = createHarness();
-    await harness.installPlugin(new ProfilePlugin());
+    let generationCalls = 0;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        onGenerate: () => {
+          generationCalls += 1;
+        },
+      }),
+    );
+    await signalShellReady(harness);
     await harness.getEntityService().createEntity({
       entity: {
         id: "brain-character",
@@ -234,11 +440,21 @@ describe("starter identity lifecycle", () => {
     expect(migratedAnchor.content).not.toBe(legacyAnchor);
     expect(repeatedBrain?.content).toBe(migratedBrain.content);
     expect(repeatedAnchor?.content).toBe(migratedAnchor.content);
+    expect(generationCalls).toBe(1);
   });
 
-  test("migrates one default singleton without overwriting its customized counterpart", async () => {
+  test("migrates a legacy anchor without generating over its customized brain", async () => {
     const harness = createHarness();
-    await harness.installPlugin(new ProfilePlugin());
+    let generationCalls = 0;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        generateCharacter: async () => {
+          generationCalls += 1;
+          throw new Error("AI should not be called");
+        },
+      }),
+    );
+    await signalShellReady(harness);
     const customBrain = `---
 name: Atlas
 role: Research partner
@@ -280,11 +496,20 @@ values:
     });
     expect(brain?.content).toBe(customBrain);
     expect(anchor?.content).toContain("name: Anchor for Atlas");
+    expect(generationCalls).toBe(0);
   });
 
-  test("preserves independently customized singletons", async () => {
+  test("preserves independently customized singletons without calling AI", async () => {
     const harness = createHarness();
-    await harness.installPlugin(new ProfilePlugin());
+    let generationCalls = 0;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        onGenerate: () => {
+          generationCalls += 1;
+        },
+      }),
+    );
+    await signalShellReady(harness);
     const customBrain = currentLegacyBrain.replace(
       "role: Knowledge assistant",
       "role: Research partner",
@@ -335,11 +560,71 @@ Authored story.
         })
       )?.content,
     ).toBe(customAnchor);
+    expect(generationCalls).toBe(0);
+  });
+
+  test("defers all mutation after AI failure and retries later", async () => {
+    const harness = createHarness();
+    let shouldFail = true;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        generateCharacter: async () => {
+          if (shouldFail) throw new Error("Provider unavailable");
+          return generatedCharacter;
+        },
+      }),
+    );
+    await signalShellReady(harness);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).toBeNull();
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "anchor-profile",
+        id: "anchor-profile",
+      }),
+    ).toBeNull();
+
+    shouldFail = false;
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).not.toBeNull();
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "anchor-profile",
+        id: "anchor-profile",
+      }),
+    ).not.toBeNull();
   });
 
   test("does nothing when initial sync fails", async () => {
     const harness = createHarness();
-    await harness.installPlugin(new ProfilePlugin());
+    let generationCalls = 0;
+    await harness.installPlugin(
+      createTestProfilePlugin({
+        onGenerate: () => {
+          generationCalls += 1;
+        },
+      }),
+    );
+    await signalShellReady(harness);
 
     await harness.sendMessage(
       "sync:initial:completed",
@@ -353,5 +638,6 @@ Authored story.
         id: "brain-character",
       }),
     ).toBeNull();
+    expect(generationCalls).toBe(0);
   });
 });

@@ -87,7 +87,7 @@ Plans:
 
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
 - [identity-and-trust.md](./plans/identity-and-trust.md) — shared identity and trust architecture across humans, external clients, peer brains, and platform users.
-- [identity-profiles-and-expression.md](./plans/identity-profiles-and-expression.md) — separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; seed deterministic starter identities and backfill exact legacy defaults; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.
+- [identity-profiles-and-expression.md](./plans/identity-profiles-and-expression.md) — separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; seed deterministic safe agent aliases with bounded context-generated characters and backfill exact legacy defaults; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 

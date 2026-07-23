@@ -401,19 +401,19 @@ describe("normalizeDiscoveredBrainCard", () => {
     expect(
       normalizeDiscoveredBrainCard({
         ...card,
-        anchor: { ...card.anchor, kind: "person" },
+        anchor: { ...card.anchor, kind: "professional" },
       }),
-    ).toMatchObject({ anchor: { kind: "professional" } });
+    ).toMatchObject({ anchor: { kind: "person" } });
     expect(
       normalizeDiscoveredBrainCard({
         ...card,
-        anchor: { ...card.anchor, kind: "organization" },
+        anchor: { ...card.anchor, kind: "collective" },
       }),
-    ).toMatchObject({ anchor: { kind: "collective" } });
+    ).toMatchObject({ anchor: { kind: "organization" } });
   });
 
   it("leaves canonical, unknown, and malformed anchors untouched", () => {
-    for (const kind of ["professional", "team", "collective", "mystery"]) {
+    for (const kind of ["person", "team", "organization", "mystery"]) {
       const input = { ...card, anchor: { ...card.anchor, kind } };
       expect(normalizeDiscoveredBrainCard(input)).toBe(input);
     }
