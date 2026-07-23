@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",
+    "@brains/atproto": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
