@@ -271,7 +271,7 @@ const render: OpsCommand = defineCommand({
 
 const userAdd: OpsCommand = defineCommand({
   name: "user:add",
-  usage: "<repo> <handle> --cohort <cohort>",
+  usage: "<repo> <handle> --cohort <cohort> [--discord] [--anchor-id <id>]",
   description: "Add a user to a cohort",
   flags: {
     cohort: {
@@ -279,10 +279,15 @@ const userAdd: OpsCommand = defineCommand({
       placeholder: "<cohort>",
       description: "Cohort the user joins",
     },
+    discord: {
+      type: "boolean",
+      description: "Enable Discord for the user (browser chat is the default)",
+    },
     "anchor-id": {
       type: "string",
       placeholder: "<id>",
-      description: "Discord anchor user id stored on the user record",
+      description:
+        "Discord anchor user id stored on the user record (implies --discord)",
     },
   },
   run: async ({ args, flags }): Promise<CommandResult> => {
@@ -296,6 +301,7 @@ const userAdd: OpsCommand = defineCommand({
     const anchorId = getStringFlag(flags, "anchor-id");
     await addPilotUser(repo, handle, {
       cohort,
+      ...(getBooleanFlag(flags, "discord") ? { discord: true } : {}),
       ...(anchorId ? { anchorId } : {}),
     });
     return {

@@ -34,19 +34,21 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
   });
 
-  it("parses user:add with cohort and anchor id flags", () => {
+  it("parses user:add with Discord and anchor id flags", () => {
     const result = parseArgs([
       "user:add",
       "/tmp/rover-pilot",
       "alice",
       "--cohort",
       "cohort-1",
+      "--discord",
       "--anchor-id",
       "1234567890",
     ]);
     expect(result.command).toBe("user:add");
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
     expect(result.flags["cohort"]).toBe("cohort-1");
+    expect(result.flags["discord"]).toBe(true);
     expect(result.flags["anchor-id"]).toBe("1234567890");
   });
 
@@ -507,17 +509,41 @@ discord:
     const result = await runCommand({
       command: "user:add",
       args: [root, "bob"],
-      flags: { cohort: "cohort-1", "anchor-id": "1234567890" },
+      flags: { cohort: "cohort-1", discord: true },
     });
 
     expect(result.success).toBe(true);
     expect(result.message).toBe("Added bob to cohort-1");
     expect(await readFile(join(root, "users/bob.yaml"), "utf8")).toContain(
-      'anchorUserId: "1234567890"',
+      "enabled: true",
     );
+    expect(
+      await readFile(join(root, "users/bob.secrets.yaml"), "utf8"),
+    ).toContain("discordBotToken: ");
     expect(await readFile(join(root, "cohorts/cohort-1.yaml"), "utf8")).toBe(
       `members:\n  - alice\n  - bob\n`,
     );
+  });
+
+  it("keeps --anchor-id as enabling Discord", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": baseFiles["pilot.yaml"],
+      "cohorts/cohort-1.yaml": `members:\n  - alice\n`,
+    });
+
+    const result = await runCommand({
+      command: "user:add",
+      args: [root, "bob"],
+      flags: { cohort: "cohort-1", "anchor-id": "1234567890" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(await readFile(join(root, "users/bob.yaml"), "utf8")).toContain(
+      'enabled: true\n  anchorUserId: "1234567890"',
+    );
+    expect(
+      await readFile(join(root, "users/bob.secrets.yaml"), "utf8"),
+    ).toContain("discordBotToken: ");
   });
 
   it("returns usage error when user:add is missing cohort", async () => {
@@ -529,7 +555,7 @@ discord:
 
     expect(result.success).toBe(false);
     expect(result.message).toContain(
-      "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
+      "Usage: brains-ops user:add <repo> <handle> --cohort <cohort> [--discord] [--anchor-id <id>]",
     );
   });
 
@@ -1255,7 +1281,7 @@ members:
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
     expect(result.message).toContain(
-      "user:add <repo> <handle> --cohort <cohort>",
+      "user:add <repo> <handle> --cohort <cohort> [--discord] [--anchor-id <id>]",
     );
     expect(result.message).toContain("user:offboard <repo> <handle>...");
     expect(result.message).toContain("age-key:bootstrap <repo>");

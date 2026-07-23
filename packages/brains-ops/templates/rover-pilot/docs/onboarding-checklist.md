@@ -9,9 +9,9 @@
    - confirm `agePublicKey`
 4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.
    - Web chat is the primary interface; it needs no per-user setup beyond the passkey.
-   - `user:add` currently writes `discord: enabled: true`; set it to `false` unless the user's cohort actually uses Discord.
-   - if the user should be an anchor on Discord, add `--anchor-id <discord-user-id>`.
-   - the command creates `users/<handle>.yaml`, `users/<handle>.secrets.yaml`, and the cohort membership without duplicating existing entries.
+   - The default scaffold writes `discord.enabled: false` and does not add `discordBotToken` to the per-user secrets template.
+   - To enable Discord, add `--discord`. If the user should be an anchor on Discord, also add `--anchor-id <discord-user-id>`; `--anchor-id` alone still enables Discord for compatibility.
+   - The command creates `users/<handle>.yaml`, `users/<handle>.secrets.yaml`, and the cohort membership without duplicating existing entries.
 5. Edit the generated user file if the anchor profile needs richer metadata.
    - Set `setup.delivery: email` and `setup.email` so the user gets the passkey setup email — this is the default onboarding path.
    - For ATProto publishing, add `atproto.identifier` to the user file; put only `atprotoAppPassword` in the per-user secrets file.

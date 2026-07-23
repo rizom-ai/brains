@@ -15,7 +15,7 @@ Explicit builds (`brain_version` and `site_packages` dispatch inputs) build exac
 - `brains-ops init <repo>`
 - `brains-ops crossover:stage <source-repo> <output-dir> <bundle-review.yaml> [site-pins.yaml]` — creates a separate secret-free capability-bundle review copy without mutating the source; the bundle review must match every explicit source selection, and a reviewed pins file is required when hosted site overrides exist
 - `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health/ready`, unauthenticated `/mcp`)
-- `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
+- `brains-ops user:add <repo> <handle> --cohort <cohort> [--discord] [--anchor-id <id>]` — scaffolds a Discord-disabled user by default, a per-user secrets template, and cohort membership; `--discord` enables Discord and `--anchor-id` implies it for compatibility
 - `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo using `CONTENT_REPO_ADMIN_TOKEN` for GitHub repo administration and `GIT_SYNC_TOKEN` for git clone/push
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`
