@@ -393,6 +393,17 @@
 .people-role-control select {
   min-width: 112px;
 }
+.people-role-lock {
+  border: 1px solid var(--console-rule);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--console-text-muted);
+  background: var(--console-card-soft);
+  font: 500 9px var(--console-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .people-detail-sections {
   border-top: 1px solid var(--console-rule);
 }
@@ -492,6 +503,13 @@
 }
 .people-detail-footer small {
   color: var(--console-text-muted);
+}
+.people-detail-footer-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .people-feedback {
   position: fixed;
@@ -717,6 +735,12 @@
   .people-detail-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .people-detail-footer-actions {
+    width: 100%;
+  }
+  .people-detail-footer-actions .people-button {
+    flex: 1;
   }
 }
 

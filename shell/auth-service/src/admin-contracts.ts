@@ -21,6 +21,7 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
   linkExternalPeer: "linkExternalPeer",
   updateUserRole: "updateUserRole",
   updateUserStatus: "updateUserStatus",
+  deleteUser: "deleteUser",
   attachIdentity: "attachIdentity",
   detachIdentity: "detachIdentity",
   revokePasskey: "revokePasskey",
@@ -194,6 +195,11 @@ export type AuthAdminMutation =
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus;
       userId: string;
       status: AuthAdminStatus;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.deleteUser;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.deleteUser;
+      userId: string;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity;

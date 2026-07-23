@@ -110,6 +110,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **External brains are optional peer links.** Local membership and a linked external brain are independent facts and both appear in the person detail. The peer remains a separate actor and never inherits the person's role, identity claims, or attribution.
     - **No representation consent model.** The permanent My agents view and pending/active agent-person workflow are removed. Because that schema never shipped outside this feature branch, generated pre-release migrations replace it directly with `person_external_peers`; there is no historical representation-data transform or permanent dual-read path.
     - **Invitation roles are deliberate.** Add person offers Trusted or Admin only. `invited` remains a status, not a role; the intended role is retained and shown on the invitation. A member without a brain receives a local account and setup delivery but no profile.
+    - **Suspension is a quarantine boundary.** A suspended account cannot change roles, and its detail view exposes no credential or session mutations. Admins may only reactivate it or confirm permanent deletion. Deletion is limited to suspended non-Anchor accounts, removes the account and person-owned auth facets, and retains the audit record.
     - **Peer-first add is an Admin escalation.** Selecting a known peer or entering a peer URL resolves its published profile and proposed email. The final confirmation names the person, exact destination, role, and setup delivery. A no-brain fallback asks for local display name and email and creates no profile.
     - **Audit is first-class.** Existing audit storage remains authoritative and is exposed through an Admin-only read endpoint and plain-language viewer under the permanent Audit tab.
 
@@ -259,7 +260,7 @@ Keep the target UX small and explicit:
 - Fresh setup asks for a display name; any temporary fallback must not use `Operator` as a role-like name.
 - The shared console masthead shows `Name · Role · sign out`.
 - Overview shows the Anchor, active administrators, and attention-required items.
-- Members/People shows active local accounts, roles, passkeys, connected email/Discord channels, optional external peer brains, revoke-all-sessions, and suspend/remove actions.
+- Members/People shows active local accounts, roles, passkeys, connected email/Discord channels, optional external peer brains, revoke-all-sessions, and suspension actions. Anchor role controls are absent. Suspended accounts expose only Reactivate and Delete; Delete permanently removes only a suspended non-Anchor account after confirmation.
 - Invitations owns invited accounts and their intended Trusted/Admin roles; invited rows do not masquerade as active members.
 - Audit renders existing actor-attributed security events in plain language.
 - **The Anchor is read-only here (decision 13).** The console renders the config-declared kind and CMS-held Anchor profile; it does not set the kind or edit ownership.

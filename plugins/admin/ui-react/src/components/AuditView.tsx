@@ -22,6 +22,7 @@ const actionLabels: Record<string, string> = {
   "auth.passkey.revoked": "revoked a passkey",
   "auth.setup_token.generated": "generated a setup token",
   "auth.user.created": "created an account",
+  "auth.user.deleted": "deleted a suspended account",
   "auth.user.grants_revoked": "revoked account grants",
   "auth.user.role_updated": "changed an account role",
   "auth.user.status_updated": "changed account status",

@@ -42,10 +42,10 @@ Implemented on `feature/auth-runtime-db`:
 - Transactional first-Admin creation, personal-Anchor binding, and last-active-Admin protection with concurrent mutation coverage.
 - Session, bearer, and linked-identity principal APIs with role/status revocation behavior.
 - Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and explicit `resolved`/`denied`/`unbound` identity handling so inactive or revoked bindings cannot fall through to static rules.
-- High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
+- High-level user, role, status, suspended-user deletion, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
 - Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
-- Same-origin, session-authenticated Admin API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration, plus read-only config-derived Anchor display; every mutation requires an explicit action confirmation and remains absent from model tools.
+- Same-origin, session-authenticated Admin API for user, role, status, suspended-user deletion, identity, passkey, user-session, and user-specific passkey-registration administration, plus read-only config-derived Anchor display; every mutation requires an explicit action confirmation and remains absent from model tools.
 - Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
@@ -455,14 +455,14 @@ Validation: trusted users cannot call admin-only tools; suspended users are deni
 
 ### Phase 5 — Management surface
 
-**Status: implemented, including the People client completed in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin Admin-session API and remain deliberately absent from model tools.
+**Status: implemented, including the People client completed in phase 7.** User, role, status, suspended-user deletion, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin Admin-session API and remain deliberately absent from model tools. Anchor roles are immutable in the console; suspended accounts expose only reactivation and confirmed deletion.
 
 - Add an authenticated, Admin-authorized API/console and optional local CLI wrappers for user/identity/passkey management.
 - Require explicit Admin interaction and confirmation for role, status, identity, and credential mutations.
 - Do not expose auth-user records or management mutations as agent tools.
 - Add audit events for every management mutation.
 
-Validation: Admins can create/promote/suspend users; trusted users cannot manage users; the last active Admin and a personal Anchor cannot be demoted or suspended.
+Validation: Admins can create/promote/suspend users and delete only suspended non-Anchor accounts; trusted users cannot manage users; suspended users cannot change roles; the last active Admin and a personal Anchor cannot be demoted, suspended, or deleted.
 
 ### Phase 6 — Consumers
 

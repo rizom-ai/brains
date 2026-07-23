@@ -396,6 +396,16 @@ export class AuthService {
     return this.updateUserStatus(userId, "suspended", context);
   }
 
+  async deleteSuspendedUser(
+    userId: string,
+    context: AuthMutationContext = {},
+  ): Promise<void> {
+    await this.runtime.ensureStarted();
+    await this.runtime
+      .getAdministrationService()
+      .deleteSuspendedUser(userId, context);
+  }
+
   async revokeUserSessionsAndRefreshTokens(
     userId: string,
     context: AuthMutationContext = {},
@@ -609,6 +619,8 @@ export class AuthService {
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>
         this.updateUserStatus(userId, status, { actorUserId }),
+      deleteUser: (userId, actorUserId) =>
+        this.deleteSuspendedUser(userId, { actorUserId }),
       attachIdentity: async (input, actorUserId) =>
         identitySummary(
           await this.attachIdentity(input, { actorUserId }),

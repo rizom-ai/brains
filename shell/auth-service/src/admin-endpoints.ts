@@ -72,6 +72,7 @@ export interface AuthAdminOperations {
     status: AuthUserStatus,
     actorUserId: string,
   ): Promise<AuthAdminPrincipal>;
+  deleteUser(userId: string, actorUserId: string): Promise<void>;
   attachIdentity(
     input: {
       userId: string;
@@ -159,6 +160,11 @@ const adminMutationSchema = z.union([
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus),
     userId: z.string().min(1),
     status: statusSchema,
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.deleteUser),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.deleteUser),
+    userId: z.string().min(1),
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity),
@@ -382,6 +388,9 @@ async function executeMutation(
           actorUserId,
         ),
       };
+    case "deleteUser":
+      await operations.deleteUser(mutation.userId, actorUserId);
+      return { userId: mutation.userId, deleted: true };
     case "attachIdentity": {
       const label = safeIdentityLabel(
         mutation.type,

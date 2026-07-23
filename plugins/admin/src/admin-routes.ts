@@ -19,6 +19,7 @@ export function createAdminRoutes(
   options: AdminRouteOptions,
 ): WebRouteDefinition[] {
   const assetPath = `${options.routePath}/assets/app.js`;
+  const assetHref = `${assetPath}?v=${Date.now().toString(36)}`;
 
   return [
     {
@@ -41,7 +42,7 @@ export function createAdminRoutes(
         const appInfo = await context.appInfo();
         return new Response(
           renderAdminShellHtml({
-            assetPath,
+            assetPath: assetHref,
             routePath: options.routePath,
             userId: principal.userId,
             displayName: principal.displayName,
@@ -77,7 +78,7 @@ export function createAdminRoutes(
         return new Response(file, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "no-store",
           },
         });
       },

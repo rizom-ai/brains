@@ -55,6 +55,19 @@ function adminRequest(
   });
 }
 
+async function expectRejectsWithMessage(
+  operation: Promise<unknown>,
+  message: string,
+): Promise<void> {
+  try {
+    await operation;
+  } catch (error) {
+    expect(error).toEqual(new Error(message));
+    return;
+  }
+  throw new Error("Expected operation to reject");
+}
+
 afterEach(async () => {
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
@@ -585,6 +598,84 @@ describe("auth admin API", () => {
           actorUserId: admin.userId,
           action: "auth.user.status_updated",
           targetId: collaborator.userId,
+        }),
+      ]),
+    );
+  });
+
+  it("deletes only suspended non-Anchor accounts", async () => {
+    const service = await createService();
+    const admin = await service.createUser({
+      displayName: "Admin",
+      role: "admin",
+    });
+    const member = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: member.userId,
+      type: "email",
+      subject: "mira@example.com",
+      verifiedAt: Date.now(),
+    });
+    const session = await service.createAuthSession(admin.userId);
+
+    const activeDeletion = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "deleteUser",
+        confirmation: "deleteUser",
+        userId: member.userId,
+      }),
+    );
+    expect(activeDeletion.status).toBe(400);
+    expect(await activeDeletion.json()).toEqual({
+      error: "Only suspended auth users can be deleted",
+    });
+
+    await service.updateUserStatus(member.userId, "suspended", {
+      actorUserId: admin.userId,
+    });
+    const roleChange = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "updateUserRole",
+        confirmation: "updateUserRole",
+        userId: member.userId,
+        role: "public",
+      }),
+    );
+    expect(roleChange.status).toBe(400);
+    expect(await roleChange.json()).toEqual({
+      error: "Suspended auth users cannot change roles",
+    });
+
+    const deletion = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "deleteUser",
+        confirmation: "deleteUser",
+        userId: member.userId,
+      }),
+    );
+
+    expect(deletion.status).toBe(200);
+    expect(await deletion.json()).toEqual({
+      userId: member.userId,
+      deleted: true,
+    });
+    expect((await service.listUsers()).map((user) => user.userId)).toEqual([
+      admin.userId,
+    ]);
+    await expectRejectsWithMessage(
+      service.listUserIdentities(member.userId),
+      `Auth user not found: ${member.userId}`,
+    );
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: admin.userId,
+          action: "auth.user.deleted",
+          targetId: member.userId,
+          metadata: { role: "trusted", status: "suspended" },
         }),
       ]),
     );

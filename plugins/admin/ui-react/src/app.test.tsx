@@ -228,7 +228,32 @@ describe("Admin surface", () => {
     expect(anchorUser).toContain(
       "The professional Anchor cannot be suspended.",
     );
+    expect(anchorUser).not.toContain("Change role");
     expect(anchorUser).toContain("Edit in CMS");
+  });
+
+  it("limits suspended accounts to reactivation or deletion", () => {
+    const suspended = renderPerson({
+      ...user,
+      role: "trusted",
+      status: "suspended",
+      passkeys: [
+        {
+          id: "credential-1",
+          userId: user.userId,
+          credentialBackedUp: true,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    });
+
+    expect(suspended).toContain("Reactivate person");
+    expect(suspended).toContain("Delete person");
+    expect(suspended).not.toContain("Change role");
+    expect(suspended).not.toContain("Revoke all");
+    expect(suspended).not.toContain("Revoke</button>");
+    expect(suspended).not.toContain("Create setup link");
   });
 
   it("does not expose administration to non-Admins", () => {

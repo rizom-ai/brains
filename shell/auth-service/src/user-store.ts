@@ -332,6 +332,42 @@ export class AuthUserStore {
     });
   }
 
+  async deleteSuspendedUser(userId: string): Promise<AuthUser> {
+    return this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(authUsers)
+        .where(eq(authUsers.id, userId))
+        .limit(1);
+      if (!existing) throw new Error(`Auth user not found: ${userId}`);
+      if (existing.status !== "suspended") {
+        throw new Error("Only suspended auth users can be deleted");
+      }
+
+      const [anchor] = await tx
+        .select({
+          kind: authBrainAnchor.kind,
+          subjectId: authBrainAnchor.subjectId,
+        })
+        .from(authBrainAnchor)
+        .where(eq(authBrainAnchor.id, "brain"))
+        .limit(1);
+      if (anchor?.kind === "person" && anchor.subjectId === existing.personId) {
+        throw new Error("The personal brain anchor cannot be deleted");
+      }
+
+      const [deleted] = await tx
+        .delete(authUsers)
+        .where(and(eq(authUsers.id, userId), eq(authUsers.status, "suspended")))
+        .returning();
+      if (!deleted) {
+        throw new Error("Only suspended auth users can be deleted");
+      }
+      await tx.delete(authPeople).where(eq(authPeople.id, existing.personId));
+      return deleted;
+    });
+  }
+
   private async applyGuardedUserMutation(
     userId: string,
     mutation:
@@ -342,6 +378,9 @@ export class AuthUserStore {
     const currentValue =
       mutation.kind === "role" ? existing.role : existing.status;
     if (currentValue === mutation.value) return existing;
+    if (mutation.kind === "role" && existing.status === "suspended") {
+      throw new Error("Suspended auth users cannot change roles");
+    }
 
     const relaxing =
       mutation.kind === "role"

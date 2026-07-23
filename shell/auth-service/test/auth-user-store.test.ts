@@ -129,6 +129,39 @@ describe("AuthUserStore", () => {
     });
   });
 
+  it("deletes only suspended non-Anchor accounts and their person state", async () => {
+    await withUserStore(async (store, _database, identities) => {
+      const anchor = await store.ensureFirstAdminUser();
+      const member = await store.createUser({
+        displayName: "Suspended Member",
+        role: "trusted",
+      });
+      await identities.attachIdentity({
+        userId: member.id,
+        type: "email",
+        subject: "suspended@example.com",
+      });
+
+      await expectRejectsWithMessage(
+        store.deleteSuspendedUser(member.id),
+        "Only suspended auth users can be deleted",
+      );
+      await store.updateUserStatus(member.id, "suspended");
+      expect(await store.deleteSuspendedUser(member.id)).toMatchObject({
+        id: member.id,
+        status: "suspended",
+      });
+
+      expect(await store.getUser(member.id)).toBeUndefined();
+      expect(await store.getPerson(member.personId)).toBeUndefined();
+      expect(await identities.listAllIdentities()).toEqual([]);
+      await expectRejectsWithMessage(
+        store.deleteSuspendedUser(anchor.id),
+        "Only suspended auth users can be deleted",
+      );
+    });
+  });
+
   it("does not attach hosted profiles to non-Anchor people", async () => {
     await withUserStore(async (store) => {
       const person = await store.createPerson({

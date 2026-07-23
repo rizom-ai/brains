@@ -91,6 +91,21 @@ export class AuthUserManagementService {
     return updated;
   }
 
+  async deleteSuspendedUser(
+    userId: string,
+    context: AuthMutationContext = {},
+  ): Promise<AuthUser> {
+    const deleted = await this.users.deleteSuspendedUser(userId);
+    await this.audit.append({
+      ...auditActor(context),
+      action: "auth.user.deleted",
+      targetType: "user",
+      targetId: userId,
+      metadata: { role: deleted.role, status: deleted.status },
+    });
+    return deleted;
+  }
+
   async revokeGrants(
     userId: string,
     context: AuthMutationContext = {},

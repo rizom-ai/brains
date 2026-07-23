@@ -282,6 +282,13 @@ export class AuthAdministrationService {
     return this.updateUserStatus(userId, "suspended", context);
   }
 
+  async deleteSuspendedUser(
+    userId: string,
+    context: AuthMutationContext = {},
+  ): Promise<void> {
+    await this.management.deleteSuspendedUser(userId, context);
+  }
+
   revokeUserGrants(
     userId: string,
     context: AuthMutationContext = {},

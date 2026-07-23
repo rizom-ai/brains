@@ -32,15 +32,18 @@ export function PersonDetail(props: {
     );
   }
 
+  const suspended = user.status === "suspended";
   const protectsActiveAdmin =
     user.role === "admin" &&
     user.status === "active" &&
     props.activeAdminCount <= 1;
   const roleProtection = user.isAnchor
     ? "A professional Anchor must remain an active Admin."
-    : protectsActiveAdmin
-      ? "Add another active Admin before changing this role."
-      : undefined;
+    : suspended
+      ? "Reactivate this person before changing access."
+      : protectsActiveAdmin
+        ? "Add another active Admin before changing this role."
+        : undefined;
   const suspensionProtection = user.isAnchor
     ? "The professional Anchor cannot be suspended."
     : protectsActiveAdmin
@@ -204,50 +207,59 @@ export function PersonDetail(props: {
                 {roleProtection ?? `${roleLabel(user.status)} account`}
               </small>
             </span>
-            <label className="people-role-control">
-              <span>Change role</span>
-              <select
-                value={user.role}
-                disabled={roleProtection !== undefined}
-                onChange={(event) =>
-                  confirmRole(event.currentTarget.value as AuthAdminRole)
-                }
-              >
-                {AUTH_USER_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {roleLabel(role)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {user.isAnchor || suspended ? (
+              <span className="people-role-lock">
+                {user.isAnchor ? "Anchor role fixed" : "Account suspended"}
+              </span>
+            ) : (
+              <label className="people-role-control">
+                <span>Change role</span>
+                <select
+                  value={user.role}
+                  disabled={roleProtection !== undefined}
+                  onChange={(event) =>
+                    confirmRole(event.currentTarget.value as AuthAdminRole)
+                  }
+                >
+                  {AUTH_USER_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {roleLabel(role)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <AccessItem
             kind="Sessions"
             value="Current browser and OAuth access"
             action={
-              <TextAction
-                danger
-                onClick={() =>
-                  props.onConfirm({
-                    kind: "confirm",
-                    title: "Revoke all sessions?",
-                    copy: `${user.displayName} will be signed out everywhere.`,
-                    warning:
-                      "This does not remove passkeys or connected channels.",
-                    submitLabel: "Revoke sessions",
-                    run: async () => {
-                      await props.onMutation({
-                        action: AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
-                        confirmation:
-                          AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
-                        userId: user.userId,
-                      });
-                    },
-                  })
-                }
-              >
-                Revoke all
-              </TextAction>
+              suspended ? undefined : (
+                <TextAction
+                  danger
+                  onClick={() =>
+                    props.onConfirm({
+                      kind: "confirm",
+                      title: "Revoke all sessions?",
+                      copy: `${user.displayName} will be signed out everywhere.`,
+                      warning:
+                        "This does not remove passkeys or connected channels.",
+                      submitLabel: "Revoke sessions",
+                      run: async () => {
+                        await props.onMutation({
+                          action:
+                            AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
+                          confirmation:
+                            AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions,
+                          userId: user.userId,
+                        });
+                      },
+                    })
+                  }
+                >
+                  Revoke all
+                </TextAction>
+              )
             }
           />
         </DetailSection>
@@ -265,38 +277,45 @@ export function PersonDetail(props: {
                 kind="Passkey"
                 value={`${passkey.credentialDeviceType ? roleLabel(passkey.credentialDeviceType) : "Passkey"} · added ${formatDate(passkey.createdAt)}`}
                 action={
-                  <TextAction
-                    danger
-                    onClick={() =>
-                      props.onConfirm({
-                        kind: "confirm",
-                        title: "Revoke this passkey?",
-                        copy: "This passkey will stop working immediately.",
-                        warning: `${user.displayName} will need another passkey to sign in.`,
-                        submitLabel: "Revoke passkey",
-                        run: async () => {
-                          await props.onMutation(
-                            {
-                              action: AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey,
-                              confirmation:
-                                AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey,
-                              credentialId: passkey.id,
-                            },
-                            user.userId,
-                          );
-                        },
-                      })
-                    }
-                  >
-                    Revoke
-                  </TextAction>
+                  suspended ? undefined : (
+                    <TextAction
+                      danger
+                      onClick={() =>
+                        props.onConfirm({
+                          kind: "confirm",
+                          title: "Revoke this passkey?",
+                          copy: "This passkey will stop working immediately.",
+                          warning: `${user.displayName} will need another passkey to sign in.`,
+                          submitLabel: "Revoke passkey",
+                          run: async () => {
+                            await props.onMutation(
+                              {
+                                action:
+                                  AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey,
+                                confirmation:
+                                  AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey,
+                                credentialId: passkey.id,
+                              },
+                              user.userId,
+                            );
+                          },
+                        })
+                      }
+                    >
+                      Revoke
+                    </TextAction>
+                  )
                 }
               />
             ))
           )}
-          <div className="people-inline-actions">
-            <TextAction onClick={createSetupLink}>Create setup link</TextAction>
-          </div>
+          {suspended ? null : (
+            <div className="people-inline-actions">
+              <TextAction onClick={createSetupLink}>
+                Create setup link
+              </TextAction>
+            </div>
+          )}
         </DetailSection>
 
         <DetailSection
@@ -321,41 +340,66 @@ export function PersonDetail(props: {
 
       <footer className="people-detail-footer">
         <small>
-          {suspensionProtection ?? "Account access changes are audited."}
+          {suspended
+            ? "Suspended accounts can only be reactivated or permanently deleted."
+            : (suspensionProtection ?? "Account access changes are audited.")}
         </small>
-        <Button
-          {...(user.status === "suspended" ? {} : { tone: "danger" as const })}
-          disabled={
-            user.status !== "suspended" && suspensionProtection !== undefined
-          }
-          onClick={() => {
-            const suspended = user.status === "suspended";
-            props.onConfirm({
-              kind: "confirm",
-              title: `${suspended ? "Reactivate" : "Suspend"} ${user.displayName}?`,
-              copy: suspended
-                ? "Authenticated access will be available again."
-                : "Every connected channel and session will be denied immediately.",
-              warning: suspended
-                ? "Existing passkeys and channels remain attached."
-                : "Sessions and refresh tokens will be revoked.",
-              submitLabel: suspended ? "Reactivate person" : "Suspend person",
-              run: async () => {
-                await props.onMutation(
-                  {
-                    action: AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
-                    confirmation: AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
-                    userId: user.userId,
-                    status: suspended ? "active" : "suspended",
+        <div className="people-detail-footer-actions">
+          <Button
+            {...(suspended ? {} : { tone: "danger" as const })}
+            disabled={!suspended && suspensionProtection !== undefined}
+            onClick={() => {
+              props.onConfirm({
+                kind: "confirm",
+                title: `${suspended ? "Reactivate" : "Suspend"} ${user.displayName}?`,
+                copy: suspended
+                  ? "Authenticated access will be available again."
+                  : "Every connected channel and session will be denied immediately.",
+                warning: suspended
+                  ? "Existing passkeys and channels remain attached."
+                  : "Sessions and refresh tokens will be revoked.",
+                submitLabel: suspended ? "Reactivate person" : "Suspend person",
+                run: async () => {
+                  await props.onMutation(
+                    {
+                      action: AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
+                      confirmation:
+                        AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
+                      userId: user.userId,
+                      status: suspended ? "active" : "suspended",
+                    },
+                    user.userId,
+                  );
+                },
+              });
+            }}
+          >
+            {suspended ? "Reactivate person" : "Suspend person"}
+          </Button>
+          {suspended ? (
+            <Button
+              tone="danger"
+              onClick={() =>
+                props.onConfirm({
+                  kind: "confirm",
+                  title: `Delete ${user.displayName}?`,
+                  copy: "This permanently removes the suspended account, passkeys, connected channels, and external peer links from this brain.",
+                  warning: "This cannot be undone. Audit history is retained.",
+                  submitLabel: "Delete person",
+                  run: async () => {
+                    await props.onMutation({
+                      action: AUTH_ADMIN_MUTATION_ACTIONS.deleteUser,
+                      confirmation: AUTH_ADMIN_MUTATION_ACTIONS.deleteUser,
+                      userId: user.userId,
+                    });
                   },
-                  user.userId,
-                );
-              },
-            });
-          }}
-        >
-          {user.status === "suspended" ? "Reactivate person" : "Suspend person"}
-        </Button>
+                })
+              }
+            >
+              Delete person
+            </Button>
+          ) : null}
+        </div>
       </footer>
     </section>
   );

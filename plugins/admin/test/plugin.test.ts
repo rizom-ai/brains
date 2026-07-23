@@ -83,8 +83,22 @@ describe("admin console plugin", () => {
     expect(html).toContain("data-people-brain-name=");
     expect(html).not.toContain("data-people-interfaces");
     expect(html).toContain("Mira Reyes");
-    expect(html).toContain('src="/admin/assets/app.js"');
+    expect(html).toMatch(/src="\/admin\/assets\/app\.js\?v=[a-z0-9]+"/);
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');
+  });
+
+  it("does not let browsers reuse a stale Admin bundle", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const plugin = adminPlugin();
+    await plugin.register(shell);
+
+    const response = await findRoute(
+      plugin.getWebRoutes(),
+      "/admin/assets/app.js",
+    ).handler(new Request("https://brain.test/admin/assets/app.js"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
   it("respects a custom route path", async () => {
