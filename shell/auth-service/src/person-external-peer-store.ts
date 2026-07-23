@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
@@ -139,14 +139,14 @@ export class PersonExternalPeerStore {
       .select()
       .from(personExternalPeers)
       .where(eq(personExternalPeers.personId, personId))
-      .orderBy(personExternalPeers.createdAt);
+      .orderBy(personExternalPeers.createdAt, sql`rowid`);
   }
 
   async listAll(): Promise<PersonExternalPeer[]> {
     return this.db
       .select()
       .from(personExternalPeers)
-      .orderBy(personExternalPeers.createdAt);
+      .orderBy(personExternalPeers.createdAt, sql`rowid`);
   }
 }
 

@@ -1,6 +1,6 @@
 import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   authIdentities,
@@ -174,17 +174,20 @@ export class AuthIdentityStore {
       .select()
       .from(authIdentities)
       .where(eq(authIdentities.personId, user.personId))
-      .orderBy(authIdentities.createdAt);
+      .orderBy(authIdentities.createdAt, sql`rowid`);
     return Promise.all(claims.map((claim) => this.identityRecord(claim)));
   }
 
   async listAllIdentities(): Promise<AuthIdentityRecord[]> {
     const [claims, evidence] = await Promise.all([
-      this.db.select().from(authIdentities).orderBy(authIdentities.createdAt),
+      this.db
+        .select()
+        .from(authIdentities)
+        .orderBy(authIdentities.createdAt, sql`rowid`),
       this.db
         .select()
         .from(authIdentityEvidence)
-        .orderBy(authIdentityEvidence.createdAt),
+        .orderBy(authIdentityEvidence.createdAt, sql`rowid`),
     ]);
     const evidenceByClaimId = new Map<string, AuthIdentityEvidence[]>();
     for (const item of evidence) {
@@ -291,7 +294,7 @@ export class AuthIdentityStore {
       .select()
       .from(authIdentityEvidence)
       .where(eq(authIdentityEvidence.claimId, claim.id))
-      .orderBy(authIdentityEvidence.createdAt);
+      .orderBy(authIdentityEvidence.createdAt, sql`rowid`);
     return identityRecordFromEvidence(claim, evidence);
   }
 

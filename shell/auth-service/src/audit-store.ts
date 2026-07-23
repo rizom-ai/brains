@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { authAuditEvents } from "./runtime-schema";
@@ -58,7 +58,7 @@ export class AuthAuditStore {
     const rows = await this.db
       .select()
       .from(authAuditEvents)
-      .orderBy(desc(authAuditEvents.createdAt));
+      .orderBy(desc(authAuditEvents.createdAt), desc(sql`rowid`));
     return rows.map((row) => ({
       id: row.id,
       ...(row.actorUserId ? { actorUserId: row.actorUserId } : {}),

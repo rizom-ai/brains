@@ -300,7 +300,10 @@ export class AuthUserStore {
   }
 
   async listPeople(): Promise<AuthPerson[]> {
-    return this.db.select().from(authPeople).orderBy(authPeople.createdAt);
+    return this.db
+      .select()
+      .from(authPeople)
+      .orderBy(authPeople.createdAt, sql`rowid`);
   }
 
   async getUser(userId: string): Promise<AuthUser | undefined> {
