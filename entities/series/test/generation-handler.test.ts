@@ -50,7 +50,6 @@ slug: systems-series
       expect.objectContaining({
         templateName: "series:description",
         representedIdentity: "none",
-        style: "none",
       }),
     );
   });

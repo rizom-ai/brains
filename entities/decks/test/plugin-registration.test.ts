@@ -76,7 +76,6 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         expect.objectContaining({
           templateName: "decks:description",
           representedIdentity: "none",
-          style: "none",
         }),
       );
     });

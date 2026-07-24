@@ -147,7 +147,6 @@ export type {
   ToolInfo,
   EvalHandler,
   ContentGenerationConfig,
-  GenerationStyle,
   GenerationStyleGuide,
   IEvalHandlerRegistry,
 } from "./interfaces";

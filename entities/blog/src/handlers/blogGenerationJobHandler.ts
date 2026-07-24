@@ -126,7 +126,6 @@ Add your conclusion here.`;
         prompt: generationPrompt,
         templateName: "blog:generation",
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
@@ -152,7 +151,6 @@ Add your conclusion here.`;
         prompt: `Title: ${title}\n\nContent:\n${content}`,
         templateName: "blog:excerpt",
         representedIdentity: "none",
-        style: "none",
       });
 
       excerpt = excerptGenerated.excerpt;

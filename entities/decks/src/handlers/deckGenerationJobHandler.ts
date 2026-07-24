@@ -128,7 +128,6 @@ Add your conclusion here`;
         prompt: generationPrompt,
         templateName: "decks:generation",
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
@@ -154,7 +153,6 @@ Add your conclusion here`;
         prompt: `Title: ${title}\n\nContent:\n${content}`,
         templateName: "decks:description",
         representedIdentity: "none",
-        style: "none",
       });
 
       description = descGenerated.description;

@@ -113,7 +113,6 @@ describe("ProjectGenerationJobHandler", () => {
         prompt: buildProjectGenerationPrompt(data),
         templateName: "portfolio:generation",
         representedIdentity: "anchor",
-        style: "voice",
       });
     });
 

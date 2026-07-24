@@ -87,7 +87,6 @@ describe("BlogGenerationJobHandler", () => {
           prompt: expect.stringContaining("Write about AI"),
           templateName: "blog:generation",
           representedIdentity: "anchor",
-          style: "voice",
         }),
       );
     });
@@ -154,7 +153,6 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           templateName: "blog:excerpt",
           representedIdentity: "none",
-          style: "none",
           prompt: expect.stringMatching(
             /My Title.*My content|My content.*My Title/s,
           ),

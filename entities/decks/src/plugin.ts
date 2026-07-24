@@ -255,7 +255,6 @@ export class DecksPlugin extends EntityPlugin<
         prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
         templateName: "decks:generation",
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
@@ -269,7 +268,6 @@ export class DecksPlugin extends EntityPlugin<
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",
           representedIdentity: "none",
-          style: "none",
         });
       },
     );

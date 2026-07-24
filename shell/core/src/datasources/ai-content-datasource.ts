@@ -11,7 +11,6 @@ export interface GenerationContext {
   conversationHistory?: string | undefined;
   data?: Record<string, unknown> | undefined;
   representedIdentity?: "brain" | "anchor" | "none" | undefined;
-  style?: "voice" | "visual" | "both" | "none" | undefined;
   styleGuide?:
     { voice?: string | undefined; visual?: string | undefined } | undefined;
   templateName: string;
@@ -23,7 +22,6 @@ const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
     conversationHistory: z.string().optional(),
     data: z.record(z.string(), z.unknown()).optional(),
     representedIdentity: z.enum(["brain", "anchor", "none"]).optional(),
-    style: z.enum(["voice", "visual", "both", "none"]).optional(),
     styleGuide: z
       .object({
         voice: z.string().optional(),
@@ -169,14 +167,13 @@ export class AIContentDataSource implements DataSource {
   }
 
   private selectStyleGuidance(context: GenerationContext): string {
-    if (!context.styleGuide || context.style === "none") return "";
+    if (!context.styleGuide) return "";
 
-    const style = context.style ?? "both";
     const sections: string[] = [];
-    if ((style === "voice" || style === "both") && context.styleGuide.voice) {
+    if (context.styleGuide.voice) {
       sections.push("## Voice", context.styleGuide.voice);
     }
-    if ((style === "visual" || style === "both") && context.styleGuide.visual) {
+    if (context.styleGuide.visual) {
       sections.push("## Visual", context.styleGuide.visual);
     }
     return sections.join("\n");

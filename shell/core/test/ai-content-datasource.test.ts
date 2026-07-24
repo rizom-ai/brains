@@ -107,7 +107,6 @@ describe("AIContentDataSource", () => {
     conversationHistory?: string,
     context: {
       representedIdentity?: "brain" | "anchor" | "none";
-      style?: "voice" | "visual" | "both" | "none";
       styleGuide?: { voice?: string; visual?: string };
     } = {},
   ): Promise<Message> {
@@ -221,30 +220,39 @@ describe("AIContentDataSource", () => {
       expect(getSystemPrompt()).not.toContain("# Represented Anchor");
     });
 
-    it("injects style guidance independently of represented identity", async () => {
+    it("injects the facets present in the style-guide payload, independently of represented identity", async () => {
       await generate("Hello", "test-template", undefined, {
         representedIdentity: "none",
-        style: "voice",
+        styleGuide: { voice: "Voice: concise and grounded" },
+      });
+
+      expect(getSystemPrompt()).toContain("# Style Guide");
+      expect(getSystemPrompt()).toContain("Voice: concise and grounded");
+      expect(getSystemPrompt()).not.toContain("## Visual");
+      expect(getSystemPrompt()).not.toContain("# Brain Identity");
+    });
+
+    it("injects both facets when the payload carries voice and visual", async () => {
+      await generate("Hello", "test-template", undefined, {
+        representedIdentity: "none",
         styleGuide: {
           voice: "Voice: concise and grounded",
           visual: "Visual: bold geometric collage",
         },
       });
 
-      expect(getSystemPrompt()).toContain("# Style Guide");
+      expect(getSystemPrompt()).toContain("## Voice");
       expect(getSystemPrompt()).toContain("Voice: concise and grounded");
-      expect(getSystemPrompt()).not.toContain("bold geometric collage");
-      expect(getSystemPrompt()).not.toContain("# Brain Identity");
+      expect(getSystemPrompt()).toContain("## Visual");
+      expect(getSystemPrompt()).toContain("bold geometric collage");
     });
 
-    it("suppresses style guidance for an explicitly neutral workflow", async () => {
+    it("omits style guidance when no style-guide payload is supplied", async () => {
       await generate("Hello", "test-template", undefined, {
-        style: "none",
-        styleGuide: { voice: "Voice: this must not be applied" },
+        representedIdentity: "none",
       });
 
       expect(getSystemPrompt()).not.toContain("# Style Guide");
-      expect(getSystemPrompt()).not.toContain("this must not be applied");
     });
   });
 

@@ -98,7 +98,6 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
       prompt: buildProjectGenerationPrompt(data),
       templateName: "portfolio:generation",
       representedIdentity: "anchor",
-      style: "voice",
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });
 

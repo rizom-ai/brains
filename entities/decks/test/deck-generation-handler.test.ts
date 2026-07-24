@@ -59,7 +59,6 @@ describe("DeckGenerationJobHandler", () => {
       expect(mockContext.ai.generate).toHaveBeenCalledWith(
         expect.objectContaining({
           representedIdentity: "anchor",
-          style: "voice",
           styleGuide: {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
@@ -81,7 +80,6 @@ describe("DeckGenerationJobHandler", () => {
         expect.objectContaining({
           templateName: "decks:description",
           representedIdentity: "none",
-          style: "none",
         }),
       );
     });

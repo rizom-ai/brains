@@ -331,7 +331,6 @@ describe("GenerationJobHandler", () => {
       expect(generate).toHaveBeenCalledWith(
         expect.objectContaining({
           representedIdentity: "anchor",
-          style: "voice",
         }),
       );
     });

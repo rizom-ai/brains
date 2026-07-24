@@ -312,7 +312,6 @@ export class PortfolioPlugin extends EntityPlugin<
         prompt: buildProjectGenerationPrompt(parsed),
         templateName: "portfolio:generation",
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });

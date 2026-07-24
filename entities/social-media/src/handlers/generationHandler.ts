@@ -106,7 +106,6 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
           );
     const styleContext = {
       representedIdentity: "anchor" as const,
-      style: "voice" as const,
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     };
 

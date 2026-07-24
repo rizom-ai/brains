@@ -478,8 +478,6 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
 /**
  * Content generation configuration - unified config object
  */
-export type GenerationStyle = "voice" | "visual" | "both" | "none";
-
 export interface GenerationStyleGuide {
   voice?: string;
   visual?: string;
@@ -491,7 +489,6 @@ export interface ContentGenerationConfig {
   conversationHistory?: string;
   data?: Record<string, unknown>;
   representedIdentity?: "brain" | "anchor" | "none";
-  style?: GenerationStyle;
   styleGuide?: GenerationStyleGuide;
   interfacePermissionGrant?: UserPermissionLevel;
 }

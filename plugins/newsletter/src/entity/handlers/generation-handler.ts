@@ -151,7 +151,6 @@ The newsletter should:
         prompt: finalPrompt,
         templateName: NEWSLETTER_CHANNELS.generation,
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
@@ -180,7 +179,6 @@ The newsletter should:
         prompt,
         templateName: NEWSLETTER_CHANNELS.generation,
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 

@@ -193,7 +193,6 @@ export class NotePlugin extends EntityPlugin<
         prompt: parsed.prompt,
         templateName: "note:generation",
         representedIdentity: "none",
-        style: "none",
       });
     });
 

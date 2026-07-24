@@ -73,7 +73,6 @@ describe("NoteGenerationJobHandler", () => {
         prompt: "Write a note",
         templateName: "note:generation",
         representedIdentity: "none",
-        style: "none",
       });
     });
 

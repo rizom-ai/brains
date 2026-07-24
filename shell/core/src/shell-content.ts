@@ -31,7 +31,6 @@ export async function generateShellContent<T = unknown>(
     ...(config.representedIdentity && {
       representedIdentity: config.representedIdentity,
     }),
-    ...(config.style && { style: config.style }),
     ...(config.styleGuide && { styleGuide: config.styleGuide }),
   };
 

@@ -123,7 +123,6 @@ describe("GenerationJobHandler", () => {
         prompt: "Write a systems update",
         templateName: "newsletter:generation",
         representedIdentity: "anchor",
-        style: "voice",
       });
     });
 

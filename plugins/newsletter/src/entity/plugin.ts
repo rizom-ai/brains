@@ -239,7 +239,6 @@ export class NewsletterPlugin extends EntityPlugin<
         prompt: generationPrompt,
         templateName: NEWSLETTER_CHANNELS.generation,
         representedIdentity: "anchor",
-        style: "voice",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });

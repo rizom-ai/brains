@@ -264,25 +264,34 @@ The entity is not a prompt. It supplies durable context to prompt-driven tasks.
 
 ### Generation context
 
-Every generation path declares whether it is styled:
+Every generation path declares a represented identity and supplies the style facets it
+wants applied:
 
 ```text
 represented identity: brain | anchor | none
-style: voice | visual | both | none
+styleGuide payload:    { voice?, visual? }   // omit entirely for neutral work
 ```
+
+Style selection is payload-driven: the datasource injects the `voice` section when the
+payload carries voice guidance and the `visual` section when it carries visual guidance.
+There is no separate `style` flag — the facets present in the payload _are_ the
+selection, so there is exactly one source of truth. A styled caller fetches the facets it
+needs from the style guide (`formatVoiceGuidance` / `formatVisualGuidance`, or
+`formatStyleGuidance(guide, "both")` for a single text+image workflow) and passes them
+through; a neutral caller passes no `styleGuide` at all.
 
 Examples:
 
-| Workflow                               | Represented identity | Style          |
-| -------------------------------------- | -------------------- | -------------- |
-| Brain-authored operational explanation | brain                | voice          |
-| Professional blog post                 | anchor               | voice          |
-| Team presentation                      | anchor               | voice + visual |
-| Cover image                            | anchor or brain      | visual         |
-| Neutral extraction or summary          | none                 | none           |
-| Internal styled document               | brain or anchor      | voice          |
+| Workflow                               | Represented identity | Style-guide payload |
+| -------------------------------------- | -------------------- | ------------------- |
+| Brain-authored operational explanation | brain                | voice               |
+| Professional blog post                 | anchor               | voice               |
+| Team presentation                      | anchor               | voice + visual      |
+| Cover image                            | anchor or brain      | visual              |
+| Neutral extraction or summary          | none                 | none (omitted)      |
+| Internal styled document               | brain or anchor      | voice               |
 
-Represented identity selects facts and perspective. The singleton style guide selects
+Represented identity selects facts and perspective. The style-guide payload selects
 style. Explicit user instructions may override it for one request.
 
 ### Site composition

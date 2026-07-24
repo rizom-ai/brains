@@ -123,7 +123,6 @@ export async function deriveSkills(
       prompt,
       templateName: SKILL_DERIVATION_TEMPLATE_REF,
       representedIdentity: "brain",
-      style: "none",
     });
     skills = result.skills.slice(0, 8);
     if (result.skills.length > skills.length) {

@@ -63,6 +63,14 @@ export interface FormattedStyleGuidance {
   visual?: string | undefined;
 }
 
+/**
+ * Canonical entry point for turning a style guide into prompt-ready facets.
+ *
+ * The shared markdown body (`guidance`) is appended exactly once — to `voice`
+ * when voice is present, otherwise to `visual`. Any voice+visual workflow MUST
+ * compose through this function (with `style: "both"`); combining the
+ * single-facet wrappers below would append the shared body twice.
+ */
 export function formatStyleGuidance(
   styleGuide: StyleGuide,
   style: "voice" | "visual" | "both",
@@ -86,10 +94,22 @@ export function formatStyleGuidance(
   };
 }
 
+/**
+ * Voice-only convenience for single-facet callers. Includes the shared guidance
+ * body. Do not combine with {@link formatVisualGuidance} for a voice+visual
+ * workflow — use {@link formatStyleGuidance} with `"both"` instead, or the body
+ * is emitted twice.
+ */
 export function formatVoiceGuidance(styleGuide: StyleGuide): string {
   return formatStyleGuidance(styleGuide, "voice").voice ?? "";
 }
 
+/**
+ * Visual-only convenience for single-facet callers. Includes the shared
+ * guidance body. Do not combine with {@link formatVoiceGuidance} for a
+ * voice+visual workflow — use {@link formatStyleGuidance} with `"both"`
+ * instead, or the body is emitted twice.
+ */
 export function formatVisualGuidance(styleGuide: StyleGuide): string {
   return formatStyleGuidance(styleGuide, "visual").visual ?? "";
 }
