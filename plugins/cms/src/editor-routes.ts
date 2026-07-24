@@ -1,13 +1,17 @@
 import { join } from "node:path";
+import type { AuthPrincipal } from "@brains/auth-service";
+import type { ActorRef } from "@brains/contracts";
 import type {
   BaseEntity,
   CmsWorkspaceActor,
+  ContentVisibility,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  permissionToVisibilityScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -118,14 +122,41 @@ const syncStatusMessageSchema = z.object({
     .nullable(),
 });
 
+export interface CmsRequestAccess {
+  principal: AuthPrincipal;
+  actor: Extract<ActorRef, { kind: "user" }>;
+  permissionLevel: "trusted" | "admin";
+  visibilityScope: Extract<ContentVisibility, "shared" | "restricted">;
+  isAnchor: boolean;
+}
+
+export interface CmsTypeCapabilities {
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canExtract: boolean;
+  canPublish: boolean;
+  canAssist: boolean;
+}
+
 export interface EditorRouteOptions {
   /** Base route the editor is served from, e.g. "/cms". */
   routePath: string;
   getContext: () => ServicePluginContext;
-  resolveAuthSession: (request: Request) => Promise<boolean>;
+  resolveAuthPrincipal: (
+    request: Request,
+  ) => Promise<AuthPrincipal | undefined>;
+  /** Atomic rollout gate. Production remains Admin-only through Phase 4. */
+  minimumPermissionLevel: "trusted" | "admin";
   getEntityDisplay: () => CmsEntityDisplayMap | undefined;
   workspaceRegistry: CmsWorkspaceRegistry;
 }
+
+type CmsRequestAccessResolution =
+  | { state: "allowed"; access: CmsRequestAccess }
+  | { state: "unauthenticated" }
+  | { state: "forbidden" };
 
 /**
  * Routes for the first-party CMS editor: the React shell, its bundled
@@ -139,7 +170,8 @@ export function createEditorRoutes(
   const {
     routePath,
     getContext,
-    resolveAuthSession,
+    resolveAuthPrincipal,
+    minimumPermissionLevel,
     getEntityDisplay,
     workspaceRegistry,
   } = options;
@@ -148,21 +180,77 @@ export function createEditorRoutes(
   const assetPath = `${normalizedBase}/assets/app.js`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
-  const requireSession = async (request: Request): Promise<Response | null> =>
-    (await resolveAuthSession(request))
-      ? null
-      : jsonResponse({ error: "Authentication required" }, 401);
+  const resolveRequestAccess = async (
+    request: Request,
+  ): Promise<CmsRequestAccessResolution> => {
+    const principal = await resolveAuthPrincipal(request);
+    if (principal?.status !== "active") {
+      return { state: "unauthenticated" };
+    }
+    if (principal.permissionLevel === "public") {
+      return { state: "forbidden" };
+    }
+    if (
+      minimumPermissionLevel === "admin" &&
+      principal.permissionLevel !== "admin"
+    ) {
+      return { state: "forbidden" };
+    }
+
+    const visibilityScope = permissionToVisibilityScope(
+      principal.permissionLevel,
+    );
+    if (visibilityScope === "public") {
+      return { state: "forbidden" };
+    }
+    return {
+      state: "allowed",
+      access: {
+        principal,
+        actor: {
+          kind: "user",
+          userId: principal.userId,
+          ...(principal.canonicalId
+            ? { canonicalId: principal.canonicalId }
+            : {}),
+        },
+        permissionLevel: principal.permissionLevel,
+        visibilityScope,
+        isAnchor: principal.isAnchor,
+      },
+    };
+  };
+
+  const requireAccess = async (
+    request: Request,
+  ): Promise<CmsRequestAccess | Response> => {
+    const resolution = await resolveRequestAccess(request);
+    if (resolution.state === "unauthenticated") {
+      return jsonResponse({ error: "Authentication required" }, 401);
+    }
+    if (resolution.state === "forbidden") {
+      return jsonResponse({ error: "CMS access forbidden" }, 403);
+    }
+    return resolution.access;
+  };
 
   const serveShell = async (request: Request): Promise<Response> => {
     const requestUrl = new URL(request.url);
     const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
-    if (!(await resolveAuthSession(request))) {
+    const resolution = await resolveRequestAccess(request);
+    if (resolution.state === "unauthenticated") {
       return new Response(null, {
         status: 302,
         headers: {
           Location: `/login?return_to=${encodeURIComponent(returnTo)}`,
           "Cache-Control": "no-store",
         },
+      });
+    }
+    if (resolution.state === "forbidden") {
+      return new Response("CMS access forbidden", {
+        status: 403,
+        headers: { "Cache-Control": "no-store" },
       });
     }
     return new Response(
@@ -229,12 +317,13 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
-        if (denied) return denied;
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
         return handleListTypes(
           getContext(),
           getEntityDisplay(),
           workspaceRegistry,
+          access,
         );
       },
     },
@@ -243,7 +332,9 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleGetWorkspace(workspaceRegistry, request);
       },
@@ -253,7 +344,9 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleWorkspaceAction(workspaceRegistry, request);
       },
@@ -263,9 +356,9 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
-        if (denied) return denied;
-        return handleGetSchema(getContext(), request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetSchema(getContext(), request, access);
       },
     },
     {
@@ -273,9 +366,9 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
-        if (denied) return denied;
-        return handleGetEntities(getContext(), request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetEntities(getContext(), request, access);
       },
     },
     {
@@ -283,7 +376,9 @@ export function createEditorRoutes(
       method: "PUT",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleUpdateEntity(getContext(), request);
       },
@@ -293,7 +388,9 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleCreateEntity(getContext(), request);
       },
@@ -303,7 +400,9 @@ export function createEditorRoutes(
       method: "DELETE",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleDeleteEntity(getContext(), request);
       },
@@ -313,7 +412,9 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleUpload(getContext(), request, apiPath("upload"));
       },
@@ -323,7 +424,9 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleAssist(getContext(), request);
       },
@@ -333,7 +436,9 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleListAgents(getContext());
       },
@@ -343,7 +448,9 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleAskAgent(getContext(), request);
       },
@@ -353,12 +460,107 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const denied = await requireSession(request);
+        const access = await requireAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireAdminCapability(access);
         if (denied) return denied;
         return handleSyncStatus(getContext());
       },
     },
   ];
+}
+
+function requireAdminCapability(access: CmsRequestAccess): Response | null {
+  return access.permissionLevel === "admin"
+    ? null
+    : jsonResponse({ error: "Admin CMS capability required" }, 403);
+}
+
+function canPerformEntityAction(
+  context: ServicePluginContext,
+  entityType: string,
+  action: "create" | "update" | "delete" | "extract" | "publish",
+  access: CmsRequestAccess,
+): boolean {
+  try {
+    context.permissions.assertEntityActionAllowed(entityType, action, {
+      userPermissionLevel: access.permissionLevel,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function deriveTypeCapabilities(
+  context: ServicePluginContext,
+  entityType: string,
+  visibleCount: number,
+  access: CmsRequestAccess,
+): CmsTypeCapabilities | undefined {
+  const canCreate = canPerformEntityAction(
+    context,
+    entityType,
+    "create",
+    access,
+  );
+  const canUpdate = canPerformEntityAction(
+    context,
+    entityType,
+    "update",
+    access,
+  );
+  const canDelete = canPerformEntityAction(
+    context,
+    entityType,
+    "delete",
+    access,
+  );
+  const canExtract = canPerformEntityAction(
+    context,
+    entityType,
+    "extract",
+    access,
+  );
+  const canPublish = canPerformEntityAction(
+    context,
+    entityType,
+    "publish",
+    access,
+  );
+  const canRead =
+    visibleCount > 0 ||
+    canCreate ||
+    canUpdate ||
+    canDelete ||
+    canExtract ||
+    canPublish;
+  if (!canRead) return undefined;
+
+  return {
+    canRead,
+    canCreate,
+    canUpdate,
+    canDelete,
+    canExtract,
+    canPublish,
+    canAssist: canUpdate,
+  };
+}
+
+async function getTypeCapabilities(
+  context: ServicePluginContext,
+  entityType: string,
+  access: CmsRequestAccess,
+): Promise<CmsTypeCapabilities | undefined> {
+  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
+    return undefined;
+  }
+  const visibleCount = await context.entityService.countEntities({
+    entityType,
+    options: { filter: { visibilityScope: access.visibilityScope } },
+  });
+  return deriveTypeCapabilities(context, entityType, visibleCount, access);
 }
 
 /**
@@ -397,16 +599,24 @@ async function handleListTypes(
   context: ServicePluginContext,
   entityDisplay: CmsEntityDisplayMap | undefined,
   workspaceRegistry: CmsWorkspaceRegistry,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   const counts = new Map(
-    (await context.entityService.getEntityCounts()).map((entry) => [
-      entry.entityType,
-      entry.count,
-    ]),
+    (await context.entityService.getEntityCounts(access.visibilityScope)).map(
+      (entry) => [entry.entityType, entry.count],
+    ),
   );
   const types = context.entityService.getEntityTypes().flatMap((entityType) => {
     const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
     if (!schema) return [];
+    const count = counts.get(entityType) ?? 0;
+    const capabilities = deriveTypeCapabilities(
+      context,
+      entityType,
+      count,
+      access,
+    );
+    if (!capabilities) return [];
     const adapter = context.entities.getAdapter(entityType);
     return [
       {
@@ -415,14 +625,18 @@ async function handleListTypes(
           .pluralLabel,
         isSingleton: adapter?.isSingleton === true,
         hasBody: adapter?.hasBody !== false,
-        count: counts.get(entityType) ?? 0,
+        count,
+        capabilities,
       },
     ];
   });
 
   return jsonResponse({
     types,
-    workspaces: workspaceRegistry.listDescriptors(),
+    workspaces:
+      access.permissionLevel === "admin"
+        ? workspaceRegistry.listDescriptors()
+        : [],
   });
 }
 
@@ -506,16 +720,20 @@ async function handleWorkspaceAction(
   }
 }
 
-function handleGetSchema(
+async function handleGetSchema(
   context: ServicePluginContext,
   request: Request,
-): Response {
+  access: CmsRequestAccess,
+): Promise<Response> {
   const entityType = new URL(request.url).searchParams.get("type");
   if (!entityType) {
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
-  const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
+  const capabilities = await getTypeCapabilities(context, entityType, access);
+  const schema = capabilities
+    ? context.entities.getEffectiveFrontmatterSchema(entityType)
+    : undefined;
   if (!schema) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
@@ -542,19 +760,24 @@ function handleGetSchema(
 async function handleGetEntities(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const entityType = params.get("type");
   if (!entityType) {
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
-  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
+  if (!(await getTypeCapabilities(context, entityType, access))) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
   const id = params.get("id");
   if (id) {
-    const entity = await context.entityService.getEntity({ entityType, id });
+    const entity = await context.entityService.getEntity({
+      entityType,
+      id,
+      visibilityScope: access.visibilityScope,
+    });
     if (!entity) {
       return jsonResponse({ error: `Entity not found: ${id}` }, 404);
     }
@@ -575,7 +798,10 @@ async function handleGetEntities(
     });
   }
 
-  const entities = await context.entityService.listEntities({ entityType });
+  const entities = await context.entityService.listEntities({
+    entityType,
+    options: { filter: { visibilityScope: access.visibilityScope } },
+  });
   return jsonResponse({
     entities: entities.map((entity) => ({
       id: entity.id,

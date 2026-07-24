@@ -722,6 +722,7 @@ describe("cms editor api", () => {
         isSingleton: boolean;
         hasBody: boolean;
         count: number;
+        capabilities: Record<string, boolean>;
       }>;
     };
 
@@ -733,6 +734,15 @@ describe("cms editor api", () => {
       isSingleton: false,
       hasBody: true,
       count: 1,
+      capabilities: {
+        canRead: true,
+        canCreate: true,
+        canUpdate: true,
+        canDelete: true,
+        canExtract: true,
+        canPublish: true,
+        canAssist: true,
+      },
     });
   });
 

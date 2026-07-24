@@ -45,6 +45,15 @@ function entityType(entityType: string): EntityTypeInfo {
     isSingleton: false,
     hasBody: true,
     count: 1,
+    capabilities: {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: true,
+      canPublish: true,
+      canAssist: true,
+    },
   };
 }
 

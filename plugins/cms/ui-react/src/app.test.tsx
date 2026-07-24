@@ -341,6 +341,15 @@ describe("applyFieldChange", () => {
 });
 
 describe("TypeSwitcher", () => {
+  const allCapabilities: EntityTypeInfo["capabilities"] = {
+    canRead: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
+    canExtract: true,
+    canPublish: true,
+    canAssist: true,
+  };
   const types: EntityTypeInfo[] = [
     {
       entityType: "post",
@@ -348,6 +357,7 @@ describe("TypeSwitcher", () => {
       isSingleton: false,
       hasBody: true,
       count: 12,
+      capabilities: allCapabilities,
     },
     {
       entityType: "site-info",
@@ -355,6 +365,7 @@ describe("TypeSwitcher", () => {
       isSingleton: true,
       hasBody: false,
       count: 1,
+      capabilities: allCapabilities,
     },
   ];
 
@@ -417,6 +428,7 @@ describe("TypeSwitcher", () => {
         isSingleton: false,
         hasBody: true,
         count: 16,
+        capabilities: allCapabilities,
       },
       {
         entityType: "agent",
@@ -424,6 +436,7 @@ describe("TypeSwitcher", () => {
         isSingleton: false,
         hasBody: false,
         count: 2,
+        capabilities: allCapabilities,
       },
       {
         entityType: "brain-character",
@@ -431,6 +444,7 @@ describe("TypeSwitcher", () => {
         isSingleton: true,
         hasBody: true,
         count: 1,
+        capabilities: allCapabilities,
       },
     ];
     const html = renderToStaticMarkup(

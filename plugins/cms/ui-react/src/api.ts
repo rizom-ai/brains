@@ -3,12 +3,23 @@
  * Routes live under the configured CMS path and require an authenticated browser session.
  */
 
+export interface CmsTypeCapabilities {
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canExtract: boolean;
+  canPublish: boolean;
+  canAssist: boolean;
+}
+
 export interface EntityTypeInfo {
   entityType: string;
   label: string;
   isSingleton: boolean;
   hasBody: boolean;
   count: number;
+  capabilities: CmsTypeCapabilities;
 }
 
 export interface CmsWorkspaceInfo {

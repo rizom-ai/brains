@@ -92,8 +92,8 @@ describe("cms plugin", () => {
       findRoute(plugin.getWebRoutes(), "/cms/api/types").handler(request),
     ]);
 
-    expect(shellResponse.status).toBe(302);
-    expect(apiResponse.status).toBe(401);
+    expect(shellResponse.status).toBe(403);
+    expect(apiResponse.status).toBe(403);
   });
 
   it("preserves a deep CMS path through authentication", async () => {

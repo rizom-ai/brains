@@ -230,13 +230,15 @@ describe("CMS Admin rollout gate", () => {
       );
       expect(adminResponse.status).not.toBe(401);
 
-      for (const cookie of [
-        undefined,
-        sessions.trusted,
-        sessions.public,
-        sessions.invited,
-        sessions.suspended,
-      ]) {
+      for (const cookie of [sessions.trusted, sessions.public]) {
+        const response = await route.handler(routeCase.request(cookie));
+        expect(response.status).toBe(403);
+        expect(await response.json()).toEqual({
+          error: "CMS access forbidden",
+        });
+      }
+
+      for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
         const response = await route.handler(routeCase.request(cookie));
         expect(response.status).toBe(401);
         expect(await response.json()).toEqual({
@@ -267,13 +269,15 @@ describe("CMS Admin rollout gate", () => {
       );
       expect(adminResponse.status).toBe(200);
 
-      for (const cookie of [
-        undefined,
-        sessions.trusted,
-        sessions.public,
-        sessions.invited,
-        sessions.suspended,
-      ]) {
+      for (const cookie of [sessions.trusted, sessions.public]) {
+        const response = await route.handler(
+          request(shellRoute.requestPath, { cookie }),
+        );
+        expect(response.status).toBe(403);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+      }
+
+      for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
         const response = await route.handler(
           request(shellRoute.requestPath, { cookie }),
         );
@@ -402,7 +406,7 @@ describe("CMS Admin rollout gate", () => {
     ];
 
     for (const [route, trustedRequest] of trustedRequests) {
-      expect((await route.handler(trustedRequest)).status).toBe(401);
+      expect((await route.handler(trustedRequest)).status).toBe(403);
     }
     expect(getEntitySpy).not.toHaveBeenCalled();
     expect({

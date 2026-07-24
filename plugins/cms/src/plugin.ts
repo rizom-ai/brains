@@ -103,7 +103,10 @@ export class CmsPlugin extends ServicePlugin<
     return createEditorRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
-      resolveAuthSession: hasAdminAuthSession,
+      resolveAuthPrincipal: (request) =>
+        getActiveAuthService()?.resolveSession(request) ??
+        Promise.resolve(undefined),
+      minimumPermissionLevel: "admin",
       getEntityDisplay: () =>
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
@@ -114,9 +117,4 @@ export class CmsPlugin extends ServicePlugin<
 
 export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
-}
-
-async function hasAdminAuthSession(request: Request): Promise<boolean> {
-  const principal = await getActiveAuthService()?.resolveSession(request);
-  return principal?.permissionLevel === "admin";
 }
