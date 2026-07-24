@@ -820,7 +820,7 @@ export class EntityMutations {
         deduplication: "coalesce",
         deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
         metadata: {
-          operationType: "data_processing" as const,
+          operationType: "data_processing",
           operationTarget: entityId,
           ...(eventContext?.interfaceType
             ? {

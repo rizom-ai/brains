@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
@@ -120,14 +120,22 @@ const generatingJobDataSchema = z.object({
   attachmentType: z.string().optional(),
 });
 
+interface PublicationPipelineSnapshotOptions {
+  visibilityScope?: ContentVisibility;
+  entityTypes?: string[];
+}
+
 /** Build the content-pipeline-owned read model for operator surfaces. */
 export async function getPublicationPipelineSnapshot(
   context: ServicePluginContext,
   providerRegistry: ProviderRegistry,
   queueManager: QueueManager,
   retryTracker: RetryTracker,
+  options: PublicationPipelineSnapshotOptions = {},
 ): Promise<PublicationPipelineSnapshot> {
-  const publishableEntityTypes = providerRegistry.getRegisteredTypes().sort();
+  const publishableEntityTypes = (
+    options.entityTypes ?? providerRegistry.getRegisteredTypes()
+  ).sort();
   const entitiesByKey = new Map<string, PublicationEntityItem>();
   const summary = {
     draft: 0,
@@ -139,7 +147,12 @@ export async function getPublicationPipelineSnapshot(
   };
 
   for (const entityType of publishableEntityTypes) {
-    const entities = await context.entityService.listEntities({ entityType });
+    const entities = await context.entityService.listEntities({
+      entityType,
+      ...(options.visibilityScope
+        ? { options: { filter: { visibilityScope: options.visibilityScope } } }
+        : {}),
+    });
     for (const entity of entities) {
       const parsedStatus = publicationStatusSchema.safeParse(
         entity.metadata["status"],
@@ -180,7 +193,10 @@ export async function getPublicationPipelineSnapshot(
   // QueueManager ordering is per publishable type because schedulers consume
   // one destination at a time. Keep each destination contiguous so operator
   // move controls match the executable order they mutate.
-  const generating = await getGeneratingItems(context);
+  const generating = await getGeneratingItems(
+    context,
+    options.visibilityScope ? entitiesByKey : undefined,
+  );
   summary.generating = generating.length;
 
   const failures = Array.from(entitiesByKey.values())
@@ -210,6 +226,7 @@ export async function getPublicationPipelineSnapshot(
 
 async function getGeneratingItems(
   context: ServicePluginContext,
+  visibleEntities: ReadonlyMap<string, PublicationEntityItem> | undefined,
 ): Promise<PublicationJobItem[]> {
   const generating: PublicationJobItem[] = [];
 
@@ -225,6 +242,14 @@ async function getGeneratingItems(
     }
     const parsed = generatingJobDataSchema.safeParse(payload);
     if (!parsed.success) continue;
+    if (
+      visibleEntities &&
+      !visibleEntities.has(
+        entityKey(parsed.data.sourceEntityType, parsed.data.sourceEntityId),
+      )
+    ) {
+      continue;
+    }
 
     generating.push({
       id: job.id,

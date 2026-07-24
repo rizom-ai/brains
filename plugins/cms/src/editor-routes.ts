@@ -63,8 +63,7 @@ const workspaceActionPayloadSchema = z.object({
 
 const assistContextShape = {
   entityType: z.string(),
-  body: z.string(),
-  frontmatter: z.record(z.string(), z.unknown()),
+  id: z.string(),
 };
 
 const assistPayloadSchema = z.union([
@@ -78,13 +77,11 @@ const assistPayloadSchema = z.union([
     ...assistContextShape,
     variant: z.literal("summarise"),
     targetField: z.string().trim().min(1),
-    body: z.string().min(1),
   }),
   z.object({
     ...assistContextShape,
     variant: z.literal("tag-suggest"),
     targetField: z.string().trim().min(1),
-    body: z.string().min(1),
   }),
 ]);
 
@@ -97,6 +94,8 @@ const tagAssistResponseSchema = z.object({
 });
 
 const askAgentPayloadSchema = z.object({
+  entityType: z.string(),
+  id: z.string(),
   selection: z.string().min(1).max(8_000),
   instruction: z.string().trim().min(1).max(2_000),
   agent: z.string().trim().min(1).max(253),
@@ -348,9 +347,7 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleGetWorkspace(workspaceRegistry, request);
+        return handleGetWorkspace(workspaceRegistry, request, access);
       },
     },
     {
@@ -360,11 +357,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleWorkspaceAction(workspaceRegistry, request);
+        return handleWorkspaceAction(workspaceRegistry, request, access);
       },
     },
     {
@@ -463,11 +458,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleAssist(getContext(), request);
+        return handleAssist(getContext(), request, access);
       },
     },
     {
@@ -477,9 +470,7 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleListAgents(getContext());
+        return handleListAgents(getContext(), request, access);
       },
     },
     {
@@ -489,11 +480,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleAskAgent(getContext(), request);
+        return handleAskAgent(getContext(), request, access);
       },
     },
     {
@@ -509,6 +498,17 @@ export function createEditorRoutes(
       },
     },
   ];
+}
+
+function toCmsWorkspaceActor(access: CmsRequestAccess): CmsWorkspaceActor {
+  return {
+    interfaceType: "cms",
+    userId: access.principal.userId,
+    actor: access.actor,
+    userPermissionLevel: access.permissionLevel,
+    visibilityScope: access.visibilityScope,
+    isAnchor: access.isAnchor,
+  };
 }
 
 type CmsMutationOperation = "create" | "update" | "delete" | "upload";
@@ -739,16 +739,16 @@ async function handleListTypes(
 
   return jsonResponse({
     types,
-    workspaces:
-      access.permissionLevel === "admin"
-        ? workspaceRegistry.listDescriptors()
-        : [],
+    workspaces: await workspaceRegistry.listDescriptors(
+      toCmsWorkspaceActor(access),
+    ),
   });
 }
 
 async function handleGetWorkspace(
   workspaceRegistry: CmsWorkspaceRegistry,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) {
@@ -760,12 +760,17 @@ async function handleGetWorkspace(
     return jsonResponse({ error: `Unknown CMS workspace: ${id}` }, 404);
   }
 
+  const actor = toCmsWorkspaceActor(access);
+  if (!(await workspace.accessHandler(actor))) {
+    return jsonResponse({ error: `Unknown CMS workspace: ${id}` }, 404);
+  }
+
   try {
     return jsonResponse({
       workspace: {
         id: workspace.id,
         rendererName: workspace.rendererName,
-        data: await workspace.dataProvider(),
+        data: await workspace.dataProvider(actor),
       },
     });
   } catch (error) {
@@ -784,6 +789,7 @@ async function handleGetWorkspace(
 async function handleWorkspaceAction(
   workspaceRegistry: CmsWorkspaceRegistry,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   let payload: z.infer<typeof workspaceActionPayloadSchema>;
   try {
@@ -796,18 +802,16 @@ async function handleWorkspaceAction(
   if (!workspace) {
     return jsonResponse({ error: `Unknown CMS workspace: ${payload.id}` }, 404);
   }
+  const actor = toCmsWorkspaceActor(access);
+  if (!(await workspace.accessHandler(actor))) {
+    return jsonResponse({ error: `Unknown CMS workspace: ${payload.id}` }, 404);
+  }
   if (!workspace.actionHandler) {
     return jsonResponse(
       { error: `CMS workspace ${payload.id} does not provide actions` },
       405,
     );
   }
-
-  const actor: CmsWorkspaceActor = {
-    interfaceType: "cms",
-    userId: "operator",
-    userPermissionLevel: "admin",
-  };
 
   try {
     return jsonResponse({
@@ -850,8 +854,8 @@ async function handleGetSchema(
   // system bookkeeping and must not surface as form fields.
   const fields = raw
     ? []
-    : Object.entries(schema.shape).map(([name, fieldSchema]) =>
-        zodFieldToCmsWidget(name, fieldSchema as z.ZodTypeAny),
+    : Object.keys(schema.shape).map((name) =>
+        zodFieldToCmsWidget(name, schema.shape[name]),
       );
 
   return jsonResponse({
@@ -972,7 +976,7 @@ async function handleUpdateEntity(
   // Validate before anything is written — field-level errors go back to
   // the form, the entity service is never called with invalid frontmatter.
   const frontmatter = raw
-    ? { success: true as const, data: {} }
+    ? z.object({}).safeParse({})
     : schema.safeParse(payload.frontmatter);
   if (!frontmatter.success) {
     return jsonResponse(
@@ -1165,7 +1169,7 @@ async function handleCreateEntity(
   if (!visibility.success) return visibility.response;
 
   const frontmatter = raw
-    ? { success: true as const, data: {} }
+    ? z.object({}).safeParse({})
     : schema.safeParse(payload.frontmatter);
   if (!frontmatter.success) {
     return jsonResponse(
@@ -1314,9 +1318,51 @@ async function handleDeleteEntity(
   return jsonResponse({ deleted });
 }
 
+interface CmsAssistEntityContext {
+  entity: BaseEntity;
+  frontmatter: Record<string, unknown>;
+  body: string;
+}
+
+async function resolveCmsAssistEntity(
+  context: ServicePluginContext,
+  entityType: string,
+  id: string,
+  access: CmsRequestAccess,
+): Promise<CmsAssistEntityContext | Response> {
+  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
+    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  }
+  const entity = await context.entityService.getEntity({
+    entityType,
+    id,
+    visibilityScope: access.visibilityScope,
+  });
+  if (!entity) {
+    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+  }
+  const denied = requireEntityAction(context, entityType, "update", access);
+  if (denied) return denied;
+  const content = splitEntityContent(entityType, entity.content);
+  return { entity, ...content };
+}
+
+function requireStoredSelection(
+  context: CmsAssistEntityContext,
+  selection: string,
+): Response | null {
+  return context.body.includes(selection)
+    ? null
+    : jsonResponse(
+        { error: "Selection no longer matches the stored entity" },
+        409,
+      );
+}
+
 async function handleAssist(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   let payload: z.infer<typeof assistPayloadSchema>;
   try {
@@ -1327,6 +1373,14 @@ async function handleAssist(
       400,
     );
   }
+
+  const entityContext = await resolveCmsAssistEntity(
+    context,
+    payload.entityType,
+    payload.id,
+    access,
+  );
+  if (entityContext instanceof Response) return entityContext;
 
   const frontmatterSchema = context.entities.getEffectiveFrontmatterSchema(
     payload.entityType,
@@ -1346,10 +1400,7 @@ async function handleAssist(
         400,
       );
     }
-    const descriptor = zodFieldToCmsWidget(
-      payload.targetField,
-      fieldSchema as z.ZodTypeAny,
-    );
+    const descriptor = zodFieldToCmsWidget(payload.targetField, fieldSchema);
     const compatible =
       payload.variant === "summarise"
         ? descriptor.widget === "string" || descriptor.widget === "text"
@@ -1367,10 +1418,10 @@ async function handleAssist(
       "You are editing CMS frontmatter from an existing markdown body.",
       `Entity type: ${payload.entityType}`,
       `Target field: ${payload.targetField}`,
-      `Existing frontmatter JSON: ${JSON.stringify(payload.frontmatter)}`,
+      `Existing frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
       "",
       "Full markdown body:",
-      payload.body,
+      entityContext.body,
     ];
 
     if (payload.variant === "summarise") {
@@ -1404,6 +1455,11 @@ async function handleAssist(
     });
   }
 
+  const selectionError = requireStoredSelection(
+    entityContext,
+    payload.selection,
+  );
+  if (selectionError) return selectionError;
   const prompt = [
     "You are editing markdown for the CMS.",
     "Rewrite only the selected text according to the instruction.",
@@ -1411,14 +1467,14 @@ async function handleAssist(
     "Do not include commentary, code fences, or unchanged surrounding body text.",
     "",
     `Entity type: ${payload.entityType}`,
-    `Frontmatter JSON: ${JSON.stringify(payload.frontmatter)}`,
+    `Frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
     `Instruction: ${payload.instruction}`,
     "",
     "Selected markdown:",
     payload.selection,
     "",
     "Full body for context:",
-    payload.body,
+    entityContext.body,
   ].join("\n");
 
   const { object } = await context.ai.generateObject(
@@ -1430,10 +1486,34 @@ async function handleAssist(
 
 async function handleListAgents(
   context: ServicePluginContext,
+  request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+  const entityType = params.get("type");
+  const id = params.get("id");
+  if (!entityType || !id) {
+    return jsonResponse(
+      { error: "type and id query parameters are required" },
+      400,
+    );
+  }
+  const entityContext = await resolveCmsAssistEntity(
+    context,
+    entityType,
+    id,
+    access,
+  );
+  if (entityContext instanceof Response) return entityContext;
+
   const response = await context.messaging.send({
     type: "a2a:call:agents",
-    payload: {},
+    payload: {
+      entityType,
+      entityId: entityContext.entity.id,
+      actor: access.actor,
+      interfaceType: "cms",
+    },
   });
   if (!("success" in response) || !response.success) {
     // No a2a interface (or no directory) means the client keeps the existing
@@ -1448,6 +1528,7 @@ async function handleListAgents(
 async function handleAskAgent(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   let payload: z.infer<typeof askAgentPayloadSchema>;
   try {
@@ -1459,9 +1540,30 @@ async function handleAskAgent(
     );
   }
 
+  const entityContext = await resolveCmsAssistEntity(
+    context,
+    payload.entityType,
+    payload.id,
+    access,
+  );
+  if (entityContext instanceof Response) return entityContext;
+  const selectionError = requireStoredSelection(
+    entityContext,
+    payload.selection,
+  );
+  if (selectionError) return selectionError;
+
   const result = await context.messaging.send({
     type: "a2a:call:request",
-    payload,
+    payload: {
+      agent: payload.agent,
+      instruction: payload.instruction,
+      selection: payload.selection,
+      entityType: payload.entityType,
+      entityId: entityContext.entity.id,
+      actor: access.actor,
+      interfaceType: "cms",
+    },
   });
   if (!("success" in result) || !result.success) {
     const error =

@@ -1,12 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
-import type {
-  CmsWorkspaceRegistration,
-  ServicePluginContext,
-} from "@brains/plugins";
 import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/test-utils";
+  createServicePluginContext,
+  type CmsWorkspaceActor,
+  type CmsWorkspaceRegistration,
+  type ServicePluginContext,
+} from "@brains/plugins";
+import { createMockShell } from "@brains/test-utils";
 import {
   directorySyncConfigSchema,
   type IDirectorySync,
@@ -16,6 +15,24 @@ import { DirectorySyncOperationStatusService } from "../src/lib/directory-sync-o
 import { DirectorySyncWorkspaceProvider } from "../src/lib/cms-workspace";
 import { createMockDirectorySync, createMockGitSync } from "./fixtures";
 
+const publicActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "visitor",
+  actor: { kind: "user", userId: "visitor" },
+  userPermissionLevel: "public",
+  visibilityScope: "public",
+  isAnchor: false,
+};
+
+const adminActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "operator-1",
+  actor: { kind: "user", userId: "operator-1" },
+  userPermissionLevel: "admin",
+  visibilityScope: "restricted",
+  isAnchor: true,
+};
+
 function createProviderContext(): {
   context: ServicePluginContext;
   getRegistration: () => CmsWorkspaceRegistration | undefined;
@@ -23,26 +40,21 @@ function createProviderContext(): {
 } {
   let registration: CmsWorkspaceRegistration | undefined;
   const enqueue = mock(async () => "sync-job-1");
-  const base = createMockServicePluginContext();
-  const runtimeState = createMockShell().getRuntimeState();
-  const context = {
-    ...base,
-    runtimeState,
-    jobs: { ...base.jobs, enqueue },
-    messaging: {
-      ...base.messaging,
-      send: mock(async (message: { type: string; payload: unknown }) => {
-        if (message.type === "cms:register-workspace") {
-          registration = message.payload as CmsWorkspaceRegistration;
-          return {
-            success: true,
-            data: { workspaceUrl: "/studio/workspaces/sync" },
-          };
-        }
-        return { noop: true };
-      }),
-    },
-  } as ServicePluginContext;
+  const context = createServicePluginContext(
+    createMockShell(),
+    "directory-sync",
+  );
+  context.jobs.enqueue = enqueue;
+  context.messaging.subscribe<
+    CmsWorkspaceRegistration,
+    { workspaceUrl: string }
+  >("cms:register-workspace", async (message) => {
+    registration = message.payload;
+    return {
+      success: true,
+      data: { workspaceUrl: "/studio/workspaces/sync" },
+    };
+  });
   return { context, getRegistration: () => registration, enqueue };
 }
 
@@ -106,7 +118,16 @@ describe("directory-sync CMS workspace", () => {
     });
     if (!registration) throw new Error("Workspace was not registered");
 
-    const snapshot = await registration.dataProvider();
+    expect(await Promise.resolve(registration.accessHandler(publicActor))).toBe(
+      false,
+    );
+    expect(await Promise.resolve(registration.accessHandler(adminActor))).toBe(
+      true,
+    );
+    expect(registration.dataProvider(publicActor)).rejects.toThrow(
+      "admin permission",
+    );
+    const snapshot = await registration.dataProvider(adminActor);
     expect(snapshot).toMatchObject({
       health: "healthy",
       directory: {
@@ -152,23 +173,12 @@ describe("directory-sync CMS workspace", () => {
     }
 
     expect(
-      registration.actionHandler(
-        { type: "sync-now" },
-        {
-          interfaceType: "cms",
-          userId: "visitor",
-          userPermissionLevel: "public",
-        },
-      ),
+      registration.actionHandler({ type: "sync-now" }, publicActor),
     ).rejects.toThrow("admin permission");
 
     const result = await registration.actionHandler(
       { type: "sync-now" },
-      {
-        interfaceType: "cms",
-        userId: "operator-1",
-        userPermissionLevel: "admin",
-      },
+      adminActor,
     );
     expect(result).toMatchObject({
       accepted: true,

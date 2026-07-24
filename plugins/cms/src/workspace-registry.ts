@@ -15,7 +15,11 @@ const workspaceRegistrationSchema = z.object({
   ]),
   priority: z.number().int(),
   entityTypes: z.array(z.string().trim().min(1)).default([]),
-  dataProvider: z.custom<() => Promise<unknown>>(
+  accessHandler: z.custom<CmsWorkspaceRegistration["accessHandler"]>(
+    (value) => typeof value === "function",
+    { message: "Expected CMS workspace access handler function" },
+  ),
+  dataProvider: z.custom<CmsWorkspaceRegistration["dataProvider"]>(
     (value) => typeof value === "function",
     { message: "Expected CMS workspace data provider function" },
   ),
@@ -28,7 +32,8 @@ const workspaceRegistrationSchema = z.object({
 });
 
 export interface StoredCmsWorkspace extends CmsWorkspaceDescriptor {
-  dataProvider: () => Promise<unknown>;
+  accessHandler: CmsWorkspaceRegistration["accessHandler"];
+  dataProvider: CmsWorkspaceRegistration["dataProvider"];
   actionHandler?: CmsWorkspaceRegistration["actionHandler"];
 }
 
@@ -47,6 +52,7 @@ export class CmsWorkspaceRegistry {
       rendererName: parsed.rendererName,
       priority: parsed.priority,
       entityTypes: parsed.entityTypes,
+      accessHandler: parsed.accessHandler,
       dataProvider: parsed.dataProvider,
       ...(parsed.actionHandler ? { actionHandler: parsed.actionHandler } : {}),
     };
@@ -58,16 +64,31 @@ export class CmsWorkspaceRegistry {
     return this.workspaces.get(id);
   }
 
-  listDescriptors(): CmsWorkspaceDescriptor[] {
-    return Array.from(this.workspaces.values())
-      .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id))
-      .map(({ id, pluginId, label, rendererName, priority, entityTypes }) => ({
-        id,
-        pluginId,
-        label,
-        rendererName,
-        priority,
-        entityTypes,
-      }));
+  async listDescriptors(
+    actor: Parameters<CmsWorkspaceRegistration["accessHandler"]>[0],
+  ): Promise<CmsWorkspaceDescriptor[]> {
+    const sorted = Array.from(this.workspaces.values()).sort(
+      (a, b) => a.priority - b.priority || a.id.localeCompare(b.id),
+    );
+    const admitted = await Promise.all(
+      sorted.map(async (workspace) => ({
+        workspace,
+        admitted: await workspace.accessHandler(actor),
+      })),
+    );
+    return admitted.flatMap(({ workspace, admitted: isAdmitted }) =>
+      isAdmitted
+        ? [
+            {
+              id: workspace.id,
+              pluginId: workspace.pluginId,
+              label: workspace.label,
+              rendererName: workspace.rendererName,
+              priority: workspace.priority,
+              entityTypes: workspace.entityTypes,
+            },
+          ]
+        : [],
+    );
   }
 }

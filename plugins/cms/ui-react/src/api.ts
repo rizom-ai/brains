@@ -345,21 +345,42 @@ export function cmsApiPath(suffix: string, routePath?: string): string {
   return `${base}/api/${suffix.replace(/^\/+/, "")}`;
 }
 
+function apiErrorPayload(payload: unknown): {
+  error: string | undefined;
+  issues: ValidationIssue[];
+} {
+  if (typeof payload !== "object" || payload === null) {
+    return { error: undefined, issues: [] };
+  }
+  const error =
+    "error" in payload && typeof payload.error === "string"
+      ? payload.error
+      : undefined;
+  const issues =
+    "issues" in payload && Array.isArray(payload.issues)
+      ? payload.issues.filter(
+          (issue): issue is ValidationIssue =>
+            typeof issue === "object" &&
+            issue !== null &&
+            "message" in issue &&
+            typeof issue.message === "string",
+        )
+      : [];
+  return { error, issues };
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
-  const payload: unknown = await response.json().catch(() => undefined);
+  const payload = await response.json().catch(() => undefined);
   if (!response.ok) {
-    const record = (payload ?? {}) as {
-      error?: string;
-      issues?: ValidationIssue[];
-    };
+    const details = apiErrorPayload(payload);
     throw new ApiError(
       response.status,
-      record.error ?? response.statusText,
-      record.issues ?? [],
+      details.error ?? response.statusText,
+      details.issues,
     );
   }
-  return payload as T;
+  return payload;
 }
 
 export async function fetchNavigation(): Promise<CmsNavigation> {
@@ -471,10 +492,9 @@ export async function uploadFile(
 
 export async function requestAssist(input: {
   entityType: string;
+  id: string;
   instruction: string;
   selection: string;
-  body: string;
-  frontmatter: Record<string, unknown>;
 }): Promise<{ suggestion: string }> {
   return requestJson<{ suggestion: string }>(cmsApiPath("assist"), {
     method: "POST",
@@ -498,9 +518,8 @@ export type FieldAssistResponse =
 export async function requestFieldAssist(input: {
   variant: "summarise" | "tag-suggest";
   entityType: string;
+  id: string;
   targetField: string;
-  body: string;
-  frontmatter: Record<string, unknown>;
 }): Promise<FieldAssistResponse> {
   return requestJson<FieldAssistResponse>(cmsApiPath("assist"), {
     method: "POST",
@@ -509,14 +528,21 @@ export async function requestFieldAssist(input: {
   });
 }
 
-export async function fetchAgentTargets(): Promise<AgentTarget[]> {
+export async function fetchAgentTargets(
+  entityType: string,
+  id: string,
+): Promise<AgentTarget[]> {
   const { agents } = await requestJson<{ agents: AgentTarget[] }>(
-    cmsApiPath("agents"),
+    cmsApiPath(
+      `agents?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
+    ),
   );
   return agents;
 }
 
 export async function requestAgentAnswer(input: {
+  entityType: string;
+  id: string;
   agent: string;
   instruction: string;
   selection: string;

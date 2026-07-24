@@ -110,6 +110,7 @@ function createReadFixture(): {
     label: "Directory Sync",
     rendererName: "DirectorySyncWorkspace",
     priority: 10,
+    accessHandler: (actor) => actor.userPermissionLevel === "admin",
     dataProvider: async (): Promise<Record<string, never>> => ({}),
   });
 
@@ -134,8 +135,8 @@ function findRoute(
     (candidate) =>
       candidate.path === path && (candidate.method ?? "GET") === method,
   );
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing ${method} route: ${path}`);
+  return route;
 }
 
 function request(
@@ -159,14 +160,18 @@ describe("CMS principal-aware reads behind the rollout gate", () => {
     const response = await findRoute(routes, "/cms/api/types").handler(
       request("/cms/api/types"),
     );
-    const payload = (await response.json()) as {
-      types: Array<{
-        entityType: string;
-        count: number;
-        capabilities: Record<string, boolean>;
-      }>;
-      workspaces: unknown[];
-    };
+    const payload = z
+      .object({
+        types: z.array(
+          z.object({
+            entityType: z.string(),
+            count: z.number(),
+            capabilities: z.record(z.string(), z.boolean()),
+          }),
+        ),
+        workspaces: z.array(z.unknown()),
+      })
+      .parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -231,78 +236,17 @@ describe("CMS principal-aware reads behind the rollout gate", () => {
     expect(postSchema.status).toBe(200);
     expect(secretSchema.status).toBe(404);
     expect(unknownSchema.status).toBe(404);
-    expect(
-      ((await list.json()) as { entities: Array<{ id: string }> }).entities.map(
-        (entity) => entity.id,
-      ),
-    ).toEqual(["public-post", "shared-post"]);
-    expect(
-      ((await shared.json()) as { entity: { id: string } }).entity.id,
-    ).toBe("shared-post");
+    const listed = z
+      .object({ entities: z.array(z.object({ id: z.string() })) })
+      .parse(await list.json());
+    const sharedEntity = z
+      .object({ entity: z.object({ id: z.string() }) })
+      .parse(await shared.json());
+    expect(listed.entities.map((entity) => entity.id)).toEqual([
+      "public-post",
+      "shared-post",
+    ]);
+    expect(sharedEntity.entity.id).toBe("shared-post");
     expect(restricted.status).toBe(404);
-  });
-
-  it("keeps unfinished capabilities Admin-only under a Trusted read gate", async () => {
-    const { routes, shell } = createReadFixture();
-    let workspaceReads = 0;
-    let assists = 0;
-    shell.getMessageBus().subscribe("sync:status:request", async () => {
-      workspaceReads += 1;
-      return { success: true, data: {} };
-    });
-    shell.generateObject = async <T>(): Promise<{ object: T }> => {
-      assists += 1;
-      return { object: { suggestion: "not reached" } as T };
-    };
-
-    const guardedRequests: Array<{
-      path: string;
-      method?: WebRouteDefinition["method"];
-      request: Request;
-    }> = [
-      {
-        path: "/cms/api/assist",
-        method: "POST",
-        request: request("/cms/api/assist", { method: "POST", body: {} }),
-      },
-      { path: "/cms/api/agents", request: request("/cms/api/agents") },
-      {
-        path: "/cms/api/ask-agent",
-        method: "POST",
-        request: request("/cms/api/ask-agent", {
-          method: "POST",
-          body: {},
-        }),
-      },
-      {
-        path: "/cms/api/workspace",
-        request: request("/cms/api/workspace?id=directory-sync"),
-      },
-      {
-        path: "/cms/api/workspace",
-        method: "POST",
-        request: request("/cms/api/workspace", { method: "POST", body: {} }),
-      },
-      {
-        path: "/cms/api/sync-status",
-        request: request("/cms/api/sync-status"),
-      },
-    ];
-
-    for (const guarded of guardedRequests) {
-      const response = await findRoute(
-        routes,
-        guarded.path,
-        guarded.method ?? "GET",
-      ).handler(guarded.request);
-      expect(response.status).toBe(403);
-      expect(await response.json()).toEqual({
-        error: "Admin CMS capability required",
-      });
-    }
-    expect({ workspaceReads, assists }).toEqual({
-      workspaceReads: 0,
-      assists: 0,
-    });
   });
 });

@@ -3,21 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import type { WebRouteDefinition } from "@brains/plugins";
+import type {
+  CmsWorkspaceRegistration,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { cmsPlugin, type CmsPlugin } from "../src";
-
-interface TestWorkspaceRegistration {
-  id: string;
-  pluginId: string;
-  label: string;
-  rendererName:
-    "PublishingWorkspace" | "SiteWorkspace" | "DirectorySyncWorkspace";
-  priority: number;
-  entityTypes?: string[];
-  dataProvider: () => Promise<unknown>;
-  actionHandler?: (action: unknown, actor: unknown) => Promise<unknown>;
-}
 
 function findRoute(
   plugin: CmsPlugin,
@@ -30,8 +22,8 @@ function findRoute(
       (candidate) =>
         candidate.path === path && (candidate.method ?? "GET") === method,
     );
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing ${method} route: ${path}`);
+  return route;
 }
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
@@ -65,7 +57,7 @@ function request(
 
 async function registerWorkspace(
   shell: MockShell,
-  registration: TestWorkspaceRegistration,
+  registration: CmsWorkspaceRegistration,
 ): Promise<unknown> {
   return shell.getMessageBus().send({
     type: "cms:register-workspace",
@@ -84,7 +76,9 @@ describe("optional CMS workspaces", () => {
     const response = await findRoute(plugin, "/cms/api/types").handler(
       request("/cms/api/types", { cookie }),
     );
-    const payload = (await response.json()) as { workspaces?: unknown[] };
+    const payload = z
+      .object({ workspaces: z.array(z.unknown()).optional() })
+      .parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.workspaces).toEqual([]);
@@ -102,6 +96,7 @@ describe("optional CMS workspaces", () => {
       rendererName: "PublishingWorkspace",
       priority: 40,
       entityTypes: ["post", "newsletter"],
+      accessHandler: () => true,
       dataProvider: async () => ({ summary: { queued: 2 } }),
     });
 
@@ -123,15 +118,16 @@ describe("optional CMS workspaces", () => {
       rendererName: "PublishingWorkspace",
       priority: 40,
       entityTypes: ["post"],
+      accessHandler: () => true,
       dataProvider: async () => ({ summary: { queued: 2 } }),
     });
 
     const typesResponse = await findRoute(plugin, "/cms/api/types").handler(
       request("/cms/api/types", { cookie }),
     );
-    const typesPayload = (await typesResponse.json()) as {
-      workspaces: unknown[];
-    };
+    const typesPayload = z
+      .object({ workspaces: z.array(z.unknown()) })
+      .parse(await typesResponse.json());
     expect(typesPayload.workspaces).toEqual([
       {
         id: "publishing",
@@ -174,6 +170,7 @@ describe("optional CMS workspaces", () => {
       label: "Site",
       rendererName: "SiteWorkspace",
       priority: 50,
+      accessHandler: () => true,
       dataProvider: async () => ({}),
     });
     await registerWorkspace(shell, {
@@ -182,6 +179,7 @@ describe("optional CMS workspaces", () => {
       label: "Sync",
       rendererName: "DirectorySyncWorkspace",
       priority: 60,
+      accessHandler: () => true,
       dataProvider: async () => ({}),
     });
     await registerWorkspace(shell, {
@@ -190,6 +188,7 @@ describe("optional CMS workspaces", () => {
       label: "Publishing",
       rendererName: "PublishingWorkspace",
       priority: 40,
+      accessHandler: () => true,
       dataProvider: async () => ({}),
     });
 
@@ -212,6 +211,7 @@ describe("optional CMS workspaces", () => {
       label: "Site",
       rendererName: "SiteWorkspace",
       priority: 50,
+      accessHandler: () => true,
       dataProvider: async () => ({ source: "original" }),
     });
     const duplicate = await registerWorkspace(shell, {
@@ -220,6 +220,7 @@ describe("optional CMS workspaces", () => {
       label: "Other site",
       rendererName: "SiteWorkspace",
       priority: 10,
+      accessHandler: () => true,
       dataProvider: async () => ({ source: "duplicate" }),
     });
 
@@ -229,7 +230,7 @@ describe("optional CMS workspaces", () => {
     });
   });
 
-  it("derives an admin CMS actor for registered actions", async () => {
+  it("derives the authenticated CMS actor for registered actions", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
     const plugin = cmsPlugin();
@@ -241,6 +242,7 @@ describe("optional CMS workspaces", () => {
       label: "Publishing",
       rendererName: "PublishingWorkspace",
       priority: 40,
+      accessHandler: () => true,
       dataProvider: async () => ({}),
       actionHandler: async (action, actor) => {
         calls.push({ action, actor });
@@ -266,15 +268,16 @@ describe("optional CMS workspaces", () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ result: { accepted: true } });
-    expect(calls).toEqual([
-      {
-        action: { type: "retry" },
-        actor: {
-          interfaceType: "cms",
-          userId: "operator",
-          userPermissionLevel: "admin",
-        },
-      },
-    ]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({
+      action: { type: "retry" },
+      actor: expect.objectContaining({
+        interfaceType: "cms",
+        actor: expect.objectContaining({ kind: "user" }),
+        userPermissionLevel: "admin",
+        visibilityScope: "restricted",
+        isAnchor: true,
+      }),
+    });
   });
 });

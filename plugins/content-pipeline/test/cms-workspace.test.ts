@@ -4,13 +4,69 @@ import {
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
-import type { CmsWorkspaceRegistration } from "@brains/plugins";
+import {
+  BaseEntityAdapter,
+  type BaseEntity,
+  type CmsWorkspaceActor,
+  type CmsWorkspaceRegistration,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
 import { RetryTracker } from "../src/retry-tracker";
 import { PublicationQueueService } from "../src/publication-queue-service";
 import { PublishExecutor } from "../src/publish-executor";
 import { registerCmsWorkspace } from "../src/lib/cms-workspace";
+
+const fixtureFrontmatterSchema = z.object({});
+
+class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "social-post",
+      purpose: "CMS workspace fixture",
+      schema: baseEntitySchema,
+      frontmatterSchema: fixtureFrontmatterSchema,
+    });
+  }
+
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: this.entityType, content: markdown };
+  }
+}
+
+const trustedActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "editor",
+  actor: { kind: "user", userId: "editor" },
+  userPermissionLevel: "trusted",
+  visibilityScope: "shared",
+  isAnchor: false,
+};
+
+const adminActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "operator",
+  actor: { kind: "user", userId: "operator" },
+  userPermissionLevel: "admin",
+  visibilityScope: "restricted",
+  isAnchor: true,
+};
+
+const confirmationResultSchema = z.object({
+  needsConfirmation: z.literal(true),
+  args: z.object({
+    confirmed: z.literal(true),
+    confirmationToken: z.string(),
+    contentHash: z.string(),
+    expiresAt: z.string(),
+  }),
+});
+const failedResultSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+const successResultSchema = z.object({ success: z.literal(true) });
 
 describe("content-pipeline CMS workspace registration", () => {
   it("is a no-op when the CMS is absent", async () => {
@@ -38,13 +94,18 @@ describe("content-pipeline CMS workspace registration", () => {
   it("registers the Publishing renderer backed by the canonical snapshot", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register("social-post", baseEntitySchema, {} as never);
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
     await context.entityService.createEntity({
       entity: {
         id: "queued-post",
         entityType: "social-post",
         content: "Queued post",
         metadata: { status: "queued", title: "Queued post" },
+        visibility: "public",
       },
     });
 
@@ -87,7 +148,9 @@ describe("content-pipeline CMS workspace registration", () => {
       priority: 40,
       entityTypes: ["social-post"],
     });
-    expect(await registration?.dataProvider()).toMatchObject({
+    if (!registration) throw new Error("Workspace was not registered");
+    expect(await registration.accessHandler(adminActor)).toBe(true);
+    expect(await registration.dataProvider(adminActor)).toMatchObject({
       summary: { queued: 1 },
       queue: [
         expect.objectContaining({
@@ -101,13 +164,18 @@ describe("content-pipeline CMS workspace registration", () => {
   it("owns validated queue, reorder, remove, and retry actions", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register("social-post", baseEntitySchema, {} as never);
-    for (const [id, status] of [
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
+    const fixtureEntities: Array<readonly [string, "draft" | "failed"]> = [
       ["first", "draft"],
       ["second", "draft"],
       ["failed", "failed"],
       ["failed-for-queue", "failed"],
-    ] as const) {
+    ];
+    for (const [id, status] of fixtureEntities) {
       await context.entityService.createEntity({
         entity: {
           id,
@@ -149,11 +217,7 @@ describe("content-pipeline CMS workspace registration", () => {
     });
     const act = registration?.actionHandler;
     expect(act).toBeFunction();
-    const actor = {
-      interfaceType: "cms" as const,
-      userId: "operator",
-      userPermissionLevel: "admin" as const,
-    };
+    const actor = adminActor;
 
     await act?.(
       { type: "queue", entityType: "social-post", entityId: "first" },
@@ -202,7 +266,10 @@ describe("content-pipeline CMS workspace registration", () => {
     } catch (error) {
       invalidTransitionError = error;
     }
-    expect((invalidTransitionError as Error | undefined)?.message).toContain(
+    if (!(invalidTransitionError instanceof Error)) {
+      throw new Error("Expected invalid transition to fail");
+    }
+    expect(invalidTransitionError.message).toContain(
       "Only draft entities can be queued",
     );
 
@@ -226,16 +293,140 @@ describe("content-pipeline CMS workspace registration", () => {
     } catch (error) {
       invalidActionError = error;
     }
-    expect(invalidActionError).toBeInstanceOf(Error);
-    expect((invalidActionError as Error).message).toContain(
+    if (!(invalidActionError instanceof Error)) {
+      throw new Error("Expected invalid action to fail");
+    }
+    expect(invalidActionError.message).toContain(
       "Invalid publishing workspace action",
     );
+  });
+
+  it("scopes Trusted workspace data and separates arrange from publish", async () => {
+    const shell = createMockShell();
+    const permissionService = shell.getPermissionService();
+    const originalAssert =
+      permissionService.assertEntityActionAllowed.bind(permissionService);
+    permissionService.assertEntityActionAllowed = (
+      entityType,
+      action,
+      userPermissionLevel,
+    ): void => {
+      if (entityType === "social-post" && userPermissionLevel === "trusted") {
+        if (action === "update") return;
+        if (action === "publish") {
+          throw new Error("publish social-post requires admin permission");
+        }
+      }
+      originalAssert(entityType, action, userPermissionLevel);
+    };
+    shell.getPermissionService = (): typeof permissionService =>
+      permissionService;
+    const context = createServicePluginContext(shell, "content-pipeline");
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
+    const scopedEntities: Array<{
+      id: string;
+      visibility: "shared" | "restricted";
+      status: "draft" | "queued";
+    }> = [
+      {
+        id: "shared-queued",
+        visibility: "shared",
+        status: "queued",
+      },
+      {
+        id: "restricted-queued",
+        visibility: "restricted",
+        status: "queued",
+      },
+      { id: "shared-draft", visibility: "shared", status: "draft" },
+    ];
+    for (const entity of scopedEntities) {
+      await context.entityService.createEntity({
+        entity: {
+          id: entity.id,
+          entityType: "social-post",
+          content: entity.id,
+          visibility: entity.visibility,
+          metadata: { status: entity.status, title: entity.id },
+        },
+      });
+    }
+
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote-post" }),
+    });
+    const queue = QueueManager.createFresh();
+    await queue.add("social-post", "shared-queued");
+    await queue.add("social-post", "restricted-queued");
+    let registration: CmsWorkspaceRegistration | undefined;
+    context.messaging.subscribe<
+      CmsWorkspaceRegistration,
+      { workspaceUrl: string }
+    >("cms:register-workspace", async (message) => {
+      registration = message.payload;
+      return {
+        success: true,
+        data: { workspaceUrl: "/cms/workspaces/publishing" },
+      };
+    });
+    await registerCmsWorkspace(context, "content-pipeline", {
+      providerRegistry: providers,
+      queueManager: queue,
+      publicationQueueService: new PublicationQueueService(context, queue),
+      retryTracker: RetryTracker.createFresh(),
+      publishExecutor: new PublishExecutor({
+        context,
+        providerRegistry: providers,
+      }),
+    });
+    if (!registration?.actionHandler) {
+      throw new Error("Workspace was not registered");
+    }
+
+    expect(
+      await Promise.resolve(registration.accessHandler(trustedActor)),
+    ).toBe(true);
+    expect(await registration.dataProvider(trustedActor)).toMatchObject({
+      summary: { draft: 1, queued: 1 },
+      queue: [{ entityId: "shared-queued" }],
+    });
+    expect(
+      await registration.actionHandler(
+        {
+          type: "reorder",
+          entityType: "social-post",
+          entityId: "shared-queued",
+          position: 1,
+        },
+        trustedActor,
+      ),
+    ).toEqual({ success: true });
+    expect(
+      registration.actionHandler(
+        {
+          type: "queue",
+          entityType: "social-post",
+          entityId: "shared-draft",
+        },
+        trustedActor,
+      ),
+    ).rejects.toThrow();
   });
 
   it("reuses confirmed publishing with content-hash protection", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register("social-post", baseEntitySchema, {} as never);
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
     await context.entityService.createEntity({
       entity: {
         id: "draft-post",
@@ -278,15 +469,17 @@ describe("content-pipeline CMS workspace registration", () => {
         providerRegistry: providers,
       }),
     });
-    const actor = {
-      interfaceType: "cms" as const,
-      userId: "operator",
-      userPermissionLevel: "admin" as const,
-    };
-    const first = (await registration?.actionHandler?.(
-      { type: "publish", entityType: "social-post", entityId: "draft-post" },
-      actor,
-    )) as { needsConfirmation: true; args: Record<string, unknown> };
+    const actor = adminActor;
+    const first = confirmationResultSchema.parse(
+      await registration?.actionHandler?.(
+        {
+          type: "publish",
+          entityType: "social-post",
+          entityId: "draft-post",
+        },
+        actor,
+      ),
+    );
     expect(first.needsConfirmation).toBe(true);
 
     const entity = await context.entityService.getEntity({
@@ -297,32 +490,42 @@ describe("content-pipeline CMS workspace registration", () => {
     await context.entityService.updateEntity({
       entity: { ...entity, content: "Changed after confirmation" },
     });
-    const stale = (await registration?.actionHandler?.(
-      {
-        type: "publish",
-        entityType: "social-post",
-        entityId: "draft-post",
-        confirmation: first.args,
-      },
-      actor,
-    )) as { success: false; error: string };
+    const stale = failedResultSchema.parse(
+      await registration?.actionHandler?.(
+        {
+          type: "publish",
+          entityType: "social-post",
+          entityId: "draft-post",
+          confirmation: first.args,
+        },
+        actor,
+      ),
+    );
     expect(stale.success).toBe(false);
     expect(stale.error).toContain("changed after confirmation");
     expect(publishCalls).toBe(0);
 
-    const fresh = (await registration?.actionHandler?.(
-      { type: "publish", entityType: "social-post", entityId: "draft-post" },
-      actor,
-    )) as { needsConfirmation: true; args: Record<string, unknown> };
-    const published = (await registration?.actionHandler?.(
-      {
-        type: "publish",
-        entityType: "social-post",
-        entityId: "draft-post",
-        confirmation: fresh.args,
-      },
-      actor,
-    )) as { success: true };
+    const fresh = confirmationResultSchema.parse(
+      await registration?.actionHandler?.(
+        {
+          type: "publish",
+          entityType: "social-post",
+          entityId: "draft-post",
+        },
+        actor,
+      ),
+    );
+    const published = successResultSchema.parse(
+      await registration?.actionHandler?.(
+        {
+          type: "publish",
+          entityType: "social-post",
+          entityId: "draft-post",
+          confirmation: fresh.args,
+        },
+        actor,
+      ),
+    );
     expect(published.success).toBe(true);
     expect(publishCalls).toBe(1);
     expect(

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress.** Phases 0–3 are complete: request-principal access objects drive scoped reads and capabilities; entity mutations enforce shared action, visibility, publication, concurrency, and same-origin policy; and direct edits plus upload promotion now carry the authenticated actor through entity events, downstream jobs, and content-free audit records. Phase 4 will bind assist and workspace capabilities to visible entities and actor-aware provider contracts. The first-party CMS remains Admin-only until every read, write, assist, upload, and workspace route enforces the caller's runtime principal. Do not expose the current direct entity APIs to Trusted sessions incrementally.
+Complete. All phases are implemented. The first-party CMS now admits active Trusted and Admin principals atomically; scopes reads and assist to visible entities; enforces central mutation, publication, upload, and workspace policy; propagates authenticated actors; keeps repository diagnostics and manual sync Admin-only; and renders browser controls from server-derived capabilities. Public, inactive, and anonymous principals remain outside the authoring surface, while Sveltia's shared repository credential remains Admin-only.
 
 This plan is the CMS follow-up to [Multi-User & Permissions](./multi-user.md). It reuses the existing content visibility and entity action policy contracts; it does not introduce a CMS-specific role system. The separate Sveltia content-repository token flow remains Admin-only because a shared repository credential cannot enforce per-action runtime permissions.
 
@@ -213,7 +213,7 @@ Console registration changes from Admin visibility to Trusted visibility only at
 
 ## Implementation phases
 
-### Phase 0 — Characterize and prove denial
+### Phase 0 — Characterize and prove denial (complete)
 
 1. Inventory every CMS shell/API route and each registered workspace provider.
 2. Add an Admin/Trusted/Public/anonymous/suspended route matrix.
@@ -222,7 +222,7 @@ Console registration changes from Admin visibility to Trusted visibility only at
 
 Gate: no Trusted request reaches current direct entity/workspace mutation code.
 
-### Phase 1 — Principal-aware reads
+### Phase 1 — Principal-aware reads (complete)
 
 1. Replace the boolean resolver with `CmsRequestAccess`.
 2. Pass explicit visibility scope to counts, lists, details, and provider reads.
@@ -231,7 +231,7 @@ Gate: no Trusted request reaches current direct entity/workspace mutation code.
 
 Gate: Trusted tests can read public/shared fixtures but cannot infer restricted entities, counts, schemas, or workspace data. The production surface remains Admin-only.
 
-### Phase 2 — Shared write authorization
+### Phase 2 — Shared write authorization (complete)
 
 1. Enforce central create/update/delete policy on direct CMS mutations.
 2. Enforce final-entity visibility with `canWriteVisibility()`.
@@ -241,7 +241,7 @@ Gate: Trusted tests can read public/shared fixtures but cannot infer restricted 
 
 Gate: a policy matrix proves model overrides, wildcard defaults, `never`, publish transitions, visibility escalation denial, and role changes between page load and mutation.
 
-### Phase 3 — Actor attribution and uploads
+### Phase 3 — Actor attribution and uploads (complete)
 
 1. Carry authenticated `ActorRef` and `interfaceType: "cms"` through entity mutation events and jobs.
 2. Pass the user actor through upload promotion.
@@ -250,7 +250,7 @@ Gate: a policy matrix proves model overrides, wildcard defaults, `never`, publis
 
 Gate: entity/job/audit fixtures identify the initiating user without raw provider subjects or synthetic operator/service actors.
 
-### Phase 4 — Assist and workspace contracts
+### Phase 4 — Assist and workspace contracts (complete)
 
 1. Bind assist/agent requests to a server-loaded visible entity and update permission.
 2. Make workspace data providers and descriptors actor-aware.
@@ -260,7 +260,7 @@ Gate: entity/job/audit fixtures identify the initiating user without raw provide
 
 Gate: no workspace or assist endpoint relies only on shell admission, and no provider receives a hard-coded Admin actor.
 
-### Phase 5 — Permission-aware UI and atomic rollout
+### Phase 5 — Permission-aware UI and atomic rollout (complete)
 
 1. Render type/action/workspace controls from server capabilities.
 2. Add role-aware denial and stale-capability feedback.

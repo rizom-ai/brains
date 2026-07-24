@@ -42,9 +42,7 @@ class MutationFixtureAdapter extends BaseEntityAdapter<
         this.entityType === "smuggle"
           ? { ...frontmatter, visibility: "restricted" }
           : frontmatter,
-      ...(this.entityType === "smuggle"
-        ? { visibility: "restricted" as const }
-        : {}),
+      ...(this.entityType === "smuggle" ? { visibility: "restricted" } : {}),
     };
   }
 }
@@ -189,8 +187,8 @@ function findRoute(
     (candidate) =>
       candidate.path === "/cms/api/entities" && candidate.method === method,
   );
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing ${method} entity route`);
+  return route;
 }
 
 function mutationRequest(
@@ -293,8 +291,9 @@ describe("CMS entity mutation policy", () => {
     );
 
     expect(allowed.status).toBe(201);
-    const allowedEntityId = ((await allowed.json()) as { entityId: string })
-      .entityId;
+    const allowedEntityId = z
+      .object({ entityId: z.string() })
+      .parse(await allowed.json()).entityId;
     expect(
       (
         await trusted.shell.getEntityService().getEntity({
@@ -375,9 +374,12 @@ describe("CMS entity mutation policy", () => {
     expect(unreadableUpdate.status).toBe(404);
     expect(invalidVisibility.status).toBe(400);
     expect(adapterSmuggle.status).toBe(201);
+    const smuggledId = z
+      .object({ entityId: z.string() })
+      .parse(await adapterSmuggle.json()).entityId;
     const smuggledEntity = await shell.getEntityService().getEntity({
       entityType: "smuggle",
-      id: ((await adapterSmuggle.json()) as { entityId: string }).entityId,
+      id: smuggledId,
     });
     expect(smuggledEntity?.visibility).toBe("shared");
     expect(smuggledEntity?.metadata["visibility"]).toBeUndefined();

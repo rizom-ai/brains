@@ -5,6 +5,7 @@ import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
+import type { ZodType } from "@brains/utils/zod";
 import { cmsPlugin, type CmsPlugin } from "../src";
 
 interface SessionMatrix {
@@ -32,8 +33,8 @@ function findRoute(
       (candidate) =>
         candidate.path === path && (candidate.method ?? "GET") === method,
     );
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing ${method} route: ${path}`);
+  return route;
 }
 
 function request(
@@ -208,7 +209,7 @@ async function setup(): Promise<{
   return { shell, plugin, sessions };
 }
 
-describe("CMS Admin rollout gate", () => {
+describe("CMS Trusted rollout gate", () => {
   it("inventories every private API route under one access matrix", async () => {
     const { plugin, sessions } = await setup();
     const apiRoutes = apiRouteRequests();
@@ -233,13 +234,23 @@ describe("CMS Admin rollout gate", () => {
       );
       expect(adminResponse.status).not.toBe(401);
 
-      for (const cookie of [sessions.trusted, sessions.public]) {
-        const response = await route.handler(routeCase.request(cookie));
-        expect(response.status).toBe(403);
-        expect(await response.json()).toEqual({
+      const trustedResponse = await route.handler(
+        routeCase.request(sessions.trusted),
+      );
+      expect(trustedResponse.status).not.toBe(401);
+      if (trustedResponse.status === 403) {
+        expect(await trustedResponse.json()).not.toEqual({
           error: "CMS access forbidden",
         });
       }
+
+      const publicResponse = await route.handler(
+        routeCase.request(sessions.public),
+      );
+      expect(publicResponse.status).toBe(403);
+      expect(await publicResponse.json()).toEqual({
+        error: "CMS access forbidden",
+      });
 
       for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
         const response = await route.handler(routeCase.request(cookie));
@@ -251,7 +262,7 @@ describe("CMS Admin rollout gate", () => {
     }
   });
 
-  it("keeps every shell entry Admin-only during lower-level policy work", async () => {
+  it("admits Trusted shell entries while keeping Public users out", async () => {
     const { plugin, sessions } = await setup();
     const shellRoutes = [
       { routePath: "/cms", requestPath: "/cms" },
@@ -272,13 +283,17 @@ describe("CMS Admin rollout gate", () => {
       );
       expect(adminResponse.status).toBe(200);
 
-      for (const cookie of [sessions.trusted, sessions.public]) {
-        const response = await route.handler(
-          request(shellRoute.requestPath, { cookie }),
-        );
-        expect(response.status).toBe(403);
-        expect(response.headers.get("cache-control")).toBe("no-store");
-      }
+      const trustedResponse = await route.handler(
+        request(shellRoute.requestPath, { cookie: sessions.trusted }),
+      );
+      expect(trustedResponse.status).toBe(200);
+      expect(trustedResponse.headers.get("cache-control")).toBe("no-store");
+
+      const publicResponse = await route.handler(
+        request(shellRoute.requestPath, { cookie: sessions.public }),
+      );
+      expect(publicResponse.status).toBe(403);
+      expect(publicResponse.headers.get("cache-control")).toBe("no-store");
 
       for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
         const response = await route.handler(
@@ -292,7 +307,7 @@ describe("CMS Admin rollout gate", () => {
     }
   });
 
-  it("denies Trusted requests before direct mutation or private capability code", async () => {
+  it("denies Public requests before mutation or private capability code", async () => {
     const { shell, plugin, sessions } = await setup();
     let schemaLookups = 0;
     let workspaceReads = 0;
@@ -322,9 +337,12 @@ describe("CMS Admin rollout gate", () => {
         };
       },
     });
-    shell.generateObject = async <T>(): Promise<{ object: T }> => {
+    shell.generateObject = async <T>(
+      _prompt: string,
+      schema: ZodType<T>,
+    ): Promise<{ object: T }> => {
       assistCalls += 1;
-      return { object: { suggestion: "Never reached" } as T };
+      return { object: schema.parse({ suggestion: "Never reached" }) };
     };
     await shell.getMessageBus().send({
       type: "cms:register-workspace",
@@ -335,6 +353,7 @@ describe("CMS Admin rollout gate", () => {
         label: "Test workspace",
         rendererName: "PublishingWorkspace",
         priority: 1,
+        accessHandler: () => true,
         dataProvider: async () => {
           workspaceReads += 1;
           return {};
@@ -346,11 +365,11 @@ describe("CMS Admin rollout gate", () => {
       },
     });
 
-    const trustedRequests: Array<[WebRouteDefinition, Request]> = [
+    const publicRequests: Array<[WebRouteDefinition, Request]> = [
       [
         findRoute(plugin, "/cms/api/entities", "POST"),
         request("/cms/api/entities", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
           method: "POST",
           body: { entityType: "post", frontmatter: { title: "Draft" } },
         }),
@@ -358,7 +377,7 @@ describe("CMS Admin rollout gate", () => {
       [
         findRoute(plugin, "/cms/api/entities", "PUT"),
         request("/cms/api/entities", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
           method: "PUT",
           body: {
             entityType: "post",
@@ -370,14 +389,14 @@ describe("CMS Admin rollout gate", () => {
       [
         findRoute(plugin, "/cms/api/entities", "DELETE"),
         request("/cms/api/entities?type=post&id=shared-draft", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
           method: "DELETE",
         }),
       ],
       [
         findRoute(plugin, "/cms/api/assist", "POST"),
         request("/cms/api/assist", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
           method: "POST",
           body: {
             entityType: "post",
@@ -390,26 +409,26 @@ describe("CMS Admin rollout gate", () => {
       ],
       [
         findRoute(plugin, "/cms/api/upload", "POST"),
-        uploadRequest(sessions.trusted),
+        uploadRequest(sessions.public),
       ],
       [
         findRoute(plugin, "/cms/api/workspace"),
         request("/cms/api/workspace?id=test-workspace", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
         }),
       ],
       [
         findRoute(plugin, "/cms/api/workspace", "POST"),
         request("/cms/api/workspace", {
-          cookie: sessions.trusted,
+          cookie: sessions.public,
           method: "POST",
           body: { id: "test-workspace", action: { type: "run" } },
         }),
       ],
     ];
 
-    for (const [route, trustedRequest] of trustedRequests) {
-      expect((await route.handler(trustedRequest)).status).toBe(403);
+    for (const [route, publicRequest] of publicRequests) {
+      expect((await route.handler(publicRequest)).status).toBe(403);
     }
     expect(getEntitySpy).not.toHaveBeenCalled();
     expect({
@@ -425,6 +444,25 @@ describe("CMS Admin rollout gate", () => {
       uploadPromotions: 0,
       assistCalls: 0,
     });
+  });
+
+  it("keeps repository sync metadata Admin-only after Trusted rollout", async () => {
+    const { shell, plugin, sessions } = await setup();
+    let syncReads = 0;
+    shell.getMessageBus().subscribe("sync:status:request", async () => {
+      syncReads += 1;
+      return { success: true, data: {} };
+    });
+
+    const response = await findRoute(plugin, "/cms/api/sync-status").handler(
+      request("/cms/api/sync-status", { cookie: sessions.trusted }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: "Admin CMS capability required",
+    });
+    expect(syncReads).toBe(0);
   });
 
   it("rejects cross-origin requests on every cookie-authenticated mutation", async () => {

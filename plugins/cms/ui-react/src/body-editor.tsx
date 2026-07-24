@@ -1,6 +1,11 @@
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
-import { Annotation, EditorState, type Extension } from "@codemirror/state";
+import {
+  Annotation,
+  Compartment,
+  EditorState,
+  type Extension,
+} from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import {
@@ -14,8 +19,8 @@ import { Streamdown } from "streamdown";
 import { requestAgentAnswer, requestAssist, type AgentTarget } from "./api";
 import { errorMessage } from "./ui-utils";
 
-const BODY_MODES = ["source", "split", "preview"] as const;
-export type BodyMode = (typeof BODY_MODES)[number];
+export type BodyMode = "source" | "split" | "preview";
+const BODY_MODES: readonly BodyMode[] = ["source", "split", "preview"];
 const BODY_MODE_LABELS: Record<BodyMode, string> = {
   source: "Source",
   split: "Split",
@@ -78,11 +83,14 @@ function CodeMirrorBodySource(props: {
   value: string;
   onChange: (value: string) => void;
   onSelectionChange?: (selection: SelectionRange | null) => void;
+  readOnly: boolean;
 }): ReactElement {
-  const { value, onChange, onSelectionChange } = props;
+  const { value, onChange, onSelectionChange, readOnly } = props;
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const initialValueRef = useRef(value);
+  const initialReadOnlyRef = useRef(readOnly);
+  const readOnlyCompartmentRef = useRef(new Compartment());
   const onChangeRef = useRef(onChange);
   const onSelectionChangeRef = useRef(onSelectionChange);
 
@@ -105,6 +113,10 @@ function CodeMirrorBodySource(props: {
     const view = new EditorView({
       parent: host,
       state: createBodyEditorState(initialValueRef.current, [
+        readOnlyCompartmentRef.current.of([
+          EditorState.readOnly.of(initialReadOnlyRef.current),
+          EditorView.editable.of(!initialReadOnlyRef.current),
+        ]),
         EditorView.updateListener.of((update: ViewUpdate) => {
           if (!update.docChanged) return;
           if (
@@ -150,6 +162,17 @@ function CodeMirrorBodySource(props: {
     if (!view) return;
     replaceBodyEditorDocument(view, value);
   }, [value]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: readOnlyCompartmentRef.current.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly),
+      ]),
+    });
+  }, [readOnly]);
 
   return (
     <div
@@ -239,11 +262,19 @@ export function BodyEditor(props: {
   onModeChange: (mode: BodyMode) => void;
   assist?: {
     entityType: string;
-    frontmatter: Record<string, unknown>;
+    entityId: string;
     agents?: AgentTarget[];
   };
+  readOnly?: boolean;
 }): ReactElement {
-  const { value, mode, onChange, onModeChange, assist } = props;
+  const {
+    value,
+    mode,
+    onChange,
+    onModeChange,
+    assist,
+    readOnly = false,
+  } = props;
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
   const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
@@ -276,14 +307,15 @@ export function BodyEditor(props: {
       assistTarget === MODEL_ASSIST_TARGET
         ? requestAssist({
             entityType: assist.entityType,
+            id: assist.entityId,
             instruction,
             selection: selectedText,
-            body: value,
-            frontmatter: assist.frontmatter,
           }).then(({ suggestion }) => {
             setAssistState({ kind: "suggested", range, suggestion });
           })
         : requestAgentAnswer({
+            entityType: assist.entityType,
+            id: assist.entityId,
             agent: assistTarget,
             instruction,
             selection: selectedText,
@@ -485,6 +517,7 @@ export function BodyEditor(props: {
             value={value}
             onChange={onChange}
             onSelectionChange={setSelection}
+            readOnly={readOnly}
           />
         )}
         {showPreview && (

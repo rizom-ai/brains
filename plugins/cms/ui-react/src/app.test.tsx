@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import { styles } from "./app-styles";
+import { CmsAppView, type CmsAppViewProps } from "./app-view";
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
@@ -35,20 +36,27 @@ import {
   PipelineStations,
   SaveStateNotice,
 } from "./editor-status";
-import { applyFieldChange } from "./editor-workflow";
+import { applyFieldChange, type SaveState } from "./editor-workflow";
 import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
   CmsWorkspaceInfo,
   DirectorySyncWorkspaceActionResult,
   DirectorySyncWorkspaceSnapshot,
+  EntityDetail,
   EntityTypeInfo,
   FieldDescriptor,
   GitSyncState,
   PublicationPipelineSnapshot,
+  PublishingActionResult,
   SiteWorkspaceActionResult,
   SiteWorkspaceSnapshot,
+  TypeSchema,
 } from "./api";
+
+async function successfulPublishingAction(): Promise<PublishingActionResult> {
+  return { success: true };
+}
 
 const stringField: FieldDescriptor = {
   name: "title",
@@ -463,6 +471,145 @@ describe("TypeSwitcher", () => {
   });
 });
 
+function renderCapabilityView(
+  capabilities: EntityTypeInfo["capabilities"],
+  mode: "browse" | "edit",
+): string {
+  const entity: EntityDetail = {
+    id: "post-1",
+    entityType: "post",
+    frontmatter: { title: "Post one", status: "draft" },
+    body: "Post body",
+    contentHash: "post-1-hash",
+    created: "2026-07-01T00:00:00.000Z",
+    updated: "2026-07-01T00:00:00.000Z",
+  };
+  const schema: TypeSchema = {
+    entityType: "post",
+    format: "frontmatter",
+    isSingleton: false,
+    hasBody: true,
+    fields: [stringField],
+  };
+  const type: EntityTypeInfo = {
+    entityType: "post",
+    label: "Posts",
+    isSingleton: false,
+    hasBody: true,
+    count: 1,
+    capabilities,
+  };
+  const props: CmsAppViewProps = {
+    activeWorkspaceId: null,
+    types: [type],
+    workspaces: [
+      {
+        id: "publishing",
+        pluginId: "content-pipeline",
+        label: "Publishing",
+        rendererName: "PublishingWorkspace",
+        priority: 40,
+        entityTypes: ["post"],
+      },
+    ],
+    workspaceError: null,
+    publicationWorkspaceData: null,
+    siteWorkspaceData: null,
+    directorySyncWorkspaceData: null,
+    entityType: "post",
+    entities: [entity],
+    schema,
+    editor: {
+      mode: mode === "edit" ? { kind: "edit", entity } : { kind: "browse" },
+      draft: entity.frontmatter,
+      body: entity.body,
+      save: { kind: "idle" },
+      deleteOpen: false,
+    },
+    fieldAssistState: { kind: "idle" },
+    bodyMode: "split",
+    mobilePane: "details",
+    syncStatus: null,
+    baselineCommit: null,
+    agentTargets: [],
+    deleting: false,
+    hasUnsavedChanges: false,
+    navigationBlocked: false,
+    dispatchEditor: () => {},
+    setFieldAssistState: () => {},
+    setBodyMode: () => {},
+    setMobilePane: () => {},
+    backToList: () => {},
+    selectEntityType: () => {},
+    selectWorkspace: () => {},
+    openWorkspaceEntity: () => {},
+    performPublishingAction: successfulPublishingAction,
+    performSiteAction: async (): Promise<SiteWorkspaceActionResult> => ({
+      accepted: true,
+      environment: "preview",
+    }),
+    performDirectorySyncAction:
+      async (): Promise<DirectorySyncWorkspaceActionResult> => ({
+        accepted: true,
+        status: "queued",
+      }),
+    startCreate: () => {},
+    openEntity: () => {},
+    runFieldAssist: () => {},
+    applyFieldAssist: () => {},
+    save: () => {},
+    remove: () => {},
+    onNavigationReset: () => {},
+    onNavigationProceed: () => {},
+  };
+  return renderToStaticMarkup(createElement(CmsAppView, props));
+}
+
+describe("capability-aware CMS controls", () => {
+  const deniedCapabilities: EntityTypeInfo["capabilities"] = {
+    canRead: true,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canExtract: false,
+    canPublish: false,
+    canAssist: false,
+  };
+  const allowedCapabilities: EntityTypeInfo["capabilities"] = {
+    canRead: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
+    canExtract: true,
+    canPublish: true,
+    canAssist: true,
+  };
+
+  it("disables creation and suppresses denied edit capabilities", () => {
+    const browse = renderCapabilityView(deniedCapabilities, "browse");
+    const edit = renderCapabilityView(deniedCapabilities, "edit");
+
+    expect(browse).toContain('disabled="">New post</button>');
+    expect(edit).toContain('class="capability-fields" disabled=""');
+    expect(edit).toContain('class="save-btn" disabled=""');
+    expect(edit).not.toContain(">Delete<");
+    expect(edit).not.toContain("AI selection rewrite");
+    expect(edit).not.toContain("Add to queue");
+  });
+
+  it("renders controls granted by the active type capabilities", () => {
+    const browse = renderCapabilityView(allowedCapabilities, "browse");
+    const edit = renderCapabilityView(allowedCapabilities, "edit");
+
+    expect(browse).not.toContain('disabled="">New post</button>');
+    expect(edit).not.toContain('class="capability-fields" disabled=""');
+    expect(edit).not.toContain('class="save-btn" disabled=""');
+    expect(edit).toContain(">Delete<");
+    expect(edit).toContain("AI selection rewrite");
+    expect(edit).toContain("Add to queue");
+  });
+});
+
 describe("PublishingWorkspace", () => {
   const data: PublicationPipelineSnapshot = {
     summary: {
@@ -509,7 +656,7 @@ describe("PublishingWorkspace", () => {
       createElement(PublishingWorkspace, {
         data,
         onOpenEntity: () => {},
-        onAction: async () => ({ success: true as const }),
+        onAction: successfulPublishingAction,
       }),
     );
 
@@ -531,7 +678,7 @@ describe("PublishingWorkspace", () => {
           queue: [],
         },
         onOpenEntity: () => {},
-        onAction: async () => ({ success: true as const }),
+        onAction: successfulPublishingAction,
       }),
     );
 
@@ -543,7 +690,7 @@ describe("PublishingWorkspace", () => {
       createElement(PublishingWorkspace, {
         data,
         onOpenEntity: () => {},
-        onAction: async () => ({ success: true as const }),
+        onAction: successfulPublishingAction,
       }),
     );
 
@@ -717,7 +864,7 @@ describe("PublicationActions", () => {
         title: "Field notes",
         status,
         unsaved,
-        onAction: async () => ({ success: true as const }),
+        onAction: successfulPublishingAction,
       }),
     );
 
@@ -852,7 +999,7 @@ describe("BodyEditor", () => {
         mode: "source",
         onChange: () => {},
         onModeChange: () => {},
-        assist: { entityType: "post", frontmatter: { title: "Hello" } },
+        assist: { entityType: "post", entityId: "post-1" },
       }),
     );
     expect(html).toContain("Rewrite selection");
@@ -873,7 +1020,7 @@ describe("BodyEditor", () => {
         onModeChange: () => {},
         assist: {
           entityType: "post",
-          frontmatter: { title: "Hello" },
+          entityId: "post-1",
           agents,
         },
       }),
@@ -950,11 +1097,12 @@ describe("applySuggestionToSelection", () => {
 
 describe("SaveStateNotice", () => {
   it("renders nothing while idle or saving", () => {
-    for (const kind of ["idle", "saving"] as const) {
+    const hiddenStates: SaveState[] = [{ kind: "idle" }, { kind: "saving" }];
+    for (const state of hiddenStates) {
       expect(
         renderToStaticMarkup(
           createElement(SaveStateNotice, {
-            state: { kind },
+            state,
             onReload: () => {},
           }),
         ),
@@ -997,14 +1145,17 @@ describe("SaveStateNotice", () => {
     expect(html).toContain(">Reload latest<");
   });
 
-  it("shows plain errors without a reload action", () => {
+  it("shows stale capability denials without offering a conflict reload", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
-        state: { kind: "error", message: "title: Required" },
+        state: {
+          kind: "error",
+          message: "update post requires admin permission",
+        },
         onReload: () => {},
       }),
     );
-    expect(html).toContain("title: Required");
+    expect(html).toContain("update post requires admin permission");
     expect(html).not.toContain("Reload entry");
   });
 });
@@ -1128,10 +1279,11 @@ describe("derivePipeline", () => {
   });
 
   it("resets to pending after a conflict or error", () => {
-    for (const save of [
-      { kind: "conflict" as const, message: "changed" },
-      { kind: "error" as const, message: "nope" },
-    ]) {
+    const failedStates: SaveState[] = [
+      { kind: "conflict", message: "changed" },
+      { kind: "error", message: "nope" },
+    ];
+    for (const save of failedStates) {
       const view = derivePipeline({
         save,
         git: git(),

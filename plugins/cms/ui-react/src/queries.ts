@@ -18,21 +18,29 @@ import {
 
 export type NavigationQueryKey = readonly ["cms", "navigation"];
 export type WorkspaceQueryKey = readonly ["cms", "workspace", string];
-export type AgentTargetsQueryKey = readonly ["cms", "agent-targets"];
+export type AgentTargetsQueryKey = readonly [
+  "cms",
+  "agent-targets",
+  string,
+  string,
+];
 export type SyncStatusQueryKey = readonly ["cms", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["cms", "schema", string];
 export type EntityListQueryKey = readonly ["cms", "entities", string];
 export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 
 export const cmsKeys = {
-  all: ["cms"] as const,
+  all: (): readonly ["cms"] => ["cms"],
   navigation: (): NavigationQueryKey => ["cms", "navigation"],
   workspace: (workspaceId: string): WorkspaceQueryKey => [
     "cms",
     "workspace",
     workspaceId,
   ],
-  agentTargets: (): AgentTargetsQueryKey => ["cms", "agent-targets"],
+  agentTargets: (
+    entityType: string,
+    entityId: string,
+  ): AgentTargetsQueryKey => ["cms", "agent-targets", entityType, entityId],
   syncStatus: (): SyncStatusQueryKey => ["cms", "sync-status"],
   schema: (entityType: string): EntitySchemaQueryKey => [
     "cms",
@@ -97,15 +105,13 @@ export async function invalidateAfterUpload(
   ]);
 }
 
-export function agentTargetsQueryOptions(): UseQueryOptions<
-  AgentTarget[],
-  Error,
-  AgentTarget[],
-  AgentTargetsQueryKey
-> {
+export function agentTargetsQueryOptions(
+  entityType: string,
+  entityId: string,
+): UseQueryOptions<AgentTarget[], Error, AgentTarget[], AgentTargetsQueryKey> {
   return {
-    queryKey: cmsKeys.agentTargets(),
-    queryFn: fetchAgentTargets,
+    queryKey: cmsKeys.agentTargets(entityType, entityId),
+    queryFn: () => fetchAgentTargets(entityType, entityId),
   };
 }
 

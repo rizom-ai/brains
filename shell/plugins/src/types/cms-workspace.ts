@@ -1,3 +1,5 @@
+import type { ActorRef } from "@brains/contracts";
+import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
 export const CMS_WORKSPACE_REGISTER_MESSAGE = "cms:register-workspace";
@@ -5,7 +7,10 @@ export const CMS_WORKSPACE_REGISTER_MESSAGE = "cms:register-workspace";
 export interface CmsWorkspaceActor {
   interfaceType: "cms";
   userId: string;
+  actor: ActorRef;
   userPermissionLevel: UserPermissionLevel;
+  visibilityScope: ContentVisibility;
+  isAnchor: boolean;
 }
 
 /** Optional server-side capability hosted by the first-party CMS. */
@@ -19,7 +24,8 @@ export interface CmsWorkspaceRegistration {
   rendererName: CmsWorkspaceRendererName;
   priority: number;
   entityTypes?: string[] | undefined;
-  dataProvider: () => Promise<unknown>;
+  accessHandler: (actor: CmsWorkspaceActor) => boolean | Promise<boolean>;
+  dataProvider: (actor: CmsWorkspaceActor) => Promise<unknown>;
   actionHandler?:
     | ((request: unknown, actor: CmsWorkspaceActor) => Promise<unknown>)
     | undefined;

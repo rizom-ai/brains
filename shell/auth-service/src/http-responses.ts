@@ -81,14 +81,14 @@ const CORS_MACHINE_ENDPOINTS = new Set([
   "/revoke",
 ]);
 
-const CORS_HEADERS = {
+const CORS_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
-} as const;
+};
 
 export function isCorsMachineEndpoint(path: string): boolean {
   return CORS_MACHINE_ENDPOINTS.has(path);

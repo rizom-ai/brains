@@ -4,6 +4,7 @@ import type {
   CreateInterceptionResult,
   JobOptions,
   Plugin,
+  RuntimeUploadScopeOptions,
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
@@ -55,11 +56,13 @@ const documentPluginConfigSchema: z.ZodType<
   .catchall(z.unknown())
   .transform((): DocumentPluginConfig => ({}));
 
-const webChatUploadsScope = {
+const webChatUploadsScope: RuntimeUploadScopeOptions & {
+  refKind: "upload";
+} = {
   namespace: "upload",
   refKind: "upload",
   routePath: "/api/chat/uploads",
-} as const;
+};
 
 function getUploadTitle(input: CreateInput, filename: string): string {
   const title = input.title?.trim();

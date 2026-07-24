@@ -108,12 +108,22 @@ export async function registerCmsWorkspace(
     rendererName: "PublishingWorkspace",
     priority: 40,
     entityTypes: deps.providerRegistry.getRegisteredTypes(),
-    dataProvider: () =>
+    accessHandler: (actor) =>
+      getWorkspaceEntityTypes(context, deps.providerRegistry, actor).length > 0,
+    dataProvider: (actor) =>
       getPublicationPipelineSnapshot(
         context,
         deps.providerRegistry,
         deps.queueManager,
         deps.retryTracker,
+        {
+          visibilityScope: actor.visibilityScope,
+          entityTypes: getWorkspaceEntityTypes(
+            context,
+            deps.providerRegistry,
+            actor,
+          ),
+        },
       ),
     actionHandler: async (request, actor) => {
       const parsed = cmsPublishingActionSchema.safeParse(request);
@@ -140,6 +150,38 @@ export async function registerCmsWorkspace(
   return parsed.success ? parsed.data.workspaceUrl : undefined;
 }
 
+function toToolContext(actor: CmsWorkspaceActor): ToolContext {
+  return {
+    interfaceType: actor.interfaceType,
+    actor: actor.actor,
+    userPermissionLevel: actor.userPermissionLevel,
+  };
+}
+
+function getWorkspaceEntityTypes(
+  context: ServicePluginContext,
+  providerRegistry: ProviderRegistry,
+  actor: CmsWorkspaceActor,
+): string[] {
+  const toolContext = toToolContext(actor);
+  const workspaceActions: Array<"update" | "publish"> = ["update", "publish"];
+  return providerRegistry.getRegisteredTypes().filter((entityType) => {
+    for (const action of workspaceActions) {
+      try {
+        context.permissions.assertEntityActionAllowed(
+          entityType,
+          action,
+          toolContext,
+        );
+        return true;
+      } catch {
+        // Try the other workspace capability.
+      }
+    }
+    return false;
+  });
+}
+
 async function handlePublishingAction(
   context: ServicePluginContext,
   deps: RegisterCmsWorkspaceDeps,
@@ -154,6 +196,7 @@ async function handlePublishingAction(
   const entity = await context.entityService.getEntity({
     entityType: action.entityType,
     id: action.entityId,
+    visibilityScope: actor.visibilityScope,
   });
   if (!entity) {
     throw new Error(
@@ -161,11 +204,7 @@ async function handlePublishingAction(
     );
   }
 
-  const toolContext: ToolContext = {
-    interfaceType: actor.interfaceType,
-    actor: { kind: "user", userId: actor.userId },
-    userPermissionLevel: actor.userPermissionLevel,
-  };
+  const toolContext = toToolContext(actor);
 
   if (action.type === "publish") {
     const result = await publishTool.handler(

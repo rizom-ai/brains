@@ -5,6 +5,7 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   createTemplate,
   type AnchorProfile,
+  type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -14,6 +15,33 @@ import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+
+const adminWorkspaceActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "operator",
+  actor: { kind: "user", userId: "operator" },
+  userPermissionLevel: "admin",
+  visibilityScope: "restricted",
+  isAnchor: true,
+};
+
+const trustedWorkspaceActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "editor",
+  actor: { kind: "user", userId: "editor" },
+  userPermissionLevel: "trusted",
+  visibilityScope: "shared",
+  isAnchor: false,
+};
+
+const publicWorkspaceActor: CmsWorkspaceActor = {
+  interfaceType: "cms",
+  userId: "visitor",
+  actor: { kind: "user", userId: "visitor" },
+  userPermissionLevel: "public",
+  visibilityScope: "public",
+  isAnchor: false,
+};
 
 interface DashboardWidgetRegistration {
   id: string;
@@ -139,8 +167,8 @@ describe("SiteBuilderPlugin", () => {
       basePrompt: "Generate a test",
       requiredPermission: "public",
       formatter: {
-        format: (data: unknown) =>
-          `Title: ${(data as { title: string }).title}`,
+        format: (data) =>
+          `Title: ${z.object({ title: z.string() }).parse(data).title}`,
         parse: (content: string) => ({ title: content.replace("Title: ", "") }),
       },
       layout: {
@@ -247,22 +275,27 @@ describe("SiteBuilderPlugin", () => {
       throw new Error("Expected CMS workspace actions");
     }
     const actionHandler = registration.actionHandler;
-    expect(await registration.dataProvider()).toMatchObject({
+    expect(
+      await Promise.resolve(registration.accessHandler(publicWorkspaceActor)),
+    ).toBe(false);
+    expect(
+      await Promise.resolve(registration.accessHandler(adminWorkspaceActor)),
+    ).toBe(true);
+    expect(registration.dataProvider(publicWorkspaceActor)).rejects.toThrow(
+      "access denied",
+    );
+    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
       site: { title: "Test Site" },
       routes: [{ id: "home", path: "/", title: "Home" }],
     });
 
     const result = await actionHandler(
       { type: "build-preview" },
-      {
-        interfaceType: "cms",
-        userId: "operator",
-        userPermissionLevel: "admin",
-      },
+      adminWorkspaceActor,
     );
     expect(result).toEqual({ accepted: true, environment: "preview" });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(await registration.dataProvider()).toMatchObject({
+    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
       environments: [
         {
           environment: "preview",
@@ -274,14 +307,7 @@ describe("SiteBuilderPlugin", () => {
       ],
     });
     expect(
-      actionHandler(
-        { type: "build-production" },
-        {
-          interfaceType: "cms",
-          userId: "operator",
-          userPermissionLevel: "admin",
-        },
-      ),
+      actionHandler({ type: "build-production" }, adminWorkspaceActor),
     ).rejects.toThrow("Invalid site workspace action");
     expect(dashboardWidget).toMatchObject({
       id: "site-health",
@@ -299,6 +325,78 @@ describe("SiteBuilderPlugin", () => {
     expect(dashboardWidget?.digestProvider(dashboardData)).toMatchObject({
       needsOperator: 0,
     });
+  });
+
+  it("admits policy-enabled Trusted preview without granting production", async () => {
+    let registration: CmsWorkspaceRegistration | undefined;
+    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+      "cms:register-workspace",
+      async (message) => {
+        registration = message.payload;
+        return {
+          success: true,
+          data: { workspaceUrl: "/cms/workspaces/site" },
+        };
+      },
+    );
+    const permissionService = harness.getMockShell().getPermissionService();
+    const originalAssert =
+      permissionService.assertEntityActionAllowed.bind(permissionService);
+    permissionService.assertEntityActionAllowed = (
+      entityType,
+      action,
+      userPermissionLevel,
+    ): void => {
+      if (
+        entityType === "site-info" &&
+        action === "update" &&
+        userPermissionLevel === "trusted"
+      ) {
+        return;
+      }
+      originalAssert(entityType, action, userPermissionLevel);
+    };
+    harness.getMockShell().getPermissionService =
+      (): typeof permissionService => permissionService;
+
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            title: "Home",
+            description: "Home page",
+            layout: "default",
+            sections: [],
+          },
+        ],
+      }),
+    );
+    await harness.installPlugin(plugin);
+    await plugin.ready();
+    if (!registration?.actionHandler) {
+      throw new Error("Expected CMS workspace actions");
+    }
+
+    expect(
+      await Promise.resolve(registration.accessHandler(trustedWorkspaceActor)),
+    ).toBe(true);
+    expect(
+      await registration.dataProvider(trustedWorkspaceActor),
+    ).toMatchObject({ site: { title: "Test Site" } });
+    expect(
+      await registration.actionHandler(
+        { type: "build-preview" },
+        trustedWorkspaceActor,
+      ),
+    ).toEqual({ accepted: true, environment: "preview" });
+    expect(
+      registration.actionHandler(
+        { type: "build-production", confirmed: true },
+        trustedWorkspaceActor,
+      ),
+    ).rejects.toThrow("admin permission");
   });
 
   it("should provide site builder tools", async () => {
