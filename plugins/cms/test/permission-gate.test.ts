@@ -49,7 +49,10 @@ function request(
     headers: {
       ...(options.cookie ? { Cookie: options.cookie } : {}),
       ...(options.body !== undefined
-        ? { "Content-Type": "application/json" }
+        ? {
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          }
         : {}),
     },
     ...(options.body !== undefined
@@ -68,7 +71,7 @@ function uploadRequest(cookie?: string): Request {
   );
   return new Request("https://yeehaa.io/cms/api/upload", {
     method: "POST",
-    headers: cookie ? { Cookie: cookie } : {},
+    headers: cookie ? { Cookie: cookie, Origin: "https://yeehaa.io" } : {},
     body: form,
   });
 }
@@ -422,5 +425,72 @@ describe("CMS Admin rollout gate", () => {
       uploadPromotions: 0,
       assistCalls: 0,
     });
+  });
+
+  it("rejects cross-origin requests on every cookie-authenticated mutation", async () => {
+    const { plugin, sessions } = await setup();
+    const mutationRequests: Array<[WebRouteDefinition, Request]> = [
+      [
+        findRoute(plugin, "/cms/api/workspace", "POST"),
+        request("/cms/api/workspace", {
+          cookie: sessions.admin,
+          method: "POST",
+          body: {},
+        }),
+      ],
+      [
+        findRoute(plugin, "/cms/api/entities", "PUT"),
+        request("/cms/api/entities", {
+          cookie: sessions.admin,
+          method: "PUT",
+          body: {},
+        }),
+      ],
+      [
+        findRoute(plugin, "/cms/api/entities", "POST"),
+        request("/cms/api/entities", {
+          cookie: sessions.admin,
+          method: "POST",
+          body: {},
+        }),
+      ],
+      [
+        findRoute(plugin, "/cms/api/entities", "DELETE"),
+        request("/cms/api/entities?type=post&id=draft", {
+          cookie: sessions.admin,
+          method: "DELETE",
+          body: { confirmed: true },
+        }),
+      ],
+      [
+        findRoute(plugin, "/cms/api/upload", "POST"),
+        uploadRequest(sessions.admin),
+      ],
+      [
+        findRoute(plugin, "/cms/api/assist", "POST"),
+        request("/cms/api/assist", {
+          cookie: sessions.admin,
+          method: "POST",
+          body: {},
+        }),
+      ],
+      [
+        findRoute(plugin, "/cms/api/ask-agent", "POST"),
+        request("/cms/api/ask-agent", {
+          cookie: sessions.admin,
+          method: "POST",
+          body: {},
+        }),
+      ],
+    ];
+
+    for (const [route, crossOriginRequest] of mutationRequests) {
+      crossOriginRequest.headers.set("Origin", "https://evil.example.com");
+      const response = await route.handler(crossOriginRequest);
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        error: "Same-origin request required",
+      });
+    }
   });
 });

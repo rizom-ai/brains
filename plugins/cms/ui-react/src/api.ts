@@ -543,6 +543,10 @@ export async function deleteEntity(
     cmsApiPath(
       `entities?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
     ),
-    { method: "DELETE" },
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmed: true }),
+    },
   );
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { errorMessage, requireSameOriginJson } from "../src/http-responses";
+import {
+  errorMessage,
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "../src/http-responses";
 
 describe("auth HTTP mutation guards", () => {
   it("accepts same-origin JSON requests", () => {
@@ -15,6 +19,18 @@ describe("auth HTTP mutation guards", () => {
     );
 
     expect(requireSameOriginJson(request)).toBeUndefined();
+  });
+
+  it("accepts same-origin non-JSON requests when only CSRF protection is needed", () => {
+    const request = new Request("https://brain.example.com/upload", {
+      method: "POST",
+      headers: {
+        origin: "https://brain.example.com",
+        "content-type": "multipart/form-data; boundary=fixture",
+      },
+    });
+
+    expect(requireSameOriginRequest(request)).toBeUndefined();
   });
 
   it("returns private errors for cross-origin and non-JSON requests", async () => {

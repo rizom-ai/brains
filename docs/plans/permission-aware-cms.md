@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress.** Phases 0 and 1 are complete: request-principal access objects now drive scoped entity reads, filtered type/schema discovery, and server-derived type capabilities behind the unchanged production Admin rollout gate. Phase 2 will add shared mutation, visibility, publication-boundary, and same-origin authorization. The first-party CMS remains Admin-only until every read, write, assist, upload, and workspace route enforces the caller's runtime principal. Do not expose the current direct entity APIs to Trusted sessions incrementally.
+**In progress.** Phases 0–2 are complete: request-principal access objects now drive scoped reads and capabilities, while entity mutations enforce shared action policy, final visibility, publication boundaries, concurrency, same-origin JSON, and explicit deletion confirmation behind the unchanged production Admin rollout gate. Phase 3 will add actor propagation, user-attributed uploads and jobs, and content-free audit events. The first-party CMS remains Admin-only until every read, write, assist, upload, and workspace route enforces the caller's runtime principal. Do not expose the current direct entity APIs to Trusted sessions incrementally.
 
 This plan is the CMS follow-up to [Multi-User & Permissions](./multi-user.md). It reuses the existing content visibility and entity action policy contracts; it does not introduce a CMS-specific role system. The separate Sveltia content-repository token flow remains Admin-only because a shared repository credential cannot enforce per-action runtime permissions.
 

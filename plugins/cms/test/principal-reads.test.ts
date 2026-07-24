@@ -261,21 +261,6 @@ describe("CMS principal-aware reads behind the rollout gate", () => {
       request: Request;
     }> = [
       {
-        path: "/cms/api/entities",
-        method: "POST",
-        request: request("/cms/api/entities", { method: "POST", body: {} }),
-      },
-      {
-        path: "/cms/api/entities",
-        method: "PUT",
-        request: request("/cms/api/entities", { method: "PUT", body: {} }),
-      },
-      {
-        path: "/cms/api/entities",
-        method: "DELETE",
-        request: request("/cms/api/entities", { method: "DELETE" }),
-      },
-      {
         path: "/cms/api/upload",
         method: "POST",
         request: request("/cms/api/upload", { method: "POST" }),

@@ -41,10 +41,17 @@ export function isSameOriginRequest(request: Request): boolean {
   return origin !== null && origin === new URL(request.url).origin;
 }
 
+export function requireSameOriginRequest(
+  request: Request,
+): Response | undefined {
+  return isSameOriginRequest(request)
+    ? undefined
+    : privateJsonResponse({ error: "Same-origin request required" }, 403);
+}
+
 export function requireSameOriginJson(request: Request): Response | undefined {
-  if (!isSameOriginRequest(request)) {
-    return privateJsonResponse({ error: "Same-origin request required" }, 403);
-  }
+  const originError = requireSameOriginRequest(request);
+  if (originError) return originError;
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     return privateJsonResponse({ error: "JSON request required" }, 415);
   }

@@ -2,6 +2,7 @@ import {
   canWriteVisibility,
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
+  getPublishBoundaryState,
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
@@ -18,7 +19,6 @@ import {
   humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
-import { getPublishBoundaryState } from "./entity-publish-policy";
 
 function currentFieldValue(entity: BaseEntity, key: string): unknown {
   return key === "visibility" ? entity.visibility : entity.metadata[key];

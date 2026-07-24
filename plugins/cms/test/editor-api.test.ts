@@ -170,7 +170,10 @@ function apiRequest(
     headers: {
       ...(options.cookie ? { Cookie: options.cookie } : {}),
       ...(options.body !== undefined
-        ? { "Content-Type": "application/json" }
+        ? {
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          }
         : {}),
     },
     ...(options.body !== undefined
@@ -186,7 +189,9 @@ function uploadRequest(
   if (options.file) form.set("file", options.file);
   return new Request("https://yeehaa.io/cms/api/upload", {
     method: "POST",
-    headers: options.cookie ? { Cookie: options.cookie } : {},
+    headers: options.cookie
+      ? { Cookie: options.cookie, Origin: "https://yeehaa.io" }
+      : {},
     body: form,
   });
 }
@@ -1357,6 +1362,7 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=post&id=doomed", {
         cookie,
         method: "DELETE",
+        body: { confirmed: true },
       }),
     );
 
@@ -1383,6 +1389,7 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=post&id=ghost", {
         cookie,
         method: "DELETE",
+        body: { confirmed: true },
       }),
     );
 

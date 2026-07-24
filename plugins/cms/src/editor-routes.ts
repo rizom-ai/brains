@@ -1,5 +1,9 @@
 import { join } from "node:path";
-import type { AuthPrincipal } from "@brains/auth-service";
+import {
+  requireSameOriginJson,
+  requireSameOriginRequest,
+  type AuthPrincipal,
+} from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
 import type {
   BaseEntity,
@@ -9,7 +13,10 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
+  canWriteVisibility,
+  contentVisibilitySchema,
   generateMarkdownWithFrontmatter,
+  getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   permissionToVisibilityScope,
 } from "@brains/plugins";
@@ -42,6 +49,10 @@ const createEntityPayloadSchema = z.object({
   entityType: z.string(),
   frontmatter: z.record(z.string(), z.unknown()),
   body: z.string().optional(),
+});
+
+const deleteEntityPayloadSchema = z.object({
+  confirmed: z.literal(true),
 });
 
 const workspaceActionPayloadSchema = z.object({
@@ -348,6 +359,8 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const denied = requireAdminCapability(access);
         if (denied) return denied;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
         return handleWorkspaceAction(workspaceRegistry, request);
       },
     },
@@ -378,9 +391,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleUpdateEntity(getContext(), request);
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleUpdateEntity(getContext(), request, access);
       },
     },
     {
@@ -390,9 +403,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleCreateEntity(getContext(), request);
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleCreateEntity(getContext(), request, access);
       },
     },
     {
@@ -402,9 +415,9 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleDeleteEntity(getContext(), request);
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleDeleteEntity(getContext(), request, access);
       },
     },
     {
@@ -416,6 +429,8 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const denied = requireAdminCapability(access);
         if (denied) return denied;
+        const requestDenied = requireSameOriginRequest(request);
+        if (requestDenied) return requestDenied;
         return handleUpload(getContext(), request, apiPath("upload"));
       },
     },
@@ -428,6 +443,8 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const denied = requireAdminCapability(access);
         if (denied) return denied;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
         return handleAssist(getContext(), request);
       },
     },
@@ -452,6 +469,8 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const denied = requireAdminCapability(access);
         if (denied) return denied;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
         return handleAskAgent(getContext(), request);
       },
     },
@@ -474,6 +493,30 @@ function requireAdminCapability(access: CmsRequestAccess): Response | null {
   return access.permissionLevel === "admin"
     ? null
     : jsonResponse({ error: "Admin CMS capability required" }, 403);
+}
+
+function requireEntityAction(
+  context: ServicePluginContext,
+  entityType: string,
+  action: "create" | "update" | "delete" | "extract" | "publish",
+  access: CmsRequestAccess,
+): Response | null {
+  try {
+    context.permissions.assertEntityActionAllowed(entityType, action, {
+      userPermissionLevel: access.permissionLevel,
+    });
+    return null;
+  } catch (error) {
+    return jsonResponse(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : `CMS ${action} permission denied`,
+      },
+      403,
+    );
+  }
 }
 
 function canPerformEntityAction(
@@ -815,6 +858,7 @@ async function handleGetEntities(
 async function handleUpdateEntity(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   let payload: z.infer<typeof updateEntityPayloadSchema>;
   try {
@@ -827,6 +871,15 @@ async function handleUpdateEntity(
   const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
   if (!schema) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  }
+
+  const existing = await context.entityService.getEntity({
+    entityType,
+    id,
+    visibilityScope: access.visibilityScope,
+  });
+  if (!existing) {
+    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
   }
 
   const bodyError = rejectBodyForBodylessType(
@@ -846,6 +899,12 @@ async function handleUpdateEntity(
     );
   }
 
+  const visibility = resolveCmsVisibility(
+    payload.frontmatter,
+    existing.visibility,
+  );
+  if (!visibility.success) return visibility.response;
+
   // Validate before anything is written — field-level errors go back to
   // the form, the entity service is never called with invalid frontmatter.
   const frontmatter = raw
@@ -858,9 +917,51 @@ async function handleUpdateEntity(
     );
   }
 
-  const existing = await context.entityService.getEntity({ entityType, id });
-  if (!existing) {
-    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+  const body =
+    payload.body ?? splitEntityContent(entityType, existing.content).body;
+  const content = raw
+    ? body
+    : generateMarkdownWithFrontmatter(
+        body,
+        withCmsVisibility(frontmatter.data, visibility.visibility),
+      );
+
+  // Re-derive adapter fields (metadata, visibility, etc.) from the finalized
+  // content before applying policy. Incoming form data is never the authority.
+  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
+  const entity: BaseEntity = {
+    ...existing,
+    ...parsed,
+    id: existing.id,
+    entityType: existing.entityType,
+    content,
+    metadata: stripCmsPolicyMetadata(parsed?.metadata ?? existing.metadata),
+    visibility: visibility.visibility,
+  };
+
+  const publishBoundary = getPublishBoundaryState(
+    entityType,
+    existing.metadata["status"],
+    entity.metadata["status"],
+    context.entityService,
+  );
+  const requiredAction =
+    publishBoundary === "non-publish" ? "update" : "publish";
+  const actionDenied = requireEntityAction(
+    context,
+    entityType,
+    requiredAction,
+    access,
+  );
+  if (actionDenied) return actionDenied;
+
+  if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
+    return jsonResponse(
+      {
+        error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
+      },
+      403,
+    );
   }
 
   // Stale-write guard: another writer (an agent, or a git import through
@@ -881,23 +982,13 @@ async function handleUpdateEntity(
     );
   }
 
-  const body =
-    payload.body ?? splitEntityContent(entityType, existing.content).body;
-  const content = raw
-    ? body
-    : generateMarkdownWithFrontmatter(body, frontmatter.data);
-
-  // Re-derive adapter fields (metadata etc.) from the new content so the
-  // stored entity stays consistent — serialization overlays entity.metadata
-  // onto content frontmatter, so stale metadata would undo the edit.
-  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
-  const entity: BaseEntity = {
-    ...existing,
-    ...parsed,
-    id: existing.id,
-    entityType: existing.entityType,
-    content,
-  };
+  const persistenceDenied = requireEntityAction(
+    context,
+    entityType,
+    requiredAction,
+    access,
+  );
+  if (persistenceDenied) return persistenceDenied;
 
   const result = await context.entityService.updateEntity({ entity });
   // skipped: the content was already stored byte-identically — no event is
@@ -912,6 +1003,7 @@ async function handleUpdateEntity(
 async function handleCreateEntity(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
   let payload: z.infer<typeof createEntityPayloadSchema>;
   try {
@@ -925,6 +1017,14 @@ async function handleCreateEntity(
   if (!schema) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
+
+  const actionDenied = requireEntityAction(
+    context,
+    entityType,
+    "create",
+    access,
+  );
+  if (actionDenied) return actionDenied;
 
   const bodyError = rejectBodyForBodylessType(
     context,
@@ -943,6 +1043,9 @@ async function handleCreateEntity(
     );
   }
 
+  const visibility = resolveCmsVisibility(payload.frontmatter, "public");
+  if (!visibility.success) return visibility.response;
+
   const frontmatter = raw
     ? { success: true as const, data: {} }
     : schema.safeParse(payload.frontmatter);
@@ -955,18 +1058,38 @@ async function handleCreateEntity(
 
   const content = raw
     ? (payload.body ?? "")
-    : generateMarkdownWithFrontmatter(payload.body ?? "", frontmatter.data);
+    : generateMarkdownWithFrontmatter(
+        payload.body ?? "",
+        withCmsVisibility(frontmatter.data, visibility.visibility),
+      );
   const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
+  const entity = {
+    ...parsed,
+    entityType,
+    content,
+    metadata: stripCmsPolicyMetadata(parsed?.metadata ?? {}),
+    visibility: visibility.visibility,
+  };
+  if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
+    return jsonResponse(
+      {
+        error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
+      },
+      403,
+    );
+  }
+
+  // Recheck at the persistence boundary after adapter-derived policy fields.
+  const persistenceDenied = requireEntityAction(
+    context,
+    entityType,
+    "create",
+    access,
+  );
+  if (persistenceDenied) return persistenceDenied;
 
   // No id: the entity service derives one, keeping id policy server-side.
-  const result = await context.entityService.createEntity({
-    entity: {
-      ...parsed,
-      entityType,
-      content,
-      metadata: parsed?.metadata ?? {},
-    },
-  });
+  const result = await context.entityService.createEntity({ entity });
 
   return jsonResponse({ entityId: result.entityId, jobId: result.jobId }, 201);
 }
@@ -974,7 +1097,17 @@ async function handleCreateEntity(
 async function handleDeleteEntity(
   context: ServicePluginContext,
   request: Request,
+  access: CmsRequestAccess,
 ): Promise<Response> {
+  try {
+    deleteEntityPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse(
+      { error: "Explicit delete confirmation required" },
+      400,
+    );
+  }
+
   const params = new URL(request.url).searchParams;
   const entityType = params.get("type");
   const id = params.get("id");
@@ -985,10 +1118,22 @@ async function handleDeleteEntity(
     );
   }
 
-  const existing = await context.entityService.getEntity({ entityType, id });
+  const existing = await context.entityService.getEntity({
+    entityType,
+    id,
+    visibilityScope: access.visibilityScope,
+  });
   if (!existing) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
   }
+
+  const actionDenied = requireEntityAction(
+    context,
+    entityType,
+    "delete",
+    access,
+  );
+  if (actionDenied) return actionDenied;
 
   const deleted = await context.entityService.deleteEntity({ entityType, id });
   return jsonResponse({ deleted });
@@ -1234,6 +1379,39 @@ async function handleUpload(
     { entityId: result.data.entityId, jobId: result.data.jobId },
     201,
   );
+}
+
+function stripCmsPolicyMetadata(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  const { visibility: _visibility, ...rest } = metadata;
+  return rest;
+}
+
+function resolveCmsVisibility(
+  frontmatter: Record<string, unknown>,
+  fallback: ContentVisibility,
+):
+  | { success: true; visibility: ContentVisibility }
+  | { success: false; response: Response } {
+  if (!Object.hasOwn(frontmatter, "visibility")) {
+    return { success: true, visibility: fallback };
+  }
+  const parsed = contentVisibilitySchema.safeParse(frontmatter["visibility"]);
+  return parsed.success
+    ? { success: true, visibility: parsed.data }
+    : {
+        success: false,
+        response: jsonResponse({ error: "Invalid content visibility" }, 400),
+      };
+}
+
+function withCmsVisibility(
+  frontmatter: Record<string, unknown>,
+  visibility: ContentVisibility,
+): Record<string, unknown> {
+  const { visibility: _untrustedVisibility, ...fields } = frontmatter;
+  return visibility === "public" ? fields : { ...fields, visibility };
 }
 
 function rejectBodyForBodylessType(

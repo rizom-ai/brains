@@ -51,7 +51,10 @@ function request(
     headers: {
       ...(options.cookie ? { Cookie: options.cookie } : {}),
       ...(options.body !== undefined
-        ? { "Content-Type": "application/json" }
+        ? {
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          }
         : {}),
     },
     ...(options.body !== undefined
