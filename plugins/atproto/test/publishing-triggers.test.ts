@@ -215,6 +215,31 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
   });
 
+  it("republishes the brain card when identity or skill inputs change", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+    await plugin.ready();
+
+    for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
+      await shell.getMessageBus().send({
+        type: "entity:updated",
+        payload: { entityType, entityId: entityType },
+        sender: "entity-service",
+        broadcast: true,
+      });
+    }
+    await plugin.shutdown?.();
+
+    const cardWrites = client.putRecord.mock.calls.filter(
+      ([input]) =>
+        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    );
+    expect(cardWrites).toHaveLength(4);
+  });
+
   it("upserts every canonical lexicon schema when this repo is the authority", async () => {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client, {

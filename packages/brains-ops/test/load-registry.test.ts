@@ -270,6 +270,10 @@ agePublicKey: age1testpublickey
 atproto:
   identifier: rizom-test.bsky.social
   lexiconAuthority: true
+  jetstream:
+    enabled: true
+    queueLimit: 64
+    concurrency: 2
 discord:
   enabled: false
 `,
@@ -283,6 +287,11 @@ discord:
     expect(registry.users[0]?.atproto).toEqual({
       identifier: "rizom-test.bsky.social",
       lexiconAuthority: true,
+      jetstream: {
+        enabled: true,
+        queueLimit: 64,
+        concurrency: 2,
+      },
     });
   });
 

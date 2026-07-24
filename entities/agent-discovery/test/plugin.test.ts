@@ -9,8 +9,10 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
+  ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_REFRESHED,
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
 import {
@@ -82,6 +84,10 @@ function createMockAgentCardFetch(
       return new Response(JSON.stringify(card), { status: 200 });
     },
   };
+}
+
+function resolvePublicHostname(): Promise<string[]> {
+  return Promise.resolve(["93.184.216.34"]);
 }
 
 function createMockPdsFetch(input: {
@@ -259,7 +265,9 @@ describe("AgentDiscoveryPlugin", () => {
       record: updatedRecord,
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock.fetch));
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(fetchMock.fetch, resolvePublicHostname),
+    );
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "peer.example.com",
@@ -343,7 +351,9 @@ describe("AgentDiscoveryPlugin", () => {
     };
     original.updated = "2026-03-31T00:00:00.000Z";
 
-    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock.fetch));
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(fetchMock.fetch, resolvePublicHostname),
+    );
     await harness.getEntityService().createEntity({ entity: original });
 
     await run?.({ signal: new AbortController().signal });
@@ -391,7 +401,9 @@ describe("AgentDiscoveryPlugin", () => {
       cardObservedAt: "2026-06-02T12:30:00.000Z",
     };
 
-    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock));
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(fetchMock, resolvePublicHostname),
+    );
     await harness.getEntityService().createEntity({ entity: original });
 
     await run?.({ signal: new AbortController().signal });
@@ -404,10 +416,139 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
     expect(agent?.metadata.cardLastError).toContain("PLC lookup failed");
+    expect(agent?.metadata.cardFailureCount).toBe(1);
+    expect(agent?.metadata.cardUnavailableAt).toBeUndefined();
     expect(agent?.content).toContain("Local trust note.");
     expect(calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
+
+    await run?.({ signal: new AbortController().signal });
+    await run?.({ signal: new AbortController().signal });
+    const repeatedlyUnavailable = await harness
+      .getEntityService()
+      .getEntity<AgentEntity>({
+        entityType: "agent",
+        id: "peer.example.com",
+      });
+    expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
+    expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
+    expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
+    harness.reset();
+  });
+
+  it("rejects a private PDS endpoint during known-card refresh", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const calls: string[] = [];
+    const hostileFetch: FetchFn = async (url) => {
+      const value = url.toString();
+      calls.push(value);
+      if (value.startsWith("https://plc.directory/")) {
+        return Response.json({
+          service: [
+            {
+              id: "#atproto_pds",
+              serviceEndpoint: "https://127.0.0.1:3000",
+            },
+          ],
+        });
+      }
+      return Response.json({ message: "should not fetch" });
+    };
+    const original = createTestAgent({
+      id: "peer.example.com",
+      url: "https://peer.example.com",
+      status: "approved",
+    });
+    original.metadata = {
+      ...original.metadata,
+      repoDid: testBrainCardPayload.repoDid,
+      cardUri: testBrainCardPayload.uri,
+      cardCid: testBrainCardPayload.cid,
+    };
+
+    await harness.installPlugin(new AgentDiscoveryPlugin(hostileFetch));
+    await harness.getEntityService().createEntity({ entity: original });
+    await run?.({ signal: new AbortController().signal });
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(calls).toEqual([
+      `https://plc.directory/${testBrainCardPayload.repoDid}`,
+    ]);
+    expect(agent?.metadata.cardLastError).toContain("non-public");
+    harness.reset();
+  });
+
+  it("clears unavailable state when the same card snapshot reappears", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const available = createMockPdsFetch({
+      repoDid: testBrainCardPayload.repoDid,
+      cid: testBrainCardPayload.cid,
+      record: testBrainCardPayload.record,
+    });
+    let failing = true;
+    const fetchMock: FetchFn = (url, init) =>
+      failing
+        ? Promise.resolve(new Response("unavailable", { status: 503 }))
+        : available.fetch(url, init);
+    const original = createTestAgent({
+      id: "peer.example.com",
+      name: "Peer Owner",
+      brainName: "Peer Brain",
+      url: "https://peer.example.com",
+      status: "approved",
+    });
+    original.metadata = {
+      ...original.metadata,
+      repoDid: testBrainCardPayload.repoDid,
+      cardUri: testBrainCardPayload.uri,
+      cardCid: testBrainCardPayload.cid,
+    };
+
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(fetchMock, resolvePublicHostname),
+    );
+    await harness.getEntityService().createEntity({ entity: original });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await run?.({ signal: new AbortController().signal });
+    }
+    failing = false;
+    await run?.({ signal: new AbortController().signal });
+
+    const recovered = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(recovered?.metadata.status).toBe("approved");
+    expect(recovered?.metadata.cardCid).toBe(testBrainCardPayload.cid);
+    expect(recovered?.metadata.cardFailureCount).toBeUndefined();
+    expect(recovered?.metadata.cardUnavailableAt).toBeUndefined();
+    expect(recovered?.metadata.cardLastError).toBeUndefined();
     harness.reset();
   });
 
@@ -913,6 +1054,158 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     ]);
 
+    harness.reset();
+  });
+
+  it("fails closed when a different repo DID claims an existing agent domain", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const conflicts: unknown[] = [];
+    harness.subscribe(ATPROTO_BRAIN_CARD_CONFLICT, async (message) => {
+      conflicts.push(message.payload);
+      return { success: true };
+    });
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const before = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(before).toBeDefined();
+    if (!before) throw new Error("Expected discovered agent");
+    await harness.getEntityService().updateEntity({
+      entity: {
+        ...before,
+        content: before.content.replace(
+          "status: discovered",
+          "status: approved",
+        ),
+        metadata: { ...before.metadata, status: "approved" },
+      },
+    });
+
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      {
+        ...testBrainCardPayload,
+        repoDid: "did:plc:attacker",
+        uri: "at://did:plc:attacker/ai.rizom.brain.card/self",
+        cid: "bafy-attacker-card",
+      },
+      "atproto",
+    );
+
+    const after = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(after?.metadata.status).toBe("approved");
+    expect(after?.metadata.repoDid).toBe("did:plc:peer");
+    expect(after?.metadata.cardCid).toBe("bafy-peer-card");
+    expect(conflicts).toEqual([
+      expect.objectContaining({
+        domain: "peer.example.com",
+        existingRepoDid: "did:plc:peer",
+        candidateRepoDid: "did:plc:attacker",
+      }),
+    ]);
+
+    harness.reset();
+  });
+
+  it("marks a deleted remote card unavailable without revoking approval", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const before = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(before).toBeDefined();
+    if (!before) throw new Error("Expected discovered agent");
+    await harness.getEntityService().updateEntity({
+      entity: {
+        ...before,
+        content: before.content.replace(
+          "status: discovered",
+          "status: approved",
+        ),
+        metadata: { ...before.metadata, status: "approved" },
+      },
+    });
+
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_UNAVAILABLE,
+      {
+        repoDid: "did:plc:peer",
+        observedAt: "2026-07-22T13:00:00.000Z",
+        staleAfter: "2026-07-23T13:00:00.000Z",
+        reason: "deleted",
+      },
+      "atproto",
+    );
+
+    const after = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(after?.metadata.status).toBe("approved");
+    expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T13:00:00.000Z");
+    expect(after?.metadata.cardLastError).toContain("deleted");
+    expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
+
+    harness.reset();
+  });
+
+  it("archives an expired never-approved unavailable candidate", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const unavailableFetch: FetchFn = async () =>
+      new Response("unavailable", { status: 503 });
+    await harness.installPlugin(new AgentDiscoveryPlugin(unavailableFetch));
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_UNAVAILABLE,
+      {
+        repoDid: "did:plc:peer",
+        observedAt: "2026-07-21T13:00:00.000Z",
+        staleAfter: "2026-07-22T13:00:00.000Z",
+        reason: "deleted",
+      },
+      "atproto",
+    );
+
+    await run?.({ signal: new AbortController().signal });
+
+    const expired = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(expired?.metadata.status).toBe("archived");
+    expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
     harness.reset();
   });
 

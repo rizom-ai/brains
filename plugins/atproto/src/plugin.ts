@@ -11,6 +11,12 @@ import {
 } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
+import {
+  assertSafePublicHttpsUrl,
+  createSafePublicFetch,
+  UnsafePublicResourceError,
+  type ResolveHostname,
+} from "@brains/utils/safe-public-fetch";
 import { z } from "@brains/utils/zod";
 import {
   atprotoConfigSchema,
@@ -23,17 +29,27 @@ import {
   buildConventionalDidWebDocuments,
 } from "./did";
 import {
+  ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
+  ATPROTO_JETSTREAM_GAP,
   AtprotoProjectionRegistry,
+  atprotoBrainCardDiscoveredPayloadSchema,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
   normalizeDiscoveredBrainCard,
   validateAtprotoRecord,
+  type AtprotoBrainCardRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
+import {
+  JetstreamConsumer,
+  type CreateJetstreamSocket,
+  type JetstreamDiscoveryOutcome,
+} from "./jetstream-consumer";
 import packageJson from "../package.json";
 
 const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
@@ -43,6 +59,8 @@ const handleResolutionResponseSchema = z.looseObject({
 });
 
 const didDocumentSchema = z.looseObject({
+  id: z.string().optional(),
+  alsoKnownAs: z.array(z.string()).optional(),
   service: z
     .array(
       z.looseObject({
@@ -71,9 +89,14 @@ export interface AtprotoPluginDeps {
     pdsEndpoint: string;
     identifier: string;
     appPassword: string;
+    fetch?: FetchLike | undefined;
   }) => AtprotoPdsClientLike;
   projectionRegistry?: AtprotoProjectionRegistry;
   fetch?: FetchLike;
+  resolveHostname?: ResolveHostname;
+  createJetstreamSocket?: CreateJetstreamSocket;
+  now?: () => number;
+  random?: () => number;
 }
 
 export interface PublishBrainCardOptions {
@@ -117,6 +140,8 @@ export type PublishPostResult = PublishEntityResult<AtprotoProjectedPostRecord>;
 
 export interface DiscoverBrainCardsOptions {
   repos: string[];
+  /** Internal admission gate used by Jetstream's creation budget. */
+  allowNewCandidates?: boolean;
 }
 
 export interface DiscoverBrainCardResult {
@@ -125,6 +150,8 @@ export interface DiscoverBrainCardResult {
   repoDid?: string;
   uri?: string;
   cid?: string;
+  created?: boolean;
+  retryable?: boolean;
   error?: string;
 }
 
@@ -156,6 +183,13 @@ const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
 const PUBLISH_COMPLETED = PUBLISH_CHANNELS.completed;
 const MAX_DISCOVERY_REPOS = 50;
+const BRAIN_CARD_INPUT_ENTITY_TYPES = new Set([
+  "brain-character",
+  "anchor-profile",
+  "skill",
+]);
+
+class DiscoveryRejectionError extends Error {}
 
 export class AtprotoPlugin extends ServicePlugin<
   AtprotoConfig,
@@ -165,6 +199,8 @@ export class AtprotoPlugin extends ServicePlugin<
   private readonly projectionRegistry: AtprotoProjectionRegistry;
   private readonly activePublishingTasks = new Set<Promise<void>>();
   private readonly publishingChains = new Map<string, Promise<void>>();
+  private readonly discoveryFetch: FetchLike;
+  private jetstreamConsumer: JetstreamConsumer | undefined;
   private fullBootObserved = false;
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
@@ -172,6 +208,13 @@ export class AtprotoPlugin extends ServicePlugin<
     this.deps = deps;
     this.projectionRegistry =
       deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
+    this.discoveryFetch = createSafePublicFetch({
+      ...(deps.fetch && { fetchFn: deps.fetch }),
+      ...(deps.resolveHostname && { resolveHostname: deps.resolveHostname }),
+      timeoutMs: this.config.jetstream.requestTimeoutMs,
+      maxResponseBytes: this.config.jetstream.maxResponseBytes,
+      maxRedirects: this.config.jetstream.maxRedirects,
+    });
   }
 
   protected override async onRegister(
@@ -205,6 +248,25 @@ export class AtprotoPlugin extends ServicePlugin<
         void this.trackPublishingTask(entityTaskKey(payload.data), () =>
           this.reconcileProjectedEntity(context, payload.data),
         );
+        if (
+          this.fullBootObserved &&
+          BRAIN_CARD_INPUT_ENTITY_TYPES.has(payload.data.entityType)
+        ) {
+          void this.trackPublishingTask(
+            `${BRAIN_CARD_COLLECTION}/${BRAIN_CARD_RKEY}`,
+            () =>
+              this.runPublishingTrigger(
+                context,
+                {
+                  operation: "publish-card",
+                  entityType: "brain-card",
+                  entityId: BRAIN_CARD_RKEY,
+                  collection: BRAIN_CARD_COLLECTION,
+                },
+                () => this.publishBrainCard(context),
+              ),
+          );
+        }
       }
       return { success: true };
     });
@@ -247,9 +309,89 @@ export class AtprotoPlugin extends ServicePlugin<
         this.publishCanonicalLexiconSchemas(context),
       );
     }
+
+    if (this.config.jetstream.enabled && !this.jetstreamConsumer) {
+      this.jetstreamConsumer = new JetstreamConsumer({
+        context,
+        config: this.config.jetstream,
+        callbacks: {
+          discover: async (
+            repoDid,
+            options,
+          ): Promise<JetstreamDiscoveryOutcome> => {
+            const result = (
+              await this.discoverBrainCards(context, {
+                repos: [repoDid],
+                allowNewCandidates: options.allowNewCandidate,
+              })
+            ).results[0];
+            return result
+              ? {
+                  status: result.status,
+                  ...(result.created !== undefined && {
+                    created: result.created,
+                  }),
+                  ...(result.retryable !== undefined && {
+                    retryable: result.retryable,
+                  }),
+                  ...(result.error && { error: result.error }),
+                }
+              : {
+                  status: "skipped",
+                  retryable: true,
+                  error: "Discovery returned no result",
+                };
+          },
+          markUnavailable: async (repoDid, observedAt): Promise<void> => {
+            const staleAfter = new Date(
+              Date.parse(observedAt) +
+                this.config.jetstream.staleCandidateRetentionDays *
+                  24 *
+                  60 *
+                  60 *
+                  1000,
+            ).toISOString();
+            await context.messaging.send({
+              type: ATPROTO_BRAIN_CARD_UNAVAILABLE,
+              payload: {
+                repoDid,
+                observedAt,
+                staleAfter,
+                reason: "deleted",
+              },
+              broadcast: true,
+            });
+          },
+          publishHeartbeat: async (): Promise<void> => {
+            if (!this.hasPublishingCredentials()) return;
+            await this.publishBrainCard(context);
+          },
+          reportGap: async (payload): Promise<void> => {
+            await context.messaging.send({
+              type: ATPROTO_JETSTREAM_GAP,
+              payload: {
+                ...payload,
+                observedAt: new Date(
+                  this.deps.now?.() ?? Date.now(),
+                ).toISOString(),
+              },
+              broadcast: true,
+            });
+          },
+        },
+        ...(this.deps.createJetstreamSocket && {
+          createSocket: this.deps.createJetstreamSocket,
+        }),
+        ...(this.deps.now && { now: this.deps.now }),
+        ...(this.deps.random && { random: this.deps.random }),
+      });
+      await this.jetstreamConsumer.start();
+    }
   }
 
   protected override async onShutdown(): Promise<void> {
+    await this.jetstreamConsumer?.stop();
+    this.jetstreamConsumer = undefined;
     while (this.activePublishingTasks.size > 0) {
       await Promise.all(this.activePublishingTasks);
     }
@@ -408,9 +550,13 @@ export class AtprotoPlugin extends ServicePlugin<
     for (const repo of repos) {
       try {
         const resolved = await this.resolveRepoPdsEndpoint(repo);
+        await assertSafePublicHttpsUrl(
+          resolved.pdsEndpoint,
+          this.deps.resolveHostname,
+        );
         const client = this.createPublicPdsClient(resolved.pdsEndpoint);
         if (!client.getRecord) {
-          throw new Error(
+          throw new DiscoveryRejectionError(
             "AT Protocol PDS client does not support record reads",
           );
         }
@@ -419,19 +565,52 @@ export class AtprotoPlugin extends ServicePlugin<
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
+        const returnedRepo = parseAtUriRepo(record.uri);
+        if (returnedRepo !== resolved.repoDid) {
+          throw new DiscoveryRejectionError(
+            `Returned AT URI repo does not match candidate ${resolved.repoDid}`,
+          );
+        }
+        if (
+          record.uri !==
+          `at://${resolved.repoDid}/${BRAIN_CARD_COLLECTION}/${BRAIN_CARD_RKEY}`
+        ) {
+          throw new DiscoveryRejectionError(
+            "Returned AT URI is not the canonical brain-card record",
+          );
+        }
+
         // Peers on other fleet versions may publish renamed anchor kinds;
         // convert to this build's vocabulary before validating and storing.
         const cardValue = normalizeDiscoveredBrainCard(record.value);
-        validateAtprotoRecord(brainCardLexicon, cardValue);
-        const repoDid = parseAtUriRepo(record.uri) ?? resolved.repoDid;
-        const recordKey = `${repoDid}:${record.uri}:${record.cid}`;
+        try {
+          validateAtprotoRecord(brainCardLexicon, cardValue);
+        } catch (error) {
+          throw new DiscoveryRejectionError(getErrorMessage(error));
+        }
+        const validatedCard = atprotoBrainCardDiscoveredPayloadSchema.parse({
+          repoDid: resolved.repoDid,
+          uri: record.uri,
+          cid: record.cid,
+          record: cardValue,
+        }).record;
+        await this.verifyBrainCardIdentity(resolved.repoDid, validatedCard);
+        const created = await this.applyDiscoveryAdmission(
+          context,
+          resolved.repoDid,
+          validatedCard,
+          options.allowNewCandidates ?? true,
+        );
+
+        const recordKey = `${resolved.repoDid}:${record.uri}:${record.cid}`;
         if (seenRecords.has(recordKey)) {
           results.push({
             repo,
             status: "skipped",
-            repoDid,
+            repoDid: resolved.repoDid,
             uri: record.uri,
             cid: record.cid,
+            retryable: false,
             error: "Duplicate brain card in discovery batch",
           });
           continue;
@@ -440,24 +619,28 @@ export class AtprotoPlugin extends ServicePlugin<
         await context.messaging.send({
           type: ATPROTO_BRAIN_CARD_DISCOVERED,
           payload: {
-            repoDid,
+            repoDid: resolved.repoDid,
             uri: record.uri,
             cid: record.cid,
-            record: cardValue,
+            record: validatedCard,
           },
           broadcast: true,
         });
         results.push({
           repo,
           status: "discovered",
-          repoDid,
+          repoDid: resolved.repoDid,
           uri: record.uri,
           cid: record.cid,
+          created,
         });
       } catch (error) {
         results.push({
           repo,
           status: "skipped",
+          retryable:
+            !(error instanceof DiscoveryRejectionError) &&
+            !(error instanceof UnsafePublicResourceError),
           error: getErrorMessage(error),
         });
       }
@@ -842,6 +1025,7 @@ export class AtprotoPlugin extends ServicePlugin<
         pdsEndpoint,
         identifier: this.config.identifier ?? "",
         appPassword: this.config.appPassword ?? "",
+        fetch: this.discoveryFetch,
       });
     }
 
@@ -849,7 +1033,154 @@ export class AtprotoPlugin extends ServicePlugin<
       pdsEndpoint,
       identifier: this.config.identifier ?? "",
       appPassword: this.config.appPassword ?? "",
+      fetch: this.discoveryFetch,
+      requestTimeoutMs: this.config.jetstream.requestTimeoutMs,
     });
+  }
+
+  private async verifyBrainCardIdentity(
+    repoDid: string,
+    record: AtprotoBrainCardRecord,
+  ): Promise<void> {
+    let siteUrl: URL;
+    try {
+      siteUrl = new URL(record.siteUrl);
+    } catch {
+      throw new DiscoveryRejectionError("Brain card siteUrl is invalid");
+    }
+    if (siteUrl.protocol !== "https:") {
+      throw new DiscoveryRejectionError("Brain card siteUrl must use HTTPS");
+    }
+
+    const brainDid = record.brain.did;
+    if (!brainDid.startsWith("did:web:")) {
+      throw new DiscoveryRejectionError("Brain card brain DID must be did:web");
+    }
+    const didHostname = didWebHostname(brainDid);
+    if (siteUrl.hostname.toLowerCase() !== didHostname.toLowerCase()) {
+      throw new DiscoveryRejectionError(
+        "Brain card siteUrl and did:web hostname do not match",
+      );
+    }
+
+    const response = await this.discoveryFetch(didWebDocumentUrl(brainDid));
+    if (!response.ok) {
+      const message = `Brain did:web document returned HTTP ${String(response.status)}`;
+      if (response.status >= 500) throw new Error(message);
+      throw new DiscoveryRejectionError(message);
+    }
+    const parsed = didDocumentSchema.safeParse(await response.json());
+    if (!parsed.success || parsed.data.id !== brainDid) {
+      throw new DiscoveryRejectionError(
+        "Brain did:web document does not identify itself correctly",
+      );
+    }
+
+    for (const alias of parsed.data.alsoKnownAs ?? []) {
+      if (!alias.startsWith("at://")) continue;
+      const identifier = alias.slice("at://".length).replace(/\/$/, "");
+      if (identifier === repoDid) return;
+      if (!identifier.startsWith("did:")) {
+        const resolved = await this.resolveHandleToDid(identifier);
+        if (resolved === repoDid) return;
+      }
+    }
+    throw new DiscoveryRejectionError(
+      "Brain did:web document is not bound to the candidate repo DID",
+    );
+  }
+
+  private async applyDiscoveryAdmission(
+    context: ServicePluginContext,
+    repoDid: string,
+    record: AtprotoBrainCardRecord,
+    allowNewCandidate: boolean,
+  ): Promise<boolean> {
+    const domain = new URL(record.siteUrl).hostname.toLowerCase();
+    const deniedDomain = this.config.jetstream.denyDomains
+      .map((entry) => entry.toLowerCase())
+      .find((entry) => domain === entry || domain.endsWith(`.${entry}`));
+    if (deniedDomain) {
+      throw new DiscoveryRejectionError(
+        `Brain card matched denied domain ${deniedDomain}`,
+      );
+    }
+
+    const skillKeywords = this.config.jetstream.skillKeywords.map((entry) =>
+      entry.toLowerCase(),
+    );
+    if (skillKeywords.length > 0) {
+      const searchable = record.skills
+        .flatMap((skill) => [
+          skill.name,
+          skill.description,
+          ...(skill.tags ?? []),
+        ])
+        .join("\n")
+        .toLowerCase();
+      if (!skillKeywords.some((keyword) => searchable.includes(keyword))) {
+        throw new DiscoveryRejectionError(
+          "Brain card did not match configured skill keywords",
+        );
+      }
+    }
+
+    const agents = await context.entityService.listEntities<BaseEntity>({
+      entityType: "agent",
+    });
+    const existingByDomain = agents.find((agent) => agent.id === domain);
+    const existingByRepo = agents.find(
+      (agent) => agent.metadata["repoDid"] === repoDid,
+    );
+    const existingDomainRepo = existingByDomain?.metadata["repoDid"];
+    const existingDomainBrain = existingByDomain?.metadata["brainDid"];
+    const hasDomainRepoCollision =
+      typeof existingDomainRepo === "string" && existingDomainRepo !== repoDid;
+    const hasDomainBrainCollision =
+      existingDomainRepo === undefined &&
+      typeof existingDomainBrain === "string" &&
+      existingDomainBrain !== record.brain.did;
+    const hasRepoDomainCollision =
+      existingByRepo !== undefined && existingByRepo.id !== domain;
+    if (
+      hasDomainRepoCollision ||
+      hasDomainBrainCollision ||
+      hasRepoDomainCollision
+    ) {
+      const existingRepoDid =
+        typeof existingDomainRepo === "string" ? existingDomainRepo : undefined;
+      await context.messaging.send({
+        type: ATPROTO_BRAIN_CARD_CONFLICT,
+        payload: {
+          domain,
+          ...(existingRepoDid && { existingRepoDid }),
+          candidateRepoDid: repoDid,
+          observedAt: new Date().toISOString(),
+          reason: "ATProto agent identity collision",
+        },
+        broadcast: true,
+      });
+      throw new DiscoveryRejectionError(
+        `ATProto agent identity collision for ${domain}`,
+      );
+    }
+
+    const existing = existingByDomain ?? existingByRepo;
+    if (existing) return false;
+    if (!allowNewCandidate) {
+      throw new DiscoveryRejectionError(
+        "Jetstream new-agent creation rate cap reached",
+      );
+    }
+    const pendingCount = agents.filter(
+      (agent) => agent.metadata["status"] === "discovered",
+    ).length;
+    if (pendingCount >= this.config.jetstream.pendingCandidateCeiling) {
+      throw new DiscoveryRejectionError(
+        "Jetstream pending-candidate ceiling reached",
+      );
+    }
+    return true;
   }
 
   private async resolveRepoPdsEndpoint(repo: string): Promise<{
@@ -877,7 +1208,7 @@ export class AtprotoPlugin extends ServicePlugin<
       this.config.pdsEndpoint,
     );
     url.searchParams.set("handle", handle);
-    const response = await this.fetch(url.toString());
+    const response = await this.discoveryFetch(url.toString());
     if (!response.ok) return undefined;
     const body = handleResolutionResponseSchema.safeParse(
       await response.json(),
@@ -905,14 +1236,9 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async fetchJson(url: string): Promise<unknown> {
-    const response = await this.fetch(url);
+    const response = await this.discoveryFetch(url);
     if (!response.ok) return undefined;
-    return response.json() as Promise<unknown>;
-  }
-
-  private fetch(input: string): Promise<Response> {
-    const fetchFn = this.deps.fetch ?? fetch;
-    return fetchFn(input);
+    return response.json();
   }
 
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {
@@ -946,6 +1272,12 @@ function deriveAtprotoRecordKey(entityId: string): string {
 function parseAtUriRepo(uri: string): string | undefined {
   const match = /^at:\/\/([^/]+)/.exec(uri);
   return match?.[1];
+}
+
+function didWebHostname(did: string): string {
+  const [host] = did.slice("did:web:".length).split(":");
+  if (!host) throw new DiscoveryRejectionError(`Invalid did:web value: ${did}`);
+  return decodeURIComponent(host);
 }
 
 function didWebDocumentUrl(did: string): string {

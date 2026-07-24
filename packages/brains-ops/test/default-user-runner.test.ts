@@ -87,6 +87,29 @@ describe("createDefaultUserRunner", () => {
     expect(result.brainYaml).not.toContain("lexiconAuthority");
   });
 
+  it("renders an opt-in Jetstream canary block", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      atproto: {
+        identifier: "rizom.bsky.social",
+        jetstream: {
+          enabled: true,
+          queueLimit: 64,
+          concurrency: 2,
+        },
+      },
+    });
+
+    expect(result.brainYaml).toContain(
+      "    jetstream:\n" +
+        "      concurrency: 2\n" +
+        "      enabled: true\n" +
+        "      queueLimit: 64",
+    );
+  });
+
   it("preserves an explicit false lexicon authority setting", async () => {
     const runner = createDefaultUserRunner("rizom-ai");
 

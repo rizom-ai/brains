@@ -6,15 +6,16 @@ import {
   didWebToHostname,
   isDidWeb,
   normalizeServiceEndpoint,
+  atprotoConfigSchema,
 } from "../src";
 
-const baseConfig = {
+const baseConfig = atprotoConfigSchema.parse({
   enabled: true,
   pdsEndpoint: "https://pds.example.com/",
   identifier: "brain.example.com",
   brainDid: "did:web:brain.example.com",
   lexiconAuthority: false,
-};
+});
 
 describe("did helpers", () => {
   it("identifies did:web values", () => {
