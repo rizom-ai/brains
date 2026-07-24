@@ -71,12 +71,13 @@ export function visibleFieldValues(
   fields: FieldDescriptor[],
   values: Record<string, unknown>,
 ): Record<string, unknown> {
+  const hiddenFields = new Set(
+    fields
+      .filter((field) => !isFieldVisible(field, values))
+      .map((field) => field.name),
+  );
   return Object.fromEntries(
-    fields.flatMap((field) =>
-      isFieldVisible(field, values) && Object.hasOwn(values, field.name)
-        ? [[field.name, values[field.name]]]
-        : [],
-    ),
+    Object.entries(values).filter(([name]) => !hiddenFields.has(name)),
   );
 }
 

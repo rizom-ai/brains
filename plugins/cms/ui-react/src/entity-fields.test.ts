@@ -50,11 +50,13 @@ describe("isFieldVisible", () => {
         kind: "team",
         role: "Old person role",
         focusAreas: ["Research"],
+        importedExtension: "Preserve me",
       }),
     ).toEqual({
       name: "Example Team",
       kind: "team",
       focusAreas: ["Research"],
+      importedExtension: "Preserve me",
     });
   });
 });
