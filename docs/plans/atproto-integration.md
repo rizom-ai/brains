@@ -48,9 +48,9 @@ This correction keeps the useful liveness and refresh properties without turning
 #### Admission boundary — release-blocking
 
 - Jetstream transport and agent admission are separate capabilities. `jetstream.enabled` controls only the websocket monitor.
-- New agents continue to enter through intentional paths: confirmation-gated `agent_connect`, or the existing directory scan from approved peers with introduction provenance.
-- `discoverBrainCards` may retain an explicit trusted/manual creation path, but the Jetstream caller must never request creation for an unknown repo.
-- Before any candidate-controlled network request, look up the event repo DID among existing `agent` entities. Treat discovered, approved, and archived records as known; preserve their current local status on refresh.
+- Explicit, confirmation-gated `agent_connect` remains the direct path into the agent directory. Passive sources—including directory introductions and optional ambient ATProto observations—feed the Candidate Inbox described below, not the `agent` collection.
+- `discoverBrainCards` may retain an explicit trusted/manual creation path, but the Jetstream caller must never request agent creation for an unknown repo.
+- Before any candidate-controlled network request, classify the event repo DID against existing `agent` entities and the explicit ambient-candidate policy. Treat discovered, approved, and archived agents as known and preserve their current local status on refresh; an unknown repo is a no-fetch skip unless ambient intake is explicitly enabled.
 - Existing `enabled: true` configurations must resolve to known-only behavior after the correction. There is no backward-compatibility case where omission of a new field preserves alpha.224's open admission.
 - Quarantine or remove Jetstream creation-oriented settings (`newAgentsPerHour`, `pendingCandidateCeiling`, and skill keywords as admission criteria) from the known-peer path. Resource budgets for websocket processing and known-card fetches remain.
 
@@ -71,7 +71,7 @@ For a known repo refresh, Jetstream remains an untrusted signal and never the re
 - Keep Jetstream disabled by default and configurable per brain through `@rizom/ops`. No canary may enable it before the admission correction ships.
 - Run one websocket daemon only on an opted-in full boot; never during startup-check or eval.
 - Preserve bounded queue depth, concurrency, per-DID coalescing/cooldown, fetch budgets, retries, redirect/body/time limits, credential stripping, and public-address checks.
-- An unknown repo is a terminal no-fetch skip. Count it for operational visibility without retaining identifying candidate data or producing notifications.
+- With ambient intake disabled, an unknown repo is a terminal no-fetch skip. Count it for operational visibility without retaining identifying candidate data or producing notifications.
 - Record queue depth, dropped/coalesced events, known refresh outcomes, unknown no-fetch skips, cursor gaps, and reconnects. Revisit a shared fleet relay if per-brain stream cost becomes material.
 
 #### Cursor, replay, and liveness
@@ -88,32 +88,57 @@ For a known repo refresh, Jetstream remains an untrusted signal and never the re
 - Card deletion or repeated refresh failure retains the last verified snapshot and never deletes the agent, revokes approval, or changes runtime trust automatically.
 - The same bound card clears unavailable state when it reappears. Explicitly discovered but never-approved known agents may still follow the configured stale archival policy; approved agents never auto-archive.
 
-#### Optional ambient candidates — deferred product decision
+#### Unified Candidate Inbox — approved UX direction
 
-If ambient awareness is wanted later, design it as a second, explicit capability such as `jetstream.ambientCandidates.enabled`; do not infer it from `jetstream.enabled`.
+Sightings and optional ambient ATProto observations belong in one operator-only Candidate Inbox. A candidate is evidence about a possible relationship, not an agent and not part of the public directory.
 
-- A validated unknown card would enter a separate bounded, expiring observation inbox, not the `agent` entity collection.
-- Observation digests would be opt-in and would not link to `/agents?status=discovered` unless an operator had explicitly promoted the candidate.
-- Promotion would require a confirmation-gated operator action that authoritatively refetches the current card before creating an agent.
-- No `auto-discover` mode is part of the corrective slice. Adding one requires a separate product decision, plan review, abuse model, and release approval.
+- Add a durable `agent-candidate` entity owned by the agent-discovery compound package. It is operator-visible, never projected or published, bounded by retention policy, and separate from `agent` approval/runtime trust.
+- Merge evidence by stable identity (`repoDid` first, normalized domain fallback) so one candidate can carry multiple sources instead of producing duplicate cards.
+- Record source-specific provenance:
+  - **Trusted introduction**: introducer agent, hop count, first/last observed timestamps.
+  - **ATProto observation**: repo DID, domain, card URI/CID, verification time.
+  - Additional independent sources append evidence and raise review priority.
+- The inbox groups or filters candidates by source and ranks trusted introductions above ambient observations. Candidate cards show source badges such as “Introduced by Alice” and “Found on ATProto.”
+- **Add to directory** authoritatively revalidates the current source, then creates an `agent` through a confirmation-gated operator action. Local approval and runtime trust remain explicit downstream decisions.
+- **Ignore** dismisses the candidate without creating an agent. Keep a bounded identity tombstone so replay does not immediately recreate it; a materially changed identity/card or a new trusted introducer may resurface it for review.
+- Explicit `agent_connect` may bypass the inbox because the operator already expressed intent, but it retains its existing confirmation and verification gates.
+- Notification digests summarize pending candidates and link to the Candidate Inbox, never `/agents?status=discovered`.
+
+Ambient ATProto intake remains a separate opt-in capability such as `jetstream.ambientCandidates.enabled`; it is never inferred from `jetstream.enabled`. With ambient intake disabled, unknown repo events remain terminal no-fetch skips. With it enabled, unknown cards may be safely fetched and validated only to upsert bounded candidate evidence—never an `agent`.
+
+There is no `auto-discover` mode. Adding one requires a separate product decision, plan review, abuse model, and release approval.
 
 #### Corrective implementation sequence
 
-1. Add a failing behavior test proving that `jetstream.enabled: true` plus an unknown valid event performs zero candidate-controlled fetches, entity writes, discovery events, and notification writes.
-2. Add the known-repo preflight before `discoverBrainCards`; route known create/update events through authoritative refresh with creation disabled.
-3. Restrict delete/unavailability handling to known repo DIDs.
-4. Remove the automatic unknown-candidate notification/digest path from Jetstream while preserving directory-scan notifications.
-5. Update config, `@rizom/ops`, baseline fixtures, README, and this plan so transport enablement cannot imply admission.
-6. Preserve hostile-input, collision, cursor, retry, reconnect, heartbeat, staleness, and shutdown coverage under the known-only policy.
+Ship this as three independently reviewed slices:
+
+1. **Known-only safety correction**
+   - Add a failing behavior test proving that `jetstream.enabled: true` plus an unknown valid event performs zero candidate-controlled fetches, entity writes, discovery events, and notification writes.
+   - Add the known-repo preflight before `discoverBrainCards`; route known create/update events through authoritative refresh with creation disabled.
+   - Restrict delete/unavailability handling to known repo DIDs and remove alpha.224's automatic unknown-agent digest path.
+   - Update config, `@rizom/ops`, baseline fixtures, README, and this plan so transport enablement cannot imply admission.
+2. **Unified Candidate Inbox**
+   - Add the `agent-candidate` schema/adapter, source-provenance merge rules, retention/dismissal semantics, operator-only inbox UI, and confirmation-gated Add/Ignore actions.
+   - Change approved-peer directory scans to upsert trusted-introduction candidates instead of `agent` entities.
+   - Migrate legacy unapproved `agent.status: discovered` records into candidates without touching approved agents; test idempotence and rollback behavior.
+3. **Optional ambient intake**
+   - Add the separate disabled-by-default `ambientCandidates` configuration.
+   - Route safely validated unknown ATProto cards into candidate evidence under independent queue/fetch/retention budgets.
+   - Reuse the inbox digest and dedupe path; never create agents from the stream.
+
+Preserve hostile-input, collision, cursor, retry, reconnect, heartbeat, staleness, and shutdown coverage throughout all slices.
 
 #### Acceptance tests
 
-- Unknown valid or hostile repo event → no DNS/PLC/PDS request, no entity mutation, no discovery/conflict notification, cursor advances.
+- Unknown valid or hostile repo event with ambient intake disabled → no DNS/PLC/PDS request, no candidate or agent mutation, no notification, cursor advances.
 - Known discovered/approved/archived repo event → authoritative refetch and idempotent refresh; status and local relationship fields remain unchanged.
 - Known delete → unavailable metadata only; unknown delete → no-op; approval is never revoked.
 - A known repo claiming another known domain fails closed; explicit repo migration still requires reapproval.
-- Trusted directory introductions still create provenance-bearing sightings, and explicit connection remains confirmation-gated.
-- Existing Jetstream configs without an admission field behave known-only.
+- Trusted directory introductions create or enrich one provenance-bearing candidate, never an agent.
+- With ambient intake enabled, a valid unknown card creates or enriches one candidate; repeated/multi-source observations merge, and no path creates an agent automatically.
+- Add revalidates and requires confirmation before creating an agent; Ignore survives replay; new trusted evidence may resurface a dismissed candidate.
+- Migration moves only legacy unapproved discovered agents; approved agents remain byte-for-byte untouched.
+- Existing Jetstream configs without ambient-candidate configuration behave known-only.
 - Queue/concurrency bounds, dedupe, cursor persistence, stale-cursor gaps, retry exhaustion, reconnect, heartbeat, and shutdown remain covered.
 - Startup-check/eval boots open no socket.
 
@@ -182,7 +207,7 @@ Deferred until discovery establishes trusted/followed peers:
 ## Verification (open items only)
 
 1. Live repo shows `ai.rizom.brain.card/self` plus records for public projected entities, updated without manual action (trigger slice).
-2. Jetstream refreshes only already-known repo DIDs; unknown events cause no candidate-controlled fetch or agent creation, hostile identity changes fail closed, and known cards recover through bounded replay/heartbeat without altering local approval.
+2. Jetstream refreshes only already-known repo DIDs by default; trusted sightings and explicitly enabled ambient observations merge in an operator-only Candidate Inbox, and only a confirmed Add action creates an agent.
 3. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
 4. Bluesky/atproto content can be ingested as brain entities with topic extraction.
 5. Custom feeds are subscribable in Bluesky.
