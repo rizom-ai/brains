@@ -136,7 +136,7 @@ describe("targeted passkey registration", () => {
           attestationObject: "invalid",
           transports: [],
         },
-      } as RegistrationResponseJSON,
+      } satisfies RegistrationResponseJSON,
       context,
       "usr_someone_else",
     );
