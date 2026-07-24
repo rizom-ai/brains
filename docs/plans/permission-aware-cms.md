@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed.** The first-party CMS remains Admin-only until every read, write, assist, upload, and workspace route enforces the caller's runtime principal. Do not expose the current direct entity APIs to Trusted sessions incrementally.
+**In progress.** Phase 0 is characterizing the complete Admin/Trusted/Public/session route matrix and proving the existing Admin rollout gate fails closed before direct mutation or private capability code. The first-party CMS remains Admin-only until every read, write, assist, upload, and workspace route enforces the caller's runtime principal. Do not expose the current direct entity APIs to Trusted sessions incrementally.
 
 This plan is the CMS follow-up to [Multi-User & Permissions](./multi-user.md). It reuses the existing content visibility and entity action policy contracts; it does not introduce a CMS-specific role system. The separate Sveltia content-repository token flow remains Admin-only because a shared repository credential cannot enforce per-action runtime permissions.
 
