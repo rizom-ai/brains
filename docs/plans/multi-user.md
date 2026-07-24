@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. The [Permission-aware CMS](./permission-aware-cms.md) follow-up remains planned. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Decision 17 adds remaining caller-context hardening: authenticated web chat must answer configured-Anchor and permission questions directly from the resolved principal, and model behavior must be covered by integration tests and evaluations rather than prompt-string assertions. The [Permission-aware CMS](./permission-aware-cms.md) follow-up remains planned. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -21,6 +21,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Fresh setup uses durable `usr_<uuid>` subjects; legacy files are optional manual backups and are never read automatically.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations. Active Admin and Trusted web-chat sessions run at their exact permission level; Public, suspended, and missing principals are denied.
+- Authenticated web chat already propagates the resolved principal's exact `permissionLevel` and `isAnchor` value, but the model instruction currently renders `isAnchor: false` as “not established” rather than the definitive configured relationship. The existing `build-instructions.test.ts` assertions inspect prompt substrings and do not validate the resulting interaction; decision 17 replaces that claimed coverage.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
@@ -121,7 +122,13 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **`/admin` is truly Admin-only.** Non-Admins do not receive an inert administration SPA or Admin queries. Anonymous users authenticate, then an authenticated non-Admin receives a clear denial or is directed to `/account` without learning roster, audit, invitation, or Anchor-administration data.
     - **Self-service lives at `/account`, not `/admin` or CMS.** The first slice lets any active user inspect their own account, update their local auth display name, inspect connected channels, add a passkey, revoke a non-last passkey, and revoke their own sessions. The server derives the user id from the session; requests never accept another target user id.
     - **Self-service cannot mutate authority.** Role, status, Anchor identity/profile, standalone interface grants, connected-channel ownership, external-peer links, invitations, other users, and audit remain Admin-owned. Suspended/invited users cannot use self-service. Updating the auth display name does not synthesize a CMS member profile or rewrite an external profile.
-    - **Use separate contracts and routes.** `/auth/account/*` exposes a narrow same-origin contract backed by auth-service; `/auth/admin/*` remains Admin-only. Role checks and last-passkey/session protections are server-enforced at each mutation endpoint, not inferred from UI state.
+    - **Use separate contracts, routes, and presentation packages.** `/auth/account/*` exposes a narrow same-origin contract backed by auth-service; the dedicated `@brains/account` console plugin owns `/account`, its React UI, and `@brains/console-theme`. `/auth/admin/*` remains Admin-only behind the separate `@brains/admin` console. Role checks and last-passkey/session protections are server-enforced at each mutation endpoint, not inferred from UI state.
+17. **Authenticated caller facts are authoritative model context; behavioral claims require behavioral validation.** _(Adopted 2026-07-24; planned.)_
+    - **Private web chat has no unknown Anchor state after admission.** Every admitted browser caller is an active resolved Admin or Trusted `AuthPrincipal`. For that request, `isAnchor: true` means the signed-in account is the configured personal Anchor and `isAnchor: false` means it is not. The latter must not be weakened to “not established,” “cannot verify,” or an inference from the permission level.
+    - **Permission and Anchor answers are direct and separate.** “Am I your Anchor?” receives a direct yes/no answer about the configured account relationship. “What permission level am I?” receives the exact canonical label, such as “Trusted,” without vague additions such as “elevated permissions.” Admin does not imply Anchor; an additional Admin remains a definite non-Anchor.
+    - **Do not turn the model into an auth database reader.** Continue passing only the minimum server-derived caller context needed for the turn. Raw identity subjects, session data, claims, credentials, and the full auth-user record stay outside model-visible instructions. The configured-Anchor answer describes the authenticated account relationship and must not claim broader proof of a human's real-world identity.
+    - **Remove prompt-substring tests that masquerade as behavior coverage.** Delete `shell/ai-service/test/build-instructions.test.ts`; do not replace it with another collection of `toContain()` assertions or a prompt snapshot. Retain typed tests that verify principal, permission, Anchor, actor, tool, and confirmation propagation through runtime boundaries.
+    - **Validate the real behavior at two levels.** Add an integration test that starts from resolved browser principals and captures the resulting model call context. Add model evaluations for an authenticated personal Anchor/Admin answering yes, a Trusted non-Anchor answering no, an additional Admin non-Anchor answering no, and exact permission-label answers. Evaluation fixtures must represent states the production invariants can actually create.
 
 ## Terminology contract
 
@@ -502,6 +509,7 @@ Validation:
 - [x] Keep Admin-only actions unavailable to Trusted chat and add role/suspension-change coverage for active browser sessions.
 - [x] Make `/admin` reject or redirect authenticated non-Admins before rendering the administration SPA.
 - [x] Add `/account` and narrow `/auth/account/*` contracts for own display name, passkeys, connected-channel labels, and session revocation.
+- [x] Keep account presentation in the dedicated `@brains/account` console plugin while auth-service owns only the session-derived `/auth/account/*` API and security policy.
 - [x] Derive the account subject from the session and enforce non-last-passkey, same-origin, confirmation, redaction, and audit rules server-side.
 - [ ] Implement the permission-aware CMS plan atomically before advertising CMS to Trusted users.
 
@@ -514,6 +522,24 @@ Validation:
 - An account cannot revoke its last passkey through self-service.
 - CMS remains Admin-only until its complete role/visibility/action matrix is green.
 
+### Phase 9 — Authoritative caller context and behavioral evaluation
+
+**Status: planned under decision 17.** The runtime already propagates exact browser principals; this phase corrects model-facing semantics and replaces prompt-string assertions with evidence of the interaction users actually receive.
+
+- [ ] Render authenticated `isAnchor: false` as a definitive non-Anchor relationship, not an unknown identity state.
+- [ ] Render permission questions with the exact canonical role and remove the generic “elevated access” description.
+- [ ] Delete `shell/ai-service/test/build-instructions.test.ts` without replacing it with prompt snapshots or substring assertions.
+- [ ] Add a resolved-principal-to-model-context integration test covering Anchor/Admin, Trusted non-Anchor, and additional Admin non-Anchor callers.
+- [ ] Add model evaluations for direct Anchor yes/no answers, exact permission labels, and permission/Anchor independence.
+
+Validation:
+
+- An authenticated personal Anchor receives a direct yes about the configured account relationship.
+- An authenticated Trusted user and an additional non-Anchor Admin receive a direct no, never “cannot verify.”
+- Permission answers use only the canonical Admin/Trusted/Public role semantics and do not imply Anchor identity.
+- No raw auth identity, credential, session, or claim data enters model instructions.
+- Passing unit tests cannot be cited as interaction coverage unless they traverse the resolved-principal runtime boundary; actual response behavior is demonstrated by model evaluations.
+
 ## Security notes
 
 - Auth-user records are runtime auth state and should use `0600` file permissions.
@@ -525,6 +551,7 @@ Validation:
 - Identity binding must be explicit; do not auto-link two identities just because display names match. Claiming a user-targeted link delivered through a verified email or Discord channel is the explicit binding ceremony.
 - Self-service endpoints derive the subject from the active session and never accept another target user id, role, status, Anchor, grant, or channel-owner mutation.
 - Trusted browser chat and CMS must propagate the verified role without elevating it; UI capability hiding is never an authorization check.
+- Treat the resolved browser principal's configured Anchor relationship as authoritative for that request while keeping raw auth records out of model-visible context. Do not replace an exact non-Anchor result with identity ambiguity.
 
 ## Non-goals for first slice
 
@@ -555,3 +582,4 @@ Validation:
 15. `/admin` admits only Admins, while `/account` exposes only session-derived own-account operations.
 16. Self-service cannot mutate roles, status, Anchor identity, standalone grants, channel ownership, peers, invitations, or other users.
 17. The first-party CMS admits Trusted users only after the permission-aware CMS plan enforces visibility, central entity action policy, workspace policy, and actor attribution on every route.
+18. Authenticated chat answers configured-Anchor and permission questions directly from the resolved principal, with runtime integration coverage and model evaluations rather than prompt-string assertions.

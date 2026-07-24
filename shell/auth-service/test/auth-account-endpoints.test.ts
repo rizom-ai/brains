@@ -68,11 +68,11 @@ afterEach(async () => {
 });
 
 describe("auth account API", () => {
-  it("registers a separate browser account surface", () => {
+  it("registers only account APIs and leaves the browser surface to its plugin", () => {
     const routes = authServicePlugin().getWebRoutes();
+    expect(routes.some((route) => route.path === "/account")).toBe(false);
     expect(routes).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: "/account", method: "GET" }),
         expect.objectContaining({ path: "/auth/account", method: "GET" }),
         expect.objectContaining({
           path: "/auth/account/mutations",
@@ -116,7 +116,7 @@ describe("auth account API", () => {
     await service.close();
   });
 
-  it("authenticates the page and API without admitting inactive accounts", async () => {
+  it("authenticates the API without admitting inactive accounts", async () => {
     const { service } = await createService();
     const publicUser = await service.createUser({
       displayName: "Reader",
@@ -136,13 +136,9 @@ describe("auth account API", () => {
     const invitedSession = await service.createAuthSession(invited.userId);
     const suspendedSession = await service.createAuthSession(suspended.userId);
 
-    const anonymousPage = await service.handleRequest(
-      accountRequest("/account"),
-    );
-    expect(anonymousPage.status).toBe(302);
-    expect(anonymousPage.headers.get("location")).toBe(
-      "/login?return_to=%2Faccount",
-    );
+    expect(
+      (await service.handleRequest(accountRequest("/account"))).status,
+    ).toBe(404);
     expect(
       (await service.handleRequest(accountRequest("/auth/account"))).status,
     ).toBe(401);
@@ -161,17 +157,13 @@ describe("auth account API", () => {
       ).status,
     ).toBe(401);
 
-    const page = await service.handleRequest(
-      accountRequest("/account", publicSession.cookie),
+    const publicAccount = await service.handleRequest(
+      accountRequest("/auth/account", publicSession.cookie),
     );
-    expect(page.status).toBe(200);
-    expect(page.headers.get("cache-control")).toBe("no-store");
-    const html = await page.text();
-    expect(html).toContain("Account ledger");
-    expect(html).toContain("/auth/account/passkeys/options");
-    expect(html).toContain("Sign out everywhere");
-    expect(html).toContain('replace(/\\+/g, "-")');
-    expect(html).toContain('replace(/\\//g, "_")');
+    expect(publicAccount.status).toBe(200);
+    expect(await publicAccount.json()).toMatchObject({
+      account: { displayName: "Reader", role: "public" },
+    });
     await service.close();
   });
 

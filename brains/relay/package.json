@@ -4,6 +4,7 @@
   "description": "Relay brain model — collaborative knowledge management",
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/account": "workspace:*",
     "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
@@ -55,7 +56,7 @@
   ],
   "private": true,
   "scripts": {
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin --filter=@brains/account",
     "eval": "brain-eval",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",

@@ -25,11 +25,12 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("atproto");
   });
 
-  it("includes the standalone admin console in every preset", () => {
+  it("includes separate account and admin consoles in every preset", () => {
     for (const preset of ["core", "default", "full"] as const) {
       const config = resolve(rover, {}, { preset });
       const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
+      expect(pluginIds).toContain("account");
       expect(pluginIds).toContain("admin");
     }
   });

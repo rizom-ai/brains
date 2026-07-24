@@ -8,6 +8,7 @@
         "image",
         "cms",
         "auth-service",
+        "account",
         "notifications",
         "playbook",
         "playbooks",
@@ -224,6 +225,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "playbook",
             "playbooks",
@@ -274,6 +276,13 @@
                 "anchor": "person",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -595,6 +604,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "playbook",
             "playbooks",
@@ -665,6 +675,13 @@
                 "anchor": "person",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -1178,6 +1195,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "playbook",
             "playbooks",
@@ -1255,6 +1273,13 @@
                 "anchor": "person",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -1833,6 +1858,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "playbook",
             "playbooks",
@@ -1910,6 +1936,13 @@
                 "anchor": "person",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -2466,6 +2499,7 @@
         "agents",
         "assessment",
         "auth-service",
+        "account",
         "notifications",
         "email-resend",
         "cms",
@@ -2654,6 +2688,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "email-resend",
             "cms",
@@ -2791,6 +2826,13 @@
                 "anchor": "team",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -3008,6 +3050,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "email-resend",
             "cms",
@@ -3170,6 +3213,13 @@
                 "anchor": "team",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {
@@ -3752,6 +3802,7 @@
             "agents",
             "assessment",
             "auth-service",
+            "account",
             "notifications",
             "email-resend",
             "cms",
@@ -3926,6 +3977,13 @@
                 "anchor": "team",
                 "setupTokenTtlSeconds": 86400,
                 "trustedIssuers": []
+              }
+            },
+            {
+              "id": "account",
+              "packageName": "@brains/account",
+              "config": {
+                "routePath": "/account"
               }
             },
             {

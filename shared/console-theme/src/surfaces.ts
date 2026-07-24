@@ -33,13 +33,30 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
  */
 const SURFACE_PLUGINS: ReadonlyArray<{
   id: string;
+  pluginId: string;
   label: string;
   visibility: SurfacePermissionLevel;
 }> = [
-  { id: "dashboard", label: "Dashboard", visibility: "public" },
-  { id: "web-chat", label: "Chat", visibility: "trusted" },
-  { id: "cms", label: "CMS", visibility: "admin" },
-  { id: "admin", label: "Admin", visibility: "admin" },
+  {
+    id: "dashboard",
+    pluginId: "dashboard",
+    label: "Dashboard",
+    visibility: "public",
+  },
+  {
+    id: "web-chat",
+    pluginId: "web-chat",
+    label: "Chat",
+    visibility: "trusted",
+  },
+  { id: "cms", pluginId: "cms", label: "CMS", visibility: "admin" },
+  { id: "admin", pluginId: "admin", label: "Admin", visibility: "admin" },
+  {
+    id: "account",
+    pluginId: "account",
+    label: "Account",
+    visibility: "public",
+  },
 ];
 
 export function deriveConsoleSurfaces(
@@ -64,7 +81,7 @@ export function deriveConsoleSurfaces(
   const callerRank = PERMISSION_RANK[options.permissionLevel ?? "public"];
   const surfaces: ConsoleSurface[] = [];
 
-  for (const { id, label, visibility } of SURFACE_PLUGINS) {
+  for (const { id, pluginId, label, visibility } of SURFACE_PLUGINS) {
     const isSelf = options.self?.id === id;
     if (!isSelf && callerRank < PERMISSION_RANK[visibility]) {
       continue;
@@ -72,7 +89,7 @@ export function deriveConsoleSurfaces(
     const door = isSelf
       ? options.self?.href
       : routes
-          .filter((route) => route.pluginId === id)
+          .filter((route) => route.pluginId === pluginId)
           .map((route) => route.fullPath)
           .sort((a, b) => a.length - b.length)[0];
     if (door !== undefined) {

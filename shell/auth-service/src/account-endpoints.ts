@@ -7,13 +7,11 @@ import {
 import type { AuthAccountContext, AuthAccountService } from "./account-service";
 import {
   errorMessage,
-  htmlResponse,
   privateJsonResponse,
   readJsonRequest,
   requireSameOriginJson,
 } from "./http-responses";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
-import { renderAccountPage } from "./account-page";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import { clearAuthSessionCookies } from "./session-store";
 
@@ -58,11 +56,6 @@ const emptyJsonSchema = z.strictObject({});
 const accountRoutes = new AuthRouteTable<AccountRouteContext>([
   {
     method: "GET",
-    path: "/account",
-    handler: (): Response => htmlResponse(renderAccountPage()),
-  },
-  {
-    method: "GET",
     path: "/auth/account",
     handler: async (_request, context): Promise<Response> =>
       privateJsonResponse({
@@ -92,9 +85,7 @@ export async function handleAuthAccountRequest(
 ): Promise<Response> {
   const account = await operations.resolveSession(request);
   if (!account) {
-    return new URL(request.url).pathname === "/account"
-      ? accountLoginResponse()
-      : privateJsonResponse({ error: "Authentication required" }, 401);
+    return privateJsonResponse({ error: "Authentication required" }, 401);
   }
 
   try {
@@ -213,16 +204,6 @@ async function handlePasskeyVerify(
 
 function accountResponse(account: AuthAccountSnapshot): Response {
   return privateJsonResponse({ account });
-}
-
-function accountLoginResponse(): Response {
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/login?return_to=%2Faccount",
-      "Cache-Control": "no-store",
-    },
-  });
 }
 
 function withClearedSessionCookies(

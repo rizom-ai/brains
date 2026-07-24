@@ -34,6 +34,7 @@ import { analyticsPlugin } from "@brains/analytics";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
 import { adminPlugin } from "@brains/admin";
+import { accountPlugin } from "@brains/account";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
@@ -80,6 +81,7 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "account",
   "notifications",
   "playbook",
   "playbooks",
@@ -161,6 +163,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
+    ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],

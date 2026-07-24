@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.223",
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/account": "workspace:*",
     "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/analytics": "workspace:*",
@@ -63,7 +64,7 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin --filter=@brains/account",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",

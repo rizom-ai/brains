@@ -74,6 +74,32 @@ describe("deriveConsoleSurfaces", () => {
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "admin"]);
   });
 
+  it("derives the account surface from the account plugin route", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard"), route("account", "/account")],
+      {
+        activeId: "account",
+        permissionLevel: "trusted",
+        self: { id: "account", href: "/account" },
+      },
+    );
+
+    expect(surfaces).toEqual([
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        isActive: false,
+      },
+      {
+        id: "account",
+        label: "Account",
+        href: "/account",
+        isActive: true,
+      },
+    ]);
+  });
+
   it("marks the rendering surface active from any surface", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],

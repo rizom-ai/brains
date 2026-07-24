@@ -402,12 +402,6 @@ export class AuthServicePlugin extends ServicePlugin<
         handler,
       },
       {
-        path: "/account",
-        method: "GET",
-        public: true,
-        handler,
-      },
-      {
         path: "/auth/account",
         method: "GET",
         public: true,

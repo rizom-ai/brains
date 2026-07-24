@@ -62,11 +62,6 @@ export class AuthRequestRouter {
     const accountRoutes: AuthRequestRoute[] = [
       {
         method: "GET",
-        path: "/account",
-        handler: options.handleAccountRequest,
-      },
-      {
-        method: "GET",
         path: "/auth/account",
         handler: options.handleAccountRequest,
       },

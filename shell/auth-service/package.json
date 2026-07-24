@@ -23,6 +23,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./account-contracts": "./src/account-contracts.ts",
     "./admin-contracts": "./src/admin-contracts.ts"
   },
   "files": [

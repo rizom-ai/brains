@@ -18,6 +18,7 @@ import { join } from "path";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
 import { adminPlugin } from "@brains/admin";
+import { accountPlugin } from "@brains/account";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -73,6 +74,7 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "account",
   "notifications",
   "email-resend",
   "cms",
@@ -153,6 +155,7 @@ const relayBrain: BrainDefinition = defineBrain({
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
+    ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["email-resend", emailResendPlugin, undefined],
     ["cms", cmsPlugin, {}],
