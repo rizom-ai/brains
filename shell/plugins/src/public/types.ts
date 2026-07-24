@@ -307,6 +307,7 @@ export interface IConversationsNamespace {
     interfaceType?: string;
     sessionId?: string;
     channelId?: string;
+    personId?: string;
   }): Promise<Conversation[]>;
   getMessages(
     conversationId: string,

@@ -2,16 +2,19 @@ import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
   type InterfacePluginContext,
-  type UserPermissionLevel,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
+import {
+  canAccessBrowserConversation,
+  type WebChatConversationAccess,
+} from "./conversation-access";
 
-type PermissionResolver = (request: Request) => Promise<UserPermissionLevel>;
+type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
 type ConversationService = InterfacePluginContext["conversations"];
 
 interface MessageHandlerDeps {
   conversations: ConversationService;
-  resolvePermissionLevel: PermissionResolver;
+  resolveAccess: AccessResolver;
   interfaceType: string;
 }
 
@@ -19,8 +22,8 @@ export async function handleMessagesRequest(
   request: Request,
   deps: MessageHandlerDeps,
 ): Promise<Response> {
-  const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel === "public") {
+  const access = await deps.resolveAccess(request);
+  if (access.permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -30,7 +33,7 @@ export async function handleMessagesRequest(
   }
 
   const conversation = await deps.conversations.get(conversationId);
-  if (conversation?.interfaceType !== deps.interfaceType) {
+  if (!canAccessBrowserConversation(conversation, access, deps.interfaceType)) {
     return new Response("Conversation not found", { status: 404 });
   }
 

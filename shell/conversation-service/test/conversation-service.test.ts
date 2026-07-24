@@ -55,6 +55,20 @@ describe("ConversationService", () => {
     await cleanup();
   });
 
+  describe("person ownership migration", () => {
+    it("adds a nullable indexed owner without changing channel routing", async () => {
+      const columns = await client.execute("PRAGMA table_info(conversations)");
+      const indexes = await client.execute("PRAGMA index_list(conversations)");
+
+      expect(
+        columns.rows.find((row) => row["name"] === "person_id"),
+      ).toMatchObject({ notnull: 0 });
+      expect(indexes.rows.map((row) => row["name"])).toContain(
+        "idx_conversations_person",
+      );
+    });
+  });
+
   describe("fresh owned instances", () => {
     it("opens and closes its database from config independently", async () => {
       const owned = ConversationService.createFreshFromConfig(
@@ -169,6 +183,39 @@ describe("ConversationService", () => {
         result.rows[0]?.["metadata"],
       );
       expect(storedMetadata["channelName"]).toBe("Test Room");
+    });
+
+    it("stores an optional person owner without claiming legacy conversations", async () => {
+      await service.startConversation({
+        sessionId: "owned-web-session",
+        interfaceType: "web-chat",
+        channelId: "owned-web-session",
+        personId: "prsn_owner",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "legacy-cli-session",
+        interfaceType: "cli",
+        channelId: "legacy-cli-session",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "owned-web-session",
+        interfaceType: "web-chat",
+        channelId: "owned-web-session",
+        personId: "prsn_other",
+        metadata: testMetadata,
+      });
+
+      expect(await service.getConversation("owned-web-session")).toMatchObject({
+        personId: "prsn_owner",
+        channelId: "owned-web-session",
+      });
+      expect(await service.getConversation("legacy-cli-session")).toMatchObject(
+        {
+          personId: null,
+        },
+      );
     });
 
     it("should preserve existing metadata when resuming conversation", async () => {
@@ -384,6 +431,38 @@ describe("ConversationService", () => {
       const result = await service.listConversations({ updatedAfter: future });
 
       expect(result).toHaveLength(0);
+    });
+
+    it("should filter conversations by their person owner", async () => {
+      await service.startConversation({
+        sessionId: "person-one-session",
+        interfaceType: "web-chat",
+        channelId: "person-one-channel",
+        personId: "prsn_one",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "person-two-session",
+        interfaceType: "web-chat",
+        channelId: "person-two-channel",
+        personId: "prsn_two",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "unowned-session",
+        interfaceType: "cli",
+        channelId: "unowned-channel",
+        metadata: testMetadata,
+      });
+
+      const result = await service.listConversations({
+        interfaceType: "web-chat",
+        personId: "prsn_one",
+      });
+
+      expect(result.map((conversation) => conversation.id)).toEqual([
+        "person-one-session",
+      ]);
     });
 
     it("should filter conversations by interface, session, and channel", async () => {

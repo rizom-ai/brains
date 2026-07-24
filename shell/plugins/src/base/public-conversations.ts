@@ -29,6 +29,7 @@ export function toPublicConversation(
     sessionId: conversation.sessionId,
     interfaceType: conversation.interfaceType,
     channelId: conversation.channelId,
+    ...(conversation.personId ? { personId: conversation.personId } : {}),
     channelName,
     startedAt: conversation.started,
     lastActiveAt: conversation.lastActive,

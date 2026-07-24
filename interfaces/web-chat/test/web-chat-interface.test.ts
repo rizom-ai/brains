@@ -122,6 +122,7 @@ function makeConversation(
     sessionId: id,
     interfaceType,
     channelId: id,
+    personId: null,
     started: "2026-05-24T00:00:00.000Z",
     lastActive: "2026-05-24T00:01:00.000Z",
     created: "2026-05-24T00:00:00.000Z",
@@ -151,6 +152,7 @@ function makeMessage(
 function makeFixedConversationService(input: {
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
+  startConversation?: IConversationService["startConversation"];
   addMessage?: IConversationService["addMessage"];
   updateConversationMetadata?: (request: {
     conversationId: string;
@@ -159,15 +161,17 @@ function makeFixedConversationService(input: {
   deleteConversation?: (conversationId: string) => Promise<boolean>;
 }): IConversationService {
   return {
-    startConversation: async () => "web-session",
+    startConversation:
+      input.startConversation ?? (async (): Promise<string> => "web-session"),
     addMessage: input.addMessage ?? (async (): Promise<void> => {}),
     getConversation: async (conversationId: string) =>
       input.conversations.find((c) => c.id === conversationId) ?? null,
     listConversations: async (options) =>
       input.conversations.filter(
         (c) =>
-          options?.interfaceType === undefined ||
-          c.interfaceType === options.interfaceType,
+          (options?.interfaceType === undefined ||
+            c.interfaceType === options.interfaceType) &&
+          (options?.personId === undefined || c.personId === options.personId),
       ),
     searchConversations: async () => [],
     getMessages: async (conversationId: string) =>
@@ -246,11 +250,40 @@ function getRoute(
   return route;
 }
 
+function requireRoute(
+  plugin: WebChatInterface,
+  path: string,
+  method: WebRouteMethod,
+): WebRouteDefinition {
+  const route = getRoute(plugin, path, method);
+  if (!route) throw new Error(`Missing ${method} ${path} route`);
+  return route;
+}
+
 describe("WebChatInterface", () => {
   let harness: PluginTestHarness<WebChatInterface>;
 
   beforeEach(() => {
     harness = createPluginHarness<WebChatInterface>();
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          if (!conversations.some((item) => item.id === request.sessionId)) {
+            conversations.push(
+              makeConversation(request.sessionId, request.interfaceType, {
+                channelId: request.channelId,
+                personId: request.personId ?? null,
+                metadata: JSON.stringify(request.metadata),
+              }),
+            );
+          }
+          return request.sessionId;
+        },
+      }),
+    );
   });
 
   afterEach(() => {
@@ -364,6 +397,16 @@ describe("WebChatInterface", () => {
   });
 
   it("routes Trusted event actions at exact Trusted permission without model chat", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("web-session", "web-chat", {
+            personId: "prsn_collaborator",
+          }),
+        ],
+        messagesByConversation: { "web-session": [] },
+      }),
+    );
     const plugin = trustedAuthPlugin();
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -423,6 +466,43 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("returns 404 before routing an action for another person's conversation", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("foreign-session", "web-chat", {
+            personId: "prsn_other",
+          }),
+        ],
+        messagesByConversation: { "foreign-session": [] },
+      }),
+    );
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const received: unknown[] = [];
+    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+      received.push(message.payload);
+      return { success: true, data: { text: "Must not run" } };
+    });
+
+    const response = await requireRoute(
+      plugin,
+      "/api/chat/actions",
+      "POST",
+    ).handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "foreign-session",
+          action: { type: "event", event: "NEXT" },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(received).toEqual([]);
+  });
+
   it("serves remote-agent chat JSON with server-derived Trusted permission", async () => {
     const plugin = trustedAuthPlugin();
     const agent = createSpyAgentService({
@@ -473,7 +553,115 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("creates remote-agent conversations with the server-derived person owner", async () => {
+    const startCalls: Parameters<
+      IConversationService["startConversation"]
+    >[0][] = [];
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          startCalls.push(request);
+          conversations.push(
+            makeConversation(request.sessionId, request.interfaceType, {
+              personId: request.personId ?? null,
+            }),
+          );
+          return request.sessionId;
+        },
+      }),
+    );
+    const plugin = trustedAuthPlugin();
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+
+    const response = await requireRoute(
+      plugin,
+      "/api/agent/chat",
+      "POST",
+    ).handler(
+      new Request("http://brain/api/agent/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "Evaluate this",
+          conversationId: "remote-owned",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(startCalls).toEqual([
+      {
+        sessionId: "remote-owned",
+        interfaceType: "remote-agent",
+        channelId: "remote-owned",
+        personId: "prsn_collaborator",
+        metadata: {
+          channelName: "Remote Agent",
+          interfaceType: "remote-agent",
+          channelId: "remote-owned",
+        },
+      },
+    ]);
+  });
+
+  it("rejects remote-agent chat and confirmation for another person's conversation", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("remote-foreign", "remote-agent", {
+            personId: "prsn_other",
+          }),
+        ],
+        messagesByConversation: { "remote-foreign": [] },
+      }),
+    );
+    const plugin = trustedAuthPlugin();
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+
+    const chat = await requireRoute(plugin, "/api/agent/chat", "POST").handler(
+      new Request("http://brain/api/agent/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "Read it",
+          conversationId: "remote-foreign",
+        }),
+      }),
+    );
+    const confirmation = await requireRoute(
+      plugin,
+      "/api/agent/chat/confirm",
+      "POST",
+    ).handler(
+      new Request("http://brain/api/agent/chat/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "remote-foreign",
+          approvalId: "approval-1",
+          confirmed: true,
+        }),
+      }),
+    );
+
+    expect([chat.status, confirmation.status]).toEqual([404, 404]);
+    expect(agent.chatCalls).toEqual([]);
+    expect(agent.confirmCalls).toEqual([]);
+  });
+
   it("serves remote-agent confirmation JSON through the agent", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("remote-conversation", "remote-agent"),
+        ],
+        messagesByConversation: { "remote-conversation": [] },
+      }),
+    );
     const plugin = adminPlugin();
     const agent = createSpyAgentService(undefined, {
       text: "Remote confirmed",
@@ -590,6 +778,142 @@ describe("WebChatInterface", () => {
     );
   });
 
+  it("creates Trusted web-chat conversations with the server-derived person owner", async () => {
+    const startCalls: Parameters<
+      IConversationService["startConversation"]
+    >[0][] = [];
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          startCalls.push(request);
+          conversations.push(
+            makeConversation(request.sessionId, request.interfaceType, {
+              personId: request.personId ?? null,
+            }),
+          );
+          return request.sessionId;
+        },
+      }),
+    );
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "owned-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Hello" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(startCalls).toEqual([
+      {
+        sessionId: "owned-conversation",
+        interfaceType: "web-chat",
+        channelId: "owned-conversation",
+        personId: "prsn_collaborator",
+        metadata: {
+          channelName: "Web Chat",
+          interfaceType: "web-chat",
+          channelId: "owned-conversation",
+        },
+      },
+    ]);
+  });
+
+  it("fails closed when another person wins a conversation-creation race", async () => {
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          conversations.push(
+            makeConversation(request.sessionId, request.interfaceType, {
+              personId: "prsn_other",
+            }),
+          );
+          return request.sessionId;
+        },
+      }),
+    );
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+
+    const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "raced-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Hello" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(agent.chatCalls).toEqual([]);
+  });
+
+  it("returns 404 before sending a Trusted message to another person's conversation", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("foreign-conversation", "web-chat", {
+            personId: "prsn_other",
+          }),
+        ],
+        messagesByConversation: { "foreign-conversation": [] },
+      }),
+    );
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "foreign-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Show me the secret" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(agent.chatCalls).toHaveLength(0);
+  });
+
   it("denies suspended Trusted principals", async () => {
     const plugin = new WebChatInterface(
       {},
@@ -692,6 +1016,12 @@ describe("WebChatInterface", () => {
   });
 
   it("forwards the action fromState through the runtime action channel", async () => {
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: { "web-session": [] },
+      }),
+    );
     const plugin = adminPlugin();
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -2799,12 +3129,70 @@ describe("WebChatInterface", () => {
     expect(body).toBe("Forbidden");
   });
 
+  it("lists only the Trusted person's sessions and never derives another title", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("own-session", "web-chat", {
+            personId: "prsn_collaborator",
+          }),
+          makeConversation("foreign-session", "web-chat", {
+            personId: "prsn_other",
+          }),
+          makeConversation("legacy-session", "web-chat"),
+        ],
+        messagesByConversation: {
+          "own-session": [
+            makeMessage("message-own", "own-session", "user", "My thread"),
+          ],
+          "foreign-session": [
+            makeMessage(
+              "message-secret",
+              "foreign-session",
+              "user",
+              "Another person's secret title",
+            ),
+          ],
+          "legacy-session": [
+            makeMessage(
+              "message-legacy",
+              "legacy-session",
+              "user",
+              "Unowned legacy title",
+            ),
+          ],
+        },
+      }),
+    );
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/sessions", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      sessions: [
+        {
+          id: "own-session",
+          title: "My thread",
+          lastActiveAt: "2026-05-24T00:01:00.000Z",
+        },
+      ],
+    });
+  });
+
   it("lists web chat sessions for a Trusted user", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
       makeFixedConversationService({
         conversations: [
-          makeConversation("web-session", "web-chat"),
+          makeConversation("web-session", "web-chat", {
+            personId: "prsn_collaborator",
+          }),
           makeConversation("discord-session", "discord", {
             metadata: JSON.stringify({ channelName: "Discord" }),
           }),
@@ -2911,6 +3299,168 @@ describe("WebChatInterface", () => {
     expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
       "active-session",
     ]);
+  });
+
+  it("returns 404 for every Trusted read or mutation of another person's session", async () => {
+    const updateCalls: unknown[] = [];
+    const deleteCalls: string[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("foreign-session", "web-chat", {
+            personId: "prsn_other",
+          }),
+        ],
+        messagesByConversation: {
+          "foreign-session": [
+            makeMessage(
+              "foreign-message",
+              "foreign-session",
+              "user",
+              "Private conversation",
+            ),
+          ],
+        },
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+        deleteConversation: async (conversationId): Promise<boolean> => {
+          deleteCalls.push(conversationId);
+          return true;
+        },
+      }),
+    );
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+
+    const messages = await requireRoute(
+      plugin,
+      "/api/chat/messages",
+      "GET",
+    ).handler(new Request("http://brain/api/chat/messages?id=foreign-session"));
+    const deleted = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "DELETE",
+    ).handler(
+      new Request("http://brain/api/chat/sessions?id=foreign-session", {
+        method: "DELETE",
+      }),
+    );
+    const renamed = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "PUT",
+    ).handler(
+      new Request("http://brain/api/chat/sessions?id=foreign-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Stolen" }),
+      }),
+    );
+    const archived = await requireRoute(
+      plugin,
+      "/api/chat/sessions/archive",
+      "PUT",
+    ).handler(
+      new Request("http://brain/api/chat/sessions/archive?id=foreign-session", {
+        method: "PUT",
+      }),
+    );
+
+    expect([
+      messages.status,
+      deleted.status,
+      renamed.status,
+      archived.status,
+    ]).toEqual([404, 404, 404, 404]);
+    expect(updateCalls).toEqual([]);
+    expect(deleteCalls).toEqual([]);
+  });
+
+  it("lets Admins read and mutate web-chat sessions across person owners", async () => {
+    const updateCalls: unknown[] = [];
+    const deleteCalls: string[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("member-session", "web-chat", {
+            personId: "prsn_member",
+          }),
+        ],
+        messagesByConversation: {
+          "member-session": [
+            makeMessage(
+              "member-message",
+              "member-session",
+              "user",
+              "Member thread",
+            ),
+          ],
+        },
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+        deleteConversation: async (conversationId): Promise<boolean> => {
+          deleteCalls.push(conversationId);
+          return true;
+        },
+      }),
+    );
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+
+    const sessions = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "GET",
+    ).handler(new Request("http://brain/api/chat/sessions"));
+    const messages = await requireRoute(
+      plugin,
+      "/api/chat/messages",
+      "GET",
+    ).handler(new Request("http://brain/api/chat/messages?id=member-session"));
+    const renamed = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "PUT",
+    ).handler(
+      new Request("http://brain/api/chat/sessions?id=member-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Admin rename" }),
+      }),
+    );
+    const archived = await requireRoute(
+      plugin,
+      "/api/chat/sessions/archive",
+      "PUT",
+    ).handler(
+      new Request("http://brain/api/chat/sessions/archive?id=member-session", {
+        method: "PUT",
+      }),
+    );
+    const deleted = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "DELETE",
+    ).handler(
+      new Request("http://brain/api/chat/sessions?id=member-session", {
+        method: "DELETE",
+      }),
+    );
+
+    expect([
+      sessions.status,
+      messages.status,
+      renamed.status,
+      archived.status,
+      deleted.status,
+    ]).toEqual([200, 200, 200, 200, 200]);
+    expect(updateCalls).toHaveLength(2);
+    expect(deleteCalls).toEqual(["member-session"]);
   });
 
   it("rejects session deletes from unauthenticated callers", async () => {

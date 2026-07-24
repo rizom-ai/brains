@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's browser surfaces are implemented: active Trusted users use web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Outstanding before Trusted chat ships: web-chat conversation sessions are still an unscoped shared pool, so per-person session scoping (owner on conversations, scoped listing, non-enumerable ids) must land before Trusted admission is production-safe. The [Permission-aware CMS](./permission-aware-cms.md) follow-up remains planned. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. The [Permission-aware CMS](./permission-aware-cms.md) follow-up remains planned. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -115,8 +115,8 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **Audit is first-class.** Existing audit storage remains authoritative and is exposed through an Admin-only read endpoint and plain-language viewer under the permanent Audit tab.
 16. **Browser surfaces must preserve the caller's role and separate administration from self-service.** _(Adopted 2026-07-23.)_
     - **Web chat admits active Trusted and Admin users at their exact permission.** A Trusted browser session enters `/chat` as Trusted, carries its verified `AuthPrincipal`/`ActorRef`, sees only Trusted-visible tools and content, and never receives Admin approvals or actions. Public, invited, and suspended accounts remain denied from the private browser chat.
-    - **Browser chat sessions are per-person.** Web-chat conversations are scoped to the owning principal: a Trusted user lists, renames, deletes, and archives only their own sessions, and an out-of-scope conversation id returns `404` rather than a distinguishable denial. Admins may act across all sessions. This requires an owner (`personId`) on conversations and a scoped `listConversations`; session-title derivation must never surface another user's message content. The initial Trusted-admission slice admitted Trusted users against an unscoped shared conversation pool (list/rename/delete/archive keyed on `interfaceType` alone) and must not reach production until this scoping lands.
-      - Implementation guardrails: the owner column is added by a Drizzle migration as a **nullable** `personId` (back-compatible with existing CLI/Matrix rows) with an index, exposed as `ListConversationsOptions.personId`; web chat tags it from the resolved principal at conversation creation and derives the caller's `personId` server-side (never from request JSON). `channelId` stays the live-stream routing key and is **not** repurposed for ownership. Scoping tests land first: a Trusted user cannot list, read the title of, rename, delete, or archive another user's session; an Admin can act across all.
+    - **Browser chat sessions are per-person.** Web-chat and browser remote-agent conversations are scoped to the owning principal: a Trusted user lists, reads, acts on, renames, deletes, and archives only their own sessions, and an out-of-scope conversation id returns `404` rather than a distinguishable denial. Admins may act across all sessions. Session-title derivation cannot surface another user's message content.
+      - Implementation: a generated Drizzle migration adds nullable indexed `personId`, preserving existing CLI/Matrix and other unowned rows. `ListConversationsOptions.personId` scopes storage reads; browser interfaces tag new conversations from the resolved principal and never accept ownership from request JSON. Legacy unowned browser conversations remain Admin-only rather than receiving a guessed owner. `channelId` remains the live-stream routing key and is not repurposed for ownership. Creation-race checks fail closed if another person wins the same conversation id.
     - **CMS becomes permission-aware rather than permanently Admin-only.** The current Admin gate remains the containment boundary until every CMS read, write, assist, upload, and workspace route enforces visibility, entity action policy, and actor attribution. The rollout is owned by [Permission-aware CMS](./permission-aware-cms.md); there is no permanent legacy/privileged parallel CMS.
     - **`/admin` is truly Admin-only.** Non-Admins do not receive an inert administration SPA or Admin queries. Anonymous users authenticate, then an authenticated non-Admin receives a clear denial or is directed to `/account` without learning roster, audit, invitation, or Anchor-administration data.
     - **Self-service lives at `/account`, not `/admin` or CMS.** The first slice lets any active user inspect their own account, update their local auth display name, inspect connected channels, add a passkey, revoke a non-last passkey, and revoke their own sessions. The server derives the user id from the session; requests never accept another target user id.
@@ -495,9 +495,10 @@ Validation:
 
 ### Phase 8 — Role-correct browser surfaces and self-service
 
-**Status: browser auth surfaces implemented.** Trusted browser chat, strict Admin-console admission, and own-account self-service are complete. CMS implementation is specified separately in [Permission-aware CMS](./permission-aware-cms.md); Trusted chat still requires per-person conversation-session scoping before release.
+**Status: browser auth surfaces implemented.** Person-scoped Trusted browser chat, strict Admin-console admission, and own-account self-service are complete. CMS implementation is specified separately in [Permission-aware CMS](./permission-aware-cms.md).
 
 - [x] Admit active Trusted users to web chat and propagate `permissionLevel: "trusted"` plus their verified `ActorRef` through chat, conversations, confirmations, attachments, and jobs.
+- [x] Persist nullable indexed person ownership, scope Trusted session lists/titles/messages/actions/mutations server-side, return `404` across owners, and preserve Admin cross-person access.
 - [x] Keep Admin-only actions unavailable to Trusted chat and add role/suspension-change coverage for active browser sessions.
 - [x] Make `/admin` reject or redirect authenticated non-Admins before rendering the administration SPA.
 - [x] Add `/account` and narrow `/auth/account/*` contracts for own display name, passkeys, connected-channel labels, and session revocation.
@@ -507,6 +508,7 @@ Validation:
 Validation:
 
 - Trusted chat runs with Trusted—not Public or Admin—tool/content visibility and actor attribution.
+- Trusted users cannot enumerate, title, read, act on, rename, archive, or delete another person's browser conversation; Admins retain cross-person access.
 - Trusted users cannot load Admin roster/audit APIs or mutations.
 - Account APIs cannot read or mutate another user even with forged ids.
 - An account cannot revoke its last passkey through self-service.
@@ -549,6 +551,7 @@ Validation:
 11. Passkeys are shown as Sign-in, verified email/Discord as Connected channels, and setup-link claim binds the delivery channel.
 12. Runtime permission reads use DB state only, while explicit config seeds and access-only reinitialization provide bootstrap and recovery.
 13. Active Trusted browser sessions can use web chat at exactly Trusted permission with canonical attribution.
-14. `/admin` admits only Admins, while `/account` exposes only session-derived own-account operations.
-15. Self-service cannot mutate roles, status, Anchor identity, standalone grants, channel ownership, peers, invitations, or other users.
-16. The first-party CMS admits Trusted users only after the permission-aware CMS plan enforces visibility, central entity action policy, workspace policy, and actor attribution on every route.
+14. Trusted browser conversations are person-scoped for creation, listing, titles, messages, actions, confirmations, rename, archive, and deletion; cross-owner ids return `404`, while Admins retain cross-person access.
+15. `/admin` admits only Admins, while `/account` exposes only session-derived own-account operations.
+16. Self-service cannot mutate roles, status, Anchor identity, standalone grants, channel ownership, peers, invitations, or other users.
+17. The first-party CMS admits Trusted users only after the permission-aware CMS plan enforces visibility, central entity action policy, workspace policy, and actor attribution on every route.
