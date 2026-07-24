@@ -6,7 +6,7 @@ Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password,
 
 Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: the brain card publishes on boot and is verified on the PDS (`at://did:plc:oehciuqunzskplljt3qnnncw/ai.rizom.brain.card/self`, full identity/skills payload). Going live surfaced a secrets-plumbing gap — `ATPROTO_APP_PASSWORD` reached the deploy workflow but was missing from the pilot's `.env.schema` sensitive list and kamal `env.secret`, so the container never saw it and the trigger skipped silently; fixed in the pilot. Entity-record mirroring is wired but not yet exercised live — it fires on the next `publish:completed` or public entity update, not retroactively for already-published entities. The MCP tool surface remains intentionally absent. The card's `anchor.name: Unknown` bug (singleton parse failure falling back to defaults) is fixed as of `0.2.0-alpha.217` and verified live — the published card shows `anchor {name: "Rizom", kind: "collective"}`. The same release hardened validation (lexicon refs resolve via local defs and fail closed when unresolvable) and serialized per-entity PDS writes to prevent out-of-order upserts. Lexicon authority resolution is shipped and verified live as of 2026-07-21 at `0.2.0-alpha.208`: the `_lexicon.brain.rizom.ai` DNS TXT delegates to the org DID, and the authority-gated ambient publisher (atproto plugin `lexiconAuthority` flag, set only for `rizom-ai` via `@rizom/ops`) upserts all nine canonical lexicons as `com.atproto.lexicon.schema` records on every boot — verified via `listRecords` on the org repo, so third-party viewers now resolve `ai.rizom.brain.*` schemas protocol-natively. The registry's HTTP lexicon routes remain a human-facing mirror only.
 
-Jetstream discovery is implemented as of 2026-07-24 and remains disabled by default pending a live canary. The implementation adds bounded websocket consumption, durable cursor/dedupe and budget state, authoritative credential-free PDS refetching, safe public egress, `did:web`/repo binding, collision protection, deletion/failure staleness, stale unapproved-candidate archival, card heartbeats and immediate identity/skill republishing, plus scheduler-backed discovery/conflict notification digests. `@rizom/ops` can opt an individual fleet brain into the nested `atproto.jetstream` block without changing the fleet default.
+Jetstream support shipped in `0.2.0-alpha.224` on 2026-07-24 and remains disabled in every fleet configuration. The release added bounded websocket consumption, durable cursor/dedupe and budget state, authoritative credential-free PDS refetching, safe public egress, `did:web`/repo binding, collision protection, staleness handling, card heartbeats, and per-brain `@rizom/ops` configuration. It also made an unapproved product-policy choice: once Jetstream was enabled, an unknown valid brain card could automatically become an `agent` with `status: discovered`. That coupling is not approved. No live canary may enable Jetstream until the known-peer-only correction below ships.
 
 ## Reference invariants (needed by the open work)
 
@@ -32,47 +32,97 @@ The removed tool surface has been replaced with event wiring inside the atproto 
 
 The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload (checked via `getRecord` at `0.2.0-alpha.217`), and yeehaa.io publishes its own card (`did:plc:dtxrise7xa4kat6mh4zd4lqe`) as of `0.2.0-alpha.223`. Remaining: `com.atproto.repo.listRecords` shows records for the rizom-ai brain's public entities (entity mirroring fires on the next publish/update, so this needs a live publish event to observe), and republish-on-identity-change between boots — today the card converges only on boot, so an identity/skill edit waits for the next restart to reach the PDS.
 
-### 2. Jetstream discovery (Phase 4 tail) — implemented; live canary pending
+### 2. Jetstream known-peer monitoring (Phase 4 tail) — correction required before canary
 
-The bounded discovery pipeline is implemented end to end — `discoverBrainCards` resolves a repo, reads its card, converts cross-version anchor kinds, validates, and broadcasts `atproto:brain-card:discovered`; agent-discovery upserts a reviewable `agent` entity and its daily refresh keeps known cards current — but nothing in production feeds it candidates. Its only caller is a smoke script. Operator-listed repo DIDs were considered and rejected: hand-maintaining peer lists in config is O(fleet-size) toil per brain and cannot scale past a handful of peers.
+`0.2.0-alpha.224` shipped the transport and hardening work but coupled `jetstream.enabled` to automatic unknown-agent enrollment. That is the wrong product boundary. Publishing a public brain card grants protocol-level discoverability; it does **not** grant membership in every receiving brain's agent directory. Enabling transport must not silently enable admission.
 
-Jetstream is an **untrusted candidate signal**, never the record source. A commit event may cause the existing bounded pipeline to inspect a repo DID; the consumer never broadcasts the event's embedded record directly. This preserves one convert → validate → reviewable-entity path and prevents Jetstream from becoming a parallel trust boundary.
+The corrected first use of Jetstream is a change feed for **already-known repo DIDs**:
 
-#### Trust and collision boundary — release-blocking
+- A matching event for a known agent may trigger authoritative card refresh.
+- A matching delete for a known agent may update card availability.
+- An unknown repo DID is checkpointed and discarded before candidate-controlled DNS, PLC, DID-document, or PDS access.
+- An unknown event creates no `agent`, emits no new-agent notification, and enters no review queue.
 
-- Only `create`/`update` commits for `ai.rizom.brain.card/self` may trigger a candidate fetch; handle a matching `delete` through the staleness path below and ignore every other collection/rkey/operation before network access. V1 accepts `did:plc` repo DIDs only. Pass the event DID to `discoverBrainCards`, which resolves the authoritative PDS and refetches `getRecord`; require the returned AT URI repo to equal the event DID.
-- Bind the claimed domain identity before creating or refreshing an agent: `siteUrl` must be HTTPS; its hostname must equal the `did:web` hostname in `brain.did`; that DID document must identify itself correctly and advertise an `alsoKnownAs` ATProto identifier that is either the candidate repo DID or resolves to it. Repo signature/hosting alone does not prove the card may speak for an arbitrary brain domain.
-- Agent identity collisions fail closed. If an existing domain-backed agent has a different `repoDid`, do not mutate it, do not preserve its approval on the candidate, and emit a reviewable conflict/failure. A legitimate repo-DID migration requires explicit reapproval. The same repo DID may idempotently refresh its existing agent and preserve local approval fields.
-- These checks precede the claim that approval is the trust gate: an unapproved candidate is non-callable, and an untrusted repo can never overwrite an already-approved agent by claiming its `siteUrl`.
+This correction keeps the useful liveness and refresh properties without turning the global ATProto stream into an implicit social graph.
+
+#### Admission boundary — release-blocking
+
+- Jetstream transport and agent admission are separate capabilities. `jetstream.enabled` controls only the websocket monitor.
+- New agents continue to enter through intentional paths: confirmation-gated `agent_connect`, or the existing directory scan from approved peers with introduction provenance.
+- `discoverBrainCards` may retain an explicit trusted/manual creation path, but the Jetstream caller must never request creation for an unknown repo.
+- Before any candidate-controlled network request, look up the event repo DID among existing `agent` entities. Treat discovered, approved, and archived records as known; preserve their current local status on refresh.
+- Existing `enabled: true` configurations must resolve to known-only behavior after the correction. There is no backward-compatibility case where omission of a new field preserves alpha.224's open admission.
+- Quarantine or remove Jetstream creation-oriented settings (`newAgentsPerHour`, `pendingCandidateCeiling`, and skill keywords as admission criteria) from the known-peer path. Resource budgets for websocket processing and known-card fetches remain.
+
+Approval remains downstream of admission, not a substitute for it. `status: discovered` is still non-callable, but that fact does not justify filling the directory from a global stream.
+
+#### Trust and collision boundary
+
+For a known repo refresh, Jetstream remains an untrusted signal and never the record source:
+
+- Accept only `create`/`update`/`delete` commits for `ai.rizom.brain.card/self`; reject every other collection, rkey, operation, and non-`did:plc` repo before network access.
+- Ignore embedded Jetstream records. Resolve the known repo's authoritative PDS, refetch `getRecord`, and require the returned canonical AT URI repo to equal the event DID.
+- Require HTTPS `siteUrl`; bind its hostname to `brain.did`; require the `did:web` document to identify itself and bind back to the repo through `alsoKnownAs`.
+- A known repo cannot move onto another agent's domain, and another repo cannot inherit an existing agent's approval. Repo or domain migration remains an explicit reapproval operation.
+- Refresh only remote-owned card fields. Preserve local status, approval, trust, endpoint choices, provenance, and relationship notes.
 
 #### Consumer and resource boundary
 
-- A schema-first `jetstream` config block now provides `enabled` (false for canary rollout), endpoint, replay window, deny DIDs/domains, optional skill keywords, queue/concurrency limits, per-DID cooldown, global fetch budget, new-agent rate cap, pending-candidate ceiling, and stale-candidate retention. Filters default open only inside all budgets; flipping the default enablement still requires live capacity and abuse verification.
-- Run one websocket daemon per opted-in full brain; never open it during startup-check or eval (`evalDisable` already covers atproto). Relevant event volume scales with network activity and total fleet cost scales with brain count, so record queue depth, dropped/coalesced candidates, fetch outcomes, and creation-cap decisions. Revisit a shared fleet relay if the decentralized cost crosses an operational threshold.
-- Treat every candidate-driven fetch as hostile egress: require HTTPS public endpoints, reject loopback/private/link-local destinations after DNS resolution and on every redirect, cap redirects and response bytes, set timeouts, and send no credentials. Bound the candidate queue and fetch concurrency, coalesce repeated events per DID, and apply a global processing budget; the new-agent creation cap alone is not a network-abuse control.
-- Apply the DID deny-list before fetch. Apply domain and skill filters only after authoritative fetch, identity binding, conversion, and validation. Deduplicate one pending candidate per repo DID/domain pair; never prune approved agents, but expire never-approved stale candidates under the configured ceiling.
+- Keep Jetstream disabled by default and configurable per brain through `@rizom/ops`. No canary may enable it before the admission correction ships.
+- Run one websocket daemon only on an opted-in full boot; never during startup-check or eval.
+- Preserve bounded queue depth, concurrency, per-DID coalescing/cooldown, fetch budgets, retries, redirect/body/time limits, credential stripping, and public-address checks.
+- An unknown repo is a terminal no-fetch skip. Count it for operational visibility without retaining identifying candidate data or producing notifications.
+- Record queue depth, dropped/coalesced events, known refresh outcomes, unknown no-fetch skips, cursor gaps, and reconnects. Revisit a shared fleet relay if per-brain stream cost becomes material.
 
 #### Cursor, replay, and liveness
 
-- Persist a Zod-validated Jetstream cursor/checkpoint in the plugin's scoped `runtimeState`. Processing is at-least-once: advance the durable contiguous watermark only after each event reaches a terminal outcome. Validation/filter rejections are terminal skips; transient fetch failures retry with bounded backoff, then report and advance so one poison candidate cannot stall the stream.
-- Keep a bounded durable dedupe window keyed by event DID plus revision/CID/operation. Inclusive replay after restart may redeliver the last event; duplicates must not repeat PDS fetches, consume creation budget, or emit duplicate discovery events.
-- With no cursor, start at `now - replayWindow`. If the cursor predates retained Jetstream history, clamp to the earliest supported point, emit an observable gap, and continue. Do not describe this alone as eventual consistency: a peer may remain online without another update.
-- Close that liveness gap with a low-frequency, jittered brain-card heartbeat (and immediate republish on identity/skill changes). The idempotent `putRecord` keeps one card while producing a later update signal, so a peer missed outside the replay window is eventually rediscovered without requiring a reboot.
-- Reconnect uses bounded exponential backoff and jitter. Shutdown aborts the socket, stops retries, safely abandons queued work behind the durable checkpoint, and opens no replacement socket. Brain-card identity/profile/skill changes republish immediately, while a low-frequency jittered heartbeat closes the replay-window liveness gap.
+- Keep the Zod-validated durable contiguous cursor and bounded replay dedupe state. Advance only after a matching event reaches a terminal outcome; an unknown no-fetch skip is terminal.
+- Inclusive replay must not repeat known-card fetches or availability mutations after the event has been checkpointed.
+- With no cursor, start at `now - replayWindow`; clamp cursors older than retained history and emit an observable gap.
+- Retain bounded reconnect backoff, jitter, and shutdown behavior. Queued work left behind the durable checkpoint replays after restart.
+- Brain-card identity/profile/skill changes republish immediately, and the low-frequency heartbeat remains useful for eventual refresh by brains that already know the repo. It is no longer described as a mechanism for automatic stranger discovery.
 
 #### Deletion and staleness
 
-- A Jetstream delete for `ai.rizom.brain.card/self` marks the matching repo's card unavailable/stale; it never deletes the local agent or automatically revokes explicit approval/runtime trust. Surface the state to review and stop treating card-derived metadata as fresh until a bound card reappears.
-- Repeated refresh failures follow the same availability model, retain the last verified snapshot with failure timestamps/counts, and clear the unavailable state when the same bound card reappears. Never-approved deleted candidates receive a configured stale deadline and are archived by the existing daily recurring check; approved agents are never auto-archived. A different repo claiming the same domain remains a conflict, not a recovery path.
+- A delete updates availability only when the repo DID already belongs to a local agent. Unknown deletes are terminal no-ops.
+- Card deletion or repeated refresh failure retains the last verified snapshot and never deletes the agent, revokes approval, or changes runtime trust automatically.
+- The same bound card clears unavailable state when it reappears. Explicitly discovered but never-approved known agents may still follow the configured stale archival policy; approved agents never auto-archive.
 
-#### Tests
+#### Optional ambient candidates — deferred product decision
 
-- Mocked valid event DID → authoritative PDS refetch → discovered broadcast → agent upsert; embedded Jetstream record is ignored.
-- Wrong collection/rkey/operation, returned-URI repo mismatch, invalid domain/DID binding, hostile PDS endpoints, and oversized/timeout responses are rejected before mutation.
-- A malicious repo claiming an existing approved domain cannot mutate that agent or inherit approval; same-repo refresh remains idempotent; repo migration requires reapproval.
-- Queue/concurrency bounds, per-DID coalescing, fetch and creation budgets, pending ceiling/retention, and post-validation domain/skill filters.
-- Cursor persistence, contiguous checkpointing, duplicate replay, stale-cursor gap reporting, bounded transient retries, reconnect after socket drop, and shutdown during queued work.
-- Delete and repeated-refresh failure mark availability without deleting approval; heartbeat republishes under the same rkey; startup-check/eval boots open no socket.
+If ambient awareness is wanted later, design it as a second, explicit capability such as `jetstream.ambientCandidates.enabled`; do not infer it from `jetstream.enabled`.
+
+- A validated unknown card would enter a separate bounded, expiring observation inbox, not the `agent` entity collection.
+- Observation digests would be opt-in and would not link to `/agents?status=discovered` unless an operator had explicitly promoted the candidate.
+- Promotion would require a confirmation-gated operator action that authoritatively refetches the current card before creating an agent.
+- No `auto-discover` mode is part of the corrective slice. Adding one requires a separate product decision, plan review, abuse model, and release approval.
+
+#### Corrective implementation sequence
+
+1. Add a failing behavior test proving that `jetstream.enabled: true` plus an unknown valid event performs zero candidate-controlled fetches, entity writes, discovery events, and notification writes.
+2. Add the known-repo preflight before `discoverBrainCards`; route known create/update events through authoritative refresh with creation disabled.
+3. Restrict delete/unavailability handling to known repo DIDs.
+4. Remove the automatic unknown-candidate notification/digest path from Jetstream while preserving directory-scan notifications.
+5. Update config, `@rizom/ops`, baseline fixtures, README, and this plan so transport enablement cannot imply admission.
+6. Preserve hostile-input, collision, cursor, retry, reconnect, heartbeat, staleness, and shutdown coverage under the known-only policy.
+
+#### Acceptance tests
+
+- Unknown valid or hostile repo event → no DNS/PLC/PDS request, no entity mutation, no discovery/conflict notification, cursor advances.
+- Known discovered/approved/archived repo event → authoritative refetch and idempotent refresh; status and local relationship fields remain unchanged.
+- Known delete → unavailable metadata only; unknown delete → no-op; approval is never revoked.
+- A known repo claiming another known domain fails closed; explicit repo migration still requires reapproval.
+- Trusted directory introductions still create provenance-bearing sightings, and explicit connection remains confirmation-gated.
+- Existing Jetstream configs without an admission field behave known-only.
+- Queue/concurrency bounds, dedupe, cursor persistence, stale-cursor gaps, retry exhaustion, reconnect, heartbeat, and shutdown remain covered.
+- Startup-check/eval boots open no socket.
+
+#### Release remediation and gates
+
+- First verify read-only that no deployed brain enables Jetstream; alpha.224's behavior is dormant only while that remains true.
+- Build the correction forward from the release commit in an isolated worktree; do not attempt to undo npm publication with a Git revert.
+- After explicit approval, publish a corrective alpha release so the fixed package replaces alpha.224 on the active dist-tag. Deprecating alpha.224 is a separate operator decision.
+- Implementation, merge to `main`, and release are three independent approvals. Approval of one does not imply either of the others.
 
 ### 3. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
 
@@ -132,7 +182,7 @@ Deferred until discovery establishes trusted/followed peers:
 ## Verification (open items only)
 
 1. Live repo shows `ai.rizom.brain.card/self` plus records for public projected entities, updated without manual action (trigger slice).
-2. Brain cards are safely discoverable via Jetstream; hostile identity collisions and endpoints fail closed, missed cards recover through bounded replay/heartbeat, and discovered brains stay non-callable until approved.
+2. Jetstream refreshes only already-known repo DIDs; unknown events cause no candidate-controlled fetch or agent creation, hostile identity changes fail closed, and known cards recover through bounded replay/heartbeat without altering local approval.
 3. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
 4. Bluesky/atproto content can be ingested as brain entities with topic extraction.
 5. Custom feeds are subscribable in Bluesky.
