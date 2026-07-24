@@ -28,9 +28,21 @@ The removed tool surface has been replaced with event wiring inside the atproto 
 - **Failure handling**: PDS failures log and broadcast `atproto:publish:failed`. They do not emit `publish:report:failure`, because that request belongs to the source publish provider and would incorrectly fail an already-successful local publish. Trigger handlers always isolate failures from the source operation.
 - **Tests**: card upsert on ready (and skipped without credentials), publish completion → record upsert, delete → record delete, public → non-public → record delete, no publish for types without projections, PDS client deletion, and failure isolation.
 
-The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload (checked via `getRecord` at `0.2.0-alpha.217`). Remaining verification: `com.atproto.repo.listRecords` shows records for the rizom-ai brain's public entities (entity mirroring fires on the next publish/update, so this needs a live publish event to observe).
+The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload (checked via `getRecord` at `0.2.0-alpha.217`), and yeehaa.io publishes its own card (`did:plc:dtxrise7xa4kat6mh4zd4lqe`) as of `0.2.0-alpha.223`. Remaining: `com.atproto.repo.listRecords` shows records for the rizom-ai brain's public entities (entity mirroring fires on the next publish/update, so this needs a live publish event to observe), and republish-on-identity-change between boots — today the card converges only on boot, so an identity/skill edit waits for the next restart to reach the PDS.
 
-### 2. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
+### 2. Jetstream discovery (Phase 4 tail) — next up
+
+The bounded discovery pipeline is implemented end to end — `discoverBrainCards` resolves a repo, reads its card, converts cross-version anchor kinds, validates, and broadcasts `atproto:brain-card:discovered`; agent-discovery upserts a reviewable `agent` entity and its daily refresh keeps known cards current — but nothing in production feeds it candidates. Its only caller is a smoke script. Operator-listed repo DIDs were considered and rejected: hand-maintaining peer lists in config is O(fleet-size) toil per brain and cannot scale past a handful of peers.
+
+Jetstream is the candidate source. Every brain that publishes a card announces itself to the network; discovery subscribes to that signal instead of being told about peers:
+
+- **Consumer**: a Jetstream websocket subscription (`wantedCollections=ai.rizom.brain.card`) run as a plugin daemon — full boots only, never startup-check or eval (`evalDisable` already covers atproto). Commit events for card creates/updates feed the existing pipeline through the same discovered broadcast; the convert → validate → reviewable-entity path is unchanged. One socket per brain, cost independent of network size.
+- **Lifecycle**: reconnect with backoff; the Jetstream time-based cursor persists in runtime state so a restart resumes where it left off rather than replaying or gapping.
+- **Backfill**: on connect with a stale or absent cursor, resume from the persisted cursor within a bounded replay window. Cards published entirely inside an offline gap are picked up on their next update event — eventual consistency is acceptable because cards re-upsert on every peer boot.
+- **Filters as the safety valves** (replacing the allowlist as consent): configurable deny-list for DIDs/domains, optional skill-keyword filters, and a rate cap per interval on new-agent creation. Default is open discovery under the cap — safe because a discovered brain only becomes a reviewable, **non-callable** agent entity; approval remains the trust gate (unchanged invariant).
+- **Tests**: mocked Jetstream event → discovered broadcast → agent upsert; deny-filter rejection; rate cap; cursor persistence and resume; reconnect after socket drop; startup-check boots open no socket.
+
+### 3. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
 
 App password is the sanctioned headless credential for operator-configured brains; OAuth is the fleet-user story.
 
@@ -40,32 +52,24 @@ After the dependency lands:
 
 - Add an Admin-only Console "connect Bluesky" flow using `@atproto/oauth-client-node` (confidential client via existing JWKS); browser user-delegation with PAR/PKCE, DPoP, callback-state binding, and rotating refresh tokens.
 - Persist the connection against the authenticated runtime user, with reconnect, disconnect/revocation, audit, expiry, and suspended-user behavior following auth-service policy.
-- Capture the account DID, repo DID, and PDS endpoint in the same gesture for publishing and member-handle plumbing (see 3).
+- Capture the account DID, repo DID, and PDS endpoint in the same gesture for publishing and member-handle plumbing (see 4).
 - Extend `AtprotoPdsClient` to consume and refresh the stored OAuth session while preserving app-password support for operator-configured headless brains; ambient publishing remains unchanged above the authentication layer.
 - Test authorization discovery/callback, state rejection, refresh-token rotation, DPoP persistence, account binding, publishing, revocation, failure isolation, and secret redaction.
 
-### 3. Member handle rollout
+### 4. Member handle rollout
 
 Mechanism shipped and dogfooded by the org account. Remaining:
 
 - Per-member adoption is pilot config only: set `atproto.accountDid` in `users/<handle>.yaml`, member flips their handle via Bluesky's "I have my own domain" (HTTP method). Handle is org-tenured: it verifies only while the member's subdomain serves their DID; offboarding retires the name while the member keeps their DID, repo, and followers.
-- Later, the OAuth connect flow (2) captures the DID automatically instead of operator config.
+- Later, the OAuth connect flow (3) captures the DID automatically instead of operator config.
 
-### 4. Complete the Zod-source-of-truth migration (Phase 2.7 tail)
+### 5. Complete the Zod-source-of-truth migration (Phase 2.7 tail)
 
 Lexicon JSON is still hand-authored with conformance tests keeping Zod schemas aligned. Finish the planned inversion:
 
 - Define each record via `defineAtprotoRecord({ id, key, description, schema })`; generate lexicon JSON from Zod with an emitter covering the used subset (`max → maxLength`, `.datetime()`/`.url() → format`, literals/enums → `knownValues`, optional → not-required, nested objects).
 - Commit generated JSON with a regenerate-and-assert-no-diff test. Prove the emitter on `ai.rizom.brain.card` first.
 - Reuse the same schemas for inbound ingestion (6).
-
-### 5. Discovery remainder (Phase 4 tail)
-
-Bounded card discovery and agent enrichment are implemented. Remaining:
-
-- Jetstream/firehose candidate sourcing (current producer reads supplied repo DIDs/handles only).
-- Configurable allow/deny domain-DID filters and skill-keyword filters (max-per-run and in-batch dedupe exist).
-- Republish the card when brain identity, anchor identity, model, or skills change (subsumed by the trigger slice's card-on-ready if card content is derived at publish time).
 
 ### 6. Inbound ingestion (Phase 3)
 
