@@ -38,10 +38,12 @@ export function createAdminRoutes(
           });
         }
         if (principal.permissionLevel !== "admin") {
-          return new Response("Admin access required", {
-            status: 403,
+          // Authenticated non-Admins are sent to their own account surface
+          // rather than shown a bare, unstyled denial (decision 16).
+          return new Response(null, {
+            status: 302,
             headers: {
-              "Content-Type": "text/plain; charset=utf-8",
+              Location: "/account",
               "Cache-Control": "no-store",
             },
           });
@@ -60,6 +62,7 @@ export function createAdminRoutes(
             brainName: appInfo.model,
             surfaces: deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: "admin",
+              permissionLevel: principal.permissionLevel,
               self: { id: "admin", href: options.routePath },
             }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,

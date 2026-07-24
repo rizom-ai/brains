@@ -87,7 +87,7 @@ describe("admin console plugin", () => {
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');
   });
 
-  it("rejects authenticated non-Admins before rendering the shell", async () => {
+  it("redirects authenticated non-Admins to their own account surface", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
@@ -110,9 +110,9 @@ describe("admin console plugin", () => {
       }),
     );
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/account");
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(await response.text()).toBe("Admin access required");
   });
 
   it("does not let browsers reuse a stale Admin bundle", async () => {

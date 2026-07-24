@@ -491,6 +491,7 @@ export class DashboardPlugin extends ServicePlugin<
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
+              permissionLevel,
               self: { id: "dashboard", href: this.config.routePath },
             }),
             character,
@@ -578,6 +579,7 @@ export class DashboardPlugin extends ServicePlugin<
           ).map((widget) => widget.group);
           const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",
+            permissionLevel: principal.permissionLevel,
           });
           const cmsPath = surfaces.find(
             (surface) => surface.id === "cms",

@@ -298,7 +298,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatPage(request: Request): Promise<Response> {
-    if (!(await this.resolveAuthSession(request))) {
+    const { permissionLevel, hasChatAccess } =
+      await this.resolveBrowserAccess(request);
+    if (!hasChatAccess) {
       return this.createAuthLoginRequiredResponse(request);
     }
 
@@ -312,6 +314,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.getContext().webRoutes.getRoutes(),
           {
             activeId: "web-chat",
+            permissionLevel,
             self: { id: "web-chat", href: this.config.routePath },
           },
         ),
