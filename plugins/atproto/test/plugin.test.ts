@@ -38,6 +38,12 @@ function createResolverFetch(): (
         ],
       });
     }
+    if (url === "https://test.example.com/.well-known/did.json") {
+      return jsonResponse({
+        id: "did:web:test.example.com",
+        alsoKnownAs: ["at://did:plc:test"],
+      });
+    }
     return jsonResponse({ message: "Not found" }, 404);
   });
 }
@@ -276,6 +282,7 @@ describe("atproto plugin", () => {
       },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: ({ pdsEndpoint }): AtprotoPdsClientLike => {
           pdsEndpoints.push(pdsEndpoint);
           return {
@@ -350,6 +357,7 @@ describe("atproto plugin", () => {
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",
@@ -410,6 +418,7 @@ describe("atproto plugin", () => {
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",

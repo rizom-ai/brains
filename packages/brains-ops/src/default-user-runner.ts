@@ -1,6 +1,9 @@
 import { toYaml } from "@brains/utils/yaml";
 import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
-import type { ResolvedUser } from "./load-registry";
+import type {
+  ResolvedAtprotoJetstreamConfig,
+  ResolvedUser,
+} from "./load-registry";
 import type { ContentRepoFile, UserRunResult } from "./user-runner";
 
 export function createDefaultUserRunner(
@@ -51,6 +54,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
           ...(user.atproto.lexiconAuthority !== undefined
             ? [`    lexiconAuthority: ${String(user.atproto.lexiconAuthority)}`]
             : []),
+          ...renderJetstreamConfig(user.atproto.jetstream),
           "    appPassword: ${ATPROTO_APP_PASSWORD}",
         ]
       : []),
@@ -70,6 +74,14 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderJetstreamConfig(
+  config: ResolvedAtprotoJetstreamConfig | undefined,
+): string[] {
+  if (!config) return [];
+  const rendered = toYaml(config).trimEnd().split("\n");
+  return ["    jetstream:", ...rendered.map((line) => `      ${line}`)];
 }
 
 function renderAddConfig(user: ResolvedUser): string[] {

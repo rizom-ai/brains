@@ -1,19 +1,33 @@
 import {
+  ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_REFRESHED,
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
   atprotoBrainCardDiscoveredPayloadSchema,
+  atprotoBrainCardUnavailablePayloadSchema,
   type AtprotoBrainCardRecord,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  createSafePublicFetch,
+  type ResolveHostname,
+} from "@brains/utils/safe-public-fetch";
 import { slugifyUrl } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { FetchFn } from "./fetch-agent-card";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
+const CARD_UNAVAILABLE_FAILURE_THRESHOLD = 3;
+const pdsRecordResponseSchema = z.looseObject({
+  uri: z.string().min(1),
+  cid: z.string().min(1),
+  value: z.unknown(),
+});
 
 function toAgentSkills(record: AtprotoBrainCardRecord): AgentSkill[] {
   return record.skills.map((skill) => ({
@@ -82,13 +96,31 @@ export async function upsertAgentFromCard(
     record: AtprotoBrainCardRecord;
   },
   now: string = new Date().toISOString(),
-): Promise<{ agent: AgentEntity; created: boolean }> {
+): Promise<{ agent: AgentEntity; created: boolean; conflict?: boolean }> {
   const { record } = input;
   const agentId = domainIdFromUrl(record.siteUrl);
   const existing = await context.entityService.getEntity<AgentEntity>({
     entityType: "agent",
     id: agentId,
   });
+  if (
+    existing?.metadata.repoDid &&
+    existing.metadata.repoDid !== input.repoDid
+  ) {
+    await context.messaging.send({
+      type: ATPROTO_BRAIN_CARD_CONFLICT,
+      payload: {
+        domain: agentId,
+        existingRepoDid: existing.metadata.repoDid,
+        candidateRepoDid: input.repoDid,
+        observedAt: now,
+        reason: "A different repo DID claimed an existing agent domain",
+      },
+      broadcast: true,
+    });
+    return { agent: existing, created: false, conflict: true };
+  }
+
   const existingParsed = existing
     ? agentAdapter.parseEntity(existing)
     : undefined;
@@ -121,8 +153,13 @@ export async function upsertAgentFromCard(
       cid: input.cid,
     });
 
+  const preservedMetadata = { ...(existing?.metadata ?? {}) };
+  delete preservedMetadata.cardLastError;
+  delete preservedMetadata.cardFailureCount;
+  delete preservedMetadata.cardUnavailableAt;
+  delete preservedMetadata.cardStaleAfter;
   const metadata = {
-    ...(existing?.metadata ?? {}),
+    ...preservedMetadata,
     name,
     url,
     status,
@@ -185,6 +222,82 @@ export async function upsertAgentFromCard(
   };
   await context.entityService.createEntity({ entity: agent });
   return { agent, created: true };
+}
+
+async function markAgentCardUnavailable(
+  context: EntityPluginContext,
+  agent: AgentEntity,
+  input: {
+    observedAt: string;
+    reason: "deleted" | "refresh-failed";
+    staleAfter?: string | undefined;
+    error?: string | undefined;
+  },
+): Promise<void> {
+  const parsed = agentAdapter.parseEntity(agent);
+  const error =
+    input.error ??
+    (input.reason === "deleted"
+      ? "ATProto brain card was deleted"
+      : "ATProto brain card refresh failed");
+  const metadata = {
+    ...agent.metadata,
+    cardLastCheckedAt: input.observedAt,
+    cardLastError: error,
+    cardFailureCount: agent.metadata.cardFailureCount ?? 0,
+    cardUnavailableAt: input.observedAt,
+    ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
+  };
+  const content = agentAdapter.createAgentContent({
+    name: parsed.frontmatter.name,
+    kind: parsed.frontmatter.kind,
+    ...(parsed.frontmatter.organization && {
+      organization: parsed.frontmatter.organization,
+    }),
+    brainName: parsed.frontmatter.brainName,
+    url: parsed.frontmatter.url,
+    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
+    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
+    ...(parsed.frontmatter.brainDid && {
+      brainDid: parsed.frontmatter.brainDid,
+    }),
+    ...(parsed.frontmatter.anchorDid && {
+      anchorDid: parsed.frontmatter.anchorDid,
+    }),
+    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
+    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
+    ...(parsed.frontmatter.cardObservedAt && {
+      cardObservedAt: parsed.frontmatter.cardObservedAt,
+    }),
+    cardLastCheckedAt: input.observedAt,
+    cardLastError: error,
+    cardFailureCount: agent.metadata.cardFailureCount ?? 0,
+    cardUnavailableAt: input.observedAt,
+    ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
+    ...(parsed.frontmatter.a2aEndpoint && {
+      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
+    }),
+    status: parsed.frontmatter.status,
+    discoveredAt: parsed.frontmatter.discoveredAt,
+    ...(parsed.frontmatter.introducedBy && {
+      introducedBy: parsed.frontmatter.introducedBy,
+    }),
+    ...(parsed.frontmatter.hops !== undefined && {
+      hops: parsed.frontmatter.hops,
+    }),
+    about: parsed.body.about,
+    skills: parsed.body.skills,
+    notes: parsed.body.notes,
+  });
+
+  await context.entityService.updateEntity({
+    entity: {
+      ...agent,
+      metadata,
+      content,
+      updated: input.observedAt,
+    },
+  });
 }
 
 export interface RefreshKnownAgentCardsResult {
@@ -264,11 +377,7 @@ async function fetchBrainCardSnapshot(input: {
     throw new Error(`Brain card fetch failed with HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as {
-    uri?: string;
-    cid?: string;
-    value?: unknown;
-  };
+  const data = pdsRecordResponseSchema.parse(await response.json());
   const parsed = atprotoBrainCardDiscoveredPayloadSchema.parse({
     repoDid: repo,
     uri: data.uri,
@@ -285,10 +394,18 @@ async function markAgentCardRefreshFailure(
   now: string,
 ): Promise<void> {
   const parsed = agentAdapter.parseEntity(agent);
+  const errorMessage = getErrorMessage(error);
+  const cardFailureCount = (agent.metadata.cardFailureCount ?? 0) + 1;
+  const cardUnavailableAt =
+    cardFailureCount >= CARD_UNAVAILABLE_FAILURE_THRESHOLD
+      ? (agent.metadata.cardUnavailableAt ?? now)
+      : agent.metadata.cardUnavailableAt;
   const metadata = {
     ...agent.metadata,
     cardLastCheckedAt: now,
-    cardLastError: getErrorMessage(error),
+    cardLastError: errorMessage,
+    cardFailureCount,
+    ...(cardUnavailableAt && { cardUnavailableAt }),
   };
   const content = agentAdapter.createAgentContent({
     name: parsed.frontmatter.name,
@@ -312,7 +429,12 @@ async function markAgentCardRefreshFailure(
       cardObservedAt: parsed.frontmatter.cardObservedAt,
     }),
     cardLastCheckedAt: now,
-    cardLastError: getErrorMessage(error),
+    cardLastError: errorMessage,
+    cardFailureCount,
+    ...(cardUnavailableAt && { cardUnavailableAt }),
+    ...(parsed.frontmatter.cardStaleAfter && {
+      cardStaleAfter: parsed.frontmatter.cardStaleAfter,
+    }),
     ...(parsed.frontmatter.a2aEndpoint && {
       a2aEndpoint: parsed.frontmatter.a2aEndpoint,
     }),
@@ -339,11 +461,79 @@ async function markAgentCardRefreshFailure(
   });
 }
 
+async function archiveExpiredStaleCandidate(
+  context: EntityPluginContext,
+  agent: AgentEntity,
+  now: string,
+): Promise<void> {
+  const parsed = agentAdapter.parseEntity(agent);
+  const content = agentAdapter.createAgentContent({
+    name: parsed.frontmatter.name,
+    kind: parsed.frontmatter.kind,
+    ...(parsed.frontmatter.organization && {
+      organization: parsed.frontmatter.organization,
+    }),
+    brainName: parsed.frontmatter.brainName,
+    url: parsed.frontmatter.url,
+    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
+    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
+    ...(parsed.frontmatter.brainDid && {
+      brainDid: parsed.frontmatter.brainDid,
+    }),
+    ...(parsed.frontmatter.anchorDid && {
+      anchorDid: parsed.frontmatter.anchorDid,
+    }),
+    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
+    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
+    ...(parsed.frontmatter.cardObservedAt && {
+      cardObservedAt: parsed.frontmatter.cardObservedAt,
+    }),
+    ...(parsed.frontmatter.cardLastCheckedAt && {
+      cardLastCheckedAt: parsed.frontmatter.cardLastCheckedAt,
+    }),
+    ...(parsed.frontmatter.cardLastError && {
+      cardLastError: parsed.frontmatter.cardLastError,
+    }),
+    ...(parsed.frontmatter.cardFailureCount !== undefined && {
+      cardFailureCount: parsed.frontmatter.cardFailureCount,
+    }),
+    ...(parsed.frontmatter.cardUnavailableAt && {
+      cardUnavailableAt: parsed.frontmatter.cardUnavailableAt,
+    }),
+    ...(parsed.frontmatter.cardStaleAfter && {
+      cardStaleAfter: parsed.frontmatter.cardStaleAfter,
+    }),
+    ...(parsed.frontmatter.a2aEndpoint && {
+      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
+    }),
+    status: "archived",
+    discoveredAt: parsed.frontmatter.discoveredAt,
+    ...(parsed.frontmatter.introducedBy && {
+      introducedBy: parsed.frontmatter.introducedBy,
+    }),
+    ...(parsed.frontmatter.hops !== undefined && {
+      hops: parsed.frontmatter.hops,
+    }),
+    about: parsed.body.about,
+    skills: parsed.body.skills,
+    notes: parsed.body.notes,
+  });
+  await context.entityService.updateEntity({
+    entity: {
+      ...agent,
+      content,
+      metadata: { ...agent.metadata, status: "archived" },
+      updated: now,
+    },
+  });
+}
+
 export async function refreshKnownAgentCards(
   context: EntityPluginContext,
   fetchFn?: AtprotoCardFetch,
   signal?: AbortSignal,
   now: string = new Date().toISOString(),
+  resolveHostname?: ResolveHostname,
 ): Promise<RefreshKnownAgentCardsResult> {
   const result: RefreshKnownAgentCardsResult = {
     checked: 0,
@@ -354,7 +544,14 @@ export async function refreshKnownAgentCards(
   const agents = await context.entityService.listEntities<AgentEntity>({
     entityType: "agent",
   });
-  const resolvedFetch = getFetch(fetchFn);
+  const rawFetch = getFetch(fetchFn);
+  const resolvedFetch = createSafePublicFetch({
+    fetchFn: rawFetch,
+    ...(resolveHostname && { resolveHostname }),
+    timeoutMs: 10_000,
+    maxResponseBytes: 256 * 1024,
+    maxRedirects: 3,
+  });
 
   for (const agent of agents) {
     const repoDid = agent.metadata.repoDid;
@@ -370,7 +567,16 @@ export async function refreshKnownAgentCards(
         ...(signal && { signal }),
       });
       if (snapshot.cid === agent.metadata.cardCid) {
-        result.unchanged += 1;
+        if (
+          agent.metadata.cardLastError ||
+          agent.metadata.cardFailureCount !== undefined ||
+          agent.metadata.cardUnavailableAt
+        ) {
+          await upsertAgentFromCard(context, snapshot, now);
+          result.refreshed += 1;
+        } else {
+          result.unchanged += 1;
+        }
         continue;
       }
       await upsertAgentFromCard(context, snapshot, now);
@@ -379,6 +585,18 @@ export async function refreshKnownAgentCards(
       if (signal?.aborted) throw error;
       await markAgentCardRefreshFailure(context, agent, error, now);
       result.failed += 1;
+    }
+  }
+
+  const nowMs = Date.parse(now);
+  for (const agent of agents) {
+    const staleAfter = agent.metadata.cardStaleAfter;
+    if (
+      agent.metadata.status === "discovered" &&
+      staleAfter !== undefined &&
+      Date.parse(staleAfter) <= nowMs
+    ) {
+      await archiveExpiredStaleCandidate(context, agent, now);
     }
   }
 
@@ -395,6 +613,7 @@ export function registerAtprotoBrainCardHandlers(
         message.payload,
       );
       const result = await upsertAgentFromCard(context, parsed);
+      if (result.conflict) return { success: true };
       const eventPayload = buildEventPayload({
         agent: result.agent,
         repoDid: parsed.repoDid,
@@ -410,6 +629,25 @@ export function registerAtprotoBrainCardHandlers(
         eventPayload,
       );
       return { success: true, data: eventPayload };
+    },
+  );
+
+  context.messaging.subscribe(
+    ATPROTO_BRAIN_CARD_UNAVAILABLE,
+    async (message) => {
+      const parsed = atprotoBrainCardUnavailablePayloadSchema.parse(
+        message.payload,
+      );
+      const agents = await context.entityService.listEntities<AgentEntity>({
+        entityType: "agent",
+      });
+      const matching = agents.filter(
+        (agent) => agent.metadata.repoDid === parsed.repoDid,
+      );
+      for (const agent of matching) {
+        await markAgentCardUnavailable(context, agent, parsed);
+      }
+      return { success: true, data: { updated: matching.length } };
     },
   );
 }

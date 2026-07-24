@@ -10,7 +10,7 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 - app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
 - ambient brain card, projected-entity, and authority-gated canonical lexicon publishing
 - projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
-- candidate brain-card discovery via public `com.atproto.repo.getRecord` reads and internal message-bus events
+- bounded Jetstream brain-card candidate discovery with authoritative PDS refetching, identity binding, durable replay cursors, and review events
 
 ## Configuration
 
@@ -26,6 +26,12 @@ atprotoPlugin({
   anchorDid: "did:web:example.com:anchor",
   // Only for the DNS-designated ai.rizom.brain.* authority account.
   lexiconAuthority: true,
+  // Canary opt-in; disabled by default.
+  jetstream: {
+    enabled: true,
+    queueLimit: 64,
+    concurrency: 2,
+  },
   appPassword: "${ATPROTO_APP_PASSWORD}",
 });
 ```
@@ -43,6 +49,11 @@ plugins:
     anchorDid: did:web:example.com:anchor
     # Only for the DNS-designated ai.rizom.brain.* authority account.
     lexiconAuthority: true
+    # Canary opt-in; disabled by default.
+    jetstream:
+      enabled: true
+      queueLimit: 64
+      concurrency: 2
     appPassword: ${ATPROTO_APP_PASSWORD}
 ```
 
@@ -63,6 +74,7 @@ Secrets should be supplied through environment variables or app secret configura
 - `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 - `lexiconAuthority`: defaults to `false`. When true, the ready trigger upserts every canonical `ai.rizom.brain.*` lexicon as a `com.atproto.lexicon.schema` record. Enable this only for the PDS account named by the authority's `_lexicon` DNS TXT record.
+- `jetstream`: bounded discovery configuration. `enabled` defaults to `false`; opt in one canary brain at a time. Controls include endpoint/replay window, DID/domain/skill filters, queue/concurrency limits, per-DID cooldown, fetch and creation budgets, pending-candidate ceiling, stale retention, request/response/redirect limits, retries, and heartbeat cadence.
 
 ## Ambient publishing
 
@@ -70,7 +82,7 @@ The plugin exposes no agent tools. When `identifier` and `appPassword` are confi
 
 - the plugin `ready()` lifecycle hook upserts the public brain card as `ai.rizom.brain.card/self`. On the designated lexicon authority, it also converges canonical schemas under `com.atproto.lexicon.schema/<nsid>`.
 - `publish:completed` upserts the source entity when its entity package has registered an ATProto projection and the entity is public.
-- `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record.
+- `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record. Brain identity, anchor profile, and skill updates also republish the brain card immediately.
 - `entity:deleted` deletes the projected record when the deleted entity was public.
 
 Projection registration is the consent gate: entities without a registered projection are ignored. Custom records are validated locally before an idempotent PDS `putRecord`; source entity IDs become stable record keys. The local entity remains the source of truth.
@@ -78,6 +90,14 @@ Projection registration is the consent gate: entities without a registered proje
 A PDS outage never fails the local publish/update/delete operation. Failures are logged and broadcast as `atproto:publish:failed` with the operation, entity type/id, collection, and error. This scoped event deliberately does not use the publish pipeline's `publish:report:failure`, which belongs to the source publish provider.
 
 The internal `publishBrainCard`, `publishEntity`, `publishPost`, and `validatePdsCredentials` methods remain available to trusted runtime code and tests. `discoverBrainCards` likewise remains an internal bounded discovery operation: it accepts at most 50 repo DIDs/handles, validates `ai.rizom.brain.card/self`, deduplicates within a batch, and emits discovery events for reviewable agent-directory candidates.
+
+## Jetstream discovery
+
+Jetstream is used only as an untrusted repo-DID signal. Matching create/update events for `ai.rizom.brain.card/self` trigger a credential-free authoritative `getRecord` against the repo's resolved PDS; the event's embedded record is ignored. Discovery then requires the returned AT URI repo, HTTPS `siteUrl`, `did:web` hostname/document, and `alsoKnownAs` repo binding to agree before an event can reach agent-discovery.
+
+The consumer runs only on an opted-in full boot. It bounds queue depth and concurrency, coalesces repeated DIDs, enforces cooldown/fetch/creation budgets, persists a contiguous cursor and replay dedupe window in scoped runtime state, clamps stale cursors with `atproto:jetstream-gap`, reconnects with jittered backoff, and closes on shutdown. Candidate-controlled HTTP egress rejects non-public DNS/IP destinations on initial requests and redirects and caps time, bytes, and redirects. Deletes emit availability state rather than deleting agents or revoking approval. A jittered heartbeat republishes the same `self` card so peers missed outside replay can recover.
+
+The durable review queue remains `agent` entities with `status: discovered`. Different repo DIDs cannot overwrite an existing domain-backed agent or inherit approval; conflicts emit `atproto:brain-card-conflict`. When `agentDiscovery({ notifyOnNewAgents: true })` is configured, the existing recurring-check scheduler sends bounded discovery and conflict digests through the normal notification path.
 
 ## Projection registration
 

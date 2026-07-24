@@ -120,7 +120,7 @@ const CRITICAL_CONFIG_KEYS: Readonly<Record<string, readonly string[]>> = {
   "conversation-memory": ["memoryVisibility"],
   "directory-sync": ["seedContentPath", "autoSync", "initialSync"],
   "site-builder": ["autoRebuild", "rebuildDebounce"],
-  atproto: ["enabled", "pdsEndpoint", "lexiconAuthority"],
+  atproto: ["enabled", "pdsEndpoint", "lexiconAuthority", "jetstream"],
   "atproto-registry": ["enabled"],
   "social-media": ["autoGenerateOnBlogPublish"],
   products: ["route"],
