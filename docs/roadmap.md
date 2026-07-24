@@ -140,7 +140,7 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, management surfaces, Trusted browser chat, and own-account self-service.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — database-backed auth, People administration, Admin/Anchor invariants, session migration, normalized identity evidence, and the standalone Admin console are implemented on `feature/auth-runtime-db`; final validation precedes merge.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — database-backed auth, People administration, Admin/Anchor invariants, session migration, normalized identity evidence, strict Admin admission, and own-account self-service are implemented on `feature/auth-runtime-db`; final validation precedes merge.
 - [connected-channels.md](./plans/connected-channels.md) — registry-driven, person-centered channel identity attachment without channel enums in auth schema or console code.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 

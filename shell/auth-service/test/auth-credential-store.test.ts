@@ -63,6 +63,64 @@ describe("AuthCredentialStore", () => {
     }
   });
 
+  it("atomically protects the last owned passkey", async () => {
+    const database = new AuthRuntimeDatabase({
+      storageDir: await tempStorageDir(),
+    });
+    await database.start();
+
+    try {
+      const users = new AuthUserStore(database.db);
+      const owner = await users.ensureFirstAdminUser();
+      const other = await users.createUser({ displayName: "Other" });
+      const store = new AuthCredentialStore(database.db);
+      for (const id of ["owner-one", "owner-two"]) {
+        await store.addPasskey({
+          id,
+          userId: owner.id,
+          publicKey: `public-key:${id}`,
+          counter: 0,
+          credentialBackedUp: false,
+        });
+      }
+      await store.addPasskey({
+        id: "other-passkey",
+        userId: other.id,
+        publicKey: "other-public-key",
+        counter: 0,
+        credentialBackedUp: false,
+      });
+
+      let ownershipError: unknown;
+      try {
+        await store.revokeOwnedPasskeyIfAnotherRemains(
+          "other-passkey",
+          owner.id,
+        );
+      } catch (error) {
+        ownershipError = error;
+      }
+      expect(ownershipError).toEqual(new Error("Passkey not found"));
+      const results = await Promise.allSettled([
+        store.revokeOwnedPasskeyIfAnotherRemains("owner-one", owner.id),
+        store.revokeOwnedPasskeyIfAnotherRemains("owner-two", owner.id),
+      ]);
+
+      expect(
+        results.filter((result) => result.status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(
+        results.filter((result) => result.status === "rejected"),
+      ).toHaveLength(1);
+      expect(await store.listPasskeys(owner.id)).toHaveLength(1);
+      expect(await store.listPasskeys(other.id)).toEqual([
+        expect.objectContaining({ id: "other-passkey" }),
+      ]);
+    } finally {
+      await database.stop();
+    }
+  });
+
   it("stores hashed one-use WebAuthn challenges with optional users", async () => {
     const database = new AuthRuntimeDatabase({
       storageDir: await tempStorageDir(),

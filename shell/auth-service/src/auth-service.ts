@@ -3,6 +3,7 @@ import type {
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
+import { handleAuthAccountRequest } from "./account-endpoints";
 import type {
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
@@ -145,6 +146,8 @@ export class AuthService {
       webauthnEndpoints: this.runtime.webauthnEndpoints,
       handleAdminRequest: (request): Promise<Response> =>
         this.handleAdminRequest(request),
+      handleAccountRequest: (request): Promise<Response> =>
+        this.handleAccountRequest(request),
       revokeSession: async (request): Promise<void> => {
         await this.runtime.sessionStore.revokeSessionFromRequest(request);
       },
@@ -594,6 +597,19 @@ export class AuthService {
 
   async handleWellKnownRequest(request: Request): Promise<Response> {
     return this.handleRequest(request);
+  }
+
+  private handleAccountRequest(request: Request): Promise<Response> {
+    return handleAuthAccountRequest(request, {
+      resolveSession: async (accountRequest) => {
+        const resolved =
+          await this.runtime.resolveActiveSession(accountRequest);
+        return resolved
+          ? { userId: resolved.user.id, sessionId: resolved.session.id }
+          : undefined;
+      },
+      account: this.runtime.getAccountService(),
+    });
   }
 
   private handleAdminRequest(request: Request): Promise<Response> {

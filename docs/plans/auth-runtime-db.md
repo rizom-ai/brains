@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat and strict Admin-console admission are implemented; own-account APIs remain planned, and CMS authorization is specified separately in [Permission-aware CMS](./permission-aware-cms.md). Automated provider delivery/resend remains follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, and session-derived own-account APIs are implemented; CMS authorization is specified separately in [Permission-aware CMS](./permission-aware-cms.md). Automated provider delivery/resend remains follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -480,7 +480,7 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 ### Phase 7 — Auth-session terminology and admin console
 
-**Status: four-section console implemented; bounded legacy-cookie compatibility remains active. Decision 16's strict Admin admission is planned.**
+**Status: four-section console and strict Admin admission implemented; bounded legacy-cookie compatibility remains active.**
 
 - [x] Capture the end-state console design per Anchor profile flavor: [professional](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [collective](../design/admin-console-org-mockup.html).
 - [x] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
@@ -515,15 +515,15 @@ Validation: migrations preserve released users and credentials and are restart-i
 
 ### Phase 9 — Own-account API and browser consumer boundaries
 
-**Status: in progress in multi-user decision 16.** Browser admission is role-correct; own-account APIs remain proposed. This phase adds no second user store and no model-visible administration.
+**Status: implemented for multi-user decision 16.** Browser admission is role-correct and `/account` uses a dedicated auth-domain service. This phase adds no second user store and no model-visible administration.
 
-- [ ] Add narrow `/auth/account/*` contracts backed by a dedicated auth-domain service.
-- [ ] Resolve the account exclusively from the active session; do not accept a target user id.
-- [ ] Allow own display-name update, own passkey listing/addition, non-last own-passkey revocation, redacted connected-channel labels, and own-session revocation.
-- [ ] Keep role, status, Anchor, grants, channel ownership, peers, invitations, roster, and audit behind `/auth/admin/*` and active Admin authorization.
+- [x] Add narrow `/auth/account/*` contracts backed by a dedicated auth-domain service.
+- [x] Resolve the account exclusively from the active session; do not accept a target user id.
+- [x] Allow own display-name update, own passkey listing/addition, non-last own-passkey revocation, redacted connected-channel labels, and own-session revocation.
+- [x] Keep role, status, Anchor, grants, channel ownership, peers, invitations, roster, and audit behind `/auth/admin/*` and active Admin authorization.
 - [x] Make `/admin` deny authenticated non-Admins before loading the management SPA.
 - [x] Let web chat consume the exact active principal; first-party CMS authorization remains owned by its separate rollout plan.
-- [ ] Append actor-attributed, content-free audit events for self-service security mutations.
+- [x] Append actor-attributed, content-free audit events for self-service security mutations.
 
 Validation: forged target ids cannot cross account boundaries; the last passkey cannot be self-revoked; suspended/invited sessions cannot use self-service; Trusted chat remains Trusted; CMS remains Admin-only until its separate rollout gate passes.
 

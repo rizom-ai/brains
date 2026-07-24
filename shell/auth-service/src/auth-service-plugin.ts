@@ -402,6 +402,36 @@ export class AuthServicePlugin extends ServicePlugin<
         handler,
       },
       {
+        path: "/account",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/account",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/account/mutations",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/account/passkeys/options",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/account/passkeys/verify",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
         path: "/auth/admin/anchor",
         method: "GET",
         public: true,

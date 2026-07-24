@@ -1,6 +1,7 @@
 import { sha256Base64Url } from "@brains/utils/hash";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, exists, gt, isNull, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { passkeyCredentials, webauthnChallenges } from "./runtime-schema";
 import { AuthIdentityStore } from "./identity-store";
@@ -233,10 +234,12 @@ export class AuthCredentialStore {
               isNull(passkeyCredentials.revokedAt),
             ),
           )
+          .orderBy(passkeyCredentials.createdAt, sql`rowid`)
       : await this.db
           .select()
           .from(passkeyCredentials)
-          .where(isNull(passkeyCredentials.revokedAt));
+          .where(isNull(passkeyCredentials.revokedAt))
+          .orderBy(passkeyCredentials.createdAt, sql`rowid`);
     return rows.map(passkeyFromRow);
   }
 
@@ -266,6 +269,44 @@ export class AuthCredentialStore {
           isNull(passkeyCredentials.revokedAt),
         ),
       );
+  }
+
+  async revokeOwnedPasskeyIfAnotherRemains(
+    id: string,
+    userId: string,
+  ): Promise<StoredPasskey> {
+    const otherPasskey = alias(passkeyCredentials, "other_active_passkey");
+    const revokedAt = Date.now();
+    const [revoked] = await this.db
+      .update(passkeyCredentials)
+      .set({ revokedAt, updatedAt: revokedAt })
+      .where(
+        and(
+          eq(passkeyCredentials.id, id),
+          eq(passkeyCredentials.userId, userId),
+          isNull(passkeyCredentials.revokedAt),
+          exists(
+            this.db
+              .select({ id: otherPasskey.id })
+              .from(otherPasskey)
+              .where(
+                and(
+                  eq(otherPasskey.userId, userId),
+                  ne(otherPasskey.id, id),
+                  isNull(otherPasskey.revokedAt),
+                ),
+              ),
+          ),
+        ),
+      )
+      .returning();
+    if (revoked) return passkeyFromRow(revoked);
+
+    const owned = await this.getPasskey(id);
+    if (owned?.userId !== userId) {
+      throw new Error("Passkey not found");
+    }
+    throw new Error("The last passkey cannot be revoked");
   }
 
   async saveChallenge(input: SaveWebAuthnChallengeInput): Promise<void> {

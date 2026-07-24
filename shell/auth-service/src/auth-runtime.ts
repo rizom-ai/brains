@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { AuthAccountService } from "./account-service";
 import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
 import { AuthAdministrationService } from "./administration-service";
 import { AuthAuditStore } from "./audit-store";
@@ -86,6 +87,7 @@ export class AuthRuntime {
   private userManagementService: AuthUserManagementService | undefined;
   private principalService: AuthPrincipalService | undefined;
   private administrationService: AuthAdministrationService | undefined;
+  private accountService: AuthAccountService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -249,6 +251,15 @@ export class AuthRuntime {
       getJwks: (): Promise<JwksResponse> => this.getJwks(),
     });
     const credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
+    this.accountService = new AuthAccountService({
+      users: this.userStore,
+      identities: identityStore,
+      credentials: credentialStore,
+      sessions: this.sessionStore,
+      refreshTokens: this.refreshTokenStore,
+      passkeys: this.passkeyService,
+      audit: this.auditStore,
+    });
     this.administrationService = new AuthAdministrationService({
       configuredAnchorKind: this.anchor,
       ...(this.resolveProfileDisplayName
@@ -291,6 +302,10 @@ export class AuthRuntime {
 
   getAdministrationService(): AuthAdministrationService {
     return required(this.administrationService);
+  }
+
+  getAccountService(): AuthAccountService {
+    return required(this.accountService);
   }
 
   getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -354,6 +369,7 @@ export class AuthRuntime {
     this.userManagementService = undefined;
     this.principalService = undefined;
     this.administrationService = undefined;
+    this.accountService = undefined;
     this.interfacePrincipalStore = undefined;
     this.auditStore = undefined;
     this.initialization = undefined;
@@ -425,7 +441,7 @@ export class AuthRuntime {
     }
   }
 
-  private async resolveActiveSession(
+  async resolveActiveSession(
     request: Request,
   ): Promise<{ session: AuthSessionRecord; user: AuthUser } | undefined> {
     await this.ensureStarted();

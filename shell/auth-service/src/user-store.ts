@@ -315,6 +315,29 @@ export class AuthUserStore {
     return user;
   }
 
+  async updateDisplayName(
+    userId: string,
+    displayName: string,
+  ): Promise<AuthUser> {
+    const normalized = displayName.trim();
+    if (!normalized) throw new Error("Display name is required");
+
+    return this.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(authUsers)
+        .set({ displayName: normalized, updatedAt: Date.now() })
+        .where(and(eq(authUsers.id, userId), eq(authUsers.status, "active")))
+        .returning();
+      if (!updated) throw new Error("Active auth account not found");
+
+      await tx
+        .update(authPeople)
+        .set({ displayName: normalized, updatedAt: updated.updatedAt })
+        .where(eq(authPeople.id, updated.personId));
+      return updated;
+    });
+  }
+
   async getUserByPersonId(personId: string): Promise<AuthUser | undefined> {
     const [user] = await this.db
       .select()

@@ -31,6 +31,7 @@ export interface AuthRequestRouterOptions {
   oauthEndpoints: OAuthEndpoints;
   webauthnEndpoints: WebAuthnEndpoints;
   handleAdminRequest: (request: Request) => Promise<Response>;
+  handleAccountRequest: (request: Request) => Promise<Response>;
   revokeSession: (request: Request) => Promise<void>;
   getAuthorizationServerMetadata: (
     issuer: string,
@@ -58,8 +59,37 @@ export class AuthRequestRouter {
       handler: options.handleAdminRequest,
     }));
 
+    const accountRoutes: AuthRequestRoute[] = [
+      {
+        method: "GET",
+        path: "/account",
+        handler: options.handleAccountRequest,
+      },
+      {
+        method: "GET",
+        path: "/auth/account",
+        handler: options.handleAccountRequest,
+      },
+      {
+        method: "POST",
+        path: "/auth/account/mutations",
+        handler: options.handleAccountRequest,
+      },
+      {
+        method: "POST",
+        path: "/auth/account/passkeys/options",
+        handler: options.handleAccountRequest,
+      },
+      {
+        method: "POST",
+        path: "/auth/account/passkeys/verify",
+        handler: options.handleAccountRequest,
+      },
+    ];
+
     const endpointRoutes: AuthRequestRoute[] = [
       ...adminRoutes,
+      ...accountRoutes,
       {
         method: "GET",
         path: "/.well-known/oauth-authorization-server",
