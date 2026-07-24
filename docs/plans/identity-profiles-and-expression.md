@@ -168,7 +168,7 @@ artist site can declare typed `mediums` and `galleryUrl` fields while a generic 
 preserves and ignores them. This keeps profile validity kind-owned without preventing
 custom sites from using extension data.
 
-### Wire contract and two-card migration
+### Wire contract and coordinated two-card cutover
 
 The new typed card shape carries both values explicitly:
 
@@ -183,31 +183,32 @@ anchor: {
 
 `category` is required and uses closed `knownValues`; semantic `kind` is a required,
 open string. An ATProto card writer therefore requires a selected profile kind. The A2A
-v2 anchor extension emits kind and category together when selected and omits both for a
-base profile with no kind. The two currently published ATProto cards are small enough to
-migrate rather than preserving the shipped shape indefinitely.
+anchor extension changes in place under its existing URI, emits kind and category
+together when selected, and omits both for a base profile with no kind.
 
-Use a reader-first cutover:
+Only two ATProto cards are published, both brains and their readers are maintained by the
+same operator, and the contracts are pre-stable. Use a coordinated maintenance cutover
+instead of versioning or compatibility code:
 
-1. Deploy readers that accept both the shipped `anchor.kind` structural shape and the
-   new `{ category, kind }` shape.
-2. Update the ATProto lexicon, canonical writer, and A2A anchor extension. Use a v2 A2A
-   extension URI while readers temporarily accept v1 and v2.
-3. Republish both ATProto cards in the new shape.
-4. Refresh derived agent-directory records and verify both cards.
-5. Remove old-shape compatibility only after every deployed reader is upgraded.
+1. Pause both brains and controlled card discovery/ingestion.
+2. Deploy the new ATProto lexicon, canonical readers and writers, and in-place A2A
+   extension contract across the controlled fleet.
+3. Restart the lexicon-authority brain and the second brain. Normal startup overwrites
+   each `ai.rizom.brain.card/self` record in the new shape; no unpublish command or
+   temporary dual-shape reader is required.
+4. Verify both live records, rebuild derived agent-directory records, and resume
+   discovery/ingestion.
 
-During transition, `normalizeDiscoveredBrainCard` remains peer-facing. For an old card,
-it derives category from the old structural kind or known alias and retains the old
-value as the best available semantic label until that peer republishes. It no longer
-normalizes this brain's own profile content.
+This accepts a short maintenance window. Old-shape ATProto records and old A2A payloads
+are not supported by the new runtime, and `normalizeDiscoveredBrainCard` does not retain
+a cross-shape compatibility branch.
 
 ### What this supersedes and removes
 
 - Decisions 2 and 3 are replaced by optional semantic kind, derived category, and the
   catalog.
-- Decision 11's own-content alias is temporary migration support. Peer-facing discovery
-  normalization remains through the wire cutover.
+- Decision 11's own-content alias remains temporary migration support for staged content
+  migration. Peer-card shape normalization is removed by the coordinated wire cutover.
 - Anchor kind/category are removed from `anchor-profile.md`; the profile backfill no
   longer fingerprints or writes that field.
 - The profile plugin's duplicate `starterIdentity.anchorKind` config is removed. Starter
@@ -250,24 +251,25 @@ packages are removed.
 2. **Profile persistence and views.** Remove kind from the target base content schema,
    apply the selected extension schema at finalization, preserve authored unknown fields,
    and move sites to consumer-specific loose view schemas.
-3. **Consumers and transitional readers.** Point structural consumers at resolved
-   category, expressive consumers at resolved kind, and accept both card generations.
+3. **Consumers and card contract.** Point structural consumers at resolved category,
+   expressive consumers at resolved kind, and update controlled card readers and writers
+   to the new shape without a dual-shape compatibility path.
 4. **Instance/content migration.** Add kind to surviving unified instance configs,
    tolerate and verify old content kind, strip it from content, and remove
    `starterIdentity.anchorKind`.
-5. **Wire migration.** Publish the new lexicon/A2A contract, republish both cards,
-   rebuild derived directory records, and verify live discovery.
+5. **Wire cutover.** Pause both brains and controlled discovery, deploy the new lexicon
+   and in-place A2A contract everywhere, restart to overwrite both cards, rebuild derived
+   directory records, verify live discovery, and resume.
 6. **Cleanup.** Remove `authoredAnchorProfileKindSchema` and own-content transition code
-   only after Step 4. Remove peer-card compatibility only after Step 5's fleet gate. Keep
-   the generic CMS pipe unwrap.
+   only after Step 4. Keep the generic CMS pipe unwrap.
 
 Tests first at each step: zero-kind base profiles; app isolation; registration,
 collision, and unknown selected definitions; external-kind category enforcement;
 strict selected-schema validation; unknown-field preservation; typed custom site fields;
 config/content
-category mismatch; structural and expressive consumer separation; old/new card reads;
-A2A v1/v2 reads; typed publication rejection without kind; and both live card
-republication checks.
+category mismatch; structural and expressive consumer separation; hard-cutover card
+contract rejection of the old shape; typed publication rejection without kind; and both
+live card republication checks.
 
 ## Goal
 
@@ -952,7 +954,7 @@ intent (`decks:description` is source-style-preserving → `representedIdentity:
 - markdown round-trip and unknown-field preservation tests;
 - zero-kind and config-selected profile persistence tests;
 - app-scoped catalog registration, collision, finalization, and boot-order tests;
-- A2A v1/v2 and ATProto old/new card contract tests;
+- in-place A2A and ATProto hard-cutover card contract tests;
 - agent-discovery and assessment contract tests;
 - generation prompt assembly tests for voice, visual, and neutral contexts;
 - image tests proving visual guidance is data-driven;
@@ -977,7 +979,8 @@ intent (`decks:description` is source-style-preserving → `representedIdentity:
 - Generic sites render common profile views; specialized sites retain typed access to
   extension fields.
 - New ATProto cards expose open semantic kind and closed structural category; both
-  currently published cards are republished and verified after reader-first rollout.
+  currently published cards are overwritten and verified during a coordinated
+  maintenance cutover without contract versioning or dual-shape readers.
 - Typed card publication fails clearly when no kind is selected.
 - Shell owns no profile-specific or style-guide fields.
 - Base kind definitions live in `@brains/profile`; external plugins may add kinds.
