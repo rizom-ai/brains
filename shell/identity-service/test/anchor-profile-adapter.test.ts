@@ -151,6 +151,38 @@ socialLinks:
       });
     });
 
+    it("transitions a legacy 'collective' kind to organization on read", () => {
+      const markdown = `---
+name: Rizom
+kind: collective
+description: Open-source collective
+---
+`;
+
+      expect(adapter.parseProfileBody(markdown).kind).toBe("organization");
+    });
+
+    it("transitions a legacy 'professional' kind to person on read", () => {
+      const markdown = `---
+name: Yeehaa
+kind: professional
+description: Educator and technologist
+---
+`;
+
+      expect(adapter.parseProfileBody(markdown).kind).toBe("person");
+    });
+
+    it("still rejects an unknown kind", () => {
+      const markdown = `---
+name: Mystery
+kind: sentient-toaster
+---
+`;
+
+      expect(() => adapter.parseProfileBody(markdown)).toThrow();
+    });
+
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 

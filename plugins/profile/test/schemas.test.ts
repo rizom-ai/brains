@@ -42,6 +42,31 @@ describe("profile variants", () => {
     ).toMatchObject({ kind: "organization", mission: "Grow living expertise" });
   });
 
+  test("accepts a legacy 'collective' kind and validates it as an organization", () => {
+    expect(() =>
+      validateProfileContent(
+        `---\nname: Rizom\nkind: collective\nmission: Grow living expertise\n---\n`,
+      ),
+    ).not.toThrow();
+  });
+
+  test("accepts a legacy 'professional' kind and validates it as a person", () => {
+    expect(() =>
+      validateProfileContent(
+        `---\nname: Ada\nkind: professional\nrole: Advisor\n---\n`,
+      ),
+    ).not.toThrow();
+  });
+
+  test("still enforces per-kind fields after a legacy kind is transitioned", () => {
+    // collective -> organization, so a person-only field must still be rejected
+    expect(() =>
+      validateProfileContent(
+        `---\nname: Rizom\nkind: collective\nrole: Advisor\n---\n`,
+      ),
+    ).toThrow();
+  });
+
   test("rejects fields owned by another profile kind", () => {
     expect(() =>
       validateProfileContent(

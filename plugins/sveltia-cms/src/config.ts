@@ -174,6 +174,11 @@ function unwrapZodType(
       readDefaultValue(definition?.["defaultValue"]),
     );
   }
+  // A preprocess/pipe (e.g. the legacy-tolerant anchor kind) carries the real
+  // widget shape in its output schema; unwrap to it so enums keep their options.
+  if (kind === "pipe") {
+    return unwrapZodType(definition?.["out"], isOptional, defaultValue);
+  }
   const result: UnwrappedSchema = { inner: schema, isOptional };
   if (defaultValue !== undefined) {
     result.defaultValue = defaultValue;

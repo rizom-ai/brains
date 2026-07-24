@@ -39,6 +39,18 @@ describe("zodFieldToCmsWidget", () => {
     expect(result.options).toEqual(["draft", "published"]);
   });
 
+  it("should unwrap a preprocess/pipe around an enum to a select widget", () => {
+    const result = zodFieldToCmsWidget(
+      "kind",
+      z.preprocess(
+        (value) => value,
+        z.enum(["person", "team", "organization"]),
+      ),
+    );
+    expect(result.widget).toBe("select");
+    expect(result.options).toEqual(["person", "team", "organization"]);
+  });
+
   it("should unwrap .optional() and set required: false", () => {
     const result = zodFieldToCmsWidget("slug", z.string().optional());
     expect(result.widget).toBe("string");

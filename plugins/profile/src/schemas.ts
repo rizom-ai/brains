@@ -253,15 +253,19 @@ export function validateProfileContent(content: string): void {
     );
   }
   const base = anchorProfileBodySchema.parse(metadata);
+  // base.kind is already transitioned from any legacy value; validate the
+  // per-kind schema against the canonical kind so the strict `z.literal` kinds
+  // match a migrated-in-place profile.
+  const normalized = { ...metadata, kind: base.kind };
 
   switch (base.kind) {
     case "person":
-      professionalProfileSchema.parse(metadata);
+      professionalProfileSchema.parse(normalized);
       return;
     case "team":
-      teamProfileSchema.parse(metadata);
+      teamProfileSchema.parse(normalized);
       return;
     case "organization":
-      organizationProfileSchema.parse(metadata);
+      organizationProfileSchema.parse(normalized);
   }
 }

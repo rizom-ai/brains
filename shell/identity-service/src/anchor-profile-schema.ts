@@ -40,6 +40,33 @@ export const anchorProfileKindSchema: AnchorProfileKindSchema = z.enum([
 
 export type AnchorProfileKind = z.infer<typeof anchorProfileKindSchema>;
 
+/**
+ * Legacy → canonical anchor kinds for a brain's OWN authored content.
+ *
+ * Mirrors `ANCHOR_KIND_ALIASES` in `@brains/atproto-contracts`, which converts
+ * kinds on cards discovered from peers. Here we coerce the singleton a brain
+ * reads from its own content repo, so upgrading past the kind rename transitions
+ * a pre-cutover value automatically instead of failing closed to fallback
+ * identity. The canonical value is written back on the next serialization.
+ *
+ * `anchorProfileKindSchema` above stays a strict enum for AI-output and public
+ * contract schemas; only authored-content parsing tolerates the legacy input.
+ */
+const ANCHOR_PROFILE_KIND_ALIASES: Record<string, AnchorProfileKind> = {
+  professional: "person",
+  collective: "organization",
+};
+
+export const authoredAnchorProfileKindSchema: z.ZodType<AnchorProfileKind> = z
+  .preprocess(
+    (value) =>
+      typeof value === "string" && value in ANCHOR_PROFILE_KIND_ALIASES
+        ? ANCHOR_PROFILE_KIND_ALIASES[value]
+        : value,
+    anchorProfileKindSchema,
+  )
+  .describe("Type of anchor: person, team, or organization");
+
 export interface AnchorProfile {
   name: string;
   kind: AnchorProfileKind;
@@ -65,7 +92,7 @@ type SocialLinkSchema = z.ZodObject<{
 
 export type AnchorProfileBodySchema = z.ZodObject<{
   name: z.ZodString;
-  kind: typeof anchorProfileKindSchema;
+  kind: z.ZodType<AnchorProfileKind>;
   organization: z.ZodOptional<z.ZodString>;
   description: z.ZodOptional<z.ZodString>;
   avatar: z.ZodOptional<z.ZodString>;
@@ -80,9 +107,7 @@ export type AnchorProfileBodySchema = z.ZodObject<{
  */
 export const anchorProfileBodySchema: AnchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
-  kind: anchorProfileKindSchema.describe(
-    "Type of anchor: person, team, or organization",
-  ),
+  kind: authoredAnchorProfileKindSchema,
   organization: z
     .string()
     .optional()

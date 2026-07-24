@@ -53,16 +53,21 @@ choices live in editable markdown entities owned by plugins.
    `represents: brain | anchor`. It does not own generation style.
 10. **Do not introduce a mandatory brand entity.** Add one only when a real identity is
     distinct from both brain and anchor.
-11. **Use a strict cutover for content, with a discovery conversion window for the
-    fleet.** Migrate all controlled content and republish the single live ATProto
-    card. Deployed brains validate discovered cards with `knownValues` enforced as
-    a closed enum, and fleet versions upgrade at different times — so cross-version
-    kind conversion at the discovery boundary (`normalizeDiscoveredBrainCard` in
-    `@brains/atproto-contracts`) is load-bearing during the rollout. The cutover
-    **flips** its alias table (`professional` → `person`, `collective` →
-    `organization`) rather than deleting it; the no-aliases end state applies to
-    content and public contracts immediately, and to the discovery table only after
-    every fleet brain is on the new vocabulary.
+11. **Rename the vocabulary; transition legacy values automatically at every read
+    boundary.** The public contracts (lexicon `knownValues`, A2A) move to the new
+    vocabulary immediately, but no content is required to migrate ahead of a deploy.
+    Two symmetric alias tables (`professional` → `person`, `collective` →
+    `organization`) coerce legacy values into this build's canonical set at read
+    time: `normalizeDiscoveredBrainCard` in `@brains/atproto-contracts` for cards
+    discovered from peers, and `authoredAnchorProfileKindSchema` in
+    `@brains/identity-service` for a brain's own authored `anchor-profile.md`
+    singleton. A brain upgrading past the rename therefore reads a pre-cutover
+    `kind: collective` as `organization` instead of failing closed to fallback
+    identity, and re-serializes the canonical value on the next write. The
+    standalone `anchorProfileKindSchema` stays a strict enum for AI-output and
+    public contract schemas. Both alias tables are retained until every fleet brain
+    is on the new vocabulary; their removal is Phase 6 cleanup, after which reads
+    fail closed on legacy kinds by design.
 12. **Backfill defaults without touching authored identity.** Fresh brains and existing
     brains that still match exact known legacy-default fingerprints receive a deterministic
     agent alias plus a one-time, context-generated character. Any authored or partially
@@ -357,19 +362,20 @@ without enabling site or publishing bundles.
    cards — without it, deployed brains reject `person`/`organization` kinds at
    validation and card exchange breaks mid-rollout.
 1. Change the canonical enum to `person | team | organization`.
-2. Migrate controlled legacy values:
+2. Transition legacy values automatically on read:
    - `professional` → `person`;
-   - `collective` → audited `team` or `organization`.
+   - `collective` → `organization`.
 
-   **Live content repos migrate in the same window as each brain's version
-   upgrade.** The new `anchorProfileKindSchema` is a hard enum with no legacy
-   tolerance: a deployed brain whose authored `anchor-profile.md` still says
-   `kind: collective` (rizom.ai's does today) fails singleton parsing on upgrade
-   and silently serves fallback defaults — putting "Unknown" back on the
-   published card through a different door. Per-brain deploy choreography:
-   migrate the content repo's kind values, then (or simultaneously) deploy the
-   cutover release; afterwards verify no live brain serves fallback identity
-   defaults (the backfill run's fingerprint check is the natural place).
+   **Live content repos do not have to migrate ahead of a deploy.**
+   `authoredAnchorProfileKindSchema` coerces a brain's own authored
+   `anchor-profile.md` kind through the alias table before the strict enum runs,
+   so a deployed brain whose singleton still says `kind: collective` (rizom.ai's
+   does today) reads it as `organization` on upgrade instead of failing closed to
+   fallback identity. The canonical value is written back on the next serialization
+   of the singleton, so content converges without a hand migration. Verify no live
+   brain serves fallback identity defaults after upgrade (the backfill run's
+   fingerprint check is the natural place). Seed/eval content still moves to the
+   new vocabulary in step 3 so fresh installs never start on a legacy value.
 
 3. Migrate seed/eval content, test apps, CLI output, onboarding, and docs.
 4. Update plugin contracts, assessment, agent discovery, and site schemas.
@@ -441,11 +447,14 @@ site-info for style.
 
 ## Phase 6 — Cleanup
 
-1. Verify the strict kind cutover in source, fixtures, generated content, and the live
+1. Verify the kind cutover in source, fixtures, generated content, and the live
    ATProto card.
-2. Remove the discovery kind-alias table from `@brains/atproto-contracts` — only after
-   every fleet brain is deployed on the new vocabulary (verify via fleet versions, not
-   the calendar); discovery then fails closed on legacy kinds by design.
+2. Remove both kind-alias tables — the discovery one in `@brains/atproto-contracts`
+   and `authoredAnchorProfileKindSchema`'s in `@brains/identity-service` — only after
+   every fleet brain is deployed on the new vocabulary AND every live content repo has
+   re-serialized its singleton to a canonical kind (verify via fleet versions and a
+   content sweep, not the calendar); both reads then fail closed on legacy kinds by
+   design.
 3. Remove shell profile helpers and Rover-local profile plugin.
 4. Update CMS labels, Obsidian files, docs, examples, and onboarding playbooks.
 5. Refresh brain-model-unification fixtures with intentional differences documented.
