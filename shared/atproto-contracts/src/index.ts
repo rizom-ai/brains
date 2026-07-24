@@ -30,6 +30,7 @@ export type {
   CanonicalAtprotoRecord,
   CanonicalAtprotoRecordMap,
 } from "./records";
+export { normalizeDiscoveredBrainCard } from "./records";
 export {
   buildAtprotoRecordSchema,
   canonicalAtprotoRecordSchemas,

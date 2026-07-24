@@ -1,3 +1,4 @@
+import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import {
   createEntityDatabase,
@@ -122,7 +123,7 @@ export class EntityService implements IEntityService {
     let failed = false;
     try {
       if (this.embeddingHandlerRegistered) {
-        this.jobQueueService.unregisterHandler("shell:embedding");
+        this.jobQueueService.unregisterHandler(SHELL_CHANNELS.embedding);
         this.embeddingHandlerRegistered = false;
       }
     } catch (error) {
@@ -209,7 +210,7 @@ export class EntityService implements IEntityService {
         options.messageBus,
       );
       this.jobQueueService.registerHandler(
-        "shell:embedding",
+        SHELL_CHANNELS.embedding,
         embeddingJobHandler,
       );
       this.embeddingHandlerRegistered = true;
@@ -225,7 +226,7 @@ export class EntityService implements IEntityService {
     } catch (error) {
       try {
         if (this.embeddingHandlerRegistered) {
-          options.jobQueueService?.unregisterHandler("shell:embedding");
+          options.jobQueueService?.unregisterHandler(SHELL_CHANNELS.embedding);
           this.embeddingHandlerRegistered = false;
         }
       } catch {
@@ -395,7 +396,7 @@ export class EntityService implements IEntityService {
 
   private async getIndexReadinessStatus(): Promise<IndexReadinessStatus> {
     const [activeJobs, stats] = await Promise.all([
-      this.jobQueueService.getActiveJobs(["shell:embedding"]),
+      this.jobQueueService.getActiveJobs([SHELL_CHANNELS.embedding]),
       this.entityMutations.getEmbeddingIndexStats(),
     ]);
     const activeEmbeddingJobs = activeJobs.length;

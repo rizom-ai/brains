@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter, SITE_CHANNELS } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { SiteBuildCompletedPayload } from "@brains/site-builder-plugin";
 import type { BlogPost } from "../schemas/blog-post";
@@ -14,7 +14,7 @@ export function subscribeToSiteBuildCompleted(
   logger: Logger,
 ): void {
   context.messaging.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
-    "site:build:completed",
+    SITE_CHANNELS.buildCompleted,
     async (message) => {
       try {
         const payload = message.payload;

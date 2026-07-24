@@ -7,8 +7,10 @@ import {
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import type { EntityPluginContext } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
+import type { FetchFn } from "./fetch-agent-card";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
@@ -71,7 +73,7 @@ async function emitDiscoveryEvent(
   });
 }
 
-async function upsertAgentFromCard(
+export async function upsertAgentFromCard(
   context: EntityPluginContext,
   input: {
     repoDid: string;
@@ -95,22 +97,29 @@ async function upsertAgentFromCard(
   const anchorDid = record.anchor.did;
   const cardSkills = toAgentSkills(record);
 
-  // Keep an existing entry's established identity (status, stored endpoint url,
-  // name, kind); only fill those from the card for newly discovered brains.
-  // Enrichment refreshes signed metadata plus the public skills/purpose, not
-  // the agent's endpoint or approval state.
+  // Keep local relationship fields (approval/status, stored endpoint URL,
+  // notes) while refreshing remote-owned identity and public capability
+  // snapshot fields from the signed card.
   const status: AgentStatus = existing?.metadata.status ?? "discovered";
   const url = existing?.metadata.url ?? record.siteUrl;
   const slug = existing?.metadata.slug ?? slugifyUrl(url);
-  const name = existing?.metadata.name ?? record.anchor.name;
-  const kind = existingParsed?.frontmatter.kind ?? record.anchor.kind;
+  const name = record.anchor.name;
+  const kind = record.anchor.kind;
   const discoveredAt = existing?.metadata.discoveredAt ?? now;
+  const cardObservedAt = record.updatedAt ?? record.createdAt;
   const about =
     record.brain.purpose.length > 0
       ? record.brain.purpose
       : (existingParsed?.body.about ?? "");
   const skills =
     cardSkills.length > 0 ? cardSkills : (existingParsed?.body.skills ?? []);
+  const notes =
+    existingParsed?.body.notes ??
+    buildNotes({
+      repoDid: input.repoDid,
+      uri: input.uri,
+      cid: input.cid,
+    });
 
   const metadata = {
     ...(existing?.metadata ?? {}),
@@ -124,6 +133,8 @@ async function upsertAgentFromCard(
     ...(anchorDid && { anchorDid }),
     cardUri: input.uri,
     cardCid: input.cid,
+    cardObservedAt,
+    cardLastCheckedAt: now,
   };
 
   const content = agentAdapter.createAgentContent({
@@ -139,6 +150,8 @@ async function upsertAgentFromCard(
     repoDid: input.repoDid,
     cardUri: input.uri,
     cardCid: input.cid,
+    cardObservedAt,
+    cardLastCheckedAt: now,
     ...(existingParsed?.frontmatter.a2aEndpoint && {
       a2aEndpoint: existingParsed.frontmatter.a2aEndpoint,
     }),
@@ -146,11 +159,7 @@ async function upsertAgentFromCard(
     discoveredAt,
     about,
     skills,
-    notes: buildNotes({
-      repoDid: input.repoDid,
-      uri: input.uri,
-      cid: input.cid,
-    }),
+    notes,
   });
 
   if (existing) {
@@ -176,6 +185,204 @@ async function upsertAgentFromCard(
   };
   await context.entityService.createEntity({ entity: agent });
   return { agent, created: true };
+}
+
+export interface RefreshKnownAgentCardsResult {
+  checked: number;
+  refreshed: number;
+  unchanged: number;
+  failed: number;
+}
+
+export type AtprotoCardFetch = FetchFn;
+
+function getFetch(fetchFn?: AtprotoCardFetch): AtprotoCardFetch {
+  return fetchFn ?? fetch;
+}
+
+function getRepoDidFromCardUri(uri: string): string | null {
+  const match = uri.match(/^at:\/\/([^/]+)\//);
+  return match?.[1] ?? null;
+}
+
+async function resolvePdsEndpoint(
+  repoDid: string,
+  fetchFn: AtprotoCardFetch,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (!repoDid.startsWith("did:plc:")) {
+    throw new Error(`Cannot resolve PDS for unsupported repo DID ${repoDid}`);
+  }
+
+  const response = await fetchFn(
+    `https://plc.directory/${repoDid}`,
+    signal ? { signal } : undefined,
+  );
+  if (!response.ok) {
+    throw new Error(`PLC lookup failed with HTTP ${response.status}`);
+  }
+
+  const document = (await response.json()) as {
+    service?: Array<{ id?: string; serviceEndpoint?: string }>;
+  };
+  const endpoint = document.service?.find(
+    (service) => service.id === "#atproto_pds",
+  )?.serviceEndpoint;
+  if (!endpoint) {
+    throw new Error(`PLC document for ${repoDid} has no #atproto_pds service`);
+  }
+  return endpoint.replace(/\/$/, "");
+}
+
+async function fetchBrainCardSnapshot(input: {
+  repoDid: string;
+  cardUri: string;
+  fetchFn: AtprotoCardFetch;
+  signal?: AbortSignal;
+}): Promise<{
+  repoDid: string;
+  uri: string;
+  cid: string;
+  record: AtprotoBrainCardRecord;
+}> {
+  const repo = getRepoDidFromCardUri(input.cardUri) ?? input.repoDid;
+  const pdsEndpoint = await resolvePdsEndpoint(
+    repo,
+    input.fetchFn,
+    input.signal,
+  );
+  const url = new URL(`${pdsEndpoint}/xrpc/com.atproto.repo.getRecord`);
+  url.searchParams.set("repo", repo);
+  url.searchParams.set("collection", "ai.rizom.brain.card");
+  url.searchParams.set("rkey", "self");
+
+  const response = await input.fetchFn(
+    url,
+    input.signal ? { signal: input.signal } : undefined,
+  );
+  if (!response.ok) {
+    throw new Error(`Brain card fetch failed with HTTP ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    uri?: string;
+    cid?: string;
+    value?: unknown;
+  };
+  const parsed = atprotoBrainCardDiscoveredPayloadSchema.parse({
+    repoDid: repo,
+    uri: data.uri,
+    cid: data.cid,
+    record: data.value,
+  });
+  return parsed;
+}
+
+async function markAgentCardRefreshFailure(
+  context: EntityPluginContext,
+  agent: AgentEntity,
+  error: unknown,
+  now: string,
+): Promise<void> {
+  const parsed = agentAdapter.parseEntity(agent);
+  const metadata = {
+    ...agent.metadata,
+    cardLastCheckedAt: now,
+    cardLastError: getErrorMessage(error),
+  };
+  const content = agentAdapter.createAgentContent({
+    name: parsed.frontmatter.name,
+    kind: parsed.frontmatter.kind,
+    ...(parsed.frontmatter.organization && {
+      organization: parsed.frontmatter.organization,
+    }),
+    brainName: parsed.frontmatter.brainName,
+    url: parsed.frontmatter.url,
+    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
+    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
+    ...(parsed.frontmatter.brainDid && {
+      brainDid: parsed.frontmatter.brainDid,
+    }),
+    ...(parsed.frontmatter.anchorDid && {
+      anchorDid: parsed.frontmatter.anchorDid,
+    }),
+    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
+    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
+    ...(parsed.frontmatter.cardObservedAt && {
+      cardObservedAt: parsed.frontmatter.cardObservedAt,
+    }),
+    cardLastCheckedAt: now,
+    cardLastError: getErrorMessage(error),
+    ...(parsed.frontmatter.a2aEndpoint && {
+      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
+    }),
+    status: parsed.frontmatter.status,
+    discoveredAt: parsed.frontmatter.discoveredAt,
+    ...(parsed.frontmatter.introducedBy && {
+      introducedBy: parsed.frontmatter.introducedBy,
+    }),
+    ...(parsed.frontmatter.hops !== undefined && {
+      hops: parsed.frontmatter.hops,
+    }),
+    about: parsed.body.about,
+    skills: parsed.body.skills,
+    notes: parsed.body.notes,
+  });
+
+  await context.entityService.updateEntity({
+    entity: {
+      ...agent,
+      metadata,
+      content,
+      updated: now,
+    },
+  });
+}
+
+export async function refreshKnownAgentCards(
+  context: EntityPluginContext,
+  fetchFn?: AtprotoCardFetch,
+  signal?: AbortSignal,
+  now: string = new Date().toISOString(),
+): Promise<RefreshKnownAgentCardsResult> {
+  const result: RefreshKnownAgentCardsResult = {
+    checked: 0,
+    refreshed: 0,
+    unchanged: 0,
+    failed: 0,
+  };
+  const agents = await context.entityService.listEntities<AgentEntity>({
+    entityType: "agent",
+  });
+  const resolvedFetch = getFetch(fetchFn);
+
+  for (const agent of agents) {
+    const repoDid = agent.metadata.repoDid;
+    const cardUri = agent.metadata.cardUri;
+    if (!repoDid || !cardUri) continue;
+
+    result.checked += 1;
+    try {
+      const snapshot = await fetchBrainCardSnapshot({
+        repoDid,
+        cardUri,
+        fetchFn: resolvedFetch,
+        ...(signal && { signal }),
+      });
+      if (snapshot.cid === agent.metadata.cardCid) {
+        result.unchanged += 1;
+        continue;
+      }
+      await upsertAgentFromCard(context, snapshot, now);
+      result.refreshed += 1;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      await markAgentCardRefreshFailure(context, agent, error, now);
+      result.failed += 1;
+    }
+  }
+
+  return result;
 }
 
 export function registerAtprotoBrainCardHandlers(

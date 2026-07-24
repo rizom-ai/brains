@@ -1,3 +1,4 @@
+import { SITE_BUILDER_CHANNELS } from "@brains/plugins/message-channels";
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins/system-channels";
 import type {
@@ -125,7 +126,7 @@ export class RizomRuntimePlugin {
 
     messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await messaging.send({
-        type: "plugin:site-builder:head-script:register",
+        type: SITE_BUILDER_CHANNELS.headScriptRegister,
         sender: this.id,
         payload: {
           pluginId: this.id,

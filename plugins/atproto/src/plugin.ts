@@ -3,7 +3,12 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  ServicePlugin,
+  ENTITY_CHANNELS,
+  PUBLISH_CHANNELS,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -22,6 +27,7 @@ import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
+  normalizeDiscoveredBrainCard,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
@@ -148,7 +154,7 @@ function entityTaskKey(payload: EntityTriggerPayload): string {
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
-const PUBLISH_COMPLETED = "publish:completed";
+const PUBLISH_COMPLETED = PUBLISH_CHANNELS.completed;
 const MAX_DISCOVERY_REPOS = 50;
 
 export class AtprotoPlugin extends ServicePlugin<
@@ -159,6 +165,7 @@ export class AtprotoPlugin extends ServicePlugin<
   private readonly projectionRegistry: AtprotoProjectionRegistry;
   private readonly activePublishingTasks = new Set<Promise<void>>();
   private readonly publishingChains = new Map<string, Promise<void>>();
+  private fullBootObserved = false;
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
@@ -173,6 +180,13 @@ export class AtprotoPlugin extends ServicePlugin<
     await super.onRegister(context);
     if (!this.config.enabled) return;
 
+    // startup-check boots run ready hooks but never broadcast
+    // pluginsRegistered; only a full boot may publish to the PDS.
+    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+      this.fullBootObserved = true;
+      return { success: true };
+    });
+
     // publish:report:success is a request-style message consumed by the
     // publish pipeline. publish:completed is its broadcast fan-out event.
     context.messaging.subscribe(PUBLISH_COMPLETED, async (message) => {
@@ -185,7 +199,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe("entity:updated", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.trackPublishingTask(entityTaskKey(payload.data), () =>
@@ -195,7 +209,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe("entity:deleted", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.deleted, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.trackPublishingTask(entityTaskKey(payload.data), () =>
@@ -209,34 +223,30 @@ export class AtprotoPlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled || !this.fullBootObserved) return;
 
-    const tasks = [
-      this.trackPublishingTask(
-        BRAIN_CARD_COLLECTION + "/" + BRAIN_CARD_RKEY,
-        () =>
-          this.runPublishingTrigger(
-            context,
-            {
-              operation: "publish-card",
-              entityType: "brain-card",
-              entityId: BRAIN_CARD_RKEY,
-              collection: BRAIN_CARD_COLLECTION,
-            },
-            () => this.publishBrainCard(context),
-          ),
-      ),
-    ];
+    // Scheduled, not awaited: readyPlugins() is on the boot path, and an
+    // unresponsive PDS must not stall startup. Shutdown drains the tasks.
+    void this.trackPublishingTask(
+      BRAIN_CARD_COLLECTION + "/" + BRAIN_CARD_RKEY,
+      () =>
+        this.runPublishingTrigger(
+          context,
+          {
+            operation: "publish-card",
+            entityType: "brain-card",
+            entityId: BRAIN_CARD_RKEY,
+            collection: BRAIN_CARD_COLLECTION,
+          },
+          () => this.publishBrainCard(context),
+        ),
+    );
 
     if (this.config.lexiconAuthority) {
-      tasks.push(
-        this.trackPublishingTask(LEXICON_SCHEMA_COLLECTION, () =>
-          this.publishCanonicalLexiconSchemas(context),
-        ),
+      void this.trackPublishingTask(LEXICON_SCHEMA_COLLECTION, () =>
+        this.publishCanonicalLexiconSchemas(context),
       );
     }
-
-    await Promise.all(tasks);
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -409,7 +419,10 @@ export class AtprotoPlugin extends ServicePlugin<
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
-        validateAtprotoRecord(brainCardLexicon, record.value);
+        // Peers on other fleet versions may publish renamed anchor kinds;
+        // convert to this build's vocabulary before validating and storing.
+        const cardValue = normalizeDiscoveredBrainCard(record.value);
+        validateAtprotoRecord(brainCardLexicon, cardValue);
         const repoDid = parseAtUriRepo(record.uri) ?? resolved.repoDid;
         const recordKey = `${repoDid}:${record.uri}:${record.cid}`;
         if (seenRecords.has(recordKey)) {
@@ -430,7 +443,7 @@ export class AtprotoPlugin extends ServicePlugin<
             repoDid,
             uri: record.uri,
             cid: record.cid,
-            record: record.value,
+            record: cardValue,
           },
           broadcast: true,
         });

@@ -123,6 +123,7 @@ export interface PublishListResponsePayload {
 export const PUBLISH_MESSAGES = {
   // Plugin → Service
   REGISTER: "publish:register",
+  EXECUTE: "publish:execute",
   QUEUE: "publish:queue",
   DIRECT: "publish:direct",
   REMOVE: "publish:remove",

@@ -3,7 +3,14 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { PermissionService, ServicePlugin } from "@brains/plugins";
+import {
+  PermissionService,
+  ServicePlugin,
+  DASHBOARD_CHANNELS,
+  ENTITY_CHANNELS,
+  JOB_CHANNELS,
+  DIRECTORY_SYNC_CHANNELS,
+} from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
@@ -290,7 +297,7 @@ export class DashboardPlugin extends ServicePlugin<
 
     try {
       const response = await this.ctx.messaging.send({
-        type: "sync:status:request",
+        type: DIRECTORY_SYNC_CHANNELS.statusRequest,
         payload: {},
       });
       const parsed = directorySyncStatusResponseSchema.safeParse(response);
@@ -328,25 +335,25 @@ export class DashboardPlugin extends ServicePlugin<
       visibility: "public",
     });
 
-    context.messaging.subscribe("entity:created", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.created, async (message) => {
       this.recordActivity("created", message.payload);
       return { success: true };
     });
-    context.messaging.subscribe("entity:updated", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
       this.recordActivity("updated", message.payload);
       return { success: true };
     });
-    context.messaging.subscribe("entity:deleted", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.deleted, async (message) => {
       this.recordActivity("deleted", message.payload);
       return { success: true };
     });
-    context.messaging.subscribe("job-progress", async (message) => {
+    context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
       this.recordJobProgress(message.payload);
       return { success: true };
     });
 
     context.messaging.subscribe(
-      "dashboard:register-widget",
+      DASHBOARD_CHANNELS.registerWidget,
       async (message) => {
         try {
           const payload = registerWidgetPayloadSchema.parse(message.payload);
@@ -372,7 +379,7 @@ export class DashboardPlugin extends ServicePlugin<
     );
 
     context.messaging.subscribe(
-      "dashboard:unregister-widget",
+      DASHBOARD_CHANNELS.unregisterWidget,
       async (message) => {
         try {
           const payload = unregisterWidgetPayloadSchema.parse(message.payload);

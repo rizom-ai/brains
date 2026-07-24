@@ -1,5 +1,19 @@
 # @brains/ops
 
+## 0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- [#68](https://github.com/rizom-ai/brains/pull/68) [`5b7f0b5`](https://github.com/rizom-ai/brains/commit/5b7f0b5b0ea7586647d2c3bd98f69b78a4ad0bd6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align preview URL topology across runtime metadata and fleet deployment. Dedicated domains use `preview.<domain>`, while direct sites under the shared `rizom.ai` parent use `<site>-preview.rizom.ai` so both hosts remain covered by one-level wildcard TLS.
+
+## 0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ## 0.2.0-alpha.217

@@ -506,7 +506,7 @@ export interface SearchOptions {
 }
 
 export type ProjectionSourceRole =
-  "canonical" | "primary" | "supporting" | "ambient" | "excluded";
+  "canonical" | "primary" | "secondary" | "supporting" | "ambient" | "excluded";
 
 /**
  * Configuration for entity type registration

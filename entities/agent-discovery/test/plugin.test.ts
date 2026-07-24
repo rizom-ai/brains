@@ -84,6 +84,40 @@ function createMockAgentCardFetch(
   };
 }
 
+function createMockPdsFetch(input: {
+  repoDid: string;
+  cid: string;
+  record: typeof testBrainCardPayload.record;
+}): { fetch: FetchFn; calls: string[] } {
+  const calls: string[] = [];
+  return {
+    calls,
+    fetch: async (url: string | URL | Request): Promise<Response> => {
+      const urlString = typeof url === "string" ? url : url.toString();
+      calls.push(urlString);
+      if (urlString === `https://plc.directory/${input.repoDid}`) {
+        return Response.json({
+          service: [
+            {
+              id: "#atproto_pds",
+              type: "AtprotoPersonalDataServer",
+              serviceEndpoint: "https://pds.example.com",
+            },
+          ],
+        });
+      }
+      if (urlString.startsWith("https://pds.example.com/xrpc/")) {
+        return Response.json({
+          uri: `at://${input.repoDid}/ai.rizom.brain.card/self`,
+          cid: input.cid,
+          value: input.record,
+        });
+      }
+      return new Response("not found", { status: 404 });
+    },
+  };
+}
+
 function createMockJwksFetch(jwksByDomain: Record<string, unknown>): {
   fetch: FetchFn;
   calls: string[];
@@ -168,6 +202,212 @@ describe("AgentDiscoveryPlugin", () => {
       harness.getEntityRegistry().getCreateInterceptor("agent"),
     ).toBeUndefined();
 
+    harness.reset();
+  });
+
+  it("registers known-agent card refresh as a daily recurring check", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let registered: { id: string; cadence: string } | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        registered = check;
+        return () => {};
+      },
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+
+    expect(registered).toMatchObject({
+      id: "agent-card-refresh",
+      cadence: "daily",
+    });
+    harness.reset();
+  });
+
+  it("refreshes known agent cards from the recurring check", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const updatedRecord = {
+      ...testBrainCardPayload.record,
+      brain: {
+        ...testBrainCardPayload.record.brain,
+        name: "Updated Peer Brain",
+        purpose: "Updated remote purpose.",
+      },
+      anchor: {
+        ...testBrainCardPayload.record.anchor,
+        name: "Updated Peer Owner",
+      },
+      updatedAt: "2026-07-22T10:00:00.000Z",
+    };
+    const fetchMock = createMockPdsFetch({
+      repoDid: testBrainCardPayload.repoDid,
+      cid: "bafy-updated-card",
+      record: updatedRecord,
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock.fetch));
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example.com",
+        name: "Old cached owner",
+        brainName: "Old cached brain",
+        url: "https://peer.example.com/a2a",
+        status: "approved",
+        notes: "Local trust note.",
+      }),
+    });
+    const staleAgent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(staleAgent).not.toBeNull();
+    if (!staleAgent) throw new Error("Expected stale agent fixture");
+    await harness.getEntityService().updateEntity({
+      entity: {
+        ...staleAgent,
+        metadata: {
+          name: "Old cached owner",
+          url: "https://peer.example.com/a2a",
+          status: "approved",
+          discoveredAt: "2026-03-31T00:00:00.000Z",
+          slug: "peer-example-com",
+          repoDid: testBrainCardPayload.repoDid,
+          cardUri: testBrainCardPayload.uri,
+          cardCid: "bafy-old-card",
+        },
+      },
+    });
+
+    await run?.({ signal: new AbortController().signal });
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.metadata.status).toBe("approved");
+    expect(agent?.metadata.name).toBe("Updated Peer Owner");
+    expect(agent?.metadata.cardCid).toBe("bafy-updated-card");
+    expect(agent?.metadata.cardObservedAt).toBe("2026-07-22T10:00:00.000Z");
+    expect(agent?.content).toContain("Updated remote purpose.");
+    expect(agent?.content).toContain("Local trust note.");
+    expect(fetchMock.calls).toContain(
+      `https://plc.directory/${testBrainCardPayload.repoDid}`,
+    );
+    harness.reset();
+  });
+
+  it("keeps unchanged cards from churning entity writes", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const fetchMock = createMockPdsFetch({
+      repoDid: testBrainCardPayload.repoDid,
+      cid: "bafy-peer-card",
+      record: testBrainCardPayload.record,
+    });
+    const original = createTestAgent({
+      id: "peer.example.com",
+      name: "Peer Owner",
+      brainName: "Peer Brain",
+      url: "https://peer.example.com",
+      status: "approved",
+    });
+    original.metadata = {
+      ...original.metadata,
+      repoDid: testBrainCardPayload.repoDid,
+      cardUri: testBrainCardPayload.uri,
+      cardCid: "bafy-peer-card",
+    };
+    original.updated = "2026-03-31T00:00:00.000Z";
+
+    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock.fetch));
+    await harness.getEntityService().createEntity({ entity: original });
+
+    await run?.({ signal: new AbortController().signal });
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
+    expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
+    harness.reset();
+  });
+
+  it("records refresh errors without dropping the last good snapshot", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const calls: string[] = [];
+    const fetchMock: FetchFn = async (url: string | URL | Request) => {
+      calls.push(typeof url === "string" ? url : url.toString());
+      return new Response("unavailable", { status: 503 });
+    };
+    const original = createTestAgent({
+      id: "peer.example.com",
+      name: "Peer Owner",
+      brainName: "Peer Brain",
+      url: "https://peer.example.com/a2a",
+      status: "approved",
+      notes: "Local trust note.",
+    });
+    original.metadata = {
+      ...original.metadata,
+      repoDid: testBrainCardPayload.repoDid,
+      cardUri: testBrainCardPayload.uri,
+      cardCid: "bafy-last-good-card",
+      cardObservedAt: "2026-06-02T12:30:00.000Z",
+    };
+
+    await harness.installPlugin(new AgentDiscoveryPlugin(fetchMock));
+    await harness.getEntityService().createEntity({ entity: original });
+
+    await run?.({ signal: new AbortController().signal });
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.metadata.cardCid).toBe("bafy-last-good-card");
+    expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
+    expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
+    expect(agent?.metadata.cardLastError).toContain("PLC lookup failed");
+    expect(agent?.content).toContain("Local trust note.");
+    expect(calls).toEqual([
+      `https://plc.directory/${testBrainCardPayload.repoDid}`,
+    ]);
     harness.reset();
   });
 
@@ -587,6 +827,46 @@ describe("AgentDiscoveryPlugin", () => {
         cardUri: testBrainCardPayload.uri,
       }),
     ]);
+
+    harness.reset();
+  });
+
+  it("refreshes remote card fields without overwriting local relationship notes", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example.com",
+        name: "Old cached owner",
+        brainName: "Old cached brain",
+        url: "https://peer.example.com/a2a",
+        status: "approved",
+        notes: "Local trust note. Do not overwrite.",
+      }),
+    });
+
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.metadata.status).toBe("approved");
+    expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
+    expect(agent?.metadata.name).toBe("Peer Owner");
+    expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
+    expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
+    expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
+    expect(agent?.metadata.cardLastError).toBeUndefined();
+    expect(agent?.content).toContain("name: Peer Owner");
+    expect(agent?.content).toContain("brainName: Peer Brain");
+    expect(agent?.content).toContain("Local trust note. Do not overwrite.");
 
     harness.reset();
   });

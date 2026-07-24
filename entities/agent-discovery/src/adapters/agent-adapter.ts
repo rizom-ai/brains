@@ -62,6 +62,9 @@ export interface CreateAgentContentInput {
   anchorDid?: string | undefined;
   cardUri?: string | undefined;
   cardCid?: string | undefined;
+  cardObservedAt?: string | undefined;
+  cardLastCheckedAt?: string | undefined;
+  cardLastError?: string | undefined;
   a2aEndpoint?: string | undefined;
   status: AgentStatus | string;
   discoveredAt: string;
@@ -108,6 +111,15 @@ export class AgentAdapter extends BaseEntityAdapter<
         ...(frontmatter.anchorDid && { anchorDid: frontmatter.anchorDid }),
         ...(frontmatter.cardUri && { cardUri: frontmatter.cardUri }),
         ...(frontmatter.cardCid && { cardCid: frontmatter.cardCid }),
+        ...(frontmatter.cardObservedAt && {
+          cardObservedAt: frontmatter.cardObservedAt,
+        }),
+        ...(frontmatter.cardLastCheckedAt && {
+          cardLastCheckedAt: frontmatter.cardLastCheckedAt,
+        }),
+        ...(frontmatter.cardLastError && {
+          cardLastError: frontmatter.cardLastError,
+        }),
         ...(frontmatter.a2aEndpoint && {
           a2aEndpoint: frontmatter.a2aEndpoint,
         }),
@@ -128,6 +140,11 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.anchorDid && { anchorDid: input.anchorDid }),
       ...(input.cardUri && { cardUri: input.cardUri }),
       ...(input.cardCid && { cardCid: input.cardCid }),
+      ...(input.cardObservedAt && { cardObservedAt: input.cardObservedAt }),
+      ...(input.cardLastCheckedAt && {
+        cardLastCheckedAt: input.cardLastCheckedAt,
+      }),
+      ...(input.cardLastError && { cardLastError: input.cardLastError }),
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,

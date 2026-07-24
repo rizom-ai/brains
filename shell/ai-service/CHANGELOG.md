@@ -1,5 +1,75 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/conversation-service@0.2.0-alpha.223
+  - @brains/entity-service@0.2.0-alpha.223
+  - @brains/identity-service@0.2.0-alpha.223
+  - @brains/mcp-service@0.2.0-alpha.223
+  - @brains/messaging-service@0.2.0-alpha.223
+  - @brains/templates@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- Updated dependencies [[`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a)]:
+  - @brains/contracts@0.2.0-alpha.222
+  - @brains/conversation-service@0.2.0-alpha.222
+  - @brains/entity-service@0.2.0-alpha.222
+  - @brains/mcp-service@0.2.0-alpha.222
+  - @brains/templates@0.2.0-alpha.222
+  - @brains/identity-service@0.2.0-alpha.222
+  - @brains/messaging-service@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.221
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/conversation-service@0.2.0-alpha.221
+  - @brains/entity-service@0.2.0-alpha.221
+  - @brains/identity-service@0.2.0-alpha.221
+  - @brains/mcp-service@0.2.0-alpha.221
+  - @brains/messaging-service@0.2.0-alpha.221
+  - @brains/templates@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.220
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/conversation-service@0.2.0-alpha.220
+  - @brains/entity-service@0.2.0-alpha.220
+  - @brains/identity-service@0.2.0-alpha.220
+  - @brains/mcp-service@0.2.0-alpha.220
+  - @brains/messaging-service@0.2.0-alpha.220
+  - @brains/templates@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.219
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/conversation-service@0.2.0-alpha.219
+  - @brains/entity-service@0.2.0-alpha.219
+  - @brains/identity-service@0.2.0-alpha.219
+  - @brains/mcp-service@0.2.0-alpha.219
+  - @brains/messaging-service@0.2.0-alpha.219
+  - @brains/templates@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

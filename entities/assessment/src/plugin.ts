@@ -1,8 +1,15 @@
-import type { Plugin, EntityPluginContext } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  EntityTypeConfig,
+} from "@brains/plugins";
 import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
+  DASHBOARD_CHANNELS,
+  ENTITY_CHANNELS,
+  DIRECTORY_SYNC_CHANNELS,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
@@ -32,6 +39,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<
 
   constructor() {
     super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSourceRole: "supporting" };
   }
 
   protected override async onRegister(
@@ -99,17 +110,20 @@ export class SwotAssessmentPlugin extends EntityPlugin<
       }
     };
 
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      this.initialSyncComplete = true;
-      await ensureDerived("initial-missing-entity");
-      return { success: true };
-    });
+    context.messaging.subscribe(
+      DIRECTORY_SYNC_CHANNELS.initialCompleted,
+      async () => {
+        this.initialSyncComplete = true;
+        await ensureDerived("initial-missing-entity");
+        return { success: true };
+      },
+    );
 
     context.messaging.subscribe(
       SYSTEM_CHANNELS.pluginsRegistered,
       async (): Promise<{ success: boolean }> => {
         await context.messaging.send({
-          type: "dashboard:register-widget",
+          type: DASHBOARD_CHANNELS.registerWidget,
           payload: {
             id: "swot",
             pluginId: this.id,
@@ -166,9 +180,9 @@ export class SwotAssessmentPlugin extends EntityPlugin<
       return { success: true };
     };
 
-    context.messaging.subscribe("entity:created", handleEntityChange);
-    context.messaging.subscribe("entity:updated", handleEntityChange);
-    context.messaging.subscribe("entity:deleted", handleEntityChange);
+    context.messaging.subscribe(ENTITY_CHANNELS.created, handleEntityChange);
+    context.messaging.subscribe(ENTITY_CHANNELS.updated, handleEntityChange);
+    context.messaging.subscribe(ENTITY_CHANNELS.deleted, handleEntityChange);
   }
 }
 

@@ -27,6 +27,36 @@ export interface AtprotoBrainCardAnchor extends Record<string, unknown> {
   kind: "professional" | "team" | "collective";
 }
 
+/**
+ * Cross-version anchor-kind vocabulary. Peers upgrade at different times, so
+ * discovery must read cards written with either generation's values; every
+ * alias maps onto this build's canonical set. A kind rename flips this table
+ * rather than widening the published lexicon.
+ */
+const ANCHOR_KIND_ALIASES: Record<string, AtprotoBrainCardAnchor["kind"]> = {
+  person: "professional",
+  organization: "collective",
+};
+
+/**
+ * Convert a discovered brain card's anchor kind into this build's vocabulary.
+ * Returns the input untouched when no conversion applies — unknown values are
+ * left for record validation to reject.
+ */
+export function normalizeDiscoveredBrainCard(
+  record: Record<string, unknown>,
+): Record<string, unknown> {
+  const anchor = record["anchor"];
+  if (typeof anchor !== "object" || anchor === null || Array.isArray(anchor)) {
+    return record;
+  }
+  const kind = (anchor as Record<string, unknown>)["kind"];
+  if (typeof kind !== "string") return record;
+  const normalized = ANCHOR_KIND_ALIASES[kind];
+  if (normalized === undefined) return record;
+  return { ...record, anchor: { ...anchor, kind: normalized } };
+}
+
 export interface AtprotoBrainCardRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.card";
   siteUrl: string;

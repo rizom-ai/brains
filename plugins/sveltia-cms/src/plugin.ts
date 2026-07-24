@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { getActiveAuthService } from "@brains/auth-service";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { DIRECTORY_SYNC_CHANNELS, ServicePlugin } from "@brains/plugins";
 import {
   generateCmsConfig,
   type CmsConfig,
@@ -186,7 +186,7 @@ async function getRepoInfo(
   const repoInfo = await context.messaging.send<
     Record<string, never>,
     { repo: string; branch: string }
-  >({ type: "git-sync:get-repo-info", payload: {} });
+  >({ type: DIRECTORY_SYNC_CHANNELS.getRepoInfo, payload: {} });
 
   if ("noop" in repoInfo || !repoInfo.success || !repoInfo.data) {
     throw new Error("CMS config unavailable: git-sync repo info unavailable");

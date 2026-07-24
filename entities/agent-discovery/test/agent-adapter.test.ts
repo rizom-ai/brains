@@ -80,6 +80,36 @@ describe("AgentAdapter", () => {
       expect(content).not.toContain("**");
     });
 
+    it("should persist remote card freshness fields", () => {
+      const content = adapter.createAgentContent({
+        name: "Peer",
+        kind: "professional",
+        brainName: "Peer Brain",
+        url: "https://peer.example.com",
+        status: "discovered",
+        discoveredAt: "2026-03-31T00:00:00.000Z",
+        cardUri: "at://did:plc:peer/ai.rizom.brain.card/self",
+        cardCid: "bafy-card",
+        cardObservedAt: "2026-07-22T08:00:00.000Z",
+        cardLastCheckedAt: "2026-07-22T09:00:00.000Z",
+        cardLastError: "temporary failure",
+        about: "Peer brain.",
+        skills: [],
+        notes: "Local note.",
+      });
+
+      const partial = adapter.fromMarkdown(content);
+
+      expect(content).toContain("cardObservedAt:");
+      expect(content).toContain("cardLastCheckedAt:");
+      expect(content).toContain("cardLastError: temporary failure");
+      expect(partial.metadata?.cardObservedAt).toBe("2026-07-22T08:00:00.000Z");
+      expect(partial.metadata?.cardLastCheckedAt).toBe(
+        "2026-07-22T09:00:00.000Z",
+      );
+      expect(partial.metadata?.cardLastError).toBe("temporary failure");
+    });
+
     it("should handle optional fields being absent", () => {
       const content = adapter.createAgentContent({
         name: "Minimal",

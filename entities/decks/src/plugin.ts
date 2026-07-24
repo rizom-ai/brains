@@ -10,6 +10,7 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
+  PUBLISH_CHANNELS,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
@@ -128,7 +129,7 @@ export class DecksPlugin extends EntityPlugin<
   private deferPublishRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
-        type: "publish:register",
+        type: PUBLISH_CHANNELS.register,
         payload: {
           entityType: "deck",
           provider: {
@@ -146,7 +147,7 @@ export class DecksPlugin extends EntityPlugin<
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
-    >("publish:execute", async (msg) => {
+    >(PUBLISH_CHANNELS.execute, async (msg) => {
       const { entityType, entityId } = msg.payload;
       if (entityType !== "deck") return { success: true };
 
@@ -157,7 +158,7 @@ export class DecksPlugin extends EntityPlugin<
         });
         if (!deck) {
           await context.messaging.send({
-            type: "publish:report:failure",
+            type: PUBLISH_CHANNELS.reportFailure,
             payload: {
               entityType,
               entityId,
@@ -183,7 +184,7 @@ export class DecksPlugin extends EntityPlugin<
         });
 
         await context.messaging.send({
-          type: "publish:report:success",
+          type: PUBLISH_CHANNELS.reportSuccess,
           payload: {
             entityType,
             entityId,
@@ -192,7 +193,7 @@ export class DecksPlugin extends EntityPlugin<
         });
       } catch (error) {
         await context.messaging.send({
-          type: "publish:report:failure",
+          type: PUBLISH_CHANNELS.reportFailure,
           payload: {
             entityType,
             entityId,

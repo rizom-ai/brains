@@ -138,17 +138,6 @@ const relayBrain: BrainDefinition = defineBrain({
       "topics",
       topicsPlugin,
       {
-        includeEntityTypes: [
-          "note",
-          "link",
-          "summary",
-          "agent",
-          "swot",
-          "deck",
-          "doc",
-          "anchor-profile",
-          "brain-character",
-        ],
         // Relay link capture stores extracted links as drafts until publication;
         // draft links should still inform the private team topic map.
         extractableStatuses: ["published", "draft"],

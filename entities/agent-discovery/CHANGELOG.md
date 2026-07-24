@@ -1,5 +1,87 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies [[`09ee4c2`](https://github.com/rizom-ai/brains/commit/09ee4c2d56b5f5c7044aa1ee3785a0ec74d29328)]:
+  - @brains/atproto-contracts@0.2.0-alpha.223
+  - @brains/dashboard@0.2.0-alpha.223
+  - @brains/content-formatters@0.2.0-alpha.223
+  - @brains/contracts@0.2.0-alpha.223
+  - @brains/http-signatures@0.2.0-alpha.223
+  - @brains/ui-library@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/auth-service@0.2.0-alpha.223
+  - @brains/plugins@0.2.0-alpha.223
+  - @brains/templates@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- [#70](https://github.com/rizom-ai/brains/pull/70) [`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh known ATProto agent cards from a daily recurring check, preserving local relationship metadata while updating remote-owned snapshots and centralizing domain message-channel constants.
+
+- Updated dependencies [[`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a)]:
+  - @brains/contracts@0.2.0-alpha.222
+  - @brains/plugins@0.2.0-alpha.222
+  - @brains/content-formatters@0.2.0-alpha.222
+  - @brains/dashboard@0.2.0-alpha.222
+  - @brains/auth-service@0.2.0-alpha.222
+  - @brains/templates@0.2.0-alpha.222
+  - @brains/atproto-contracts@0.2.0-alpha.222
+  - @brains/http-signatures@0.2.0-alpha.222
+  - @brains/ui-library@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.221
+  - @brains/atproto-contracts@0.2.0-alpha.221
+  - @brains/content-formatters@0.2.0-alpha.221
+  - @brains/contracts@0.2.0-alpha.221
+  - @brains/http-signatures@0.2.0-alpha.221
+  - @brains/ui-library@0.2.0-alpha.221
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/auth-service@0.2.0-alpha.221
+  - @brains/plugins@0.2.0-alpha.221
+  - @brains/templates@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.220
+  - @brains/atproto-contracts@0.2.0-alpha.220
+  - @brains/content-formatters@0.2.0-alpha.220
+  - @brains/contracts@0.2.0-alpha.220
+  - @brains/http-signatures@0.2.0-alpha.220
+  - @brains/ui-library@0.2.0-alpha.220
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/auth-service@0.2.0-alpha.220
+  - @brains/plugins@0.2.0-alpha.220
+  - @brains/templates@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.219
+  - @brains/atproto-contracts@0.2.0-alpha.219
+  - @brains/content-formatters@0.2.0-alpha.219
+  - @brains/contracts@0.2.0-alpha.219
+  - @brains/http-signatures@0.2.0-alpha.219
+  - @brains/ui-library@0.2.0-alpha.219
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/auth-service@0.2.0-alpha.219
+  - @brains/plugins@0.2.0-alpha.219
+  - @brains/templates@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

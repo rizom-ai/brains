@@ -34,6 +34,12 @@ describe("PortfolioPlugin", () => {
       expect(capabilities.resources).toEqual([]);
     });
 
+    it("registers projects as secondary topic sources", () => {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("project"),
+      ).toMatchObject({ projectionSourceRole: "secondary" });
+    });
+
     it("should enqueue generation with a year parsed from the prompt", async () => {
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-portfolio-enqueue",

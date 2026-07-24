@@ -5,6 +5,7 @@ import {
   getCanonicalAtprotoRecordSchema,
   listCanonicalAtprotoLexicons,
   listCanonicalAtprotoRecordSchemas,
+  normalizeDiscoveredBrainCard,
   parseAtprotoLexicon,
   validateAtprotoRecord,
 } from "../src";
@@ -387,6 +388,39 @@ describe("ATProto Zod-backed record schemas", () => {
         createdAt: "2026-05-31T10:00:00.000Z",
       }),
     ).toThrow();
+  });
+});
+
+describe("normalizeDiscoveredBrainCard", () => {
+  const card = {
+    $type: "ai.rizom.brain.card",
+    anchor: { did: "did:plc:a", name: "Anchor", kind: "person" },
+  };
+
+  it("converts cross-version anchor kinds to this build's vocabulary", () => {
+    expect(
+      normalizeDiscoveredBrainCard({
+        ...card,
+        anchor: { ...card.anchor, kind: "person" },
+      }),
+    ).toMatchObject({ anchor: { kind: "professional" } });
+    expect(
+      normalizeDiscoveredBrainCard({
+        ...card,
+        anchor: { ...card.anchor, kind: "organization" },
+      }),
+    ).toMatchObject({ anchor: { kind: "collective" } });
+  });
+
+  it("leaves canonical, unknown, and malformed anchors untouched", () => {
+    for (const kind of ["professional", "team", "collective", "mystery"]) {
+      const input = { ...card, anchor: { ...card.anchor, kind } };
+      expect(normalizeDiscoveredBrainCard(input)).toBe(input);
+    }
+    const noAnchor = { $type: "ai.rizom.brain.card" };
+    expect(normalizeDiscoveredBrainCard(noAnchor)).toBe(noAnchor);
+    const brokenAnchor = { ...card, anchor: "not-an-object" };
+    expect(normalizeDiscoveredBrainCard(brokenAnchor)).toBe(brokenAnchor);
   });
 });
 

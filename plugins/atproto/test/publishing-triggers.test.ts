@@ -135,6 +135,19 @@ function createConfiguredPlugin(
   );
 }
 
+// Real boots broadcast pluginsRegistered before ready; startup-check boots
+// never do. Tests that expect boot publishing must arm the full-boot signal.
+async function armFullBoot(
+  shell: ReturnType<typeof createMockShell>,
+): Promise<void> {
+  await shell.getMessageBus().send({
+    type: SYSTEM_CHANNELS.pluginsRegistered,
+    payload: {},
+    sender: "test",
+    broadcast: true,
+  });
+}
+
 describe("AT Protocol ambient publishing triggers", () => {
   it("does not publish the brain card on the plugins-registered coordination event", async () => {
     const client = createClientMocks();
@@ -170,6 +183,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       description: "Loaded profile",
     });
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -209,6 +223,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -236,6 +251,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     for (let index = 0; index < 2; index += 1) {
       await plugin.ready();
     }
@@ -278,6 +294,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -310,10 +327,65 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
     expect(createPdsClient).not.toHaveBeenCalled();
+  });
+
+  it("skips boot publishing when the registration broadcast never fired", async () => {
+    // startup-check boots run ready hooks but never emit pluginsRegistered;
+    // they are documented as side-effect-free and must not write to the PDS.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client, {
+      lexiconAuthority: true,
+    });
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    await plugin.ready();
+    await plugin.shutdown?.();
+
+    expect(client.createSession).not.toHaveBeenCalled();
+    expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("resolves ready() while the PDS is still in flight", async () => {
+    let releasePut = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      releasePut = resolve;
+    });
+    const putRecord = mock(async () => {
+      await gate;
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    });
+    const client: AtprotoPdsClientLike = {
+      createSession: mock(async () => ({
+        did: "did:plc:repo",
+        handle: "brain.example.com",
+        accessJwt: "access-token",
+        refreshJwt: "refresh-token",
+      })),
+      createRecord: mock(async () => ({
+        uri: "at://did:plc:repo/record",
+        cid: "cid",
+      })),
+      putRecord,
+      deleteRecord: mock(async () => {}),
+    };
+    const plugin = createConfiguredPlugin(createRegistry(), client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    await armFullBoot(shell);
+    // Boot must not block on the PDS: ready() schedules the publish and
+    // returns; a hung ready() here fails the test by timeout.
+    await plugin.ready();
+
+    releasePut();
+    await plugin.shutdown?.();
+    expect(putRecord).toHaveBeenCalledTimes(1);
   });
 
   it("upserts a public projected entity after publish completion", async () => {

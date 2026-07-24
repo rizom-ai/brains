@@ -1,6 +1,6 @@
 {
   "name": "@brains/core",
-  "version": "0.2.0-alpha.218",
+  "version": "0.2.0-alpha.223",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",
+    "@brains/atproto": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",

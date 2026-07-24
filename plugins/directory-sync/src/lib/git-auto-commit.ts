@@ -1,3 +1,4 @@
+import { ENTITY_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";
@@ -45,7 +46,11 @@ export function setupGitAutoCommit(
     }
   };
 
-  const events = ["entity:created", "entity:updated", "entity:deleted"];
+  const events = [
+    ENTITY_CHANNELS.created,
+    ENTITY_CHANNELS.updated,
+    ENTITY_CHANNELS.deleted,
+  ];
   for (const event of events) {
     messaging.subscribe(event, async () => {
       runtime.scheduleTrailing(AUTO_COMMIT_KEY, debounceMs, commitAndPush);

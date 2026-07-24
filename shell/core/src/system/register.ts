@@ -1,3 +1,4 @@
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import {
   ToolContextRoutingSchema,
   type IMCPService,
@@ -65,7 +66,7 @@ export function registerSystemCapabilities(
 
   // Subscribe to tool execution (same message bus pattern as plugins)
   const unsubscribeToolExecution = messageBus.subscribe(
-    `plugin:${SYSTEM_ID}:tool:execute`,
+    PLUGIN_CHANNELS.toolExecute(SYSTEM_ID),
     async (message) => {
       const parsed = systemToolExecuteSchema.safeParse(message.payload);
       if (!parsed.success) {

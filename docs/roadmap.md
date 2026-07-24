@@ -86,9 +86,9 @@ The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress,
 Plans:
 
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
+- [identity-and-trust.md](./plans/identity-and-trust.md) — shared identity and trust architecture across humans, external clients, peer brains, and platform users.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
-- [topics-derivation.md](./plans/topics-derivation.md) — derived topic entities behind the knowledge map: extraction, reconciliation, projection, and corpus calibration are shipped; the live-fleet rebuild/verification tail remains.
 
 ### 2. The collective posture (active POC)
 
@@ -197,7 +197,6 @@ Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
-- [startup-readiness-signal.md](./plans/startup-readiness-signal.md) — stop capturing default identity at boot: move the atproto boot triggers to the plugin `ready()` hook and rename the pre-ready `system:plugins:ready` wire value so nothing is named "ready" before ready exists.
 
 Research probes (parked):
 

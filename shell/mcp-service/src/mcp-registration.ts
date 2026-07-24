@@ -1,6 +1,7 @@
 import {
   actorRefSchema,
   createExternalActorId,
+  PLUGIN_CHANNELS,
   type ActorRef,
 } from "@brains/contracts";
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
@@ -219,7 +220,7 @@ export function registerToolOnServer(
 
       try {
         const response = await messageBus.send({
-          type: `plugin:${pluginId}:tool:execute`,
+          type: PLUGIN_CHANNELS.toolExecute(pluginId),
           payload: {
             toolName: tool.name,
             args: params,

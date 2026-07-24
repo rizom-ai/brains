@@ -356,15 +356,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -391,6 +386,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -402,13 +401,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -768,15 +761,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -803,6 +791,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -814,13 +806,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -1375,15 +1361,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -1410,6 +1391,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -1421,13 +1406,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -2037,15 +2016,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -2072,6 +2046,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -2083,13 +2061,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "post",
-                  "deck",
-                  "project",
-                  "link",
-                  "anchor-profile"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -2724,19 +2696,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -2763,6 +2726,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -2774,17 +2741,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -3118,19 +3075,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -3157,6 +3105,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -3168,17 +3120,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {
@@ -3879,19 +3821,10 @@
                 "autoMerge": true,
                 "createRelevanceThreshold": 0.7,
                 "enableAutoExtraction": true,
+                "excludeEntityTypes": [],
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ],
+                "includeEntityTypes": ["*"],
                 "maxEntitiesPerBatch": 4,
                 "mergeSimilarityThreshold": 0.85,
                 "minRelevanceScore": 0.5,
@@ -3918,6 +3851,10 @@
                     "canMint": true,
                     "weight": 1
                   },
+                  "secondary": {
+                    "canMint": true,
+                    "weight": 0.8
+                  },
                   "supporting": {
                     "canMint": false,
                     "weight": 0.55
@@ -3929,17 +3866,7 @@
               "criticalConfig": {
                 "extractableStatuses": ["published", "draft"],
                 "extractionVisibility": "public",
-                "includeEntityTypes": [
-                  "note",
-                  "link",
-                  "summary",
-                  "agent",
-                  "swot",
-                  "deck",
-                  "doc",
-                  "anchor-profile",
-                  "brain-character"
-                ]
+                "includeEntityTypes": ["*"]
               }
             },
             {

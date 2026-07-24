@@ -2,6 +2,7 @@ import { ContentGenerationJobHandler } from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import type { IJobQueueService } from "@brains/job-queue";
+import { SHELL_CHANNELS } from "@brains/contracts";
 import type { PluginManager, IShell } from "@brains/plugins";
 import type { TemplateRegistry } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
@@ -113,7 +114,7 @@ export class ShellInitializer {
       entityService,
     );
     jobQueueService.registerHandler(
-      "shell:content-generation",
+      SHELL_CHANNELS.contentGeneration,
       contentGenerationJobHandler,
       "shell",
     );

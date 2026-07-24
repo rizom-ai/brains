@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils/logger";
 import { createExternalActorId } from "@brains/contracts";
-import { toolResultSchema } from "@brains/plugins";
+import { PLUGIN_CHANNELS, toolResultSchema } from "@brains/plugins";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 
 /**
@@ -33,7 +33,7 @@ export function createApiRouteHandler(
     // Call tool via message bus
     const toolName = `${route.pluginId}_${route.definition.tool}`;
     const response = await messageBus.send({
-      type: `plugin:${route.pluginId}:tool:execute`,
+      type: PLUGIN_CHANNELS.toolExecute(route.pluginId),
       payload: {
         toolName,
         args,

@@ -1,4 +1,8 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type EntityPluginContext,
+  DASHBOARD_CHANNELS,
+} from "@brains/plugins";
 import type { SkillEntity } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
@@ -13,7 +17,7 @@ export function registerSkillsDashboardWidget(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: SKILLS_WIDGET_ID,
           pluginId,

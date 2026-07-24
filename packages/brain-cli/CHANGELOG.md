@@ -1,5 +1,27 @@
 # @rizom/brain
 
+## 0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- [#70](https://github.com/rizom-ai/brains/pull/70) [`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh known ATProto agent cards from a daily recurring check, preserving local relationship metadata while updating remote-owned snapshots and centralizing domain message-channel constants.
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- [#68](https://github.com/rizom-ai/brains/pull/68) [`5b7f0b5`](https://github.com/rizom-ai/brains/commit/5b7f0b5b0ea7586647d2c3bd98f69b78a4ad0bd6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align preview URL topology across runtime metadata and fleet deployment. Dedicated domains use `preview.<domain>`, while direct sites under the shared `rizom.ai` parent use `<site>-preview.rizom.ai` so both hosts remain covered by one-level wildcard TLS.
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- [`470e240`](https://github.com/rizom-ai/brains/commit/470e2401c8cb87f27c464b840e26532098fedb9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make topic source selection default-open with an excludeEntityTypes blacklist, add a secondary source role for discounted minting, remove model-level source allow-lists, and allow public notes to mint topics by default.
+
+## 0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

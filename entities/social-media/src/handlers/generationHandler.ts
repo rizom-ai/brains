@@ -1,4 +1,9 @@
-import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import {
+  BaseGenerationJobHandler,
+  ensureUniqueTitle,
+  GENERATE_CHANNELS,
+  IMAGE_CHANNELS,
+} from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -264,7 +269,7 @@ ${sourceEntity.content}`,
     error: string,
   ): Promise<void> {
     await this.context.messaging.send({
-      type: "generate:report:failure",
+      type: GENERATE_CHANNELS.reportFailure,
       payload: {
         entityType: "social-post",
         error,
@@ -287,7 +292,7 @@ ${sourceEntity.content}`,
 
       const title = generated.title ?? "Social Post";
       await this.context.jobs.enqueue({
-        type: "image:image-generate",
+        type: IMAGE_CHANNELS.generate,
         data: {
           prompt: `Social media graphic for: ${title}`,
           title: `${title} Image`,
@@ -303,7 +308,7 @@ ${sourceEntity.content}`,
     }
 
     await this.context.messaging.send({
-      type: "generate:report:success",
+      type: GENERATE_CHANNELS.reportSuccess,
       payload: {
         entityType: "social-post",
         entityId,

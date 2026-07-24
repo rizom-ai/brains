@@ -2,6 +2,8 @@ import {
   BaseGenerationJobHandler,
   ensureUniqueTitle,
   generateMarkdownWithFrontmatter,
+  GENERATE_CHANNELS,
+  NEWSLETTER_CHANNELS,
 } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -64,7 +66,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
   constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: generationJobSchema,
-      jobTypeName: "newsletter:generation",
+      jobTypeName: NEWSLETTER_CHANNELS.generation,
       entityType: "newsletter",
     });
   }
@@ -143,7 +145,7 @@ The newsletter should:
         content: string;
       }>({
         prompt: finalPrompt,
-        templateName: "newsletter:generation",
+        templateName: NEWSLETTER_CHANNELS.generation,
       });
 
       subject = subject ?? generated.subject;
@@ -166,7 +168,7 @@ The newsletter should:
         content: string;
       }>({
         prompt,
-        templateName: "newsletter:generation",
+        templateName: NEWSLETTER_CHANNELS.generation,
       });
 
       subject = subject ?? generated.subject;
@@ -224,7 +226,7 @@ The newsletter should:
     error: string,
   ): Promise<void> {
     await this.context.messaging.send({
-      type: "generate:report:failure",
+      type: GENERATE_CHANNELS.reportFailure,
       payload: {
         entityType: "newsletter",
         error,
@@ -239,7 +241,7 @@ The newsletter should:
     _generated: GeneratedContent,
   ): Promise<void> {
     await this.context.messaging.send({
-      type: "generate:report:success",
+      type: GENERATE_CHANNELS.reportSuccess,
       payload: {
         entityType: "newsletter",
         entityId,

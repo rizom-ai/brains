@@ -1,5 +1,92 @@
 # @brains/plugins
 
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.223
+  - @brains/contracts@0.2.0-alpha.223
+  - @brains/site-composition@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/conversation-service@0.2.0-alpha.223
+  - @brains/identity-service@0.2.0-alpha.223
+  - @brains/job-queue@0.2.0-alpha.223
+  - @brains/messaging-service@0.2.0-alpha.223
+  - @brains/recurring-checks@0.2.0-alpha.223
+  - @brains/runtime-state@0.2.0-alpha.223
+  - @brains/templates@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- [#70](https://github.com/rizom-ai/brains/pull/70) [`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh known ATProto agent cards from a daily recurring check, preserving local relationship metadata while updating remote-owned snapshots and centralizing domain message-channel constants.
+
+- Updated dependencies [[`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a)]:
+  - @brains/contracts@0.2.0-alpha.222
+  - @brains/content-formatters@0.2.0-alpha.222
+  - @brains/conversation-service@0.2.0-alpha.222
+  - @brains/job-queue@0.2.0-alpha.222
+  - @brains/site-composition@0.2.0-alpha.222
+  - @brains/templates@0.2.0-alpha.222
+  - @brains/identity-service@0.2.0-alpha.222
+  - @brains/recurring-checks@0.2.0-alpha.222
+  - @brains/messaging-service@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+  - @brains/runtime-state@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.221
+  - @brains/contracts@0.2.0-alpha.221
+  - @brains/site-composition@0.2.0-alpha.221
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/conversation-service@0.2.0-alpha.221
+  - @brains/identity-service@0.2.0-alpha.221
+  - @brains/job-queue@0.2.0-alpha.221
+  - @brains/messaging-service@0.2.0-alpha.221
+  - @brains/recurring-checks@0.2.0-alpha.221
+  - @brains/runtime-state@0.2.0-alpha.221
+  - @brains/templates@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.220
+  - @brains/contracts@0.2.0-alpha.220
+  - @brains/site-composition@0.2.0-alpha.220
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/conversation-service@0.2.0-alpha.220
+  - @brains/identity-service@0.2.0-alpha.220
+  - @brains/job-queue@0.2.0-alpha.220
+  - @brains/messaging-service@0.2.0-alpha.220
+  - @brains/recurring-checks@0.2.0-alpha.220
+  - @brains/runtime-state@0.2.0-alpha.220
+  - @brains/templates@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.219
+  - @brains/contracts@0.2.0-alpha.219
+  - @brains/site-composition@0.2.0-alpha.219
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/conversation-service@0.2.0-alpha.219
+  - @brains/identity-service@0.2.0-alpha.219
+  - @brains/job-queue@0.2.0-alpha.219
+  - @brains/messaging-service@0.2.0-alpha.219
+  - @brains/recurring-checks@0.2.0-alpha.219
+  - @brains/runtime-state@0.2.0-alpha.219
+  - @brains/templates@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

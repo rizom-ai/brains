@@ -1,5 +1,53 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- [`09ee4c2`](https://github.com/rizom-ai/brains/commit/09ee4c2d56b5f5c7044aa1ee3785a0ec74d29328) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden atproto boot publishing and cross-version discovery. `ready()` now
+  schedules its card/lexicon publishes instead of awaiting them (an
+  unresponsive PDS can no longer stall startup), publishes only on a full boot
+  (startup-check mode stays side-effect free), and every PDS request carries a
+  30s timeout. Discovery converts cross-version anchor kinds
+  (`person`→`professional`, `organization`→`collective`) into the running
+  build's vocabulary via `normalizeDiscoveredBrainCard`, so the upcoming kind
+  rename cannot break card exchange between fleet versions.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/entity-service@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/entity-service@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/entity-service@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/entity-service@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

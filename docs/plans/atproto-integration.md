@@ -2,9 +2,9 @@
 
 ## Status
 
-Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password, `did:web` document routes), the projection-backed outbound publishing substrate (`post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`) with local lexicon validation, blob upload, and idempotent `putRecord` upserts; canonical `ai.rizom.brain.*` contracts in `@brains/atproto-contracts` with Zod record schemas, served publicly by the registry on the live `rizom.ai` instance; the first bounded discovery slice (signed brain cards enrich or create reviewable `agent` entities); the member-handle verification endpoint (`/.well-known/atproto-did`), dogfooded by the org account — `@rizom.ai` verified over HTTP against `did:plc:oehciuqunzskplljt3qnnncw`; and live credentials on the rizom-ai brain (`ATPROTO_APP_PASSWORD` deployed).
+Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password, `did:web` document routes), the projection-backed outbound publishing substrate (`post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`) with local lexicon validation, blob upload, and idempotent `putRecord` upserts; canonical `ai.rizom.brain.*` contracts in `@brains/atproto-contracts` with Zod record schemas, served publicly by the registry on the live `rizom.ai` instance; the first bounded discovery slice (repo-hosted brain cards enrich or create reviewable `agent` entities); the member-handle verification endpoint (`/.well-known/atproto-did`), dogfooded by the org account — `@rizom.ai` verified over HTTP against `did:plc:oehciuqunzskplljt3qnnncw`; and live credentials on the rizom-ai brain (`ATPROTO_APP_PASSWORD` deployed).
 
-Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: the brain card publishes on boot and is verified on the PDS (`at://did:plc:oehciuqunzskplljt3qnnncw/ai.rizom.brain.card/self`, full identity/skills payload). Going live surfaced a secrets-plumbing gap — `ATPROTO_APP_PASSWORD` reached the deploy workflow but was missing from the pilot's `.env.schema` sensitive list and kamal `env.secret`, so the container never saw it and the trigger skipped silently; fixed in the pilot. Entity-record mirroring is wired but not yet exercised live — it fires on the next `publish:completed` or public entity update, not retroactively for already-published entities. The MCP tool surface remains intentionally absent. The published card's `anchor.name` is `Unknown` — the card builder does not resolve the anchor profile's display name yet. Lexicon authority resolution is shipped and verified live as of 2026-07-21 at `0.2.0-alpha.208`: the `_lexicon.brain.rizom.ai` DNS TXT delegates to the org DID, and the authority-gated ambient publisher (atproto plugin `lexiconAuthority` flag, set only for `rizom-ai` via `@rizom/ops`) upserts all nine canonical lexicons as `com.atproto.lexicon.schema` records on every boot — verified via `listRecords` on the org repo, so third-party viewers now resolve `ai.rizom.brain.*` schemas protocol-natively. The registry's HTTP lexicon routes remain a human-facing mirror only.
+Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: the brain card publishes on boot and is verified on the PDS (`at://did:plc:oehciuqunzskplljt3qnnncw/ai.rizom.brain.card/self`, full identity/skills payload). Going live surfaced a secrets-plumbing gap — `ATPROTO_APP_PASSWORD` reached the deploy workflow but was missing from the pilot's `.env.schema` sensitive list and kamal `env.secret`, so the container never saw it and the trigger skipped silently; fixed in the pilot. Entity-record mirroring is wired but not yet exercised live — it fires on the next `publish:completed` or public entity update, not retroactively for already-published entities. The MCP tool surface remains intentionally absent. The card's `anchor.name: Unknown` bug (singleton parse failure falling back to defaults) is fixed as of `0.2.0-alpha.217` and verified live — the published card shows `anchor {name: "Rizom", kind: "collective"}`. The same release hardened validation (lexicon refs resolve via local defs and fail closed when unresolvable) and serialized per-entity PDS writes to prevent out-of-order upserts. Lexicon authority resolution is shipped and verified live as of 2026-07-21 at `0.2.0-alpha.208`: the `_lexicon.brain.rizom.ai` DNS TXT delegates to the org DID, and the authority-gated ambient publisher (atproto plugin `lexiconAuthority` flag, set only for `rizom-ai` via `@rizom/ops`) upserts all nine canonical lexicons as `com.atproto.lexicon.schema` records on every boot — verified via `listRecords` on the org repo, so third-party viewers now resolve `ai.rizom.brain.*` schemas protocol-natively. The registry's HTTP lexicon routes remain a human-facing mirror only.
 
 ## Reference invariants (needed by the open work)
 
@@ -18,7 +18,7 @@ Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: 
 
 Ordered; each slice ships independently unless it declares an explicit dependency gate.
 
-### 1. Publishing trigger (make brains publish themselves) — implemented, live verification pending
+### 1. Publishing trigger (make brains publish themselves) — implemented; card verified live, entity mirroring verification pending
 
 The removed tool surface has been replaced with event wiring inside the atproto plugin:
 
@@ -28,9 +28,51 @@ The removed tool surface has been replaced with event wiring inside the atproto 
 - **Failure handling**: PDS failures log and broadcast `atproto:publish:failed`. They do not emit `publish:report:failure`, because that request belongs to the source publish provider and would incorrectly fail an already-successful local publish. Trigger handlers always isolate failures from the source operation.
 - **Tests**: card upsert on ready (and skipped without credentials), publish completion → record upsert, delete → record delete, public → non-public → record delete, no publish for types without projections, PDS client deletion, and failure isolation.
 
-Remaining verification on live: `com.atproto.repo.listRecords` for `did:plc:oehciuqunzskplljt3qnnncw` shows `ai.rizom.brain.card/self` and records for the rizom-ai brain's public entities.
+The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload (checked via `getRecord` at `0.2.0-alpha.217`), and yeehaa.io publishes its own card (`did:plc:dtxrise7xa4kat6mh4zd4lqe`) as of `0.2.0-alpha.223`. Remaining: `com.atproto.repo.listRecords` shows records for the rizom-ai brain's public entities (entity mirroring fires on the next publish/update, so this needs a live publish event to observe), and republish-on-identity-change between boots — today the card converges only on boot, so an identity/skill edit waits for the next restart to reach the PDS.
 
-### 2. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
+### 2. Jetstream discovery (Phase 4 tail) — next up
+
+The bounded discovery pipeline is implemented end to end — `discoverBrainCards` resolves a repo, reads its card, converts cross-version anchor kinds, validates, and broadcasts `atproto:brain-card:discovered`; agent-discovery upserts a reviewable `agent` entity and its daily refresh keeps known cards current — but nothing in production feeds it candidates. Its only caller is a smoke script. Operator-listed repo DIDs were considered and rejected: hand-maintaining peer lists in config is O(fleet-size) toil per brain and cannot scale past a handful of peers.
+
+Jetstream is an **untrusted candidate signal**, never the record source. A commit event may cause the existing bounded pipeline to inspect a repo DID; the consumer never broadcasts the event's embedded record directly. This preserves one convert → validate → reviewable-entity path and prevents Jetstream from becoming a parallel trust boundary.
+
+#### Trust and collision boundary — release-blocking
+
+- Only `create`/`update` commits for `ai.rizom.brain.card/self` may trigger a candidate fetch; handle a matching `delete` through the staleness path below and ignore every other collection/rkey/operation before network access. V1 accepts `did:plc` repo DIDs only. Pass the event DID to `discoverBrainCards`, which resolves the authoritative PDS and refetches `getRecord`; require the returned AT URI repo to equal the event DID.
+- Bind the claimed domain identity before creating or refreshing an agent: `siteUrl` must be HTTPS; its hostname must equal the `did:web` hostname in `brain.did`; that DID document must identify itself correctly and advertise an `alsoKnownAs` ATProto identifier that is either the candidate repo DID or resolves to it. Repo signature/hosting alone does not prove the card may speak for an arbitrary brain domain.
+- Agent identity collisions fail closed. If an existing domain-backed agent has a different `repoDid`, do not mutate it, do not preserve its approval on the candidate, and emit a reviewable conflict/failure. A legitimate repo-DID migration requires explicit reapproval. The same repo DID may idempotently refresh its existing agent and preserve local approval fields.
+- These checks precede the claim that approval is the trust gate: an unapproved candidate is non-callable, and an untrusted repo can never overwrite an already-approved agent by claiming its `siteUrl`.
+
+#### Consumer and resource boundary
+
+- Add a schema-first `jetstream` config block with `enabled` (initially false for canary rollout), endpoint, replay window, deny DIDs/domains, optional skill keywords, queue/concurrency limits, per-DID cooldown, global fetch budget, new-agent rate cap, pending-candidate ceiling, and stale-candidate retention. Filters default open only inside all budgets; flipping the default enablement requires live capacity and abuse verification.
+- Run one websocket daemon per opted-in full brain; never open it during startup-check or eval (`evalDisable` already covers atproto). Relevant event volume scales with network activity and total fleet cost scales with brain count, so record queue depth, dropped/coalesced candidates, fetch outcomes, and creation-cap decisions. Revisit a shared fleet relay if the decentralized cost crosses an operational threshold.
+- Treat every candidate-driven fetch as hostile egress: require HTTPS public endpoints, reject loopback/private/link-local destinations after DNS resolution and on every redirect, cap redirects and response bytes, set timeouts, and send no credentials. Bound the candidate queue and fetch concurrency, coalesce repeated events per DID, and apply a global processing budget; the new-agent creation cap alone is not a network-abuse control.
+- Apply the DID deny-list before fetch. Apply domain and skill filters only after authoritative fetch, identity binding, conversion, and validation. Deduplicate one pending candidate per repo DID/domain pair; never prune approved agents, but expire never-approved stale candidates under the configured ceiling.
+
+#### Cursor, replay, and liveness
+
+- Persist a Zod-validated Jetstream cursor/checkpoint in the plugin's scoped `runtimeState`. Processing is at-least-once: advance the durable contiguous watermark only after each event reaches a terminal outcome. Validation/filter rejections are terminal skips; transient fetch failures retry with bounded backoff, then report and advance so one poison candidate cannot stall the stream.
+- Keep a bounded durable dedupe window keyed by event DID plus revision/CID/operation. Inclusive replay after restart may redeliver the last event; duplicates must not repeat PDS fetches, consume creation budget, or emit duplicate discovery events.
+- With no cursor, start at `now - replayWindow`. If the cursor predates retained Jetstream history, clamp to the earliest supported point, emit an observable gap, and continue. Do not describe this alone as eventual consistency: a peer may remain online without another update.
+- Close that liveness gap with a low-frequency, jittered brain-card heartbeat (and immediate republish on identity/skill changes). The idempotent `putRecord` keeps one card while producing a later update signal, so a peer missed outside the replay window is eventually rediscovered without requiring a reboot.
+- Reconnect with bounded exponential backoff and jitter. Shutdown aborts the socket, stops retries, drains or safely abandons the bounded queue according to the checkpoint rule, and opens no replacement socket.
+
+#### Deletion and staleness
+
+- A Jetstream delete for `ai.rizom.brain.card/self` marks the matching repo's card unavailable/stale; it never deletes the local agent or automatically revokes explicit approval/runtime trust. Surface the state to review and stop treating card-derived metadata as fresh until a bound card reappears.
+- Repeated refresh failures follow the same availability model and retain the last verified snapshot with failure timestamps. A different repo claiming the same domain remains a conflict, not a recovery path.
+
+#### Tests
+
+- Mocked valid event DID → authoritative PDS refetch → discovered broadcast → agent upsert; embedded Jetstream record is ignored.
+- Wrong collection/rkey/operation, returned-URI repo mismatch, invalid domain/DID binding, hostile PDS endpoints, and oversized/timeout responses are rejected before mutation.
+- A malicious repo claiming an existing approved domain cannot mutate that agent or inherit approval; same-repo refresh remains idempotent; repo migration requires reapproval.
+- Queue/concurrency bounds, per-DID coalescing, fetch and creation budgets, pending ceiling/retention, and post-validation domain/skill filters.
+- Cursor persistence, contiguous checkpointing, duplicate replay, stale-cursor gap reporting, bounded transient retries, reconnect after socket drop, and shutdown during queued work.
+- Delete and repeated-refresh failure mark availability without deleting approval; heartbeat republishes under the same rkey; startup-check/eval boots open no socket.
+
+### 3. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
 
 App password is the sanctioned headless credential for operator-configured brains; OAuth is the fleet-user story.
 
@@ -40,32 +82,24 @@ After the dependency lands:
 
 - Add an Admin-only Console "connect Bluesky" flow using `@atproto/oauth-client-node` (confidential client via existing JWKS); browser user-delegation with PAR/PKCE, DPoP, callback-state binding, and rotating refresh tokens.
 - Persist the connection against the authenticated runtime user, with reconnect, disconnect/revocation, audit, expiry, and suspended-user behavior following auth-service policy.
-- Capture the account DID, repo DID, and PDS endpoint in the same gesture for publishing and member-handle plumbing (see 3).
+- Capture the account DID, repo DID, and PDS endpoint in the same gesture for publishing and member-handle plumbing (see 4).
 - Extend `AtprotoPdsClient` to consume and refresh the stored OAuth session while preserving app-password support for operator-configured headless brains; ambient publishing remains unchanged above the authentication layer.
 - Test authorization discovery/callback, state rejection, refresh-token rotation, DPoP persistence, account binding, publishing, revocation, failure isolation, and secret redaction.
 
-### 3. Member handle rollout
+### 4. Member handle rollout
 
 Mechanism shipped and dogfooded by the org account. Remaining:
 
 - Per-member adoption is pilot config only: set `atproto.accountDid` in `users/<handle>.yaml`, member flips their handle via Bluesky's "I have my own domain" (HTTP method). Handle is org-tenured: it verifies only while the member's subdomain serves their DID; offboarding retires the name while the member keeps their DID, repo, and followers.
-- Later, the OAuth connect flow (2) captures the DID automatically instead of operator config.
+- Later, the OAuth connect flow (3) captures the DID automatically instead of operator config.
 
-### 4. Complete the Zod-source-of-truth migration (Phase 2.7 tail)
+### 5. Complete the Zod-source-of-truth migration (Phase 2.7 tail)
 
 Lexicon JSON is still hand-authored with conformance tests keeping Zod schemas aligned. Finish the planned inversion:
 
 - Define each record via `defineAtprotoRecord({ id, key, description, schema })`; generate lexicon JSON from Zod with an emitter covering the used subset (`max → maxLength`, `.datetime()`/`.url() → format`, literals/enums → `knownValues`, optional → not-required, nested objects).
 - Commit generated JSON with a regenerate-and-assert-no-diff test. Prove the emitter on `ai.rizom.brain.card` first.
 - Reuse the same schemas for inbound ingestion (6).
-
-### 5. Discovery remainder (Phase 4 tail)
-
-Bounded card discovery and agent enrichment are implemented. Remaining:
-
-- Jetstream/firehose candidate sourcing (current producer reads supplied repo DIDs/handles only).
-- Configurable allow/deny domain-DID filters and skill-keyword filters (max-per-run and in-batch dedupe exist).
-- Republish the card when brain identity, anchor identity, model, or skills change (subsumed by the trigger slice's card-on-ready if card content is derived at publish time).
 
 ### 6. Inbound ingestion (Phase 3)
 
@@ -96,8 +130,8 @@ Deferred until discovery establishes trusted/followed peers:
 ## Verification (open items only)
 
 1. Live repo shows `ai.rizom.brain.card/self` plus records for public projected entities, updated without manual action (trigger slice).
-2. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
-3. Bluesky/atproto content can be ingested as brain entities with topic extraction.
-4. Brain cards are discoverable via Jetstream; discovered brains stay non-callable until approved.
+2. Brain cards are safely discoverable via Jetstream; hostile identity collisions and endpoints fail closed, missed cards recover through bounded replay/heartbeat, and discovered brains stay non-callable until approved.
+3. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
+4. Bluesky/atproto content can be ingested as brain entities with topic extraction.
 5. Custom feeds are subscribable in Bluesky.
 6. Peer activity triggers local reactions only for approved/followed peers.

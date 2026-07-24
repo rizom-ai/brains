@@ -4,7 +4,12 @@ import type {
   EntityTypeConfig,
   DataSource,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+  ENTITY_CHANNELS,
+  DIRECTORY_SYNC_CHANNELS,
+} from "@brains/plugins";
 import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
@@ -45,7 +50,11 @@ export class SiteInfoPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { embeddable: false };
+    return {
+      embeddable: false,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 
   protected override getDataSources(): DataSource[] {
@@ -66,7 +75,7 @@ export class SiteInfoPlugin extends EntityPlugin<
       return { success: true, data: siteInfo };
     });
 
-    context.messaging.subscribe("entity:updated", async (message) => {
+    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = message.payload as { entityType: string };
       if (payload.entityType === "site-info") {
         const siteInfo = await service.getSiteInfo();
@@ -80,10 +89,13 @@ export class SiteInfoPlugin extends EntityPlugin<
     });
 
     // Create default entity after seed content is imported
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      await service.initialize();
-      return { success: true };
-    });
+    context.messaging.subscribe(
+      DIRECTORY_SYNC_CHANNELS.initialCompleted,
+      async () => {
+        await service.initialize();
+        return { success: true };
+      },
+    );
   }
 }
 

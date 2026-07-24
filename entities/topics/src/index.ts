@@ -223,7 +223,13 @@ export class TopicsPlugin extends EntityPlugin<
     },
   ): boolean {
     if (entityType === TOPIC_ENTITY_TYPE) return false;
-    if (!this.config.includeEntityTypes.includes(entityType)) return false;
+    if (this.config.excludeEntityTypes.includes(entityType)) return false;
+    if (
+      !this.config.includeEntityTypes.includes("*") &&
+      !this.config.includeEntityTypes.includes(entityType)
+    ) {
+      return false;
+    }
     return (
       entityService.getEntityTypeConfig(entityType).projectionSource !== false
     );

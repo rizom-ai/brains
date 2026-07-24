@@ -27,6 +27,7 @@ if (!progressReporter) {
 
 const config: TopicsPluginConfig = {
   includeEntityTypes: ["post"],
+  excludeEntityTypes: [],
   minRelevanceScore: 0.5,
   createRelevanceThreshold: 0.7,
   reinforceRelevanceThreshold: 0.5,
@@ -43,6 +44,7 @@ const config: TopicsPluginConfig = {
   sourceRolePolicies: {
     canonical: { weight: 1, canMint: true },
     primary: { weight: 1, canMint: true },
+    secondary: { weight: 0.8, canMint: true },
     supporting: { weight: 0.55, canMint: false },
     ambient: { weight: 0.35, canMint: false },
     excluded: { weight: 0, canMint: false },

@@ -1,3 +1,4 @@
+import { IMAGE_CHANNELS } from "@brains/contracts";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
@@ -464,7 +465,7 @@ export abstract class BaseGenerationJobHandler<
 
     const title = generated.title ?? entityId;
     await this.context.jobs.enqueue({
-      type: "image:image-generate",
+      type: IMAGE_CHANNELS.generate,
       data: {
         prompt: coverImage.prompt ?? `Editorial cover image for: ${title}. `,
         title: `${title} Cover`,
