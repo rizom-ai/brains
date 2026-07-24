@@ -19,6 +19,45 @@ afterEach(async () => {
 });
 
 describe("AuthService audit integration", () => {
+  it("records content-free operational audit events", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    await service.initialize();
+    const actor = await service.createUser({
+      displayName: "CMS admin",
+      role: "admin",
+      status: "active",
+    });
+
+    await service.recordAuditEvent({
+      actorUserId: actor.userId,
+      action: "cms.entity.create.allowed",
+      targetType: "entity",
+      targetId: "post-1",
+      metadata: {
+        entityType: "post",
+        interfaceType: "cms",
+        outcome: "allowed",
+      },
+    });
+
+    expect(await service.listAuditEvents()).toContainEqual(
+      expect.objectContaining({
+        actorUserId: actor.userId,
+        action: "cms.entity.create.allowed",
+        targetType: "entity",
+        targetId: "post-1",
+        metadata: {
+          entityType: "post",
+          interfaceType: "cms",
+          outcome: "allowed",
+        },
+      }),
+    );
+  });
+
   it("audits setup-token generation", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

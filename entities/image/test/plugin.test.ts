@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
@@ -96,16 +96,16 @@ describe("ImagePlugin", () => {
       mediaType: "image/png",
       content: pngBytes,
     });
-    const interceptor = harness
+    const createSpy = spyOn(harness.getEntityService(), "createEntity");
+    const registration = harness
       .getEntityRegistry()
-      .getCreateInterceptor("image");
-    if (!interceptor) throw new Error("Expected image create interceptor");
+      .getUploadSaveHandler("image/png");
+    if (!registration) throw new Error("Expected image upload handler");
 
-    const result = await interceptor(
+    const result = await registration.handler(
       {
-        entityType: "image",
         title: "Robot",
-        from: { kind: "upload", id: record.ref.id },
+        upload: { kind: "upload", id: record.ref.id },
       },
       {
         interfaceType: "web-chat",
@@ -114,23 +114,20 @@ describe("ImagePlugin", () => {
     );
 
     expect(result).toEqual({
-      kind: "handled",
-      result: {
-        success: true,
-        data: {
-          entityId: "robot",
-          status: "generating",
-          jobId: "queued-image-job",
-          attachment: {
-            mediaType: "image/png",
-            url: "/api/chat/attachments/image?id=robot",
-            downloadUrl: "/api/chat/attachments/image?id=robot&download=1",
-            filename: "robot.png",
-            source: {
-              entityType: "image",
-              entityId: "robot",
-              attachmentType: "uploaded",
-            },
+      success: true,
+      data: {
+        entityId: "robot",
+        status: "generating",
+        jobId: "queued-image-job",
+        attachment: {
+          mediaType: "image/png",
+          url: "/api/chat/attachments/image?id=robot",
+          downloadUrl: "/api/chat/attachments/image?id=robot&download=1",
+          filename: "robot.png",
+          source: {
+            entityType: "image",
+            entityId: "robot",
+            attachmentType: "uploaded",
           },
         },
       },
@@ -138,7 +135,27 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs[0]).toMatchObject({
       type: "image:upload-promote",
       data: { uploadId: record.ref.id, title: "Robot" },
+      options: {
+        source: "image",
+        metadata: {
+          operationType: "content_operations",
+          interfaceType: "web-chat",
+          requestedByActor: { kind: "user", userId: "operator" },
+          requestedByUserId: "operator",
+          requestedByInterface: "web-chat",
+        },
+      },
     });
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          eventContext: {
+            actor: { kind: "user", userId: "operator" },
+            interfaceType: "web-chat",
+          },
+        },
+      }),
+    );
 
     let entity = await harness.getEntityService().getEntity({
       entityType: "image",

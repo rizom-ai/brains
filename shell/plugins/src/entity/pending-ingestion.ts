@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  CreateEntityOptions,
   EntityInput,
   EntityMutationResult,
   UpdateEntityOptions,
@@ -20,6 +21,7 @@ export interface PendingEntityService {
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
+    options?: CreateEntityOptions | undefined;
   }): Promise<EntityMutationResult>;
   updateEntity(request: {
     entity: BaseEntity;
@@ -36,6 +38,7 @@ type EntityInputWithId = EntityInput<BaseEntity> & {
 export interface CreatePendingEntityRequest {
   entityService: PendingEntityService;
   entity: EntityInputWithId;
+  options?: CreateEntityOptions | undefined;
 }
 
 export interface CreatePendingEntityResult {
@@ -55,6 +58,7 @@ export interface CreatePendingEntityResult {
 export async function createPendingEntity({
   entityService,
   entity,
+  options,
 }: CreatePendingEntityRequest): Promise<CreatePendingEntityResult> {
   const existingEntity = await entityService.getEntity({
     entityType: entity.entityType,
@@ -69,7 +73,10 @@ export async function createPendingEntity({
     };
   }
 
-  const mutation = await entityService.createEntity({ entity });
+  const mutation = await entityService.createEntity({
+    entity,
+    ...(options ? { options } : {}),
+  });
   return {
     entityId: mutation.entityId,
     created: true,

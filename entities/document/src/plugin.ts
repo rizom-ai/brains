@@ -1,6 +1,8 @@
 import type {
+  CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
+  JobOptions,
   Plugin,
   ServicePluginContext,
   Tool,
@@ -27,6 +29,23 @@ const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
 
 type DocumentPluginConfig = Record<string, never>;
 type DocumentPluginConfigInput = Record<string, unknown>;
+
+function createAttributionJobOptions(
+  executionContext: CreateExecutionContext,
+): JobOptions {
+  return {
+    source: "document",
+    metadata: {
+      operationType: "content_operations",
+      interfaceType: executionContext.interfaceType,
+      requestedByActor: executionContext.actor,
+      ...(executionContext.actor.kind === "user"
+        ? { requestedByUserId: executionContext.actor.userId }
+        : {}),
+      requestedByInterface: executionContext.interfaceType,
+    },
+  };
+}
 
 const documentPluginConfigSchema: z.ZodType<
   DocumentPluginConfig,
@@ -104,13 +123,15 @@ export class DocumentPlugin extends ServicePlugin<
       projectionSource: false,
       projectionSourceRole: "excluded",
     });
-    context.entities.registerCreateInterceptor(this.entityType, (input) =>
-      this.interceptCreate(input),
+    context.entities.registerCreateInterceptor(
+      this.entityType,
+      (input, executionContext) =>
+        this.interceptCreate(input, executionContext),
     );
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["application/pdf"],
-      handler: async (input) => {
+      handler: async (input, executionContext) => {
         const interception = await this.promoteUpload(
           {
             entityType: this.entityType,
@@ -118,6 +139,7 @@ export class DocumentPlugin extends ServicePlugin<
             from: input.upload,
           },
           context,
+          executionContext,
         );
         return interception.kind === "handled"
           ? interception.result
@@ -135,6 +157,7 @@ export class DocumentPlugin extends ServicePlugin<
 
   private async interceptCreate(
     input: CreateInput,
+    executionContext: CreateExecutionContext,
   ): Promise<CreateInterceptionResult> {
     const context = this.pluginContext;
     if (input.from?.kind === webChatUploadsScope.refKind) {
@@ -144,7 +167,7 @@ export class DocumentPlugin extends ServicePlugin<
           result: { success: false, error: "Plugin context not initialized" },
         };
       }
-      return this.promoteUpload(input, context);
+      return this.promoteUpload(input, context, executionContext);
     }
 
     if (input.from?.kind !== "entity-attachment") {
@@ -176,19 +199,24 @@ export class DocumentPlugin extends ServicePlugin<
         : await this.findExistingDocument(dedupKey, context);
     const documentId = existing?.id ?? getDocumentId(generationData, dedupKey);
     if (!existing) {
-      await this.createPendingDocument(context, {
-        id: documentId,
-        title: generationData.title ?? documentId,
-        filename: `${documentId}.pdf`,
-        sourceEntityType: generationData.sourceEntityType,
-        sourceEntityId: generationData.sourceEntityId,
-        attachmentType: generationData.attachmentType,
-        dedupKey,
-      });
+      await this.createPendingDocument(
+        context,
+        {
+          id: documentId,
+          title: generationData.title ?? documentId,
+          filename: `${documentId}.pdf`,
+          sourceEntityType: generationData.sourceEntityType,
+          sourceEntityId: generationData.sourceEntityId,
+          attachmentType: generationData.attachmentType,
+          dedupKey,
+        },
+        executionContext,
+      );
     }
     const jobId = await context.jobs.enqueue({
       type: "generate",
       data: { ...generationData, dedupKey, documentId },
+      options: createAttributionJobOptions(executionContext),
     });
 
     const filename = `${documentId}.pdf`;
@@ -219,6 +247,7 @@ export class DocumentPlugin extends ServicePlugin<
   private async promoteUpload(
     input: CreateInput,
     context: ServicePluginContext,
+    executionContext: CreateExecutionContext,
   ): Promise<CreateInterceptionResult> {
     const uploadRef = input.from;
     if (uploadRef?.kind !== webChatUploadsScope.refKind) {
@@ -282,7 +311,13 @@ export class DocumentPlugin extends ServicePlugin<
         created: now,
         updated: now,
       },
-      options: { deduplicateId: true },
+      options: {
+        deduplicateId: true,
+        eventContext: {
+          actor: executionContext.actor,
+          interfaceType: executionContext.interfaceType,
+        },
+      },
     });
 
     return {
@@ -312,6 +347,7 @@ export class DocumentPlugin extends ServicePlugin<
       attachmentType: string;
       dedupKey: string;
     },
+    executionContext: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
     const entityData = documentAdapter.createDocumentEntity({
@@ -332,6 +368,12 @@ export class DocumentPlugin extends ServicePlugin<
         ...entityData,
         created: now,
         updated: now,
+      },
+      options: {
+        eventContext: {
+          actor: executionContext.actor,
+          interfaceType: executionContext.interfaceType,
+        },
       },
     });
   }

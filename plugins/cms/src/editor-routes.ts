@@ -2,6 +2,7 @@ import { join } from "node:path";
 import {
   requireSameOriginJson,
   requireSameOriginRequest,
+  type AppendAuthAuditEventInput,
   type AuthPrincipal,
 } from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
@@ -162,6 +163,8 @@ export interface EditorRouteOptions {
   minimumPermissionLevel: "trusted" | "admin";
   getEntityDisplay: () => CmsEntityDisplayMap | undefined;
   workspaceRegistry: CmsWorkspaceRegistry;
+  recordAuditEvent?:
+    ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
 }
 
 type CmsRequestAccessResolution =
@@ -393,7 +396,12 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleUpdateEntity(getContext(), request, access);
+        return handleUpdateEntity(
+          getContext(),
+          request,
+          access,
+          options.recordAuditEvent,
+        );
       },
     },
     {
@@ -405,7 +413,12 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleCreateEntity(getContext(), request, access);
+        return handleCreateEntity(
+          getContext(),
+          request,
+          access,
+          options.recordAuditEvent,
+        );
       },
     },
     {
@@ -417,7 +430,12 @@ export function createEditorRoutes(
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
-        return handleDeleteEntity(getContext(), request, access);
+        return handleDeleteEntity(
+          getContext(),
+          request,
+          access,
+          options.recordAuditEvent,
+        );
       },
     },
     {
@@ -427,11 +445,15 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireAccess(request);
         if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
         const requestDenied = requireSameOriginRequest(request);
         if (requestDenied) return requestDenied;
-        return handleUpload(getContext(), request, apiPath("upload"));
+        return handleUpload(
+          getContext(),
+          request,
+          apiPath("upload"),
+          access,
+          options.recordAuditEvent,
+        );
       },
     },
     {
@@ -487,6 +509,47 @@ export function createEditorRoutes(
       },
     },
   ];
+}
+
+type CmsMutationOperation = "create" | "update" | "delete" | "upload";
+type CmsMutationOutcome = "allowed" | "denied";
+
+async function recordCmsMutationAudit(
+  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
+  access: CmsRequestAccess,
+  operation: CmsMutationOperation,
+  outcome: CmsMutationOutcome,
+  entityType: string,
+  targetId?: string,
+  reason?: string,
+): Promise<void> {
+  if (!recordAuditEvent) return;
+  await recordAuditEvent({
+    actorUserId: access.principal.userId,
+    action: `cms.entity.${operation}.${outcome}`,
+    targetType: "entity",
+    ...(targetId ? { targetId } : {}),
+    metadata: {
+      entityType,
+      interfaceType: "cms",
+      outcome,
+      ...(reason ? { reason } : {}),
+    },
+  });
+}
+
+function cmsMutationOptions(access: CmsRequestAccess): {
+  eventContext: {
+    actor: CmsRequestAccess["actor"];
+    interfaceType: "cms";
+  };
+} {
+  return {
+    eventContext: {
+      actor: access.actor,
+      interfaceType: "cms",
+    },
+  };
 }
 
 function requireAdminCapability(access: CmsRequestAccess): Response | null {
@@ -859,6 +922,7 @@ async function handleUpdateEntity(
   context: ServicePluginContext,
   request: Request,
   access: CmsRequestAccess,
+  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
   let payload: z.infer<typeof updateEntityPayloadSchema>;
   try {
@@ -953,9 +1017,29 @@ async function handleUpdateEntity(
     requiredAction,
     access,
   );
-  if (actionDenied) return actionDenied;
+  if (actionDenied) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "update",
+      "denied",
+      entityType,
+      id,
+      "entity-action-policy",
+    );
+    return actionDenied;
+  }
 
   if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "update",
+      "denied",
+      entityType,
+      id,
+      "visibility-policy",
+    );
     return jsonResponse(
       {
         error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
@@ -988,9 +1072,31 @@ async function handleUpdateEntity(
     requiredAction,
     access,
   );
-  if (persistenceDenied) return persistenceDenied;
+  if (persistenceDenied) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "update",
+      "denied",
+      entityType,
+      id,
+      "entity-action-policy",
+    );
+    return persistenceDenied;
+  }
 
-  const result = await context.entityService.updateEntity({ entity });
+  const result = await context.entityService.updateEntity({
+    entity,
+    options: cmsMutationOptions(access),
+  });
+  await recordCmsMutationAudit(
+    recordAuditEvent,
+    access,
+    "update",
+    "allowed",
+    entityType,
+    id,
+  );
   // skipped: the content was already stored byte-identically — no event is
   // emitted, so nothing flows down the export/commit pipeline.
   return jsonResponse({
@@ -1004,6 +1110,7 @@ async function handleCreateEntity(
   context: ServicePluginContext,
   request: Request,
   access: CmsRequestAccess,
+  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
   let payload: z.infer<typeof createEntityPayloadSchema>;
   try {
@@ -1024,7 +1131,18 @@ async function handleCreateEntity(
     "create",
     access,
   );
-  if (actionDenied) return actionDenied;
+  if (actionDenied) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "create",
+      "denied",
+      entityType,
+      undefined,
+      "entity-action-policy",
+    );
+    return actionDenied;
+  }
 
   const bodyError = rejectBodyForBodylessType(
     context,
@@ -1071,6 +1189,15 @@ async function handleCreateEntity(
     visibility: visibility.visibility,
   };
   if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "create",
+      "denied",
+      entityType,
+      undefined,
+      "visibility-policy",
+    );
     return jsonResponse(
       {
         error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
@@ -1086,10 +1213,32 @@ async function handleCreateEntity(
     "create",
     access,
   );
-  if (persistenceDenied) return persistenceDenied;
+  if (persistenceDenied) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "create",
+      "denied",
+      entityType,
+      undefined,
+      "entity-action-policy",
+    );
+    return persistenceDenied;
+  }
 
   // No id: the entity service derives one, keeping id policy server-side.
-  const result = await context.entityService.createEntity({ entity });
+  const result = await context.entityService.createEntity({
+    entity,
+    options: cmsMutationOptions(access),
+  });
+  await recordCmsMutationAudit(
+    recordAuditEvent,
+    access,
+    "create",
+    "allowed",
+    entityType,
+    result.entityId,
+  );
 
   return jsonResponse({ entityId: result.entityId, jobId: result.jobId }, 201);
 }
@@ -1098,6 +1247,7 @@ async function handleDeleteEntity(
   context: ServicePluginContext,
   request: Request,
   access: CmsRequestAccess,
+  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
   try {
     deleteEntityPayloadSchema.parse(await request.json());
@@ -1133,9 +1283,34 @@ async function handleDeleteEntity(
     "delete",
     access,
   );
-  if (actionDenied) return actionDenied;
+  if (actionDenied) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "delete",
+      "denied",
+      entityType,
+      id,
+      "entity-action-policy",
+    );
+    return actionDenied;
+  }
 
-  const deleted = await context.entityService.deleteEntity({ entityType, id });
+  const deleted = await context.entityService.deleteEntity({
+    entityType,
+    id,
+    options: cmsMutationOptions(access),
+  });
+  if (deleted) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "delete",
+      "allowed",
+      entityType,
+      id,
+    );
+  }
   return jsonResponse({ deleted });
 }
 
@@ -1324,6 +1499,8 @@ async function handleUpload(
   context: ServicePluginContext,
   request: Request,
   routePath: string,
+  access: CmsRequestAccess,
+  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
   const declaredSize = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredSize) && declaredSize > UPLOAD_MAX_BYTES) {
@@ -1352,6 +1529,24 @@ async function handleUpload(
       415,
     );
   }
+  const actionError = requireEntityAction(
+    context,
+    registration.entityType,
+    "create",
+    access,
+  );
+  if (actionError) {
+    await recordCmsMutationAudit(
+      recordAuditEvent,
+      access,
+      "upload",
+      "denied",
+      registration.entityType,
+      undefined,
+      "entity-action-policy",
+    );
+    return actionError;
+  }
 
   const store = context.uploads.scoped({
     namespace: "upload",
@@ -1364,17 +1559,32 @@ async function handleUpload(
     content: Buffer.from(await file.arrayBuffer()),
   });
 
-  const result = await registration.handler(
-    { upload: { kind: "upload", id: record.id } },
-    {
-      interfaceType: "cms",
-      actor: { kind: "service", serviceId: "cms-upload" },
-    },
-  );
+  let result: Awaited<ReturnType<typeof registration.handler>>;
+  try {
+    result = await registration.handler(
+      { upload: { kind: "upload", id: record.id } },
+      {
+        interfaceType: "cms",
+        actor: access.actor,
+      },
+    );
+  } catch {
+    await store.remove(record.id);
+    return jsonResponse({ error: "Upload promotion failed" }, 502);
+  }
 
   if (!result.success) {
+    await store.remove(record.id);
     return jsonResponse({ error: result.error }, 502);
   }
+  await recordCmsMutationAudit(
+    recordAuditEvent,
+    access,
+    "upload",
+    "allowed",
+    registration.entityType,
+    result.data.entityId,
+  );
   return jsonResponse(
     { entityId: result.data.entityId, jobId: result.data.jobId },
     201,

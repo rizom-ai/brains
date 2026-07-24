@@ -239,6 +239,7 @@ export class EntityMutations {
       ...(options?.maxRetries !== undefined && {
         maxRetries: options.maxRetries,
       }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
     });
   }
 
@@ -409,6 +410,7 @@ export class EntityMutations {
       ...(options?.maxRetries !== undefined && {
         maxRetries: options.maxRetries,
       }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
     });
   }
 
@@ -416,7 +418,7 @@ export class EntityMutations {
    * Delete an entity by type and ID
    */
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
-    const { entityType, id } = request;
+    const { entityType, id, options } = request;
 
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
     // `seriesName` field that drives the series projection). Without this,
@@ -430,7 +432,14 @@ export class EntityMutations {
     const deleted = await this.entityQueries.deleteEntity(entityType, id);
 
     if (deleted) {
-      await this.emitEntityEvent("entity:deleted", entityType, id, prior);
+      await this.emitEntityEvent(
+        "entity:deleted",
+        entityType,
+        id,
+        prior,
+        undefined,
+        options?.eventContext,
+      );
     }
 
     return deleted;
@@ -749,6 +758,10 @@ export class EntityMutations {
       ...(eventContext?.toolCallId
         ? { toolCallId: eventContext.toolCallId }
         : {}),
+      ...(eventContext?.actor ? { actor: eventContext.actor } : {}),
+      ...(eventContext?.interfaceType
+        ? { interfaceType: eventContext.interfaceType }
+        : {}),
     };
     if (entity) {
       payload["entity"] = entity;
@@ -779,6 +792,7 @@ export class EntityMutations {
       operation,
       priority,
       maxRetries,
+      eventContext,
     } = params;
 
     const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
@@ -808,6 +822,20 @@ export class EntityMutations {
         metadata: {
           operationType: "data_processing" as const,
           operationTarget: entityId,
+          ...(eventContext?.interfaceType
+            ? {
+                interfaceType: eventContext.interfaceType,
+                requestedByInterface: eventContext.interfaceType,
+              }
+            : {}),
+          ...(eventContext?.actor
+            ? {
+                requestedByActor: eventContext.actor,
+                ...(eventContext.actor.kind === "user"
+                  ? { requestedByUserId: eventContext.actor.userId }
+                  : {}),
+              }
+            : {}),
           // Embedding jobs are background bookkeeping — suppress progress
           // and completion events (entity:embedding:ready covers consumers)
           silent: true,

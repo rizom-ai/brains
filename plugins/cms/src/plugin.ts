@@ -111,6 +111,10 @@ export class CmsPlugin extends ServicePlugin<
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
       workspaceRegistry: this.workspaceRegistry,
+      recordAuditEvent: async (event) => {
+        const authService = getActiveAuthService();
+        if (authService) await authService.recordAuditEvent(event);
+      },
     });
   }
 }

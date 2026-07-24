@@ -9,7 +9,7 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
-import type { EntityEventBus } from "../src/types";
+import type { EntityEventBus, EntityMutationEventContext } from "../src/types";
 
 interface CapturedEntityPayload extends Record<string, unknown> {
   entityId?: unknown;
@@ -301,11 +301,17 @@ describe("Immediate Entity Persistence", () => {
           content: "Body",
           tags: [],
         });
-        const eventContext = {
+        const eventContext: EntityMutationEventContext = {
           conversationId: "conversation-1",
           channelId: "channel-1",
           runId: "playbook_run_123",
           toolCallId: "tool-call-1",
+          actor: {
+            kind: "user",
+            userId: "usr_editor",
+            canonicalId: "user:editor",
+          },
+          interfaceType: "cms",
         };
         const { entityId } = await eventCtx.entityService.createEntity({
           entity: noteInput,
@@ -327,6 +333,18 @@ describe("Immediate Entity Persistence", () => {
         const updated = events.find((event) => event.type === "entity:updated");
         expect(created?.payload).toMatchObject(eventContext);
         expect(updated?.payload).toMatchObject(eventContext);
+        expect(eventCtx.jobQueueService.enqueue).toHaveBeenCalledWith(
+          expect.objectContaining({
+            options: expect.objectContaining({
+              metadata: expect.objectContaining({
+                interfaceType: "cms",
+                requestedByActor: eventContext.actor,
+                requestedByUserId: "usr_editor",
+                requestedByInterface: "cms",
+              }),
+            }),
+          }),
+        );
       } finally {
         await eventCtx.cleanup();
       }
@@ -400,9 +418,14 @@ describe("Immediate Entity Persistence", () => {
           },
         });
 
+        const deleteContext: EntityMutationEventContext = {
+          actor: { kind: "user", userId: "usr_editor" },
+          interfaceType: "cms",
+        };
         await eventCtx.entityService.deleteEntity({
           entityType: "note",
           id: entityId,
+          options: { eventContext: deleteContext },
         });
 
         const deletedEvents = events.filter(
@@ -411,10 +434,11 @@ describe("Immediate Entity Persistence", () => {
         expect(deletedEvents).toHaveLength(1);
         const payload = deletedEvents[0]?.payload;
         expect(payload?.entityId).toBe(entityId);
-        const entity = payload?.entity as Note | undefined;
-        expect(entity?.id).toBe(entityId);
-        expect(entity?.title).toBe("Tagged Note");
-        expect(entity?.metadata["seriesName"]).toBe("My Series");
+        const entity = noteSchema.parse(payload?.entity);
+        expect(entity.id).toBe(entityId);
+        expect(entity.title).toBe("Tagged Note");
+        expect(entity.metadata["seriesName"]).toBe("My Series");
+        expect(payload).toMatchObject(deleteContext);
       } finally {
         await eventCtx.cleanup();
       }

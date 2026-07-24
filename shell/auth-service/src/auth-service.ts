@@ -19,7 +19,7 @@ import type {
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
-import type { AuthAuditEvent } from "./audit-store";
+import type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
 import type {
@@ -434,6 +434,13 @@ export class AuthService {
     return this.runtime
       .getAdministrationService()
       .detachIdentity(identityId, context);
+  }
+
+  async recordAuditEvent(
+    input: AppendAuthAuditEventInput,
+  ): Promise<AuthAuditEvent> {
+    await this.runtime.ensureStarted();
+    return this.runtime.getAuditStore().append(input);
   }
 
   async listAuditEvents(): Promise<AuthAuditEvent[]> {
