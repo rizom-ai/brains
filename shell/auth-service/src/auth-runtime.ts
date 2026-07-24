@@ -8,7 +8,6 @@ import { RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore } from "./credential-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { AuthIdentityStore } from "./identity-store";
-import { errorMessage } from "./http-responses";
 import { InterfacePrincipalStore } from "./interface-principal-store";
 import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
@@ -22,6 +21,7 @@ import {
   type UserPasskeyRegistration,
 } from "./passkey-setup-coordinator";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
+import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
@@ -377,21 +377,14 @@ export class AuthRuntime {
     await this.runtimeDatabase.stop();
   }
 
-  private async profileDisplayName(
+  private profileDisplayName(
     profileEntityId: string | null,
   ): Promise<string | undefined> {
-    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
-    try {
-      const displayName = await this.resolveProfileDisplayName(profileEntityId);
-      const trimmed = displayName?.trim();
-      return trimmed && trimmed.length > 0 ? trimmed : undefined;
-    } catch (error) {
-      this.logger?.warn("Failed to resolve CMS profile display name", {
-        profileEntityId,
-        error: errorMessage(error, "Profile lookup failed"),
-      });
-      return undefined;
-    }
+    return resolveProfileDisplayNameSafely(
+      this.resolveProfileDisplayName,
+      profileEntityId,
+      this.logger,
+    );
   }
 
   private async projectConfiguredBrainAnchor(): Promise<void> {

@@ -41,15 +41,11 @@ export interface PasskeyRegistrationUser {
   userDisplayName?: string;
 }
 
-export interface RegistrationVerifyResult {
-  verified: boolean;
-  subject?: string;
-}
+export type RegistrationVerifyResult =
+  { verified: true; subject: string } | { verified: false };
 
-export interface AuthenticationVerifyResult {
-  verified: boolean;
-  subject?: string;
-}
+export type AuthenticationVerifyResult =
+  { verified: true; subject: string } | { verified: false };
 
 export class PasskeyService {
   private readonly store: RuntimePasskeyStore;

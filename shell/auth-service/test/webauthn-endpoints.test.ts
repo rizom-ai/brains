@@ -143,4 +143,55 @@ describe("WebAuthnEndpoints", () => {
       "audit:auth.passkey.registration_failed:usr_invited",
     ]);
   });
+
+  it("binds the authenticated session to the verified passkey subject", async () => {
+    const calls: string[] = [];
+    const endpoints = new WebAuthnEndpoints({
+      passkeyService: {
+        hasCredentials: async () => true,
+        verifyAuthenticationResponse: async () => ({
+          verified: true,
+          subject: "usr_member",
+        }),
+      } as unknown as PasskeyService,
+      sessionStore: {
+        createSession: async (subject: string) => {
+          calls.push(`session:${subject}`);
+          return {
+            token: "session-token",
+            cookie: "brains_auth_session=session-token",
+            record: {
+              tokenHash: "hash",
+              subject,
+              expiresAt: Date.now() + 60_000,
+              createdAt: Date.now(),
+            },
+          };
+        },
+      } as unknown as AuthSessionPersistence,
+      setupFlow: {} as unknown as SetupFlow,
+      registrationUserProvider: async (): Promise<{
+        subject: string;
+        userName: string;
+        userDisplayName: string;
+      }> => ({
+        subject: "usr_member",
+        userName: "Mira",
+        userDisplayName: "Mira",
+      }),
+      validateTargetedRegistration: async (): Promise<void> => {},
+      completeTargetedRegistration: async (): Promise<void> => {},
+    });
+
+    const response = await endpoints.handleAuthenticationVerify(
+      new Request("https://brain.example.com/webauthn/authenticate/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls).toEqual(["session:usr_member"]);
+  });
 });

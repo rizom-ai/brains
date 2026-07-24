@@ -17,6 +17,7 @@ import { auditActor, type AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type { PersonExternalPeerStore } from "./person-external-peer-store";
 import { principalFromUser, type AuthPrincipal } from "./principal-service";
+import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import type { AuthBrainAnchor, PersonExternalPeer } from "./runtime-schema";
 import type { AuthUserManagementService } from "./user-management-service";
 import type {
@@ -351,15 +352,13 @@ export class AuthAdministrationService {
     return principalFromUser(user, await this.users.getBrainAnchor());
   }
 
-  private async profileDisplayName(
+  private profileDisplayName(
     profileEntityId: string | null,
   ): Promise<string | undefined> {
-    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
-    try {
-      return await this.resolveProfileDisplayName(profileEntityId);
-    } catch {
-      return undefined;
-    }
+    return resolveProfileDisplayNameSafely(
+      this.resolveProfileDisplayName,
+      profileEntityId,
+    );
   }
 }
 
