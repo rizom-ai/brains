@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16 adds the next browser-surface slice: Trusted web chat, strict Admin-console admission, a separate self-service account surface, and the [Permission-aware CMS](./permission-aware-cms.md) follow-up. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's first browser-surface slice is implemented: active Trusted users use web chat at exact Trusted permission, while `/admin` rejects authenticated non-Admins before rendering. The separate self-service account surface and [Permission-aware CMS](./permission-aware-cms.md) follow-up remain planned. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -20,11 +20,11 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
 - Fresh setup uses durable `usr_<uuid>` subjects; legacy files are optional manual backups and are never read automatically.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
-- Discord, OAuth-authenticated MCP, and Admin-authenticated web chat propagate canonical runtime principals into conversations. The current web-chat browser gate still rejects Trusted sessions instead of running them at Trusted permission; decision 16 corrects that over-restriction.
+- Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations. Active Admin and Trusted web-chat sessions run at their exact permission level; Public, suspended, and missing principals are denied.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
-- The standalone admin console is implemented by `@brains/admin` at `/admin` with Overview, Members/People, Invitations, and Audit. Its shell currently renders an inert “Admin access required” state to Trusted users; decision 16 makes `/admin` strictly Admin-only and moves safe own-account operations to `/account`. External peer links are access-neutral; the unreleased representation API and representation-consent view remain removed.
+- The standalone admin console is implemented by `@brains/admin` at `/admin` with Overview, Members/People, Invitations, and Audit. Its server route admits only active Admins; authenticated non-Admins receive a non-cacheable 403 before the management SPA renders. Safe own-account operations remain planned for `/account`. External peer links are access-neutral; the unreleased representation API and representation-consent view remain removed.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -493,11 +493,11 @@ Validation:
 
 ### Phase 8 — Role-correct browser surfaces and self-service
 
-**Status: proposed.** CMS implementation is specified separately in [Permission-aware CMS](./permission-aware-cms.md).
+**Status: in progress.** Trusted browser chat and strict Admin-console admission are implemented. Own-account self-service remains planned. CMS implementation is specified separately in [Permission-aware CMS](./permission-aware-cms.md).
 
-- [ ] Admit active Trusted users to web chat and propagate `permissionLevel: "trusted"` plus their verified `ActorRef` through chat, conversations, confirmations, attachments, and jobs.
-- [ ] Keep Admin-only actions unavailable to Trusted chat and add role/suspension-change coverage for active browser sessions.
-- [ ] Make `/admin` reject or redirect authenticated non-Admins before rendering the administration SPA.
+- [x] Admit active Trusted users to web chat and propagate `permissionLevel: "trusted"` plus their verified `ActorRef` through chat, conversations, confirmations, attachments, and jobs.
+- [x] Keep Admin-only actions unavailable to Trusted chat and add role/suspension-change coverage for active browser sessions.
+- [x] Make `/admin` reject or redirect authenticated non-Admins before rendering the administration SPA.
 - [ ] Add `/account` and narrow `/auth/account/*` contracts for own display name, passkeys, connected-channel labels, and session revocation.
 - [ ] Derive the account subject from the session and enforce non-last-passkey, same-origin, confirmation, redaction, and audit rules server-side.
 - [ ] Implement the permission-aware CMS plan atomically before advertising CMS to Trusted users.

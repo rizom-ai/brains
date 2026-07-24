@@ -100,7 +100,8 @@ type PermissionLevelResolver = (
 
 interface BrowserAccess {
   principal?: AuthPrincipal;
-  hasAdminAccess: boolean;
+  permissionLevel: UserPermissionLevel;
+  hasChatAccess: boolean;
 }
 
 export interface WebChatDeps {
@@ -135,7 +136,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.resolveAuthSession =
       deps.resolveAuthSession ??
       (async (request): Promise<boolean> =>
-        (await this.resolveBrowserAccess(request)).hasAdminAccess);
+        (await this.resolveBrowserAccess(request)).hasChatAccess);
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
@@ -148,7 +149,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       label: "Chat",
       url: this.config.routePath,
       priority: 15,
-      visibility: "admin",
+      visibility: "trusted",
     });
     context.interactions.register({
       id: "web-chat",
@@ -157,7 +158,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       href: this.config.routePath,
       kind: "human",
       priority: 15,
-      visibility: "admin",
+      visibility: "trusted",
     });
   }
 
@@ -318,9 +319,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {
-    const { principal, hasAdminAccess } =
+    const { principal, permissionLevel, hasChatAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAdminAccess) {
+    if (!hasChatAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -341,7 +342,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         conversationId: parsed.data.conversationId,
         interfaceType: webChatInterfaceType,
         channelName: "Web Chat",
-        userPermissionLevel: "admin",
+        userPermissionLevel: permissionLevel,
         isAnchor: principal?.isAnchor ?? false,
         action: parsed.data.action,
       },
@@ -393,9 +394,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, hasAdminAccess } =
+    const { principal, permissionLevel, hasChatAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAdminAccess) {
+    if (!hasChatAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -414,7 +415,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
     const response = await this.getContext().agent.chat(
       parsed.data.message,
       parsed.data.conversationId,
-      this.createRemoteAgentChatContext(parsed.data.conversationId, principal),
+      this.createRemoteAgentChatContext(
+        parsed.data.conversationId,
+        permissionLevel,
+        principal,
+      ),
       request.signal,
     );
 
@@ -424,9 +429,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, hasAdminAccess } =
+    const { principal, permissionLevel, hasChatAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAdminAccess) {
+    if (!hasChatAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -448,7 +453,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
       parsed.data.conversationId,
       parsed.data.confirmed,
       parsed.data.approvalId,
-      this.createRemoteAgentChatContext(parsed.data.conversationId, principal),
+      this.createRemoteAgentChatContext(
+        parsed.data.conversationId,
+        permissionLevel,
+        principal,
+      ),
       request.signal,
     );
 
@@ -457,10 +466,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private createRemoteAgentChatContext(
     conversationId: string,
+    permissionLevel: UserPermissionLevel,
     principal: AuthPrincipal | undefined,
   ): ChatContext {
     return {
-      userPermissionLevel: "admin",
+      userPermissionLevel: permissionLevel,
       isAnchor: principal?.isAnchor ?? false,
       interfaceType: "remote-agent",
       channelId: conversationId,
@@ -489,12 +499,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const { principal, hasAdminAccess } =
+    const { principal, permissionLevel, hasChatAccess } =
       await this.resolveBrowserAccess(request);
-    if (!hasAdminAccess) {
+    if (!hasChatAccess) {
       return new Response("Forbidden", { status: 403 });
     }
-    const permissionLevel = "admin";
 
     let body: unknown;
     try {
@@ -715,32 +724,44 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async resolveBrowserAccess(request: Request): Promise<BrowserAccess> {
     const principal = await this.resolveAuthPrincipal(request);
     if (principal) {
+      const hasChatAccess =
+        principal.status === "active" &&
+        (principal.permissionLevel === "admin" ||
+          principal.permissionLevel === "trusted");
       return {
         principal,
-        hasAdminAccess: principal.permissionLevel === "admin",
+        permissionLevel: hasChatAccess ? principal.permissionLevel : "public",
+        hasChatAccess,
       };
     }
+
+    if (this.resolveCallerPermissionLevel) {
+      const permissionLevel = await this.resolveCallerPermissionLevel(request);
+      return {
+        permissionLevel,
+        hasChatAccess:
+          permissionLevel === "admin" || permissionLevel === "trusted",
+      };
+    }
+
+    const hasChatAccess = this.resolveAuthSessionOverride
+      ? await this.resolveAuthSessionOverride(request)
+      : false;
     return {
-      hasAdminAccess: this.resolveAuthSessionOverride
-        ? await this.resolveAuthSessionOverride(request)
-        : false,
+      permissionLevel: hasChatAccess ? "admin" : "public",
+      hasChatAccess,
     };
   }
 
   private async resolvePermissionLevel(
     request: Request,
-  ): Promise<"admin" | "public"> {
-    return (await this.resolveBrowserAccess(request)).hasAdminAccess
-      ? "admin"
-      : "public";
+  ): Promise<UserPermissionLevel> {
+    return (await this.resolveBrowserAccess(request)).permissionLevel;
   }
 
   private async resolveAttachmentPermissionLevel(
     request: Request,
   ): Promise<UserPermissionLevel> {
-    if (this.resolveCallerPermissionLevel) {
-      return this.resolveCallerPermissionLevel(request);
-    }
     return this.resolvePermissionLevel(request);
   }
 

@@ -49,20 +49,20 @@ describe("admin console plugin", () => {
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fadmin");
   });
 
-  it("serves an instrument-climate shell to authenticated people", async () => {
+  it("serves an instrument-climate shell to Admins", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
     });
     await authPlugin.register(shell);
-    const trusted = await authPlugin.getService().createUser({
+    const admin = await authPlugin.getService().createUser({
       displayName: "Mira Reyes",
-      role: "trusted",
+      role: "admin",
       status: "active",
     });
     const session = await authPlugin
       .getService()
-      .createAuthSession(trusted.userId);
+      .createAuthSession(admin.userId);
     shell.addPlugin({
       id: "discord",
       packageName: "@brains/discord",
@@ -79,12 +79,40 @@ describe("admin console plugin", () => {
 
     expect(response.status).toBe(200);
     expect(html).toContain('data-climate="instrument"');
-    expect(html).toContain('data-people-role="trusted"');
+    expect(html).toContain('data-people-role="admin"');
     expect(html).toContain("data-people-brain-name=");
     expect(html).not.toContain("data-people-interfaces");
     expect(html).toContain("Mira Reyes");
     expect(html).toMatch(/src="\/admin\/assets\/app\.js\?v=[a-z0-9]+"/);
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');
+  });
+
+  it("rejects authenticated non-Admins before rendering the shell", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
+    });
+    await authPlugin.register(shell);
+    const trusted = await authPlugin.getService().createUser({
+      displayName: "Trusted collaborator",
+      role: "trusted",
+      status: "active",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(trusted.userId);
+    const plugin = adminPlugin();
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
+      new Request("https://brain.test/admin", {
+        headers: { Cookie: session.cookie },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.text()).toBe("Admin access required");
   });
 
   it("does not let browsers reuse a stale Admin bundle", async () => {

@@ -10,6 +10,7 @@ import {
   type ChatAttachment,
   type ChatContext,
   type MessageArtifactEntity,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
@@ -50,7 +51,7 @@ interface StreamDeps {
 async function deniedArtifactCardIds(
   deps: StreamDeps,
   response: Pick<AgentResponse, "cards">,
-  userLevel: "admin" | "public",
+  userLevel: UserPermissionLevel,
 ): Promise<Set<string>> {
   return collectDeniedArtifactCardIds({
     cards: response.cards,
@@ -115,7 +116,7 @@ interface StreamedChatInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   message: string;
-  permissionLevel: "admin" | "public";
+  permissionLevel: UserPermissionLevel;
   principal?: WebChatPrincipalAttribution;
   attachments: ChatAttachment[];
   messageId?: string;
@@ -173,7 +174,7 @@ interface StreamedConfirmationsInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   approvalResponses: ApprovalResponse[];
-  permissionLevel: "admin" | "public";
+  permissionLevel: UserPermissionLevel;
   principal?: WebChatPrincipalAttribution;
   interfaceType: string;
   signal?: AbortSignal;
@@ -239,7 +240,7 @@ function buildWebChatContext(
   input: {
     conversationId: string;
     interfaceType: string;
-    permissionLevel: "admin" | "public";
+    permissionLevel: UserPermissionLevel;
     principal?: WebChatPrincipalAttribution;
     messageId?: string;
   },

@@ -1,6 +1,7 @@
 import {
   coerceConversationMetadata,
   type InterfacePluginContext,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
@@ -12,7 +13,7 @@ const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
 });
 
-type PermissionResolver = (request: Request) => Promise<"admin" | "public">;
+type PermissionResolver = (request: Request) => Promise<UserPermissionLevel>;
 type ConversationService = InterfacePluginContext["conversations"];
 type WebChatConversation = NonNullable<
   Awaited<ReturnType<ConversationService["get"]>>
@@ -29,7 +30,7 @@ export async function handleSessionsRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "admin") {
+  if (permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -56,7 +57,7 @@ export async function handleDeleteSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "admin") {
+  if (permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -72,7 +73,7 @@ export async function handleRenameSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "admin") {
+  if (permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -97,7 +98,7 @@ export async function handleArchiveSessionRequest(
   deps: SessionHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "admin") {
+  if (permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 

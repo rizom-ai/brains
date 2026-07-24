@@ -2,10 +2,11 @@ import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
   type InterfacePluginContext,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
-type PermissionResolver = (request: Request) => Promise<"admin" | "public">;
+type PermissionResolver = (request: Request) => Promise<UserPermissionLevel>;
 type ConversationService = InterfacePluginContext["conversations"];
 
 interface MessageHandlerDeps {
@@ -19,7 +20,7 @@ export async function handleMessagesRequest(
   deps: MessageHandlerDeps,
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel !== "admin") {
+  if (permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 

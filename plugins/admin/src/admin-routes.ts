@@ -37,6 +37,15 @@ export function createAdminRoutes(
             },
           });
         }
+        if (principal.permissionLevel !== "admin") {
+          return new Response("Admin access required", {
+            status: 403,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
 
         const context = options.getContext();
         const appInfo = await context.appInfo();
