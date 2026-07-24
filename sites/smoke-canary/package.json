@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-smoke-canary",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.224",
   "description": "Externally authored Rover site package used to prove the hosted package canary flow",
   "type": "module",
   "exports": {

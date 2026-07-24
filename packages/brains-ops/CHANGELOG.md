@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- [`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded, authority-refetched ATProto Jetstream discovery with safe public egress, durable replay state, identity-collision protection, staleness handling, heartbeat publishing, review digests, and per-brain canary configuration.
+
 ## 0.2.0-alpha.223
 
 ## 0.2.0-alpha.222

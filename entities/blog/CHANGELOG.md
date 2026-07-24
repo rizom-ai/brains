@@ -1,5 +1,18 @@
 # @brains/blog
 
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- Updated dependencies [[`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61)]:
+  - @brains/atproto-contracts@0.2.0-alpha.224
+  - @brains/utils@0.2.0-alpha.224
+  - @brains/contracts@0.2.0-alpha.224
+  - @brains/media-page-composer@0.2.0-alpha.224
+  - @brains/media-renderer@0.2.0-alpha.224
+  - @brains/ui-library@0.2.0-alpha.224
+  - @brains/plugins@0.2.0-alpha.224
+
 ## 0.2.0-alpha.223
 
 ### Patch Changes
