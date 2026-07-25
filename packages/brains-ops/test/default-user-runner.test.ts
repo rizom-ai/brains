@@ -51,6 +51,15 @@ describe("createDefaultUserRunner", () => {
     expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
 
+  it("renders the composition profile kind from the user override", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({ ...baseUser, profileKind: "collective" });
+
+    expect(result.brainYaml).toContain("kind: collective");
+    expect(result.brainYaml).not.toContain("kind: professional");
+  });
+
   it("renders the atproto block with the owner's account DID for handle verification", async () => {
     const runner = createDefaultUserRunner("rizom-ai");
 
