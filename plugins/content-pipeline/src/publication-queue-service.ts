@@ -68,14 +68,6 @@ export class PublicationQueueService {
     });
   }
 
-  async add(
-    entityType: string,
-    entityId: string,
-    authContext: PublishAuthContext = SYSTEM_PUBLISH_AUTH_CONTEXT,
-  ): Promise<{ position: number }> {
-    return this.enqueue(entityType, entityId, authContext);
-  }
-
   async enqueue(
     entityType: string,
     entityId: string,
@@ -83,6 +75,11 @@ export class PublicationQueueService {
   ): Promise<{ position: number }> {
     return this.runExclusive(async () => {
       const entity = await this.requireEntity(entityType, entityId);
+      if (entity.metadata["status"] === "published") {
+        throw new Error(
+          `Cannot queue published entity ${entityType}:${entityId} — republishing requires a new draft`,
+        );
+      }
       await this.persistStatus(entity, "queued");
       const result = await this.queueManager.add(
         entityType,

@@ -46,6 +46,7 @@ export interface PublishDirectPayload {
 export interface PublishRemovePayload {
   entityType: string;
   entityId: string;
+  authContext?: PublishAuthContext;
 }
 
 /** Change entity's queue position */
@@ -53,6 +54,7 @@ export interface PublishReorderPayload {
   entityType: string;
   entityId: string;
   position: number;
+  authContext?: PublishAuthContext;
 }
 
 /** Request queue contents */
