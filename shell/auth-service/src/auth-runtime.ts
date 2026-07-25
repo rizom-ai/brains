@@ -404,6 +404,9 @@ export class AuthRuntime {
       kind: this.anchor === "person" ? "person" : "collective",
       displayName,
       profileEntityId: this.anchorProfileEntityId,
+      // Only a genuinely resolved profile name is authoritative for the
+      // Anchor person's own account; fallbacks never overwrite local names.
+      ...(profileDisplayName ? { subjectDisplayName: profileDisplayName } : {}),
     });
   }
 

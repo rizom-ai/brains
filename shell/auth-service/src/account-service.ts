@@ -57,14 +57,18 @@ export class AuthAccountService {
 
   async getSnapshot(context: AuthAccountContext): Promise<AuthAccountSnapshot> {
     const user = await this.requireActiveUser(context.userId);
-    const [identities, passkeys, sessions] = await Promise.all([
-      this.identities.listIdentities(user.id),
-      this.credentials.listPasskeys(user.id),
-      this.sessions.listActiveSessionsForSubject(user.id),
-    ]);
+    const [identities, passkeys, sessions, profileEntityId] = await Promise.all(
+      [
+        this.identities.listIdentities(user.id),
+        this.credentials.listPasskeys(user.id),
+        this.sessions.listActiveSessionsForSubject(user.id),
+        this.anchorProfileEntityId(user.personId),
+      ],
+    );
     return {
       displayName: user.displayName,
       role: user.role,
+      ...(profileEntityId ? { profileEntityId } : {}),
       passkeys: passkeys.map(passkeySummary),
       connectedChannels: identities.flatMap(connectedChannelSummary),
       sessions: sessions.map((session) =>
@@ -73,11 +77,31 @@ export class AuthAccountService {
     };
   }
 
+  /**
+   * The CMS profile entity owning this person's display name, when they are
+   * the configured personal Anchor. A profile-owned name is not self-editable.
+   */
+  private async anchorProfileEntityId(
+    personId: string,
+  ): Promise<string | undefined> {
+    const anchor = await this.users.getBrainAnchor();
+    return anchor?.kind === "person" &&
+      anchor.subjectId === personId &&
+      anchor.profileEntityId
+      ? anchor.profileEntityId
+      : undefined;
+  }
+
   async updateDisplayName(
     context: AuthAccountContext,
     displayName: string,
   ): Promise<AuthAccountSnapshot> {
-    await this.requireActiveUser(context.userId);
+    const user = await this.requireActiveUser(context.userId);
+    if (await this.anchorProfileEntityId(user.personId)) {
+      throw new Error(
+        "The Anchor display name is managed by the Anchor profile; edit it in the CMS",
+      );
+    }
     await this.users.updateDisplayName(context.userId, displayName);
     await this.audit.append({
       actorUserId: context.userId,
@@ -269,34 +293,16 @@ function connectedChannelSummary(
   return [
     {
       type: identity.type,
-      label: redactedChannelLabel(identity),
+      label: connectedChannelLabel(identity),
       verifiedAt: identity.verifiedAt,
     },
   ];
 }
 
-function redactedChannelLabel(identity: AuthIdentityRecord): string {
+function connectedChannelLabel(identity: AuthIdentityRecord): string {
   const value = identity.deliverySubject ?? identity.label;
-  if (identity.type === "email" && value) return redactEmail(value);
-  if (value) return redactLabel(value);
+  if (value?.trim()) return value.trim();
   return `${titleCase(identity.type)} account`;
-}
-
-function redactEmail(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  const separator = normalized.lastIndexOf("@");
-  if (separator <= 0 || separator === normalized.length - 1) {
-    return "Email account";
-  }
-  const local = normalized.slice(0, separator);
-  const domain = normalized.slice(separator + 1);
-  return `${local.slice(0, 1)}${"•".repeat(Math.min(4, Math.max(2, local.length - 1)))}@${domain}`;
-}
-
-function redactLabel(value: string): string {
-  const normalized = value.trim();
-  if (!normalized) return "Connected account";
-  return `${normalized.slice(0, 1)}${"•".repeat(Math.min(6, Math.max(2, normalized.length - 1)))}`;
 }
 
 function titleCase(value: string): string {

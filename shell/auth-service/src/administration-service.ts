@@ -401,6 +401,7 @@ function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
 ): AuthIdentitySummary {
+  const label = adminIdentityLabel(identity);
   return {
     id: identity.id,
     personId: identity.personId,
@@ -414,13 +415,20 @@ function identitySummary(
       ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
     })),
     ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(identity.label ? { label: identity.label } : {}),
+    ...(label ? { label } : {}),
     ...(identity.verifiedAt !== null
       ? { verifiedAt: identity.verifiedAt }
       : {}),
     ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
     createdAt: identity.createdAt,
   };
+}
+
+function adminIdentityLabel(identity: AuthIdentityRecord): string | undefined {
+  if (identity.type === "email" && identity.deliverySubject?.trim()) {
+    return identity.deliverySubject.trim();
+  }
+  return identity.label ?? undefined;
 }
 
 function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {

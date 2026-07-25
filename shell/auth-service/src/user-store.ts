@@ -31,6 +31,11 @@ export interface ConfigureBrainAnchorInput {
   kind: AuthBrainAnchor["kind"];
   displayName: string;
   profileEntityId: string;
+  /**
+   * When the display name came from the CMS Anchor profile, the profile is
+   * authoritative: sync it onto the personal Anchor's person and user rows.
+   */
+  subjectDisplayName?: string;
 }
 
 export interface CreateAuthUserInput {
@@ -194,10 +199,21 @@ export class AuthUserStore {
           activeAdmins[0];
         if (!anchorAdmin) return undefined;
         subjectId = anchorAdmin.personId;
+        const subjectDisplayName = input.subjectDisplayName?.trim();
         await tx
           .update(authPeople)
-          .set({ profileEntityId: input.profileEntityId, updatedAt: now })
+          .set({
+            profileEntityId: input.profileEntityId,
+            ...(subjectDisplayName ? { displayName: subjectDisplayName } : {}),
+            updatedAt: now,
+          })
           .where(eq(authPeople.id, subjectId));
+        if (subjectDisplayName) {
+          await tx
+            .update(authUsers)
+            .set({ displayName: subjectDisplayName, updatedAt: now })
+            .where(eq(authUsers.personId, subjectId));
+        }
       } else {
         subjectId =
           current?.kind === "collective"

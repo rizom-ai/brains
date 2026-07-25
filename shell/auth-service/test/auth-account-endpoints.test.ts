@@ -167,7 +167,7 @@ describe("auth account API", () => {
     await service.close();
   });
 
-  it("updates only the session account and returns redacted channel labels", async () => {
+  it("updates only the session account and returns its verified contact details", async () => {
     const { service } = await createService();
     const admin = await service.createUser({
       displayName: "Anchor",
@@ -221,7 +221,7 @@ describe("auth account API", () => {
     );
     expect(updated.status).toBe(200);
     const updatedText = await updated.text();
-    expect(updatedText).not.toContain("member@example.com");
+    expect(updatedText).toContain("member@example.com");
     expect(updatedText).not.toContain("discord-subject-123");
     expect(updatedText).not.toContain('"userId"');
     const updatedBody = JSON.parse(updatedText);
@@ -230,8 +230,8 @@ describe("auth account API", () => {
         displayName: "Mira Updated",
         role: "trusted",
         connectedChannels: [
-          { type: "email", label: "m••••@example.com" },
-          { type: "discord", label: "M••••••" },
+          { type: "email", label: "member@example.com" },
+          { type: "discord", label: "Mira on Discord" },
         ],
       },
     });
@@ -522,6 +522,81 @@ describe("auth account API", () => {
         targetId: member.userId,
       }),
     );
+    await service.close();
+  });
+
+  it("syncs the Anchor display name from the profile and locks self-edits", async () => {
+    // First boot without a profile resolver: the admin keeps a local name
+    // and becomes the personal Anchor.
+    const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-account-"));
+    tempDirs.push(storageDir);
+    const first = new AuthService({ storageDir, issuer: ISSUER });
+    await first.initialize();
+    const admin = await first.createUser({
+      displayName: "Local Name",
+      role: "admin",
+      status: "active",
+    });
+    const member = await first.createUser({
+      displayName: "Member",
+      role: "trusted",
+      status: "active",
+    });
+    await first.close();
+
+    // Restart with the CMS profile name available: the profile is
+    // authoritative for the Anchor person and projects onto their account.
+    const service = new AuthService({
+      storageDir,
+      issuer: ISSUER,
+      resolveProfileDisplayName: async (): Promise<string | undefined> =>
+        "Ada Lovelace",
+    });
+    await service.initialize();
+
+    const session = await service.createAuthSession(admin.userId);
+    const snapshotResponse = await service.handleRequest(
+      accountRequest("/auth/account", session.cookie),
+    );
+    expect(snapshotResponse.status).toBe(200);
+    const snapshot = (await snapshotResponse.json()) as {
+      account: { displayName: string; profileEntityId?: string };
+    };
+    expect(snapshot.account.displayName).toBe("Ada Lovelace");
+    expect(snapshot.account.profileEntityId).toBe(
+      "anchor-profile/anchor-profile",
+    );
+
+    // The profile-managed name refuses self-service edits...
+    const denied = await service.handleRequest(
+      accountRequest("/auth/account/mutations", session.cookie, {
+        action: "updateDisplayName",
+        confirmation: "updateDisplayName",
+        displayName: "Renamed",
+      }),
+    );
+    expect(denied.status).toBe(400);
+    expect(
+      (await service.listUsers()).find((u) => u.userId === admin.userId)
+        ?.displayName,
+    ).toBe("Ada Lovelace");
+
+    // ...while a non-Anchor member still renames themselves freely.
+    const memberSession = await service.createAuthSession(member.userId);
+    const memberSnapshot = (await (
+      await service.handleRequest(
+        accountRequest("/auth/account", memberSession.cookie),
+      )
+    ).json()) as { account: { profileEntityId?: string } };
+    expect(memberSnapshot.account.profileEntityId).toBeUndefined();
+    const renamed = await service.handleRequest(
+      accountRequest("/auth/account/mutations", memberSession.cookie, {
+        action: "updateDisplayName",
+        confirmation: "updateDisplayName",
+        displayName: "Member Renamed",
+      }),
+    );
+    expect(renamed.status).toBe(200);
     await service.close();
   });
 });
