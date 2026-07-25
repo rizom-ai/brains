@@ -284,6 +284,7 @@
     "ops-dockerfile-reconcile",
     "ops-merge-encrypted-user-secrets",
     "ops-per-user-plaintext-secrets",
+    "ops-per-user-profile-kind",
     "ops-required-images",
     "ops-resolve-missing-images",
     "ops-site-version-default",

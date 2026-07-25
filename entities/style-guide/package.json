@@ -1,6 +1,6 @@
 {
   "name": "@brains/style-guide",
-  "version": "0.2.0-alpha.225",
+  "version": "0.2.0-alpha.226",
   "description": "Singleton style guide for content and image generation",
   "dependencies": {
     "@brains/plugins": "workspace:*",
