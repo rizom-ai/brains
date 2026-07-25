@@ -58,6 +58,7 @@ export interface Plugin {
   readonly packageName: string;
   readonly description?: string;
   readonly dependencies?: string[];
+  finalizeRegistration?(): Promise<void>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;

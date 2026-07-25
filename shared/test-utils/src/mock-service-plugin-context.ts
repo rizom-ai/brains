@@ -4,6 +4,7 @@ import type {
   IEntityService,
   BaseEntity,
   MessageSendRequest,
+  ResolvedProfileSelection,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
@@ -41,6 +42,8 @@ export interface MockServicePluginContextOptions {
   dataDir?: string;
   /** Shared conversation spaces */
   spaces?: string[];
+  /** Composition-selected profile kind, or null for the base profile. */
+  profileSelection?: ResolvedProfileSelection;
   /** Pre-configured return values for methods */
   returns?: MockServicePluginContextReturns;
   /** Dynamic implementation for listEntities */
@@ -111,6 +114,13 @@ export function createMockServicePluginContext(
         Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
       ),
       registerDataSource: mock(() => {}),
+    },
+
+    // Profile-kind composition namespace
+    profileKinds: {
+      register: mock(() => {}),
+      getResolved: mock(() => options.profileSelection ?? null),
+      getSelectedDefinition: mock(() => undefined),
     },
 
     // Identity namespace

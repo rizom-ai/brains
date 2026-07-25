@@ -4,7 +4,8 @@
       "name": "rover",
       "capabilityIds": [
         "prompt",
-        "rover-profile",
+        "profile",
+        "style-guide",
         "image",
         "cms",
         "auth-service",
@@ -211,7 +212,8 @@
           "preset": "core",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -247,8 +249,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -614,7 +625,8 @@
           "preset": "default",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -670,8 +682,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -1229,7 +1250,8 @@
           "preset": "full",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -1292,8 +1314,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -1916,7 +1947,8 @@
           "preset": "default",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -1979,8 +2011,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -2583,6 +2624,8 @@
       "name": "relay",
       "capabilityIds": [
         "prompt",
+        "profile",
+        "style-guide",
         "note",
         "link",
         "image",
@@ -2675,8 +2718,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4445,
-              "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
+              "length": 4680,
+              "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -2772,6 +2815,8 @@
           "preset": "core",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -2798,6 +2843,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -3118,6 +3177,8 @@
           "preset": "default",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -3162,6 +3223,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -3614,8 +3689,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4445,
-                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -3854,6 +3929,8 @@
           "preset": "full",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -3900,6 +3977,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -4362,8 +4453,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4445,
-                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4604,6 +4695,8 @@
       "name": "ranger",
       "capabilityIds": [
         "prompt",
+        "profile",
+        "style-guide",
         "cms",
         "dashboard",
         "atproto-registry",
@@ -4632,8 +4725,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4445,
-              "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
+              "length": 4680,
+              "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4729,6 +4822,8 @@
           "preset": "default",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "cms",
             "dashboard",
             "note",
@@ -4760,6 +4855,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -4889,8 +4998,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4445,
-                      "sha256": "a43de0f2075b707b1baedba0540e0335c8017da399b3768e90a659d258734f5d"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {

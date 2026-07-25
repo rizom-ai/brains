@@ -19,7 +19,7 @@ export const linkedinPostSchema: z.ZodType<LinkedInPost> = z.object({
   content: z
     .string()
     .describe(
-      "The LinkedIn post content. Professional, engaging, and optimized for the LinkedIn algorithm.",
+      "The LinkedIn post content, formatted for readability and engagement on LinkedIn.",
     ),
 });
 
@@ -66,11 +66,9 @@ LinkedIn-specific guidelines:
 5. STRUCTURE: Problem → Insight → Takeaway works well
 6. HASHTAGS: 3-5 relevant hashtags at the end, not inline
 7. CTA: End with a question to drive comments ("What's your experience with...?")
-8. TONE: Professional but personable. Thought leadership, not sales pitch
-9. AVOID: Corporate buzzwords, excessive emojis, "I'm excited to announce"
-10. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
-11. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
-12. POLISH: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
+8. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
+9. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
+10. POLISH: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
 
-The goal is to provide value first - build trust through useful content, not self-promotion.`,
+Follow the supplied style guide for voice, language, positioning, and avoided terms. The goal is to provide value first rather than defaulting to self-promotion.`,
   });

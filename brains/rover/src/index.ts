@@ -41,11 +41,12 @@ import { roverOnboardingPlugin } from "@brains/rover-onboarding";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
+import { styleGuidePlugin } from "@brains/style-guide";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
-import { roverProfilePlugin } from "./profile-extension";
+import { profilePlugin } from "@brains/profile";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
 import { join } from "path";
@@ -67,7 +68,8 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
-  "rover-profile",
+  "profile",
+  "style-guide",
   "image",
   "document",
   "note",
@@ -154,7 +156,8 @@ const roverBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["rover-profile", roverProfilePlugin, {}],
+    ["profile", profilePlugin, { starterIdentity: { anchorKind: "person" } }],
+    ["style-guide", styleGuidePlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],

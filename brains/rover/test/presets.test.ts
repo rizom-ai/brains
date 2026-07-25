@@ -25,12 +25,13 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("atproto");
   });
 
-  it("registers Rover's professional profile extension in every preset", () => {
+  it("registers shared profile and style-guide capabilities in every preset", () => {
     for (const preset of ["core", "default", "full"] as const) {
       const config = resolve(rover, {}, { preset });
       const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
-      expect(pluginIds).toContain("rover-profile");
+      expect(pluginIds).toContain("profile");
+      expect(pluginIds).toContain("style-guide");
     }
   });
 

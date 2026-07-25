@@ -812,6 +812,12 @@ export interface IEntitiesNamespace {
   /** Register a data source for dynamic content */
   registerDataSource(dataSource: DataSource): void;
 
+  /** Register plugin-owned validation that runs before create/update persistence. */
+  registerPersistValidator(
+    entityType: string,
+    validator: PersistValidator,
+  ): void;
+
   /** Register a create interceptor for this plugin's entity type */
   registerCreateInterceptor(
     entityType: string,

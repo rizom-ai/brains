@@ -86,6 +86,7 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("Write about AI"),
           templateName: "blog:generation",
+          representedIdentity: "anchor",
         }),
       );
     });
@@ -151,6 +152,7 @@ describe("BlogGenerationJobHandler", () => {
       expect(mockContext.ai.generate).toHaveBeenCalledWith(
         expect.objectContaining({
           templateName: "blog:excerpt",
+          representedIdentity: "none",
           prompt: expect.stringMatching(
             /My Title.*My content|My content.*My Title/s,
           ),

@@ -100,6 +100,7 @@ export interface InstanceOverrides {
       }
     | undefined;
   name?: string | undefined;
+  kind?: string | undefined;
   logLevel?: "debug" | "info" | "warn" | "error" | undefined;
   logFile?: string | undefined;
   port?: number | undefined;
@@ -172,6 +173,9 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
 
   /** Override instance name */
   name: z.string().optional(),
+
+  /** Optional semantic profile kind selected from the composed catalog */
+  kind: z.string().trim().min(1).optional(),
 
   /** Log level */
   logLevel: overrideLogLevelSchema.optional(),

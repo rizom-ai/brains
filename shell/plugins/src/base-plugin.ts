@@ -256,6 +256,20 @@ export abstract class BasePlugin<
   }
 
   /**
+   * Lifecycle hook called after every plugin has registered but before initial
+   * content discovery. Override for composition finalization that must precede
+   * imported entity validation.
+   */
+  protected async onRegistrationComplete(_context: TContext): Promise<void> {
+    // Default implementation does nothing
+  }
+
+  /** Dispatch the post-registration lifecycle hook. */
+  public async finalizeRegistration(): Promise<void> {
+    await this.onRegistrationComplete(this.getContext());
+  }
+
+  /**
    * Lifecycle hook called after all plugins have registered and the shell has
    * completed ready-state preparation.
    * Override this for work that reads identity/profile or depends on other

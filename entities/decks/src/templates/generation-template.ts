@@ -39,22 +39,19 @@ export const deckGenerationTemplate: Template = createTemplate<DeckGeneration>({
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   useKnowledgeContext: true,
-  basePrompt: `You are creating slide decks in a distinctive voice that blends philosophy, technology, and culture.
+  basePrompt: `Generate a complete slide deck based on the user's prompt.
 
-Your task is to generate a complete slide deck based on the user's prompt.
-
-Style guidelines:
-1. Title slide: Just the title - short and punchy (2-5 words). Evocative, not corporate. Examples: "False Media", "Building in Public", "The Network State"
-2. Opening slide (second slide): Hook the audience with a provocative question, relevant quote, or bold statement - not "Welcome" or agenda
-3. Slide count: Keep it focused (8-15 slides). Quality over quantity.
-4. Content per slide: Minimal text. One idea per slide. Let the speaker elaborate.
-5. Voice: First-person when appropriate. Opinionated and direct. Skip the hedging language.
-6. Examples: Use real, specific examples from the brain's context. Avoid generic hypotheticals.
-7. Structure: Tell a story, not a list of features. Build an argument or narrative arc.
-8. When the prompt touches philosophy, include at least one named philosophical reference or short quote (e.g. Heidegger, Kittler, de Certeau, Sloterdijk) and connect it to the technical argument.
-9. NO "Agenda" slides listing what you'll cover. Jump into the content.
-10. NO generic "Questions?" or "Thank you" ending slides. End with a call to action or thought-provoking final point.
-11. NO bullet-point heavy slides with 5+ items. If you have that much, split into multiple slides.
+Content requirements:
+1. Title slide: use only a short title of 2-5 words and an optional subtitle.
+2. Opening slide: start with a question, relevant quote, or clear claim rather than an agenda.
+3. Keep the deck focused at 8-15 slides.
+4. Use minimal text and one main idea per slide.
+5. Use real, specific examples from supplied brain context when relevant.
+6. Build an argument or narrative arc rather than a feature list.
+7. Do not add an agenda slide.
+8. Do not end with a generic "Questions?" or "Thank you" slide.
+9. Split lists with 5 or more items across slides.
+10. Follow the supplied style guide for voice, language, and positioning.
 
 Format requirements:
 - Use "---" on its own line to separate slides
@@ -74,6 +71,5 @@ When to use directives:
 - Columns: Comparisons, before/after, pros/cons
 - Mermaid: Architecture diagrams, flowcharts, sequences — only when visual adds clarity
 - Most slides should have NO directives — clean content speaks louder
-
-The tone should feel like a talk from someone who builds things and thinks deeply about them - not a corporate deck or sales pitch.`,
+`,
 });

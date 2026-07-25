@@ -62,7 +62,7 @@ function createAgentCard(
       extensions: [
         {
           uri: "https://rizom.ai/ext/anchor-profile/v1",
-          params: { name, kind: "team" },
+          params: { name, kind: "team", category: "team" },
         },
       ],
     },

@@ -17,4 +17,18 @@ describe("RizomEcosystemPlugin", () => {
       "ecosystem-section",
     );
   });
+
+  it("registers the Rizom-specific collective profile kind", async () => {
+    const harness = createPluginHarness({ profileKind: "collective" });
+    await harness.installPlugin(new RizomEcosystemPlugin());
+    await harness.finalizeRegistration();
+
+    expect(
+      harness.getMockShell().getProfileKindRegistry().getResolved(),
+    ).toEqual({
+      kind: "collective",
+      category: "organization",
+      labels: { singular: "Collective", plural: "Collectives" },
+    });
+  });
 });

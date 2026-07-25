@@ -10,7 +10,7 @@ describe("buildProximityMapData", () => {
       createTestAgent({
         id: "alpha",
         name: "Alpha",
-        kind: "professional",
+        kind: "person",
         status: "approved",
       }),
       createTestAgent({
@@ -90,7 +90,7 @@ describe("buildProximityMapData", () => {
       {
         id: "alpha",
         name: "Alpha",
-        kind: "professional",
+        kind: "person",
         status: "approved",
         tags: ["blog", "writing"],
         distance: 0.4,
@@ -108,7 +108,7 @@ describe("buildProximityMapData", () => {
       {
         id: "old",
         name: "Old Agent",
-        kind: "professional",
+        kind: "person",
         status: "archived",
         tags: ["blog", "writing"],
         distance: 0.5,

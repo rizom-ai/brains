@@ -9,6 +9,8 @@ export const SYSTEM_CHANNELS = {
   pluginsRegistered: "system:plugins:registered",
   /** Emitted by directory-sync after startup import has completed. */
   initialSyncCompleted: "sync:initial:completed",
+  /** Emitted after shell boot completes and guarded shell APIs are available. */
+  shellReady: "system:shell:ready",
 } as const;
 
 export type SystemChannelName =

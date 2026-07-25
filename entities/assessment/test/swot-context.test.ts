@@ -44,7 +44,7 @@ function makeAgent(input: {
   id: string;
   brainName: string;
   status: "approved" | "discovered";
-  kind?: "professional" | "team" | "collective";
+  kind?: "person" | "team" | "organization";
   skills: Array<{ name: string; description: string; tags: string[] }>;
 }): AgentEntity {
   return {
@@ -55,7 +55,7 @@ function makeAgent(input: {
       brainName: input.brainName,
       url: `https://${input.id}`,
       status: input.status,
-      kind: input.kind ?? "professional",
+      kind: input.kind ?? "person",
       discoveredAt: new Date().toISOString(),
       about: "",
       notes: "",
@@ -75,6 +75,20 @@ function makeAgent(input: {
 }
 
 describe("buildSwotContextFromEntities", () => {
+  it("uses the resolved structural profile category when supplied", () => {
+    const context = buildSwotContextFromEntities({
+      agents: [],
+      skills: [],
+      identity: {
+        brainName: "Relay",
+        profileName: "Relay Team",
+        profileCategory: "team",
+      },
+    });
+
+    expect(context.selfProfile.category).toBe("team");
+  });
+
   it("counts approved coverage but excludes discovered agents from strength coverage", () => {
     const skills = [
       makeSkill({

@@ -47,22 +47,18 @@ export const blogGenerationTemplate: ReturnType<
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   useKnowledgeContext: true,
-  basePrompt: `You are writing blog posts in a distinctive voice that blends philosophy, technology, and culture.
-
-Your task is to generate a complete blog post based on the user's prompt.
+  basePrompt: `Generate a complete blog post from the user's prompt.
 
 Always return non-empty values for title, content, and excerpt. Never return empty strings or placeholder-only output.
 
-Style guidelines:
-1. Title: Short and punchy (2-4 words). Evocative, not SEO-optimized. Examples: "False Media", "Foam Party", "The Low End Theory"
-2. Opening: Start with a relevant quote - song lyrics (hip-hop, funk, etc.) or a philosopher/thinker quote in blockquote format
-3. Length: Keep it focused and concise (30-80 lines). Quality over quantity.
-4. Structure: Prefer flowing narrative over heavy subheading structure. Use headers sparingly, not for every paragraph.
-5. Voice: First-person when appropriate. Playful and witty with occasional humor. Opinionated.
-6. Examples: Use real, specific examples from the brain's context. Avoid generic hypotheticals like "imagine a company that..."
-7. References: Draw on existing projects and ideas from the brain's knowledge when relevant.
-8. NO "Key Takeaways" or summary bullet points at the end. Let the piece end naturally.
-9. NO over-structuring with many subheadings like "### For Organizations" or "### Practical Implications"
+Format requirements:
+1. Use a short title of 2-4 words.
+2. Keep the post focused and concise at roughly 30-80 lines.
+3. Prefer flowing narrative over a subheading for every paragraph.
+4. Use real, specific examples from the supplied brain context when relevant.
+5. Draw on existing projects and ideas from the knowledge context when relevant.
+6. Do not add a generic "Key Takeaways" section or summary bullets at the end.
+7. Avoid excessive subheading structure.
 
-The tone should feel like a thoughtful essay from someone who builds things and thinks deeply about them - not a consulting whitepaper or content marketing piece.`,
+Follow the supplied style guide for voice, language, and positioning.`,
 });

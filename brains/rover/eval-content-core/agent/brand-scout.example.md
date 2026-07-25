@@ -1,6 +1,6 @@
 ---
 name: Brand Scout
-kind: professional
+kind: person
 brainName: Brand Scout
 url: "https://brand-scout.example/a2a"
 status: discovered

@@ -19,6 +19,7 @@ export function createDefaultUserRunner(
 function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   const lines = [
     `brain: ${user.model}`,
+    "kind: professional",
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
     ...renderAddConfig(user),
@@ -164,7 +165,6 @@ function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
 
 function renderAnchorProfile(user: ResolvedUser): string {
   const frontmatter: Record<string, unknown> = {
-    kind: "professional",
     name: user.anchorProfile.name,
     ...(user.anchorProfile.description
       ? { description: user.anchorProfile.description }

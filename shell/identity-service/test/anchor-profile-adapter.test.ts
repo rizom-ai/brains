@@ -59,6 +59,7 @@ describe("AnchorProfileAdapter", () => {
       expect(adapter.frontmatterSchema.shape).toHaveProperty("name");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("description");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("socialLinks");
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("kind");
     });
 
     it("should be a singleton", () => {
@@ -74,7 +75,6 @@ describe("AnchorProfileAdapter", () => {
     it("should convert profile entity to frontmatter format", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",
-        kind: "collective",
         description: "Open-source collective building privacy-first tools",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -104,11 +104,23 @@ describe("AnchorProfileAdapter", () => {
       expect(markdown).toContain("linkedin");
     });
 
-    it("should handle optional fields correctly", () => {
-      const content = adapter.createProfileContent({
-        name: "John Doe",
-        kind: "professional",
+    it("preserves authored extension fields during serialization", () => {
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
+        content:
+          "---\nname: Ada\nmediums:\n  - sculpture\ncustomField: authored\n---\n\nStory\n",
       });
+
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("mediums:");
+      expect(markdown).toContain("sculpture");
+      expect(markdown).toContain("customField: authored");
+      expect(markdown).toContain("Story");
+    });
+
+    it("should handle optional fields correctly", () => {
+      const content = adapter.createProfileContent({ name: "John Doe" });
 
       const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
         id: "anchor-profile",
@@ -126,7 +138,7 @@ describe("AnchorProfileAdapter", () => {
     it("should parse frontmatter format to profile body", () => {
       const markdown = `---
 name: Rizom
-kind: collective
+kind: organization
 description: Open-source collective
 website: https://rizom.ai
 email: contact@rizom.ai
@@ -151,6 +163,20 @@ socialLinks:
       });
     });
 
+    it("tolerates and strips transitional content kind", () => {
+      const markdown = `---
+name: Rizom
+kind: collective
+description: Open-source collective
+---
+`;
+
+      expect(adapter.parseProfileBody(markdown)).toEqual({
+        name: "Rizom",
+        description: "Open-source collective",
+      });
+    });
+
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
@@ -166,7 +192,7 @@ socialLinks:
     it("should parse with an extended schema and map body to story", () => {
       const markdown = `---
 name: Yeehaa
-kind: professional
+kind: person
 description: Developer
 tagline: Building tools for thought
 expertise:
@@ -216,7 +242,6 @@ description: Open-source collective
     it("should extract name, email, and website as metadata", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",
-        kind: "collective",
         description: "Open-source collective",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -244,7 +269,6 @@ description: Open-source collective
     it("should generate frontmatter string from entity", () => {
       const content = adapter.createProfileContent({
         name: "Test",
-        kind: "professional",
         website: "https://test.com",
       });
 
@@ -264,7 +288,7 @@ description: Open-source collective
     it("should parse frontmatter from markdown", () => {
       const markdown = `---
 name: Rizom
-kind: collective
+kind: organization
 website: https://rizom.ai
 ---
 `;
@@ -282,7 +306,6 @@ website: https://rizom.ai
     it("should preserve data through createProfileContent and parseProfileBody", () => {
       const originalData = {
         name: "Rizom",
-        kind: "collective" as const,
         description: "Open-source collective building privacy-first tools",
         website: "https://rizom.ai",
         email: "contact@rizom.ai",
@@ -315,7 +338,7 @@ website: https://rizom.ai
     });
 
     it("should preserve data with only required fields", () => {
-      const originalData = { name: "John Doe", kind: "professional" as const };
+      const originalData = { name: "John Doe" };
 
       const content = adapter.createProfileContent(originalData);
       const parsed = adapter.parseProfileBody(content);

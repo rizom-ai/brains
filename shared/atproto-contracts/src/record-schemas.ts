@@ -187,7 +187,7 @@ function refineBrainCardRecord(
   if (isRecord(value["anchor"])) {
     reportUnexpectedFields(
       value["anchor"],
-      new Set(["did", "name", "kind"]),
+      new Set(["did", "name", "category", "kind"]),
       ctx,
       ["anchor"],
     );

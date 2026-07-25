@@ -1,7 +1,9 @@
 import { z } from "@brains/utils/zod";
 import {
   type AnchorProfile,
+  type ProfileCategory,
   anchorProfileBodySchema,
+  profileCategorySchema,
 } from "@brains/identity-service";
 
 /**
@@ -26,8 +28,25 @@ export const agentCardSkillSchema: z.ZodObject<{
   tags: z.array(z.string()).optional().default([]),
 });
 
-export const anchorExtensionParamsSchema: z.ZodType<AnchorProfile> =
-  anchorProfileBodySchema;
+export interface AnchorExtensionProfile extends AnchorProfile {
+  kind?: string | undefined;
+  category?: ProfileCategory | undefined;
+}
+
+export const anchorExtensionParamsSchema: z.ZodType<AnchorExtensionProfile> =
+  anchorProfileBodySchema
+    .extend({
+      kind: z.string().trim().min(1).optional(),
+      category: profileCategorySchema.optional(),
+    })
+    .superRefine((value, ctx) => {
+      if ((value.kind === undefined) !== (value.category === undefined)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Anchor kind and category must be provided together",
+        });
+      }
+    });
 
 const extensionSchema: z.ZodObject<{
   uri: z.ZodString;
@@ -74,7 +93,7 @@ export interface ParsedAgentCard {
     description: string;
     tags: string[];
   }>;
-  anchor: AnchorProfile | null;
+  anchor: AnchorExtensionProfile | null;
 }
 
 /**
@@ -89,7 +108,9 @@ export function parseAgentCard(data: unknown): ParsedAgentCard | null {
   const card = parsed.data;
 
   const extensions = card.capabilities?.extensions ?? [];
-  const anchorExt = extensions.find((e) => e.uri === ANCHOR_EXTENSION_URI);
+  const anchorExt = extensions.find(
+    (extension) => extension.uri === ANCHOR_EXTENSION_URI,
+  );
 
   let anchor: ParsedAgentCard["anchor"] = null;
   if (anchorExt?.params) {

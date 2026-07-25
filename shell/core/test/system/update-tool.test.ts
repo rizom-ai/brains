@@ -39,7 +39,7 @@ describe("system_update tool", () => {
         id: "old-agent.io",
         entityType: "agent",
         content:
-          "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
+          "---\nname: Old Agent\nkind: person\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-1",
         visibility: "public",
         metadata: {
@@ -54,7 +54,7 @@ describe("system_update tool", () => {
         id: "approved-agent.io",
         entityType: "agent",
         content:
-          "---\nname: Approved Agent\nkind: professional\nurl: https://approved-agent.io/a2a\nstatus: approved\ndiscoveredAt: 2026-03-11T09:00:00.000Z\ndiscoveredVia: manual\n---\n",
+          "---\nname: Approved Agent\nkind: person\nurl: https://approved-agent.io/a2a\nstatus: approved\ndiscoveredAt: 2026-03-11T09:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-approved",
         visibility: "public",
         metadata: {
@@ -69,7 +69,7 @@ describe("system_update tool", () => {
         id: "pending-agent.io",
         entityType: "agent",
         content:
-          "---\nname: Pending Agent\nkind: professional\nurl: https://pending-agent.io/a2a\nstatus: discovered\ndiscoveredAt: 2026-03-11T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
+          "---\nname: Pending Agent\nkind: person\nurl: https://pending-agent.io/a2a\nstatus: discovered\ndiscoveredAt: 2026-03-11T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-2",
         visibility: "public",
         metadata: {
@@ -525,7 +525,7 @@ describe("system_update tool", () => {
 
   it("re-parses visibility from frontmatter on full content replacement", async () => {
     const newMarkdown =
-      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";
+      "---\nname: Old Agent\nkind: person\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";
 
     const result = await exec({
       entityType: "agent",
@@ -554,7 +554,7 @@ describe("system_update tool", () => {
     }
 
     const newMarkdown =
-      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n";
+      "---\nname: Old Agent\nkind: person\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n";
 
     const result = await exec({
       entityType: "agent",
@@ -872,10 +872,10 @@ describe("system_update tool", () => {
         id: "anchor-profile",
         entityType: "anchor-profile",
         content:
-          "---\nname: Alex Chen\nkind: professional\nrole: architect\naudience: builders\nexpertise:\n  - systems\ndesiredTone: clear\n---\n",
+          "---\nname: Alex Chen\nkind: person\nrole: architect\naudience: builders\nexpertise:\n  - systems\navailability: advisory\n---\n",
         contentHash: "hash-anchor-profile",
         visibility: "public",
-        metadata: { name: "Alex Chen", kind: "professional" },
+        metadata: { name: "Alex Chen", kind: "person" },
         created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
       },
@@ -888,11 +888,11 @@ describe("system_update tool", () => {
         type === "anchor-profile"
           ? z.object({
               name: z.string(),
-              kind: z.enum(["professional", "team", "collective"]),
+              kind: z.enum(["person", "team", "organization"]),
               role: z.string(),
               audience: z.string(),
               expertise: z.array(z.string()),
-              desiredTone: z.string(),
+              availability: z.string(),
             })
           : originalRegistry.getEffectiveFrontmatterSchema(type),
     } as typeof services.entityRegistry;
@@ -902,7 +902,7 @@ describe("system_update tool", () => {
       entityType: "anchor-profile",
       id: "anchor-profile",
       content:
-        "---\nname: Yeehaa\nkind: professional\nrole: \naudience: \nexpertise:\n  - \ndesiredTone: \n---\n",
+        "---\nname: Yeehaa\nkind: person\nrole: \naudience: \nexpertise:\n  - \navailability: \n---\n",
     });
 
     expect(result).toEqual({

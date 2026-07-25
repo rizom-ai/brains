@@ -56,6 +56,7 @@ export type {
   EntityAdapter,
   EntitySchema,
   EntitySchemaParser,
+  FrontmatterSchema,
   ListOptions,
   SearchOptions,
   GetEntityRequest,

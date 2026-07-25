@@ -27,6 +27,8 @@ import { imagePlugin } from "@brains/image-plugin";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { decksPlugin } from "@brains/decks";
 import { docsPlugin } from "@brains/doc";
+import { profilePlugin } from "@brains/profile";
+import { styleGuidePlugin } from "@brains/style-guide";
 import { promptPlugin } from "@brains/prompt";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
@@ -64,6 +66,8 @@ import packageJson from "../package.json" with { type: "json" };
 // does not require site-builder or preview/public-site behavior.
 const core = [
   "prompt",
+  "profile",
+  "style-guide",
   "directory-sync",
   "note",
   "link",
@@ -128,6 +132,8 @@ const relayBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
+    ["profile", profilePlugin, { starterIdentity: { anchorKind: "team" } }],
+    ["style-guide", styleGuidePlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["image", imagePlugin, undefined],

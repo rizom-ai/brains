@@ -10,6 +10,9 @@ export interface GenerationContext {
   prompt?: string | undefined;
   conversationHistory?: string | undefined;
   data?: Record<string, unknown> | undefined;
+  representedIdentity?: "brain" | "anchor" | "none" | undefined;
+  styleGuide?:
+    { voice?: string | undefined; visual?: string | undefined } | undefined;
   templateName: string;
 }
 
@@ -18,6 +21,13 @@ const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
     prompt: z.string().optional(),
     conversationHistory: z.string().optional(),
     data: z.record(z.string(), z.unknown()).optional(),
+    representedIdentity: z.enum(["brain", "anchor", "none"]).optional(),
+    styleGuide: z
+      .object({
+        voice: z.string().optional(),
+        visual: z.string().optional(),
+      })
+      .optional(),
     templateName: z.string(),
   });
 
@@ -112,7 +122,7 @@ export class AIContentDataSource implements DataSource {
       relevantEntities,
     );
 
-    const systemPrompt = this.buildSystemPrompt(basePrompt);
+    const systemPrompt = this.buildSystemPrompt(basePrompt, context);
 
     if (!isAIGenerationSchema(template.schema)) {
       throw new Error(
@@ -129,17 +139,44 @@ export class AIContentDataSource implements DataSource {
     return schema.parse(result.object);
   }
 
-  private buildSystemPrompt(templateBasePrompt: string): string {
-    return [
-      "# Your Identity",
-      this.getIdentityContent(),
-      "",
-      "# About the Person You Represent",
-      this.getProfileContent(),
-      "",
-      "# Instructions",
-      templateBasePrompt,
-    ].join("\n");
+  private buildSystemPrompt(
+    templateBasePrompt: string,
+    context: GenerationContext,
+  ): string {
+    const sections: string[] = [];
+
+    if (
+      context.representedIdentity === undefined ||
+      context.representedIdentity === "brain" ||
+      context.representedIdentity === "anchor"
+    ) {
+      sections.push("# Brain Identity", this.getIdentityContent(), "");
+    }
+    if (
+      context.representedIdentity === undefined ||
+      context.representedIdentity === "anchor"
+    ) {
+      sections.push("# Represented Anchor", this.getProfileContent(), "");
+    }
+    const styleGuidance = this.selectStyleGuidance(context);
+    if (styleGuidance) {
+      sections.push("# Style Guide", styleGuidance, "");
+    }
+    sections.push("# Instructions", templateBasePrompt);
+    return sections.join("\n");
+  }
+
+  private selectStyleGuidance(context: GenerationContext): string {
+    if (!context.styleGuide) return "";
+
+    const sections: string[] = [];
+    if (context.styleGuide.voice) {
+      sections.push("## Voice", context.styleGuide.voice);
+    }
+    if (context.styleGuide.visual) {
+      sections.push("## Visual", context.styleGuide.visual);
+    }
+    return sections.join("\n");
   }
 
   private async buildPrompt(

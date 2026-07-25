@@ -1,4 +1,5 @@
 ---
+represents: anchor
 title: Your Corner of the Internet
 description: A brain-powered site that grows with you
 themeMode: light

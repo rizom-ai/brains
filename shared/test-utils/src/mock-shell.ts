@@ -60,7 +60,11 @@ import type {
 } from "@brains/runtime-state";
 import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
-import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
+import {
+  ProfileKindRegistry,
+  type BrainCharacter,
+  type AnchorProfile,
+} from "@brains/identity-service";
 import type {
   AgentResponse,
   IAgentService,
@@ -99,6 +103,8 @@ export interface MockShellOptions {
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
+  /** Optional composition-selected semantic profile kind */
+  profileKind?: string;
   /** Active resolved theme CSS */
   themeCSS?: string;
 }
@@ -214,6 +220,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     dataDir: options.dataDir ?? "/tmp/mock-shell-test-data",
   });
   const runtimeState = createMemoryRuntimeStateNamespace();
+  const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -299,8 +306,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
-    createEntity: async (request: { entity: BaseEntity }) => {
-      const entity = request.entity;
+    createEntity: async (request: {
+      entity: Omit<BaseEntity, "visibility"> & {
+        visibility?: BaseEntity["visibility"];
+      };
+    }) => {
+      const entity = {
+        ...request.entity,
+        visibility: request.entity.visibility ?? "public",
+      } satisfies BaseEntity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const { content, metadata } = serializeViaAdapter({ ...entity, id });
@@ -309,6 +323,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         id,
         content,
         metadata,
+        visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
       return { entityId: id, jobId: `job-${id}`, skipped: false };
@@ -442,6 +457,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         id,
         content,
         metadata,
+        visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
       return {
@@ -771,9 +787,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
     getProfile: (): AnchorProfile => ({
       name: "Test Owner",
-      kind: "professional",
       description: "Test profile for unit tests",
     }),
+    getProfileKindRegistry: () => profileKindRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

@@ -27,7 +27,7 @@ input:
 
   agents:
     - name: Deep Current
-      kind: professional
+      kind: person
       brainName: deep-current
       url: https://deep-current.example.com
       status: approved
@@ -57,7 +57,7 @@ input:
       notes: Approved and adjacent.
 
     - name: Visual Drift
-      kind: professional
+      kind: person
       brainName: visual-drift
       url: https://visual-drift.example.com
       status: discovered

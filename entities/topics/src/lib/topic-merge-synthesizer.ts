@@ -35,6 +35,7 @@ export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
 
     return this.context.ai.generate<TopicMergeSynthesisResult>({
       templateName: "topics:merge-synthesis",
+      representedIdentity: "none",
       prompt: `Canonical topic candidate:
 Title: ${existingParsed.title}
 Content:

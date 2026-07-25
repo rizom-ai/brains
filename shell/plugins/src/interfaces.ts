@@ -52,8 +52,11 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
-import type { BrainCharacter } from "@brains/identity-service";
-import type { AnchorProfile } from "@brains/identity-service";
+import type {
+  AnchorProfile,
+  BrainCharacter,
+  IProfileKindRegistry,
+} from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
@@ -306,6 +309,7 @@ export interface IShell {
   // Identity and Profile
   getIdentity(): BrainCharacter;
   getProfile(): AnchorProfile;
+  getProfileKindRegistry(): IProfileKindRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;
@@ -470,6 +474,7 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
     shell: IShell,
     context?: PluginRegistrationContext,
   ): Promise<PluginCapabilities>;
+  finalizeRegistration?(): Promise<void>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;
@@ -478,11 +483,18 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
 /**
  * Content generation configuration - unified config object
  */
+export interface GenerationStyleGuide {
+  voice?: string;
+  visual?: string;
+}
+
 export interface ContentGenerationConfig {
   prompt: string;
   templateName: string;
   conversationHistory?: string;
   data?: Record<string, unknown>;
+  representedIdentity?: "brain" | "anchor" | "none";
+  styleGuide?: GenerationStyleGuide;
   interfacePermissionGrant?: UserPermissionLevel;
 }
 

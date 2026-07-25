@@ -1,4 +1,4 @@
-import { fetchAnchorProfileData } from "@brains/plugins";
+import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
   DataSource,

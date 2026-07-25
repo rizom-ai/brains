@@ -5,6 +5,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { professionalProfileSchema } from "@brains/profile";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
@@ -36,40 +37,6 @@ const siteInfoCTASchema = z.object({
   heading: z.string(),
   buttonText: z.string(),
   buttonLink: z.string(),
-});
-
-const professionalProfileSchema = z.looseObject({
-  name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
-  organization: z.string().optional(),
-  description: z.string().optional(),
-  avatar: z.string().optional(),
-  website: z.string().optional(),
-  email: z.string().optional(),
-  socialLinks: z
-    .array(
-      z.object({
-        platform: z.enum([
-          "github",
-          "instagram",
-          "linkedin",
-          "email",
-          "website",
-        ]),
-        url: z.string(),
-        label: z.string().optional(),
-      }),
-    )
-    .optional(),
-  tagline: z.string().optional(),
-  intro: z.string().optional(),
-  story: z.string().optional(),
-  role: z.string().optional(),
-  audience: z.string().optional(),
-  expertise: z.array(z.string()).optional(),
-  currentFocus: z.string().optional(),
-  availability: z.string().optional(),
-  desiredTone: z.string().optional(),
 });
 
 const blogPostSchema = z.looseObject({

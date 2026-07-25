@@ -61,6 +61,27 @@ describe("Startup Initialization Order", () => {
       );
     });
 
+    it("should finalize profile composition before initial sync", () => {
+      const source = readFileSync(shellBootloaderPath, "utf-8");
+      const initializePluginsIndex = source.indexOf(
+        "shellInitializer.initializeAll",
+      );
+      const finalizeCatalogIndex = source.indexOf(
+        "profileKindRegistry.finalize()",
+      );
+      const finalizePluginsIndex = source.indexOf(
+        "pluginManager.finalizePluginRegistrations()",
+      );
+      const pluginsRegisteredIndex = source.indexOf(
+        "this.emitPluginsRegistered()",
+      );
+
+      expect(initializePluginsIndex).toBeGreaterThan(-1);
+      expect(finalizeCatalogIndex).toBeGreaterThan(initializePluginsIndex);
+      expect(finalizePluginsIndex).toBeGreaterThan(finalizeCatalogIndex);
+      expect(pluginsRegisteredIndex).toBeGreaterThan(finalizePluginsIndex);
+    });
+
     it("should initialize identity services after plugins-registered sync and before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 

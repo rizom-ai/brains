@@ -6,6 +6,7 @@
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

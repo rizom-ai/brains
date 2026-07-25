@@ -136,7 +136,7 @@ export async function upsertAgentFromCard(
   const url = existing?.metadata.url ?? record.siteUrl;
   const slug = existing?.metadata.slug ?? slugifyUrl(url);
   const name = record.anchor.name;
-  const kind = record.anchor.kind;
+  const kind = record.anchor.category;
   const discoveredAt = existing?.metadata.discoveredAt ?? now;
   const cardObservedAt = record.updatedAt ?? record.createdAt;
   const about =

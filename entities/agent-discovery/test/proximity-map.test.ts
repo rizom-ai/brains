@@ -11,7 +11,7 @@ function node(id: string, tags: string[], bearing = 0): ProximityMapNode {
   return {
     id,
     name: id,
-    kind: "professional",
+    kind: "person",
     status: "approved",
     tags,
     distance: 0.25,

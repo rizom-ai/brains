@@ -99,7 +99,7 @@
     "anchor": {
       "type": "object",
       "description": "Minimal owner/operator snapshot for discovery grouping and display.",
-      "required": ["did", "name", "kind"],
+      "required": ["did", "name", "category", "kind"],
       "properties": {
         "did": {
           "type": "string",
@@ -110,10 +110,15 @@
           "maxLength": 200,
           "description": "Human-readable anchor name."
         },
+        "category": {
+          "type": "string",
+          "knownValues": ["person", "team", "organization"],
+          "description": "Stable structural category for discovery and grouping."
+        },
         "kind": {
           "type": "string",
-          "knownValues": ["professional", "team", "collective"],
-          "description": "Anchor type."
+          "maxLength": 200,
+          "description": "Open semantic profile kind selected by the publishing brain."
         }
       }
     },

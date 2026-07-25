@@ -16,6 +16,7 @@ export {
 export type {
   AtprotoBlobRef,
   AtprotoBrainCardAnchor,
+  AtprotoProfileCategory,
   AtprotoBrainCardBrain,
   AtprotoBrainCardRecord,
   AtprotoBrainCardSkill,
@@ -30,7 +31,6 @@ export type {
   CanonicalAtprotoRecord,
   CanonicalAtprotoRecordMap,
 } from "./records";
-export { normalizeDiscoveredBrainCard } from "./records";
 export {
   buildAtprotoRecordSchema,
   canonicalAtprotoRecordSchemas,

@@ -7,6 +7,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

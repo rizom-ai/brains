@@ -37,7 +37,6 @@ import {
   atprotoBrainCardDiscoveredPayloadSchema,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
-  normalizeDiscoveredBrainCard,
   validateAtprotoRecord,
   type AtprotoBrainCardRecord,
   type AtprotoProjectedPostRecord,
@@ -580,11 +579,8 @@ export class AtprotoPlugin extends ServicePlugin<
           );
         }
 
-        // Peers on other fleet versions may publish renamed anchor kinds;
-        // convert to this build's vocabulary before validating and storing.
-        const cardValue = normalizeDiscoveredBrainCard(record.value);
         try {
-          validateAtprotoRecord(brainCardLexicon, cardValue);
+          validateAtprotoRecord(brainCardLexicon, record.value);
         } catch (error) {
           throw new DiscoveryRejectionError(getErrorMessage(error));
         }
@@ -592,7 +588,7 @@ export class AtprotoPlugin extends ServicePlugin<
           repoDid: resolved.repoDid,
           uri: record.uri,
           cid: record.cid,
-          record: cardValue,
+          record: record.value,
         }).record;
         await this.verifyBrainCardIdentity(resolved.repoDid, validatedCard);
         const created = await this.applyDiscoveryAdmission(

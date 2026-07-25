@@ -74,6 +74,7 @@ describe("agent card excludes non-public skills", () => {
 
     const plugin = new A2AInterface({ port: 0 });
     await harness.installPlugin(plugin);
+    harness.getMockShell().getProfileKindRegistry().finalize();
     await plugin.ready();
 
     const card = plugin.getAgentCard();

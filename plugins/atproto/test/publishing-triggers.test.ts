@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell as createBaseMockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
   AtprotoPlugin,
@@ -9,6 +10,23 @@ import {
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
+
+function createMockShell(
+  options: Parameters<typeof createBaseMockShell>[0] = {},
+): ReturnType<typeof createBaseMockShell> {
+  const shell = createBaseMockShell({
+    ...options,
+    profileKind: "collective",
+  });
+  shell.getProfileKindRegistry().register("test", {
+    kind: "collective",
+    category: "organization",
+    fields: z.object({}),
+    labels: { singular: "Collective", plural: "Collectives" },
+  });
+  shell.getProfileKindRegistry().finalize();
+  return shell;
+}
 
 async function settleTicks(count = 20): Promise<void> {
   for (let i = 0; i < count; i += 1) {
@@ -179,7 +197,6 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
       name: "Ready Anchor",
-      kind: "collective",
       description: "Loaded profile",
     });
 
@@ -203,6 +220,7 @@ describe("AT Protocol ambient publishing triggers", () => {
           }),
           anchor: expect.objectContaining({
             name: "Ready Anchor",
+            category: "organization",
             kind: "collective",
           }),
         }),

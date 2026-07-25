@@ -34,7 +34,9 @@ The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqun
 
 ### 2. Jetstream known-peer monitoring (Phase 4 tail) — correction required before canary
 
-`0.2.0-alpha.224` shipped the transport and hardening work but coupled `jetstream.enabled` to automatic unknown-agent enrollment. That is the wrong product boundary. Publishing a public brain card grants protocol-level discoverability; it does **not** grant membership in every receiving brain's agent directory. Enabling transport must not silently enable admission.
+The bounded discovery pipeline is implemented end to end: `discoverBrainCards` resolves a repo, reads and validates the current `{ kind, category }` anchor shape, and broadcasts `atproto:brain-card:discovered`. The coordinated two-card maintenance cutover in [identity-profiles-and-expression.md](./identity-profiles-and-expression.md) removes cross-shape normalization.
+
+`0.2.0-alpha.224` shipped the Jetstream transport and hardening work but coupled `jetstream.enabled` to automatic unknown-agent enrollment. That is the wrong product boundary. Publishing a public brain card grants protocol-level discoverability; it does **not** grant membership in every receiving brain's agent directory. Enabling transport must not silently enable admission.
 
 The corrected first use of Jetstream is a change feed for **already-known repo DIDs**:
 

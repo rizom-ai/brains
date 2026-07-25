@@ -12,7 +12,7 @@ import type { SiteInfoCTA } from "../schemas/site-info-schema";
  * shape they return; these helpers cover the fetch/guard steps every site
  * repeats, so each datasource is left with only its own composition.
  * Profile fetch+parse is covered by `fetchAnchorProfileData` in
- * `@brains/plugins`.
+ * `@brains/profile`.
  */
 
 /** The scoped entity service datasources receive on their fetch context. */

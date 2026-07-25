@@ -19,6 +19,8 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { analyticsPlugin } from "@brains/analytics";
 import { cmsPlugin } from "@brains/cms";
 import { productsPlugin } from "@brains/products";
+import { profilePlugin } from "@brains/profile";
+import { styleGuidePlugin } from "@brains/style-guide";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -50,6 +52,8 @@ const rangerBrain: BrainDefinition = defineBrain({
   presets: {
     default: [
       "prompt",
+      "profile",
+      "style-guide",
       "cms",
       "dashboard",
       "note",
@@ -72,6 +76,12 @@ const rangerBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
+    [
+      "profile",
+      profilePlugin,
+      { starterIdentity: { anchorKind: "organization" } },
+    ],
+    ["style-guide", styleGuidePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["atproto-registry", atprotoRegistryPlugin, {}],
