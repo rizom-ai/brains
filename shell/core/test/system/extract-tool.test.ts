@@ -3,6 +3,23 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
+import { z } from "@brains/utils/zod";
+
+const confirmationArgsSchema = z.record(z.string(), z.unknown());
+
+function expectConfirmationArgs(result: unknown): Record<string, unknown> {
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("needsConfirmation" in result) ||
+    !("args" in result)
+  ) {
+    throw new Error(
+      `Expected a confirmation response, got: ${JSON.stringify(result)}`,
+    );
+  }
+  return confirmationArgsSchema.parse(result.args);
+}
 
 describe("system_extract tool", () => {
   let tools: Tool[];
@@ -77,12 +94,11 @@ describe("system_extract tool", () => {
     expect(result).toHaveProperty("args.mode", "rebuild");
   });
 
-  it("queues topic rebuild after confirmation", async () => {
-    const result = await exec({
-      entityType: "topic",
-      mode: "rebuild",
-      confirmed: true,
-    });
+  it("queues topic rebuild after replaying the confirmation args", async () => {
+    const confirmation = await exec({ entityType: "topic", mode: "rebuild" });
+    const args = expectConfirmationArgs(confirmation);
+
+    const result = await exec(args);
 
     expect(result).toHaveProperty("success", true);
     expect(result).toHaveProperty("data.mode", "rebuild");
@@ -90,6 +106,33 @@ describe("system_extract tool", () => {
     const enqueuedJob = services.getLastEnqueuedJob();
     expect(enqueuedJob?.type).toBe("topic:project");
     expect(enqueuedJob?.data).toEqual({ mode: "rebuild" });
+  });
+
+  it("rejects a confirmed rebuild with no pending approval", async () => {
+    const result = await exec({
+      entityType: "topic",
+      mode: "rebuild",
+      confirmed: true,
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect(result).toHaveProperty(
+      "error",
+      expect.stringContaining("No pending extract confirmation"),
+    );
+  });
+
+  it("rejects rebuild confirmation args tampered after approval", async () => {
+    const confirmation = await exec({ entityType: "topic", mode: "rebuild" });
+    const args = expectConfirmationArgs(confirmation);
+
+    const result = await exec({ ...args, source: "post-1" });
+
+    expect(result).toHaveProperty("success", false);
+    expect(result).toHaveProperty(
+      "error",
+      expect.stringContaining("do not match the pending approval"),
+    );
   });
 
   it("queues single-source extraction through the projection job", async () => {

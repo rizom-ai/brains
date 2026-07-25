@@ -451,6 +451,7 @@ const updateInputSchemaInternal: z.ZodObject<{
   fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   content: z.ZodOptional<z.ZodString>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
 }> = z.object({
   entityType: z.string().describe("Entity type"),
@@ -468,6 +469,10 @@ const updateInputSchemaInternal: z.ZodObject<{
       "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
     ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
   contentHash: z
     .string()
     .optional()
@@ -500,6 +505,7 @@ const extractInputSchemaInternal: z.ZodObject<{
   source: z.ZodOptional<z.ZodString>;
   mode: z.ZodOptional<z.ZodEnum<{ derive: "derive"; rebuild: "rebuild" }>>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
 }> = z.object({
   entityType: z.string().describe("Entity type to extract"),
   source: z.string().optional().describe("Source entity ID — omit for batch"),
@@ -508,6 +514,10 @@ const extractInputSchemaInternal: z.ZodObject<{
     .optional()
     .describe("Batch mode: project incrementally or rebuild from scratch"),
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
 export const extractInputSchema: typeof extractInputSchemaInternal =
