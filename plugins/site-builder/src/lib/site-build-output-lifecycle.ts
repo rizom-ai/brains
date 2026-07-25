@@ -83,6 +83,7 @@ export interface SiteBuildOutputFs {
   rename(oldPath: string, newPath: string): Promise<void>;
   readlink(path: string): Promise<string>;
   lstat(path: string): Promise<SiteBuildFileType>;
+  utimes(path: string, atime: Date, mtime: Date): Promise<void>;
 }
 
 /** Default adapter delegating to `fs.promises`. */
@@ -96,6 +97,7 @@ export const nodeSiteBuildOutputFs: SiteBuildOutputFs = {
   rename: (oldPath, newPath) => nodeFs.rename(oldPath, newPath),
   readlink: (path) => nodeFs.readlink(path),
   lstat: (path) => nodeFs.lstat(path),
+  utimes: (path, atime, mtime) => nodeFs.utimes(path, atime, mtime),
 };
 
 /** Filesystem-backed generation staging and active-output publication. */
@@ -258,6 +260,13 @@ async function publishGeneration(
   await fs.rm(legacyBackup, { recursive: true, force: true });
   await fs.rename(target.activeOutputDir, legacyBackup);
   try {
+    // `rename` preserves a directory's own mtime, so the backup would arrive
+    // carrying the timestamp of the last pre-upgrade build — on a dormant site
+    // that is already past the stale threshold, and the sweep would discard the
+    // only rollback target this first build has. Stamp it at migration time so
+    // age is measured from when the backup was taken.
+    const migratedAt = new Date();
+    await fs.utimes(legacyBackup, migratedAt, migratedAt);
     await fs.rename(temporaryLink, target.activeOutputDir);
     await verifyActiveGeneration(fs, target);
   } catch (error) {
@@ -316,7 +325,10 @@ async function removeStaleUncommittedGenerations(
   const staleDirectories: string[] = [];
 
   for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith("legacy-")) continue;
+    // Migration backups age out here alongside abandoned generations: once the
+    // threshold has passed, a later build has long since produced a real
+    // generation to roll back to instead.
+    if (!entry.isDirectory()) continue;
     const path = join(environmentDir, entry.name);
     if (resolve(path) === resolve(currentGenerationDir)) continue;
     if (await hasArtifactManifest(fs, path)) continue;
@@ -355,7 +367,11 @@ async function pruneGenerations(
   const entries = await fs.readdir(environmentDir, { withFileTypes: true });
   const candidates = await Promise.all(
     entries
-      .filter((entry) => entry.isDirectory())
+      // Migration backups are excluded by name rather than by lacking a
+      // manifest: a backup taken from a dereferenced symlink carries the
+      // generation's manifest with it, so manifest-presence alone cannot tell
+      // the two apart. Their lifetime belongs to the age-based sweep.
+      .filter((entry) => entry.isDirectory() && !isMigrationBackup(entry.name))
       .map(async (entry) => {
         const path = join(environmentDir, entry.name);
         try {
@@ -363,8 +379,8 @@ async function pruneGenerations(
           const stat = await fs.stat(path);
           return { path, modifiedAt: stat.mtimeMs };
         } catch {
-          // Never prune legacy backups, in-progress generations, or a
-          // generation that vanished after its manifest was observed.
+          // Never prune in-progress generations, or a generation that vanished
+          // after its manifest was observed.
           return undefined;
         }
       }),
@@ -387,6 +403,11 @@ async function pruneGenerations(
         fs.rm(directory.path, { recursive: true, force: true }),
       ),
   );
+}
+
+/** Backups of a pre-transactional output directory, named `legacy-<buildId>`. */
+function isMigrationBackup(entryName: string): boolean {
+  return entryName.startsWith("legacy-");
 }
 
 function assertSafeBuildId(buildId: string): void {
