@@ -243,6 +243,8 @@ const roverBrain: BrainDefinition = defineBrain({
       }),
     ],
     ["analytics", analyticsPlugin, {}],
+    // Not in any preset — the rizom.ai pilot brain opts in via brain.yaml
+    // `add:` (rover-pilot users/rizom-ai).
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
     ["site-content", siteContentPlugin, undefined],

@@ -86,8 +86,6 @@
     "test:unit": "turbo run test",
     "typecheck": "turbo run typecheck",
     "visual:console": "bun scripts/console-visual-regression.ts",
-    "version:set": "bun scripts/sync-versions.ts && git add -A && git commit -m 'chore: sync package versions'",
-    "version:sync": "bun scripts/sync-versions.ts",
     "workspace:affected": "turbo run test --filter=[HEAD^1]",
     "workspace:check": "manypkg check",
     "workspace:fix": "manypkg fix",
