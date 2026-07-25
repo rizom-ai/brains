@@ -1,6 +1,7 @@
 import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
+  PendingApprovalTracker,
   PluginError,
   buildApprovalResultView,
   formatApprovalRequestText,
@@ -43,8 +44,9 @@ export class CLIInterface extends MessageInterfacePlugin<
   private agentService?: AgentNamespace;
   private signalHandler: (() => void) | undefined;
 
-  // Track pending confirmation approval ids
-  private pendingConfirmationIds: string[] = [];
+  // Tracks pending confirmation approval ids; restores them from stored
+  // conversation messages so approvals survive a process restart.
+  private approvalTracker: PendingApprovalTracker | undefined;
 
   constructor(config: CLIConfigInput = {}) {
     super("cli", packageJson, config, cliConfigSchema);
@@ -184,6 +186,32 @@ export class CLIInterface extends MessageInterfacePlugin<
     };
   }
 
+  private getApprovalTracker(): PendingApprovalTracker {
+    this.approvalTracker ??= new PendingApprovalTracker({
+      loadMessages: async (
+        conversationId: string,
+      ): Promise<readonly unknown[]> =>
+        (await this.context?.conversations.getMessages(conversationId, {
+          limit: 50,
+        })) ?? [],
+      onRestoreError: (error, conversationId): void => {
+        this.logger.debug("Failed to restore pending CLI approvals", {
+          error,
+          conversationId,
+        });
+      },
+    });
+    return this.approvalTracker;
+  }
+
+  private async getPendingApprovalIds(
+    conversationId: string,
+  ): Promise<string[]> {
+    return [
+      ...(await this.getApprovalTracker().getApprovalIds(conversationId)),
+    ];
+  }
+
   /**
    * Process user input - public API for UI components
    * Routes all input to AgentService for natural language processing
@@ -198,10 +226,13 @@ export class CLIInterface extends MessageInterfacePlugin<
       // Check for explicit confirmation responses. Other messages should fall
       // through to AgentService; it applies the authoritative implicit-decline
       // semantics for mid-confirmation topic changes.
-      if (this.pendingConfirmationIds.length > 0) {
+      const pendingApprovalIds =
+        await this.getPendingApprovalIds(conversationId);
+      if (pendingApprovalIds.length > 0) {
         const handledConfirmation = await this.handleConfirmationResponse(
           input,
           conversationId,
+          pendingApprovalIds,
         );
         if (handledConfirmation) return;
       }
@@ -221,15 +252,16 @@ export class CLIInterface extends MessageInterfacePlugin<
 
       // Track pending confirmations if returned
       const approvalCards = getPendingApprovalCards(response.cards);
-      if (approvalCards.length > 0) {
-        this.pendingConfirmationIds = approvalCards.map((card) => card.id);
-      } else if (response.pendingConfirmations) {
-        this.pendingConfirmationIds = response.pendingConfirmations.map(
-          (confirmation) => confirmation.id,
-        );
-      } else {
-        this.pendingConfirmationIds = [];
-      }
+      const nextApprovalIds =
+        approvalCards.length > 0
+          ? approvalCards.map((card) => card.id)
+          : (response.pendingConfirmations?.map(
+              (confirmation) => confirmation.id,
+            ) ?? []);
+      this.getApprovalTracker().replaceApprovals(
+        conversationId,
+        nextApprovalIds,
+      );
 
       // Build response with tool results
       const responseText = this.formatAgentResponseText(
@@ -323,8 +355,8 @@ export class CLIInterface extends MessageInterfacePlugin<
     return { confirmed: parsed.confirmed, index: Number(indexText) - 1 };
   }
 
-  private getConfirmationHelpText(): string {
-    if (this.pendingConfirmationIds.length > 1) {
+  private getConfirmationHelpText(pendingApprovalIds: string[]): string {
+    if (pendingApprovalIds.length > 1) {
       return "_Please reply with **yes 1** / **no 1** for the matching action._";
     }
     return "_Please reply with **yes** to confirm or **no/cancel** to abort._";
@@ -332,13 +364,14 @@ export class CLIInterface extends MessageInterfacePlugin<
 
   private resolvePendingApprovalSelection(
     message: string,
+    pendingApprovalIds: string[],
   ): { confirmed: boolean; approvalId: string } | undefined {
     const result = this.parseIndexedConfirmationResponse(message);
     if (result === undefined) {
       return undefined;
     }
 
-    if (this.pendingConfirmationIds.length > 1 && result.index === undefined) {
+    if (pendingApprovalIds.length > 1 && result.index === undefined) {
       this.sendMessageToChannel({
         channelId: null,
         message:
@@ -348,11 +381,11 @@ export class CLIInterface extends MessageInterfacePlugin<
     }
 
     const selectedIndex = result.index ?? 0;
-    const approvalId = this.pendingConfirmationIds[selectedIndex];
+    const approvalId = pendingApprovalIds[selectedIndex];
     if (!approvalId) {
       this.sendMessageToChannel({
         channelId: null,
-        message: this.getConfirmationHelpText(),
+        message: this.getConfirmationHelpText(pendingApprovalIds),
       });
       return undefined;
     }
@@ -366,13 +399,18 @@ export class CLIInterface extends MessageInterfacePlugin<
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
+    pendingApprovalIds: string[],
   ): Promise<boolean> {
-    const approvalSelection = this.resolvePendingApprovalSelection(message);
+    const approvalSelection = this.resolvePendingApprovalSelection(
+      message,
+      pendingApprovalIds,
+    );
     if (!approvalSelection) return false;
 
     // Clear selected pending confirmation before calling AgentService.
-    this.pendingConfirmationIds = this.pendingConfirmationIds.filter(
-      (id) => id !== approvalSelection.approvalId,
+    this.getApprovalTracker().removeApproval(
+      conversationId,
+      approvalSelection.approvalId,
     );
 
     // Call AgentService to confirm or cancel
@@ -385,6 +423,11 @@ export class CLIInterface extends MessageInterfacePlugin<
         isAnchor: this.getContext().permissions.isAnchor("cli", "local"),
         interfaceType: "cli",
       },
+    );
+    this.getApprovalTracker().syncFromResponse(
+      conversationId,
+      response,
+      approvalSelection.approvalId,
     );
 
     // Send response to UI

@@ -37,6 +37,22 @@ export class PendingApprovalTracker {
     );
   }
 
+  /**
+   * Replace the pending set for a conversation with an explicit id list
+   * (insertion order preserved). An empty list clears the conversation —
+   * for interfaces that derive the full pending set from each response.
+   */
+  public replaceApprovals(
+    conversationId: string,
+    approvalIds: readonly string[],
+  ): void {
+    if (approvalIds.length === 0) {
+      this.pendingByConversation.delete(conversationId);
+      return;
+    }
+    this.pendingByConversation.set(conversationId, new Set(approvalIds));
+  }
+
   public async getApprovalIds(conversationId: string): Promise<Set<string>> {
     const existing = this.pendingByConversation.get(conversationId);
     if (existing && existing.size > 0) return new Set(existing);
