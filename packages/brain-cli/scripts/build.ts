@@ -63,9 +63,8 @@ const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
 const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
 const adminPackageDir = join(monorepoRoot, "plugins", "admin");
 const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
-const accountPackageDir = join(monorepoRoot, "plugins", "account");
 const accountUiAssetPath = join(
-  accountPackageDir,
+  adminPackageDir,
   "dist",
   "ui",
   "account-app.js",
@@ -124,16 +123,6 @@ if (!existsSync(adminUiAssetPath)) {
   process.exit(1);
 }
 
-console.log("Building bundled Account console UI...");
-const accountBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: accountPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-});
-if (accountBuildResult.exitCode !== 0) {
-  console.error("Account console UI build failed");
-  process.exit(1);
-}
 if (!existsSync(accountUiAssetPath)) {
   console.error(`Account console UI asset not found at ${accountUiAssetPath}`);
   process.exit(1);

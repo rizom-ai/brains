@@ -7,13 +7,16 @@ import {
   type AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { AccessItem, Button, DetailSection } from "../components/primitives";
+import { cmsEntityHref, initials, roleLabel } from "../format";
+import peopleStyles from "../people.css" with { type: "text" };
 import {
   fetchAccount,
   mutateAccount,
   registerPasskey,
   type AccountMutationResponse,
 } from "./api";
-import styles from "./account.css" with { type: "text" };
+import accountStyles from "./account.css" with { type: "text" };
 
 export interface AccountBootstrap {
   displayName: string;
@@ -193,7 +196,10 @@ export function AccountApp({
 
   return (
     <>
-      <style>{styles}</style>
+      <style>
+        {peopleStyles}
+        {accountStyles}
+      </style>
       <div className="account-shell">
         <header className="account-hero">
           <div>
@@ -250,29 +256,47 @@ export function AccountApp({
             </div>
 
             <div className="people-detail-sections">
-              <DetailSection
-                title="Display name"
-                description="Your local name for conversations and attribution. It does not alter an external profile."
-              >
-                <form className="name-form" onSubmit={saveName}>
-                  <label htmlFor="display-name">Local account name</label>
-                  <input
-                    id="display-name"
-                    maxLength={200}
-                    autoComplete="name"
-                    required
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
+              {current.profileEntityId ? (
+                <DetailSection
+                  title="Display name"
+                  description="Managed by the Anchor profile — your account name follows the published profile."
+                >
+                  <AccessItem
+                    kind="Anchor profile"
+                    value={title}
+                    action={
+                      cmsEntityHref(current.profileEntityId) ? (
+                        <a
+                          className="people-text-action"
+                          href={cmsEntityHref(current.profileEntityId)}
+                        >
+                          Edit in CMS →
+                        </a>
+                      ) : undefined
+                    }
                   />
-                  <button
-                    className="account-button account-button--primary"
-                    disabled={busy}
-                    type="submit"
-                  >
-                    Save name
-                  </button>
-                </form>
-              </DetailSection>
+                </DetailSection>
+              ) : (
+                <DetailSection
+                  title="Display name"
+                  description="Your local name for conversations and attribution. It does not alter an external profile."
+                >
+                  <form className="name-form" onSubmit={saveName}>
+                    <label htmlFor="display-name">Local account name</label>
+                    <input
+                      id="display-name"
+                      maxLength={200}
+                      autoComplete="name"
+                      required
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                    />
+                    <Button type="submit" tone="primary" disabled={busy}>
+                      Save name
+                    </Button>
+                  </form>
+                </DetailSection>
+              )}
 
               <DetailSection
                 title="Connected channels"
@@ -364,84 +388,26 @@ export function AccountApp({
                 grants can only be changed by an Admin.
               </small>
               <div className="people-detail-footer-actions">
-                <button
-                  className="account-button"
+                <Button
                   disabled={
                     busy || current.sessions.every((session) => session.current)
                   }
-                  type="button"
                   onClick={revokeOtherSessions}
                 >
                   End other sessions
-                </button>
-                <button
-                  className="account-button account-button--danger"
+                </Button>
+                <Button
+                  tone="danger"
                   disabled={busy}
-                  type="button"
                   onClick={revokeAllSessions}
                 >
                   Sign out everywhere
-                </button>
+                </Button>
               </div>
             </footer>
           </section>
         )}
       </div>
     </>
-  );
-}
-
-function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
-}
-
-function roleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
-}
-
-function DetailSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}): React.ReactElement {
-  return (
-    <section className="people-detail-section">
-      <div className="people-section-label">
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
-      <div className="people-stack">{children}</div>
-    </section>
-  );
-}
-
-function AccessItem({
-  kind,
-  value,
-  action,
-}: {
-  kind: string;
-  value: string;
-  action?: React.ReactNode;
-}): React.ReactElement {
-  return (
-    <div className="people-access-item">
-      <div>
-        <div className="people-access-kind">{kind}</div>
-        <div className="people-access-value">{value}</div>
-      </div>
-      {action}
-    </div>
   );
 }

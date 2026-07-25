@@ -280,7 +280,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -679,7 +679,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -1277,7 +1277,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -1940,7 +1940,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -2830,7 +2830,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -3217,7 +3217,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }
@@ -3981,7 +3981,7 @@
             },
             {
               "id": "account",
-              "packageName": "@brains/account",
+              "packageName": "@brains/admin",
               "config": {
                 "routePath": "/account"
               }

@@ -103,12 +103,14 @@ function renderPeople(props: Parameters<typeof PeopleApp>[0]): string {
 function renderPerson(
   member: AuthAdminUserSummary,
   activeAdminCount = 2,
+  selfUserId = "usr_yeehaa",
 ): string {
   return renderToStaticMarkup(
     createElement(PersonDetail, {
       user: member,
       brainName: "smoke-rover",
       activeAdminCount,
+      selfUserId,
       onConfirm: () => undefined,
       onMutation: async () => undefined,
       onSetup: () => undefined,
@@ -230,6 +232,24 @@ describe("Admin surface", () => {
     );
     expect(anchorUser).not.toContain("Change role");
     expect(anchorUser).toContain("Edit in CMS");
+  });
+
+  it("points the signed-in admin to /account for their own credentials", () => {
+    const self = renderPerson(user, 2, user.userId);
+
+    // Self-service actions live at /account; the admin-grade lockout
+    // actions are not offered against your own signed-in row.
+    expect(self).toContain('href="/account"');
+    expect(self).toContain("Manage at /account");
+    expect(self).not.toContain("Revoke</button>");
+    expect(self).not.toContain("Revoke all");
+    expect(self).not.toContain("Create setup link");
+
+    // Another person's row keeps the full admin actions.
+    const other = renderPerson(user, 2, "usr_yeehaa");
+    expect(other).toContain("Revoke all");
+    expect(other).toContain("Create setup link");
+    expect(other).not.toContain('href="/account"');
   });
 
   it("limits suspended accounts to reactivation or deletion", () => {

@@ -90,6 +90,18 @@ describe("Account surface", () => {
     expect(html).toContain('role="status"');
   });
 
+  it("locks a profile-managed Anchor display name to the CMS", () => {
+    const html = render({
+      ...account,
+      profileEntityId: "anchor-profile/anchor-profile",
+    });
+
+    expect(html).toContain("Managed by the Anchor profile");
+    expect(html).toContain("Edit in CMS");
+    expect(html).not.toContain("Save name");
+    expect(html).not.toContain('id="display-name"');
+  });
+
   it("does not render a revoke action for the final passkey", () => {
     expect(render()).not.toContain(">Revoke</button>");
   });

@@ -64,7 +64,6 @@
       "version": "0.2.0-alpha.223",
       "dependencies": {
         "@brains/a2a": "workspace:*",
-        "@brains/account": "workspace:*",
         "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/app": "workspace:*",
@@ -111,7 +110,6 @@
       "version": "0.2.0-alpha.223",
       "dependencies": {
         "@brains/a2a": "workspace:*",
-        "@brains/account": "workspace:*",
         "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/analytics": "workspace:*",
@@ -811,29 +809,6 @@
       },
       "peerDependencies": {
         "preact": "^10.27.2",
-      },
-    },
-    "plugins/account": {
-      "name": "@brains/account",
-      "version": "0.2.0-alpha.0",
-      "dependencies": {
-        "@brains/auth-service": "workspace:*",
-        "@brains/console-theme": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "react": "^19.2.7",
-        "react-dom": "^19.2.7",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.14",
-        "@types/react": "^19.2.17",
-        "@types/react-dom": "^19.0.3",
-        "bun-types": "^1.3.14",
-        "eslint": "^10.5.0",
-        "typescript": "^7.0.2",
       },
     },
     "plugins/admin": {
@@ -2133,8 +2108,6 @@
     "@bitwarden/sdk-napi-win32-x64-msvc": ["@bitwarden/sdk-napi-win32-x64-msvc@1.0.0", "", { "os": "win32", "cpu": "x64" }, "sha512-cu92XYjsOWEVECyohGtLxiXcMJMVui+nDJtyNg52iGDeAzWQ7QZh0/bcjkymTCuGoqRD3sT0cCs+5PbW66K2XQ=="],
 
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
-
-    "@brains/account": ["@brains/account@workspace:plugins/account"],
 
     "@brains/admin": ["@brains/admin@workspace:plugins/admin"],
 

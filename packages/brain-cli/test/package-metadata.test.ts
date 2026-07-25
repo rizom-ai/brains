@@ -90,7 +90,7 @@ describe("@rizom/brain package metadata", () => {
       'cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"))',
     );
     expect(buildScript).toContain(
-      'const accountPackageDir = join(monorepoRoot, "plugins", "account")',
+      "const accountUiAssetPath = join(\n  adminPackageDir,",
     );
     expect(buildScript).toContain(
       'cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"))',
