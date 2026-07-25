@@ -225,3 +225,16 @@ export function truncateText(text: string, maxLength: number): string {
     ? truncated.slice(0, lastSpace) + "..."
     : truncated + "...";
 }
+
+/**
+ * Escape a string for safe interpolation into HTML text or
+ * double/single-quoted attribute values.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}

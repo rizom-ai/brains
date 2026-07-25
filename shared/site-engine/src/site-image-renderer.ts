@@ -1,5 +1,5 @@
 import type { ImageRenderer } from "@brains/ui-library";
-import { escapeHtmlAttr } from "./image-utils";
+import { escapeHtmlAttr } from "@brains/utils/string-utils";
 import type { SiteImageMap } from "./site-image-contracts";
 
 /** Create a markdown image renderer from a prepared, serializable image map. */

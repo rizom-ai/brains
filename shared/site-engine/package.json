@@ -5,6 +5,7 @@
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",

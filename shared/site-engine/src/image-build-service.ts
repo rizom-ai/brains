@@ -4,7 +4,7 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { detectImageFormat, extractBase64 } from "./image-utils";
+import { tryParseDataUrl } from "@brains/image";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
@@ -90,18 +90,16 @@ export class ImageBuildService {
       return;
     }
 
-    const base64 = extractBase64(image.content);
-    if (!base64) {
+    const parsed = tryParseDataUrl(image.content);
+    if (!parsed) {
       this.logger.warn("Could not extract base64 from image", { imageId });
       return;
     }
 
-    const buffer = Buffer.from(base64, "base64");
+    const buffer = Buffer.from(parsed.base64, "base64");
 
-    const format = detectImageFormat(
-      getImageFormatMetadata(image.metadata),
-      image.content,
-    );
+    const format =
+      getImageFormatMetadata(image.metadata).format ?? parsed.format;
     const originalFileName = `${imageId}.${format}`;
     const originalFilePath = join(this.imagesDir, originalFileName);
     await fs.writeFile(originalFilePath, buffer, { signal });

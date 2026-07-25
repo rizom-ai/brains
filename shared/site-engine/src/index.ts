@@ -13,12 +13,6 @@ export { ImageOptimizer } from "./image-optimizer";
 export type { ImageVariants, VariantsMap } from "./image-optimizer";
 export { ImageBuildService } from "./image-build-service";
 export type { BuildImageMap, ResolvedBuildImage } from "./image-build-service";
-export {
-  detectImageFormat,
-  escapeHtmlAttr,
-  extractBase64,
-} from "./image-utils";
-export type { ImageEntity } from "./image-utils";
 export type {
   ResolvedSiteImage,
   SiteImageBuildService,

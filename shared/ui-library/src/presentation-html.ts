@@ -1,3 +1,5 @@
+import { escapeHtml as escapeHtmlString } from "@brains/utils/string-utils";
+
 const MERMAID_BLOCK_PATTERN =
   /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
 
@@ -12,12 +14,7 @@ const HTML_ENTITIES: Record<string, string> = {
 const ENTITY_PATTERN = /&(?:amp|lt|gt|quot|#39);/g;
 
 export function escapeHtml(value: unknown): string {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  return escapeHtmlString(String(value));
 }
 
 function unescapeHtml(text: string): string {
