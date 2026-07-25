@@ -41,13 +41,22 @@ export {
   type CanonicalAtprotoRecordSchemaId,
 } from "./record-schemas";
 export {
+  ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_REFRESHED,
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
+  ATPROTO_JETSTREAM_GAP,
+  atprotoBrainCardConflictPayloadSchema,
   atprotoBrainCardDiscoveredPayloadSchema,
+  atprotoBrainCardUnavailablePayloadSchema,
   atprotoBrainDiscoveryEventPayloadSchema,
+  atprotoJetstreamGapPayloadSchema,
+  type AtprotoBrainCardConflictPayload,
   type AtprotoBrainCardDiscoveredPayload,
+  type AtprotoBrainCardUnavailablePayload,
   type AtprotoBrainDiscoveryEventPayload,
+  type AtprotoJetstreamGapPayload,
 } from "./events";
 export type {
   AtprotoPdsClientLike,

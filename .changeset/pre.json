@@ -140,6 +140,7 @@
     "atproto-boot-hardening",
     "atproto-contracts-lexicon-description",
     "atproto-discovery-agent-events",
+    "atproto-jetstream-discovery",
     "atproto-lexicon-authority",
     "atproto-member-handles",
     "atproto-registry-contracts",

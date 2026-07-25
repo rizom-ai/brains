@@ -65,6 +65,9 @@ export interface CreateAgentContentInput {
   cardObservedAt?: string | undefined;
   cardLastCheckedAt?: string | undefined;
   cardLastError?: string | undefined;
+  cardFailureCount?: number | undefined;
+  cardUnavailableAt?: string | undefined;
+  cardStaleAfter?: string | undefined;
   a2aEndpoint?: string | undefined;
   status: AgentStatus | string;
   discoveredAt: string;
@@ -120,6 +123,15 @@ export class AgentAdapter extends BaseEntityAdapter<
         ...(frontmatter.cardLastError && {
           cardLastError: frontmatter.cardLastError,
         }),
+        ...(frontmatter.cardFailureCount !== undefined && {
+          cardFailureCount: frontmatter.cardFailureCount,
+        }),
+        ...(frontmatter.cardUnavailableAt && {
+          cardUnavailableAt: frontmatter.cardUnavailableAt,
+        }),
+        ...(frontmatter.cardStaleAfter && {
+          cardStaleAfter: frontmatter.cardStaleAfter,
+        }),
         ...(frontmatter.a2aEndpoint && {
           a2aEndpoint: frontmatter.a2aEndpoint,
         }),
@@ -145,6 +157,13 @@ export class AgentAdapter extends BaseEntityAdapter<
         cardLastCheckedAt: input.cardLastCheckedAt,
       }),
       ...(input.cardLastError && { cardLastError: input.cardLastError }),
+      ...(input.cardFailureCount !== undefined && {
+        cardFailureCount: input.cardFailureCount,
+      }),
+      ...(input.cardUnavailableAt && {
+        cardUnavailableAt: input.cardUnavailableAt,
+      }),
+      ...(input.cardStaleAfter && { cardStaleAfter: input.cardStaleAfter }),
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,

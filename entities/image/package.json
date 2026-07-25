@@ -1,6 +1,6 @@
 {
   "name": "@brains/image-plugin",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.224",
   "description": "Plugin for AI-powered image generation and management",
   "dependencies": {
     "@brains/contracts": "workspace:*",

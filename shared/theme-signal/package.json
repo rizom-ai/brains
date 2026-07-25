@@ -1,6 +1,6 @@
 {
   "name": "@rizom/theme-signal",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.224",
   "description": "High-contrast signal-lab theme for public Rover site packages",
   "license": "Apache-2.0",
   "author": "Rizom <hello@rizom.ai> (https://rizom.ai)",
@@ -36,7 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rizom/theme-default": "0.2.0-alpha.223"
+    "@rizom/theme-default": "0.2.0-alpha.224"
   },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",

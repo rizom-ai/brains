@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover-onboarding",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.224",
   "description": "Rover onboarding playbook bundle and activation plugin",
   "dependencies": {
     "@brains/contracts": "workspace:*",
