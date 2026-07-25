@@ -253,7 +253,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "person",
                   "enabled": true
                 }
               }
@@ -647,7 +646,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "person",
                   "enabled": true
                 }
               }
@@ -1240,7 +1238,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "person",
                   "enabled": true
                 }
               }
@@ -1898,7 +1895,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "person",
                   "enabled": true
                 }
               }
@@ -2562,8 +2558,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4441,
-              "sha256": "4e3ddfedd529c49fe8ff9f52e03cbe5d1a36eb7c6a62e00c3d48d7f950b6ea29"
+              "length": 4680,
+              "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -2694,7 +2690,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "team",
                   "enabled": true
                 }
               }
@@ -3075,7 +3070,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "team",
                   "enabled": true
                 }
               }
@@ -3535,8 +3529,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4441,
-                      "sha256": "4e3ddfedd529c49fe8ff9f52e03cbe5d1a36eb7c6a62e00c3d48d7f950b6ea29"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -3830,7 +3824,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "team",
                   "enabled": true
                 }
               }
@@ -4300,8 +4293,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4441,
-                      "sha256": "4e3ddfedd529c49fe8ff9f52e03cbe5d1a36eb7c6a62e00c3d48d7f950b6ea29"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4572,8 +4565,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4441,
-              "sha256": "4e3ddfedd529c49fe8ff9f52e03cbe5d1a36eb7c6a62e00c3d48d7f950b6ea29"
+              "length": 4680,
+              "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4709,7 +4702,6 @@
               "packageName": "@brains/profile",
               "config": {
                 "starterIdentity": {
-                  "anchorKind": "organization",
                   "enabled": true
                 }
               }
@@ -4846,8 +4838,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4441,
-                      "sha256": "4e3ddfedd529c49fe8ff9f52e03cbe5d1a36eb7c6a62e00c3d48d7f950b6ea29"
+                      "length": 4680,
+                      "sha256": "2e1d0a1d5902e7aeab7024581c53685454c9167065906679fb8b165880d38d53"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {

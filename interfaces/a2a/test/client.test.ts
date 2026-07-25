@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { parseA2AResponse, createAgentCallTool } from "../src/client";
-import { parseAgentCard } from "@brains/plugins";
+import { ANCHOR_EXTENSION_URI, parseAgentCard } from "@brains/plugins";
 
 function createSavedAgentEntityService(agentId = "remote.example.com"): {
   getEntity: (request: { entityType: string; id: string }) => Promise<{
@@ -44,6 +44,48 @@ describe("A2A Client", () => {
       expect(card).not.toBeNull();
       expect(card?.brainName).toBe("Rover");
       expect(card?.url).toBe("https://yeehaa.io");
+    });
+
+    it("parses the in-place anchor kind and category contract", () => {
+      const card = parseAgentCard({
+        name: "Rover",
+        url: "https://yeehaa.io",
+        capabilities: {
+          extensions: [
+            {
+              uri: ANCHOR_EXTENSION_URI,
+              params: {
+                name: "Ada",
+                kind: "artist",
+                category: "person",
+              },
+            },
+          ],
+        },
+      });
+
+      expect(card?.anchor).toMatchObject({
+        name: "Ada",
+        kind: "artist",
+        category: "person",
+      });
+    });
+
+    it("rejects pre-cutover kind-only anchor extension data", () => {
+      const card = parseAgentCard({
+        name: "Rover",
+        url: "https://yeehaa.io",
+        capabilities: {
+          extensions: [
+            {
+              uri: ANCHOR_EXTENSION_URI,
+              params: { name: "Ada", kind: "person" },
+            },
+          ],
+        },
+      });
+
+      expect(card?.anchor).toBeNull();
     });
 
     it("should return null for missing url", () => {

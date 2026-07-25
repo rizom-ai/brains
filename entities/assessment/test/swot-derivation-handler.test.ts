@@ -31,6 +31,7 @@ describe("SwotDerivationHandler", () => {
   beforeEach(() => {
     resetPromptCache();
     harness = createPluginHarness({ dataDir: "/tmp/test-swot-handler" });
+    harness.getMockShell().getProfileKindRegistry().finalize();
   });
 
   it("creates the swot entity from refined AI output", async () => {

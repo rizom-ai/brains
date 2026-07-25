@@ -111,6 +111,9 @@ export class App {
     if (this.config.database) {
       shellConfig.database = { url: this.config.database };
     }
+    if (this.config.profileKind) {
+      shellConfig.profileKind = this.config.profileKind;
+    }
 
     // Set feature flags (none currently)
     shellConfig.features = {};

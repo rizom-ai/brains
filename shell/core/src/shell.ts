@@ -44,7 +44,11 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
-import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
+import type {
+  AnchorProfile,
+  BrainCharacter,
+  IProfileKindRegistry,
+} from "@brains/identity-service";
 import type {
   IAIService,
   IAgentService,
@@ -630,6 +634,10 @@ export class Shell implements IShell {
 
   public getProfile(): AnchorProfile {
     return this.services.profileService.getProfile();
+  }
+
+  public getProfileKindRegistry(): IProfileKindRegistry {
+    return this.services.profileKindRegistry;
   }
 
   public getDomain(): string | undefined {

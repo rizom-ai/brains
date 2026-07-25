@@ -27,7 +27,6 @@ import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
-  normalizeDiscoveredBrainCard,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
@@ -419,10 +418,7 @@ export class AtprotoPlugin extends ServicePlugin<
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
-        // Peers on other fleet versions may publish renamed anchor kinds;
-        // convert to this build's vocabulary before validating and storing.
-        const cardValue = normalizeDiscoveredBrainCard(record.value);
-        validateAtprotoRecord(brainCardLexicon, cardValue);
+        validateAtprotoRecord(brainCardLexicon, record.value);
         const repoDid = parseAtUriRepo(record.uri) ?? resolved.repoDid;
         const recordKey = `${repoDid}:${record.uri}:${record.cid}`;
         if (seenRecords.has(recordKey)) {
@@ -443,7 +439,7 @@ export class AtprotoPlugin extends ServicePlugin<
             repoDid,
             uri: record.uri,
             cid: record.cid,
-            record: cardValue,
+            record: record.value,
           },
           broadcast: true,
         });

@@ -3,6 +3,7 @@ import { Shell, type ShellDependencies } from "../src/shell";
 import {
   AnchorProfileService,
   BrainCharacterService,
+  ProfileKindRegistry,
 } from "@brains/identity-service";
 import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
@@ -23,6 +24,7 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { AtprotoPlugin } from "@brains/atproto";
+import { z } from "@brains/utils/zod";
 import {
   AtprotoProjectionRegistry,
   type AtprotoPdsClientLike,
@@ -47,6 +49,7 @@ async function resetAllSingletons(): Promise<void> {
 function createTestConfig(dir: string): ShellConfigInput {
   return {
     plugins: [],
+    profileKind: "professional",
     siteBaseUrl: "brain.example.com",
     database: { url: `file:${dir}/test.db` },
     jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
@@ -88,6 +91,17 @@ const deps: ShellDependencies = {
   logger: createSilentLogger(),
   embeddingService: mockEmbeddingService,
 };
+
+function createTestProfileKindRegistry(): ProfileKindRegistry {
+  const registry = new ProfileKindRegistry("professional");
+  registry.register("test", {
+    kind: "professional",
+    category: "person",
+    fields: z.object({}),
+    labels: { singular: "Professional", plural: "Professionals" },
+  });
+  return registry;
+}
 
 function createPdsClientMocks(): {
   client: () => AtprotoPdsClientLike;
@@ -160,7 +174,10 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
     const config = createTestConfig(testDir.dir);
     config.plugins = [plugin];
-    shell = Shell.createFresh(config, deps);
+    shell = Shell.createFresh(config, {
+      ...deps,
+      profileKindRegistry: createTestProfileKindRegistry(),
+    });
     await shell.initialize();
     // Boot publishing is scheduled, not awaited; shutdown drains the tasks.
     await plugin.shutdown?.();
@@ -179,7 +196,10 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
     const config = createTestConfig(testDir.dir);
     config.plugins = [plugin];
-    shell = Shell.createFresh(config, deps);
+    shell = Shell.createFresh(config, {
+      ...deps,
+      profileKindRegistry: createTestProfileKindRegistry(),
+    });
     await shell.initialize({ mode: "startup-check" });
     await plugin.shutdown?.();
 

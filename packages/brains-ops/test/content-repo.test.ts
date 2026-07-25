@@ -305,7 +305,7 @@ anchorProfile:
       remotePath,
       "anchor-profile/anchor-profile.md",
     );
-    expect(content).toContain("kind: person");
+    expect(content).not.toContain("kind:");
     expect(content).toContain("name: Alice Example");
     expect(content).toContain(
       "description: Product strategist and systems thinker.",

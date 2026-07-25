@@ -56,7 +56,8 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
     anchor: {
       did: "did:plc:test-anchor",
       name: "Rizom",
-      kind: "organization",
+      category: "organization",
+      kind: "collective",
     },
     model: "test-brain",
     version: "0.2.0-test",
@@ -337,13 +338,13 @@ describe("atproto plugin", () => {
     });
   });
 
-  it("converts cross-version anchor kinds on discovered cards", async () => {
+  it("rejects pre-cutover brain cards without a category", async () => {
     const cardRecord = {
       ...createTestBrainCardRecord(),
       anchor: {
         did: "did:plc:test-anchor",
-        name: "Future Peer",
-        kind: "collective",
+        name: "Pre-cutover Peer",
+        kind: "organization",
       },
     };
     const plugin = new AtprotoPlugin(
@@ -384,17 +385,9 @@ describe("atproto plugin", () => {
       { repos: ["test.example.com"] },
     );
 
-    expect(response.discovered).toBe(1);
-    expect(events).toEqual([
-      expect.objectContaining({
-        record: expect.objectContaining({
-          anchor: expect.objectContaining({
-            name: "Future Peer",
-            kind: "organization",
-          }),
-        }),
-      }),
-    ]);
+    expect(response.discovered).toBe(0);
+    expect(response.skipped).toBe(1);
+    expect(events).toEqual([]);
   });
 
   it("skips invalid brain cards without emitting discovery events", async () => {

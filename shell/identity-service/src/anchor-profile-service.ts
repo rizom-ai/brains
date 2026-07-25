@@ -30,10 +30,7 @@ export class AnchorProfileService
    * Get the default profile for a new brain
    */
   public static getDefaultProfile(): AnchorProfile {
-    return {
-      name: "Unknown",
-      kind: "person" as const,
-    };
+    return { name: "Unknown" };
   }
 
   /**

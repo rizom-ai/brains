@@ -29,7 +29,6 @@ const defaultIdentitySource: SiteInfoIdentitySource = {
   }),
   getAnchor: () => ({
     name: "Brain",
-    kind: "person",
     description: "A knowledge management system",
   }),
 };

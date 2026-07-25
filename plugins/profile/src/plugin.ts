@@ -1,17 +1,12 @@
-import type {
-  AnchorProfileKind,
-  BaseEntity,
-  Plugin,
-  ServicePluginContext,
-} from "@brains/plugins";
-import {
-  anchorProfileKindSchema,
-  ServicePlugin,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
+import type { BaseEntity, Plugin, ServicePluginContext } from "@brains/plugins";
+import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { profileFrontmatterExtension, validateProfileContent } from "./schemas";
+import {
+  BUILT_IN_PROFILE_KINDS,
+  profileBaseFrontmatterExtension,
+  validateProfileContent,
+} from "./schemas";
 import {
   buildStarterCharacterBrief,
   generateStarterCharacter,
@@ -25,12 +20,10 @@ import {
 
 interface StarterIdentityConfig {
   enabled: boolean;
-  anchorKind: AnchorProfileKind;
 }
 
 export interface StarterIdentityConfigInput {
   enabled?: boolean | undefined;
-  anchorKind?: AnchorProfileKind | undefined;
 }
 
 interface ProfileConfig {
@@ -46,15 +39,11 @@ const starterIdentityConfigSchema: z.ZodType<
   StarterIdentityConfigInput
 > = z.object({
   enabled: z.boolean().default(true),
-  anchorKind: anchorProfileKindSchema.default("person"),
 });
 
 const profileConfigSchema: z.ZodType<ProfileConfig, ProfileConfigInput> =
   z.object({
-    starterIdentity: starterIdentityConfigSchema.default({
-      enabled: true,
-      anchorKind: "person",
-    }),
+    starterIdentity: starterIdentityConfigSchema.default({ enabled: true }),
   });
 
 export class ProfilePlugin extends ServicePlugin<
@@ -75,16 +64,9 @@ export class ProfilePlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.entities.extendFrontmatterSchema(
-      "anchor-profile",
-      profileFrontmatterExtension,
-    );
-    context.entities.registerPersistValidator(
-      "anchor-profile",
-      async (entity: BaseEntity): Promise<void> => {
-        validateProfileContent(entity.content);
-      },
-    );
+    for (const definition of BUILT_IN_PROFILE_KINDS) {
+      context.profileKinds.register(definition);
+    }
 
     if (!this.config.starterIdentity.enabled) return;
 
@@ -103,19 +85,25 @@ export class ProfilePlugin extends ServicePlugin<
         return;
       }
 
+      const selection = context.profileKinds.getResolved();
       try {
         await seedOrMigrateStarterIdentity({
           entityService: context.entityService,
           identifier,
-          defaultAnchorKind: this.config.starterIdentity.anchorKind,
+          ...(selection && {
+            profileKind: selection.kind,
+            profileCategory: selection.category,
+          }),
           generateBrainCharacter: async ({
-            anchorKind,
+            profileKind,
+            profileCategory,
             anchorEntity,
             anchorIsAuthored,
           }) => {
             const brief = await buildStarterCharacterBrief({
               entityService: context.entityService,
-              anchorKind,
+              ...(profileKind && { profileKind }),
+              ...(profileCategory && { profileCategory }),
               anchorEntity,
               includeAnchor: anchorIsAuthored,
             });
@@ -161,6 +149,41 @@ export class ProfilePlugin extends ServicePlugin<
       await attemptStarterIdentity();
       return { success: true };
     });
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    context.entities.extendFrontmatterSchema(
+      "anchor-profile",
+      profileBaseFrontmatterExtension,
+    );
+
+    const selection = context.profileKinds.getResolved();
+    const definition = context.profileKinds.getSelectedDefinition();
+    if (selection && !definition) {
+      throw new Error(
+        `Selected profile kind "${selection.kind}" has no field definition`,
+      );
+    }
+    if (definition) {
+      context.entities.extendFrontmatterSchema(
+        "anchor-profile",
+        definition.fields,
+      );
+    }
+
+    context.entities.registerPersistValidator(
+      "anchor-profile",
+      async (entity: BaseEntity): Promise<void> => {
+        validateProfileContent(
+          entity.content,
+          selection && definition
+            ? { category: selection.category, fields: definition.fields }
+            : undefined,
+        );
+      },
+    );
   }
 }
 

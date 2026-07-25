@@ -75,7 +75,6 @@ describe("SiteBuilderPlugin", () => {
     const profileUrl = "https://github.com/fresh-shell-profile";
     harness.getMockShell().getProfile = (): AnchorProfile => ({
       name: "Fresh Shell",
-      kind: "person",
       socialLinks: [{ platform: "github", url: profileUrl }],
     });
 

@@ -149,6 +149,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       version: packageJson.version,
       domain: context.domain,
       organization: this.config.organization,
+      profileKind: context.profileKinds.getResolved(),
       tools,
       skills,
       authEnabled: false,

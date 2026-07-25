@@ -58,10 +58,7 @@ describe("AnchorProfileService", () => {
     it("should return default profile with name", () => {
       const defaultProfile = AnchorProfileService.getDefaultProfile();
 
-      expect(defaultProfile).toEqual({
-        name: "Unknown",
-        kind: "person",
-      });
+      expect(defaultProfile).toEqual({ name: "Unknown" });
     });
   });
 
@@ -250,7 +247,6 @@ socialLinks:
     it("should use provided custom default profile instead of hardcoded default", async () => {
       const customProfile = {
         name: "Custom Organization",
-        kind: "organization" as const,
         description: "Custom description",
         website: "https://example.com",
       };
@@ -280,7 +276,6 @@ socialLinks:
     it("should create entity with custom default when none exists", async () => {
       const customProfile = {
         name: "Rizom",
-        kind: "organization" as const,
         description: "Open-source collective",
         socialLinks: [
           { platform: "github" as const, url: "https://github.com/rizom-ai" },

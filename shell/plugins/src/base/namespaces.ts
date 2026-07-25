@@ -27,6 +27,7 @@ import type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IProfileKindsNamespace,
   TypedMessageHandler,
 } from "./context-types";
 
@@ -44,6 +45,20 @@ export function createIdentityNamespace(
     get: () => toPublicBrainCharacter(shell.getIdentity()),
     getProfile: () => toPublicAnchorProfile(shell.getProfile()),
     getAppInfo,
+  };
+}
+
+export function createProfileKindsNamespace(
+  shell: IShell,
+  pluginId: string,
+): IProfileKindsNamespace {
+  const registry = shell.getProfileKindRegistry();
+  return {
+    register: (definition): void => {
+      registry.register(pluginId, definition);
+    },
+    getResolved: () => registry.getResolved(),
+    getSelectedDefinition: () => registry.getSelectedDefinition(),
   };
 }
 

@@ -214,6 +214,17 @@ export class PluginManager implements IPluginManager {
   }
 
   /**
+   * Finalize composition after all registrations and before content discovery.
+   * Run in dependency order so dependent plugins observe finalized providers.
+   */
+  public async finalizePluginRegistrations(): Promise<void> {
+    this.logger.debug("Finalizing plugin registrations...");
+    for (const id of this.initializedPluginIds) {
+      await this.pluginLifecycle.finalizePluginRegistration(id);
+    }
+  }
+
+  /**
    * Dispatch ready hooks for all initialized plugins.
    *
    * Hooks run concurrently — no ordering guarantees between plugins in this

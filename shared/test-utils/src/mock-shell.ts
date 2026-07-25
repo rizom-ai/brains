@@ -60,7 +60,11 @@ import type {
 } from "@brains/runtime-state";
 import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
-import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
+import {
+  ProfileKindRegistry,
+  type BrainCharacter,
+  type AnchorProfile,
+} from "@brains/identity-service";
 import type {
   AgentResponse,
   IAgentService,
@@ -99,6 +103,8 @@ export interface MockShellOptions {
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
+  /** Optional composition-selected semantic profile kind */
+  profileKind?: string;
   /** Active resolved theme CSS */
   themeCSS?: string;
 }
@@ -214,6 +220,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     dataDir: options.dataDir ?? "/tmp/mock-shell-test-data",
   });
   const runtimeState = createMemoryRuntimeStateNamespace();
+  const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -780,9 +787,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
     getProfile: (): AnchorProfile => ({
       name: "Test Owner",
-      kind: "person",
       description: "Test profile for unit tests",
     }),
+    getProfileKindRegistry: () => profileKindRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

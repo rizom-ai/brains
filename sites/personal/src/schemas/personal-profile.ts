@@ -1,13 +1,13 @@
 import {
   commonProfileExtension,
-  professionalProfileSchema,
+  publicProfileViewSchema,
 } from "@brains/profile";
 
-/** Personal sites use the person/professional anchor-profile contract. */
+/** Personal sites render the loose common profile view without selecting a kind. */
 export const personalProfileExtension: typeof commonProfileExtension =
   commonProfileExtension;
 
-export const personalProfileSchema: typeof professionalProfileSchema =
-  professionalProfileSchema;
+export const personalProfileSchema: typeof publicProfileViewSchema =
+  publicProfileViewSchema;
 
 export type PersonalProfile = ReturnType<typeof personalProfileSchema.parse>;

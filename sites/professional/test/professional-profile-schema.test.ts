@@ -15,14 +15,15 @@ describe("professional profile schema", () => {
   it("validates Rover onboarding profile content shape", () => {
     const parsed = professionalProfileSchema.parse({
       name: "Ada Morgan",
-      kind: "person",
       role: "advisor",
       audience: "climate-tech founders",
       expertise: ["resilient software systems"],
       availability: "Open to advisory work",
+      artistMediums: ["installation"],
     });
 
     expect(parsed.expertise).toEqual(["resilient software systems"]);
     expect(parsed.availability).toBe("Open to advisory work");
+    expect(parsed["artistMediums"]).toEqual(["installation"]);
   });
 });

@@ -117,6 +117,13 @@ describe("parseInstanceOverrides", () => {
     expect(result.name).toBe("team-staging");
   });
 
+  test("should parse an optional top-level profile kind", () => {
+    const result = parseInstanceOverrides(
+      'brain: "@rizom/brain"\nkind: artist',
+    );
+    expect(result.kind).toBe("artist");
+  });
+
   test("should parse logLevel", () => {
     const result = parseInstanceOverrides(
       'brain: "@brains/rover"\nlogLevel: debug',
@@ -672,6 +679,18 @@ describe("resolve with instance overrides", () => {
 
     const config = resolve(def, {}, { logLevel: "debug" });
     expect(config.logLevel).toBe("debug");
+  });
+
+  test("should pass the selected profile kind to the app config", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { kind: "artist" });
+    expect(config.profileKind).toBe("artist");
   });
 
   test("should override database", () => {

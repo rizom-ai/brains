@@ -2,7 +2,7 @@ import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
 import type {
   BrainCharacter,
   AnchorProfile,
-  AnchorProfileKind,
+  ResolvedProfileKind,
   ToolInfo,
   SkillData,
 } from "@brains/plugins";
@@ -21,8 +21,8 @@ export interface AgentCardOptions {
   baseUrl?: string;
   /** Organization name for the provider field */
   organization?: string;
-  /** Anchor kind: person, team, or organization */
-  kind?: AnchorProfileKind;
+  /** Composition-selected semantic kind and derived structural category */
+  profileKind?: ResolvedProfileKind | null;
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
   /** Derived skill data — replaces tool-based skills when present */
@@ -77,7 +77,10 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const anchorParams: Record<string, unknown> = {
     name: profile.name,
   };
-  if (options.kind) anchorParams["kind"] = options.kind;
+  if (options.profileKind) {
+    anchorParams["kind"] = options.profileKind.kind;
+    anchorParams["category"] = options.profileKind.category;
+  }
   if (profile.description) anchorParams["description"] = profile.description;
   if (organization) anchorParams["organization"] = organization;
 

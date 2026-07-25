@@ -26,10 +26,12 @@ const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 function createHarness(
   domain: string = "notes.example.com",
+  profileKind?: string,
 ): ReturnType<typeof createPluginHarness> {
   return createPluginHarness({
     dataDir: `/tmp/test-starter-identity-${randomUUID()}`,
     domain,
+    ...(profileKind && { profileKind }),
   });
 }
 
@@ -78,6 +80,7 @@ function createTestProfilePlugin(
 async function signalShellReady(
   harness: ReturnType<typeof createHarness>,
 ): Promise<void> {
+  await harness.finalizeRegistration();
   await harness.sendMessage("system:shell:ready", {}, "shell");
 }
 
@@ -111,25 +114,16 @@ kind: person
 
 describe("starter identity derivation", () => {
   test("is deterministic for the same canonical domain", () => {
-    const first = deriveStarterIdentity("domain:notes.example.com", "person");
-    const second = deriveStarterIdentity("domain:notes.example.com", "person");
+    const first = deriveStarterIdentity("domain:notes.example.com");
+    const second = deriveStarterIdentity("domain:notes.example.com");
 
     expect(second).toEqual(first);
   });
 
-  test("uses the same agent alias register for every anchor kind", () => {
-    const identifier = "domain:notes.example.com";
-    const person = deriveStarterIdentity(identifier, "person");
-    const team = deriveStarterIdentity(identifier, "team");
-    const organization = deriveStarterIdentity(identifier, "organization");
-
-    expect(team.name).toBe(person.name);
-    expect(organization.name).toBe(person.name);
-    expect([
-      person.anchorKind,
-      team.anchorKind,
-      organization.anchorKind,
-    ]).toEqual(["person", "team", "organization"]);
+  test("does not couple alias derivation to profile classification", () => {
+    expect(deriveStarterIdentity("domain:notes.example.com")).toEqual({
+      name: expect.any(String),
+    });
   });
 
   test("keeps unsafe classic-generator terms out of the local register", () => {
@@ -225,7 +219,8 @@ describe("starter character generation", () => {
     });
     const brief = await buildStarterCharacterBrief({
       entityService: harness.getEntityService(),
-      anchorKind: "team",
+      profileKind: "team",
+      profileCategory: "team",
       anchorEntity,
       includeAnchor: true,
     });
@@ -267,7 +262,8 @@ describe("starter character generation", () => {
 
     const brief = await buildStarterCharacterBrief({
       entityService: harness.getEntityService(),
-      anchorKind: "person",
+      profileKind: "professional",
+      profileCategory: "person",
       anchorEntity: null,
       includeAnchor: false,
     });
@@ -300,10 +296,10 @@ describe("legacy default fingerprints", () => {
     ).toBe(false);
   });
 
-  test("recognizes the canonical anchor default only when unauthored", () => {
+  test("recognizes content-owned and base-only anchor defaults", () => {
     expect(isLegacyAnchorProfileContent(legacyAnchor)).toBe(true);
     expect(isLegacyAnchorProfileContent("---\nname: Unknown\n---\n")).toBe(
-      false,
+      true,
     );
     expect(
       isLegacyAnchorProfileContent(
@@ -329,6 +325,7 @@ describe("starter identity lifecycle", () => {
         },
       }),
     );
+    await harness.finalizeRegistration();
 
     await harness.sendMessage(
       "sync:initial:completed",
@@ -356,11 +353,10 @@ describe("starter identity lifecycle", () => {
   });
 
   test("seeds missing identity after successful initial sync", async () => {
-    const harness = createHarness();
+    const harness = createHarness("notes.example.com", "team");
     let generationPrompt = "";
     await harness.installPlugin(
       createTestProfilePlugin({
-        config: { starterIdentity: { anchorKind: "team" } },
         onGenerate: (prompt) => {
           generationPrompt = prompt;
         },
@@ -400,10 +396,11 @@ describe("starter identity lifecycle", () => {
     expect(character.role).toBe(generatedCharacter.role);
     expect(character.purpose).toBe(generatedCharacter.purpose);
     expect(character.values).toEqual(generatedCharacter.values);
-    expect(profile.metadata["kind"]).toBe("team");
+    expect(profile.metadata).not.toHaveProperty("kind");
     expect(profile.metadata["name"]).toBe(`Anchor for ${character.name}`);
     expect(profile.content).toContain("picked");
-    expect(generationPrompt).toContain('"anchorKind": "team"');
+    expect(generationPrompt).toContain('"profileKind": "team"');
+    expect(generationPrompt).toContain('"profileCategory": "team"');
   });
 
   test("migrates exact defaults and is idempotent", async () => {

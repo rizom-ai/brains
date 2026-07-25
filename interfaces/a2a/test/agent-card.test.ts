@@ -9,10 +9,7 @@ const mockCharacter: BrainCharacter = {
   values: ["clarity", "accuracy"],
 };
 
-const mockProfile: AnchorProfile = {
-  name: "Jan Hein",
-  kind: "person",
-};
+const mockProfile: AnchorProfile = { name: "Jan Hein" };
 
 const mockTools = [
   {

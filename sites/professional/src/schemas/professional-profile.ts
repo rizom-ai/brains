@@ -1,10 +1,12 @@
 import {
   professionalProfileExtension,
-  professionalProfileSchema,
+  professionalProfileViewSchema,
 } from "@brains/profile";
 
-/** Shared profile contracts are owned by the profile plugin. */
-export { professionalProfileExtension, professionalProfileSchema };
+/** Professional sites extend the loose common view with fields they render. */
+export { professionalProfileExtension };
+export const professionalProfileSchema: typeof professionalProfileViewSchema =
+  professionalProfileViewSchema;
 
 export type ProfessionalProfile = ReturnType<
   typeof professionalProfileSchema.parse

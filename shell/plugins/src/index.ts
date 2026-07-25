@@ -90,6 +90,7 @@ export type {
   IConversationsNamespace,
   IEvalNamespace,
   IInsightsNamespace,
+  IProfileKindsNamespace,
   ISemanticNamespace,
 } from "./base/context";
 export type {
@@ -575,6 +576,11 @@ export {
 export type {
   AnchorProfileKind,
   IAnchorProfileService,
+  ProfileCategory,
+  ProfileKindDefinition,
+  ProfileKindLabels,
+  ResolvedProfileKind,
+  ResolvedProfileSelection,
 } from "@brains/identity-service";
 export {
   AnchorProfileService,
@@ -592,6 +598,7 @@ export {
   agentCardSkillSchema,
   anchorExtensionParamsSchema,
   parseAgentCard,
+  type AnchorExtensionProfile,
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";

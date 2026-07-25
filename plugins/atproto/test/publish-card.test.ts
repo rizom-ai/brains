@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
   AtprotoPlugin,
   atprotoPlugin,
@@ -9,7 +10,17 @@ import {
 } from "../src";
 
 function createShellWithA2A(): ReturnType<typeof createMockShell> {
-  const shell = createMockShell({ domain: "brain.example.com" });
+  const shell = createMockShell({
+    domain: "brain.example.com",
+    profileKind: "professional",
+  });
+  shell.getProfileKindRegistry().register("test", {
+    kind: "professional",
+    category: "person",
+    fields: z.object({}),
+    labels: { singular: "Professional", plural: "Professionals" },
+  });
+  shell.getProfileKindRegistry().finalize();
   shell.registerEndpoint({
     pluginId: "a2a",
     label: "A2A",
@@ -80,7 +91,8 @@ describe("AT Protocol brain card publishing", () => {
       anchor: {
         did: "did:plc:anchor",
         name: "Test Owner",
-        kind: "person",
+        category: "person",
+        kind: "professional",
       },
       siteUrl: "https://brain.example.com/",
       skills: [],
@@ -127,6 +139,23 @@ describe("AT Protocol brain card publishing", () => {
     expect(error).toHaveProperty(
       "message",
       "AT Protocol brain card did:web host must match siteUrl host",
+    );
+  });
+
+  it("rejects typed publication when no profile kind is selected", () => {
+    const shell = createMockShell({ domain: "brain.example.com" });
+    shell.getProfileKindRegistry().finalize();
+    const plugin = new AtprotoPlugin({
+      identifier: "brain.example.com",
+      appPassword: "secret",
+    });
+
+    expect(
+      plugin.publishBrainCard(createServicePluginContext(shell, "atproto"), {
+        dryRun: true,
+      }),
+    ).rejects.toThrow(
+      "AT Protocol brain card publishing requires a configured profile kind",
     );
   });
 
@@ -204,7 +233,8 @@ describe("AT Protocol brain card publishing", () => {
         anchor: {
           did: "did:plc:anchor",
           name: "Test Owner",
-          kind: "person",
+          category: "person",
+          kind: "professional",
         },
         siteUrl: "https://brain.example.com/",
       },

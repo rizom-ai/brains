@@ -27,6 +27,18 @@ export {
   type AnchorProfileKind,
 } from "./anchor-profile-schema";
 
+// Profile-kind composition
+export {
+  ProfileKindRegistry,
+  profileCategorySchema,
+  type IProfileKindRegistry,
+  type ProfileCategory,
+  type ProfileKindDefinition,
+  type ProfileKindLabels,
+  type ResolvedProfileKind,
+  type ResolvedProfileSelection,
+} from "./profile-kind-registry";
+
 // Canonical identity links
 export {
   CanonicalIdentityService,

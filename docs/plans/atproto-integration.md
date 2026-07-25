@@ -32,7 +32,7 @@ The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqun
 
 ### 2. Jetstream discovery (Phase 4 tail) — next up
 
-The bounded discovery pipeline is implemented end to end — `discoverBrainCards` resolves a repo, reads its card, converts cross-version anchor kinds, validates, and broadcasts `atproto:brain-card:discovered`; agent-discovery upserts a reviewable `agent` entity and its daily refresh keeps known cards current — but nothing in production feeds it candidates. Its only caller is a smoke script. Operator-listed repo DIDs were considered and rejected: hand-maintaining peer lists in config is O(fleet-size) toil per brain and cannot scale past a handful of peers.
+The bounded discovery pipeline is implemented end to end — `discoverBrainCards` resolves a repo, reads and validates the current `{ kind, category }` anchor shape, and broadcasts `atproto:brain-card:discovered`; the coordinated two-card maintenance cutover in [identity-profiles-and-expression.md](./identity-profiles-and-expression.md) removes cross-shape normalization. Agent discovery upserts a reviewable `agent` entity and its daily refresh keeps known cards current — but nothing in production feeds it candidates. Its only caller is a smoke script. Operator-listed repo DIDs were considered and rejected: hand-maintaining peer lists in config is O(fleet-size) toil per brain and cannot scale past a handful of peers.
 
 Jetstream is an **untrusted candidate signal**, never the record source. A commit event may cause the existing bounded pipeline to inspect a repo DID; the consumer never broadcasts the event's embedded record directly. This preserves one convert → validate → reviewable-entity path and prevents Jetstream from becoming a parallel trust boundary.
 

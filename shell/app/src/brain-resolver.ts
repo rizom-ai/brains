@@ -616,6 +616,7 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
+    ...(overrides?.kind && { profileKind: overrides.kind }),
     ...(definition.agentInstructions && {
       agentInstructions: definition.agentInstructions,
     }),

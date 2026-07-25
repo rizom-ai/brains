@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type {
-  AnchorProfileKind,
   BaseEntity,
+  ProfileCategory,
   BrainCharacter,
   IEntityService,
 } from "@brains/plugins";
@@ -121,12 +121,12 @@ export interface StarterIdentitySource {
 
 export interface StarterIdentity {
   name: string;
-  anchorKind: AnchorProfileKind;
 }
 
 export interface StarterCharacterGenerationRequest {
   starterName: string;
-  anchorKind: AnchorProfileKind;
+  profileKind?: string | undefined;
+  profileCategory?: ProfileCategory | undefined;
   anchorEntity: BaseEntity | null;
   anchorIsAuthored: boolean;
 }
@@ -191,13 +191,10 @@ function select<T>(values: readonly T[], digest: Buffer, offset: number): T {
   return value;
 }
 
-export function deriveStarterIdentity(
-  identifier: string,
-  anchorKind: AnchorProfileKind,
-): StarterIdentity {
+export function deriveStarterIdentity(identifier: string): StarterIdentity {
   const digest = digestIdentifier(`starter-alias:v1:${identifier}`);
   const name = `${select(STARTER_ALIAS_REGISTER.first, digest, 0)} ${select(STARTER_ALIAS_REGISTER.second, digest, 1)}`;
-  return { name, anchorKind };
+  return { name };
 }
 
 function parseRawContent(content: string): {
@@ -253,26 +250,20 @@ export function isLegacyBrainCharacterContent(content: string): boolean {
 export function isLegacyAnchorProfileContent(content: string): boolean {
   const parsed = parseRawContent(content);
   if (!parsed || parsed.body) return false;
-  if (!hasExactKeys(parsed.metadata, ["name", "kind"])) return false;
 
+  if (
+    hasExactKeys(parsed.metadata, ["name"]) &&
+    parsed.metadata["name"] === "Unknown"
+  ) {
+    return true;
+  }
+
+  if (!hasExactKeys(parsed.metadata, ["name", "kind"])) return false;
   return LEGACY_ANCHOR_PROFILE_FINGERPRINTS.some(
     (fingerprint) =>
       parsed.metadata["name"] === fingerprint.name &&
       parsed.metadata["kind"] === fingerprint.kind,
   );
-}
-
-function readAnchorKind(
-  entity: BaseEntity | null,
-  fallback: AnchorProfileKind,
-): AnchorProfileKind {
-  if (!entity) return fallback;
-  const parsed = parseRawContent(entity.content);
-  const kind = parsed?.metadata["kind"];
-  if (kind === "person" || kind === "team" || kind === "organization") {
-    return kind;
-  }
-  return fallback;
 }
 
 function readBrainName(entity: BaseEntity | null): string | null {
@@ -290,14 +281,14 @@ export function createStarterBrainCharacterContent(
 
 export function createStarterAnchorProfileContent(
   starterName: string,
-  anchorKind: AnchorProfileKind,
+  profileCategory?: ProfileCategory,
 ): string {
+  const classification = profileCategory ?? "anchor";
   return generateMarkdownWithFrontmatter(
-    `This brain picked **${starterName}** as its starter name. Replace this placeholder with the ${anchorKind} identity the brain represents.`,
+    `This brain picked **${starterName}** as its starter name. Replace this placeholder with the ${classification} identity the brain represents.`,
     {
       name: `Anchor for ${starterName}`,
-      kind: anchorKind,
-      description: `Starter ${anchorKind} anchor profile; configuration is still needed.`,
+      description: `Starter ${classification} profile; configuration is still needed.`,
       intro:
         "This is a generated placeholder, not an invented real-world identity.",
     },
@@ -331,7 +322,8 @@ async function persistIdentityEntity(
 export async function seedOrMigrateStarterIdentity(options: {
   entityService: IEntityService;
   identifier: string;
-  defaultAnchorKind: AnchorProfileKind;
+  profileKind?: string | undefined;
+  profileCategory?: ProfileCategory | undefined;
   generateBrainCharacter: (
     request: StarterCharacterGenerationRequest,
   ) => Promise<Omit<BrainCharacter, "name">>;
@@ -340,7 +332,8 @@ export async function seedOrMigrateStarterIdentity(options: {
   const {
     entityService,
     identifier,
-    defaultAnchorKind,
+    profileKind,
+    profileCategory,
     generateBrainCharacter,
     logger,
   } = options;
@@ -357,8 +350,7 @@ export async function seedOrMigrateStarterIdentity(options: {
     }),
   ]);
 
-  const anchorKind = readAnchorKind(anchorEntity, defaultAnchorKind);
-  const starter = deriveStarterIdentity(identifier, anchorKind);
+  const starter = deriveStarterIdentity(identifier);
   const brainNeedsGeneration =
     !brainEntity || isLegacyBrainCharacterContent(brainEntity.content);
   const anchorIsAuthored = Boolean(
@@ -369,7 +361,8 @@ export async function seedOrMigrateStarterIdentity(options: {
   if (brainNeedsGeneration) {
     const generated = await generateBrainCharacter({
       starterName: starter.name,
-      anchorKind,
+      ...(profileKind && { profileKind }),
+      ...(profileCategory && { profileCategory }),
       anchorEntity,
       anchorIsAuthored,
     });
@@ -399,7 +392,7 @@ export async function seedOrMigrateStarterIdentity(options: {
       entityService,
       anchorEntity,
       "anchor-profile",
-      createStarterAnchorProfileContent(representedBrainName, anchorKind),
+      createStarterAnchorProfileContent(representedBrainName, profileCategory),
     );
   }
 

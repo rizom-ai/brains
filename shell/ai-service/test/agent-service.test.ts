@@ -155,7 +155,6 @@ describe("AgentService", () => {
     mockProfileService = {
       getProfile: (): AnchorProfile => ({
         name: "Test Anchor",
-        kind: "person" as const,
         description: "Test",
       }),
     };

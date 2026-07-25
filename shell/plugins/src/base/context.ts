@@ -25,6 +25,7 @@ import {
   createJobsNamespace,
   createMessagingNamespace,
   createPermissionsNamespace,
+  createProfileKindsNamespace,
 } from "./namespaces";
 import type {
   IConversationsNamespace,
@@ -35,6 +36,7 @@ import type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IProfileKindsNamespace,
 } from "./context-types";
 
 export interface ISemanticNamespace {
@@ -52,6 +54,7 @@ export type {
   IInteractionsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
+  IProfileKindsNamespace,
   TypedMessageHandler,
 } from "./context-types";
 
@@ -136,6 +139,9 @@ export interface BasePluginContext {
    * - `identity.getAppInfo()` - Get app metadata
    */
   readonly identity: IIdentityNamespace;
+
+  /** App-scoped semantic profile-kind catalog and selected resolution. */
+  readonly profileKinds: IProfileKindsNamespace;
 
   // ============================================================================
   // Inter-Plugin Messaging
@@ -259,6 +265,7 @@ export function createBasePluginContext(
     },
 
     identity: createIdentityNamespace(shell, getAppInfo),
+    profileKinds: createProfileKindsNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
     judge: (input) => shell.judge(input),

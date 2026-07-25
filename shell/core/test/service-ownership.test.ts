@@ -67,6 +67,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
     honoredByCore: true,
     cleanup: "stop+abandon",
   },
+  profileKindRegistry: { honoredByCore: true, cleanup: "none" },
 };
 
 const logger = createSilentLogger("service-ownership");

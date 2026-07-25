@@ -2,6 +2,8 @@ import {
   anchorProfileBodySchema,
   parseMarkdownWithFrontmatter,
   type AnchorProfile,
+  type ProfileCategory,
+  type ProfileKindDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
@@ -32,24 +34,28 @@ export const commonProfileExtension: CommonProfileExtensionSchema = z.object({
     .describe("Primary audience or community served"),
 });
 
-export interface ProfessionalProfileExtension extends CommonProfileExtension {
-  role?: string | undefined;
-  expertise?: string[] | undefined;
-  currentFocus?: string | undefined;
-  availability?: string | undefined;
-}
+export type ProfileBaseFrontmatterExtension = z.ZodObject<{
+  tagline: z.ZodOptional<z.ZodString>;
+  intro: z.ZodOptional<z.ZodString>;
+  audience: z.ZodOptional<z.ZodString>;
+}>;
 
-export type ProfessionalProfileExtensionSchema = ReturnType<
-  typeof commonProfileExtension.extend<{
-    role: z.ZodOptional<z.ZodString>;
-    expertise: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    currentFocus: z.ZodOptional<z.ZodString>;
-    availability: z.ZodOptional<z.ZodString>;
-  }>
->;
+export const profileBaseFrontmatterExtension: ProfileBaseFrontmatterExtension =
+  z.object({
+    tagline: commonProfileExtension.shape.tagline,
+    intro: commonProfileExtension.shape.intro,
+    audience: commonProfileExtension.shape.audience,
+  });
 
-export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
-  commonProfileExtension.extend({
+export type ProfessionalProfileFieldsSchema = z.ZodObject<{
+  role: z.ZodOptional<z.ZodString>;
+  expertise: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  currentFocus: z.ZodOptional<z.ZodString>;
+  availability: z.ZodOptional<z.ZodString>;
+}>;
+
+export const professionalProfileFields: ProfessionalProfileFieldsSchema =
+  z.object({
     role: z
       .string()
       .optional()
@@ -68,6 +74,37 @@ export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
       .describe("Work, speaking, or collaboration availability"),
   });
 
+export interface ProfessionalProfileExtension extends CommonProfileExtension {
+  role?: string | undefined;
+  expertise?: string[] | undefined;
+  currentFocus?: string | undefined;
+  availability?: string | undefined;
+}
+
+export type ProfessionalProfileExtensionSchema = ReturnType<
+  typeof commonProfileExtension.extend<ProfessionalProfileFieldsSchema["shape"]>
+>;
+
+export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
+  commonProfileExtension.extend(professionalProfileFields.shape);
+
+export type TeamProfileFieldsSchema = z.ZodObject<{
+  purpose: z.ZodOptional<z.ZodString>;
+  focusAreas: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  capabilities: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  workingPrinciples: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}>;
+
+export const teamProfileFields: TeamProfileFieldsSchema = z.object({
+  purpose: z.string().optional().describe("Team purpose"),
+  focusAreas: z.array(z.string()).optional().describe("Team focus areas"),
+  capabilities: z.array(z.string()).optional().describe("Team capabilities"),
+  workingPrinciples: z
+    .array(z.string())
+    .optional()
+    .describe("Principles guiding how the team works"),
+});
+
 export interface TeamProfileExtension extends CommonProfileExtension {
   purpose?: string | undefined;
   focusAreas?: string[] | undefined;
@@ -76,43 +113,21 @@ export interface TeamProfileExtension extends CommonProfileExtension {
 }
 
 export type TeamProfileExtensionSchema = ReturnType<
-  typeof commonProfileExtension.extend<{
-    purpose: z.ZodOptional<z.ZodString>;
-    focusAreas: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    capabilities: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    workingPrinciples: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  }>
+  typeof commonProfileExtension.extend<TeamProfileFieldsSchema["shape"]>
 >;
 
 export const teamProfileExtension: TeamProfileExtensionSchema =
-  commonProfileExtension.extend({
-    purpose: z.string().optional().describe("Team purpose"),
-    focusAreas: z.array(z.string()).optional().describe("Team focus areas"),
-    capabilities: z.array(z.string()).optional().describe("Team capabilities"),
-    workingPrinciples: z
-      .array(z.string())
-      .optional()
-      .describe("Principles guiding how the team works"),
-  });
+  commonProfileExtension.extend(teamProfileFields.shape);
 
-export interface OrganizationProfileExtension extends CommonProfileExtension {
-  mission?: string | undefined;
-  focusAreas?: string[] | undefined;
-  offerings?: string[] | undefined;
-  values?: string[] | undefined;
-}
+export type OrganizationProfileFieldsSchema = z.ZodObject<{
+  mission: z.ZodOptional<z.ZodString>;
+  focusAreas: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  offerings: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  values: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}>;
 
-export type OrganizationProfileExtensionSchema = ReturnType<
-  typeof commonProfileExtension.extend<{
-    mission: z.ZodOptional<z.ZodString>;
-    focusAreas: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    offerings: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    values: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  }>
->;
-
-export const organizationProfileExtension: OrganizationProfileExtensionSchema =
-  commonProfileExtension.extend({
+export const organizationProfileFields: OrganizationProfileFieldsSchema =
+  z.object({
     mission: z.string().optional().describe("Organization mission"),
     focusAreas: z
       .array(z.string())
@@ -125,147 +140,151 @@ export const organizationProfileExtension: OrganizationProfileExtensionSchema =
     values: z.array(z.string()).optional().describe("Organization values"),
   });
 
-export interface ProfessionalProfile
-  extends AnchorProfile, ProfessionalProfileExtension, Record<string, unknown> {
-  kind: "person";
+export interface OrganizationProfileExtension extends CommonProfileExtension {
+  mission?: string | undefined;
+  focusAreas?: string[] | undefined;
+  offerings?: string[] | undefined;
+  values?: string[] | undefined;
 }
+
+export type OrganizationProfileExtensionSchema = ReturnType<
+  typeof commonProfileExtension.extend<OrganizationProfileFieldsSchema["shape"]>
+>;
+
+export const organizationProfileExtension: OrganizationProfileExtensionSchema =
+  commonProfileExtension.extend(organizationProfileFields.shape);
+
+export interface ProfessionalProfile
+  extends
+    AnchorProfile,
+    ProfessionalProfileExtension,
+    Record<string, unknown> {}
 
 export interface TeamProfile
-  extends AnchorProfile, TeamProfileExtension, Record<string, unknown> {
-  kind: "team";
-}
+  extends AnchorProfile, TeamProfileExtension, Record<string, unknown> {}
 
 export interface OrganizationProfile
-  extends AnchorProfile, OrganizationProfileExtension, Record<string, unknown> {
-  kind: "organization";
-}
+  extends
+    AnchorProfile,
+    OrganizationProfileExtension,
+    Record<string, unknown> {}
 
 export const professionalProfileSchema: z.ZodType<ProfessionalProfile> =
-  anchorProfileBodySchema
-    .extend({
-      kind: z.literal("person"),
-      ...professionalProfileExtension.shape,
-    })
-    .strict();
+  anchorProfileBodySchema.extend(professionalProfileExtension.shape).strict();
 
 export const teamProfileSchema: z.ZodType<TeamProfile> = anchorProfileBodySchema
-  .extend({
-    kind: z.literal("team"),
-    ...teamProfileExtension.shape,
-  })
+  .extend(teamProfileExtension.shape)
   .strict();
 
 export const organizationProfileSchema: z.ZodType<OrganizationProfile> =
-  anchorProfileBodySchema
-    .extend({
-      kind: z.literal("organization"),
-      ...organizationProfileExtension.shape,
-    })
-    .strict();
+  anchorProfileBodySchema.extend(organizationProfileExtension.shape).strict();
 
-export const profileFrontmatterExtension: z.ZodObject<z.ZodRawShape> = z
-  .object({
-    ...anchorProfileBodySchema.shape,
-    tagline: z.string().optional(),
-    intro: z.string().optional(),
-    audience: z.string().optional(),
-    role: z
-      .string()
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "person" } }),
-    expertise: z
-      .array(z.string())
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "person" } }),
-    currentFocus: z
-      .string()
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "person" } }),
-    availability: z
-      .string()
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "person" } }),
-    purpose: z
-      .string()
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "team" } }),
-    focusAreas: z
-      .array(z.string())
-      .optional()
-      .meta({
-        cmsCondition: {
-          field: "kind",
-          value: ["team", "organization"],
-        },
-      }),
-    capabilities: z
-      .array(z.string())
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "team" } }),
-    workingPrinciples: z
-      .array(z.string())
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "team" } }),
-    mission: z
-      .string()
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
-    offerings: z
-      .array(z.string())
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
-    values: z
-      .array(z.string())
-      .optional()
-      .meta({ cmsCondition: { field: "kind", value: "organization" } }),
-  })
-  .strict()
-  .superRefine((profile, context) => {
-    const result =
-      profile["kind"] === "person"
-        ? professionalProfileSchema.safeParse(profile)
-        : profile["kind"] === "team"
-          ? teamProfileSchema.safeParse(profile)
-          : organizationProfileSchema.safeParse(profile);
+type PublicProfileViewObjectSchema = ReturnType<
+  typeof anchorProfileBodySchema.extend<CommonProfileExtensionSchema["shape"]>
+>;
+export type PublicProfileViewSchema = ReturnType<
+  PublicProfileViewObjectSchema["loose"]
+>;
 
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        context.addIssue({
-          code: "custom",
-          path: [...issue.path],
-          message: issue.message,
-        });
-      }
-    }
-  });
+export const publicProfileViewSchema: PublicProfileViewSchema =
+  anchorProfileBodySchema.extend(commonProfileExtension.shape).loose();
 
-const unknownFrontmatterSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
-  z.record(z.string(), z.unknown());
+type ProfessionalProfileViewObjectSchema = ReturnType<
+  typeof publicProfileViewSchema.extend<
+    ProfessionalProfileFieldsSchema["shape"]
+  >
+>;
+export type ProfessionalProfileViewSchema = ReturnType<
+  ProfessionalProfileViewObjectSchema["loose"]
+>;
 
-export function validateProfileContent(content: string): void {
+export const professionalProfileViewSchema: ProfessionalProfileViewSchema =
+  publicProfileViewSchema.extend(professionalProfileFields.shape).loose();
+
+/** Backward-compatible name for the always-on base profile extension. */
+export const profileFrontmatterExtension: ProfileBaseFrontmatterExtension =
+  profileBaseFrontmatterExtension;
+
+export const BUILT_IN_PROFILE_KINDS: readonly ProfileKindDefinition[] = [
+  {
+    kind: "professional",
+    category: "person",
+    fields: professionalProfileFields,
+    labels: { singular: "Professional", plural: "Professionals" },
+  },
+  {
+    kind: "team",
+    category: "team",
+    fields: teamProfileFields,
+    labels: { singular: "Team", plural: "Teams" },
+  },
+  {
+    kind: "organization",
+    category: "organization",
+    fields: organizationProfileFields,
+    labels: { singular: "Organization", plural: "Organizations" },
+  },
+];
+
+const rawFrontmatterSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
+  z.string(),
+  z.unknown(),
+);
+
+const transitionalContentKindCategories: Readonly<
+  Record<string, ProfileCategory>
+> = {
+  person: "person",
+  professional: "person",
+  team: "team",
+  organization: "organization",
+  collective: "organization",
+};
+
+export interface ProfileValidationSelection {
+  category: ProfileCategory;
+  fields: z.ZodObject<z.ZodRawShape>;
+}
+
+function validateTransitionalContentKind(
+  value: unknown,
+  selection?: ProfileValidationSelection,
+): void {
+  if (value === undefined) return;
+  if (typeof value !== "string") {
+    throw new Error("anchor-profile transitional kind must be a string");
+  }
+  const contentCategory = transitionalContentKindCategories[value];
+  if (!contentCategory) {
+    throw new Error(`Unknown transitional anchor-profile kind: ${value}`);
+  }
+  if (selection && contentCategory !== selection.category) {
+    throw new Error(
+      `anchor-profile content kind category ${contentCategory} does not match configured category ${selection.category}`,
+    );
+  }
+}
+
+export function validateProfileContent(
+  content: string,
+  selection?: ProfileValidationSelection,
+): void {
   const { metadata } = parseMarkdownWithFrontmatter(
     content,
-    unknownFrontmatterSchema,
+    rawFrontmatterSchema,
   );
   if (Object.hasOwn(metadata, "story")) {
     throw new Error(
       "anchor-profile story must be stored in the markdown body, not frontmatter",
     );
   }
-  const base = anchorProfileBodySchema.parse(metadata);
-  // base.kind is already transitioned from any legacy value; validate the
-  // per-kind schema against the canonical kind so the strict `z.literal` kinds
-  // match a migrated-in-place profile.
-  const normalized = { ...metadata, kind: base.kind };
 
-  switch (base.kind) {
-    case "person":
-      professionalProfileSchema.parse(normalized);
-      return;
-    case "team":
-      teamProfileSchema.parse(normalized);
-      return;
-    case "organization":
-      organizationProfileSchema.parse(normalized);
-  }
+  validateTransitionalContentKind(metadata["kind"], selection);
+  const { kind: _transitionalKind, ...profileData } = metadata;
+  const selectedFields = selection?.fields.shape ?? {};
+  anchorProfileBodySchema
+    .extend(profileBaseFrontmatterExtension.shape)
+    .extend(selectedFields)
+    .strict()
+    .parse(profileData);
 }

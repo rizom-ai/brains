@@ -1,6 +1,7 @@
 import type {
   AnchorProfileKind,
   BaseEntity,
+  ProfileCategory,
   EntityPluginContext,
   SkillData,
 } from "@brains/plugins";
@@ -212,6 +213,7 @@ export function buildCapabilityProfilesFromEntities(params: {
     purpose?: string;
     profileName?: string;
     profileDescription?: string;
+    profileCategory?: ProfileCategory;
   };
   agents: BaseEntity[];
   skills: BaseEntity[];
@@ -233,6 +235,7 @@ export function buildCapabilityProfilesFromEntities(params: {
     source: "self",
     name: profileName,
     brainName,
+    ...(identity?.profileCategory && { kind: identity.profileCategory }),
     ...(descriptionParts.length > 0 && {
       description: descriptionParts.join("\n\n"),
     }),
@@ -289,6 +292,7 @@ export async function buildCapabilityProfiles(
 
   const character = context.identity.get();
   const profile = context.identity.getProfile();
+  const profileSelection = context.profileKinds.getResolved();
 
   return buildCapabilityProfilesFromEntities({
     identity: {
@@ -297,6 +301,9 @@ export async function buildCapabilityProfiles(
       purpose: character.purpose,
       profileName: profile.name,
       ...(profile.description && { profileDescription: profile.description }),
+      ...(profileSelection && {
+        profileCategory: profileSelection.category,
+      }),
     },
     agents,
     skills,

@@ -39,6 +39,8 @@ export interface HarnessOptions {
   localSiteUrl?: string;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
+  /** Optional composition-selected semantic profile kind */
+  profileKind?: string;
 }
 
 /**
@@ -61,6 +63,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       domain?: string;
       localSiteUrl?: string;
       preferLocalUrls?: boolean;
+      profileKind?: string;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -73,6 +76,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.preferLocalUrls !== undefined) {
       mockShellOptions.preferLocalUrls = options.preferLocalUrls;
+    }
+    if (options.profileKind !== undefined) {
+      mockShellOptions.profileKind = options.profileKind;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -95,6 +101,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         domain?: string;
         localSiteUrl?: string;
         preferLocalUrls?: boolean;
+        profileKind?: string;
       } = {
         logger: createSilentLogger(context),
       };
@@ -110,12 +117,24 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       if (this.options.preferLocalUrls !== undefined) {
         mockShellOptions.preferLocalUrls = this.options.preferLocalUrls;
       }
+      if (this.options.profileKind !== undefined) {
+        mockShellOptions.profileKind = this.options.profileKind;
+      }
       this.mockShell = createMockShell(mockShellOptions);
     }
 
     this.capabilities = await plugin.register(this.mockShell);
     this.mockShell.addPlugin(plugin);
     return this.capabilities;
+  }
+
+  /** Finalize app-scoped registries and the installed plugin before sync. */
+  async finalizeRegistration(): Promise<void> {
+    if (!this.plugin) {
+      throw new Error("No plugin installed. Call installPlugin() first.");
+    }
+    this.mockShell.getProfileKindRegistry().finalize();
+    await this.plugin.finalizeRegistration?.();
   }
 
   /**

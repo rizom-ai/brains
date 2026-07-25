@@ -6,7 +6,7 @@ Implemented in the repository, including the revised Phase 7 safe deterministic 
 
 A post-implementation review confirmed the anchor-kind cutover is complete and consistent and the alias/backfill/style-guide work matches intent. All six findings from that review have now been implemented and validated; see [Post-implementation review follow-ups](#post-implementation-review-follow-ups).
 
-**The anchor-kind model is being redesigned** — see [Revision — profile `kind` and derived `category`](#revision--profile-kind-and-derived-category). The shipped single `kind` content enum is replaced by an optional semantic `kind` selected in composition from an open catalog and a structural `category` derived only when a kind is selected. Profiles without a kind use the base fields and have no category. This supersedes decisions 2, 3, 11, and the kind-specific part of 12. Not yet implemented; the branch still carries the shipped approach.
+**The anchor-kind redesign is implemented in the repository** — see [Revision — profile `kind` and derived `category`](#revision--profile-kind-and-derived-category). The shipped single `kind` content enum is replaced by an optional semantic `kind` selected in composition from an open catalog and a structural `category` derived only when a kind is selected. Profiles without a kind use the base fields and have no category. This supersedes decisions 2, 3, 11, and the kind-specific part of 12. Transitional authored-content validation remains until the live content sweep; the coordinated two-card cutover remains operational follow-up work.
 
 This plan concerns git-synced, markdown-backed identity and generation guidance. Runtime
 users, authentication, roles, and authorization remain owned by the runtime identity
@@ -24,14 +24,15 @@ Related plans:
 This revision supersedes the shipped anchor-kind approach. It is the new target. The
 content-owned kind enum and its auto-transition code are removed only after the staged
 fleet migration below. Style-guide and represented-site-identity decisions remain;
-site profile views need the integration change described here.
+site profile views use the consumer-specific integration described here.
 
-**Sequencing dependency:** this revision assumes the unified-brain bundle runtime from
-[brain-model-unification.md](./brain-model-unification.md) — the top-level `kind:`
-selection, `bundles:`, and `@rizom/brain` composition it describes do not exist on
-`main` yet (that work is in progress on a separate branch; the alpha.204 model/preset
-contract is still frozen). Do not start implementation against the current `preset:`-based
-runtime; it lands only after the bundle runtime does.
+**Unification boundary:** the app/shell contracts implement top-level `kind:` independently
+of the current preset selector, so the same composition-owned selection carries into the
+unified-brain bundle runtime from
+[brain-model-unification.md](./brain-model-unification.md). The alpha.204
+Rover/Relay/Ranger model and preset fixtures remain frozen as migration evidence; this
+revision does not turn those non-identity model labels into durable profile targets.
+Unified recipes and live instance configuration migrate in the unification work.
 
 ### Problem with the shipped model
 
@@ -313,8 +314,9 @@ composition choice in `brain.yaml`.
    `represents: brain | anchor`. It does not own generation style.
 10. **Do not introduce a mandatory brand entity.** Add one only when a real identity is
     distinct from both brain and anchor.
-11. _(Superseded — see [Revision](#revision--profile-kind-and-derived-category); the
-    authored-content alias is removed, only peer discovery normalization remains.)_
+11. _(Superseded — see [Revision](#revision--profile-kind-and-derived-category);
+    authored-content compatibility remains only for the staged content migration, while
+    peer-card normalization is removed by the coordinated cutover.)_
     **Rename the vocabulary; transition legacy values automatically at every read
     boundary.** The public contracts (lexicon `knownValues`, A2A) move to the new
     vocabulary immediately, but no content is required to migrate ahead of a deploy.

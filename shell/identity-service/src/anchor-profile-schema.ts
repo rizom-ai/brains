@@ -69,7 +69,6 @@ export const authoredAnchorProfileKindSchema: z.ZodType<AnchorProfileKind> = z
 
 export interface AnchorProfile {
   name: string;
-  kind: AnchorProfileKind;
   organization?: string | undefined;
   description?: string | undefined;
   avatar?: string | undefined;
@@ -92,7 +91,6 @@ type SocialLinkSchema = z.ZodObject<{
 
 export type AnchorProfileBodySchema = z.ZodObject<{
   name: z.ZodString;
-  kind: z.ZodType<AnchorProfileKind>;
   organization: z.ZodOptional<z.ZodString>;
   description: z.ZodOptional<z.ZodString>;
   avatar: z.ZodOptional<z.ZodString>;
@@ -106,8 +104,7 @@ export type AnchorProfileBodySchema = z.ZodObject<{
  * (Not stored as separate entity fields - parsed from content)
  */
 export const anchorProfileBodySchema: AnchorProfileBodySchema = z.object({
-  name: z.string().describe("Name (person or organization)"),
-  kind: authoredAnchorProfileKindSchema,
+  name: z.string().describe("Name of the anchor"),
   organization: z
     .string()
     .optional()

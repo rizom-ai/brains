@@ -16,11 +16,6 @@ export type BrainCharacter = z.output<typeof BrainCharacterSchema>;
 
 export const AnchorProfileSchema: z.ZodObject<{
   name: z.ZodString;
-  kind: z.ZodEnum<{
-    person: "person";
-    team: "team";
-    organization: "organization";
-  }>;
   organization: z.ZodOptional<z.ZodString>;
   description: z.ZodOptional<z.ZodString>;
   avatar: z.ZodOptional<z.ZodString>;
@@ -43,7 +38,6 @@ export const AnchorProfileSchema: z.ZodObject<{
   >;
 }> = z.object({
   name: z.string(),
-  kind: z.enum(["person", "team", "organization"]),
   organization: z.string().optional(),
   description: z.string().optional(),
   avatar: z.string().optional(),
