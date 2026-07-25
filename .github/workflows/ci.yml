@@ -60,6 +60,13 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # Runs here rather than as its own job so it reuses this job's checkout,
+      # install and cache. lint-staged only formats staged files, so without
+      # this nothing ever re-checks a file that stops matching prettier after a
+      # version bump.
+      - name: Format
+        run: bun run format:check
+
   typecheck:
     name: Type check
     timeout-minutes: 20
