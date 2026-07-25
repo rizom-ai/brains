@@ -18,7 +18,7 @@ const account: AuthAccountSnapshot = {
   connectedChannels: [
     {
       type: "email",
-      label: "m•••@example.com",
+      label: "mira@example.com",
       verifiedAt: 1_735_689_600_000,
     },
   ],
@@ -59,12 +59,35 @@ describe("Account surface", () => {
     expect(html).toContain("Connected channels");
     expect(html).toContain("Passkeys");
     expect(html).toContain("Signed-in sessions");
-    expect(html).toContain("m•••@example.com");
+    expect(html).toContain("mira@example.com");
+    expect(html).toContain(
+      "Verified contact details connected to your account.",
+    );
     expect(html).toContain("This session");
     expect(html).toContain("Sign out everywhere");
     expect(html).not.toContain("Members");
     expect(html).not.toContain("Invitations");
     expect(html).not.toContain("Audit");
+  });
+
+  it("uses the admin console detail layout", () => {
+    const html = render();
+
+    // Surface-title hero like Admin's, with the signed-in account in the
+    // mono meta block.
+    expect(html).toContain("<h1>Account</h1>");
+    expect(html).toContain("signed in as");
+    // One detail card with the admin identity header and labeled sections,
+    // not a bespoke multi-column panel grid.
+    expect(html).toContain("people-detail-identity");
+    expect(html).toContain("people-detail-name");
+    expect(html).toContain("people-detail-section");
+    expect(html).toContain("people-access-item");
+    expect(html).toContain("people-detail-footer");
+    expect(html).not.toContain("account-grid");
+    expect(html).not.toContain("panel-heading");
+    // A single live status region exists at surface level.
+    expect(html).toContain('role="status"');
   });
 
   it("does not render a revoke action for the final passkey", () => {

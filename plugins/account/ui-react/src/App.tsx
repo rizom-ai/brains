@@ -195,228 +195,253 @@ export function AccountApp({
     <>
       <style>{styles}</style>
       <div className="account-shell">
-        <header className="account-intro">
+        <header className="account-hero">
           <div>
-            <p className="account-eyebrow">Private identity controls</p>
-            <h1>{title}</h1>
+            <h1>Account</h1>
+            <p>identity · passkeys · sessions</p>
           </div>
-          <div className="role-readout">
-            <span>Permission level</span>
-            <strong>{role}</strong>
+          <div className="account-hero-meta">
+            <span>
+              signed in as <strong>{title}</strong>
+            </span>
+            <span>
+              permission <strong>{role}</strong>
+            </span>
           </div>
         </header>
+        <p
+          className={`account-status${error ? " is-error" : ""}`}
+          role="status"
+          aria-live="polite"
+        >
+          {status}
+        </p>
 
         {!current ? (
           <p className="account-loading">Reading your account…</p>
         ) : (
-          <div className="account-grid">
-            <div className="account-column">
-              <section className="account-panel">
-                <PanelHeading
-                  index="01"
-                  title="Display name"
-                  note="Your local name for conversations and attribution. It does not alter an external profile."
-                />
-                <div className="panel-body">
-                  <form className="name-form" onSubmit={saveName}>
-                    <label htmlFor="display-name">Local account name</label>
-                    <input
-                      id="display-name"
-                      maxLength={200}
-                      autoComplete="name"
-                      required
-                      value={displayName}
-                      onChange={(event) => setDisplayName(event.target.value)}
+          <section className="card people-detail" aria-live="polite">
+            <div className="people-detail-identity">
+              <div className="people-detail-person">
+                <span className="people-avatar people-avatar--large">
+                  {initials(title)}
+                </span>
+                <span>
+                  <span className="people-detail-name">{title}</span>
+                  <span className="people-detail-id">
+                    your account · self-service
+                  </span>
+                </span>
+              </div>
+              <div className="people-facets" aria-label="Account facets">
+                <div className="people-facet">
+                  <span>Role</span>
+                  <strong
+                    className={`people-facet-role people-facet-role--${role}`}
+                  >
+                    {roleLabel(role)}
+                  </strong>
+                </div>
+                <div className="people-facet">
+                  <span>Passkeys</span>
+                  <strong>{current.passkeys.length}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="people-detail-sections">
+              <DetailSection
+                title="Display name"
+                description="Your local name for conversations and attribution. It does not alter an external profile."
+              >
+                <form className="name-form" onSubmit={saveName}>
+                  <label htmlFor="display-name">Local account name</label>
+                  <input
+                    id="display-name"
+                    maxLength={200}
+                    autoComplete="name"
+                    required
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                  />
+                  <button
+                    className="account-button account-button--primary"
+                    disabled={busy}
+                    type="submit"
+                  >
+                    Save name
+                  </button>
+                </form>
+              </DetailSection>
+
+              <DetailSection
+                title="Connected channels"
+                description="Verified contact details connected to your account."
+              >
+                {current.connectedChannels.length === 0 ? (
+                  <p className="people-empty">No connected channels.</p>
+                ) : (
+                  current.connectedChannels.map((channel) => (
+                    <AccessItem
+                      key={`${channel.type}:${channel.label}`}
+                      kind={channel.type}
+                      value={`${channel.label} · verified ${formatDate(channel.verifiedAt, true)}`}
                     />
-                    <div className="button-row">
-                      <button
-                        className="account-button"
-                        disabled={busy}
-                        type="submit"
-                      >
-                        Save name
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </section>
+                  ))
+                )}
+              </DetailSection>
 
-              <section className="account-panel">
-                <PanelHeading
-                  index="02"
-                  title="Connected channels"
-                  note="Verified connections are intentionally redacted here."
-                />
-                <div className="panel-body">
-                  {current.connectedChannels.length === 0 ? (
-                    <p className="empty">No connected channels.</p>
-                  ) : (
-                    <ul className="ledger">
-                      {current.connectedChannels.map((channel) => (
-                        <li key={`${channel.type}:${channel.label}`}>
-                          <div>
-                            <span className="item-title">{channel.label}</span>
-                            <span className="item-meta">
-                              {channel.type} · verified{" "}
-                              {formatDate(channel.verifiedAt, true)}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+              <DetailSection
+                title="Sign-in"
+                description="Passkeys used to access this account. Your final passkey is protected from revocation."
+              >
+                {current.passkeys.map((passkey) => (
+                  <AccessItem
+                    key={passkey.id}
+                    kind="Passkey"
+                    value={`${passkey.credentialBackedUp ? "Synced credential" : "Device credential"} · added ${formatDate(passkey.createdAt, true)}`}
+                    action={
+                      current.passkeys.length > 1 ? (
+                        <button
+                          className="people-text-action people-text-action--danger"
+                          disabled={busy}
+                          type="button"
+                          onClick={() => revokePasskey(passkey.id)}
+                        >
+                          Revoke
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                ))}
+                <div className="people-inline-actions">
+                  <button
+                    className="people-text-action"
+                    disabled={busy}
+                    type="button"
+                    onClick={() =>
+                      void run(
+                        "Waiting for your authenticator…",
+                        "Passkey added.",
+                        client.registerPasskey,
+                      )
+                    }
+                  >
+                    Add passkey
+                  </button>
                 </div>
-              </section>
+              </DetailSection>
 
-              <aside className="security-note">
-                <strong>Authority stays separate</strong>
+              <DetailSection
+                title="Signed-in sessions"
+                description="Browser sessions signed in to this account."
+              >
+                {current.sessions.map((session) => (
+                  <AccessItem
+                    key={session.id}
+                    kind={session.current ? "This session" : "Browser session"}
+                    value={`Started ${formatDate(session.createdAt)}`}
+                    action={
+                      !session.current ? (
+                        <button
+                          className="people-text-action people-text-action--danger"
+                          disabled={busy}
+                          type="button"
+                          onClick={() => revokeSession(session.id)}
+                        >
+                          End
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </DetailSection>
+            </div>
+
+            <footer className="people-detail-footer">
+              <small>
                 Your role, account status, channel ownership, and brain access
                 grants can only be changed by an Admin.
-              </aside>
-            </div>
-
-            <div className="account-column">
-              <section className="account-panel">
-                <PanelHeading
-                  index="03"
-                  title="Passkeys"
-                  note="Add a discoverable passkey or retire an old one. Your final passkey is protected from revocation."
-                />
-                <div className="panel-body">
-                  <ul className="ledger">
-                    {current.passkeys.map((passkey, index) => (
-                      <li key={passkey.id}>
-                        <div>
-                          <span className="item-title">
-                            Passkey {index + 1}
-                          </span>
-                          <span className="item-meta">
-                            {passkey.credentialBackedUp
-                              ? "Synced credential"
-                              : "Device credential"}{" "}
-                            · added {formatDate(passkey.createdAt, true)}
-                          </span>
-                        </div>
-                        {current.passkeys.length > 1 ? (
-                          <button
-                            className="account-button danger"
-                            disabled={busy}
-                            type="button"
-                            onClick={() => revokePasskey(passkey.id)}
-                          >
-                            Revoke
-                          </button>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="button-row">
-                    <button
-                      className="account-button secondary"
-                      disabled={busy}
-                      type="button"
-                      onClick={() =>
-                        void run(
-                          "Waiting for your authenticator…",
-                          "Passkey added.",
-                          client.registerPasskey,
-                        )
-                      }
-                    >
-                      Add passkey
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              <section className="account-panel">
-                <PanelHeading
-                  index="04"
-                  title="Signed-in sessions"
-                  note="End another browser session, or sign out everywhere and authenticate again."
-                />
-                <div className="panel-body">
-                  <ul className="ledger">
-                    {current.sessions.map((session) => (
-                      <li key={session.id}>
-                        <div>
-                          <span className="item-title">
-                            Browser session
-                            {session.current ? (
-                              <span className="current">This session</span>
-                            ) : null}
-                          </span>
-                          <span className="item-meta">
-                            Started {formatDate(session.createdAt)}
-                          </span>
-                        </div>
-                        {!session.current ? (
-                          <button
-                            className="account-button danger"
-                            disabled={busy}
-                            type="button"
-                            onClick={() => revokeSession(session.id)}
-                          >
-                            End
-                          </button>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="button-row">
-                    <button
-                      className="account-button secondary"
-                      disabled={
-                        busy ||
-                        current.sessions.every((session) => session.current)
-                      }
-                      type="button"
-                      onClick={revokeOtherSessions}
-                    >
-                      End other sessions
-                    </button>
-                    <button
-                      className="account-button danger"
-                      disabled={busy}
-                      type="button"
-                      onClick={revokeAllSessions}
-                    >
-                      Sign out everywhere
-                    </button>
-                  </div>
-                  <p
-                    className={`account-status${error ? " is-error" : ""}`}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {status}
-                  </p>
-                </div>
-              </section>
-            </div>
-          </div>
+              </small>
+              <div className="people-detail-footer-actions">
+                <button
+                  className="account-button"
+                  disabled={
+                    busy || current.sessions.every((session) => session.current)
+                  }
+                  type="button"
+                  onClick={revokeOtherSessions}
+                >
+                  End other sessions
+                </button>
+                <button
+                  className="account-button account-button--danger"
+                  disabled={busy}
+                  type="button"
+                  onClick={revokeAllSessions}
+                >
+                  Sign out everywhere
+                </button>
+              </div>
+            </footer>
+          </section>
         )}
       </div>
     </>
   );
 }
 
-function PanelHeading({
-  index,
+function initials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
+}
+
+function roleLabel(role: string): string {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function DetailSection({
   title,
-  note,
+  description,
+  children,
 }: {
-  index: string;
   title: string;
-  note: string;
+  description: string;
+  children: React.ReactNode;
 }): React.ReactElement {
   return (
-    <header className="panel-heading">
-      <span className="panel-index">{index}</span>
-      <div>
-        <h2>{title}</h2>
-        <p>{note}</p>
+    <section className="people-detail-section">
+      <div className="people-section-label">
+        <h3>{title}</h3>
+        <p>{description}</p>
       </div>
-    </header>
+      <div className="people-stack">{children}</div>
+    </section>
+  );
+}
+
+function AccessItem({
+  kind,
+  value,
+  action,
+}: {
+  kind: string;
+  value: string;
+  action?: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <div className="people-access-item">
+      <div>
+        <div className="people-access-kind">{kind}</div>
+        <div className="people-access-value">{value}</div>
+      </div>
+      {action}
+    </div>
   );
 }
