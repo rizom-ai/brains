@@ -314,9 +314,12 @@ composition choice in `brain.yaml`.
    `represents: brain | anchor`. It does not own generation style.
 10. **Do not introduce a mandatory brand entity.** Add one only when a real identity is
     distinct from both brain and anchor.
-11. _(Superseded — see [Revision](#revision--profile-kind-and-derived-category);
-    authored-content compatibility remains only for the staged content migration, while
-    peer-card normalization is removed by the coordinated cutover.)_
+11. _(Superseded — see [Revision](#revision--profile-kind-and-derived-category). The
+    coordinated cutover has already removed peer-card normalization
+    (`normalizeDiscoveredBrainCard`) and the standalone authored alias
+    (`authoredAnchorProfileKindSchema`); the only transitional tolerance that remains is
+    the profile plugin's kind-aware content validation, kept until the staged content
+    migration completes.)_
     **Rename the vocabulary; transition legacy values automatically at every read
     boundary.** The public contracts (lexicon `knownValues`, A2A) move to the new
     vocabulary immediately, but no content is required to migrate ahead of a deploy.
@@ -727,12 +730,13 @@ site-info for style.
 
 1. Verify the kind cutover in source, fixtures, generated content, and the live
    ATProto card.
-2. Remove both kind-alias tables — the discovery one in `@brains/atproto-contracts`
-   and `authoredAnchorProfileKindSchema`'s in `@brains/identity-service` — only after
-   every fleet brain is deployed on the new vocabulary AND every live content repo has
-   re-serialized its singleton to a canonical kind (verify via fleet versions and a
-   content sweep, not the calendar); both reads then fail closed on legacy kinds by
-   design.
+2. Remove the transitional legacy-kind tolerance. The original discovery alias table
+   (`normalizeDiscoveredBrainCard`) and the standalone `authoredAnchorProfileKindSchema`
+   are already removed by the coordinated cutover; the profile plugin's kind-aware content
+   validation is the last transitional shim, dropped only after every fleet brain is on
+   the new vocabulary AND every live content repo has re-serialized its singleton to a
+   canonical kind (verify via fleet versions and a content sweep, not the calendar), after
+   which reads fail closed on legacy kinds by design.
 3. Remove shell profile helpers and Rover-local profile plugin.
 4. Update CMS labels, Obsidian files, docs, examples, and onboarding playbooks.
 5. Refresh brain-model-unification fixtures with intentional differences documented.
