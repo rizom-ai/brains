@@ -1,6 +1,6 @@
 {
   "name": "@brains/relay",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.225",
   "description": "Relay brain model — collaborative knowledge management",
   "dependencies": {
     "@brains/a2a": "workspace:*",
@@ -24,12 +24,14 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/utils": "workspace:*",

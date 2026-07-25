@@ -68,6 +68,10 @@ export class SiteInfoPlugin extends EntityPlugin<
       context.entityService,
       this.logger,
       this.defaultSiteInfo,
+      {
+        getBrain: context.identity.get,
+        getAnchor: context.identity.getProfile,
+      },
     );
 
     context.messaging.subscribe(SITE_METADATA_GET_CHANNEL, async () => {

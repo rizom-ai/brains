@@ -36,6 +36,7 @@ describe("createDefaultUserRunner", () => {
 
     const result = await runner(baseUser);
 
+    expect(result.brainYaml).toContain("kind: professional");
     expect(result.brainYaml).toContain(`add:\n  - docs`);
     expect(result.brainYaml).toContain(
       `site:\n  package: "@rizom/site-rizom-work"\n  theme: "@brains/theme-rizom"`,
@@ -47,6 +48,7 @@ describe("createDefaultUserRunner", () => {
     expect(result.envFile).toContain(
       "CONTENT_REPO=rizom-ai/rizom-work-content",
     );
+    expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
 
   it("renders the atproto block with the owner's account DID for handle verification", async () => {
@@ -85,6 +87,29 @@ describe("createDefaultUserRunner", () => {
     );
     expect(result.brainYaml).not.toContain("accountDid");
     expect(result.brainYaml).not.toContain("lexiconAuthority");
+  });
+
+  it("renders an opt-in Jetstream canary block", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      atproto: {
+        identifier: "rizom.bsky.social",
+        jetstream: {
+          enabled: true,
+          queueLimit: 64,
+          concurrency: 2,
+        },
+      },
+    });
+
+    expect(result.brainYaml).toContain(
+      "    jetstream:\n" +
+        "      concurrency: 2\n" +
+        "      enabled: true\n" +
+        "      queueLimit: 64",
+    );
   });
 
   it("preserves an explicit false lexicon authority setting", async () => {

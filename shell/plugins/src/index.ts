@@ -90,6 +90,7 @@ export type {
   IConversationsNamespace,
   IEvalNamespace,
   IInsightsNamespace,
+  IProfileKindsNamespace,
   ISemanticNamespace,
 } from "./base/context";
 export type {
@@ -147,6 +148,7 @@ export type {
   ToolInfo,
   EvalHandler,
   ContentGenerationConfig,
+  GenerationStyleGuide,
   IEvalHandlerRegistry,
 } from "./interfaces";
 
@@ -571,15 +573,20 @@ export {
   type PluginConfigValidationIssue,
 } from "./config";
 
-export type { IAnchorProfileService } from "@brains/identity-service";
+export type {
+  AnchorProfileKind,
+  IAnchorProfileService,
+  ProfileCategory,
+  ProfileKindDefinition,
+  ProfileKindLabels,
+  ResolvedProfileKind,
+  ResolvedProfileSelection,
+} from "@brains/identity-service";
 export {
   AnchorProfileService,
   anchorProfileBodySchema,
+  anchorProfileKindSchema,
   brainCharacterBodySchema,
-  baseProfileExtension,
-  professionalProfileExtension,
-  fetchAnchorProfile,
-  fetchAnchorProfileData,
 } from "@brains/identity-service";
 
 // ============================================================================
@@ -591,6 +598,7 @@ export {
   agentCardSkillSchema,
   anchorExtensionParamsSchema,
   parseAgentCard,
+  type AnchorExtensionProfile,
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";

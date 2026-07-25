@@ -36,6 +36,10 @@ describe("system channels", () => {
     expect(SYSTEM_CHANNELS.pluginsRegistered).toBe("system:plugins:registered");
   });
 
+  it("defines a shell-ready signal for guarded API availability", () => {
+    expect(SYSTEM_CHANNELS.shellReady).toBe("system:shell:ready");
+  });
+
   it("does not hardcode system lifecycle channel literals outside the contract", () => {
     const root = join(import.meta.dir, "../../..");
     const offenders = listSourceFiles(root).flatMap((file) => {

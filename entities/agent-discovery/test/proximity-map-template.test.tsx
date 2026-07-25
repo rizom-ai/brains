@@ -11,7 +11,7 @@ const data: ProximityMapData = {
     {
       id: "alpha",
       name: "Alpha",
-      kind: "professional",
+      kind: "person",
       status: "approved",
       tags: ["research"],
       distance: 0.25,
@@ -29,7 +29,7 @@ const data: ProximityMapData = {
     {
       id: "old",
       name: "Old Agent",
-      kind: "professional",
+      kind: "person",
       status: "archived",
       tags: [],
       distance: 0.45,

@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.225",
   "dependencies": {
     "@brains/a2a": "workspace:*",
     "@brains/admin": "workspace:*",
@@ -32,6 +32,7 @@
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/products": "workspace:*",
+    "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
     "@brains/rover-onboarding": "workspace:*",
@@ -42,6 +43,7 @@
     "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/stock-photo": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",

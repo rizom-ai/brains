@@ -31,6 +31,7 @@ describe("SwotDerivationHandler", () => {
   beforeEach(() => {
     resetPromptCache();
     harness = createPluginHarness({ dataDir: "/tmp/test-swot-handler" });
+    harness.getMockShell().getProfileKindRegistry().finalize();
   });
 
   it("creates the swot entity from refined AI output", async () => {
@@ -356,7 +357,7 @@ describe("SwotDerivationHandler", () => {
           brainName: "signal-forge",
           url: "https://signal-forge.example.com",
           status: "approved",
-          kind: "professional",
+          kind: "person",
           discoveredAt: "2026-04-20T00:00:00.000Z",
           about: "Research partner",
           notes: "Approved and reliable.",

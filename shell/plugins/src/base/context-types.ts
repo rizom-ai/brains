@@ -12,6 +12,10 @@ import type {
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
+import type {
+  ProfileKindDefinition,
+  ResolvedProfileSelection,
+} from "@brains/identity-service";
 import type { EvalHandler, InsightHandler } from "../interfaces";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 
@@ -78,6 +82,18 @@ export interface IIdentityNamespace {
 
   /** Get app metadata (version, model, plugins) */
   getAppInfo: () => Promise<AppInfo>;
+}
+
+/** App-scoped semantic profile-kind catalog. */
+export interface IProfileKindsNamespace {
+  /** Register one possible kind during plugin registration. */
+  register(definition: ProfileKindDefinition): void;
+
+  /** Read the immutable selected kind after registration finalization. */
+  getResolved(): ResolvedProfileSelection;
+
+  /** Read the selected definition, including its field schema. */
+  getSelectedDefinition(): ProfileKindDefinition | undefined;
 }
 
 /**

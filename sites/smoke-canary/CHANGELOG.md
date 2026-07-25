@@ -1,5 +1,9 @@
 # @rizom/site-smoke-canary
 
+## 0.2.0-alpha.225
+
+## 0.2.0-alpha.224
+
 ## 0.2.0-alpha.223
 
 ## 0.2.0-alpha.222

@@ -48,7 +48,8 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 | wishlist     | `wish`        |            | Unfulfilled user requests with semantic dedup            |
 | products     | `product`     |            | Product entities with marketing overview                 |
 | image        | `image`       |            | AI image generation                                      |
-| site-info    | `site-info`   |            | Site metadata — title, description, CTA, theme           |
+| site-info    | `site-info`   |            | Website channel metadata and represented identity        |
+| style-guide  | `style-guide` |            | Singleton messaging, voice, and visual guidance          |
 | series       | `series`      | yes        | Cross-content series, projected from seriesName field    |
 | topics       | `topic`       | yes        | AI-extracted topics from posts, links, and other content |
 | skill        | `skill`       | yes        | A2A capabilities projected from topics and tools         |

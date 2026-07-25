@@ -1,13 +1,13 @@
-import { anchorProfileBodySchema, baseProfileExtension } from "@brains/plugins";
+import {
+  commonProfileExtension,
+  publicProfileViewSchema,
+} from "@brains/profile";
 
-/**
- * Personal profile fields — identical to base (tagline, intro, story)
- */
-export const personalProfileExtension: typeof baseProfileExtension =
-  baseProfileExtension;
+/** Personal sites render the loose common profile view without selecting a kind. */
+export const personalProfileExtension: typeof commonProfileExtension =
+  commonProfileExtension;
 
-export const personalProfileSchema: ReturnType<
-  typeof anchorProfileBodySchema.extend<typeof personalProfileExtension.shape>
-> = anchorProfileBodySchema.extend(personalProfileExtension.shape);
+export const personalProfileSchema: typeof publicProfileViewSchema =
+  publicProfileViewSchema;
 
 export type PersonalProfile = ReturnType<typeof personalProfileSchema.parse>;

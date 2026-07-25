@@ -87,14 +87,62 @@ const setupDeliverySchema: z.ZodObject<{
   email: z.string().email(),
 });
 
+const atprotoJetstreamSchema: z.ZodObject<{
+  enabled: z.ZodOptional<z.ZodBoolean>;
+  endpoint: z.ZodOptional<z.ZodString>;
+  replayWindowSeconds: z.ZodOptional<z.ZodNumber>;
+  denyDids: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  denyDomains: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  skillKeywords: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  queueLimit: z.ZodOptional<z.ZodNumber>;
+  concurrency: z.ZodOptional<z.ZodNumber>;
+  perDidCooldownSeconds: z.ZodOptional<z.ZodNumber>;
+  fetchBudgetPerMinute: z.ZodOptional<z.ZodNumber>;
+  newAgentsPerHour: z.ZodOptional<z.ZodNumber>;
+  pendingCandidateCeiling: z.ZodOptional<z.ZodNumber>;
+  staleCandidateRetentionDays: z.ZodOptional<z.ZodNumber>;
+  requestTimeoutMs: z.ZodOptional<z.ZodNumber>;
+  maxResponseBytes: z.ZodOptional<z.ZodNumber>;
+  maxRedirects: z.ZodOptional<z.ZodNumber>;
+  retryAttempts: z.ZodOptional<z.ZodNumber>;
+  heartbeatIntervalHours: z.ZodOptional<z.ZodNumber>;
+}> = z.strictObject({
+  enabled: z.boolean().optional(),
+  endpoint: z
+    .string()
+    .url()
+    .refine((value) => new URL(value).protocol === "wss:", {
+      message: "Jetstream endpoint must use wss",
+    })
+    .optional(),
+  replayWindowSeconds: z.number().int().min(60).optional(),
+  denyDids: z.array(z.string().startsWith("did:plc:")).optional(),
+  denyDomains: z.array(z.string().min(1)).optional(),
+  skillKeywords: z.array(z.string().min(1)).optional(),
+  queueLimit: z.number().int().min(1).max(10_000).optional(),
+  concurrency: z.number().int().min(1).max(32).optional(),
+  perDidCooldownSeconds: z.number().int().nonnegative().optional(),
+  fetchBudgetPerMinute: z.number().int().min(1).optional(),
+  newAgentsPerHour: z.number().int().min(1).optional(),
+  pendingCandidateCeiling: z.number().int().min(1).optional(),
+  staleCandidateRetentionDays: z.number().int().min(1).optional(),
+  requestTimeoutMs: z.number().int().min(100).optional(),
+  maxResponseBytes: z.number().int().min(1024).optional(),
+  maxRedirects: z.number().int().nonnegative().optional(),
+  retryAttempts: z.number().int().min(1).optional(),
+  heartbeatIntervalHours: z.number().min(1).optional(),
+});
+
 const atprotoSchema: z.ZodObject<{
   identifier: z.ZodString;
   accountDid: z.ZodOptional<z.ZodString>;
   lexiconAuthority: z.ZodOptional<z.ZodBoolean>;
+  jetstream: z.ZodOptional<typeof atprotoJetstreamSchema>;
 }> = z.strictObject({
   identifier: z.string().min(1),
   accountDid: z.string().min(1).optional(),
   lexiconAuthority: z.boolean().optional(),
+  jetstream: atprotoJetstreamSchema.optional(),
 });
 
 const siteOverrideSchema: z.ZodObject<{

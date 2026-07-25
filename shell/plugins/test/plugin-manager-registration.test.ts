@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { ServicePlugin } from "../src/service/service-plugin";
-import type { Tool, Resource } from "../src/interfaces";
+import type { Resource, Tool } from "../src/interfaces";
+import type { ServicePluginContext } from "../src/service/context";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
@@ -227,6 +228,97 @@ describe("PluginManager - Direct Registration", () => {
       // Direct registration should be used instead of MessageBus events
       expect(mockMCPService.registerTool).toHaveBeenCalled();
       expect(mockMCPService.registerResource).toHaveBeenCalled();
+    });
+  });
+
+  describe("post-registration finalization", () => {
+    it("runs only after every plugin has registered", async () => {
+      const events: string[] = [];
+
+      class OrderedPlugin extends ServicePlugin<
+        Record<string, never>,
+        Record<string, never>
+      > {
+        private readonly pluginName: string;
+
+        constructor(pluginName: string) {
+          super(
+            pluginName,
+            { name: pluginName, version: "1.0.0" },
+            {},
+            z.object({}),
+          );
+          this.pluginName = pluginName;
+        }
+
+        protected override async onRegister(): Promise<void> {
+          events.push(`register:${this.pluginName}`);
+        }
+
+        protected override async onRegistrationComplete(): Promise<void> {
+          events.push(`finalize:${this.pluginName}`);
+        }
+      }
+
+      pluginManager.registerPlugin(new OrderedPlugin("first"));
+      pluginManager.registerPlugin(new OrderedPlugin("second"));
+      await pluginManager.initializePlugins();
+
+      expect(events).toEqual(["register:first", "register:second"]);
+      await pluginManager.finalizePluginRegistrations();
+      expect(events).toEqual([
+        "register:first",
+        "register:second",
+        "finalize:first",
+        "finalize:second",
+      ]);
+    });
+
+    it("rolls back kind registrations when finalization fails", async () => {
+      class FailingKindPlugin extends ServicePlugin<
+        Record<string, never>,
+        Record<string, never>
+      > {
+        constructor() {
+          super(
+            "artist-plugin",
+            { name: "artist-plugin", version: "1.0.0" },
+            {},
+            z.object({}),
+          );
+        }
+
+        protected override async onRegister(
+          context: ServicePluginContext,
+        ): Promise<void> {
+          context.profileKinds.register({
+            kind: "artist",
+            category: "person",
+            fields: z.object({ mediums: z.array(z.string()).optional() }),
+            labels: { singular: "Artist", plural: "Artists" },
+          });
+        }
+
+        protected override async onRegistrationComplete(): Promise<void> {
+          throw new Error("finalization failed");
+        }
+      }
+
+      mockShell = createMockShell({ profileKind: "artist" });
+      pluginManager = PluginManager.createFresh(
+        createSilentLogger(),
+        mockShell.getDaemonRegistry(),
+      );
+      pluginManager.setShell(mockShell);
+      pluginManager.registerPlugin(new FailingKindPlugin());
+      await pluginManager.initializePlugins();
+
+      expect(pluginManager.finalizePluginRegistrations()).rejects.toThrow(
+        "finalization failed",
+      );
+      expect(() => mockShell.getProfileKindRegistry().finalize()).toThrow(
+        'Selected profile kind "artist" is not registered',
+      );
     });
   });
 

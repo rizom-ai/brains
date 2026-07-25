@@ -9,6 +9,7 @@ import {
   EntityServiceTag,
   createEntityServiceLayer,
 } from "@brains/entity-service/effect";
+import { ProfileKindRegistry } from "@brains/identity-service";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -86,6 +87,9 @@ export function createShellServices(options: {
   const permissionService =
     dependencies?.permissionService ??
     new PermissionService(config.permissions, { spaces: config.spaces });
+  const profileKindRegistry =
+    dependencies?.profileKindRegistry ??
+    new ProfileKindRegistry(config.profileKind);
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -263,6 +267,7 @@ export function createShellServices(options: {
     identityService,
     profileService,
     canonicalIdentityService,
+    profileKindRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

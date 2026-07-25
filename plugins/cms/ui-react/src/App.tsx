@@ -31,7 +31,11 @@ import {
 import type { BodyMode } from "./body-editor";
 import { getCmsRouterBasePath } from "./cms-router";
 import { createEditorDocument } from "./editor-document";
-import type { FieldAssistState, FieldAssistVariant } from "./entity-fields";
+import {
+  visibleFieldValues,
+  type FieldAssistState,
+  type FieldAssistVariant,
+} from "./entity-fields";
 import {
   editorWorkflowReducer,
   hasUnsavedEditorChanges,
@@ -504,19 +508,20 @@ export function App(): ReactElement {
     setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
     dispatchEditor({ type: "saveStarted" });
     const bodyPayload = schema.hasBody ? { body } : {};
+    const frontmatter = visibleFieldValues(schema.fields, draft);
     const input: SaveEntityInput =
       mode.kind === "create"
         ? {
             kind: "create",
             entityType,
-            frontmatter: draft,
+            frontmatter,
             ...bodyPayload,
           }
         : {
             kind: "update",
             entityType,
             id: mode.entity.id,
-            frontmatter: draft,
+            frontmatter,
             baseContentHash: mode.entity.contentHash,
             ...bodyPayload,
           };

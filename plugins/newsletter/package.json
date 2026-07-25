@@ -1,10 +1,11 @@
 {
   "name": "@brains/newsletter",
-  "version": "0.2.0-alpha.223",
+  "version": "0.2.0-alpha.225",
   "description": "Newsletter composite — bundles the newsletter entity with the buttondown service plugin",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

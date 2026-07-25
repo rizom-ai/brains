@@ -38,6 +38,12 @@ function createResolverFetch(): (
         ],
       });
     }
+    if (url === "https://test.example.com/.well-known/did.json") {
+      return jsonResponse({
+        id: "did:web:test.example.com",
+        alsoKnownAs: ["at://did:plc:test"],
+      });
+    }
     return jsonResponse({ message: "Not found" }, 404);
   });
 }
@@ -56,6 +62,7 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
     anchor: {
       did: "did:plc:test-anchor",
       name: "Rizom",
+      category: "organization",
       kind: "collective",
     },
     model: "test-brain",
@@ -276,6 +283,7 @@ describe("atproto plugin", () => {
       },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: ({ pdsEndpoint }): AtprotoPdsClientLike => {
           pdsEndpoints.push(pdsEndpoint);
           return {
@@ -337,12 +345,12 @@ describe("atproto plugin", () => {
     });
   });
 
-  it("converts cross-version anchor kinds on discovered cards", async () => {
+  it("rejects pre-cutover brain cards without a category", async () => {
     const cardRecord = {
       ...createTestBrainCardRecord(),
       anchor: {
         did: "did:plc:test-anchor",
-        name: "Future Peer",
+        name: "Pre-cutover Peer",
         kind: "organization",
       },
     };
@@ -350,6 +358,7 @@ describe("atproto plugin", () => {
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",
@@ -384,17 +393,9 @@ describe("atproto plugin", () => {
       { repos: ["test.example.com"] },
     );
 
-    expect(response.discovered).toBe(1);
-    expect(events).toEqual([
-      expect.objectContaining({
-        record: expect.objectContaining({
-          anchor: expect.objectContaining({
-            name: "Future Peer",
-            kind: "collective",
-          }),
-        }),
-      }),
-    ]);
+    expect(response.discovered).toBe(0);
+    expect(response.skipped).toBe(1);
+    expect(events).toEqual([]);
   });
 
   it("skips invalid brain cards without emitting discovery events", async () => {
@@ -410,6 +411,7 @@ describe("atproto plugin", () => {
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",

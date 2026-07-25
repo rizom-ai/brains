@@ -26,35 +26,36 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 
 ## Model availability
 
-| Entity type         | Registered by                 | Rover         | Relay       | Ranger      | Notes                                                                            |
-| ------------------- | ----------------------------- | ------------- | ----------- | ----------- | -------------------------------------------------------------------------------- |
-| `anchor-profile`    | identity service              | all presets   | all presets | all presets | Singleton identity/profile for the person, team, or collective behind the brain. |
-| `brain-character`   | identity service              | all presets   | all presets | all presets | Singleton persona/instructions source for the brain.                             |
-| `note`              | `@brains/note`                | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                 |
-| `prompt`            | `@brains/prompt`              | all presets   | all presets | default     | Prompt/template overrides.                                                       |
-| `link`              | `@brains/link`                | all presets   | all presets | default     | Captured links and extracted summaries.                                          |
-| `wish`              | `@brains/wishlist`            | all presets   | —           | default     | User requests and roadmap wishes.                                                |
-| `topic`             | `@brains/topics`              | all presets   | all presets | —           | Derived topic clusters from source content.                                      |
-| `agent`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Saved peer-brain / A2A contacts.                                                 |
-| `skill`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Derived advertised skills for agent cards.                                       |
-| `swot`              | `@brains/assessment`          | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                             |
-| `image`             | `@brains/image-plugin`        | default, full | default     | —           | Uploaded or generated image assets.                                              |
-| `document`          | `@brains/document-plugin`     | full          | —           | default     | Generated PDF documents, including saved deck carousel artifacts.                |
-| `site-info`         | `@brains/site-info`           | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
-| `site-content`      | `@brains/site-content`        | —             | default     | default     | Route/section content blocks for configurable sites.                             |
-| `doc`               | `@brains/doc`                 | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
-| `post`              | `@brains/blog`                | default, full | —           | —           | Blog posts.                                                                      |
-| `series`            | `@brains/series`              | default, full | —           | —           | Blog/content series pages.                                                       |
-| `deck`              | `@brains/decks`               | default, full | full        | —           | Presentation decks.                                                              |
-| `project`           | `@brains/portfolio`           | full          | —           | —           | Portfolio/case-study projects.                                                   |
-| `social-post`       | `@brains/social-media`        | full          | —           | default     | Social publishing drafts and history.                                            |
-| `newsletter`        | `@brains/newsletter`          | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
-| `ecosystem-section` | `@brains/rizom-ecosystem`     | all presets   | all presets | —           | Rizom ecosystem section content block (eyebrow, headline, cards).                |
-| `product`           | `@brains/products`            | —             | —           | default     | Product detail pages.                                                            |
-| `products-overview` | `@brains/products`            | —             | —           | default     | Products landing/overview page.                                                  |
-| `summary`           | `@brains/conversation-memory` | —             | all presets | —           | Narrative conversation summaries for Relay team memory.                          |
-| `decision`          | `@brains/conversation-memory` | —             | all presets | —           | First-class decisions derived from team conversations.                           |
-| `action-item`       | `@brains/conversation-memory` | —             | all presets | —           | First-class follow-up items derived from team conversations.                     |
+| Entity type         | Registered by                        | Rover         | Relay       | Ranger      | Notes                                                                              |
+| ------------------- | ------------------------------------ | ------------- | ----------- | ----------- | ---------------------------------------------------------------------------------- |
+| `anchor-profile`    | identity service + `@brains/profile` | all presets   | all presets | all presets | Singleton identity/profile for the person, team, or organization behind the brain. |
+| `brain-character`   | identity service                     | all presets   | all presets | all presets | Singleton persona/instructions source for the brain.                               |
+| `style-guide`       | `@brains/style-guide`                | all presets   | all presets | all presets | Singleton messaging, voice, and visual generation guidance.                        |
+| `note`              | `@brains/note`                       | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                   |
+| `prompt`            | `@brains/prompt`                     | all presets   | all presets | default     | Prompt/template overrides.                                                         |
+| `link`              | `@brains/link`                       | all presets   | all presets | default     | Captured links and extracted summaries.                                            |
+| `wish`              | `@brains/wishlist`                   | all presets   | —           | default     | User requests and roadmap wishes.                                                  |
+| `topic`             | `@brains/topics`                     | all presets   | all presets | —           | Derived topic clusters from source content.                                        |
+| `agent`             | `@brains/agent-discovery`            | all presets   | all presets | —           | Saved peer-brain / A2A contacts.                                                   |
+| `skill`             | `@brains/agent-discovery`            | all presets   | all presets | —           | Derived advertised skills for agent cards.                                         |
+| `swot`              | `@brains/assessment`                 | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                               |
+| `image`             | `@brains/image-plugin`               | default, full | default     | —           | Uploaded or generated image assets.                                                |
+| `document`          | `@brains/document-plugin`            | full          | —           | default     | Generated PDF documents, including saved deck carousel artifacts.                  |
+| `site-info`         | `@brains/site-info`                  | default, full | default     | default     | Singleton site metadata and CTA settings.                                          |
+| `site-content`      | `@brains/site-content`               | —             | default     | default     | Route/section content blocks for configurable sites.                               |
+| `doc`               | `@brains/doc`                        | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                                 |
+| `post`              | `@brains/blog`                       | default, full | —           | —           | Blog posts.                                                                        |
+| `series`            | `@brains/series`                     | default, full | —           | —           | Blog/content series pages.                                                         |
+| `deck`              | `@brains/decks`                      | default, full | full        | —           | Presentation decks.                                                                |
+| `project`           | `@brains/portfolio`                  | full          | —           | —           | Portfolio/case-study projects.                                                     |
+| `social-post`       | `@brains/social-media`               | full          | —           | default     | Social publishing drafts and history.                                              |
+| `newsletter`        | `@brains/newsletter`                 | full          | —           | —           | Newsletter drafts, schedules, and send records.                                    |
+| `ecosystem-section` | `@brains/rizom-ecosystem`            | all presets   | all presets | —           | Rizom ecosystem section content block (eyebrow, headline, cards).                  |
+| `product`           | `@brains/products`                   | —             | —           | default     | Product detail pages.                                                              |
+| `products-overview` | `@brains/products`                   | —             | —           | default     | Products landing/overview page.                                                    |
+| `summary`           | `@brains/conversation-memory`        | —             | all presets | —           | Narrative conversation summaries for Relay team memory.                            |
+| `decision`          | `@brains/conversation-memory`        | —             | all presets | —           | First-class decisions derived from team conversations.                             |
+| `action-item`       | `@brains/conversation-memory`        | —             | all presets | —           | First-class follow-up items derived from team conversations.                       |
 
 `all presets` means the entity type is available in every preset currently declared by that model. A type marked `opt-in` is registered as a capability but is not included in the model's preset list by default.
 
@@ -91,13 +92,36 @@ Defines the public identity behind the brain. A2A and site surfaces can use this
 Key fields:
 
 - `name`
-- `kind`: `professional`, `team`, or `collective`
+- `kind`: `person`, `team`, or `organization`
 - `organization`
 - `description`
 - `avatar`
 - `website`
 - `email`
 - `socialLinks`
+
+The optional `@brains/profile` capability adds kind-aware fields:
+
+- person/professional: `tagline`, `intro`, `role`, `audience`, `expertise`, `currentFocus`, `availability`
+- team: `tagline`, `intro`, `purpose`, `audience`, `focusAreas`, `capabilities`, `workingPrinciples`
+- organization: `tagline`, `intro`, `mission`, `audience`, `focusAreas`, `offerings`, `values`
+
+The markdown body is the long-form profile story. Tone and visual direction do not belong in the profile.
+
+### `style-guide`
+
+Singleton file: `brain-data/style-guide/style-guide.md`
+
+Defines durable generation guidance independently from represented identity.
+
+Key fields:
+
+- `name`
+- `messaging`: audiences and positioning
+- `voice`: summary, traits, principles, preferred terms, and avoided language
+- `visual`: art direction, palette, composition, mood, preferences, and exclusions
+
+The markdown body can hold examples, rationale, and exceptions. Styled generation selects `voice`, `visual`, or both; neutral extraction and transformation workflows opt out.
 
 ## Core knowledge entities
 
@@ -250,12 +274,13 @@ Key metadata:
 
 Singleton file: `brain-data/site-info/site-info.md`
 
-Defines site-wide metadata.
+Defines website channel configuration and selects the represented identity. It does not own profile or generation style.
 
 Key body fields:
 
-- `title`
-- `description`
+- `represents`: `brain` or `anchor`; defaults to `anchor`
+- `title`: optional override; otherwise derived from the represented identity
+- `description`: optional override; otherwise derived from the represented identity
 - `copyright`
 - `logo`
 - `themeMode`: `light` or `dark`

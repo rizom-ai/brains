@@ -64,6 +64,64 @@ describe("SiteInfoPlugin", () => {
     });
   });
 
+  it("derives metadata from the anchor when site-info is absent", async () => {
+    await harness.installPlugin(new SiteInfoPlugin());
+
+    const data = await harness.sendMessage(
+      SITE_METADATA_GET_CHANNEL,
+      undefined,
+    );
+
+    expect(data).toMatchObject({
+      represents: "anchor",
+      title: "Test Owner",
+    });
+  });
+
+  it("derives missing metadata from the represented brain", async () => {
+    await harness.installPlugin(new SiteInfoPlugin());
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "site-info",
+        entityType: "site-info",
+        content: "---\nrepresents: brain\n---\n",
+        metadata: {},
+      },
+    });
+
+    const data = await harness.sendMessage(
+      SITE_METADATA_GET_CHANNEL,
+      undefined,
+    );
+
+    expect(data).toMatchObject({
+      represents: "brain",
+      title: "Test Brain",
+    });
+  });
+
+  it("defaults missing representation and metadata to the anchor", async () => {
+    await harness.installPlugin(new SiteInfoPlugin());
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "site-info",
+        entityType: "site-info",
+        content: "---\n---\n",
+        metadata: {},
+      },
+    });
+
+    const data = await harness.sendMessage(
+      SITE_METADATA_GET_CHANNEL,
+      undefined,
+    );
+
+    expect(data).toMatchObject({
+      represents: "anchor",
+      title: "Test Owner",
+    });
+  });
+
   it("should emit shared metadata update events when site-info changes", async () => {
     const plugin = new SiteInfoPlugin();
     await harness.installPlugin(plugin);

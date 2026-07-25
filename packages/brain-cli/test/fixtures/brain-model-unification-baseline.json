@@ -4,7 +4,8 @@
       "name": "rover",
       "capabilityIds": [
         "prompt",
-        "rover-profile",
+        "profile",
+        "style-guide",
         "image",
         "cms",
         "auth-service",
@@ -213,7 +214,8 @@
           "preset": "core",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -251,8 +253,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -445,11 +456,51 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
@@ -592,7 +643,8 @@
           "preset": "default",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -650,8 +702,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -865,11 +926,51 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
@@ -1183,7 +1284,8 @@
           "preset": "full",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -1248,8 +1350,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -1528,11 +1639,51 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
@@ -1846,7 +1997,8 @@
           "preset": "default",
           "members": [
             "prompt",
-            "rover-profile",
+            "profile",
+            "style-guide",
             "image",
             "document",
             "note",
@@ -1911,8 +2063,17 @@
               "config": {}
             },
             {
-              "id": "rover-profile",
-              "packageName": "@brains/rover",
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -2149,11 +2310,51 @@
               "packageName": "@brains/atproto",
               "config": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               },
               "criticalConfig": {
                 "enabled": true,
+                "jetstream": {
+                  "concurrency": 2,
+                  "denyDids": [],
+                  "denyDomains": [],
+                  "enabled": false,
+                  "endpoint": "wss://jetstream2.us-east.bsky.network/subscribe",
+                  "fetchBudgetPerMinute": 60,
+                  "heartbeatIntervalHours": 24,
+                  "maxRedirects": 3,
+                  "maxResponseBytes": 262144,
+                  "newAgentsPerHour": 20,
+                  "pendingCandidateCeiling": 200,
+                  "perDidCooldownSeconds": 300,
+                  "queueLimit": 256,
+                  "replayWindowSeconds": 21600,
+                  "requestTimeoutMs": 10000,
+                  "retryAttempts": 3,
+                  "skillKeywords": [],
+                  "staleCandidateRetentionDays": 30
+                },
                 "lexiconAuthority": false,
                 "pdsEndpoint": "https://bsky.social"
               }
@@ -2489,6 +2690,8 @@
       "name": "relay",
       "capabilityIds": [
         "prompt",
+        "profile",
+        "style-guide",
         "note",
         "link",
         "image",
@@ -2583,8 +2786,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4414,
-              "sha256": "6e464567e80bb1b2130ad419ca559f82d9eb4893606c48c3f7ab4b7c917c1de2"
+              "length": 4649,
+              "sha256": "41d156ad53ebceeb0621b908cd1c15cc3712807cac64b140c795caa4f24a97d3"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -2680,6 +2883,8 @@
           "preset": "core",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -2708,6 +2913,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -3042,6 +3261,8 @@
           "preset": "default",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -3088,6 +3309,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -3554,8 +3789,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4414,
-                      "sha256": "6e464567e80bb1b2130ad419ca559f82d9eb4893606c48c3f7ab4b7c917c1de2"
+                      "length": 4649,
+                      "sha256": "41d156ad53ebceeb0621b908cd1c15cc3712807cac64b140c795caa4f24a97d3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -3794,6 +4029,8 @@
           "preset": "full",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "directory-sync",
             "note",
             "link",
@@ -3842,6 +4079,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -4318,8 +4569,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4414,
-                      "sha256": "6e464567e80bb1b2130ad419ca559f82d9eb4893606c48c3f7ab4b7c917c1de2"
+                      "length": 4649,
+                      "sha256": "41d156ad53ebceeb0621b908cd1c15cc3712807cac64b140c795caa4f24a97d3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4560,6 +4811,8 @@
       "name": "ranger",
       "capabilityIds": [
         "prompt",
+        "profile",
+        "style-guide",
         "cms",
         "dashboard",
         "atproto-registry",
@@ -4588,8 +4841,8 @@
         "staticAssets": {
           "/atproto/lexicons/ai.rizom.brain.card.json": {
             "$string": {
-              "length": 4414,
-              "sha256": "6e464567e80bb1b2130ad419ca559f82d9eb4893606c48c3f7ab4b7c917c1de2"
+              "length": 4649,
+              "sha256": "41d156ad53ebceeb0621b908cd1c15cc3712807cac64b140c795caa4f24a97d3"
             }
           },
           "/atproto/lexicons/ai.rizom.brain.deck.json": {
@@ -4685,6 +4938,8 @@
           "preset": "default",
           "members": [
             "prompt",
+            "profile",
+            "style-guide",
             "cms",
             "dashboard",
             "note",
@@ -4716,6 +4971,20 @@
             {
               "id": "prompt",
               "packageName": "@brains/prompt",
+              "config": {}
+            },
+            {
+              "id": "profile",
+              "packageName": "@brains/profile",
+              "config": {
+                "starterIdentity": {
+                  "enabled": true
+                }
+              }
+            },
+            {
+              "id": "style-guide",
+              "packageName": "@brains/style-guide",
               "config": {}
             },
             {
@@ -4845,8 +5114,8 @@
                 "staticAssets": {
                   "/atproto/lexicons/ai.rizom.brain.card.json": {
                     "$string": {
-                      "length": 4414,
-                      "sha256": "6e464567e80bb1b2130ad419ca559f82d9eb4893606c48c3f7ab4b7c917c1de2"
+                      "length": 4649,
+                      "sha256": "41d156ad53ebceeb0621b908cd1c15cc3712807cac64b140c795caa4f24a97d3"
                     }
                   },
                   "/atproto/lexicons/ai.rizom.brain.deck.json": {

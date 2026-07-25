@@ -117,19 +117,11 @@ describe("parseInstanceOverrides", () => {
     expect(result.name).toBe("team-staging");
   });
 
-  test("should parse the configured Anchor profile flavor", () => {
-    expect(parseInstanceOverrides("brain: rover\nanchor: person").anchor).toBe(
-      "person",
+  test("should parse an optional top-level profile kind", () => {
+    const result = parseInstanceOverrides(
+      'brain: "@rizom/brain"\nkind: artist',
     );
-    expect(parseInstanceOverrides("brain: relay\nanchor: team").anchor).toBe(
-      "team",
-    );
-    expect(
-      parseInstanceOverrides("brain: ranger\nanchor: organization").anchor,
-    ).toBe("organization");
-    expect(() =>
-      parseInstanceOverrides("brain: relay\nanchor: collective"),
-    ).toThrow(InstanceOverridesParseError);
+    expect(result.kind).toBe("artist");
   });
 
   test("should parse logLevel", () => {
@@ -581,7 +573,7 @@ describe("parseInstanceOverrides error surfacing", () => {
   });
 
   test("throws with nested field path on nested validation failure", () => {
-    // permissions.rules[0].level expects admin/trusted/public
+    // permissions.rules[0].level expects anchor/trusted/public
     const yaml = `brain: "@brains/rover"
 permissions:
   rules:
@@ -689,6 +681,18 @@ describe("resolve with instance overrides", () => {
     expect(config.logLevel).toBe("debug");
   });
 
+  test("should pass the selected profile kind to the app config", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { kind: "artist" });
+    expect(config.profileKind).toBe("artist");
+  });
+
   test("should override database", () => {
     const def = defineBrain({
       name: "test",
@@ -739,38 +743,6 @@ describe("resolve with instance overrides", () => {
 
     const config = resolve(def, {}, { port: 9090 });
     expect(config.deployment.ports.production).toBe(9090);
-  });
-
-  test("should pass the effective Anchor flavor to auth-service", () => {
-    const [factory] = createMockFactory("auth-service");
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      anchor: "team",
-      capabilities: [["auth-service", factory, {}]],
-      interfaces: [],
-    });
-
-    const fromDefinition = resolve(def, {});
-    expect(
-      getConfig(
-        fromDefinition.plugins?.find((plugin) => plugin.id === "auth-service"),
-      ),
-    ).toMatchObject({ anchor: "team" });
-
-    const fromInstance = resolve(
-      def,
-      {},
-      {
-        anchor: "organization",
-        plugins: { "auth-service": { anchor: "person" } },
-      },
-    );
-    expect(
-      getConfig(
-        fromInstance.plugins?.find((plugin) => plugin.id === "auth-service"),
-      ),
-    ).toMatchObject({ anchor: "organization" });
   });
 
   test("should apply plugin config overrides to capabilities", () => {
@@ -1139,7 +1111,7 @@ describe("resolve with instance overrides", () => {
       type: "entity",
       entityActionPolicy: {
         // @ts-expect-error — invalid required level for testing runtime guard
-        topic: { delete: "owner" },
+        topic: { delete: "anchor" },
       },
       register: async (): Promise<PluginCapabilities> => ({
         tools: [],
@@ -1277,7 +1249,7 @@ permissions:
     expect(() =>
       service.assertEntityActionAllowed("summary", "update", "trusted"),
     ).not.toThrow();
-    // Untouched: summary delete still admin-only.
+    // Untouched: summary delete still anchor-only.
     expect(() =>
       service.assertEntityActionAllowed("summary", "delete", "trusted"),
     ).toThrow(EntityActionPermissionError);

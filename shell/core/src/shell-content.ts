@@ -28,6 +28,10 @@ export async function generateShellContent<T = unknown>(
       conversationHistory: config.conversationHistory,
     }),
     ...(config.data && { data: config.data }),
+    ...(config.representedIdentity && {
+      representedIdentity: config.representedIdentity,
+    }),
+    ...(config.styleGuide && { styleGuide: config.styleGuide }),
   };
 
   return services.contentService.generateContent<T>(

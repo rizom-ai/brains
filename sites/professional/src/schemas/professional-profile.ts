@@ -1,25 +1,13 @@
 import {
-  anchorProfileBodySchema,
   professionalProfileExtension,
-} from "@brains/plugins";
+  professionalProfileViewSchema,
+} from "@brains/profile";
 
-/**
- * Professional profile schema for site rendering.
- *
- * The professional extension is defined by identity-service so site packages
- * consume the profile contract instead of owning durable entity fields.
- */
+/** Professional sites extend the loose common view with fields they render. */
 export { professionalProfileExtension };
+export const professionalProfileSchema: typeof professionalProfileViewSchema =
+  professionalProfileViewSchema;
 
-export const professionalProfileSchema: ReturnType<
-  typeof anchorProfileBodySchema.extend<
-    typeof professionalProfileExtension.shape
-  >
-> = anchorProfileBodySchema.extend(professionalProfileExtension.shape);
-
-/**
- * Professional profile type
- */
 export type ProfessionalProfile = ReturnType<
   typeof professionalProfileSchema.parse
 >;

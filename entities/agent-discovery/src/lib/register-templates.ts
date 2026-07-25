@@ -1,3 +1,4 @@
+import { anchorProfileKindSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
@@ -51,7 +52,7 @@ const agentSkillSchema = z.object({
 
 const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 
-const agentKindSchema = z.enum(["professional", "team", "collective"]);
+const agentKindSchema = anchorProfileKindSchema;
 
 const agentFrontmatterSchema = z.object({
   name: z.string(),

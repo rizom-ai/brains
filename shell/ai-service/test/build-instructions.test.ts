@@ -41,7 +41,6 @@ describe("buildInstructions", () => {
   it("includes profile when provided", () => {
     const instructions = buildInstructions(identity, "admin", undefined, {
       name: "Jan Hein",
-      kind: "professional",
       email: "jan@yeehaa.io",
       website: "https://yeehaa.io",
       description: "Builder of brains",
@@ -83,7 +82,6 @@ describe("buildInstructions", () => {
   it("keeps profile identity separate from caller identity", () => {
     const instructions = buildInstructions(identity, "public", undefined, {
       name: "Jan Hein",
-      kind: "professional" as const,
     });
 
     expect(instructions).toContain("public user");

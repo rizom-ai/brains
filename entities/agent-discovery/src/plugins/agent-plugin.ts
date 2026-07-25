@@ -17,6 +17,7 @@ import {
   registerAtprotoBrainCardHandlers,
   type AtprotoCardFetch,
 } from "../lib/atproto-card-events";
+import type { ResolveHostname } from "@brains/utils/safe-public-fetch";
 import { getAgentDiscoveryInstructions } from "../lib/agent-instructions";
 import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { getTemplates } from "../lib/register-templates";
@@ -34,8 +35,9 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   readonly schema: typeof agentEntitySchema = agentEntitySchema;
   readonly adapter: AgentAdapter = agentAdapter;
   private readonly fetchFn: AtprotoCardFetch | undefined;
+  private readonly resolveHostname: ResolveHostname | undefined;
 
-  constructor(fetchFn?: AtprotoCardFetch) {
+  constructor(fetchFn?: AtprotoCardFetch, resolveHostname?: ResolveHostname) {
     super(
       AGENT_DISCOVERY_PLUGIN_ID,
       packageJson,
@@ -43,6 +45,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
       emptyEntityPluginConfigSchema,
     );
     this.fetchFn = fetchFn;
+    this.resolveHostname = resolveHostname;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -78,7 +81,13 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
       cadence: "daily",
       deliverAlerts: false,
       run: async ({ signal }) => {
-        await refreshKnownAgentCards(context, this.fetchFn, signal);
+        await refreshKnownAgentCards(
+          context,
+          this.fetchFn,
+          signal,
+          new Date().toISOString(),
+          this.resolveHostname,
+        );
         return {};
       },
     });

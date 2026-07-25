@@ -57,6 +57,7 @@ function validCard(): AtprotoBrainCardRecord {
     anchor: {
       did: "did:web:alex.example.com:anchor",
       name: "Alex",
+      category: "person",
       kind: "professional",
     },
     skills: [

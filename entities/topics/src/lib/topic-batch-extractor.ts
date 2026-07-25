@@ -172,6 +172,7 @@ export async function extractTopicsBatched(
       }>({
         prompt,
         templateName: "topics:extraction",
+        representedIdentity: "none",
       });
 
       const topics = result.topics.filter(

@@ -120,7 +120,9 @@
     "@brains/recurring-checks": "0.2.0-alpha.174",
     "@brains/scheduler": "0.2.0-alpha.174",
     "@rizom/theme-signal": "0.2.0-alpha.217",
-    "@rizom/site-smoke-canary": "0.2.0-alpha.217"
+    "@rizom/site-smoke-canary": "0.2.0-alpha.217",
+    "@brains/style-guide": "0.2.0-alpha.223",
+    "@brains/profile": "0.2.0-alpha.223"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -140,6 +142,7 @@
     "atproto-boot-hardening",
     "atproto-contracts-lexicon-description",
     "atproto-discovery-agent-events",
+    "atproto-jetstream-discovery",
     "atproto-lexicon-authority",
     "atproto-member-handles",
     "atproto-registry-contracts",
@@ -251,6 +254,7 @@
     "hide-operator-routes-from-nav",
     "home-one-light-section",
     "home-rev10-narrative",
+    "identity-profile-style-guide",
     "image-target-fields-standalone",
     "inline-media-preview",
     "isolate-mcp-conversations",
@@ -288,6 +292,7 @@
     "ops-verify-user-command",
     "ops-verify-user-followups",
     "ops-workflow-race-reconcile",
+    "optional-profile-kind-category",
     "passkey-setup-url-tool",
     "pdf-carousel-media-rendering",
     "personal-layout-mobile-correctness",

@@ -26,6 +26,7 @@ import {
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
+  SYSTEM_CHANNELS,
 } from "@brains/plugins";
 
 // Entity service types
@@ -43,7 +44,11 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
-import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
+import type {
+  AnchorProfile,
+  BrainCharacter,
+  IProfileKindRegistry,
+} from "@brains/identity-service";
 import type {
   IAIService,
   IAgentService,
@@ -241,8 +246,18 @@ export class Shell implements IShell {
       if (this.lifecycleState === "booting") {
         this.lifecycleState = "running";
         this.initialized = true;
+        if (options?.mode === undefined) {
+          await this.services.messageBus.send({
+            type: SYSTEM_CHANNELS.shellReady,
+            payload: { timestamp: new Date().toISOString() },
+            sender: "shell",
+            broadcast: true,
+          });
+          this.services.logger.debug("Emitted shell ready event");
+        }
       }
     } catch (error) {
+      this.initialized = false;
       this.services.logger.error("Failed to initialize Shell", error);
       if (this.lifecycleState !== "closing") {
         this.lifecycleState = "failed";
@@ -619,6 +634,10 @@ export class Shell implements IShell {
 
   public getProfile(): AnchorProfile {
     return this.services.profileService.getProfile();
+  }
+
+  public getProfileKindRegistry(): IProfileKindRegistry {
+    return this.services.profileKindRegistry;
   }
 
   public getDomain(): string | undefined {

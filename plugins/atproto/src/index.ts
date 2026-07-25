@@ -18,8 +18,11 @@ export {
 } from "./plugin";
 export {
   atprotoConfigSchema,
+  atprotoJetstreamConfigSchema,
   type AtprotoConfig,
   type AtprotoConfigInput,
+  type AtprotoJetstreamConfig,
+  type AtprotoJetstreamConfigInput,
 } from "./config";
 export {
   AtprotoProjectionRegistry,

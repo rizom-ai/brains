@@ -187,6 +187,7 @@ interface AppConfigSchemaRaw {
   aiReasoningEffort?: ReasoningEffort | undefined;
   logLevel?: LogLevel | undefined;
   logFile?: string | undefined;
+  profileKind?: string | undefined;
   plugins: PluginMetadata[];
   spaces: string[];
   identity?: AppIdentity | undefined;
@@ -206,6 +207,8 @@ export const appConfigSchema: z.ZodType<AppConfigSchemaRaw> = z.object({
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file
+  // Optional composition-selected semantic profile kind
+  profileKind: z.string().trim().min(1).optional(),
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
   // Shared conversation spaces for this brain/team

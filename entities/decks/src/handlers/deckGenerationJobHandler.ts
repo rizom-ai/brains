@@ -8,6 +8,7 @@ import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 
@@ -116,6 +117,9 @@ Add your conclusion here`;
       const finalPrompt = prompt ?? defaultPrompt;
       const generationPrompt = `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`;
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         title: string;
         content: string;
@@ -123,6 +127,8 @@ Add your conclusion here`;
       }>({
         prompt: generationPrompt,
         templateName: "decks:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       title = title ?? generated.title;
@@ -146,6 +152,7 @@ Add your conclusion here`;
       }>({
         prompt: `Title: ${title}\n\nContent:\n${content}`,
         templateName: "decks:description",
+        representedIdentity: "none",
       });
 
       description = descGenerated.description;

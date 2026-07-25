@@ -1,10 +1,13 @@
 import type {
+  AnchorProfileKind,
   BaseEntity,
+  ProfileCategory,
   EntityPluginContext,
   SkillData,
 } from "@brains/plugins";
 import {
   BaseEntityAdapter,
+  anchorProfileKindSchema,
   baseEntitySchema,
   skillDataSchema,
 } from "@brains/plugins";
@@ -23,7 +26,7 @@ export interface CapabilityProfile {
   source: "self" | "agent";
   name: string;
   brainName?: string;
-  kind?: "professional" | "team" | "collective";
+  kind?: AnchorProfileKind;
   status?: "approved" | "discovered" | "archived";
   description?: string;
   notes?: string;
@@ -59,7 +62,7 @@ const capabilityAgentSkillSchema = z.object({
 
 const capabilityAgentFrontmatterSchema = z.object({
   name: z.string(),
-  kind: z.enum(["professional", "team", "collective"]),
+  kind: anchorProfileKindSchema,
   organization: z.string().optional(),
   brainName: z.string(),
   url: z.string().url(),
@@ -210,6 +213,7 @@ export function buildCapabilityProfilesFromEntities(params: {
     purpose?: string;
     profileName?: string;
     profileDescription?: string;
+    profileCategory?: ProfileCategory;
   };
   agents: BaseEntity[];
   skills: BaseEntity[];
@@ -231,6 +235,7 @@ export function buildCapabilityProfilesFromEntities(params: {
     source: "self",
     name: profileName,
     brainName,
+    ...(identity?.profileCategory && { kind: identity.profileCategory }),
     ...(descriptionParts.length > 0 && {
       description: descriptionParts.join("\n\n"),
     }),
@@ -287,6 +292,7 @@ export async function buildCapabilityProfiles(
 
   const character = context.identity.get();
   const profile = context.identity.getProfile();
+  const profileSelection = context.profileKinds.getResolved();
 
   return buildCapabilityProfilesFromEntities({
     identity: {
@@ -295,6 +301,9 @@ export async function buildCapabilityProfiles(
       purpose: character.purpose,
       profileName: profile.name,
       ...(profile.description && { profileDescription: profile.description }),
+      ...(profileSelection && {
+        profileCategory: profileSelection.category,
+      }),
     },
     agents,
     skills,

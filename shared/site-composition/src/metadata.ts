@@ -36,6 +36,7 @@ export const siteMetadataSectionSchema: z.ZodType<SiteMetadataSection> =
   });
 
 type SiteMetadataSchema = z.ZodObject<{
+  represents: z.ZodDefault<z.ZodEnum<{ brain: "brain"; anchor: "anchor" }>>;
   title: z.ZodString;
   description: z.ZodString;
   url: z.ZodOptional<z.ZodString>;
@@ -51,6 +52,10 @@ type SiteMetadataSchema = z.ZodObject<{
 
 /** Plain site metadata consumed by site renderers. */
 export const siteMetadataSchema: SiteMetadataSchema = z.object({
+  represents: z
+    .enum(["brain", "anchor"])
+    .default("anchor")
+    .describe("Identity represented by the site"),
   title: z.string().describe("The site's title"),
   description: z.string().describe("The site's description"),
   url: z.string().optional().describe("Canonical site URL"),
@@ -101,6 +106,10 @@ const socialLinkSchema = z.object({
 
 /** Complete site information passed to layout components. */
 export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> = z.object({
+  represents: z
+    .enum(["brain", "anchor"])
+    .default("anchor")
+    .describe("Identity represented by the site"),
   title: z.string().describe("The site's title"),
   description: z.string().describe("The site's description"),
   url: z.string().optional().describe("Canonical site URL"),
