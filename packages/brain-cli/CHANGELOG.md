@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- [`0e83b5c`](https://github.com/rizom-ai/brains/commit/0e83b5c85b2f60d3659b06333ad8ae8bc68178cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Canonicalize anchor kinds as `person | team | organization`, move kind-aware profile fields into the shared profile capability, add deterministic safe agent aliases with bounded context-generated characters and strict legacy-default backfill, add the singleton style-guide entity for data-driven voice and visual generation, and let site metadata select whether a site represents the brain or its anchor.
+
+- [`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move optional semantic profile kind selection into `brain.yaml`, derive a closed structural category through an app-scoped finalized registry, validate profile persistence with the selected kind schema, and publish the new `{ kind, category }` A2A and ATProto card contract.
+
 ## 0.2.0-alpha.224
 
 ## 0.2.0-alpha.223

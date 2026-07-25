@@ -1,5 +1,57 @@
 # @brains/rover
 
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- Updated dependencies [[`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987)]:
+  - @brains/a2a@0.2.0-alpha.225
+  - @brains/agent-discovery@0.2.0-alpha.225
+  - @brains/app@0.2.0-alpha.225
+  - @brains/assessment@0.2.0-alpha.225
+  - @brains/atproto@0.2.0-alpha.225
+  - @brains/profile@0.2.0-alpha.225
+  - @brains/rizom-ecosystem@0.2.0-alpha.225
+  - @brains/site-info@0.2.0-alpha.225
+  - @brains/blog@0.2.0-alpha.225
+  - @brains/decks@0.2.0-alpha.225
+  - @brains/link@0.2.0-alpha.225
+  - @brains/note@0.2.0-alpha.225
+  - @brains/portfolio@0.2.0-alpha.225
+  - @brains/products@0.2.0-alpha.225
+  - @brains/series@0.2.0-alpha.225
+  - @brains/social-media@0.2.0-alpha.225
+  - @brains/topics@0.2.0-alpha.225
+  - @brains/atproto-registry@0.2.0-alpha.225
+  - @brains/chat@0.2.0-alpha.225
+  - @brains/discord@0.2.0-alpha.225
+  - @brains/image-plugin@0.2.0-alpha.225
+  - @brains/doc@0.2.0-alpha.225
+  - @brains/document-plugin@0.2.0-alpha.225
+  - @brains/prompt@0.2.0-alpha.225
+  - @brains/style-guide@0.2.0-alpha.225
+  - @brains/wishlist@0.2.0-alpha.225
+  - @brains/mcp@0.2.0-alpha.225
+  - @brains/web-chat@0.2.0-alpha.225
+  - @brains/webserver@0.2.0-alpha.225
+  - @brains/analytics@0.2.0-alpha.225
+  - @brains/cms@0.2.0-alpha.225
+  - @brains/content-pipeline@0.2.0-alpha.225
+  - @brains/dashboard@0.2.0-alpha.225
+  - @brains/directory-sync@0.2.0-alpha.225
+  - @brains/email-resend@0.2.0-alpha.225
+  - @brains/newsletter@0.2.0-alpha.225
+  - @brains/notifications@0.2.0-alpha.225
+  - @brains/obsidian-vault@0.2.0-alpha.225
+  - @brains/playbooks@0.2.0-alpha.225
+  - @brains/rover-onboarding@0.2.0-alpha.225
+  - @brains/site-builder-plugin@0.2.0-alpha.225
+  - @brains/site-content@0.2.0-alpha.225
+  - @brains/stock-photo@0.2.0-alpha.225
+  - @brains/auth-service@0.2.0-alpha.225
+  - @brains/site-default@0.2.0-alpha.225
+  - @rizom/theme-default@0.2.0-alpha.225
+
 ## 0.2.0-alpha.224
 
 ### Patch Changes
