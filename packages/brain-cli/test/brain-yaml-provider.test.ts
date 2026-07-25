@@ -53,6 +53,42 @@ describe("parseBrainYaml model field", () => {
     expect(config.preset).toBe("core");
   });
 
+  // The CLI validates with the same schema the runtime boots with, so a
+  // file the CLI accepts cannot fail at boot (and vice versa).
+  it("rejects a file the runtime would reject at boot", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: rover\npreset: everything\n",
+    );
+    expect(() => parseBrainYaml(testDir)).toThrow(/Invalid brain\.yaml/);
+  });
+
+  it("accepts the full runtime override surface", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      [
+        "brain: rover",
+        "domain: example.com",
+        "add:",
+        "  - chat",
+        "remove:",
+        "  - discord",
+        "permissions:",
+        "  rules:",
+        '    - pattern: "slack:*"',
+        "      level: public",
+        "plugins:",
+        "  directory-sync:",
+        "    autoSync: true",
+        "",
+      ].join("\n"),
+    );
+    const config = parseBrainYaml(testDir);
+    expect(config.domain).toBe("example.com");
+    expect(config.add).toEqual(["chat"]);
+    expect(config.permissions?.rules?.[0]?.level).toBe("public");
+  });
+
   it("should handle comments in yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
