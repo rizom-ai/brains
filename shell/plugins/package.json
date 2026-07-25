@@ -4,11 +4,15 @@
   "version": "0.2.0-alpha.240",
   "description": "Core plugin system implementation for Brains",
   "dependencies": {
+    "@brains/ai-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/content-service": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/recurring-checks": "workspace:*",
     "@brains/runtime-state": "workspace:*",
@@ -17,7 +21,6 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/ai-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",

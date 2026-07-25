@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.240",
   "description": "Identity service for managing brain character and anchor profile",
   "dependencies": {
+    "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
