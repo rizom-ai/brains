@@ -1,9 +1,7 @@
 import type { BaseEntity, IEntityRegistry } from "@brains/entity-service";
 
 export type PublishBoundaryState =
-  | "boundary"
-  | "within-publish-set"
-  | "non-publish";
+  "boundary" | "within-publish-set" | "non-publish";
 
 export function getPublishBoundaryState(
   entityType: string,
