@@ -403,6 +403,7 @@
     "skill-derivation-backpressure",
     "slack-chat-adapter",
     "smoke-a2a-root-caddy-fallback",
+    "smoke-canary-minimal-site",
     "smoke-canary-site-packages",
     "ssh-key-bootstrap-and-local-secret-paths",
     "stabilize-rover-eval-routing",
