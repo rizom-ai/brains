@@ -91,15 +91,13 @@ export async function createSiteBuildArtifactManifest(
     SITE_BUILD_MANIFEST_FILE,
   );
   await fs.mkdir(dirname(manifestPath), { recursive: true });
-  // Warnings stay out of the persisted file. It is committed inside the
-  // generation the active output pointer resolves to, so anything written here
-  // ships with the site; diagnostic text quotes template validation failures
-  // and section content errors. Callers still receive them on the returned
-  // manifest, which is what feeds BuildResult and the build status projection.
-  const { warnings: _warnings, ...persistedManifest } = manifest;
+  // Persist the complete validated contract, including warnings, so operators
+  // can inspect the same manifest returned to BuildResult. The webserver
+  // explicitly reserves this internal path instead of serving it as site
+  // content.
   await fs.writeFile(
     manifestPath,
-    `${JSON.stringify(persistedManifest, null, 2)}\n`,
+    `${JSON.stringify(manifest, null, 2)}\n`,
     "utf8",
   );
 

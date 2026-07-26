@@ -69,15 +69,21 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Hello");
   });
 
-  it("does not serve dotfiles from the site output", async () => {
+  it("hides build metadata while serving legitimate well-known assets", async () => {
     // The site build publishes `.site-build-manifest.json` into the generation
     // it commits, and the active output pointer resolves into that directory.
     // The manifest is build metadata — route inventory, artifact hashes,
     // diagnostics — and must not be reachable over HTTP.
     const m = setup();
+    const productionDir = join(testDir, "dist", "production");
     writeFileSync(
-      join(testDir, "dist", "production", ".site-build-manifest.json"),
+      join(productionDir, ".site-build-manifest.json"),
       '{"buildId":"secret"}',
+    );
+    mkdirSync(join(productionDir, ".well-known"), { recursive: true });
+    writeFileSync(
+      join(productionDir, ".well-known", "site-canary.json"),
+      '{"status":"ok"}',
     );
     await m.start();
 
@@ -89,7 +95,12 @@ describe("ServerManager (in-process)", () => {
     expect(manifest.status).toBe(404);
     expect(await manifest.text()).not.toContain("secret");
 
-    // Ordinary files are unaffected.
+    // Dot-prefixed public paths are valid and used by discovery and site
+    // verification assets; only the internal build manifest is reserved.
+    const canary = await fetch(`${url}/.well-known/site-canary.json`);
+    expect(canary.status).toBe(200);
+    expect(await canary.json()).toEqual({ status: "ok" });
+
     const index = await fetch(`${url}/`);
     expect(index.status).toBe(200);
   });

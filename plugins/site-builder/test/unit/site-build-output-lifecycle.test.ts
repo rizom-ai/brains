@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import type { PreparedSiteBuild } from "@brains/site-engine";
+import {
+  siteBuildArtifactManifestSchema,
+  type PreparedSiteBuild,
+} from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
@@ -122,13 +125,11 @@ describe("TransactionalSiteBuildOutput", () => {
       join(outputDir, ".site-build-manifest.json"),
       "utf8",
     );
-    expect(persisted).toContain('"buildId": "build-one"');
-    // Warnings are build feedback delivered through BuildResult and status.
-    // The manifest is committed inside the published generation, so diagnostic
-    // text — which quotes template validation errors — must not travel with it.
-    expect(JSON.parse(persisted).warnings).toBeUndefined();
-    expect(persisted).not.toContain("fixture warning");
-    expect(result.manifest.warnings).toEqual(["fixture warning"]);
+    const persistedManifest = siteBuildArtifactManifestSchema.parse(
+      JSON.parse(persisted),
+    );
+    expect(persistedManifest).toEqual(result.manifest);
+    expect(persistedManifest.warnings).toEqual(["fixture warning"]);
     expect(
       await fs.readFile(
         join(target.environmentDir, "legacy-build-one", "index.html"),
@@ -228,7 +229,12 @@ describe("TransactionalSiteBuildOutput", () => {
         fs.mkdir(directory, { recursive: true }),
       ),
     );
-    await fs.writeFile(join(committedDir, ".site-build-manifest.json"), "{}");
+    await Promise.all([
+      fs.writeFile(join(committedDir, ".site-build-manifest.json"), "{}"),
+      // A dereferenced active pointer can leave a migration backup carrying its
+      // old manifest. Its `legacy-` name, not manifest absence, identifies it.
+      fs.writeFile(join(legacyDir, ".site-build-manifest.json"), "{}"),
+    ]);
     const oldDate = new Date(Date.now() - 10_000);
     await Promise.all([
       fs.utimes(staleDir, oldDate, oldDate),

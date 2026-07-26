@@ -331,7 +331,15 @@ async function removeStaleUncommittedGenerations(
     if (!entry.isDirectory()) continue;
     const path = join(environmentDir, entry.name);
     if (resolve(path) === resolve(currentGenerationDir)) continue;
-    if (await hasArtifactManifest(fs, path)) continue;
+    // A dereferenced active pointer can leave a migration backup carrying the
+    // old generation manifest. Its reserved name still makes it a backup, so
+    // let the age policy retire it instead of preserving it forever.
+    if (
+      !isMigrationBackup(entry.name) &&
+      (await hasArtifactManifest(fs, path))
+    ) {
+      continue;
+    }
     const stat = await fs.stat(path);
     if (now - stat.mtimeMs < staleGenerationAgeMs) continue;
     staleDirectories.push(path);

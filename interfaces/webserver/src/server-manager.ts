@@ -233,14 +233,12 @@ export class ServerManager {
       }
     });
 
-    // Dotfiles are build metadata, never site content. The site build commits
-    // `.site-build-manifest.json` into the generation the active pointer
-    // resolves to, and that manifest carries the route inventory, artifact
-    // hashes and build diagnostics — none of which belongs on the public site.
+    // The site build commits its internal manifest into the generation the
+    // active pointer resolves to. Block that file explicitly without rejecting
+    // legitimate public dot paths such as `/.well-known/agent-card.json` or a
+    // site-package verification asset.
     app.use("/*", async (c, next) => {
-      if (c.req.path.split("/").some((segment) => segment.startsWith("."))) {
-        return c.notFound();
-      }
+      if (c.req.path === "/.site-build-manifest.json") return c.notFound();
       return next();
     });
 
