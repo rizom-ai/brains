@@ -172,6 +172,7 @@ export const userSchema: z.ZodObject<{
   domainOverride: z.ZodOptional<z.ZodString>;
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
+  profileKind: z.ZodOptional<z.ZodString>;
   addOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   siteOverride: z.ZodOptional<typeof siteOverrideSchema>;
   setup: z.ZodOptional<typeof setupDeliverySchema>;
@@ -189,6 +190,7 @@ export const userSchema: z.ZodObject<{
   domainOverride: z.string().min(1).optional(),
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
+  profileKind: z.string().trim().min(1).optional(),
   addOverride: z.array(z.string().min(1)).optional(),
   siteOverride: siteOverrideSchema.optional(),
   setup: setupDeliverySchema.optional(),

@@ -105,6 +105,7 @@ export interface ResolvedUserIdentity {
   domain: string;
   cloudflareZoneId?: string | undefined;
   contentRepo: string;
+  profileKind?: string | undefined;
   addOverride?: string[];
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
@@ -205,6 +206,9 @@ export async function loadPilotRegistry(
         contentRepo:
           userFile.data.contentRepoOverride ??
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
+        ...(userFile.data.profileKind
+          ? { profileKind: userFile.data.profileKind }
+          : {}),
         ...(userFile.data.addOverride
           ? { addOverride: userFile.data.addOverride }
           : {}),
