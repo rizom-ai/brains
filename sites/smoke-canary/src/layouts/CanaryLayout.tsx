@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { ComponentChildren, JSX } from "preact";
 
 export interface CanaryLayoutProps {
