@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare Anchor profile flavor in brain configuration, project person/team/organization into auth runtime ownership, remove runtime Anchor mutations, and resolve Admin-console names and CMS links from profile entities.
+
 ## 0.2.0-alpha.226
 
 ### Patch Changes

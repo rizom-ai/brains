@@ -1,5 +1,74 @@
 # @brains/rover
 
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`219e273`](https://github.com/rizom-ai/brains/commit/219e27392f7322ba3349c8d234e42f537d02aa6e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the authenticated `/account` UI out of auth-service into a dedicated account console plugin. Keep session-derived account APIs in auth-service while giving self-service the shared console shell, climate, route-derived navigation, responsive React UI, and bundled runtime asset.
+
+- [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Admin authorization from Anchor ownership. Permission roles now use only `admin`, `trusted`, and `public`; a generated auth migration converts historical role rows and persists one person-or-collective brain Anchor. Principals expose `isAnchor` independently, personal Anchors must remain active Admins, collective brains can be run by any active Admin, and last-active-Admin protection stays atomic. Propagate both facets through authenticated and configured A2A, evaluation, chat, Discord, MCP, CLI, web-chat, action, tool, confirmation, and model-instruction contexts.
+
+  Finish the standalone Admin console target model with an Anchor ownership card, Admin/Anchor member facets, profile and optional peer-brain sections, responsive roster/detail layouts, typed Anchor mutations, and a console-local TanStack Query cache with targeted mutation invalidation.
+
+- [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare Anchor profile flavor in brain configuration, project person/team/organization into auth runtime ownership, remove runtime Anchor mutations, and resolve Admin-console names and CMS links from profile entities.
+
+- [`ac0a860`](https://github.com/rizom-ai/brains/commit/ac0a86019965195895ac801f5d89599722062b7a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fold the account console into the admin package as a second plugin and browser bundle. Admin and account are two surfaces over the same people domain, so they now share one package, the detail-layout primitives, and one stylesheet, while keeping separate plugin registrations, admission levels, routes, and JS bundles — a non-admin browser still never downloads the admin SPA.
+
+- [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce stable person subjects for auth users and normalized canonical identity claims with independent assertion and verification evidence. Align auth persistence with generated Drizzle Kit migrations and a release-gated, row-preserving bridge for pre-Drizzle databases. Add access-neutral links between local people and independent external peer brains, including atomic peer-first invitations and existing-account linking, without inherited roles, identity claims, or attribution. Because the former representation model never shipped outside the feature branch, replace it through a clean generated schema correction rather than a historical data-copy transform or permanent dual-read path.
+
+  Replace the unreleased My agents and representation-consent flow with the permanent Overview, Members/People, Invitations, and Audit Admin sections. Show passkeys under Sign-in, verified human-facing email and Discord under Connected channels, and optional external peers as a separate account facet. Keep hosted members without peers profileless, retain CMS ownership of the Anchor profile, omit internal IDs and generic Advanced identity tooling, expose actor-attributed audit events through an Admin-only endpoint and plain-language viewer, and bridge approved directory peers into the Admin invitation flow. Keep the monitoring dashboard free of management UI and expose Admin through route-derived console navigation and the Admin-gated command palette.
+
+  Harden the internet-facing OAuth flow by rejecting suspended-user sessions at both authorization endpoints, returning MCP bearer claims plus the active principal from one JWT verification, requiring client-bound revocation, applying per-caller and runtime-wide bounds to open dynamic registration, and pruning stale unconsented clients at startup and on supervised maintenance. Deprecate ambiguous identity-resolution projection in favor of explicit resolved, denied, or unbound access results; bulk-load the Admin roster without per-user query fan-out; avoid duplicate browser-session resolution in web chat; preserve hash-only setup-delivery dedupe per recipient; centralize legacy imports, private mutation guards, safe error projection, mutation feedback, and persisted SHA-256 encodings; and retain exact private identity reconciliation without exposing canonical provider subjects.
+
+- Updated dependencies [[`219e273`](https://github.com/rizom-ai/brains/commit/219e27392f7322ba3349c8d234e42f537d02aa6e), [`81d84ef`](https://github.com/rizom-ai/brains/commit/81d84ef5675db3099f2db5ed13e6a4e81d3b7d4f), [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed), [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96), [`c0ab44b`](https://github.com/rizom-ai/brains/commit/c0ab44b35c481d053fafdf6c802141f365487aa5), [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`8176ef0`](https://github.com/rizom-ai/brains/commit/8176ef0c77d77bf753b1d0a8b0464105f713a232), [`b34aaa8`](https://github.com/rizom-ai/brains/commit/b34aaa8abb3dc65baf39c7c887185584e38dec74), [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655), [`ac0a860`](https://github.com/rizom-ai/brains/commit/ac0a86019965195895ac801f5d89599722062b7a), [`0265d69`](https://github.com/rizom-ai/brains/commit/0265d69c4c69d3331a029ddfe951002c2861d221), [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b), [`34f9a10`](https://github.com/rizom-ai/brains/commit/34f9a10f22e6727042c9c0cac7061f9f3a953245), [`02c1b45`](https://github.com/rizom-ai/brains/commit/02c1b45883daecb8e69c7bf9fe2619d2f4f7205e), [`d48cf69`](https://github.com/rizom-ai/brains/commit/d48cf69098a6ef7715e79784775b16e33d8f89bb), [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29), [`20ac901`](https://github.com/rizom-ai/brains/commit/20ac901e319ef62b38bb291de8d026b9d8ae51d7), [`68677b3`](https://github.com/rizom-ai/brains/commit/68677b379a7071b2ff65ab5772448e5939e218a9), [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96), [`85d2336`](https://github.com/rizom-ai/brains/commit/85d23364f686a176fff606c0ff90907c2f9b3cb3), [`4a21f27`](https://github.com/rizom-ai/brains/commit/4a21f276662a5d6891c87ff095974975fdaa0a56)]:
+  - @brains/admin@0.2.0-alpha.227
+  - @brains/auth-service@0.2.0-alpha.227
+  - @brains/app@0.2.0-alpha.227
+  - @brains/cms@0.2.0-alpha.227
+  - @brains/content-pipeline@0.2.0-alpha.227
+  - @brains/chat@0.2.0-alpha.227
+  - @brains/discord@0.2.0-alpha.227
+  - @brains/link@0.2.0-alpha.227
+  - @brains/mcp@0.2.0-alpha.227
+  - @brains/newsletter@0.2.0-alpha.227
+  - @brains/site-content@0.2.0-alpha.227
+  - @brains/social-media@0.2.0-alpha.227
+  - @brains/webserver@0.2.0-alpha.227
+  - @brains/web-chat@0.2.0-alpha.227
+  - @brains/a2a@0.2.0-alpha.227
+  - @brains/playbooks@0.2.0-alpha.227
+  - @brains/rover-onboarding@0.2.0-alpha.227
+  - @brains/dashboard@0.2.0-alpha.227
+  - @brains/atproto@0.2.0-alpha.227
+  - @brains/agent-discovery@0.2.0-alpha.227
+  - @brains/blog@0.2.0-alpha.227
+  - @brains/decks@0.2.0-alpha.227
+  - @brains/note@0.2.0-alpha.227
+  - @brains/portfolio@0.2.0-alpha.227
+  - @brains/products@0.2.0-alpha.227
+  - @brains/document-plugin@0.2.0-alpha.227
+  - @brains/image-plugin@0.2.0-alpha.227
+  - @brains/directory-sync@0.2.0-alpha.227
+  - @brains/series@0.2.0-alpha.227
+  - @brains/site-info@0.2.0-alpha.227
+  - @brains/assessment@0.2.0-alpha.227
+  - @brains/doc@0.2.0-alpha.227
+  - @brains/prompt@0.2.0-alpha.227
+  - @brains/rizom-ecosystem@0.2.0-alpha.227
+  - @brains/style-guide@0.2.0-alpha.227
+  - @brains/topics@0.2.0-alpha.227
+  - @brains/wishlist@0.2.0-alpha.227
+  - @brains/analytics@0.2.0-alpha.227
+  - @brains/atproto-registry@0.2.0-alpha.227
+  - @brains/email-resend@0.2.0-alpha.227
+  - @brains/notifications@0.2.0-alpha.227
+  - @brains/obsidian-vault@0.2.0-alpha.227
+  - @brains/profile@0.2.0-alpha.227
+  - @brains/site-builder-plugin@0.2.0-alpha.227
+  - @brains/stock-photo@0.2.0-alpha.227
+  - @brains/site-default@0.2.0-alpha.227
+  - @rizom/theme-default@0.2.0-alpha.227
+
 ## 0.2.0-alpha.226
 
 ### Patch Changes

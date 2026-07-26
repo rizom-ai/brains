@@ -1,5 +1,39 @@
 # @brains/ranger
 
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Admin authorization from Anchor ownership. Permission roles now use only `admin`, `trusted`, and `public`; a generated auth migration converts historical role rows and persists one person-or-collective brain Anchor. Principals expose `isAnchor` independently, personal Anchors must remain active Admins, collective brains can be run by any active Admin, and last-active-Admin protection stays atomic. Propagate both facets through authenticated and configured A2A, evaluation, chat, Discord, MCP, CLI, web-chat, action, tool, confirmation, and model-instruction contexts.
+
+  Finish the standalone Admin console target model with an Anchor ownership card, Admin/Anchor member facets, profile and optional peer-brain sections, responsive roster/detail layouts, typed Anchor mutations, and a console-local TanStack Query cache with targeted mutation invalidation.
+
+- [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare Anchor profile flavor in brain configuration, project person/team/organization into auth runtime ownership, remove runtime Anchor mutations, and resolve Admin-console names and CMS links from profile entities.
+
+- Updated dependencies [[`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed), [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655), [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b), [`34f9a10`](https://github.com/rizom-ai/brains/commit/34f9a10f22e6727042c9c0cac7061f9f3a953245), [`02c1b45`](https://github.com/rizom-ai/brains/commit/02c1b45883daecb8e69c7bf9fe2619d2f4f7205e), [`d48cf69`](https://github.com/rizom-ai/brains/commit/d48cf69098a6ef7715e79784775b16e33d8f89bb), [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29)]:
+  - @brains/app@0.2.0-alpha.227
+  - @brains/cms@0.2.0-alpha.227
+  - @brains/discord@0.2.0-alpha.227
+  - @brains/link@0.2.0-alpha.227
+  - @brains/mcp@0.2.0-alpha.227
+  - @brains/site-content@0.2.0-alpha.227
+  - @brains/social-media@0.2.0-alpha.227
+  - @brains/webserver@0.2.0-alpha.227
+  - @brains/dashboard@0.2.0-alpha.227
+  - @brains/note@0.2.0-alpha.227
+  - @brains/products@0.2.0-alpha.227
+  - @brains/directory-sync@0.2.0-alpha.227
+  - @brains/site-info@0.2.0-alpha.227
+  - @brains/prompt@0.2.0-alpha.227
+  - @brains/style-guide@0.2.0-alpha.227
+  - @brains/wishlist@0.2.0-alpha.227
+  - @brains/analytics@0.2.0-alpha.227
+  - @brains/atproto-registry@0.2.0-alpha.227
+  - @brains/profile@0.2.0-alpha.227
+  - @brains/site-builder-plugin@0.2.0-alpha.227
+  - @rizom/site-rizom@0.2.0-alpha.227
+  - @brains/theme-rizom@0.2.0-alpha.227
+
 ## 0.2.0-alpha.226
 
 ### Patch Changes
