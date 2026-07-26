@@ -45,6 +45,7 @@
     "./strip-undefined": "./src/strip-undefined.ts",
     "./yaml": "./src/yaml.ts",
     "./zod": "./src/zod.ts",
+    "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts"
   },
   "private": true,
