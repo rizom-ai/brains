@@ -17,6 +17,7 @@ import { auditActor, type AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type { PersonExternalPeerStore } from "./person-external-peer-store";
 import { principalFromUser, type AuthPrincipal } from "./principal-service";
+import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import type { AuthBrainAnchor, PersonExternalPeer } from "./runtime-schema";
 import type { AuthUserManagementService } from "./user-management-service";
 import type {
@@ -351,15 +352,13 @@ export class AuthAdministrationService {
     return principalFromUser(user, await this.users.getBrainAnchor());
   }
 
-  private async profileDisplayName(
+  private profileDisplayName(
     profileEntityId: string | null,
   ): Promise<string | undefined> {
-    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
-    try {
-      return await this.resolveProfileDisplayName(profileEntityId);
-    } catch {
-      return undefined;
-    }
+    return resolveProfileDisplayNameSafely(
+      this.resolveProfileDisplayName,
+      profileEntityId,
+    );
   }
 }
 
@@ -402,6 +401,7 @@ function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
 ): AuthIdentitySummary {
+  const label = adminIdentityLabel(identity);
   return {
     id: identity.id,
     personId: identity.personId,
@@ -415,13 +415,20 @@ function identitySummary(
       ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
     })),
     ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(identity.label ? { label: identity.label } : {}),
+    ...(label ? { label } : {}),
     ...(identity.verifiedAt !== null
       ? { verifiedAt: identity.verifiedAt }
       : {}),
     ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
     createdAt: identity.createdAt,
   };
+}
+
+function adminIdentityLabel(identity: AuthIdentityRecord): string | undefined {
+  if (identity.type === "email" && identity.deliverySubject?.trim()) {
+    return identity.deliverySubject.trim();
+  }
+  return identity.label ?? undefined;
 }
 
 function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {

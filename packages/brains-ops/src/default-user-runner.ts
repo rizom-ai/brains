@@ -1,6 +1,9 @@
 import { toYaml } from "@brains/utils/yaml";
 import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
-import type { ResolvedUser } from "./load-registry";
+import type {
+  ResolvedAtprotoJetstreamConfig,
+  ResolvedUser,
+} from "./load-registry";
 import type { ContentRepoFile, UserRunResult } from "./user-runner";
 
 export function createDefaultUserRunner(
@@ -16,13 +19,13 @@ export function createDefaultUserRunner(
 function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   const lines = [
     `brain: ${user.model}`,
-    "anchor: person",
+    `kind: ${user.profileKind ?? "professional"}`,
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
     ...renderAddConfig(user),
     ...renderSiteConfig(user),
     "",
-    ...renderPermissions(user),
+    renderAnchors(user),
     "",
     "plugins:",
     ...(user.setup?.delivery === "email"
@@ -52,6 +55,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
           ...(user.atproto.lexiconAuthority !== undefined
             ? [`    lexiconAuthority: ${String(user.atproto.lexiconAuthority)}`]
             : []),
+          ...renderJetstreamConfig(user.atproto.jetstream),
           "    appPassword: ${ATPROTO_APP_PASSWORD}",
         ]
       : []),
@@ -71,6 +75,14 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderJetstreamConfig(
+  config: ResolvedAtprotoJetstreamConfig | undefined,
+): string[] {
+  if (!config) return [];
+  const rendered = toYaml(config).trimEnd().split("\n");
+  return ["    jetstream:", ...rendered.map((line) => `      ${line}`)];
 }
 
 function renderAddConfig(user: ResolvedUser): string[] {
@@ -134,16 +146,12 @@ function renderSetupEmailConfig(email: string): string[] {
   ];
 }
 
-function renderPermissions(user: ResolvedUser): string[] {
+function renderAnchors(user: ResolvedUser): string {
   if (user.discordEnabled && user.discordAnchorUserId) {
-    const ref = `"discord:${user.discordAnchorUserId}"`;
-    // Discord has no runtime auth session, so the owner's admin permission and
-    // anchor identity must both be declared statically. `admins` grants
-    // authority; `anchors` marks the brain's anchor identity.
-    return [`admins: [${ref}]`, `anchors: [${ref}]`];
+    return `anchors: ["discord:${user.discordAnchorUserId}"]`;
   }
 
-  return ["admins: []", "anchors: []"];
+  return "anchors: []";
 }
 
 function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
@@ -157,7 +165,6 @@ function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
 
 function renderAnchorProfile(user: ResolvedUser): string {
   const frontmatter: Record<string, unknown> = {
-    kind: "professional",
     name: user.anchorProfile.name,
     ...(user.anchorProfile.description
       ? { description: user.anchorProfile.description }

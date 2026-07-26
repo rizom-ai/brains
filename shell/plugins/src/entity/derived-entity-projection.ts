@@ -1,3 +1,4 @@
+import { DIRECTORY_SYNC_CHANNELS, ENTITY_CHANNELS } from "@brains/contracts";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -77,7 +78,7 @@ export function registerDerivedEntityProjection(
   if (projection.initialSync) {
     const initialSyncConfig = projection.initialSync;
     context.messaging.subscribe(
-      "sync:initial:completed",
+      DIRECTORY_SYNC_CHANNELS.initialCompleted,
       async (): Promise<{ success: boolean }> => {
         if (observedInitialSync) return { success: true };
         observedInitialSync = true;
@@ -109,8 +110,8 @@ export function registerDerivedEntityProjection(
     const sourceChangeConfig = projection.sourceChange;
     const sourceTypes = new Set(sourceChangeConfig.sourceTypes);
     const events = sourceChangeConfig.events ?? [
-      "entity:created",
-      "entity:updated",
+      ENTITY_CHANNELS.created,
+      ENTITY_CHANNELS.updated,
     ];
 
     const handleChange = async (message: {

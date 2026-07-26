@@ -1,5 +1,10 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { EntityPluginContext } from "@brains/plugins";
+import {
+  ENTITY_CHANNELS,
+  GENERATE_CHANNELS,
+  SOCIAL_CHANNELS,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils/logger";
 
@@ -17,7 +22,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
       entity: { metadata?: { status?: string } };
     },
     { success: boolean }
-  >("entity:updated", async (msg) => {
+  >(ENTITY_CHANNELS.updated, async (msg) => {
     const { entityType, entityId, entity } = msg.payload;
 
     if (entityType !== "post") {
@@ -51,7 +56,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
       }
 
       await context.messaging.send({
-        type: "social:auto-generate",
+        type: SOCIAL_CHANNELS.autoGenerate,
         payload: {
           sourceEntityType: entityType,
           sourceEntityId: entityId,
@@ -89,7 +94,7 @@ export function subscribeToAutoGenerate(
       platform: string;
     },
     { success: boolean; jobId?: string }
-  >("social:auto-generate", async (msg) => {
+  >(SOCIAL_CHANNELS.autoGenerate, async (msg) => {
     const { sourceEntityType, sourceEntityId, platform } = msg.payload;
 
     try {
@@ -134,7 +139,7 @@ export function subscribeToGenerateExecute(
   logger: Logger,
 ): void {
   context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
-    "generate:execute",
+    GENERATE_CHANNELS.execute,
     async (msg) => {
       const { entityType } = msg.payload;
 
@@ -156,7 +161,7 @@ export function subscribeToGenerateExecute(
         if (recentPosts.length === 0) {
           logger.info("No published posts found for social post generation");
           await context.messaging.send({
-            type: "generate:report:failure",
+            type: GENERATE_CHANNELS.reportFailure,
             payload: {
               entityType: "social-post",
               error: "No published posts available for social post generation",
@@ -189,7 +194,7 @@ export function subscribeToGenerateExecute(
         if (!sourcePost) {
           logger.info("All recent posts already have social posts");
           await context.messaging.send({
-            type: "generate:report:failure",
+            type: GENERATE_CHANNELS.reportFailure,
             payload: {
               entityType: "social-post",
               error: "All recent posts already have social posts generated",
@@ -227,7 +232,7 @@ export function subscribeToGenerateExecute(
           error: errorMessage,
         });
         await context.messaging.send({
-          type: "generate:report:failure",
+          type: GENERATE_CHANNELS.reportFailure,
           payload: {
             entityType: "social-post",
             error: errorMessage,

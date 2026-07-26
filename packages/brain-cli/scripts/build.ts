@@ -63,6 +63,12 @@ const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
 const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
 const adminPackageDir = join(monorepoRoot, "plugins", "admin");
 const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
+const accountUiAssetPath = join(
+  adminPackageDir,
+  "dist",
+  "ui",
+  "account-app.js",
+);
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -114,6 +120,11 @@ if (adminBuildResult.exitCode !== 0) {
 }
 if (!existsSync(adminUiAssetPath)) {
   console.error(`Admin console UI asset not found at ${adminUiAssetPath}`);
+  process.exit(1);
+}
+
+if (!existsSync(accountUiAssetPath)) {
+  console.error(`Account console UI asset not found at ${accountUiAssetPath}`);
   process.exit(1);
 }
 
@@ -362,6 +373,11 @@ cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"));
 const adminSourceMapPath = `${adminUiAssetPath}.map`;
 if (existsSync(adminSourceMapPath)) {
   cpSync(adminSourceMapPath, join(bundledWebChatUiDir, "admin-app.js.map"));
+}
+cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"));
+const accountSourceMapPath = `${accountUiAssetPath}.map`;
+if (existsSync(accountSourceMapPath)) {
+  cpSync(accountSourceMapPath, join(bundledWebChatUiDir, "account-app.js.map"));
 }
 
 // ─── Copy migrations ──────────────────────────────────────────────────────

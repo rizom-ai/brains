@@ -1,3 +1,4 @@
+import { CONVERSATION_CHANNELS } from "@brains/contracts";
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
 import { coerceConversationMetadata } from "./metadata";
@@ -120,7 +121,7 @@ export class ConversationService implements IConversationService {
    * Start a new conversation session (idempotent - returns existing or creates new)
    */
   async startConversation(request: StartConversationRequest): Promise<string> {
-    const { sessionId, interfaceType, channelId, metadata } = request;
+    const { sessionId, interfaceType, channelId, personId, metadata } = request;
     const now = new Date().toISOString();
 
     // Check if conversation already exists for this sessionId
@@ -147,6 +148,7 @@ export class ConversationService implements IConversationService {
       sessionId,
       interfaceType,
       channelId,
+      personId: personId ?? null,
       started: now,
       lastActive: now,
       created: now,
@@ -308,6 +310,7 @@ export class ConversationService implements IConversationService {
       interfaceType,
       sessionId,
       channelId,
+      personId,
     } = options;
     const filters = [
       updatedAfter ? gt(conversations.updated, updatedAfter) : undefined,
@@ -316,6 +319,7 @@ export class ConversationService implements IConversationService {
         : undefined,
       sessionId ? eq(conversations.sessionId, sessionId) : undefined,
       channelId ? eq(conversations.channelId, channelId) : undefined,
+      personId ? eq(conversations.personId, personId) : undefined,
     ].filter((filter) => filter !== undefined);
 
     const query = this.db
@@ -440,7 +444,7 @@ export class ConversationService implements IConversationService {
 
     // Broadcast digest event
     await this.messageBus.send({
-      type: "conversation:digest",
+      type: CONVERSATION_CHANNELS.digest,
       payload: digestPayload,
       sender: "conversation-service",
       broadcast: true,

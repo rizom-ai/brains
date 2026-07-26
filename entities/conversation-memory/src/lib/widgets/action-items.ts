@@ -1,4 +1,8 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type EntityPluginContext,
+  DASHBOARD_CHANNELS,
+} from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
@@ -93,7 +97,7 @@ export function registerActionItemsWidget(params: {
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: WIDGET_ID,
           pluginId,

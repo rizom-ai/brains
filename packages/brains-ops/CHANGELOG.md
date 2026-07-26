@@ -1,5 +1,49 @@
 # @brains/ops
 
+## 0.2.0-alpha.230
+
+## 0.2.0-alpha.229
+
+## 0.2.0-alpha.228
+
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare Anchor profile flavor in brain configuration, project person/team/organization into auth runtime ownership, remove runtime Anchor mutations, and resolve Admin-console names and CMS links from profile entities.
+
+## 0.2.0-alpha.226
+
+### Patch Changes
+
+- [`79795d4`](https://github.com/rizom-ai/brains/commit/79795d4b06d3e8ef76455907f909818f3acc73ac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional per-user `profileKind` to pilot user config, rendered into the instance `brain.yaml` composition. Defaults to `professional` when unset, so existing instances are unchanged; instances that select a catalog kind (e.g. `collective`) now publish the correct anchor category instead of the hardcoded default.
+
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- [`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move optional semantic profile kind selection into `brain.yaml`, derive a closed structural category through an app-scoped finalized registry, validate profile persistence with the selected kind schema, and publish the new `{ kind, category }` A2A and ATProto card contract.
+
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- [`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded, authority-refetched ATProto Jetstream discovery with safe public egress, durable replay state, identity-collision protection, staleness handling, heartbeat publishing, review digests, and per-brain canary configuration.
+
+## 0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- [#68](https://github.com/rizom-ai/brains/pull/68) [`5b7f0b5`](https://github.com/rizom-ai/brains/commit/5b7f0b5b0ea7586647d2c3bd98f69b78a4ad0bd6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align preview URL topology across runtime metadata and fleet deployment. Dedicated domains use `preview.<domain>`, while direct sites under the shared `rizom.ai` parent use `<site>-preview.rizom.ai` so both hosts remain covered by one-level wildcard TLS.
+
+## 0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ## 0.2.0-alpha.217

@@ -1,6 +1,6 @@
 ---
 name: Archived Agent
-kind: professional
+kind: person
 brainName: Archived Agent
 url: "https://archived-agent.io/a2a"
 status: archived

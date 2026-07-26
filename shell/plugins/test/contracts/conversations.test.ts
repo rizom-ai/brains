@@ -15,6 +15,7 @@ describe("public conversation contracts", () => {
       sessionId: "session-1",
       interfaceType: "discord",
       channelId: "channel-1",
+      personId: "prsn_owner",
       started: "2026-01-01T00:00:00.000Z",
       lastActive: "2026-01-01T00:01:00.000Z",
       metadata: JSON.stringify({ channelName: "general", extra: true }),
@@ -27,6 +28,7 @@ describe("public conversation contracts", () => {
       sessionId: "session-1",
       interfaceType: "discord",
       channelId: "channel-1",
+      personId: "prsn_owner",
       channelName: "general",
       startedAt: "2026-01-01T00:00:00.000Z",
       lastActiveAt: "2026-01-01T00:01:00.000Z",
@@ -42,6 +44,7 @@ describe("public conversation contracts", () => {
       sessionId: "session-2",
       interfaceType: "cli",
       channelId: "channel-2",
+      personId: null,
       started: "2026-01-01T00:00:00.000Z",
       lastActive: "2026-01-01T00:01:00.000Z",
       metadata: "not json",
@@ -51,6 +54,7 @@ describe("public conversation contracts", () => {
 
     expect(publicConversation.metadata).toEqual({});
     expect(publicConversation.channelName).toBeUndefined();
+    expect(publicConversation.personId).toBeUndefined();
   });
 
   it("maps internal messages to the stable public contract", () => {

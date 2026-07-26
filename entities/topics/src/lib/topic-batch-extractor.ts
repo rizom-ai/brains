@@ -71,6 +71,7 @@ const DEFAULT_SOURCE_ROLE_POLICIES: Record<
 > = {
   canonical: { weight: 1, canMint: true },
   primary: { weight: 1, canMint: true },
+  secondary: { weight: 0.8, canMint: true },
   supporting: { weight: 0.55, canMint: false },
   ambient: { weight: 0.35, canMint: false },
   excluded: { weight: 0, canMint: false },
@@ -171,6 +172,7 @@ export async function extractTopicsBatched(
       }>({
         prompt,
         templateName: "topics:extraction",
+        representedIdentity: "none",
       });
 
       const topics = result.topics.filter(

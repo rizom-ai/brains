@@ -1,3 +1,4 @@
+import { JOB_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -161,7 +162,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       }
 
       await this.messageBus.send({
-        type: "job-progress",
+        type: JOB_CHANNELS.progress,
         payload: event,
         sender: "job-progress-monitor",
         broadcast: true,
@@ -186,7 +187,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
   private async broadcastEvent(event: JobProgressEvent): Promise<void> {
     await this.messageBus.send({
-      type: "job-progress",
+      type: JOB_CHANNELS.progress,
       payload: event,
       sender: "job-progress-monitor",
       broadcast: true,

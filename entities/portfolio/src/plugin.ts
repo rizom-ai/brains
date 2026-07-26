@@ -18,8 +18,14 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import type { PublishProvider, PublishResult } from "@brains/contracts";
+import {
+  PROJECT_CHANNELS,
+  PUBLISH_CHANNELS,
+  type PublishProvider,
+  type PublishResult,
+} from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {
   projectSchema,
   projectFrontmatterSchema,
@@ -171,7 +177,7 @@ export class PortfolioPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return { projectionSourceRole: "secondary" };
   }
 
   protected override async interceptCreate(
@@ -189,7 +195,7 @@ export class PortfolioPlugin extends EntityPlugin<
     }
 
     const jobId = await context.jobs.enqueue({
-      type: "project:generation",
+      type: PROJECT_CHANNELS.generation,
       data: {
         prompt: input.prompt,
         ...(input.title ? { title: input.title } : {}),
@@ -292,6 +298,9 @@ export class PortfolioPlugin extends EntityPlugin<
     context.eval.registerHandler("generateProject", async (input: unknown) => {
       const parsed: GenerateProjectEvalInput =
         generateProjectEvalInputSchema.parse(input);
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(context.entityService),
+      );
       return context.ai.generate<{
         title: string;
         description: string;
@@ -302,6 +311,8 @@ export class PortfolioPlugin extends EntityPlugin<
       }>({
         prompt: buildProjectGenerationPrompt(parsed),
         templateName: "portfolio:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
   }
@@ -314,7 +325,7 @@ export class PortfolioPlugin extends EntityPlugin<
 
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
-        type: "publish:register",
+        type: PUBLISH_CHANNELS.register,
         payload: {
           entityType: "project",
           provider,
@@ -329,7 +340,7 @@ export class PortfolioPlugin extends EntityPlugin<
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
-    >("publish:execute", async (msg) => {
+    >(PUBLISH_CHANNELS.execute, async (msg) => {
       const { entityType, entityId } = msg.payload;
       if (entityType !== "project") return { success: true };
 
@@ -340,7 +351,7 @@ export class PortfolioPlugin extends EntityPlugin<
         });
         if (!project) {
           await context.messaging.send({
-            type: "publish:report:failure",
+            type: PUBLISH_CHANNELS.reportFailure,
             payload: {
               entityType,
               entityId,
@@ -371,7 +382,7 @@ export class PortfolioPlugin extends EntityPlugin<
         });
 
         await context.messaging.send({
-          type: "publish:report:success",
+          type: PUBLISH_CHANNELS.reportSuccess,
           payload: {
             entityType,
             entityId,
@@ -380,7 +391,7 @@ export class PortfolioPlugin extends EntityPlugin<
         });
       } catch (error) {
         await context.messaging.send({
-          type: "publish:report:failure",
+          type: PUBLISH_CHANNELS.reportFailure,
           payload: {
             entityType,
             entityId,

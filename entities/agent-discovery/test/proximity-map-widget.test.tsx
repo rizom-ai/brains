@@ -20,7 +20,7 @@ const data: ProximityMapData = {
     {
       id: "alpha",
       name: "Alpha",
-      kind: "professional",
+      kind: "person",
       status: "approved",
       tags: ["research"],
       distance: 0.25,
@@ -38,7 +38,7 @@ const data: ProximityMapData = {
     {
       id: "old",
       name: "Old Agent",
-      kind: "professional",
+      kind: "person",
       status: "archived",
       tags: [],
       distance: 0.45,
@@ -47,7 +47,7 @@ const data: ProximityMapData = {
     {
       id: "gamma",
       name: "Gamma",
-      kind: "collective",
+      kind: "organization",
       status: "approved",
       tags: ["design"],
       distance: 0.4,
@@ -194,7 +194,7 @@ describe("ProximityMap", () => {
       nodes: Array.from({ length: 32 }, (_, index) => ({
         id: `agent-${index}`,
         name: `Agent ${index}`,
-        kind: "professional" as const,
+        kind: "person" as const,
         status: "approved" as const,
         tags: [],
         distance: 0.2 + (index % 10) * 0.05,

@@ -19,10 +19,7 @@ import type { AnchorProfile, BrainCharacter } from "@brains/plugins";
 describe("Agent Card identity timing", () => {
   test("card shows 'Unknown' when profile service has not initialized", () => {
     // This is what used to happen before ready-state initialization.
-    const uninitializedProfile: AnchorProfile = {
-      name: "Unknown",
-      kind: "professional",
-    };
+    const uninitializedProfile: AnchorProfile = { name: "Unknown" };
     const defaultCharacter: BrainCharacter = {
       name: "Brain",
       role: "Knowledge assistant",
@@ -46,7 +43,6 @@ describe("Agent Card identity timing", () => {
     // This is what A2A should use when onReady builds the card.
     const initializedProfile: AnchorProfile = {
       name: "Jan Hein",
-      kind: "professional",
       description: "Builder of things",
     };
     const realCharacter: BrainCharacter = {

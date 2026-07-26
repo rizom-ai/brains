@@ -14,6 +14,8 @@ export function PersonDetail(props: {
   user: AuthAdminUserSummary | undefined;
   brainName: string;
   activeAdminCount: number;
+  /** The signed-in admin's own user id; their row defers to /account. */
+  selfUserId: string;
   onConfirm: (confirmation: Confirmation) => void;
   onMutation: (
     mutation: AuthAdminMutation,
@@ -32,6 +34,12 @@ export function PersonDetail(props: {
     );
   }
 
+  const isSelf = user.userId === props.selfUserId;
+  const accountLink = (
+    <a className="people-text-action" href="/account">
+      Manage at /account →
+    </a>
+  );
   const suspended = user.status === "suspended";
   const protectsActiveAdmin =
     user.role === "admin" &&
@@ -234,7 +242,9 @@ export function PersonDetail(props: {
             kind="Sessions"
             value="Current browser and OAuth access"
             action={
-              suspended ? undefined : (
+              suspended ? undefined : isSelf ? (
+                accountLink
+              ) : (
                 <TextAction
                   danger
                   onClick={() =>
@@ -277,7 +287,7 @@ export function PersonDetail(props: {
                 kind="Passkey"
                 value={`${passkey.credentialDeviceType ? roleLabel(passkey.credentialDeviceType) : "Passkey"} · added ${formatDate(passkey.createdAt)}`}
                 action={
-                  suspended ? undefined : (
+                  suspended || isSelf ? undefined : (
                     <TextAction
                       danger
                       onClick={() =>
@@ -311,9 +321,13 @@ export function PersonDetail(props: {
           )}
           {suspended ? null : (
             <div className="people-inline-actions">
-              <TextAction onClick={createSetupLink}>
-                Create setup link
-              </TextAction>
+              {isSelf ? (
+                accountLink
+              ) : (
+                <TextAction onClick={createSetupLink}>
+                  Create setup link
+                </TextAction>
+              )}
             </div>
           )}
         </DetailSection>

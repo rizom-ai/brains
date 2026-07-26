@@ -96,12 +96,7 @@ const results = await Promise.all(
 
 ### Environment preparation
 
-`prepareEvalEnvironment` already creates per-model temp dirs with unique suffixes. Each subprocess gets its own git remote path:
-
-```diff
-- const gitRemotePath = "/tmp/brain-eval-git-remote";
-+ const gitRemotePath = `/tmp/brain-eval-git-remote-${suffix}`;
-```
+Already done: `prepareEvalEnvironment` creates per-model temp dirs with unique suffixes, and `eval-environment.ts` derives the git remote path from the per-model `evalDbBase` (`` `${evalDbBase}-git-remote` ``), so subprocesses are isolated without further changes.
 
 ### Console output
 
@@ -117,7 +112,6 @@ Subprocess stderr is inherited — logs go straight to the terminal. With 2–3 
 1. Create `shell/ai-evaluation/src/eval-subprocess.ts` — reads env + brain.eval.yaml, resolves brain package, boots App with model override, runs suite, writes JSON to stdout
 2. Add `--parallel` flag to eval runner — spawns subprocesses instead of sequential loop
 3. Collect JSON results, feed to `writeModelComparisonReport`
-4. Per-subprocess git remote paths
 
 ## Risks
 

@@ -328,14 +328,14 @@ Managed by: `shell/identity-service`
 
 #### AnchorProfileEntity
 
-Public identity of the person, team, or collective behind the brain. The profile data is parsed from the markdown content body:
+Public identity of the person, team, or organization behind the brain. The profile data is parsed from the markdown content body:
 
 ```typescript
 const anchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
   kind: z
-    .enum(["professional", "team", "collective"])
-    .describe("Type of anchor: professional (individual), team, or collective"),
+    .enum(["person", "team", "organization"])
+    .describe("Type of anchor: person, team, or organization"),
   organization: z
     .string()
     .optional()
@@ -367,7 +367,37 @@ type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
 type AnchorProfile = z.infer<typeof anchorProfileBodySchema>;
 ```
 
-Managed by: `shell/identity-service`
+Managed by: `shell/identity-service`, with kind-aware professional, team, and organization profile extensions and persistence validation owned by `@brains/profile`.
+
+#### StyleGuideEntity
+
+Singleton messaging, voice, and visual guidance for generation:
+
+```yaml
+---
+name: Default style guide
+messaging:
+  audiences: []
+  positioning: Practical guidance grounded in real work
+voice:
+  summary: Clear and direct
+  traits: [grounded]
+  principles: []
+  preferredTerms: []
+  avoid: []
+visual:
+  artDirection: Geometric editorial collage
+  palette: ["#3921D7", "#E7640A"]
+  composition: Layered and interconnected
+  mood: Playful and rigorous
+  preferred: []
+  avoid: [photorealism]
+---
+```
+
+The markdown body holds rationale, examples, and exceptions. Generation separately selects represented identity (`brain | anchor | none`) and style facets (`voice | visual | both | none`).
+
+Managed by: `@brains/style-guide`
 
 #### SiteInfoEntity
 
@@ -375,8 +405,12 @@ Website presentation and configuration:
 
 ```typescript
 const siteInfoBodySchema = z.object({
-  title: z.string().describe("The site's title"),
-  description: z.string().describe("The site's description"),
+  represents: z.enum(["brain", "anchor"]).default("anchor"),
+  title: z.string().optional().describe("Optional site title override"),
+  description: z
+    .string()
+    .optional()
+    .describe("Optional site description override"),
   url: z.string().optional().describe("The site's canonical URL"),
   copyright: z.string().optional().describe("Copyright notice text"),
   themeMode: z
@@ -402,15 +436,16 @@ type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
 type SiteInfoBody = z.infer<typeof siteInfoBodySchema>;
 ```
 
-Managed by: `plugins/site-builder` (SiteInfoService)
+Managed by: `@brains/site-info`; consumed by `@brains/site-builder-plugin`.
 
-**Note**: The three core entity types serve distinct purposes:
+**Note**: The four singleton types serve distinct purposes:
 
 - **brain-character**: AI personality and behavior (brain's name, role, purpose, values)
-- **anchor-profile**: Public presence of the person/team/collective behind the brain (name, kind, organization, bio, social links)
-- **site-info**: Website presentation (title, description, CTA, theme)
+- **anchor-profile**: Public presence of the person, team, or organization behind the brain
+- **style-guide**: Durable voice and visual guidance for generation
+- **site-info**: Optional website channel configuration and represented-identity selection
 
-At runtime, site-builder merges site-info and anchor-profile data (e.g., socialLinks from the anchor profile) to create the complete site configuration.
+At runtime, site-info defaults `represents` to `anchor` and derives omitted title and description values from the represented singleton. Site-builder composes anchor social links only for anchor-representing sites; brain-representing sites do not silently inherit anchor presentation data.
 
 ### Plugin Entity Types
 

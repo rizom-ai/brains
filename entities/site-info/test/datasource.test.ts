@@ -49,7 +49,7 @@ describe("SiteInfoDataSource", () => {
     expect(result["copyright"]).toBe("© Me");
   });
 
-  it("should include socialLinks from profile entity", async () => {
+  it("does not mix anchor profile data into site channel configuration", async () => {
     const ds = new SiteInfoDataSource(createSilentLogger());
     const shell = createMockShell();
     shell.addEntities([
@@ -76,15 +76,11 @@ describe("SiteInfoDataSource", () => {
         updated: new Date().toISOString(),
       },
     ]);
-    const entityService = shell.getEntityService();
 
-    const result = await ds.fetch({}, outputSchema, { entityService });
+    const result = await ds.fetch({}, outputSchema, {
+      entityService: shell.getEntityService(),
+    });
 
-    const socialLinks = result["socialLinks"] as Array<{
-      platform: string;
-      url: string;
-    }>;
-    expect(socialLinks).toHaveLength(1);
-    expect(socialLinks[0]?.platform).toBe("github");
+    expect(result["socialLinks"]).toBeUndefined();
   });
 });

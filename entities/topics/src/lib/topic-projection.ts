@@ -412,8 +412,21 @@ async function countConfiguredSources(
   context: EntityPluginContext,
   config: TopicsPluginConfig,
 ): Promise<number> {
+  const entityTypes = context.entityService.getEntityTypes().filter((type) => {
+    if (type === "topic") return false;
+    if (config.excludeEntityTypes.includes(type)) return false;
+    if (
+      !config.includeEntityTypes.includes("*") &&
+      !config.includeEntityTypes.includes(type)
+    ) {
+      return false;
+    }
+    return (
+      context.entityService.getEntityTypeConfig(type).projectionSource !== false
+    );
+  });
   const counts = await Promise.all(
-    config.includeEntityTypes.map((entityType) =>
+    entityTypes.map((entityType) =>
       context.entityService.countEntities({
         entityType,
         options: {

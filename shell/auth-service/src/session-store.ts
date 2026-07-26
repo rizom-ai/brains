@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
-import { and, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
 import { nowSeconds } from "@brains/utils/date";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { authSessions } from "./runtime-schema";
@@ -133,6 +133,82 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
       }
     }
     return undefined;
+  }
+
+  async listActiveSessionsForSubject(
+    subject: string,
+  ): Promise<AuthSessionRecord[]> {
+    const rows = await this.database.db
+      .select()
+      .from(authSessions)
+      .where(
+        and(
+          eq(authSessions.userId, subject),
+          isNull(authSessions.revokedAt),
+          gt(authSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .orderBy(authSessions.createdAt, sql`rowid`);
+    return rows.map((row) => ({
+      id: row.tokenHash,
+      token_hash: row.tokenHash,
+      subject: row.userId,
+      created_at: row.createdAt,
+      expires_at: row.expiresAt,
+    }));
+  }
+
+  async revokeActiveSessionForSubject(
+    subject: string,
+    sessionId: string,
+  ): Promise<boolean> {
+    const revoked = await this.database.db
+      .update(authSessions)
+      .set({ revokedAt: nowSeconds() })
+      .where(
+        and(
+          eq(authSessions.userId, subject),
+          eq(authSessions.tokenHash, sessionId),
+          isNull(authSessions.revokedAt),
+          gt(authSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .returning({ tokenHash: authSessions.tokenHash });
+    return revoked.length === 1;
+  }
+
+  async revokeOtherActiveSessionsForSubject(
+    subject: string,
+    currentSessionId: string,
+  ): Promise<number> {
+    const revoked = await this.database.db
+      .update(authSessions)
+      .set({ revokedAt: nowSeconds() })
+      .where(
+        and(
+          eq(authSessions.userId, subject),
+          ne(authSessions.tokenHash, currentSessionId),
+          isNull(authSessions.revokedAt),
+          gt(authSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .returning({ tokenHash: authSessions.tokenHash });
+    return revoked.length;
+  }
+
+  async revokeActiveSessionsForSubject(subject: string): Promise<number> {
+    const revoked = await this.database.db
+      .update(authSessions)
+      .set({ revokedAt: nowSeconds() })
+      .where(
+        and(
+          eq(authSessions.userId, subject),
+          isNull(authSessions.revokedAt),
+          gt(authSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .returning({ tokenHash: authSessions.tokenHash });
+    return revoked.length;
   }
 
   async revokeSessionFromRequest(request: Request): Promise<boolean> {

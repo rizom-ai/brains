@@ -1,4 +1,4 @@
-import type { Plugin } from "@brains/plugins";
+import type { EntityTypeConfig, Plugin } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import {
   playbookAdapter,
@@ -25,6 +25,10 @@ export class PlaybookPlugin extends EntityPlugin<
 
   constructor(config: PlaybookConfigInput = {}) {
     super("playbook", packageJson, config, playbookConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSource: false, projectionSourceRole: "excluded" };
   }
 
   protected override async getInstructions(): Promise<string> {

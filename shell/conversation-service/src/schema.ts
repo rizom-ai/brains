@@ -72,6 +72,7 @@ type ConversationsTable = SQLiteTableWithColumns<{
       true
     >;
     channelId: ConversationTextColumn<"conversations", "channel_id", true>;
+    personId: ConversationTextColumn<"conversations", "person_id", false>;
     started: ConversationTextColumn<"conversations", "started", true>;
     lastActive: ConversationTextColumn<"conversations", "last_active", true>;
     metadata: ConversationTextColumn<"conversations", "metadata", false>;
@@ -135,6 +136,7 @@ export const conversations: ConversationsTable = sqliteTable(
     sessionId: text("session_id").notNull(), // CLI session ID, Matrix room ID, etc.
     interfaceType: text("interface_type").notNull(), // 'cli' | 'matrix' | 'mcp'
     channelId: text("channel_id").notNull(), // Channel or room identifier
+    personId: text("person_id"), // Auth person owner for browser-scoped conversations
     started: text("started").notNull(),
     lastActive: text("last_active").notNull(),
     metadata: text("metadata"), // JSON string for additional optional data
@@ -144,6 +146,7 @@ export const conversations: ConversationsTable = sqliteTable(
   (table) => ({
     sessionIdx: index("idx_conversations_session").on(table.sessionId),
     channelIdx: index("idx_conversations_channel").on(table.channelId),
+    personIdx: index("idx_conversations_person").on(table.personId),
     interfaceSessionIdx: index("idx_conversations_interface_session").on(
       table.interfaceType,
       table.sessionId,

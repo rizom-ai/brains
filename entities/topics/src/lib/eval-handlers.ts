@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { SHELL_CHANNELS } from "@brains/plugins";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -218,7 +219,7 @@ async function waitForEmbeddingsToDrain(
   context: EntityPluginContext,
 ): Promise<void> {
   for (;;) {
-    const active = await context.jobs.getActiveJobs(["shell:embedding"]);
+    const active = await context.jobs.getActiveJobs([SHELL_CHANNELS.embedding]);
     if (active.length === 0) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }

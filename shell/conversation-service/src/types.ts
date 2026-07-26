@@ -54,6 +54,7 @@ export interface StartConversationRequest {
   sessionId: string;
   interfaceType: string;
   channelId: string;
+  personId?: string;
   metadata: ConversationMetadata;
 }
 
@@ -212,6 +213,7 @@ export interface ListConversationsOptions {
   interfaceType?: string;
   sessionId?: string;
   channelId?: string;
+  personId?: string;
 }
 
 export interface IConversationService {

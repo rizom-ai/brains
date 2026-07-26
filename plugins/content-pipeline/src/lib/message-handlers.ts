@@ -1,3 +1,4 @@
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -183,11 +184,11 @@ function subscribeToEntityChangeMessages(
     handleEntityChange(context, deps, msg.payload);
 
   context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
-    "entity:created",
+    ENTITY_CHANNELS.created,
     handler,
   );
   context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
-    "entity:updated",
+    ENTITY_CHANNELS.updated,
     handler,
   );
 

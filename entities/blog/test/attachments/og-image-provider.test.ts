@@ -47,7 +47,7 @@ Body`,
         purpose: "testing",
         values: [],
       }),
-      getProfile: () => ({ name: "Rizom", kind: "professional" as const }),
+      getProfile: () => ({ name: "Rizom" }),
       getAppInfo: async () => ({
         entities: 0,
         embeddings: 0,

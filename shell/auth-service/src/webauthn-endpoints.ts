@@ -171,10 +171,9 @@ export class WebAuthnEndpoints {
     } else {
       await this.setupFlow.consumeSetupToken(setup.token);
     }
-    const session = await this.sessionStore.createSession(
-      result.subject ?? "single-operator",
-      { secure: isSecureRequest(request) },
-    );
+    const session = await this.sessionStore.createSession(result.subject, {
+      secure: isSecureRequest(request),
+    });
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
@@ -215,10 +214,9 @@ export class WebAuthnEndpoints {
       );
     }
 
-    const session = await this.sessionStore.createSession(
-      result.subject ?? "single-operator",
-      { secure: isSecureRequest(request) },
-    );
+    const session = await this.sessionStore.createSession(result.subject, {
+      secure: isSecureRequest(request),
+    });
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });

@@ -90,6 +90,26 @@ export class PluginLifecycle {
     }
   }
 
+  /** Dispatch post-registration finalization for one initialized plugin. */
+  public async finalizePluginRegistration(pluginId: string): Promise<void> {
+    const pluginInfo = this.plugins.get(pluginId);
+    if (!pluginInfo) {
+      throw new PluginError(
+        pluginId,
+        "Registration finalization failed: Plugin is not registered",
+      );
+    }
+    if (pluginInfo.status !== PluginStatus.INITIALIZED) return;
+
+    try {
+      await pluginInfo.plugin.finalizeRegistration?.();
+      this.logger.debug(`Registration finalized for plugin: ${pluginId}`);
+    } catch (error) {
+      await this.failPluginInitialization(pluginId, error);
+      throw error;
+    }
+  }
+
   /**
    * Dispatch ready hook for a plugin.
    */

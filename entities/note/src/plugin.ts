@@ -54,7 +54,7 @@ export class NotePlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "ambient" };
+    return { projectionSourceRole: "primary" };
   }
 
   protected override async interceptCreate(
@@ -192,6 +192,7 @@ export class NotePlugin extends EntityPlugin<
       return context.ai.generate<{ title: string; body: string }>({
         prompt: parsed.prompt,
         templateName: "note:generation",
+        representedIdentity: "none",
       });
     });
 

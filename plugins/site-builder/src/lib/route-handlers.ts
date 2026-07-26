@@ -10,6 +10,7 @@ import type {
   RouteDefinition,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
+import { SITE_BUILDER_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { registerConfigRoutes } from "./route-helpers";
@@ -25,7 +26,7 @@ export function setupRouteHandlers(
 ): void {
   // Register handler for route registration
   context.messaging.subscribe(
-    "plugin:site-builder:route:register",
+    SITE_BUILDER_CHANNELS.routeRegister,
     async (message) => {
       try {
         const payload = RegisterRoutesPayloadSchema.parse(message.payload);
@@ -41,7 +42,7 @@ export function setupRouteHandlers(
 
   // Handler for unregistering routes
   context.messaging.subscribe(
-    "plugin:site-builder:route:unregister",
+    SITE_BUILDER_CHANNELS.routeUnregister,
     async (message) => {
       try {
         const payload = UnregisterRoutesPayloadSchema.parse(message.payload);
@@ -65,7 +66,7 @@ export function setupRouteHandlers(
 
   // Handler for listing routes
   context.messaging.subscribe<unknown, ListRoutesResponse>(
-    "plugin:site-builder:route:list",
+    SITE_BUILDER_CHANNELS.routeList,
     async (message) => {
       try {
         const payload = ListRoutesPayloadSchema.parse(message.payload);
@@ -82,7 +83,7 @@ export function setupRouteHandlers(
 
   // Handler for getting specific route
   context.messaging.subscribe<unknown, GetRouteResponse>(
-    "plugin:site-builder:route:get",
+    SITE_BUILDER_CHANNELS.routeGet,
     async (message) => {
       try {
         const payload = GetRoutePayloadSchema.parse(message.payload);
@@ -97,7 +98,7 @@ export function setupRouteHandlers(
 
   // Handler for site-content plugin to discover all routes
   context.messaging.subscribe<unknown, RouteDefinition[]>(
-    "site-builder:routes:list",
+    SITE_BUILDER_CHANNELS.routesList,
     async () => {
       return { success: true, data: routeRegistry.list() };
     },

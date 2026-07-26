@@ -15,7 +15,7 @@ export const DEFAULT_DISCOVERED_AT = "2026-03-31T00:00:00.000Z";
 export interface TestAgentInput {
   id?: string;
   name?: string;
-  kind?: "professional" | "team" | "collective";
+  kind?: "person" | "team" | "organization";
   organization?: string;
   brainName?: string;
   url?: string;
@@ -39,7 +39,7 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
     entityType: "agent",
     content: adapter.createAgentContent({
       name,
-      kind: input.kind ?? "professional",
+      kind: input.kind ?? "person",
       ...(input.organization !== undefined
         ? { organization: input.organization }
         : {}),

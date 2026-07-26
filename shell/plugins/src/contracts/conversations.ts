@@ -12,6 +12,7 @@ export const ConversationSchema: z.ZodObject<{
   sessionId: z.ZodString;
   interfaceType: z.ZodString;
   channelId: z.ZodString;
+  personId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   startedAt: z.ZodString;
   lastActiveAt: z.ZodString;
@@ -23,6 +24,7 @@ export const ConversationSchema: z.ZodObject<{
   sessionId: z.string(),
   interfaceType: z.string(),
   channelId: z.string(),
+  personId: z.string().optional(),
   channelName: z.string().optional(),
   startedAt: z.string(),
   lastActiveAt: z.string(),

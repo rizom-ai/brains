@@ -11,7 +11,8 @@
         "@rizom/site-rizom-foundation",
         "@rizom/site-rizom-work",
         "@rizom/site-sections",
-        "@rizom/theme-rizom-ai"
+        "@rizom/theme-rizom-ai",
+        "@rizom/theme-signal"
       ],
       "dependencies": [
         "@rizom/site",
@@ -62,7 +63,8 @@
         "@rizom/site-rizom-foundation",
         "@rizom/site-rizom-work",
         "@rizom/site-sections",
-        "@rizom/theme-rizom-ai"
+        "@rizom/theme-rizom-ai",
+        "@rizom/theme-signal"
       ],
       "dependencies": [
         "@rizom/site",

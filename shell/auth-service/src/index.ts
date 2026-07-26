@@ -1,3 +1,14 @@
+export { AUTH_ACCOUNT_MUTATION_ACTIONS } from "./account-contracts";
+export type {
+  AuthAccountConnectedChannel,
+  AuthAccountMutation,
+  AuthAccountMutationAction,
+  AuthAccountPasskey,
+  AuthAccountResponse,
+  AuthAccountRole,
+  AuthAccountSessionSummary,
+  AuthAccountSnapshot,
+} from "./account-contracts";
 export {
   AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,

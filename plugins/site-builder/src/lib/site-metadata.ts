@@ -18,6 +18,7 @@ const siteMetadataSectionSchema = z.object({
 });
 
 const siteMetadataResponseSchema = z.object({
+  represents: z.enum(["brain", "anchor"]).default("anchor"),
   title: z.string(),
   description: z.string(),
   url: z.string().optional(),

@@ -10,6 +10,7 @@ import {
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  ENTITY_CHANNELS,
   authPrincipalResolveResponseSchema,
   parseAgentContextItems,
   type AgentContextRequest,
@@ -64,9 +65,9 @@ function subscribeToEntityCacheInvalidation(
   logger: Logger,
 ): (() => void)[] {
   const events = [
-    "entity:created",
-    "entity:updated",
-    "entity:deleted",
+    ENTITY_CHANNELS.created,
+    ENTITY_CHANNELS.updated,
+    ENTITY_CHANNELS.deleted,
   ] as const;
 
   return events.map((event) =>

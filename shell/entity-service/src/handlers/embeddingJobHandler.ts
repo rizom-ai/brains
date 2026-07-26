@@ -1,3 +1,4 @@
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { Logger } from "@brains/utils/logger";
 import { type ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -165,7 +166,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         );
 
         await this.messageBus.send({
-          type: "entity:embedding:ready",
+          type: ENTITY_CHANNELS.embeddingReady,
           payload: {
             entityType: data.entityType,
             entityId: data.id,

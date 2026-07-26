@@ -18,6 +18,7 @@ import type {
   BrainCharacterService,
   AnchorProfileService,
   CanonicalIdentityService,
+  ProfileKindRegistry,
 } from "@brains/identity-service";
 import type { MessageBus } from "@brains/messaging-service";
 import type {
@@ -64,6 +65,7 @@ export interface ShellServices {
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
   canonicalIdentityService: CanonicalIdentityService;
+  profileKindRegistry: ProfileKindRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
@@ -95,4 +97,5 @@ export interface ShellDependencies {
   runtimeUploadRegistry?: RuntimeUploadRegistry;
   runtimeStateService?: RuntimeStateService;
   recurringCheckService?: RecurringCheckService;
+  profileKindRegistry?: ProfileKindRegistry;
 }

@@ -1,5 +1,5 @@
 import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, SITE_BUILDER_CHANNELS } from "@brains/plugins";
 import {
   analyticsConfigSchema,
   type AnalyticsConfig,
@@ -54,7 +54,7 @@ export class AnalyticsPlugin extends ServicePlugin<
     if (!siteTag) return;
 
     await context.messaging.send({
-      type: "plugin:site-builder:head-script:register",
+      type: SITE_BUILDER_CHANNELS.headScriptRegister,
       payload: {
         pluginId: this.id,
         script: generateCloudflareBeaconScript(siteTag),

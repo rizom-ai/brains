@@ -635,6 +635,36 @@ describe("extractTopicsBatched", () => {
       expect(result.skipped).toBe(0);
     });
 
+    it("uses entity source roles so secondary sources can mint with discounted relevance", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "secondary",
+      });
+
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Project Signal",
+            content: "A strong secondary source can seed a durable topic.",
+            relevanceScore: 0.9,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("project-1", "project", "Project", "Project content")],
+        context,
+        logger,
+        { autoMerge: true },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.merged).toBe(0);
+      expect(result.skipped).toBe(0);
+    });
+
     it("uses entity source roles so supporting sources reinforce but do not mint", async () => {
       const logger = createSilentLogger();
       const mockShell = createMockShell({ logger });

@@ -33,7 +33,7 @@ import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
-import { adminPlugin } from "@brains/admin";
+import { accountPlugin, adminPlugin } from "@brains/admin";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
@@ -42,11 +42,12 @@ import { roverOnboardingPlugin } from "@brains/rover-onboarding";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
+import { styleGuidePlugin } from "@brains/style-guide";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
-import { roverProfilePlugin } from "./profile-extension";
+import { profilePlugin } from "@brains/profile";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
 import { join } from "path";
@@ -68,7 +69,8 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
-  "rover-profile",
+  "profile",
+  "style-guide",
   "image",
   "document",
   "note",
@@ -80,6 +82,7 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "account",
   "notifications",
   "playbook",
   "playbooks",
@@ -157,10 +160,12 @@ const roverBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["rover-profile", roverProfilePlugin, {}],
+    ["profile", profilePlugin, { starterIdentity: { anchorKind: "person" } }],
+    ["style-guide", styleGuidePlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
+    ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
@@ -180,19 +185,7 @@ const roverBrain: BrainDefinition = defineBrain({
     // Not in any preset — the consolidated rizom.ai brain opts in via
     // brain.yaml `add:` (docs/plans/rizom-consolidation.md, decision 3).
     ["products", productsPlugin, undefined],
-    [
-      "topics",
-      topicsPlugin,
-      {
-        includeEntityTypes: [
-          "post",
-          "deck",
-          "project",
-          "link",
-          "anchor-profile",
-        ],
-      },
-    ],
+    ["topics", topicsPlugin, {}],
     [
       "content-pipeline",
       contentPipelinePlugin,

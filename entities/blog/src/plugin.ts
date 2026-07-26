@@ -6,7 +6,11 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  PUBLISH_ASSET_CHANNELS,
+} from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
@@ -108,7 +112,7 @@ export class BlogPlugin extends EntityPlugin<
   private deferPublishAssetRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
-        type: "publish-assets:register",
+        type: PUBLISH_ASSET_CHANNELS.register,
         payload: {
           entityType: "post",
           attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,

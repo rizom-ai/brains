@@ -1,3 +1,4 @@
+import { SHELL_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/plugins";
 import type {
   ServicePluginContext,
   JobContext,
@@ -58,7 +59,7 @@ export class SiteContentOperations {
 
   private async fetchRoutes(): Promise<SiteContentRoute[]> {
     const response = await this.context.messaging.send({
-      type: "site-builder:routes:list",
+      type: SITE_BUILDER_CHANNELS.routesList,
       payload: {},
     });
     if ("noop" in response) {
@@ -211,7 +212,7 @@ export class SiteContentOperations {
       };
 
       batchJobs.push({
-        type: "shell:content-generation",
+        type: SHELL_CHANNELS.contentGeneration,
         data: jobData,
       });
     }

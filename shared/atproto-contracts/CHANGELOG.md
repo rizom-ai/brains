@@ -1,5 +1,115 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.230
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.230
+  - @brains/entity-service@0.2.0-alpha.230
+
+## 0.2.0-alpha.229
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.229
+  - @brains/entity-service@0.2.0-alpha.229
+
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.228
+  - @brains/entity-service@0.2.0-alpha.228
+
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the Admin-only People section in the standalone Admin console and migrate browser authentication from legacy operator terminology to role-aware auth sessions. Existing session rows and legacy browser cookies remain compatible through an explicit, release-gated migration window. Legacy dashboard `needsOperator` registration inputs remain accepted and normalize to `needsAttention`.
+
+- Updated dependencies [[`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29)]:
+  - @brains/entity-service@0.2.0-alpha.227
+  - @brains/utils@0.2.0-alpha.227
+
+## 0.2.0-alpha.226
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.226
+  - @brains/entity-service@0.2.0-alpha.226
+
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- [`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move optional semantic profile kind selection into `brain.yaml`, derive a closed structural category through an app-scoped finalized registry, validate profile persistence with the selected kind schema, and publish the new `{ kind, category }` A2A and ATProto card contract.
+
+- Updated dependencies [[`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987)]:
+  - @brains/entity-service@0.2.0-alpha.225
+  - @brains/utils@0.2.0-alpha.225
+
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- [`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded, authority-refetched ATProto Jetstream discovery with safe public egress, durable replay state, identity-collision protection, staleness handling, heartbeat publishing, review digests, and per-brain canary configuration.
+
+- Updated dependencies [[`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61)]:
+  - @brains/utils@0.2.0-alpha.224
+  - @brains/entity-service@0.2.0-alpha.224
+
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- [`09ee4c2`](https://github.com/rizom-ai/brains/commit/09ee4c2d56b5f5c7044aa1ee3785a0ec74d29328) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden atproto boot publishing and cross-version discovery. `ready()` now
+  schedules its card/lexicon publishes instead of awaiting them (an
+  unresponsive PDS can no longer stall startup), publishes only on a full boot
+  (startup-check mode stays side-effect free), and every PDS request carries a
+  30s timeout. Discovery converts cross-version anchor kinds
+  (`person`→`professional`, `organization`→`collective`) into the running
+  build's vocabulary via `normalizeDiscoveredBrainCard`, so the upcoming kind
+  rename cannot break card exchange between fleet versions.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/entity-service@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/entity-service@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/entity-service@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/entity-service@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

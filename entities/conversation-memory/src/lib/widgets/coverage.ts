@@ -2,6 +2,7 @@ import {
   SYSTEM_CHANNELS,
   type Conversation,
   type EntityPluginContext,
+  DASHBOARD_CHANNELS,
 } from "@brains/plugins";
 import type { SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
@@ -171,7 +172,7 @@ export function registerSummaryCoverageWidget(params: {
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: COVERAGE_WIDGET_ID,
           pluginId,

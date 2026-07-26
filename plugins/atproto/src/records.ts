@@ -95,6 +95,12 @@ export async function buildBrainCardRecord(
 ): Promise<BrainCardRecord> {
   const identity = context.identity.get();
   const profile = context.identity.getProfile();
+  const profileSelection = context.profileKinds.getResolved();
+  if (!profileSelection) {
+    throw new Error(
+      "AT Protocol brain card publishing requires a configured profile kind",
+    );
+  }
   const appInfo = await context.identity.getAppInfo();
   const siteUrl = normalizePublicUrl(
     context.siteUrl ?? profile.website,
@@ -130,7 +136,8 @@ export async function buildBrainCardRecord(
     anchor: {
       did: anchorDid,
       name: profile.name,
-      kind: profile.kind,
+      category: profileSelection.category,
+      kind: profileSelection.kind,
     },
     skills,
     model: appInfo.model,

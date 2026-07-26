@@ -1,3 +1,4 @@
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type {
   Plugin,
   PluginType,
@@ -118,7 +119,7 @@ export abstract class BasePlugin<
   protected setupMessageHandlers(context: TContext): void {
     // Subscribe to tool execution requests for this specific plugin
     context.messaging.subscribe(
-      `plugin:${this.id}:tool:execute`,
+      PLUGIN_CHANNELS.toolExecute(this.id),
       async (message) => {
         try {
           // Validate and parse the message payload
@@ -181,7 +182,7 @@ export abstract class BasePlugin<
                 ): Promise<void> => {
                   // Send progress notification back through message bus
                   await context.messaging.send({
-                    type: `plugin:${this.id}:progress`,
+                    type: PLUGIN_CHANNELS.progress(this.id),
                     payload: {
                       progressToken,
                       notification,
@@ -210,7 +211,7 @@ export abstract class BasePlugin<
 
     // Subscribe to resource get requests for this specific plugin
     context.messaging.subscribe(
-      `plugin:${this.id}:resource:get`,
+      PLUGIN_CHANNELS.resourceGet(this.id),
       async (message) => {
         try {
           // Validate and parse the message payload
@@ -259,6 +260,20 @@ export abstract class BasePlugin<
    */
   protected async onRegister(_context: TContext): Promise<void> {
     // Default implementation does nothing
+  }
+
+  /**
+   * Lifecycle hook called after every plugin has registered but before initial
+   * content discovery. Override for composition finalization that must precede
+   * imported entity validation.
+   */
+  protected async onRegistrationComplete(_context: TContext): Promise<void> {
+    // Default implementation does nothing
+  }
+
+  /** Dispatch the post-registration lifecycle hook. */
+  public async finalizeRegistration(): Promise<void> {
+    await this.onRegistrationComplete(this.getContext());
   }
 
   /**
@@ -364,7 +379,7 @@ export abstract class BasePlugin<
     const pluginId = this.id;
     return ProgressReporter.from(async (notification: ProgressNotification) => {
       await context.messaging.send({
-        type: `plugin:${pluginId}:progress`,
+        type: PLUGIN_CHANNELS.progress(pluginId),
         payload: {
           progressToken,
           notification: {

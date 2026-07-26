@@ -318,6 +318,24 @@ export class EntityRegistry implements IEntityRegistry {
     for (const ext of extensions) {
       merged = merged.extend(ext.shape);
     }
-    return merged;
+    return merged.superRefine((value, context) => {
+      for (const extension of extensions) {
+        const extensionValue = Object.fromEntries(
+          Object.keys(extension.shape).flatMap((key) =>
+            Object.hasOwn(value, key) ? [[key, value[key]]] : [],
+          ),
+        );
+        const result = extension.safeParse(extensionValue);
+        if (!result.success) {
+          for (const issue of result.error.issues) {
+            context.addIssue({
+              code: "custom",
+              path: [...issue.path],
+              message: issue.message,
+            });
+          }
+        }
+      }
+    });
   }
 }

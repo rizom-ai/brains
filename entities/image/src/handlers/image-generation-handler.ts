@@ -8,6 +8,7 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { imageAdapter, setCoverImageId } from "@brains/image";
+import { fetchStyleGuide, formatVisualGuidance } from "@brains/style-guide";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -128,6 +129,9 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
         return JobResult.failure(error);
       }
 
+      const styleGuide = await fetchStyleGuide(this.context.entityService);
+      const visualGuidance = formatVisualGuidance(styleGuide).trim();
+
       // Step 1.5: Distill prompt using AI when entity content is provided
       let finalPrompt = prompt;
       const entityContent = getDistillableEntityContent(data.entityContent);
@@ -139,18 +143,14 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
 
         try {
           const { object } = await this.context.ai.generateObject(
-            `You are an editorial illustration art director for a design magazine. Given an article, describe WHAT TO DEPICT — not how to render it. The rendering style is already defined separately.
+            `You are a visual concept designer. Given source content, describe WHAT TO DEPICT, not how to render it.
 
 Rules:
-- NEVER depict the topic literally (no laptops for tech, no books for education, no globes for international topics)
-- Find a single strong visual METAPHOR using everyday physical objects in unexpected arrangements
-- Describe ONLY the objects and their spatial relationships — no style, no colors, no lighting, no materials, no rendering instructions
-- Keep it to 1-2 sentences describing the scene
-- Think conceptual, like a New Yorker cover illustration concept
-
-Example good output: "A giant pair of scissors cutting through a tangled ball of red tape, with tiny office workers climbing the loose strands like ropes"
-Example bad output: "A dreamlike crystal formation glowing with ethereal light in soft watercolor tones"
-
+- Identify one clear visual subject, scene, or metaphor that communicates the central idea
+- Avoid generic visual clichés unless they are genuinely central to the source
+- Describe only subjects and their spatial relationships; omit colors, lighting, materials, medium, and rendering instructions
+- Keep the result to 1-2 sentences
+${visualGuidance ? `- Let the supplied visual guidance influence concept selection without repeating rendering instructions\n\nVisual guidance:\n${visualGuidance}\n` : ""}
 Title: "${data.entityTitle ?? title}"
 
 Content:
@@ -171,10 +171,8 @@ ${entityContent}`,
         message: "Generating image",
       });
 
-      // Step 2: Apply base style prompt
-      const identity = this.context.identity.get();
-      const profile = this.context.identity.getProfile();
-      const basePrompt = buildImageBasePrompt(identity, profile);
+      // Step 2: Apply style-guide visual direction
+      const basePrompt = buildImageBasePrompt(styleGuide);
       const styledPrompt = basePrompt + finalPrompt;
 
       // Step 3: Generate image

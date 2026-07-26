@@ -430,9 +430,11 @@ describe("initPilotRepo", () => {
     // and the deploy can never disagree about a tag.
     expect(resolveScript).toContain("siteImageTag");
     expect(resolveScript).toContain("sitePackagesFor");
-    expect(resolveScript).toContain("resolvePreviewDomain");
-    expect(resolveScript).toContain("-preview.");
-    expect(resolveScript).toContain("`preview.${domain}`");
+    expect(resolveScript).toContain("derivePreviewDomain");
+    expect(resolveScript).toContain(
+      "sharedDomain: registry.pilot.domainSuffix",
+    );
+    expect(resolveScript).not.toContain("function resolvePreviewDomain");
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
@@ -918,7 +920,7 @@ describe("initPilotRepo", () => {
         "anchor-profile",
         "anchor-profile.md",
       ),
-      "---\nname: Alice Example\nkind: professional\n---\n",
+      "---\nname: Alice Example\nkind: person\n---\n",
     );
     const currentSha = commitAll(repo, "seed alice anchor profile");
     await writeFile(outputPath, "");

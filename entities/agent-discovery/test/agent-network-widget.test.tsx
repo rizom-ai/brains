@@ -38,7 +38,7 @@ describe("AgentNetworkWidget", () => {
                 name: "Kai · kai.brain",
                 description: "Research partner.",
                 tags: ["research"],
-                kind: "professional",
+                kind: "person",
                 status: "approved",
                 discoveredAt: "2026-04-20T00:00:00.000Z",
               },
@@ -52,13 +52,13 @@ describe("AgentNetworkWidget", () => {
                 discoveredAt: "2026-04-21T00:00:00.000Z",
               },
             ],
-            professional: [
+            person: [
               {
                 id: "kai.brain",
                 name: "Kai · kai.brain",
                 description: "Research partner.",
                 tags: ["research"],
-                kind: "professional",
+                kind: "person",
                 status: "approved",
                 discoveredAt: "2026-04-20T00:00:00.000Z",
               },
@@ -74,7 +74,7 @@ describe("AgentNetworkWidget", () => {
                 discoveredAt: "2026-04-21T00:00:00.000Z",
               },
             ],
-            collective: [],
+            organization: [],
           },
           skillFilters: [
             { tag: "research", count: 2 },
@@ -116,7 +116,7 @@ describe("AgentNetworkWidget", () => {
     );
     expect(html).toContain('data-ui-tabs-default="all"');
     expect(html).toContain('data-ui-tab="skills"');
-    expect(html).toContain('data-ui-panel="professional"');
+    expect(html).toContain('data-ui-panel="person"');
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
     expect(html).toContain('data-external-peer-invite="kai.brain"');

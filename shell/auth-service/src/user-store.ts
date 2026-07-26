@@ -31,6 +31,11 @@ export interface ConfigureBrainAnchorInput {
   kind: AuthBrainAnchor["kind"];
   displayName: string;
   profileEntityId: string;
+  /**
+   * When the display name came from the CMS Anchor profile, the profile is
+   * authoritative: sync it onto the personal Anchor's person and user rows.
+   */
+  subjectDisplayName?: string;
 }
 
 export interface CreateAuthUserInput {
@@ -194,10 +199,21 @@ export class AuthUserStore {
           activeAdmins[0];
         if (!anchorAdmin) return undefined;
         subjectId = anchorAdmin.personId;
+        const subjectDisplayName = input.subjectDisplayName?.trim();
         await tx
           .update(authPeople)
-          .set({ profileEntityId: input.profileEntityId, updatedAt: now })
+          .set({
+            profileEntityId: input.profileEntityId,
+            ...(subjectDisplayName ? { displayName: subjectDisplayName } : {}),
+            updatedAt: now,
+          })
           .where(eq(authPeople.id, subjectId));
+        if (subjectDisplayName) {
+          await tx
+            .update(authUsers)
+            .set({ displayName: subjectDisplayName, updatedAt: now })
+            .where(eq(authUsers.personId, subjectId));
+        }
       } else {
         subjectId =
           current?.kind === "collective"
@@ -313,6 +329,29 @@ export class AuthUserStore {
       .where(eq(authUsers.id, userId))
       .limit(1);
     return user;
+  }
+
+  async updateDisplayName(
+    userId: string,
+    displayName: string,
+  ): Promise<AuthUser> {
+    const normalized = displayName.trim();
+    if (!normalized) throw new Error("Display name is required");
+
+    return this.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(authUsers)
+        .set({ displayName: normalized, updatedAt: Date.now() })
+        .where(and(eq(authUsers.id, userId), eq(authUsers.status, "active")))
+        .returning();
+      if (!updated) throw new Error("Active auth account not found");
+
+      await tx
+        .update(authPeople)
+        .set({ displayName: normalized, updatedAt: updated.updatedAt })
+        .where(eq(authPeople.id, updated.personId));
+      return updated;
+    });
   }
 
   async getUserByPersonId(personId: string): Promise<AuthUser | undefined> {

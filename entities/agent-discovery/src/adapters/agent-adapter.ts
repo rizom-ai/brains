@@ -1,4 +1,4 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { BaseEntityAdapter, type AnchorProfileKind } from "@brains/plugins";
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
@@ -52,7 +52,7 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
 
 export interface CreateAgentContentInput {
   name: string;
-  kind: "professional" | "team" | "collective";
+  kind: AnchorProfileKind;
   organization?: string | undefined;
   brainName: string;
   url: string;
@@ -62,6 +62,12 @@ export interface CreateAgentContentInput {
   anchorDid?: string | undefined;
   cardUri?: string | undefined;
   cardCid?: string | undefined;
+  cardObservedAt?: string | undefined;
+  cardLastCheckedAt?: string | undefined;
+  cardLastError?: string | undefined;
+  cardFailureCount?: number | undefined;
+  cardUnavailableAt?: string | undefined;
+  cardStaleAfter?: string | undefined;
   a2aEndpoint?: string | undefined;
   status: AgentStatus | string;
   discoveredAt: string;
@@ -108,6 +114,24 @@ export class AgentAdapter extends BaseEntityAdapter<
         ...(frontmatter.anchorDid && { anchorDid: frontmatter.anchorDid }),
         ...(frontmatter.cardUri && { cardUri: frontmatter.cardUri }),
         ...(frontmatter.cardCid && { cardCid: frontmatter.cardCid }),
+        ...(frontmatter.cardObservedAt && {
+          cardObservedAt: frontmatter.cardObservedAt,
+        }),
+        ...(frontmatter.cardLastCheckedAt && {
+          cardLastCheckedAt: frontmatter.cardLastCheckedAt,
+        }),
+        ...(frontmatter.cardLastError && {
+          cardLastError: frontmatter.cardLastError,
+        }),
+        ...(frontmatter.cardFailureCount !== undefined && {
+          cardFailureCount: frontmatter.cardFailureCount,
+        }),
+        ...(frontmatter.cardUnavailableAt && {
+          cardUnavailableAt: frontmatter.cardUnavailableAt,
+        }),
+        ...(frontmatter.cardStaleAfter && {
+          cardStaleAfter: frontmatter.cardStaleAfter,
+        }),
         ...(frontmatter.a2aEndpoint && {
           a2aEndpoint: frontmatter.a2aEndpoint,
         }),
@@ -128,6 +152,18 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.anchorDid && { anchorDid: input.anchorDid }),
       ...(input.cardUri && { cardUri: input.cardUri }),
       ...(input.cardCid && { cardCid: input.cardCid }),
+      ...(input.cardObservedAt && { cardObservedAt: input.cardObservedAt }),
+      ...(input.cardLastCheckedAt && {
+        cardLastCheckedAt: input.cardLastCheckedAt,
+      }),
+      ...(input.cardLastError && { cardLastError: input.cardLastError }),
+      ...(input.cardFailureCount !== undefined && {
+        cardFailureCount: input.cardFailureCount,
+      }),
+      ...(input.cardUnavailableAt && {
+        cardUnavailableAt: input.cardUnavailableAt,
+      }),
+      ...(input.cardStaleAfter && { cardStaleAfter: input.cardStaleAfter }),
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,

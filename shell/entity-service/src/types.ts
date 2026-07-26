@@ -508,7 +508,7 @@ export interface SearchOptions {
 }
 
 export type ProjectionSourceRole =
-  "canonical" | "primary" | "supporting" | "ambient" | "excluded";
+  "canonical" | "primary" | "secondary" | "supporting" | "ambient" | "excluded";
 
 /**
  * Configuration for entity type registration
@@ -815,6 +815,12 @@ export interface IEntitiesNamespace {
 
   /** Register a data source for dynamic content */
   registerDataSource(dataSource: DataSource): void;
+
+  /** Register plugin-owned validation that runs before create/update persistence. */
+  registerPersistValidator(
+    entityType: string,
+    validator: PersistValidator,
+  ): void;
 
   /** Register a create interceptor for this plugin's entity type */
   registerCreateInterceptor(

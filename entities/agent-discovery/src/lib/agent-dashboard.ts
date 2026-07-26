@@ -1,4 +1,8 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type EntityPluginContext,
+  DASHBOARD_CHANNELS,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { buildAgentNetworkWidgetData } from "./agent-network-widget";
 import { buildProximityMapData } from "./proximity-map-data";
@@ -32,7 +36,7 @@ export function registerAgentNetworkDashboardWidget(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: AGENT_NETWORK_WIDGET_ID,
           pluginId,
@@ -58,7 +62,7 @@ export function registerAgentNetworkDashboardWidget(
       });
 
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: AGENT_PROXIMITY_WIDGET_ID,
           pluginId,

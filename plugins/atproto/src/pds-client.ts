@@ -13,6 +13,21 @@ export interface AtprotoPdsClientConfig {
   identifier: string;
   appPassword: string;
   fetch?: FetchLike;
+  requestTimeoutMs?: number;
+}
+
+// Publishing runs on boot and shutdown-drain paths; an unresponsive PDS must
+// never hold either open indefinitely.
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+function withRequestTimeout(fetchFn: FetchLike, timeoutMs: number): FetchLike {
+  return (input, init) =>
+    fetchFn(input, {
+      ...init,
+      signal: init?.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(timeoutMs)])
+        : AbortSignal.timeout(timeoutMs),
+    });
 }
 
 export interface CreateRecordInput {
@@ -159,7 +174,10 @@ export class AtprotoPdsClient {
     this.pdsEndpoint = trimEndpoint(config.pdsEndpoint);
     this.identifier = config.identifier;
     this.appPassword = config.appPassword;
-    this.fetchFn = config.fetch ?? defaultFetch;
+    this.fetchFn = withRequestTimeout(
+      config.fetch ?? defaultFetch,
+      config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+    );
   }
 
   async createSession(): Promise<AtprotoSession> {

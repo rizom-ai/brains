@@ -1,0 +1,110 @@
+.account-shell {
+  width: min(1480px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 18px 0 88px;
+}
+.account-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 12px 0 24px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.account-hero h1 {
+  margin: 0;
+  color: var(--console-text);
+  font: 560 clamp(38px, 6vw, 68px) / 0.9 var(--console-display);
+  font-variation-settings: "SOFT" 52;
+  letter-spacing: -0.045em;
+}
+.account-hero > div > p {
+  margin: 11px 0 0;
+  color: var(--console-text-muted);
+  font: 10px var(--console-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.account-hero-meta {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: var(--console-text-muted);
+  font: 10px/1.45 var(--console-mono);
+  text-align: right;
+}
+.account-hero-meta strong {
+  color: var(--console-text);
+  font-weight: 600;
+}
+.account-status {
+  min-height: 22px;
+  margin: 10px 2px 0;
+  color: var(--console-ok);
+  font: 10px/1.5 var(--console-mono);
+  letter-spacing: 0.04em;
+}
+.account-status.is-error {
+  color: var(--console-err);
+}
+.account-loading {
+  margin: 0;
+  padding: 36px 0;
+  color: var(--console-text-muted);
+  font-size: 13px;
+  font-family: var(--console-mono);
+}
+.account-shell .people-detail {
+  margin-top: clamp(18px, 3vw, 32px);
+}
+.name-form {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.name-form label {
+  color: var(--console-text-muted);
+  font: 500 9px var(--console-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.name-form input {
+  width: min(340px, 100%);
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card-soft);
+  color: var(--console-text);
+  padding: 7px 9px;
+  font: 400 13px/1.4 var(--console-ui);
+}
+.name-form input:focus-visible {
+  outline: 2px solid var(--console-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .account-shell {
+    width: min(100% - 32px, 680px);
+  }
+  .account-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .account-hero-meta {
+    justify-items: start;
+    text-align: left;
+  }
+  .account-shell .people-detail-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .account-shell .people-detail-section {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .account-shell .people-detail-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -360,6 +360,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                 user={selectedUser}
                 brainName={props.bootstrap.brainName}
                 activeAdminCount={activeAdminCount}
+                selfUserId={props.bootstrap.userId}
                 onConfirm={setModal}
                 onMutation={runMutation}
                 onSetup={(setupUrl, copy) =>

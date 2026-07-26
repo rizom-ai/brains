@@ -10,6 +10,36 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe("AtprotoPdsClient", () => {
+  it("aborts requests that exceed the request timeout", async () => {
+    // Mirrors real fetch: hangs until the provided signal aborts.
+    const hangingFetch: FetchLike = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(
+            init.signal?.reason instanceof Error
+              ? init.signal.reason
+              : new Error("aborted"),
+          );
+        });
+      });
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com/",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: hangingFetch,
+      requestTimeoutMs: 20,
+    });
+
+    let failure: unknown;
+    try {
+      await client.createSession();
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(Error);
+  });
+
   it("creates a session with app password credentials", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: FetchLike = (input, init) => {

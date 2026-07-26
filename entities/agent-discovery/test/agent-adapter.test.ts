@@ -20,7 +20,7 @@ describe("AgentAdapter", () => {
     it("should build markdown with frontmatter and body sections", () => {
       const content = adapter.createAgentContent({
         name: "Yeehaa",
-        kind: "professional",
+        kind: "person",
         organization: "Rizom",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
@@ -65,7 +65,7 @@ describe("AgentAdapter", () => {
     it("should handle empty skills", () => {
       const content = adapter.createAgentContent({
         name: "Unknown",
-        kind: "professional",
+        kind: "person",
         brainName: "Unknown Brain",
         url: "https://unknown.io",
         status: "discovered",
@@ -80,10 +80,40 @@ describe("AgentAdapter", () => {
       expect(content).not.toContain("**");
     });
 
+    it("should persist remote card freshness fields", () => {
+      const content = adapter.createAgentContent({
+        name: "Peer",
+        kind: "person",
+        brainName: "Peer Brain",
+        url: "https://peer.example.com",
+        status: "discovered",
+        discoveredAt: "2026-03-31T00:00:00.000Z",
+        cardUri: "at://did:plc:peer/ai.rizom.brain.card/self",
+        cardCid: "bafy-card",
+        cardObservedAt: "2026-07-22T08:00:00.000Z",
+        cardLastCheckedAt: "2026-07-22T09:00:00.000Z",
+        cardLastError: "temporary failure",
+        about: "Peer brain.",
+        skills: [],
+        notes: "Local note.",
+      });
+
+      const partial = adapter.fromMarkdown(content);
+
+      expect(content).toContain("cardObservedAt:");
+      expect(content).toContain("cardLastCheckedAt:");
+      expect(content).toContain("cardLastError: temporary failure");
+      expect(partial.metadata?.cardObservedAt).toBe("2026-07-22T08:00:00.000Z");
+      expect(partial.metadata?.cardLastCheckedAt).toBe(
+        "2026-07-22T09:00:00.000Z",
+      );
+      expect(partial.metadata?.cardLastError).toBe("temporary failure");
+    });
+
     it("should handle optional fields being absent", () => {
       const content = adapter.createAgentContent({
         name: "Minimal",
-        kind: "professional",
+        kind: "person",
         brainName: "Minimal Brain",
         url: "https://minimal.io",
         status: "discovered",
@@ -192,7 +222,7 @@ Test agent.
         entityType: "agent",
         content: adapter.createAgentContent({
           name: "Yeehaa",
-          kind: "professional",
+          kind: "person",
           brainName: "Yeehaa's Brain",
           url: "https://yeehaa.io",
           status: "discovered",
@@ -225,7 +255,7 @@ Test agent.
     it("should derive slug from name", () => {
       const content = adapter.createAgentContent({
         name: "Yeehaa",
-        kind: "professional",
+        kind: "person",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
         status: "discovered",
@@ -246,7 +276,7 @@ Test agent.
     it("should preserve data through create → parse", () => {
       const content = adapter.createAgentContent({
         name: "Ranger",
-        kind: "collective",
+        kind: "organization",
         organization: "Rizom",
         brainName: "Ranger Brain",
         url: "https://ranger.rizom.ai",
@@ -279,7 +309,7 @@ Test agent.
       // `status: discovered` frontmatter.
       const staleContent = adapter.createAgentContent({
         name: "Phoney",
-        kind: "professional",
+        kind: "person",
         brainName: "mylittlephoney.com",
         url: "https://mylittlephoney.com/a2a",
         status: "discovered",

@@ -10,9 +10,11 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
+  PUBLISH_CHANNELS,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";
@@ -128,7 +130,7 @@ export class DecksPlugin extends EntityPlugin<
   private deferPublishRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await context.messaging.send({
-        type: "publish:register",
+        type: PUBLISH_CHANNELS.register,
         payload: {
           entityType: "deck",
           provider: {
@@ -146,7 +148,7 @@ export class DecksPlugin extends EntityPlugin<
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
-    >("publish:execute", async (msg) => {
+    >(PUBLISH_CHANNELS.execute, async (msg) => {
       const { entityType, entityId } = msg.payload;
       if (entityType !== "deck") return { success: true };
 
@@ -157,7 +159,7 @@ export class DecksPlugin extends EntityPlugin<
         });
         if (!deck) {
           await context.messaging.send({
-            type: "publish:report:failure",
+            type: PUBLISH_CHANNELS.reportFailure,
             payload: {
               entityType,
               entityId,
@@ -183,7 +185,7 @@ export class DecksPlugin extends EntityPlugin<
         });
 
         await context.messaging.send({
-          type: "publish:report:success",
+          type: PUBLISH_CHANNELS.reportSuccess,
           payload: {
             entityType,
             entityId,
@@ -192,7 +194,7 @@ export class DecksPlugin extends EntityPlugin<
         });
       } catch (error) {
         await context.messaging.send({
-          type: "publish:report:failure",
+          type: PUBLISH_CHANNELS.reportFailure,
           payload: {
             entityType,
             entityId,
@@ -242,6 +244,9 @@ export class DecksPlugin extends EntityPlugin<
     context.eval.registerHandler("generateDeck", async (input: unknown) => {
       const parsed: GenerateDeckEvalInput =
         generateDeckEvalInputSchema.parse(input);
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(context.entityService),
+      );
       return context.ai.generate<{
         title: string;
         content: string;
@@ -249,6 +254,8 @@ export class DecksPlugin extends EntityPlugin<
       }>({
         prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
         templateName: "decks:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
     });
 
@@ -260,6 +267,7 @@ export class DecksPlugin extends EntityPlugin<
         return context.ai.generate<{ description: string }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",
+          representedIdentity: "none",
         });
       },
     );

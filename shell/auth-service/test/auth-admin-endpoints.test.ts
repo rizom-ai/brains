@@ -130,6 +130,50 @@ describe("auth admin API", () => {
     expect(anchor.permissionLevel).toBe("admin");
   });
 
+  it("shows retained verified email addresses to active Admins", async () => {
+    const service = await createService();
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const member = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    await service.attachIdentity(
+      {
+        userId: member.userId,
+        type: "email",
+        subject: "mira@example.com",
+        deliverySubject: "mira@example.com",
+        label: "Email address",
+        verifiedAt: 1_735_689_600_000,
+        source: { kind: "provider", id: "email" },
+      },
+      { actorUserId: admin.userId },
+    );
+    const session = await service.createAuthSession(admin.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/users", session.cookie),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      users: expect.arrayContaining([
+        expect.objectContaining({
+          userId: member.userId,
+          identities: [
+            expect.objectContaining({
+              type: "email",
+              label: "mira@example.com",
+            }),
+          ],
+        }),
+      ]),
+    });
+  });
+
   it("reads the config-declared Anchor with its CMS profile name", async () => {
     const service = await createService({
       anchor: "organization",

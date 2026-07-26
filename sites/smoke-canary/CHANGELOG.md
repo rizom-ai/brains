@@ -1,5 +1,37 @@
 # @rizom/site-smoke-canary
 
+## 0.2.0-alpha.230
+
+### Patch Changes
+
+- [`fbe6803`](https://github.com/rizom-ai/brains/commit/fbe68039507bdd581391ba59aa02f2f25abd7408) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the preact JSX runtime via a `/** @jsxImportSource preact */` pragma in each shipped `.tsx`. The package ships raw `src` that the brain runtime transpiles live; without the pragma the runtime defaulted to `react/jsx-runtime` and the site failed to boot (`Cannot find module 'react/jsx-runtime'`). The pragma makes the external package self-describing about its JSX runtime instead of depending on the consumer's tsconfig.
+
+## 0.2.0-alpha.229
+
+### Patch Changes
+
+- [`c058ab7`](https://github.com/rizom-ai/brains/commit/c058ab7ac4238461d79b87b8ef085dac22f7dc36) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the smoke-canary as a minimal, content-independent site. Previously it re-exported the professional layout, so its homepage required a curated `site-info` (with a cta) and rendered empty on a bare instance. It now defines its own static homepage template — a single `/` route with no datasource — that renders the package's build metadata, proving the hosted site+theme package loaded, built, deployed, and styled without depending on any brain content. Built against the public `@rizom/brain/{site,plugins,templates}` surface.
+
+## 0.2.0-alpha.228
+
+## 0.2.0-alpha.227
+
+## 0.2.0-alpha.226
+
+## 0.2.0-alpha.225
+
+## 0.2.0-alpha.224
+
+## 0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Minor Changes

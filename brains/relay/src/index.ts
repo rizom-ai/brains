@@ -17,7 +17,7 @@ import { emailResendPlugin } from "@brains/email-resend";
 import { join } from "path";
 import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
-import { adminPlugin } from "@brains/admin";
+import { accountPlugin, adminPlugin } from "@brains/admin";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -28,6 +28,8 @@ import { imagePlugin } from "@brains/image-plugin";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { decksPlugin } from "@brains/decks";
 import { docsPlugin } from "@brains/doc";
+import { profilePlugin } from "@brains/profile";
+import { styleGuidePlugin } from "@brains/style-guide";
 import { promptPlugin } from "@brains/prompt";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
@@ -65,6 +67,8 @@ import packageJson from "../package.json" with { type: "json" };
 // does not require site-builder or preview/public-site behavior.
 const core = [
   "prompt",
+  "profile",
+  "style-guide",
   "directory-sync",
   "note",
   "link",
@@ -73,6 +77,7 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "account",
   "notifications",
   "email-resend",
   "cms",
@@ -131,6 +136,8 @@ const relayBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
+    ["profile", profilePlugin, { starterIdentity: { anchorKind: "team" } }],
+    ["style-guide", styleGuidePlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["image", imagePlugin, undefined],
@@ -138,17 +145,6 @@ const relayBrain: BrainDefinition = defineBrain({
       "topics",
       topicsPlugin,
       {
-        includeEntityTypes: [
-          "note",
-          "link",
-          "summary",
-          "agent",
-          "swot",
-          "deck",
-          "doc",
-          "anchor-profile",
-          "brain-character",
-        ],
         // Relay link capture stores extracted links as drafts until publication;
         // draft links should still inform the private team topic map.
         extractableStatuses: ["published", "draft"],
@@ -164,6 +160,7 @@ const relayBrain: BrainDefinition = defineBrain({
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
+    ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["email-resend", emailResendPlugin, undefined],
     ["cms", cmsPlugin, {}],

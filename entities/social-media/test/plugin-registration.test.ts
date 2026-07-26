@@ -23,12 +23,15 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
   });
 
   describe("entity policy registration", () => {
-    it("declares social-post publish statuses", async () => {
+    it("declares social-post publish statuses and secondary topic authority", async () => {
       await harness.installPlugin(new SocialMediaPlugin({}));
 
       expect(
-        harness.getEntityRegistry().getEntityTypeConfig("social-post").publish,
-      ).toEqual({ publishStatuses: ["queued", "published", "failed"] });
+        harness.getEntityRegistry().getEntityTypeConfig("social-post"),
+      ).toMatchObject({
+        projectionSourceRole: "secondary",
+        publish: { publishStatuses: ["queued", "published", "failed"] },
+      });
     });
   });
 

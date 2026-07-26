@@ -55,12 +55,35 @@ export interface ResolvedSetupDelivery {
   email: string;
 }
 
+export interface ResolvedAtprotoJetstreamConfig {
+  enabled?: boolean | undefined;
+  endpoint?: string | undefined;
+  replayWindowSeconds?: number | undefined;
+  denyDids?: string[] | undefined;
+  denyDomains?: string[] | undefined;
+  skillKeywords?: string[] | undefined;
+  queueLimit?: number | undefined;
+  concurrency?: number | undefined;
+  perDidCooldownSeconds?: number | undefined;
+  fetchBudgetPerMinute?: number | undefined;
+  newAgentsPerHour?: number | undefined;
+  pendingCandidateCeiling?: number | undefined;
+  staleCandidateRetentionDays?: number | undefined;
+  requestTimeoutMs?: number | undefined;
+  maxResponseBytes?: number | undefined;
+  maxRedirects?: number | undefined;
+  retryAttempts?: number | undefined;
+  heartbeatIntervalHours?: number | undefined;
+}
+
 export interface ResolvedAtprotoConfig {
   identifier: string;
   /** Owner account DID served at /.well-known/atproto-did for handle verification. */
   accountDid?: string | undefined;
   /** Whether this account publishes the canonical ai.rizom.brain.* schemas. */
   lexiconAuthority?: boolean | undefined;
+  /** Per-brain bounded Jetstream canary configuration. */
+  jetstream?: ResolvedAtprotoJetstreamConfig | undefined;
 }
 
 export interface ResolvedPlaybooksConfig {
@@ -82,6 +105,7 @@ export interface ResolvedUserIdentity {
   domain: string;
   cloudflareZoneId?: string | undefined;
   contentRepo: string;
+  profileKind?: string | undefined;
   addOverride?: string[];
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
@@ -182,6 +206,9 @@ export async function loadPilotRegistry(
         contentRepo:
           userFile.data.contentRepoOverride ??
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
+        ...(userFile.data.profileKind
+          ? { profileKind: userFile.data.profileKind }
+          : {}),
         ...(userFile.data.addOverride
           ? { addOverride: userFile.data.addOverride }
           : {}),

@@ -1,4 +1,5 @@
 ---
+represents: brain
 title: Relay
 description: Collaborative team memory, synthesis, and peer-brain coordination.
 themeMode: dark

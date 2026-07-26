@@ -1,4 +1,9 @@
-import type { DataSource, Plugin, Template } from "@brains/plugins";
+import type {
+  DataSource,
+  EntityPluginContext,
+  Plugin,
+  Template,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -37,6 +42,31 @@ export class RizomEcosystemPlugin extends EntityPlugin<
 
   constructor(config: RizomEcosystemConfigInput = {}) {
     super("rizom-ecosystem", packageJson, config, rizomEcosystemConfigSchema);
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    context.profileKinds.register({
+      kind: "collective",
+      category: "organization",
+      fields: z.object({
+        mission: z.string().optional().describe("Collective mission"),
+        focusAreas: z
+          .array(z.string())
+          .optional()
+          .describe("Collective focus areas"),
+        offerings: z
+          .array(z.string())
+          .optional()
+          .describe("Collective programs, services, or shared projects"),
+        values: z
+          .array(z.string())
+          .optional()
+          .describe("Values guiding the collective"),
+      }),
+      labels: { singular: "Collective", plural: "Collectives" },
+    });
   }
 
   protected override getTemplates(): Record<string, Template> {

@@ -1,5 +1,9 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+  NEWSLETTER_CHANNELS,
+} from "@brains/plugins";
 
 /**
  * Schema for AI-generated newsletter
@@ -32,7 +36,7 @@ export const newsletterGenerationSchema: z.ZodType<NewsletterGeneration> =
  */
 export const generationTemplate: Template =
   createTemplate<NewsletterGeneration>({
-    name: "newsletter:generation",
+    name: NEWSLETTER_CHANNELS.generation,
     description: "Template for AI to generate newsletter content",
     schema: newsletterGenerationSchema,
     dataSourceId: "shell:ai-content",

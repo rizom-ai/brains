@@ -25,21 +25,23 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("atproto");
   });
 
-  it("includes the standalone admin console in every preset", () => {
+  it("includes separate account and admin consoles in every preset", () => {
     for (const preset of ["core", "default", "full"] as const) {
       const config = resolve(rover, {}, { preset });
       const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
+      expect(pluginIds).toContain("account");
       expect(pluginIds).toContain("admin");
     }
   });
 
-  it("registers Rover's professional profile extension in every preset", () => {
+  it("registers shared profile and style-guide capabilities in every preset", () => {
     for (const preset of ["core", "default", "full"] as const) {
       const config = resolve(rover, {}, { preset });
       const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
-      expect(pluginIds).toContain("rover-profile");
+      expect(pluginIds).toContain("profile");
+      expect(pluginIds).toContain("style-guide");
     }
   });
 
@@ -168,6 +170,15 @@ plugins:
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
     expect(pluginIds).toContain("document");
+  });
+
+  it("uses topic source defaults in core", () => {
+    const config = resolve(rover, {}, { preset: "core" });
+    const topics = config.plugins?.find((plugin) => plugin.id === "topics");
+    const topicsConfig = topics?.config as
+      { includeEntityTypes?: readonly string[] } | undefined;
+
+    expect(topicsConfig?.includeEntityTypes).toEqual(["*"]);
   });
 
   it("keeps Rover onboarding disabled by default", () => {

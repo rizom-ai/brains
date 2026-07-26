@@ -24,7 +24,8 @@ Topics are normal entities:
 
 ```ts
 interface TopicsPluginConfig {
-  includeEntityTypes?: string[]; // Entity types to extract from
+  includeEntityTypes?: string[]; // Deprecated allow-list. Default: ["*"]
+  excludeEntityTypes?: string[]; // Entity types to omit. Default: []
   minRelevanceScore?: number; // Default: 0.5
   createRelevanceThreshold?: number; // Default: 0.7
   reinforceRelevanceThreshold?: number; // Default: 0.5
@@ -39,7 +40,7 @@ interface TopicsPluginConfig {
 }
 
 type ProjectionSourceRole =
-  "canonical" | "primary" | "supporting" | "ambient" | "excluded";
+  "canonical" | "primary" | "secondary" | "supporting" | "ambient" | "excluded";
 
 interface TopicSourceRolePolicy {
   weight: number;
@@ -47,11 +48,22 @@ interface TopicSourceRolePolicy {
 }
 ```
 
+Default role policies:
+
+- `canonical`: weight `1`, can mint
+- `primary`: weight `1`, can mint
+- `secondary`: weight `0.8`, can mint
+- `supporting`: weight `0.55`, reinforce/merge only
+- `ambient`: weight `0.35`, reinforce/merge only
+- `excluded`: weight `0`, ignored
+
 ### Notes
 
-- Only entity types listed in `includeEntityTypes` are processed.
+- By default, all registered projection-source entity types are processed (`includeEntityTypes: ["*"]`).
+- Use `excludeEntityTypes` as the normal blacklist when a brain should omit a source type.
+- `includeEntityTypes` remains as a deprecated compatibility allow-list for constrained evals or unusual instances.
 - Entity types declare their default derivation authority via `projectionSourceRole`; the topics plugin maps roles to mint/reinforce behavior instead of knowing about package-specific entity names.
-- Brain and instance configs can adapt authority with `sourceRoleOverrides` and `sourceRolePolicies`.
+- Brain and instance configs can adapt authority with `excludeEntityTypes`, `sourceRoleOverrides`, and `sourceRolePolicies`.
 - Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
 - Topic entities themselves are never reprocessed as sources.
 - Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
@@ -61,13 +73,13 @@ interface TopicSourceRolePolicy {
 
 ### Incremental extraction
 
-When `enableAutoExtraction` is enabled, the plugin waits until initial sync finishes, then subscribes to entity create/update events for configured source types.
+When `enableAutoExtraction` is enabled, the plugin waits until initial sync finishes, then subscribes to entity create/update events for registered projection sources except blacklisted types.
 
 Each qualifying entity queues a topic extraction job with the configured relevance threshold and merge settings.
 
 ### Batch projection
 
-The `topic:project` job re-extracts topics from all configured published source entities using batched prompts.
+The `topic:project` job re-extracts topics from all default-open, non-blacklisted published source entities using batched prompts.
 
 This is what normal batch `system_extract` uses:
 

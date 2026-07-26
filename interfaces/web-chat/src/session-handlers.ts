@@ -1,9 +1,13 @@
 import {
   coerceConversationMetadata,
   type InterfacePluginContext,
-  type UserPermissionLevel,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  canAccessBrowserConversation,
+  type WebChatConversation,
+  type WebChatConversationAccess,
+} from "./conversation-access";
 
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
@@ -13,15 +17,12 @@ const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
 });
 
-type PermissionResolver = (request: Request) => Promise<UserPermissionLevel>;
+type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
 type ConversationService = InterfacePluginContext["conversations"];
-type WebChatConversation = NonNullable<
-  Awaited<ReturnType<ConversationService["get"]>>
->;
 
 interface SessionHandlerDeps {
   conversations: ConversationService;
-  resolvePermissionLevel: PermissionResolver;
+  resolveAccess: AccessResolver;
   interfaceType: string;
 }
 
@@ -29,14 +30,20 @@ export async function handleSessionsRequest(
   request: Request,
   deps: SessionHandlerDeps,
 ): Promise<Response> {
-  const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel === "public") {
+  const access = await deps.resolveAccess(request);
+  if (access.permissionLevel === "public") {
+    return new Response("Forbidden", { status: 403 });
+  }
+  if (access.permissionLevel === "trusted" && !access.personId) {
     return new Response("Forbidden", { status: 403 });
   }
 
   const conversations = await deps.conversations.list({
     interfaceType: deps.interfaceType,
     limit: webChatSessionLimit,
+    ...(access.permissionLevel === "trusted"
+      ? { personId: access.personId }
+      : {}),
   });
   const activeConversations = conversations.filter(
     (conversation) => !isArchivedMetadata(conversation.metadata),
@@ -44,7 +51,7 @@ export async function handleSessionsRequest(
   const sessions = await Promise.all(
     activeConversations.map(async (conversation) => ({
       id: conversation.id,
-      title: await getConversationTitle(conversation.id, deps.conversations),
+      title: await getConversationTitle(conversation, deps.conversations),
       lastActiveAt: conversation.lastActiveAt,
     })),
   );
@@ -56,12 +63,12 @@ export async function handleDeleteSessionRequest(
   request: Request,
   deps: SessionHandlerDeps,
 ): Promise<Response> {
-  const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel === "public") {
+  const access = await deps.resolveAccess(request);
+  if (access.permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const conversation = await resolveWebChatSession(request, deps);
+  const conversation = await resolveWebChatSession(request, deps, access);
   if (conversation instanceof Response) return conversation;
 
   const deleted = await deps.conversations.delete(conversation.id);
@@ -72,12 +79,12 @@ export async function handleRenameSessionRequest(
   request: Request,
   deps: SessionHandlerDeps,
 ): Promise<Response> {
-  const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel === "public") {
+  const access = await deps.resolveAccess(request);
+  if (access.permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const conversation = await resolveWebChatSession(request, deps);
+  const conversation = await resolveWebChatSession(request, deps, access);
   if (conversation instanceof Response) return conversation;
 
   const parsed = renameSessionRequestSchema.safeParse(await request.json());
@@ -97,12 +104,12 @@ export async function handleArchiveSessionRequest(
   request: Request,
   deps: SessionHandlerDeps,
 ): Promise<Response> {
-  const permissionLevel = await deps.resolvePermissionLevel(request);
-  if (permissionLevel === "public") {
+  const access = await deps.resolveAccess(request);
+  if (access.permissionLevel === "public") {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const conversation = await resolveWebChatSession(request, deps);
+  const conversation = await resolveWebChatSession(request, deps, access);
   if (conversation instanceof Response) return conversation;
 
   const archived = await deps.conversations.updateMetadata({
@@ -116,6 +123,7 @@ export async function handleArchiveSessionRequest(
 async function resolveWebChatSession(
   request: Request,
   deps: SessionHandlerDeps,
+  access: WebChatConversationAccess,
 ): Promise<WebChatConversation | Response> {
   const conversationId = new URL(request.url).searchParams.get("id");
   if (!conversationId) {
@@ -123,7 +131,7 @@ async function resolveWebChatSession(
   }
 
   const conversation = await deps.conversations.get(conversationId);
-  if (conversation?.interfaceType !== deps.interfaceType) {
+  if (!canAccessBrowserConversation(conversation, access, deps.interfaceType)) {
     return new Response("Conversation not found", { status: 404 });
   }
 
@@ -131,14 +139,13 @@ async function resolveWebChatSession(
 }
 
 async function getConversationTitle(
-  conversationId: string,
+  conversation: WebChatConversation,
   conversations: ConversationService,
 ): Promise<string> {
-  const conversation = await conversations.get(conversationId);
-  const renamedTitle = getMetadataTitle(conversation?.metadata);
+  const renamedTitle = getMetadataTitle(conversation.metadata);
   if (renamedTitle) return renamedTitle;
 
-  const messages = await conversations.getMessages(conversationId, {
+  const messages = await conversations.getMessages(conversation.id, {
     limit: webChatTitleMessageLimit,
   });
   const firstUserMessage = messages.find(

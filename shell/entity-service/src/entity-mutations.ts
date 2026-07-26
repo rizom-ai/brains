@@ -1,3 +1,4 @@
+import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
 import type {
@@ -219,7 +220,7 @@ export class EntityMutations {
     );
 
     await this.emitEntityEvent(
-      "entity:created",
+      ENTITY_CHANNELS.created,
       validatedEntity.entityType,
       finalId,
       {
@@ -333,7 +334,7 @@ export class EntityMutations {
       );
       if (options?.eventContext) {
         await this.emitEntityEvent(
-          "entity:updated",
+          ENTITY_CHANNELS.updated,
           validatedEntity.entityType,
           validatedEntity.id,
           validatedEntity,
@@ -390,7 +391,7 @@ export class EntityMutations {
     );
 
     await this.emitEntityEvent(
-      "entity:updated",
+      ENTITY_CHANNELS.updated,
       validatedEntity.entityType,
       validatedEntity.id,
       validatedEntity,
@@ -433,7 +434,7 @@ export class EntityMutations {
 
     if (deleted) {
       await this.emitEntityEvent(
-        "entity:deleted",
+        ENTITY_CHANNELS.deleted,
         entityType,
         id,
         prior,
@@ -657,7 +658,7 @@ export class EntityMutations {
 
   private async getFailedEmbeddingKeys(): Promise<Set<string>> {
     const failedJobs = await this.jobQueueService.getFailedJobs([
-      "shell:embedding",
+      SHELL_CHANNELS.embedding,
     ]);
     const failedEmbeddingKeys = new Set<string>();
 
@@ -811,7 +812,7 @@ export class EntityMutations {
     };
 
     const jobId = await this.jobQueueService.enqueue({
-      type: "shell:embedding",
+      type: SHELL_CHANNELS.embedding,
       data: jobData,
       options: {
         ...(priority !== undefined && { priority }),

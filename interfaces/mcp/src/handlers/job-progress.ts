@@ -1,6 +1,6 @@
 import type { InterfacePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { JobProgressEventSchema } from "@brains/plugins";
+import { JobProgressEventSchema, JOB_CHANNELS } from "@brains/plugins";
 
 /**
  * Set up listener for job progress events
@@ -11,7 +11,7 @@ export function setupJobProgressListener(
   logger: Logger,
 ): void {
   // Subscribe to job-progress events for debugging
-  context.messaging.subscribe("job-progress", async (message) => {
+  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
     const validationResult = JobProgressEventSchema.safeParse(message.payload);
 
     if (!validationResult.success) {

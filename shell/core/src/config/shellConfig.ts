@@ -82,6 +82,7 @@ export interface ShellConfigSchemaOutput {
   preferLocalUrls: boolean;
   themeCSS: string;
   entityDisplay?: Record<string, EntityDisplayEntry> | undefined;
+  profileKind?: string | undefined;
 }
 
 const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
@@ -130,6 +131,7 @@ const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
     preferLocalUrls: z.boolean().default(false),
     themeCSS: z.string().default(""),
     entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+    profileKind: z.string().trim().min(1).optional(),
   });
 
 export const shellConfigSchema: typeof shellConfigSchemaInternal =
@@ -204,6 +206,7 @@ export function createShellConfig(
     ...(overrides.localSiteUrl && { localSiteUrl: overrides.localSiteUrl }),
     themeCSS: overrides.themeCSS ?? "",
     ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),
+    ...(overrides.profileKind && { profileKind: overrides.profileKind }),
   };
 
   const validated = shellConfigSchema.parse(config);

@@ -297,6 +297,7 @@ export class LinkPlugin extends EntityPlugin<
         templateName: "link:extraction",
         prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
         data: { url, hasContent: true },
+        representedIdentity: "none",
         interfacePermissionGrant: "public",
       });
     });

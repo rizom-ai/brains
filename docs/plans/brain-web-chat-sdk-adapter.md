@@ -50,7 +50,7 @@ A Brain web adapter must preserve:
 
 ## Provider strategy
 
-- Add future Slack/WhatsApp adapters under `interfaces/chat` where practical so they share `MessageInterfacePlugin` semantics and the Chat SDK handler model.
+- The Slack adapter has since shipped in `@brains/chat` (`interfaces/chat`: `slack-socket-loop.ts`, `slack-preflight.ts`), sharing `MessageInterfacePlugin` semantics and the Chat SDK handler model alongside Discord. Future providers (WhatsApp etc.) follow the same pattern.
 - Keep provider-specific rendering, permission context extraction, native file delivery, webhook/gateway setup, and platform limits in adapter-specific code.
 
 ## Non-goals

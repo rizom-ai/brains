@@ -62,6 +62,9 @@ export interface GenerationContext {
   prompt?: string | undefined;
   conversationHistory?: string | undefined;
   data?: Record<string, unknown> | undefined;
+  representedIdentity?: "brain" | "anchor" | "none" | undefined;
+  styleGuide?:
+    { voice?: string | undefined; visual?: string | undefined } | undefined;
 }
 
 /**

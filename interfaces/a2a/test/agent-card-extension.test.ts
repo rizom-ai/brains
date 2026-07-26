@@ -13,7 +13,6 @@ const mockCharacter: BrainCharacter = {
 
 const mockProfile: AnchorProfile = {
   name: "Jan Hein",
-  kind: "professional",
   description: "Founder of Rizom, working on institutional design",
 };
 
@@ -46,6 +45,40 @@ describe("Agent Card anchor-profile extension", () => {
     );
 
     expect(anchorExt?.params?.["name"]).toBe("Jan Hein");
+  });
+
+  test("should include selected semantic kind and structural category together", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      profileKind: {
+        kind: "artist",
+        category: "person",
+        labels: { singular: "Artist", plural: "Artists" },
+      },
+      version: "1.0.0",
+      tools: [],
+    });
+
+    expect(card.capabilities.extensions?.[0]?.params).toMatchObject({
+      kind: "artist",
+      category: "person",
+    });
+  });
+
+  test("should omit kind and category for a base profile", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      profileKind: null,
+      version: "1.0.0",
+      tools: [],
+    });
+
+    expect(card.capabilities.extensions?.[0]?.params?.["kind"]).toBeUndefined();
+    expect(
+      card.capabilities.extensions?.[0]?.params?.["category"],
+    ).toBeUndefined();
   });
 
   test("should include anchor description when available", () => {
@@ -97,10 +130,7 @@ describe("Agent Card anchor-profile extension", () => {
   });
 
   test("should omit description when profile has none", () => {
-    const minimalProfile: AnchorProfile = {
-      name: "Test",
-      kind: "professional",
-    };
+    const minimalProfile: AnchorProfile = { name: "Test" };
     const card = buildAgentCard({
       character: mockCharacter,
       profile: minimalProfile,

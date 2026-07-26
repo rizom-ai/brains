@@ -89,6 +89,12 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).toContain(
       'cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"))',
     );
+    expect(buildScript).toContain(
+      "const accountUiAssetPath = join(\n  adminPackageDir,",
+    );
+    expect(buildScript).toContain(
+      'cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"))',
+    );
   });
 
   it("declares deploy helper scripts in the package files contract", () => {

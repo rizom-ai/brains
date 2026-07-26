@@ -1,50 +1,34 @@
-import {
-  ProfessionalLayout,
-  professionalRoutes,
-  professionalSitePlugin,
-  type SitePackage,
-} from "@rizom/brain/site";
+import type { SitePackage } from "@rizom/brain/site";
+import { SmokeCanarySitePlugin, smokeCanarySitePlugin } from "./plugin";
+import { CanaryLayout } from "./layouts/CanaryLayout";
+import { CanaryHomeLayout, type CanaryHomeData } from "./templates/canary-home";
+import { routes } from "./routes";
+import { canaryMarker, canaryStatus, type CanaryStatus } from "./canary";
 
-export const canaryMarker: string = `${JSON.stringify(
-  {
-    package: "@rizom/site-smoke-canary",
-    purpose: "hosted-external-package-canary",
-    surface: "smoke.rizom.ai",
-  },
-  null,
-  2,
-)}\n`;
+export {
+  SmokeCanarySitePlugin,
+  smokeCanarySitePlugin,
+  CanaryLayout,
+  CanaryHomeLayout,
+  type CanaryHomeData,
+  routes,
+  canaryMarker,
+  canaryStatus,
+  type CanaryStatus,
+};
 
+/**
+ * Minimal, content-independent canary site. Owns no entity types and depends
+ * on no brain content — its single route renders a static template that proves
+ * the externally-hosted site+theme package loads, builds, deploys, and styles.
+ */
 const site: SitePackage = {
   layouts: {
-    default: ProfessionalLayout,
+    default: CanaryLayout,
   },
-  routes: professionalRoutes,
-  plugin: (config) => professionalSitePlugin(config),
-  entityDisplay: {
-    post: { label: "Signal", pluralName: "signals" },
-    deck: { label: "Transmission", pluralName: "transmissions" },
-    project: { label: "Experiment", pluralName: "experiments" },
-    series: {
-      label: "Sequence",
-      navigation: { slot: "secondary" },
-    },
-    topic: {
-      label: "Frequency",
-      pluralName: "frequencies",
-      navigation: { slot: "secondary" },
-    },
-    link: {
-      label: "Relay",
-      pluralName: "relays",
-      navigation: { slot: "secondary" },
-    },
-    base: {
-      label: "Field Note",
-      pluralName: "field-notes",
-      navigation: { show: false },
-    },
-  },
+  routes,
+  plugin: (config) => smokeCanarySitePlugin(config as Record<string, never>),
+  entityDisplay: {},
   staticAssets: {
     "/.well-known/rover-site-canary.json": canaryMarker,
   },

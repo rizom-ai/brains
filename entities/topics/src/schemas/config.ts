@@ -19,7 +19,14 @@ const extractionVisibilitySchema: z.ZodType<
 const projectionSourceRoleSchema: z.ZodType<
   ProjectionSourceRole,
   ProjectionSourceRole
-> = z.enum(["canonical", "primary", "supporting", "ambient", "excluded"]);
+> = z.enum([
+  "canonical",
+  "primary",
+  "secondary",
+  "supporting",
+  "ambient",
+  "excluded",
+]);
 
 const topicSourceRolePolicySchema: z.ZodType<
   TopicSourceRolePolicy,
@@ -35,6 +42,7 @@ const defaultSourceRolePolicies: Record<
 > = {
   canonical: { weight: 1, canMint: true },
   primary: { weight: 1, canMint: true },
+  secondary: { weight: 0.8, canMint: true },
   supporting: { weight: 0.55, canMint: false },
   ambient: { weight: 0.35, canMint: false },
   excluded: { weight: 0, canMint: false },
@@ -42,6 +50,7 @@ const defaultSourceRolePolicies: Record<
 
 export interface TopicsPluginConfig {
   includeEntityTypes: string[];
+  excludeEntityTypes: string[];
   minRelevanceScore: number;
   createRelevanceThreshold: number;
   reinforceRelevanceThreshold: number;
@@ -63,6 +72,7 @@ export interface TopicsPluginConfig {
 
 export interface TopicsPluginConfigInput {
   includeEntityTypes?: string[] | undefined;
+  excludeEntityTypes?: string[] | undefined;
   minRelevanceScore?: number | undefined;
   createRelevanceThreshold?: number | undefined;
   reinforceRelevanceThreshold?: number | undefined;
@@ -88,10 +98,17 @@ export const topicsPluginConfigSchema: z.ZodType<
   TopicsPluginConfigInput
 > = z.object({
   /**
-   * Whitelist of entity types to extract topics from.
-   * Only these types are processed. If empty, no types are processed.
+   * Deprecated allow-list of entity types to extract topics from. Defaults to
+   * all registered projection sources. Prefer excludeEntityTypes for normal
+   * brain configuration.
    */
-  includeEntityTypes: z.array(z.string()).default([]),
+  includeEntityTypes: z.array(z.string()).default(["*"]),
+
+  /**
+   * Entity types to exclude from topic extraction while keeping source
+   * selection default-open.
+   */
+  excludeEntityTypes: z.array(z.string()).default([]),
 
   /**
    * Minimum relevance score for topic extraction

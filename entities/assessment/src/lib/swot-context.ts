@@ -1,4 +1,8 @@
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntityPluginContext,
+  ProfileCategory,
+} from "@brains/plugins";
 import {
   buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,
@@ -17,7 +21,7 @@ export interface SwotContextSkill {
 export interface SwotContextAgent {
   brainName: string;
   name?: string;
-  kind: "professional" | "team" | "collective";
+  category: ProfileCategory;
   description?: string;
   notes?: string;
   skills: SwotContextSkill[];
@@ -37,6 +41,7 @@ export interface SwotContext {
     name: string;
     brainName?: string;
     description?: string;
+    category?: ProfileCategory;
   };
   brainSkills: Array<{
     name: string;
@@ -83,7 +88,7 @@ function toContextAgent(profile: CapabilityProfile): SwotContextAgent {
   return {
     brainName: profile.brainName ?? profile.name,
     name: profile.name,
-    kind: profile.kind ?? "professional",
+    category: profile.kind ?? "person",
     ...(profile.description && { description: profile.description }),
     ...(profile.notes && { notes: profile.notes }),
     skills: profile.skills.map(toContextSkill),
@@ -175,6 +180,9 @@ export function buildSwotContextFromProfiles(params: {
       ...(params.selfProfile.description && {
         description: params.selfProfile.description,
       }),
+      ...(params.selfProfile.kind && {
+        category: params.selfProfile.kind,
+      }),
     },
     brainSkills: enrichedBrainSkills,
     approvedAgents: approvedProfiles.map(toContextAgent),
@@ -199,11 +207,20 @@ export function buildSwotContextFromProfiles(params: {
 export function buildSwotContextFromEntities(params: {
   agents: BaseEntity[];
   skills: BaseEntity[];
+  identity?: {
+    brainName?: string;
+    role?: string;
+    purpose?: string;
+    profileName?: string;
+    profileDescription?: string;
+    profileCategory?: ProfileCategory;
+  };
 }): SwotContext {
   return buildSwotContextFromProfiles(
     buildCapabilityProfilesFromEntities({
       agents: params.agents,
       skills: params.skills,
+      ...(params.identity && { identity: params.identity }),
     }),
   );
 }

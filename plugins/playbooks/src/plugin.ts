@@ -1,6 +1,7 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  ENTITY_CHANNELS,
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionRequestSchema,
   agentContextRequestSchema,
@@ -343,7 +344,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     );
 
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
-      "entity:created",
+      ENTITY_CHANNELS.created,
       async (message) => ({
         success: true,
         data: await this.runs.recordEntityEventEvidence(
@@ -353,7 +354,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       }),
     );
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
-      "entity:updated",
+      ENTITY_CHANNELS.updated,
       async (message) => ({
         success: true,
         data: await this.runs.recordEntityEventEvidence(

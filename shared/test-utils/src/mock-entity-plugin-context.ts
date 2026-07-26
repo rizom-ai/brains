@@ -4,6 +4,7 @@ import type {
   IEntityService,
   BaseEntity,
   MessageSendRequest,
+  ResolvedProfileSelection,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishMediaData } from "@brains/contracts";
@@ -35,6 +36,7 @@ export interface MockEntityPluginContextOptions {
   pluginId?: string;
   dataDir?: string;
   spaces?: string[];
+  profileSelection?: ResolvedProfileSelection;
   returns?: {
     entityService?: MockEntityServiceReturns;
     ai?: MockAIReturns;
@@ -112,6 +114,12 @@ export function createMockEntityPluginContext(
       resolve: mock((_target: string, fallback: string) =>
         Promise.resolve(fallback),
       ),
+    },
+
+    profileKinds: {
+      register: mock(() => {}),
+      getResolved: mock(() => options.profileSelection ?? null),
+      getSelectedDefinition: mock(() => undefined),
     },
 
     identity: {

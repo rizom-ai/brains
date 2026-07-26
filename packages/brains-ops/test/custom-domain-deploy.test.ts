@@ -87,6 +87,13 @@ describe("rover-pilot custom-domain deploy scripts", () => {
         expectedZoneId: "alice-zone",
       },
       {
+        label: "another direct pilot-zone site",
+        domain: "project.rizom.ai",
+        expectedPreview: "project-preview.rizom.ai",
+        expectedWww: "www.project.rizom.ai",
+        expectedZoneId: "alice-zone",
+      },
+      {
         label: "foreign domain",
         domain: "yeehaa.io",
         expectedPreview: "preview.yeehaa.io",

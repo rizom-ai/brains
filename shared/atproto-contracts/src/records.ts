@@ -21,10 +21,13 @@ export interface AtprotoBrainCardBrain extends Record<string, unknown> {
   values: string[];
 }
 
+export type AtprotoProfileCategory = "person" | "team" | "organization";
+
 export interface AtprotoBrainCardAnchor extends Record<string, unknown> {
   did: string;
   name: string;
-  kind: "professional" | "team" | "collective";
+  category: AtprotoProfileCategory;
+  kind: string;
 }
 
 export interface AtprotoBrainCardRecord extends Record<string, unknown> {

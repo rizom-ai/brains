@@ -1,4 +1,8 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type EntityPluginContext,
+  DASHBOARD_CHANNELS,
+} from "@brains/plugins";
 import {
   buildRecentConversationMemoryData,
   RECENT_MEMORY_WIDGET_ID,
@@ -14,7 +18,7 @@ export function registerRecentConversationMemoryWidget(params: {
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
-        type: "dashboard:register-widget",
+        type: DASHBOARD_CHANNELS.registerWidget,
         payload: {
           id: RECENT_MEMORY_WIDGET_ID,
           pluginId,

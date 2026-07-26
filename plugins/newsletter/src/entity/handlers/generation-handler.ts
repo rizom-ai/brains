@@ -2,6 +2,8 @@ import {
   BaseGenerationJobHandler,
   ensureUniqueTitle,
   generateMarkdownWithFrontmatter,
+  GENERATE_CHANNELS,
+  NEWSLETTER_CHANNELS,
 } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -10,6 +12,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { type GenerationResult } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** Source entity shape consumed by newsletter generation */
@@ -64,7 +67,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
   constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: generationJobSchema,
-      jobTypeName: "newsletter:generation",
+      jobTypeName: NEWSLETTER_CHANNELS.generation,
       entityType: "newsletter",
     });
   }
@@ -138,12 +141,17 @@ The newsletter should:
         ? `${baseInstructions}\n\nAdditional instructions: ${prompt}`
         : baseInstructions;
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         subject: string;
         content: string;
       }>({
         prompt: finalPrompt,
-        templateName: "newsletter:generation",
+        templateName: NEWSLETTER_CHANNELS.generation,
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       subject = subject ?? generated.subject;
@@ -161,12 +169,17 @@ The newsletter should:
         message: "Generating newsletter with AI",
       });
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const generated = await this.context.ai.generate<{
         subject: string;
         content: string;
       }>({
         prompt,
-        templateName: "newsletter:generation",
+        templateName: NEWSLETTER_CHANNELS.generation,
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
 
       subject = subject ?? generated.subject;
@@ -224,7 +237,7 @@ The newsletter should:
     error: string,
   ): Promise<void> {
     await this.context.messaging.send({
-      type: "generate:report:failure",
+      type: GENERATE_CHANNELS.reportFailure,
       payload: {
         entityType: "newsletter",
         error,
@@ -239,7 +252,7 @@ The newsletter should:
     _generated: GeneratedContent,
   ): Promise<void> {
     await this.context.messaging.send({
-      type: "generate:report:success",
+      type: GENERATE_CHANNELS.reportSuccess,
       payload: {
         entityType: "newsletter",
         entityId,

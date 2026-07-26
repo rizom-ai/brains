@@ -374,7 +374,7 @@ over the same landscape).
 
 - **The proximity map** — the hero visual: agents as lights placed by semantic
   distance. Live data, never a decorative fake.
-- **Markers and legends** — `●` professional, `∴` team, `◌` collective,
+- **Markers and legends** — `●` person, `∴` team, `◌` organization,
   `·` archived trace. Cartography, not dashboard.
 - **Numbered darkness** — problem statements as `01 / 02 / 03` against the
   dark; light sections answer them.

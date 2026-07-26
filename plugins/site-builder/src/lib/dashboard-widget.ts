@@ -1,3 +1,4 @@
+import { DASHBOARD_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h, type ComponentChild } from "preact";
@@ -209,7 +210,7 @@ export async function registerSiteHealthWidget(
   managementUrl?: string,
 ): Promise<void> {
   await context.messaging.send({
-    type: "dashboard:register-widget",
+    type: DASHBOARD_CHANNELS.registerWidget,
     payload: {
       id: "site-health",
       pluginId: "site-builder",

@@ -1,5 +1,209 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.230
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.230
+  - @brains/atproto-contracts@0.2.0-alpha.230
+  - @brains/content-formatters@0.2.0-alpha.230
+  - @brains/contracts@0.2.0-alpha.230
+  - @brains/http-signatures@0.2.0-alpha.230
+  - @brains/ui-library@0.2.0-alpha.230
+  - @brains/utils@0.2.0-alpha.230
+  - @brains/auth-service@0.2.0-alpha.230
+  - @brains/plugins@0.2.0-alpha.230
+  - @brains/templates@0.2.0-alpha.230
+
+## 0.2.0-alpha.229
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.229
+  - @brains/atproto-contracts@0.2.0-alpha.229
+  - @brains/content-formatters@0.2.0-alpha.229
+  - @brains/contracts@0.2.0-alpha.229
+  - @brains/http-signatures@0.2.0-alpha.229
+  - @brains/ui-library@0.2.0-alpha.229
+  - @brains/utils@0.2.0-alpha.229
+  - @brains/auth-service@0.2.0-alpha.229
+  - @brains/plugins@0.2.0-alpha.229
+  - @brains/templates@0.2.0-alpha.229
+
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- Updated dependencies [[`db6650f`](https://github.com/rizom-ai/brains/commit/db6650f02557ff02d04111a240d0dd2903c0b87b)]:
+  - @brains/auth-service@0.2.0-alpha.228
+  - @brains/dashboard@0.2.0-alpha.228
+  - @brains/atproto-contracts@0.2.0-alpha.228
+  - @brains/content-formatters@0.2.0-alpha.228
+  - @brains/contracts@0.2.0-alpha.228
+  - @brains/http-signatures@0.2.0-alpha.228
+  - @brains/ui-library@0.2.0-alpha.228
+  - @brains/utils@0.2.0-alpha.228
+  - @brains/plugins@0.2.0-alpha.228
+  - @brains/templates@0.2.0-alpha.228
+
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce stable person subjects for auth users and normalized canonical identity claims with independent assertion and verification evidence. Align auth persistence with generated Drizzle Kit migrations and a release-gated, row-preserving bridge for pre-Drizzle databases. Add access-neutral links between local people and independent external peer brains, including atomic peer-first invitations and existing-account linking, without inherited roles, identity claims, or attribution. Because the former representation model never shipped outside the feature branch, replace it through a clean generated schema correction rather than a historical data-copy transform or permanent dual-read path.
+
+  Replace the unreleased My agents and representation-consent flow with the permanent Overview, Members/People, Invitations, and Audit Admin sections. Show passkeys under Sign-in, verified human-facing email and Discord under Connected channels, and optional external peers as a separate account facet. Keep hosted members without peers profileless, retain CMS ownership of the Anchor profile, omit internal IDs and generic Advanced identity tooling, expose actor-attributed audit events through an Admin-only endpoint and plain-language viewer, and bridge approved directory peers into the Admin invitation flow. Keep the monitoring dashboard free of management UI and expose Admin through route-derived console navigation and the Admin-gated command palette.
+
+  Harden the internet-facing OAuth flow by rejecting suspended-user sessions at both authorization endpoints, returning MCP bearer claims plus the active principal from one JWT verification, requiring client-bound revocation, applying per-caller and runtime-wide bounds to open dynamic registration, and pruning stale unconsented clients at startup and on supervised maintenance. Deprecate ambiguous identity-resolution projection in favor of explicit resolved, denied, or unbound access results; bulk-load the Admin roster without per-user query fan-out; avoid duplicate browser-session resolution in web chat; preserve hash-only setup-delivery dedupe per recipient; centralize legacy imports, private mutation guards, safe error projection, mutation feedback, and persisted SHA-256 encodings; and retain exact private identity reconciliation without exposing canonical provider subjects.
+
+- Updated dependencies [[`219e273`](https://github.com/rizom-ai/brains/commit/219e27392f7322ba3349c8d234e42f537d02aa6e), [`81d84ef`](https://github.com/rizom-ai/brains/commit/81d84ef5675db3099f2db5ed13e6a4e81d3b7d4f), [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed), [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96), [`c0ab44b`](https://github.com/rizom-ai/brains/commit/c0ab44b35c481d053fafdf6c802141f365487aa5), [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`8176ef0`](https://github.com/rizom-ai/brains/commit/8176ef0c77d77bf753b1d0a8b0464105f713a232), [`b34aaa8`](https://github.com/rizom-ai/brains/commit/b34aaa8abb3dc65baf39c7c887185584e38dec74), [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655), [`0265d69`](https://github.com/rizom-ai/brains/commit/0265d69c4c69d3331a029ddfe951002c2861d221), [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b), [`d48cf69`](https://github.com/rizom-ai/brains/commit/d48cf69098a6ef7715e79784775b16e33d8f89bb), [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29), [`20ac901`](https://github.com/rizom-ai/brains/commit/20ac901e319ef62b38bb291de8d026b9d8ae51d7), [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96), [`85d2336`](https://github.com/rizom-ai/brains/commit/85d23364f686a176fff606c0ff90907c2f9b3cb3)]:
+  - @brains/auth-service@0.2.0-alpha.227
+  - @brains/contracts@0.2.0-alpha.227
+  - @brains/plugins@0.2.0-alpha.227
+  - @brains/templates@0.2.0-alpha.227
+  - @brains/dashboard@0.2.0-alpha.227
+  - @brains/atproto-contracts@0.2.0-alpha.227
+  - @brains/utils@0.2.0-alpha.227
+  - @brains/content-formatters@0.2.0-alpha.227
+  - @brains/ui-library@0.2.0-alpha.227
+  - @brains/http-signatures@0.2.0-alpha.227
+
+## 0.2.0-alpha.226
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.226
+  - @brains/atproto-contracts@0.2.0-alpha.226
+  - @brains/content-formatters@0.2.0-alpha.226
+  - @brains/contracts@0.2.0-alpha.226
+  - @brains/http-signatures@0.2.0-alpha.226
+  - @brains/ui-library@0.2.0-alpha.226
+  - @brains/utils@0.2.0-alpha.226
+  - @brains/auth-service@0.2.0-alpha.226
+  - @brains/plugins@0.2.0-alpha.226
+  - @brains/templates@0.2.0-alpha.226
+
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- [`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move optional semantic profile kind selection into `brain.yaml`, derive a closed structural category through an app-scoped finalized registry, validate profile persistence with the selected kind schema, and publish the new `{ kind, category }` A2A and ATProto card contract.
+
+- Updated dependencies [[`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987)]:
+  - @brains/atproto-contracts@0.2.0-alpha.225
+  - @brains/plugins@0.2.0-alpha.225
+  - @brains/dashboard@0.2.0-alpha.225
+  - @brains/auth-service@0.2.0-alpha.225
+  - @brains/content-formatters@0.2.0-alpha.225
+  - @brains/contracts@0.2.0-alpha.225
+  - @brains/http-signatures@0.2.0-alpha.225
+  - @brains/ui-library@0.2.0-alpha.225
+  - @brains/utils@0.2.0-alpha.225
+  - @brains/templates@0.2.0-alpha.225
+
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- [`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded, authority-refetched ATProto Jetstream discovery with safe public egress, durable replay state, identity-collision protection, staleness handling, heartbeat publishing, review digests, and per-brain canary configuration.
+
+- Updated dependencies [[`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61)]:
+  - @brains/atproto-contracts@0.2.0-alpha.224
+  - @brains/utils@0.2.0-alpha.224
+  - @brains/dashboard@0.2.0-alpha.224
+  - @brains/content-formatters@0.2.0-alpha.224
+  - @brains/contracts@0.2.0-alpha.224
+  - @brains/ui-library@0.2.0-alpha.224
+  - @brains/auth-service@0.2.0-alpha.224
+  - @brains/plugins@0.2.0-alpha.224
+  - @brains/templates@0.2.0-alpha.224
+  - @brains/http-signatures@0.2.0-alpha.224
+
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies [[`09ee4c2`](https://github.com/rizom-ai/brains/commit/09ee4c2d56b5f5c7044aa1ee3785a0ec74d29328)]:
+  - @brains/atproto-contracts@0.2.0-alpha.223
+  - @brains/dashboard@0.2.0-alpha.223
+  - @brains/content-formatters@0.2.0-alpha.223
+  - @brains/contracts@0.2.0-alpha.223
+  - @brains/http-signatures@0.2.0-alpha.223
+  - @brains/ui-library@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/auth-service@0.2.0-alpha.223
+  - @brains/plugins@0.2.0-alpha.223
+  - @brains/templates@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- [#70](https://github.com/rizom-ai/brains/pull/70) [`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh known ATProto agent cards from a daily recurring check, preserving local relationship metadata while updating remote-owned snapshots and centralizing domain message-channel constants.
+
+- Updated dependencies [[`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a)]:
+  - @brains/contracts@0.2.0-alpha.222
+  - @brains/plugins@0.2.0-alpha.222
+  - @brains/content-formatters@0.2.0-alpha.222
+  - @brains/dashboard@0.2.0-alpha.222
+  - @brains/auth-service@0.2.0-alpha.222
+  - @brains/templates@0.2.0-alpha.222
+  - @brains/atproto-contracts@0.2.0-alpha.222
+  - @brains/http-signatures@0.2.0-alpha.222
+  - @brains/ui-library@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.221
+  - @brains/atproto-contracts@0.2.0-alpha.221
+  - @brains/content-formatters@0.2.0-alpha.221
+  - @brains/contracts@0.2.0-alpha.221
+  - @brains/http-signatures@0.2.0-alpha.221
+  - @brains/ui-library@0.2.0-alpha.221
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/auth-service@0.2.0-alpha.221
+  - @brains/plugins@0.2.0-alpha.221
+  - @brains/templates@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.220
+  - @brains/atproto-contracts@0.2.0-alpha.220
+  - @brains/content-formatters@0.2.0-alpha.220
+  - @brains/contracts@0.2.0-alpha.220
+  - @brains/http-signatures@0.2.0-alpha.220
+  - @brains/ui-library@0.2.0-alpha.220
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/auth-service@0.2.0-alpha.220
+  - @brains/plugins@0.2.0-alpha.220
+  - @brains/templates@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.219
+  - @brains/atproto-contracts@0.2.0-alpha.219
+  - @brains/content-formatters@0.2.0-alpha.219
+  - @brains/contracts@0.2.0-alpha.219
+  - @brains/http-signatures@0.2.0-alpha.219
+  - @brains/ui-library@0.2.0-alpha.219
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/auth-service@0.2.0-alpha.219
+  - @brains/plugins@0.2.0-alpha.219
+  - @brains/templates@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

@@ -1,5 +1,161 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.230
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.230
+  - @brains/contracts@0.2.0-alpha.230
+  - @brains/notification-contracts@0.2.0-alpha.230
+  - @brains/utils@0.2.0-alpha.230
+  - @brains/plugins@0.2.0-alpha.230
+
+## 0.2.0-alpha.229
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.229
+  - @brains/contracts@0.2.0-alpha.229
+  - @brains/notification-contracts@0.2.0-alpha.229
+  - @brains/utils@0.2.0-alpha.229
+  - @brains/plugins@0.2.0-alpha.229
+
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- [`db6650f`](https://github.com/rizom-ai/brains/commit/db6650f02557ff02d04111a240d0dd2903c0b87b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix admin and account mutations behind the TLS-terminating proxy. The same-origin guard now compares the browser Origin against the forwarded origin (x-forwarded-proto/host) instead of the internal http hop, which rejected every deployed POST with 403. Mutation error toasts also stack above the modal layer, so failures inside dialogs are visible instead of silently hidden.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.228
+  - @brains/contracts@0.2.0-alpha.228
+  - @brains/notification-contracts@0.2.0-alpha.228
+  - @brains/utils@0.2.0-alpha.228
+  - @brains/plugins@0.2.0-alpha.228
+
+## 0.2.0-alpha.227
+
+### Minor Changes
+
+- [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Admin authorization from Anchor ownership. Permission roles now use only `admin`, `trusted`, and `public`; a generated auth migration converts historical role rows and persists one person-or-collective brain Anchor. Principals expose `isAnchor` independently, personal Anchors must remain active Admins, collective brains can be run by any active Admin, and last-active-Admin protection stays atomic. Propagate both facets through authenticated and configured A2A, evaluation, chat, Discord, MCP, CLI, web-chat, action, tool, confirmation, and model-instruction contexts.
+
+  Finish the standalone Admin console target model with an Anchor ownership card, Admin/Anchor member facets, profile and optional peer-brain sections, responsive roster/detail layouts, typed Anchor mutations, and a console-local TanStack Query cache with targeted mutation invalidation.
+
+- [`c0ab44b`](https://github.com/rizom-ai/brains/commit/c0ab44b35c481d053fafdf6c802141f365487aa5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the auth runtime database foundation, private auth schema, user/identity store, shell dataDir-backed default storage, database-owned signing keys, first-passkey Admin creation, and session/bearer/identity principal resolution APIs. Support an optional authenticated embedded replica backed by a private remote libSQL primary for provider-managed retention and point-in-time recovery. Legacy JSON/JWK stores are left untouched as optional manual backups and are not imported; existing file-store installations re-onboard once.
+
+- [`7d18545`](https://github.com/rizom-ai/brains/commit/7d18545696fc5dd3908107cbeecc9bfdc2f17655) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare Anchor profile flavor in brain configuration, project person/team/organization into auth runtime ownership, remove runtime Anchor mutations, and resolve Admin-console names and CMS links from profile entities.
+
+- [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist exact interface grants and Anchor bindings in private auth runtime storage, seed declarations only on first initialization, make connected accounts authoritative, keep the no-login channel allowlist out of the person-centered Admin console, and provide explicit access-only CLI recovery.
+
+- [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce stable person subjects for auth users and normalized canonical identity claims with independent assertion and verification evidence. Align auth persistence with generated Drizzle Kit migrations and a release-gated, row-preserving bridge for pre-Drizzle databases. Add access-neutral links between local people and independent external peer brains, including atomic peer-first invitations and existing-account linking, without inherited roles, identity claims, or attribution. Because the former representation model never shipped outside the feature branch, replace it through a clean generated schema correction rather than a historical data-copy transform or permanent dual-read path.
+
+  Replace the unreleased My agents and representation-consent flow with the permanent Overview, Members/People, Invitations, and Audit Admin sections. Show passkeys under Sign-in, verified human-facing email and Discord under Connected channels, and optional external peers as a separate account facet. Keep hosted members without peers profileless, retain CMS ownership of the Anchor profile, omit internal IDs and generic Advanced identity tooling, expose actor-attributed audit events through an Admin-only endpoint and plain-language viewer, and bridge approved directory peers into the Admin invitation flow. Keep the monitoring dashboard free of management UI and expose Admin through route-derived console navigation and the Admin-gated command palette.
+
+  Harden the internet-facing OAuth flow by rejecting suspended-user sessions at both authorization endpoints, returning MCP bearer claims plus the active principal from one JWT verification, requiring client-bound revocation, applying per-caller and runtime-wide bounds to open dynamic registration, and pruning stale unconsented clients at startup and on supervised maintenance. Deprecate ambiguous identity-resolution projection in favor of explicit resolved, denied, or unbound access results; bulk-load the Admin roster without per-user query fan-out; avoid duplicate browser-session resolution in web chat; preserve hash-only setup-delivery dedupe per recipient; centralize legacy imports, private mutation guards, safe error projection, mutation feedback, and persisted SHA-256 encodings; and retain exact private identity reconciliation without exposing canonical provider subjects.
+
+### Patch Changes
+
+- [`219e273`](https://github.com/rizom-ai/brains/commit/219e27392f7322ba3349c8d234e42f537d02aa6e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the authenticated `/account` UI out of auth-service into a dedicated account console plugin. Keep session-derived account APIs in auth-service while giving self-service the shared console shell, climate, route-derived navigation, responsive React UI, and bundled runtime asset.
+
+- [`81d84ef`](https://github.com/rizom-ai/brains/commit/81d84ef5675db3099f2db5ed13e6a4e81d3b7d4f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a session-derived `/account` self-service surface for local display names, redacted connected channels, discoverable passkey enrollment and non-last revocation, and own-session revocation. Keep authority mutations Admin-only and audit self-service security changes without storing browser content.
+
+- [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace ambiguous flattened actor identifiers with a discriminated `ActorRef` model for authenticated users, opaque external identities, agents, and services. Require `ActorRef` through tool execution, MCP routing, AI call options, create interceptors, tool events, and job provenance; remove flattened `userId` and `canonicalId` tool-context fields rather than deprecating them. Jobs retain every requester as `requestedByActor` and project `requestedByUserId` only through the centralized authenticated-user policy. New messages and durable memory use the new model, while legacy persisted actor metadata is normalized at read boundaries.
+
+- [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the personal Anchor's display name in sync with the CMS Anchor profile. The startup projection writes a resolved profile name onto the Anchor's person and user rows (fallback names never overwrite local names), the account snapshot exposes the owning profile entity, self-service rejects display-name edits for the profile-managed Anchor, and /account shows the name read-only with an Edit-in-CMS link.
+
+- [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the Admin-only People section in the standalone Admin console and migrate browser authentication from legacy operator terminology to role-aware auth sessions. Existing session rows and legacy browser cookies remain compatible through an explicit, release-gated migration window. Legacy dashboard `needsOperator` registration inputs remain accepted and normalize to `needsAttention`.
+
+- [`8176ef0`](https://github.com/rizom-ai/brains/commit/8176ef0c77d77bf753b1d0a8b0464105f713a232) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the default auth database under `./data/auth` instead of the synchronized `brain-data` content tree, preventing directory sync from deleting live passkey and session storage.
+
+- [`b34aaa8`](https://github.com/rizom-ai/brains/commit/b34aaa8abb3dc65baf39c7c887185584e38dec74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bind targeted passkey setup links to an Admin-confirmed email or Discord claim. Successful claim now verifies the delivered channel, activates the invited user, consumes the setup token, and records redacted audit provenance while rejecting mismatched, suspended, undelivered, expired, or replayed claims. A targeted setup link also refuses to start while another active account is signed in, preventing invitation setup from replacing an existing Anchor or Admin browser session.
+
+- [`0265d69`](https://github.com/rizom-ai/brains/commit/0265d69c4c69d3331a029ddfe951002c2861d221) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Consolidate the duplicated CMS profile-display-name resolver into one fail-closed helper with consistent trimming, and make the passkey verification results discriminated unions so the verified subject is always present — removing an unreachable session-subject fallback. Internal hardening with no change to runtime behavior.
+
+- [`f9d7705`](https://github.com/rizom-ai/brains/commit/f9d7705a23f89a99332414093903899af0293e96) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Show retained verified contact details to the account owner and authorized Admins while keeping cross-person access behind the Admin API.
+
+- [`85d2336`](https://github.com/rizom-ai/brains/commit/85d23364f686a176fff606c0ff90907c2f9b3cb3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise OAuth client maintenance so shutdown drains an admitted prune before closing the auth runtime database.
+
+- Updated dependencies [[`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed), [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b), [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29), [`20ac901`](https://github.com/rizom-ai/brains/commit/20ac901e319ef62b38bb291de8d026b9d8ae51d7)]:
+  - @brains/contracts@0.2.0-alpha.227
+  - @brains/plugins@0.2.0-alpha.227
+  - @brains/utils@0.2.0-alpha.227
+  - @brains/notifications@0.2.0-alpha.227
+  - @brains/notification-contracts@0.2.0-alpha.227
+
+## 0.2.0-alpha.226
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notification-contracts@0.2.0-alpha.226
+  - @brains/utils@0.2.0-alpha.226
+  - @brains/plugins@0.2.0-alpha.226
+
+## 0.2.0-alpha.225
+
+### Patch Changes
+
+- Updated dependencies [[`b0001fb`](https://github.com/rizom-ai/brains/commit/b0001fb102c030855586d92c4abef67004ae7987)]:
+  - @brains/plugins@0.2.0-alpha.225
+  - @brains/notification-contracts@0.2.0-alpha.225
+  - @brains/utils@0.2.0-alpha.225
+
+## 0.2.0-alpha.224
+
+### Patch Changes
+
+- Updated dependencies [[`b7c5df6`](https://github.com/rizom-ai/brains/commit/b7c5df61ebe0aa44f6b786695f16daa7ee151e61)]:
+  - @brains/utils@0.2.0-alpha.224
+  - @brains/notification-contracts@0.2.0-alpha.224
+  - @brains/plugins@0.2.0-alpha.224
+
+## 0.2.0-alpha.223
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notification-contracts@0.2.0-alpha.223
+  - @brains/utils@0.2.0-alpha.223
+  - @brains/plugins@0.2.0-alpha.223
+
+## 0.2.0-alpha.222
+
+### Patch Changes
+
+- Updated dependencies [[`4943d79`](https://github.com/rizom-ai/brains/commit/4943d79ecf4abefd4cf79a38a526e203ea32064a)]:
+  - @brains/plugins@0.2.0-alpha.222
+  - @brains/notification-contracts@0.2.0-alpha.222
+  - @brains/utils@0.2.0-alpha.222
+
+## 0.2.0-alpha.221
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notification-contracts@0.2.0-alpha.221
+  - @brains/utils@0.2.0-alpha.221
+  - @brains/plugins@0.2.0-alpha.221
+
+## 0.2.0-alpha.220
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notification-contracts@0.2.0-alpha.220
+  - @brains/utils@0.2.0-alpha.220
+  - @brains/plugins@0.2.0-alpha.220
+
+## 0.2.0-alpha.219
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notification-contracts@0.2.0-alpha.219
+  - @brains/utils@0.2.0-alpha.219
+  - @brains/plugins@0.2.0-alpha.219
+
 ## 0.2.0-alpha.218
 
 ### Patch Changes

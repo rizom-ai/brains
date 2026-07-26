@@ -59,6 +59,7 @@ export interface Plugin {
   readonly packageName: string;
   readonly description?: string;
   readonly dependencies?: string[];
+  finalizeRegistration?(): Promise<void>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;
@@ -307,6 +308,7 @@ export interface IConversationsNamespace {
     interfaceType?: string;
     sessionId?: string;
     channelId?: string;
+    personId?: string;
   }): Promise<Conversation[]>;
   getMessages(
     conversationId: string,

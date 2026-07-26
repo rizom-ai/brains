@@ -1,6 +1,10 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, ToolContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  PUBLISH_CHANNELS,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
@@ -19,7 +23,7 @@ export function registerWithPublishPipeline(
 
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
     await context.messaging.send({
-      type: "publish:register",
+      type: PUBLISH_CHANNELS.register,
       payload: {
         entityType: "post",
         provider: internalProvider,
@@ -45,7 +49,7 @@ export function subscribeToPublishExecute(
       };
     },
     { success: boolean }
-  >("publish:execute", async (msg) => {
+  >(PUBLISH_CHANNELS.execute, async (msg) => {
     const { entityType, entityId, authContext } = msg.payload;
 
     if (entityType !== "post") {
@@ -65,7 +69,7 @@ export function subscribeToPublishExecute(
 
       if (!post) {
         await context.messaging.send({
-          type: "publish:report:failure",
+          type: PUBLISH_CHANNELS.reportFailure,
           payload: {
             entityType,
             entityId,
@@ -110,7 +114,7 @@ export function subscribeToPublishExecute(
       });
 
       await context.messaging.send({
-        type: "publish:report:success",
+        type: PUBLISH_CHANNELS.reportSuccess,
         payload: {
           entityType,
           entityId,
@@ -122,7 +126,7 @@ export function subscribeToPublishExecute(
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       await context.messaging.send({
-        type: "publish:report:failure",
+        type: PUBLISH_CHANNELS.reportFailure,
         payload: {
           entityType,
           entityId,

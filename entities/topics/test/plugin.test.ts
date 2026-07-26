@@ -97,6 +97,25 @@ describe("TopicsPlugin", () => {
       ).toBe(false);
     });
 
+    it("should process registered projection sources by default", () => {
+      expect(plugin.shouldProcessEntityType("post", allowAll)).toBe(true);
+      expect(plugin.shouldProcessEntityType("note", allowAll)).toBe(true);
+      expect(plugin.shouldProcessEntityType("skill", blockSkill)).toBe(false);
+      expect(plugin.shouldProcessEntityType("topic", allowAll)).toBe(false);
+    });
+
+    it("uses excludeEntityTypes as the normal source blacklist", () => {
+      const pluginWithBlacklist = new TopicsPlugin({
+        excludeEntityTypes: ["note"],
+      });
+      expect(
+        pluginWithBlacklist.shouldProcessEntityType("post", allowAll),
+      ).toBe(true);
+      expect(
+        pluginWithBlacklist.shouldProcessEntityType("note", allowAll),
+      ).toBe(false);
+    });
+
     it("should process whitelisted entity types and reject ones marked projectionSource: false", () => {
       const pluginWithWhitelist = new TopicsPlugin({
         includeEntityTypes: ["post", "summary", "skill"],

@@ -14,8 +14,10 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
+  A2A_CHANNELS,
   canWriteVisibility,
   contentVisibilitySchema,
+  DIRECTORY_SYNC_CHANNELS,
   generateMarkdownWithFrontmatter,
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
@@ -272,6 +274,9 @@ export function createEditorRoutes(
         basePath: shellPath,
         surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
           activeId: "cms",
+          // The CMS shell is Admin-gated (hasAdminAuthSession) until the
+          // permission-aware CMS rollout; the caller here is always an Admin.
+          permissionLevel: "admin",
           self: { id: "cms", href: shellPath },
         }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
@@ -680,7 +685,7 @@ async function handleSyncStatus(
 ): Promise<Response> {
   const unavailable = { directorySync: null, git: null };
   const response = await context.messaging.send({
-    type: "sync:status:request",
+    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
     payload: {},
   });
   if (!("success" in response) || !response.success) {
@@ -1507,7 +1512,7 @@ async function handleListAgents(
   if (entityContext instanceof Response) return entityContext;
 
   const response = await context.messaging.send({
-    type: "a2a:call:agents",
+    type: A2A_CHANNELS.callAgents,
     payload: {
       entityType,
       entityId: entityContext.entity.id,
@@ -1554,7 +1559,7 @@ async function handleAskAgent(
   if (selectionError) return selectionError;
 
   const result = await context.messaging.send({
-    type: "a2a:call:request",
+    type: A2A_CHANNELS.callRequest,
     payload: {
       agent: payload.agent,
       instruction: payload.instruction,

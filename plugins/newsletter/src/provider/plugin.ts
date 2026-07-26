@@ -3,7 +3,11 @@ import type {
   ServicePluginContext,
   ApiRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  ServicePlugin,
+  BUTTONDOWN_CHANNELS,
+  PUBLISH_CHANNELS,
+} from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { ButtondownClient } from "./lib/buttondown-client";
@@ -57,11 +61,11 @@ export class ButtondownPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     // Respond to "are you configured?" messages from newsletter entity plugin
-    context.messaging.subscribe("buttondown:is-configured", async () => {
+    context.messaging.subscribe(BUTTONDOWN_CHANNELS.isConfigured, async () => {
       return { success: !!this.config.apiKey };
     });
 
-    // Handle "buttondown:send" messages from newsletter publish pipeline
+    // Handle BUTTONDOWN_CHANNELS.send messages from newsletter publish pipeline
     if (this.config.apiKey) {
       const client = new ButtondownClient(
         { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
@@ -71,7 +75,7 @@ export class ButtondownPlugin extends ServicePlugin<
       context.messaging.subscribe<
         { entityId: string; subject: string; content: string },
         { emailId?: string }
-      >("buttondown:send", async (msg) => {
+      >(BUTTONDOWN_CHANNELS.send, async (msg) => {
         try {
           const email = await client.createEmail({
             subject: msg.payload.subject,
@@ -90,7 +94,7 @@ export class ButtondownPlugin extends ServicePlugin<
       // Auto-send newsletter on blog publish
       if (this.config.autoSendOnPublish) {
         context.messaging.subscribe<PublishCompletedPayload>(
-          "publish:completed",
+          PUBLISH_CHANNELS.completed,
           async (msg) => {
             const result = await handlePublishCompleted(
               msg.payload,

@@ -60,7 +60,7 @@ export function registerFallbackBaseEntity(
     SHELL_ENTITY_TYPES.NOTE,
     baseEntitySchema,
     new FallbackEntityAdapter(),
-    { projectionSourceRole: "ambient" },
+    { projectionSourceRole: "primary" },
   );
 
   logger.debug("Fallback base entity adapter registered");
@@ -75,7 +75,7 @@ export function registerBrainCharacterSupport(
     SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
     characterAdapter.schema,
     characterAdapter,
-    { projectionSourceRole: "canonical" },
+    { projectionSource: false, projectionSourceRole: "excluded" },
   );
   logger.debug("Brain character entity support registered");
 }

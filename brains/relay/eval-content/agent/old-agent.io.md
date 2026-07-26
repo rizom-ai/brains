@@ -1,6 +1,6 @@
 ---
 name: Old Agent
-kind: professional
+kind: person
 brainName: Old Agent
 url: "https://old-agent.io/a2a"
 status: discovered

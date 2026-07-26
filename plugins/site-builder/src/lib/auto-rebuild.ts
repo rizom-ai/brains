@@ -1,3 +1,4 @@
+import { ENTITY_CHANNELS } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
@@ -118,7 +119,11 @@ export class RebuildManager {
       return { success: true };
     };
 
-    const events = ["entity:created", "entity:updated", "entity:deleted"];
+    const events = [
+      ENTITY_CHANNELS.created,
+      ENTITY_CHANNELS.updated,
+      ENTITY_CHANNELS.deleted,
+    ];
     for (const event of events) {
       this.unsubscribeFunctions.push(
         this.context.messaging.subscribe(event, entityEventHandler),

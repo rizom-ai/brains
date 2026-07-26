@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { AuthAccountService } from "./account-service";
 import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
 import { AuthAdministrationService } from "./administration-service";
 import { AuthAuditStore } from "./audit-store";
@@ -7,7 +8,6 @@ import { RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore } from "./credential-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { AuthIdentityStore } from "./identity-store";
-import { errorMessage } from "./http-responses";
 import { InterfacePrincipalStore } from "./interface-principal-store";
 import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
@@ -21,6 +21,7 @@ import {
   type UserPasskeyRegistration,
 } from "./passkey-setup-coordinator";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
+import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
@@ -86,6 +87,7 @@ export class AuthRuntime {
   private userManagementService: AuthUserManagementService | undefined;
   private principalService: AuthPrincipalService | undefined;
   private administrationService: AuthAdministrationService | undefined;
+  private accountService: AuthAccountService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -249,6 +251,15 @@ export class AuthRuntime {
       getJwks: (): Promise<JwksResponse> => this.getJwks(),
     });
     const credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
+    this.accountService = new AuthAccountService({
+      users: this.userStore,
+      identities: identityStore,
+      credentials: credentialStore,
+      sessions: this.sessionStore,
+      refreshTokens: this.refreshTokenStore,
+      passkeys: this.passkeyService,
+      audit: this.auditStore,
+    });
     this.administrationService = new AuthAdministrationService({
       configuredAnchorKind: this.anchor,
       ...(this.resolveProfileDisplayName
@@ -291,6 +302,10 @@ export class AuthRuntime {
 
   getAdministrationService(): AuthAdministrationService {
     return required(this.administrationService);
+  }
+
+  getAccountService(): AuthAccountService {
+    return required(this.accountService);
   }
 
   getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -354,6 +369,7 @@ export class AuthRuntime {
     this.userManagementService = undefined;
     this.principalService = undefined;
     this.administrationService = undefined;
+    this.accountService = undefined;
     this.interfacePrincipalStore = undefined;
     this.auditStore = undefined;
     this.initialization = undefined;
@@ -361,21 +377,14 @@ export class AuthRuntime {
     await this.runtimeDatabase.stop();
   }
 
-  private async profileDisplayName(
+  private profileDisplayName(
     profileEntityId: string | null,
   ): Promise<string | undefined> {
-    if (!profileEntityId || !this.resolveProfileDisplayName) return undefined;
-    try {
-      const displayName = await this.resolveProfileDisplayName(profileEntityId);
-      const trimmed = displayName?.trim();
-      return trimmed && trimmed.length > 0 ? trimmed : undefined;
-    } catch (error) {
-      this.logger?.warn("Failed to resolve CMS profile display name", {
-        profileEntityId,
-        error: errorMessage(error, "Profile lookup failed"),
-      });
-      return undefined;
-    }
+    return resolveProfileDisplayNameSafely(
+      this.resolveProfileDisplayName,
+      profileEntityId,
+      this.logger,
+    );
   }
 
   private async projectConfiguredBrainAnchor(): Promise<void> {
@@ -395,6 +404,9 @@ export class AuthRuntime {
       kind: this.anchor === "person" ? "person" : "collective",
       displayName,
       profileEntityId: this.anchorProfileEntityId,
+      // Only a genuinely resolved profile name is authoritative for the
+      // Anchor person's own account; fallbacks never overwrite local names.
+      ...(profileDisplayName ? { subjectDisplayName: profileDisplayName } : {}),
     });
   }
 
@@ -425,7 +437,7 @@ export class AuthRuntime {
     }
   }
 
-  private async resolveActiveSession(
+  async resolveActiveSession(
     request: Request,
   ): Promise<{ session: AuthSessionRecord; user: AuthUser } | undefined> {
     await this.ensureStarted();

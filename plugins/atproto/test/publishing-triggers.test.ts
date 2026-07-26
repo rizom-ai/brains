@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell as createBaseMockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
   AtprotoPlugin,
@@ -9,6 +10,23 @@ import {
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
+
+function createMockShell(
+  options: Parameters<typeof createBaseMockShell>[0] = {},
+): ReturnType<typeof createBaseMockShell> {
+  const shell = createBaseMockShell({
+    ...options,
+    profileKind: "collective",
+  });
+  shell.getProfileKindRegistry().register("test", {
+    kind: "collective",
+    category: "organization",
+    fields: z.object({}),
+    labels: { singular: "Collective", plural: "Collectives" },
+  });
+  shell.getProfileKindRegistry().finalize();
+  return shell;
+}
 
 async function settleTicks(count = 20): Promise<void> {
   for (let i = 0; i < count; i += 1) {
@@ -135,6 +153,19 @@ function createConfiguredPlugin(
   );
 }
 
+// Real boots broadcast pluginsRegistered before ready; startup-check boots
+// never do. Tests that expect boot publishing must arm the full-boot signal.
+async function armFullBoot(
+  shell: ReturnType<typeof createMockShell>,
+): Promise<void> {
+  await shell.getMessageBus().send({
+    type: SYSTEM_CHANNELS.pluginsRegistered,
+    payload: {},
+    sender: "test",
+    broadcast: true,
+  });
+}
+
 describe("AT Protocol ambient publishing triggers", () => {
   it("does not publish the brain card on the plugins-registered coordination event", async () => {
     const client = createClientMocks();
@@ -166,10 +197,10 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
       name: "Ready Anchor",
-      kind: "collective",
       description: "Loaded profile",
     });
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -189,6 +220,7 @@ describe("AT Protocol ambient publishing triggers", () => {
           }),
           anchor: expect.objectContaining({
             name: "Ready Anchor",
+            category: "organization",
             kind: "collective",
           }),
         }),
@@ -201,6 +233,31 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
   });
 
+  it("republishes the brain card when identity or skill inputs change", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+    await plugin.ready();
+
+    for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
+      await shell.getMessageBus().send({
+        type: "entity:updated",
+        payload: { entityType, entityId: entityType },
+        sender: "entity-service",
+        broadcast: true,
+      });
+    }
+    await plugin.shutdown?.();
+
+    const cardWrites = client.putRecord.mock.calls.filter(
+      ([input]) =>
+        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    );
+    expect(cardWrites).toHaveLength(4);
+  });
+
   it("upserts every canonical lexicon schema when this repo is the authority", async () => {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client, {
@@ -209,6 +266,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -236,6 +294,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     for (let index = 0; index < 2; index += 1) {
       await plugin.ready();
     }
@@ -278,6 +337,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
@@ -310,10 +370,65 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
+    await armFullBoot(shell);
     await plugin.ready();
     await plugin.shutdown?.();
 
     expect(createPdsClient).not.toHaveBeenCalled();
+  });
+
+  it("skips boot publishing when the registration broadcast never fired", async () => {
+    // startup-check boots run ready hooks but never emit pluginsRegistered;
+    // they are documented as side-effect-free and must not write to the PDS.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client, {
+      lexiconAuthority: true,
+    });
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    await plugin.ready();
+    await plugin.shutdown?.();
+
+    expect(client.createSession).not.toHaveBeenCalled();
+    expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("resolves ready() while the PDS is still in flight", async () => {
+    let releasePut = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      releasePut = resolve;
+    });
+    const putRecord = mock(async () => {
+      await gate;
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    });
+    const client: AtprotoPdsClientLike = {
+      createSession: mock(async () => ({
+        did: "did:plc:repo",
+        handle: "brain.example.com",
+        accessJwt: "access-token",
+        refreshJwt: "refresh-token",
+      })),
+      createRecord: mock(async () => ({
+        uri: "at://did:plc:repo/record",
+        cid: "cid",
+      })),
+      putRecord,
+      deleteRecord: mock(async () => {}),
+    };
+    const plugin = createConfiguredPlugin(createRegistry(), client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+
+    await armFullBoot(shell);
+    // Boot must not block on the PDS: ready() schedules the publish and
+    // returns; a hung ready() here fails the test by timeout.
+    await plugin.ready();
+
+    releasePut();
+    await plugin.shutdown?.();
+    expect(putRecord).toHaveBeenCalledTimes(1);
   });
 
   it("upserts a public projected entity after publish completion", async () => {

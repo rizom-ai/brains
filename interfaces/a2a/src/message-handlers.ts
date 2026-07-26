@@ -1,6 +1,7 @@
 import {
   internalFullScope,
   type InterfacePluginContext,
+  A2A_CHANNELS,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { executeAgentCall, type A2AClientDeps } from "./client";
@@ -26,7 +27,7 @@ export function registerA2ACallMessageHandlers(
   context: InterfacePluginContext,
   deps: A2AClientDeps,
 ): void {
-  context.messaging.subscribe("a2a:call:request", async (message) => {
+  context.messaging.subscribe(A2A_CHANNELS.callRequest, async (message) => {
     const parsed = askAgentMessageSchema.safeParse(message.payload);
     if (!parsed.success) {
       return { success: false, error: "Invalid A2A call request" };
@@ -57,7 +58,7 @@ export function registerA2ACallMessageHandlers(
     };
   });
 
-  context.messaging.subscribe("a2a:call:agents", async () => {
+  context.messaging.subscribe(A2A_CHANNELS.callAgents, async () => {
     if (!context.entityService.hasEntityType("agent")) {
       return { success: true, data: { agents: [] } };
     }

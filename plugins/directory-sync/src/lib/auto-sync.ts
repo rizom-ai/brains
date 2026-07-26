@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { createId } from "@brains/plugins";
+import { createId, ENTITY_CHANNELS } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { DirectorySync } from "./directory-sync";
@@ -24,7 +24,7 @@ export function setupAutoSync(
   const { entityService } = context;
 
   subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
-    "entity:created",
+    ENTITY_CHANNELS.created,
     async (message) => {
       const { entity } = message.payload;
 
@@ -55,7 +55,7 @@ export function setupAutoSync(
 
   // Fetch current entity from DB instead of using event payload to avoid stale data
   subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
-    "entity:updated",
+    ENTITY_CHANNELS.updated,
     async (message) => {
       const { entityType, entityId } = message.payload;
 
@@ -97,7 +97,7 @@ export function setupAutoSync(
   );
 
   subscribe<{ entityId: string; entityType: string }>(
-    "entity:deleted",
+    ENTITY_CHANNELS.deleted,
     async (message) => {
       const { entityId, entityType } = message.payload;
 

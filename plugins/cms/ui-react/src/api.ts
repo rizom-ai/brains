@@ -267,6 +267,7 @@ export interface FieldDescriptor {
   required?: boolean;
   default?: unknown;
   options?: string[];
+  condition?: { field: string; value: unknown };
   field?: FieldDescriptor;
   fields?: FieldDescriptor[];
 }
