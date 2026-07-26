@@ -1,4 +1,5 @@
 import { Fragment, type JSX } from "preact";
+import { formatDate } from "./utils/formatDate";
 import type { ContentItem } from "./ContentSection";
 
 export interface ContentArchivePagination {
@@ -39,16 +40,12 @@ const formatOrdinal = (value: number, width: number): string =>
   String(Math.max(0, value)).padStart(width, "0");
 
 const formatArchiveDate = (date: string): string =>
-  new Date(date).toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  formatDate(date, { style: "medium" });
 
 const formatDayMonth = (date: string): string =>
-  new Date(date).toLocaleDateString("en-GB", {
+  new Date(date).toLocaleDateString("en-US", {
     month: "short",
-    day: "2-digit",
+    day: "numeric",
   });
 
 const getYear = (date: string): string => {

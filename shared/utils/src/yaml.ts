@@ -1,4 +1,5 @@
 import * as yaml from "js-yaml";
+import { getErrorMessage } from "./error";
 
 /**
  * Convert an object to YAML string
@@ -86,7 +87,7 @@ export function parseYamlDocument<T>(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "YAML parse error",
+      error: getErrorMessage(err, "YAML parse error"),
     };
   }
 

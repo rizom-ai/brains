@@ -15,6 +15,7 @@ import {
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
 import type { AgentNamespace } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig, type CLIConfigInput } from "./config";
 import packageJson from "../package.json";
@@ -288,8 +289,7 @@ export class CLIInterface extends MessageInterfacePlugin<
       });
     } catch (error) {
       this.logger.error("Error processing input", { error, input });
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
+      const errorMessage = getErrorMessage(error, "An unknown error occurred");
       this.sendMessageToChannel({
         channelId: null,
         message: `**Error:** ${errorMessage}`,

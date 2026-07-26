@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { IGitSync, IDirectorySync } from "../types";
 import type { DirectorySyncRuntime } from "./directory-sync-runtime";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Periodic pull → queue imports cycle.
@@ -67,7 +68,7 @@ export function setupPeriodicGitSync(
         if (runId) {
           await operationStatus?.failRun(
             runId,
-            error instanceof Error ? error.message : "Periodic Git sync failed",
+            getErrorMessage(error, "Periodic Git sync failed"),
           );
         }
       }

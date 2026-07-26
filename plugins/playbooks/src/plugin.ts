@@ -52,11 +52,11 @@ import {
 import {
   RunEngine,
   appendUnique,
-  errorMessage,
   type GoalCheck,
   type GoalCheckInput,
   type GoalCheckResult,
 } from "./lib/run-engine";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type {
   LifecyclePlaybookConfig,
@@ -386,7 +386,7 @@ export class PlaybooksPlugin extends ServicePlugin<
             });
             return { success: true, data };
           } catch (error) {
-            return { success: false, error: errorMessage(error) };
+            return { success: false, error: getErrorMessage(error) };
           }
         },
       },
@@ -855,7 +855,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     try {
       return { success: true, data: await this.requireScopedRun(input) };
     } catch (error) {
-      return { success: false, error: errorMessage(error) };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 

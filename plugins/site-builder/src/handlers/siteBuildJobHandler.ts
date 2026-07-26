@@ -13,6 +13,7 @@ import {
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type { SiteBuildStatusService } from "../lib/site-build-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
@@ -212,7 +213,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           this.cfg.statusService?.markFailure(
             environment,
             jobId,
-            error instanceof Error ? error.message : "Site build failed",
+            getErrorMessage(error, "Site build failed"),
           ),
         "failure",
       );

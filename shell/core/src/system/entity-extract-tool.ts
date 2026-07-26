@@ -8,6 +8,7 @@ import {
   createConfirmationGate,
   createSystemTool,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createEntityExtractTool(services: SystemServices): Tool {
   const { entityService, jobs } = services;
@@ -124,10 +125,7 @@ export function createEntityExtractTool(services: SystemServices): Tool {
       } catch (error) {
         return {
           success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to queue extraction job",
+          error: getErrorMessage(error, "Failed to queue extraction job"),
         };
       }
     },

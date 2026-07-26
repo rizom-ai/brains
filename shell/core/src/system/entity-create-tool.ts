@@ -24,6 +24,7 @@ import {
   normalizeOptionalString,
   runCreateInterceptor,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
@@ -251,7 +252,7 @@ async function executeDirectCreate(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create entity",
+      error: getErrorMessage(error, "Failed to create entity"),
     };
   }
 }

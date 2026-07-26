@@ -8,6 +8,7 @@ import type {
   GitSyncStatus,
   ImportResult,
 } from "../types";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface ConfigureOptions {
   syncPath: string;
@@ -59,7 +60,7 @@ export function registerMessageHandlers(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Export failed",
+          error: getErrorMessage(error, "Export failed"),
         };
       }
     },
@@ -84,7 +85,7 @@ export function registerMessageHandlers(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Import failed",
+          error: getErrorMessage(error, "Import failed"),
         };
       }
     },
@@ -111,7 +112,7 @@ export function registerMessageHandlers(
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Status check failed",
+        error: getErrorMessage(error, "Status check failed"),
       };
     }
   });
@@ -131,8 +132,7 @@ export function registerMessageHandlers(
       } catch (error) {
         return {
           success: false,
-          error:
-            error instanceof Error ? error.message : "Configuration failed",
+          error: getErrorMessage(error, "Configuration failed"),
         };
       }
     },

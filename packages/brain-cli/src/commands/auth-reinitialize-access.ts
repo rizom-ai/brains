@@ -4,6 +4,7 @@ import type { BrainDefinition } from "@brains/app";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import type { CommandResult } from "../lib/command-result";
 import { getModel } from "../lib/model-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface AuthReinitializeAccessOptions {
   storageDir?: string | undefined;
@@ -42,7 +43,7 @@ export async function reinitializeAuthAccess(
   } catch (error) {
     return {
       success: false,
-      message: `Failed to reinitialize access: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Failed to reinitialize access: ${getErrorMessage(error)}`,
     };
   }
 }

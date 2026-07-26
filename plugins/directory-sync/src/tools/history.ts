@@ -2,6 +2,7 @@ import type { Tool, ToolResult } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Create the directory-sync_history tool.
@@ -62,9 +63,7 @@ export function createHistoryTool(pluginId: string, gitSync: IGitSync): Tool {
           `${commits.length} version${commits.length === 1 ? "" : "s"} found`,
         );
       } catch (error) {
-        return toolError(
-          error instanceof Error ? error.message : "History lookup failed",
-        );
+        return toolError(getErrorMessage(error, "History lookup failed"));
       }
     },
     { visibility: "admin", sideEffects: "none" },

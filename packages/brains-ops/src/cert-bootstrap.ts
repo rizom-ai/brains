@@ -14,6 +14,7 @@ import {
 import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface CertBootstrapOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -44,8 +45,7 @@ export async function runPilotCertBootstrap(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Certificate bootstrap failed",
+      message: getErrorMessage(error, "Certificate bootstrap failed"),
     };
   }
 }

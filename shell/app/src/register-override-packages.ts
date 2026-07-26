@@ -1,6 +1,7 @@
 import type { InstanceOverrides } from "./instance-overrides";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import { hasPackage, registerPackage } from "./package-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Import function signature used to resolve `@-prefixed` package
@@ -34,7 +35,7 @@ export async function registerOverridePackages(
         const mod = await importFn(ref);
         registerPackage(ref, mod.default ?? mod);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = getErrorMessage(err);
         console.error(
           `❌ brain.yaml: failed to import package "${ref}": ${message}`,
         );

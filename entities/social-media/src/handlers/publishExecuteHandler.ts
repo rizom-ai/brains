@@ -230,10 +230,7 @@ export class PublishExecuteHandler {
           platformPostId,
         });
       } catch (publishError) {
-        const errorMessage =
-          publishError instanceof Error
-            ? publishError.message
-            : String(publishError);
+        const errorMessage = getErrorMessage(publishError);
 
         // Update entity with error status (retry tracking is handled by RetryTracker)
         const updatedFrontmatter: SocialPostFrontmatter = {

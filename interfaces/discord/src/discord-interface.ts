@@ -33,6 +33,7 @@ import {
 import { discordConfigSchema } from "./config";
 import type { DiscordConfig, DiscordConstructorConfig } from "./config";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 const DISCORD_MAX_LENGTH = 2000;
 const APPROVAL_RESULT_TITLES: Record<ApprovalResolution, string> = {
@@ -754,7 +755,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
       });
       this.sendMessageToChannel({
         channelId: replyChannelId,
-        message: `**Error:** ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `**Error:** ${getErrorMessage(error, "Unknown error")}`,
       });
     } finally {
       this.endProcessingInput();

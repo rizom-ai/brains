@@ -20,6 +20,7 @@ import type {
   RecentDirectorySyncRun,
 } from "./directory-sync-operation-status";
 import { requestDirectorySync } from "./request-directory-sync";
+import { getErrorMessage } from "@brains/utils/error";
 
 const registrationResultSchema = z.object({ workspaceUrl: z.string() });
 
@@ -173,8 +174,7 @@ export class DirectorySyncWorkspaceProvider {
       } catch (error) {
         await this.options.operationStatus.recordIssue({
           kind: "git",
-          message:
-            error instanceof Error ? error.message : "Git status unavailable",
+          message: getErrorMessage(error, "Git status unavailable"),
         });
       }
     }

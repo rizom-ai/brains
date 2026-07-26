@@ -5,6 +5,7 @@ import type { IDirectorySync, IGitSync } from "../types";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { requestDirectorySync } from "../lib/request-directory-sync";
 import { createHistoryTool } from "./history";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createDirectorySyncTools(
   directorySync: IDirectorySync,
@@ -69,9 +70,7 @@ export function createDirectorySyncTools(
             `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
           );
         } catch (error) {
-          return toolError(
-            error instanceof Error ? error.message : "Sync failed",
-          );
+          return toolError(getErrorMessage(error, "Sync failed"));
         }
       },
       {
@@ -109,9 +108,7 @@ export function createDirectorySyncTools(
 
           return toolSuccess(data);
         } catch (error) {
-          return toolError(
-            error instanceof Error ? error.message : "Status check failed",
-          );
+          return toolError(getErrorMessage(error, "Status check failed"));
         }
       },
       { visibility: "admin", sideEffects: "none" },

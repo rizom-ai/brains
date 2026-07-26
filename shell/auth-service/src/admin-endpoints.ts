@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
+import { getErrorMessage } from "@brains/utils/error";
 import {
-  errorMessage,
   privateJsonResponse,
   readJsonRequest,
   requireSameOriginJson,
@@ -375,7 +375,7 @@ async function handleReconciliationRequest(
     );
   } catch (error) {
     return privateJsonResponse(
-      { error: errorMessage(error, "Reconciliation failed") },
+      { error: getErrorMessage(error, "Reconciliation failed") },
       400,
     );
   }
@@ -406,7 +406,7 @@ async function handleMutationRequest(
     );
   } catch (error) {
     return privateJsonResponse(
-      { error: errorMessage(error, "Mutation failed") },
+      { error: getErrorMessage(error, "Mutation failed") },
       400,
     );
   }

@@ -11,6 +11,7 @@ import type {
   SelectResult,
 } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
@@ -101,7 +102,7 @@ function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         });
         return { success: true, data: result };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Search failed";
+        const msg = getErrorMessage(err, "Search failed");
         return { success: false, error: msg };
       }
     },

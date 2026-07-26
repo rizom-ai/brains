@@ -11,6 +11,7 @@ import {
 import { z } from "@brains/utils/zod";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
+import { getErrorMessage } from "@brains/utils/error";
 
 const rawYamlSchema = z.record(z.string(), z.unknown());
 
@@ -352,9 +353,7 @@ function parseBrainEvalOverrides(
       console.error(`❌ ${err.message}`);
     } else {
       console.error(
-        `❌ unexpected error parsing brain.eval.yaml: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `❌ unexpected error parsing brain.eval.yaml: ${getErrorMessage(err)}`,
       );
     }
     process.exit(1);

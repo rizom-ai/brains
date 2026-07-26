@@ -9,6 +9,7 @@ import {
   type IDirectorySync,
 } from "../types";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 export class DirectoryExportJobHandler extends BaseJobHandler<
   "directory-export",
@@ -62,8 +63,7 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
       this.logger.error("Directory export job failed", { jobId, error });
       await this.operationStatus?.recordIssue({
         kind: "export",
-        message:
-          error instanceof Error ? error.message : "Directory export failed",
+        message: getErrorMessage(error, "Directory export failed"),
       });
       throw error;
     }

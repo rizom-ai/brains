@@ -8,6 +8,7 @@ import {
 import type { BaseEntity } from "@brains/plugins";
 import type { SocialPost } from "../../src/schemas/social-post";
 import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
+import { getErrorMessage } from "@brains/utils/error";
 
 class TestEntityService implements PublishExecuteEntityService {
   public readonly getEntityCalls: Array<{ entityType: string; id: string }> =
@@ -250,9 +251,7 @@ describe("PublishExecuteHandler", () => {
       }
 
       expect(caughtError).toBeInstanceOf(Error);
-      expect(caughtError instanceof Error ? caughtError.message : "").toBe(
-        "publish denied",
-      );
+      expect(getErrorMessage(caughtError, "")).toBe("publish denied");
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
     });
 

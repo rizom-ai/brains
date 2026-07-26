@@ -15,6 +15,7 @@ import type {
   UploadAttachmentResolver,
 } from "./agent-types";
 import type { ConversationUploadRef } from "./conversation-messages";
+import { getErrorMessage } from "@brains/utils/error";
 
 const asyncGeneratingToolResultSchema = z
   .object({
@@ -197,7 +198,7 @@ export async function filterLiveUploadRefs(params: {
       logger.debug("Skipped unavailable prior upload ref", {
         uploadKind: ref.source.kind,
         uploadId: ref.source.id,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
     }
   }
@@ -228,7 +229,7 @@ export async function hydrateUploadAttachments(params: {
       logger.debug("Skipped unavailable prior upload attachment", {
         uploadKind: ref.source.kind,
         uploadId: ref.source.id,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
     }
     if (hydrated.length > 0) break;

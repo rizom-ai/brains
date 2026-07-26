@@ -1,9 +1,11 @@
 /**
  * Extract a human-readable error message from an unknown error value.
- * Handles Error objects, strings, and other types.
+ * Handles Error objects, strings, and other types. When a fallback is
+ * given, non-Error values yield the fallback instead of String(error).
  */
-export function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+export function getErrorMessage(error: unknown, fallback?: string): string {
+  if (error instanceof Error) return error.message;
+  return fallback ?? String(error);
 }
 
 /**

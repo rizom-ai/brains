@@ -152,5 +152,14 @@ module.exports = {
     "no-inner-declarations": "error",
     "no-useless-assignment": "error",
     "preserve-caught-error": "error",
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector:
+          'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
+        message:
+          "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
+      },
+    ],
   },
 };

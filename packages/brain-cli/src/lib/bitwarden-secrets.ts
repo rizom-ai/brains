@@ -2,6 +2,7 @@ import { spawn } from "child_process";
 import { basename, resolve } from "path";
 import { z } from "@brains/utils/zod";
 import type { SecretPair } from "./push-secrets";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface BitwardenProject {
   id: string;
@@ -326,7 +327,7 @@ function parseJson(output: string): unknown {
     return JSON.parse(output);
   } catch (error) {
     throw new Error(
-      `Could not parse bws JSON output: ${error instanceof Error ? error.message : String(error)}`,
+      `Could not parse bws JSON output: ${getErrorMessage(error)}`,
       { cause: error },
     );
   }

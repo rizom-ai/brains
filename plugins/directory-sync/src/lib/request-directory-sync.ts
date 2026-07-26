@@ -1,6 +1,7 @@
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BatchResult, IDirectorySync, IGitSync } from "../types";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type DirectorySyncRequestResult =
   | {
@@ -93,7 +94,7 @@ export async function requestDirectorySync(
     if (runId) {
       await options.operationStatus?.failRun(
         runId,
-        error instanceof Error ? error.message : "Sync request failed",
+        getErrorMessage(error, "Sync request failed"),
         options.gitSync ? "git" : "source",
       );
     }

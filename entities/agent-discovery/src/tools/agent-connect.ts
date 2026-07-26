@@ -17,6 +17,7 @@ import {
 } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import type { AgentEntity } from "../schemas/agent";
+import { getErrorMessage } from "@brains/utils/error";
 
 const agentConnectInputSchema = z.object({
   source: z.object({
@@ -147,7 +148,7 @@ export function createAgentConnectTool(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
 

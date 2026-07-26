@@ -4,6 +4,7 @@ import type { ProviderRegistry } from "./provider-registry";
 import type { PublishableMetadata } from "./schemas/publishable";
 import { preparePublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
+import { getErrorMessage } from "@brains/utils/error";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;
 
@@ -145,7 +146,7 @@ export class PublishExecutor implements PublishEntityExecutor {
       this.deps.context.logger.warn("Publish asset preflight failed", {
         entityType: entity.entityType,
         entityId: entity.id,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
     }
   }

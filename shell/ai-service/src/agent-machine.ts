@@ -21,6 +21,7 @@ import type {
   ChatAttachment,
   PendingConfirmation,
 } from "./agent-types";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface PendingConfirmationRequester {
   actorKey?: string;
@@ -352,10 +353,7 @@ export const agentMachine: AgentMachine = setup({
         onError: {
           target: "idle",
           actions: assign(({ event }) => ({
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : "Unknown error",
+            error: getErrorMessage(event.error, "Unknown error"),
             response: {
               text:
                 event.error instanceof Error
@@ -492,16 +490,12 @@ export const agentMachine: AgentMachine = setup({
               context.pendingConfirmations.length > 0,
             target: "awaitingConfirmation",
             actions: assign(({ context, event }) => ({
-              error:
-                event.error instanceof Error
-                  ? event.error.message
-                  : "Unknown error",
+              error: getErrorMessage(event.error, "Unknown error"),
               response: {
-                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
-                  event.error instanceof Error
-                    ? event.error.message
-                    : "Unknown error"
-                }`,
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${getErrorMessage(
+                  event.error,
+                  "Unknown error",
+                )}`,
                 usage: emptyUsage,
               },
               activeConfirmation: null,
@@ -511,16 +505,12 @@ export const agentMachine: AgentMachine = setup({
           {
             target: "idle",
             actions: assign(({ context, event }) => ({
-              error:
-                event.error instanceof Error
-                  ? event.error.message
-                  : "Unknown error",
+              error: getErrorMessage(event.error, "Unknown error"),
               response: {
-                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
-                  event.error instanceof Error
-                    ? event.error.message
-                    : "Unknown error"
-                }`,
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${getErrorMessage(
+                  event.error,
+                  "Unknown error",
+                )}`,
                 usage: emptyUsage,
               },
               pendingConfirmations: [],

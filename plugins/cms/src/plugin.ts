@@ -12,6 +12,7 @@ import { cmsWorkspacePath } from "./cms-paths";
 import { createEditorRoutes } from "./editor-routes";
 import { CmsWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface CmsEntityDisplayEntry {
   label?: string | undefined;
@@ -100,7 +101,7 @@ export class CmsPlugin extends ServicePlugin<
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
     });

@@ -5,6 +5,7 @@ import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface ContentGenerationJobData {
   templateName: string;
@@ -199,7 +200,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
       });
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: getErrorMessage(error, "Unknown error"),
       };
     }
   }

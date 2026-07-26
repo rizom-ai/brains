@@ -4,6 +4,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface FeedbackEntry {
   message: string;
@@ -27,7 +28,7 @@ export interface MutationFeedbackController {
 }
 
 export function messageOf(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return getErrorMessage(error, fallback);
 }
 
 export async function runWithFeedback<T>(

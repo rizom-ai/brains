@@ -19,6 +19,7 @@ import { type FetchLike } from "./origin-ca";
 import { pushSecretsToBackend } from "./push-secrets";
 import { normalizePushTarget } from "./push-target";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface SshKeyBootstrapOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -83,8 +84,7 @@ export async function runSshKeyBootstrap(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "SSH key bootstrap failed",
+      message: getErrorMessage(error, "SSH key bootstrap failed"),
     };
   }
 }

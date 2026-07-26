@@ -5,6 +5,7 @@ import type { CommandResult } from "../lib/command-result";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { getModel, getAvailableModels } from "../lib/model-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Run a CLI command via the brain's tool registry.
@@ -127,7 +128,7 @@ async function operateBuiltin(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Operation failed",
+      message: getErrorMessage(error, "Operation failed"),
     };
   }
 }

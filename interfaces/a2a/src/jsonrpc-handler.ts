@@ -4,6 +4,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
+import { getErrorMessage } from "@brains/utils/error";
 
 const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -222,8 +223,7 @@ function processInBackground(
         );
       } catch (error) {
         if (signal.aborted) return;
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
+        const errorMessage = getErrorMessage(error, "Unknown error");
         context.taskManager.updateState(
           taskId,
           "failed",
@@ -421,8 +421,7 @@ export function handleStreamMessage(
             }
           } catch (error) {
             if (signal.aborted) return;
-            const errorMessage =
-              error instanceof Error ? error.message : "Unknown error";
+            const errorMessage = getErrorMessage(error, "Unknown error");
             context.taskManager.updateState(
               taskId,
               "failed",

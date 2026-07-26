@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { z } from "@brains/utils/zod";
-import { OgCard } from "@brains/ui-library";
+import { OgCard, formatDate as formatDateStyled } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
@@ -38,11 +38,7 @@ function formatDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  return formatDateStyled(date, { style: "medium" });
 }
 
 function renderBlogOgImage(props: Record<string, unknown>): JSX.Element {

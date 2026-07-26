@@ -22,6 +22,7 @@ import {
   generateSettingsBase,
 } from "./lib/base-generator";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface ObsidianVaultDeps {
   mkdir: (path: string, options?: { recursive: boolean }) => void;
@@ -199,9 +200,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<
       return toolSuccess({ generated, skipped, fileClasses, bases });
     } catch (error) {
       this.logger.error("Failed to sync", { error });
-      return toolError(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      return toolError(getErrorMessage(error, "Unknown error"));
     }
   }
 }

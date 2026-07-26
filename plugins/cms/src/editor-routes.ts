@@ -34,6 +34,7 @@ import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeCmsBasePath } from "./cms-paths";
 import type { CmsWorkspaceRegistry } from "./workspace-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
 // to the shared dist/ui directory, where app.js is web-chat's bundle.
@@ -575,10 +576,7 @@ function requireEntityAction(
   } catch (error) {
     return jsonResponse(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : `CMS ${action} permission denied`,
+        error: getErrorMessage(error, `CMS ${action} permission denied`),
       },
       403,
     );
@@ -779,10 +777,7 @@ async function handleGetWorkspace(
   } catch (error) {
     return jsonResponse(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "CMS workspace data provider failed",
+        error: getErrorMessage(error, "CMS workspace data provider failed"),
       },
       502,
     );
@@ -823,10 +818,7 @@ async function handleWorkspaceAction(
   } catch (error) {
     return jsonResponse(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "CMS workspace action failed",
+        error: getErrorMessage(error, "CMS workspace action failed"),
       },
       400,
     );

@@ -72,6 +72,7 @@ import {
   webChatUploadAccept,
   webChatUploadMaxBytes,
 } from "../../src/upload-policy";
+import { getErrorMessage } from "@brains/utils/error";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 
@@ -572,9 +573,7 @@ export function App(): React.ReactElement {
       },
       onError: (error) => {
         setHistoryError(
-          error instanceof Error
-            ? error.message
-            : "Could not reopen that session.",
+          getErrorMessage(error, "Could not reopen that session."),
         );
       },
       onSettled: () => setLoadingConversationId(null),

@@ -8,6 +8,7 @@ import { tryParseDataUrl } from "@brains/image";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type ResolvedBuildImage = ResolvedSiteImage;
 export type BuildImageMap = SiteImageMap;
@@ -61,7 +62,7 @@ export class ImageBuildService {
             signal.throwIfAborted();
             this.logger.warn("Failed to resolve image", {
               imageId,
-              error: error instanceof Error ? error.message : String(error),
+              error: getErrorMessage(error),
             });
           }
         }),

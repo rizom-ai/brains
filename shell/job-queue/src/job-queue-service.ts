@@ -15,6 +15,7 @@ import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
 import { JobQueueRepository } from "./job-queue-repository";
 import { JobDeduplicator } from "./job-deduplicator";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Service for managing the generic job queue
@@ -270,7 +271,7 @@ export class JobQueueService implements IJobQueueService {
     } catch (error) {
       this.logger.error("Failed to enqueue job", {
         type,
-        error: error instanceof Error ? error.message : error,
+        error: getErrorMessage(error),
       });
       throw error;
     }

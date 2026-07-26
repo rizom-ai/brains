@@ -2,6 +2,7 @@ import type { MessageInterfaceOutput } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CardElement } from "chat";
 import { parseChatPlatform } from "./chat-platform";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface ChatCardOutput {
   card: CardElement;
@@ -61,7 +62,7 @@ export function formatChatNoticePayload(
 }
 
 export function formatChatErrorPayload(error: unknown): MessageInterfaceOutput {
-  const message = error instanceof Error ? error.message : "Unknown error";
+  const message = getErrorMessage(error, "Unknown error");
   return {
     card: {
       type: "card",

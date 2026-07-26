@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Head } from "@brains/ui-library";
+import { Head, formatDate } from "@brains/ui-library";
 import type { TemplateAgent, AgentSkill } from "../schemas/agent";
 import {
   DotPattern,
@@ -12,15 +12,6 @@ export interface AgentDetailProps {
   agent: TemplateAgent;
   prevAgent?: TemplateAgent | null;
   nextAgent?: TemplateAgent | null;
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 /**
@@ -81,7 +72,7 @@ export const AgentDetailTemplate = ({
   const isArchived = frontmatter.status === "archived";
   const isSighted = isSightedAgent(frontmatter);
   const introducers = frontmatter.introducedBy ?? [];
-  const firstSeen = formatDate(frontmatter.discoveredAt);
+  const firstSeen = formatDate(frontmatter.discoveredAt, { style: "medium" });
 
   const statusLine = isApproved ? (
     <span className="text-status-success">

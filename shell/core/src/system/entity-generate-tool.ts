@@ -18,6 +18,7 @@ import {
   normalizeOptionalString,
   runCreateInterceptor,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 function buildGenerateConfirmation(input: CreateInput): {
   summary: string;
@@ -228,10 +229,7 @@ async function executePromptGenerate(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to persist generation stub",
+      error: getErrorMessage(error, "Failed to persist generation stub"),
     };
   }
 
@@ -267,10 +265,7 @@ async function executePromptGenerate(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to queue generation job",
+      error: getErrorMessage(error, "Failed to queue generation job"),
     };
   }
 }

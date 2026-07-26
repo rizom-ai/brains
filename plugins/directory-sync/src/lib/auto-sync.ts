@@ -6,6 +6,7 @@ import type { DirectorySync } from "./directory-sync";
 import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 const jobDataSchema = z.record(z.string(), z.unknown());
 
@@ -39,14 +40,13 @@ export function setupAutoSync(
         logger.error("Auto-export FAILED for created entity", {
           id: entity.id,
           entityType: entity.entityType,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
         await operationStatus?.recordIssue({
           kind: "export",
           path: `${entity.entityType}/${entity.id}.md`,
-          message:
-            error instanceof Error ? error.message : "Entity export failed",
+          message: getErrorMessage(error, "Entity export failed"),
         });
       }
       return { success: true };
@@ -82,14 +82,13 @@ export function setupAutoSync(
         logger.error("Auto-export FAILED for updated entity", {
           entityType,
           entityId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
         await operationStatus?.recordIssue({
           kind: "export",
           path: `${entityType}/${entityId}.md`,
-          message:
-            error instanceof Error ? error.message : "Entity export failed",
+          message: getErrorMessage(error, "Entity export failed"),
         });
       }
       return { success: true };
@@ -160,7 +159,7 @@ export function setupFileWatcher(
       if (runId) {
         await operationStatus?.failRun(
           runId,
-          error instanceof Error ? error.message : "Watcher import failed",
+          getErrorMessage(error, "Watcher import failed"),
           "import",
         );
       }

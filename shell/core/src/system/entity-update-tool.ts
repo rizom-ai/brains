@@ -21,6 +21,8 @@ import {
   humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
+import { getPublishBoundaryState } from "./entity-publish-policy";
+import { getErrorMessage } from "@brains/utils/error";
 
 const pendingApprovalForEntitySchema = z.looseObject({
   entityType: z.literal("agent"),
@@ -388,10 +390,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         } catch (error) {
           return {
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to update entity",
+            error: getErrorMessage(error, "Failed to update entity"),
           };
         }
         return { success: true, data: { updated: entity.id } };

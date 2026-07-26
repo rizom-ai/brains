@@ -23,6 +23,7 @@ import {
 import { pushSecretsToBackend } from "../lib/push-secrets";
 import { normalizePushTarget, type PushTarget } from "../lib/push-target";
 import { type RunCommand } from "../lib/run-subprocess";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -66,7 +67,7 @@ export async function runSecretsPush(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Secret push failed",
+      message: getErrorMessage(error, "Secret push failed"),
     };
   }
 }

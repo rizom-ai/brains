@@ -11,6 +11,7 @@ import {
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface EmailConfig {
   transport: "resend";
@@ -129,7 +130,7 @@ export class EmailInterface extends MessageInterfacePlugin<
             logger.warn("Email delivery failed", {
               to: input.to,
               subject: input.subject,
-              error: error instanceof Error ? error.message : String(error),
+              error: getErrorMessage(error),
             });
           }
           return { success: false, error: "Email delivery failed" };

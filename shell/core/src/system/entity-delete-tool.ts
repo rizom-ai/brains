@@ -12,6 +12,7 @@ import {
   createSystemTool,
   getEntityDisplayLabel,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createEntityDeleteTool(services: SystemServices): Tool {
   const { entityService, entityRegistry, logger } = services;
@@ -81,10 +82,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         } catch (error) {
           return {
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to delete entity",
+            error: getErrorMessage(error, "Failed to delete entity"),
           };
         }
         return { success: true, data: { deleted: entity.id } };

@@ -35,6 +35,7 @@ import { UrlUtils } from "./lib/url-utils";
 import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface ExtractContentEvalInput {
   url: string;
@@ -211,10 +212,7 @@ export class LinkPlugin extends EntityPlugin<
           kind: "handled",
           result: {
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to queue link capture job",
+            error: getErrorMessage(error, "Failed to queue link capture job"),
           },
         };
       }

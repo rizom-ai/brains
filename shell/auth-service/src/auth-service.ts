@@ -65,7 +65,6 @@ import type {
   AuthPrincipal,
 } from "./principal-service";
 import type { VerifiedAccessToken } from "./token-verifier";
-import { errorMessage } from "./http-responses";
 import { unauthorizedHtmlResponse } from "./pages";
 import type { PasskeySetupRequired } from "./setup-flow";
 import type {
@@ -75,6 +74,7 @@ import type {
   ProtectedResourceMetadata,
   RegisteredOAuthClient,
 } from "./types";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type { PasskeySetupRequired } from "./setup-flow";
 
@@ -741,7 +741,7 @@ export class AuthService {
       requestIssuer = this.resolveRequestIssuer(request);
     } catch (error) {
       this.logger?.warn("Rejected OAuth request from untrusted issuer", {
-        error: errorMessage(error, String(error)),
+        error: getErrorMessage(error),
       });
       return new Response("Untrusted OAuth issuer", { status: 400 });
     }

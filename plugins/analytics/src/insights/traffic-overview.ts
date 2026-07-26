@@ -1,6 +1,7 @@
 import type { InsightHandler } from "@brains/plugins";
 import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils/date";
 import type { CloudflareClient } from "../lib/cloudflare-client";
+import { getErrorMessage } from "@brains/utils/error";
 
 const OVERVIEW_DAYS = 7;
 const TOP_PAGES_LIMIT = 10;
@@ -43,8 +44,7 @@ export function createTrafficOverviewInsight(
       };
     } catch (error) {
       return {
-        error:
-          error instanceof Error ? error.message : "Failed to fetch analytics",
+        error: getErrorMessage(error, "Failed to fetch analytics"),
         days: OVERVIEW_DAYS,
       };
     }

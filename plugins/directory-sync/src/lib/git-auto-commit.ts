@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";
 import type { DirectorySyncScheduler } from "./directory-sync-runtime";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 const AUTO_COMMIT_KEY = "git-auto-commit";
 
@@ -39,8 +40,7 @@ export function setupGitAutoCommit(
       );
     } catch (error) {
       logger.error("Git auto-commit failed", { error });
-      const message =
-        error instanceof Error ? error.message : "Git auto-commit failed";
+      const message = getErrorMessage(error, "Git auto-commit failed");
       await operationStatus?.recordIssue({ kind: "git", message });
       await operationStatus?.recordTerminal("save", "failed", message);
     }

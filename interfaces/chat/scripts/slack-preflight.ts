@@ -1,4 +1,5 @@
 import { runSlackPreflight } from "../src/slack-preflight";
+import { getErrorMessage } from "@brains/utils/error";
 
 try {
   const result = await runSlackPreflight(process.env);
@@ -6,7 +7,7 @@ try {
     `Slack preflight passed: ${result.botUserName} (${result.botUserId}) in ${result.teamName} (${result.teamId}).`,
   );
 } catch (error: unknown) {
-  const message = error instanceof Error ? error.message : "Unknown error";
+  const message = getErrorMessage(error, "Unknown error");
   console.error(`Slack preflight failed: ${message}`);
   process.exitCode = 1;
 }

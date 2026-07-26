@@ -35,6 +35,7 @@ import {
   webChatUploadsScope,
 } from "./lib/upload-promotion";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 const PENDING_IMAGE_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -380,7 +381,7 @@ export class ImagePlugin extends EntityPlugin<
         kind: "handled",
         result: {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         },
       };
     }

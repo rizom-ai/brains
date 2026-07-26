@@ -12,6 +12,7 @@ import type {
 } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface AtprotoRegistryConfig {
   enabled: boolean;
@@ -153,7 +154,7 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
             success: true,
             data: {
               valid: false,
-              error: error instanceof Error ? error.message : "Invalid record",
+              error: getErrorMessage(error, "Invalid record"),
             },
           };
         }

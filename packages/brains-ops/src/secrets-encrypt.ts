@@ -13,6 +13,7 @@ import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
+import { getErrorMessage } from "@brains/utils/error";
 
 const encryptedUserSecretsSchema: z.ZodObject<{
   gitSyncToken: z.ZodOptional<z.ZodString>;
@@ -366,7 +367,7 @@ function readPlaintextUserSecrets(
     return parseUserSecrets(contents);
   } catch (error) {
     throw new Error(
-      `Unable to parse plaintext secrets file ${plaintextPath}: ${error instanceof Error ? error.message : String(error)}`,
+      `Unable to parse plaintext secrets file ${plaintextPath}: ${getErrorMessage(error)}`,
       { cause: error },
     );
   }
@@ -405,7 +406,7 @@ async function readExistingEncryptedUserSecrets(
     return parseUserSecrets(plaintext);
   } catch (error) {
     throw new Error(
-      `Unable to parse decrypted secrets from ${encryptedPath}: ${error instanceof Error ? error.message : String(error)}`,
+      `Unable to parse decrypted secrets from ${encryptedPath}: ${getErrorMessage(error)}`,
       { cause: error },
     );
   }

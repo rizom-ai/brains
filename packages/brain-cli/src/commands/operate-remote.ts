@@ -1,5 +1,6 @@
 import type { CommandResult } from "../lib/command-result";
 import type { MCPClient } from "../lib/mcp-client";
+import { getErrorMessage } from "@brains/utils/error";
 
 /** A single tool from the MCP listTools response. */
 type RemoteTool = Awaited<ReturnType<MCPClient["listTools"]>>[number];
@@ -112,8 +113,7 @@ export async function operateRemote(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Remote operation failed",
+      message: getErrorMessage(error, "Remote operation failed"),
     };
   } finally {
     await client.close();

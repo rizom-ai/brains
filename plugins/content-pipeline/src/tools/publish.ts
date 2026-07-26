@@ -11,6 +11,7 @@ import {
   PublishExecutor,
   type PublishEntityExecutor,
 } from "../publish-executor";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Input schema for publish-pipeline:publish tool
@@ -184,7 +185,7 @@ export function createPublishTool(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
 
@@ -216,7 +217,7 @@ export function createPublishTool(
         } catch (error) {
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           };
         }
         if ("error" in publishResult) {
