@@ -1,0 +1,15 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    // TODO(brain-model-unification): Remove this separate model typecheck and
+    // restore exactOptionalPropertyTypes once all catalog packages compile
+    // cleanly through @rizom/brain's stricter public-package configuration.
+    "exactOptionalPropertyTypes": false,
+    "isolatedDeclarations": true
+  },
+  "include": ["src/model/canonical-brain.ts", "test/canonical-brain.test.ts"]
+}

@@ -15,7 +15,10 @@ function findMonorepoRoot(): string {
 }
 
 function readModelEnvSchema(monorepoRoot: string, model: string): string {
-  const modelDir = join(monorepoRoot, "brains", model);
+  const modelDir =
+    model === "brain"
+      ? join(monorepoRoot, "packages", "brain-cli")
+      : join(monorepoRoot, "brains", model);
   const templatePath = join(modelDir, "env.schema.template");
   if (existsSync(templatePath)) {
     return readFileSync(templatePath, "utf-8").trimEnd();
@@ -38,7 +41,7 @@ const outputPath = join(
   "generated",
   "bundled-model-env-schemas.ts",
 );
-const models = ["rover", "ranger", "relay"];
+const models = ["brain", "rover", "ranger", "relay"];
 
 const entries = models
   .map(

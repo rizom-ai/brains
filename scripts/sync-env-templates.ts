@@ -7,26 +7,47 @@
  * by hand.
  */
 import { readFileSync, writeFileSync } from "fs";
-import { join } from "path";
 import { roverEnvSchema } from "@brains/rover/src/env-schema";
 import { rangerEnvSchema } from "@brains/ranger/src/env-schema";
 import { relayEnvSchema } from "@brains/relay/env-schema";
+import { canonicalEnvSchema } from "../packages/brain-cli/src/model/env-schema";
 import {
   ENV_SCHEMA_HEADER,
   renderEnvSchemaSection,
   type EnvVarDecl,
 } from "@brains/utils/env-schema";
 
-const MODELS: Array<{ model: string; decls: EnvVarDecl[] }> = [
-  { model: "rover", decls: roverEnvSchema },
-  { model: "ranger", decls: rangerEnvSchema },
-  { model: "relay", decls: relayEnvSchema },
+const MODELS: Array<{
+  model: string;
+  decls: EnvVarDecl[];
+  templatePath: string;
+}> = [
+  {
+    model: "brain",
+    decls: canonicalEnvSchema,
+    templatePath: "packages/brain-cli/env.schema.template",
+  },
+  {
+    model: "rover",
+    decls: roverEnvSchema,
+    templatePath: "brains/rover/env.schema.template",
+  },
+  {
+    model: "ranger",
+    decls: rangerEnvSchema,
+    templatePath: "brains/ranger/env.schema.template",
+  },
+  {
+    model: "relay",
+    decls: relayEnvSchema,
+    templatePath: "brains/relay/env.schema.template",
+  },
 ];
 
 const check = process.argv.includes("--check");
 let stale = false;
 
-for (const { model, decls } of MODELS) {
+for (const { model, decls, templatePath } of MODELS) {
   const names = decls.map((decl) => decl.name);
   const duplicates = names.filter((name, i) => names.indexOf(name) !== i);
   if (duplicates.length > 0) {
@@ -34,7 +55,6 @@ for (const { model, decls } of MODELS) {
     process.exit(1);
   }
 
-  const templatePath = join("brains", model, "env.schema.template");
   const synced = `${ENV_SCHEMA_HEADER}\n\n${renderEnvSchemaSection(decls)}\n`;
   const current = readFileSync(templatePath, "utf8");
   if (current === synced) continue;

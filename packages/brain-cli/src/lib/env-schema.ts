@@ -96,6 +96,8 @@ function normalizeModelName(model: string): string {
 
 function getBundledModelEnvSchema(model: string): string {
   switch (normalizeModelName(model)) {
+    case "brain":
+      return bundledModelEnvSchemas.brain;
     case "rover":
       return bundledModelEnvSchemas.rover;
     case "ranger":

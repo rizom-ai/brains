@@ -8,8 +8,10 @@ import { roverEnvSchema } from "@brains/rover/src/env-schema";
 import { rangerEnvSchema } from "@brains/ranger/src/env-schema";
 import { relayEnvSchema } from "@brains/relay/env-schema";
 import { resolveModelEnvSchema } from "../src/lib/env-schema";
+import { canonicalEnvSchema } from "../src/model/env-schema";
 
 const MODELS: Array<{ model: string; decls: EnvVarDecl[] }> = [
+  { model: "brain", decls: canonicalEnvSchema },
   { model: "rover", decls: roverEnvSchema },
   { model: "ranger", decls: rangerEnvSchema },
   { model: "relay", decls: relayEnvSchema },
@@ -24,6 +26,14 @@ describe("env schema resolution", () => {
     const unavailableWorkspaceLookup = (): string => {
       throw new Error("workspace lookup unavailable");
     };
+
+    const canonicalSchema = resolveModelEnvSchema(
+      "brain",
+      unavailableWorkspaceLookup,
+    );
+    expect(canonicalSchema).toContain("AI_API_KEY=");
+    expect(canonicalSchema).toContain("GIT_SYNC_TOKEN=");
+    expect(canonicalSchema).toContain("DISCORD_BOT_TOKEN=");
 
     const roverSchema = resolveModelEnvSchema(
       "rover",
