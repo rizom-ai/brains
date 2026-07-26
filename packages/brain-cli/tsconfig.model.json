@@ -11,5 +11,5 @@
     "exactOptionalPropertyTypes": false,
     "isolatedDeclarations": true
   },
-  "include": ["src/model/canonical-brain.ts", "test/canonical-brain.test.ts"]
+  "include": ["src/model/canonical-brain.ts", "test/canonical-*.test.ts"]
 }

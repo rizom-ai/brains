@@ -1,0 +1,10 @@
+brain: brain
+anchor: person
+# Deliberately non-canonical order: resolution follows definition order.
+bundles: [publishing, site, core]
+site:
+  package: "@brains/site-default"
+  theme: "@rizom/theme-default"
+plugins:
+  directory-sync:
+    seedContentPath: ./seed-content

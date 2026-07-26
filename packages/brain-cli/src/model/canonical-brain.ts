@@ -53,6 +53,8 @@ import { wishlistPlugin } from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
 
 export const CORE_BUNDLE_ID = "core";
+export const SITE_BUNDLE_ID = "site";
+export const PUBLISHING_BUNDLE_ID = "publishing";
 
 export const coreBundle: CapabilityBundleDefinition = defineBundle({
   id: CORE_BUNDLE_ID,
@@ -86,6 +88,12 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "web-chat",
     "discord",
     "a2a",
+  ],
+  config: [
+    {
+      member: "dashboard",
+      value: { routePath: "/" },
+    },
   ],
   permissions: [
     {
@@ -124,6 +132,75 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "web-chat",
     "discord",
   ],
+});
+
+export const siteBundle: CapabilityBundleDefinition = defineBundle({
+  id: SITE_BUNDLE_ID,
+  members: [
+    "dashboard",
+    "site-info",
+    "site-content",
+    "site-builder",
+    "analytics",
+  ],
+  config: [
+    {
+      member: "dashboard",
+      value: { routePath: "/dashboard" },
+      overrides: CORE_BUNDLE_ID,
+    },
+  ],
+  evalDisable: ["dashboard", "analytics"],
+});
+
+export const publishingBundle: CapabilityBundleDefinition = defineBundle({
+  id: PUBLISHING_BUNDLE_ID,
+  members: [
+    "blog",
+    "series",
+    "portfolio",
+    "content-pipeline",
+    "social-media",
+    "newsletter",
+    "stock-photo",
+    "atproto",
+  ],
+  config: [
+    {
+      member: "content-pipeline",
+      value: {
+        generationSchedules: {
+          newsletter: "0 9 * * 1",
+          "social-post": "0 10 * * *",
+        },
+        generationConditions: {
+          newsletter: {
+            skipIfDraftExists: true,
+            minSourceEntities: 1,
+            sourceEntityType: "post",
+          },
+          "social-post": {
+            skipIfDraftExists: true,
+            maxUnpublishedDrafts: 5,
+          },
+        },
+      },
+    },
+    {
+      member: "social-media",
+      value: { autoGenerateOnBlogPublish: true },
+    },
+    {
+      member: "newsletter",
+      value: { doubleOptIn: true },
+    },
+  ],
+  agentInstructions: [
+    `Use the installed publishing capabilities for professional website content, essays, projects, decks, newsletters, and social distribution workflows. Treat publishing requests as production and distribution work rather than generic shared-memory capture.`,
+    `When answering questions like "what have I written about X" or "which posts relate to this deck/source", search first and use semantic search results as candidates, not proof. Summarize only clearly relevant entities whose title or content directly matches the asked topic or has substantial overlap with the source's main themes; omit weak/tangential candidates rather than presenting them as definite matches. A match based on only an isolated shared term or pattern is not enough; when one candidate is clearly stronger than the rest, list only the strongest clear match and say the others were tangential rather than naming them as matches.`,
+    `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types. After telling the user there are no draft blog posts, treat follow-ups like "make one draft" or "make one a draft" as requests to change an existing published post back to draft: ask which existing published post they want changed; do not offer to create a brand-new post and do not call system_generate to create a fresh draft from that ambiguous follow-up.`,
+  ],
+  evalDisable: ["atproto"],
 });
 
 /**
@@ -169,7 +246,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["onboarding", roverOnboardingPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["cms", cmsPlugin, {}],
-    ["dashboard", dashboardPlugin, { routePath: "/" }],
+    ["dashboard", dashboardPlugin, {}],
     ["admin", adminPlugin, undefined],
 
     ["site-info", siteInfoPlugin, undefined],
@@ -209,7 +286,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["chat", ChatInterface, (): PluginConfig => ({})],
   ],
-  bundles: [coreBundle],
+  bundles: [coreBundle, siteBundle, publishingBundle],
   deployment: {
     cdn: {
       enabled: true,

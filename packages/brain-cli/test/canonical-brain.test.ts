@@ -111,7 +111,7 @@ describe("canonical brain core", () => {
   test("owns one model-neutral catalog in @rizom/brain source", () => {
     expect(catalogIds(canonicalBrain)).toEqual(expectedCatalogIds);
     expect(new Set(expectedCatalogIds).size).toBe(expectedCatalogIds.length);
-    expect(canonicalBrain.bundles).toEqual([coreBundle]);
+    expect(canonicalBrain.bundles?.[0]).toEqual(coreBundle);
     expect(canonicalBrain.presets).toBeUndefined();
     expect(canonicalBrain.site).toBeUndefined();
     expect(canonicalBrain.theme).toBeUndefined();

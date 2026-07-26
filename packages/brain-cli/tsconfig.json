@@ -10,7 +10,7 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": [
     "src/model/canonical-brain.ts",
-    "test/canonical-brain.test.ts",
+    "test/canonical-*.test.ts",
     "test/fixtures/**"
   ]
 }
