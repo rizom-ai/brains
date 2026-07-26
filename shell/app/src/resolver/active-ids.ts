@@ -1,9 +1,22 @@
 import type { BrainDefinition, PresetName } from "../brain-definition";
+import type { CapabilityBundleDefinition } from "../bundle-definition";
+import {
+  resolveBundleSelection,
+  type BundleSelectionResolution,
+} from "../bundle-resolution";
 import type { InstanceOverrides } from "../instance-overrides";
 
-/** `null` means "no presets declared", which activates every id. */
+/** `null` means "no explicit selection", which activates every id. */
 export type ActiveIds = Set<string> | null;
 export type PluginOverrides = Record<string, Record<string, unknown>>;
+
+export interface ResolvedBrainSelection {
+  activeIds: ActiveIds;
+  activePreset: PresetName | undefined;
+  activeBundles: readonly string[];
+  bundleDefinitions: readonly CapabilityBundleDefinition[];
+  resolution: BundleSelectionResolution;
+}
 
 export function resolveActivePresetName(
   definition: BrainDefinition,
@@ -24,52 +37,72 @@ export function resolveActivePresetName(
   return presetName;
 }
 
-/**
- * Determine which plugin/interface IDs are active.
- *
- * Priority:
- * 1. If presets are defined: use preset (from overrides or defaultPreset),
- *    then apply add/remove
- * 2. If no presets: all IDs are active
- */
+export function resolveBrainSelection(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): ResolvedBrainSelection {
+  if (overrides?.preset && overrides.bundles !== undefined) {
+    throw new Error('"preset" and "bundles" are mutually exclusive');
+  }
+
+  const catalogIds = [
+    ...definition.capabilities.map(([id]) => id),
+    ...definition.interfaces.map(([id]) => id),
+  ];
+  const sharedInput = {
+    catalogIds,
+    mode: overrides?.mode,
+    evalDisable: definition.evalDisable,
+    add: overrides?.add,
+    remove: overrides?.remove,
+  } as const;
+
+  if (overrides?.bundles !== undefined) {
+    const bundleDefinitions = definition.bundles ?? [];
+    const resolution = resolveBundleSelection({
+      ...sharedInput,
+      definitions: bundleDefinitions,
+      selected: overrides.bundles,
+    });
+    return {
+      activeIds: new Set(resolution.activeMembers),
+      activePreset: undefined,
+      activeBundles: resolution.activeBundles,
+      bundleDefinitions,
+      resolution,
+    };
+  }
+
+  const activePreset = resolveActivePresetName(definition, overrides);
+  const catalog = new Set(catalogIds);
+  const legacyMembers = activePreset
+    ? (definition.presets?.[activePreset] ?? []).filter((id) => catalog.has(id))
+    : catalogIds;
+  const legacyBundle: CapabilityBundleDefinition = {
+    id: "__legacy-selection__",
+    members: [...new Set(legacyMembers)],
+  };
+  const resolution = resolveBundleSelection({
+    ...sharedInput,
+    definitions: [legacyBundle],
+    selected: [legacyBundle.id],
+  });
+
+  return {
+    activeIds: activePreset ? new Set(resolution.activeMembers) : null,
+    activePreset,
+    activeBundles: [],
+    bundleDefinitions: [],
+    resolution,
+  };
+}
+
+/** Determine which plugin/interface IDs are active. */
 export function resolveActiveIds(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): ActiveIds {
-  const allIds = new Set([
-    ...definition.capabilities.map(([id]) => id),
-    ...definition.interfaces.map(([id]) => id),
-  ]);
-
-  const presetName = resolveActivePresetName(definition, overrides);
-  if (!definition.presets || !presetName) return null;
-
-  const activeIds = new Set(definition.presets[presetName]);
-
-  // Eval mode: remove plugins with external side effects
-  if (overrides?.mode === "eval" && definition.evalDisable) {
-    for (const id of definition.evalDisable) {
-      activeIds.delete(id);
-    }
-  }
-
-  // Add: union with preset (only IDs that exist in brain definition)
-  if (overrides?.add) {
-    for (const id of overrides.add) {
-      if (allIds.has(id)) {
-        activeIds.add(id);
-      }
-    }
-  }
-
-  // Remove: difference from preset
-  if (overrides?.remove) {
-    for (const id of overrides.remove) {
-      activeIds.delete(id);
-    }
-  }
-
-  return activeIds;
+  return resolveBrainSelection(definition, overrides).activeIds;
 }
 
 export function isActive(activeIds: ActiveIds, id: string): boolean {

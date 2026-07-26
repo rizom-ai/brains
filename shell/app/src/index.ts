@@ -24,6 +24,7 @@ export type { LogLevel } from "./types";
 
 // Brain definition / resolver API
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
+export { defineBundle } from "./bundle-definition";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
 export { registerPackage, getPackage, hasPackage } from "./package-registry";
 export { collectOverridePackageRefs } from "./override-package-refs";
@@ -52,10 +53,16 @@ export type {
   PluginConfig,
   CapabilityEntry,
   CapabilityConfig,
+  CapabilityContext,
   PluginFactory,
   InterfaceEntry,
   InterfaceConstructor,
 } from "./brain-definition";
+export type {
+  BundleConfigContribution,
+  BundlePermissionContribution,
+  CapabilityBundleDefinition,
+} from "./bundle-definition";
 export type {
   ConventionalSiteOverrides,
   SitePackage,

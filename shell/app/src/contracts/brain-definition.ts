@@ -12,6 +12,7 @@
  */
 
 import type { PermissionConfig } from "@brains/templates";
+import type { CapabilityBundleDefinition } from "../bundle-definition";
 import type { SitePackage } from "../site-package";
 import type { DeploymentConfigInput, ReasoningEffort } from "../types";
 import type {
@@ -32,6 +33,7 @@ export type {
   PluginConfig,
   PresetName,
 } from "../brain-definition";
+export type { CapabilityBundleDefinition } from "../bundle-definition";
 export type { DeploymentConfigInput, ReasoningEffort } from "../types";
 export type { SitePackage } from "../site-package";
 export type { PermissionConfig } from "@brains/templates";
@@ -83,6 +85,7 @@ export interface BrainDefinition {
   theme?: string;
   capabilities: CapabilityEntry[];
   interfaces: InterfaceEntry[];
+  bundles?: CapabilityBundleDefinition[];
   presets?: Partial<Record<PresetName, string[]>>;
   defaultPreset?: PresetName;
   permissions?: PermissionConfig;

@@ -10,6 +10,7 @@ export interface BundleSelectionInput {
   definitions: readonly CapabilityBundleDefinition[];
   selected: readonly string[];
   mode?: "eval" | undefined;
+  evalDisable?: readonly string[] | undefined;
   add?: readonly string[] | undefined;
   remove?: readonly string[] | undefined;
 }
@@ -18,6 +19,7 @@ export interface ResolvedBundlePermissionContribution {
   bundleId: string;
   member: string;
   config: PermissionConfig;
+  overrides?: string | undefined;
 }
 
 export interface BundleSelectionResolution {
@@ -253,18 +255,28 @@ function validateDefinitions(
       }
     }
 
-    for (const contribution of definition.config ?? []) {
-      if (!contribution.overrides) continue;
+    const overrideReferences = [
+      ...(definition.config ?? []).map(({ overrides }) => ({
+        kind: "config",
+        overrides,
+      })),
+      ...(definition.permissions ?? []).map(({ overrides }) => ({
+        kind: "permission",
+        overrides,
+      })),
+    ];
+    for (const reference of overrideReferences) {
+      if (!reference.overrides) continue;
 
-      const overriddenIndex = definitionIndexes.get(contribution.overrides);
+      const overriddenIndex = definitionIndexes.get(reference.overrides);
       if (overriddenIndex === undefined) {
         throw new Error(
-          `Bundle "${definition.id}" references unknown bundle "${contribution.overrides}" in its config override`,
+          `Bundle "${definition.id}" references unknown bundle "${reference.overrides}" in its ${reference.kind} override`,
         );
       }
       if (overriddenIndex >= index) {
         throw new Error(
-          `Bundle "${definition.id}" may only override an earlier bundle "${contribution.overrides}"`,
+          `Bundle "${definition.id}" may only override an earlier bundle "${reference.overrides}"`,
         );
       }
     }
@@ -368,7 +380,12 @@ export function resolveBundleSelection(
   const active = new Set(
     activeDefinitions.flatMap((definition) => definition.members),
   );
-  const evalDisable = collectEvalDisable(activeDefinitions);
+  const evalDisable = [
+    ...new Set([
+      ...collectEvalDisable(activeDefinitions),
+      ...(input.evalDisable ?? []).filter((member) => catalog.has(member)),
+    ]),
+  ];
 
   if (input.mode === "eval") {
     for (const member of evalDisable) active.delete(member);
@@ -393,10 +410,11 @@ export function resolveBundleSelection(
   const permissionContributions = activeDefinitions.flatMap((definition) =>
     (definition.permissions ?? [])
       .filter(({ member }) => activeMemberSet.has(member))
-      .map(({ member, config }) => ({
+      .map(({ member, config, overrides }) => ({
         bundleId: definition.id,
         member,
         config: cloneValue(config),
+        ...(overrides ? { overrides } : {}),
       })),
   );
 

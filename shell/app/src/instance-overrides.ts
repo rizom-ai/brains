@@ -109,6 +109,7 @@ export interface InstanceOverrides {
   model?: string | undefined;
   reasoningEffort?: ReasoningEffort | undefined;
   preset?: "core" | "default" | "full" | undefined;
+  bundles?: string[] | undefined;
   mode?: "eval" | undefined;
   add?: string[] | undefined;
   remove?: string[] | undefined;
@@ -144,7 +145,7 @@ export interface InstanceOverrides {
     | undefined;
 }
 
-const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
+const rawInstanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
 
@@ -203,8 +204,11 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort: reasoningEffortSchema.optional(),
 
-  /** Preset name — selects a curated subset of capabilities + interfaces */
+  /** Preset name — selects a transitional curated subset. */
   preset: overridePresetNameSchema.optional(),
+
+  /** Capability bundles — mutually exclusive with transitional presets. */
+  bundles: z.array(z.string().min(1)).optional(),
 
   /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
   mode: overrideModeSchema.optional(),
@@ -257,6 +261,17 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
     })
     .optional(),
 });
+
+const instanceOverridesSchema: z.ZodType<InstanceOverrides> =
+  rawInstanceOverridesSchema.superRefine((overrides, ctx) => {
+    if (overrides.preset && overrides.bundles !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '"preset" and "bundles" are mutually exclusive',
+        path: ["bundles"],
+      });
+    }
+  });
 
 /**
  * Instance overrides — parsed from brain.yaml.

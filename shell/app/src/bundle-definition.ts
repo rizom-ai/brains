@@ -33,6 +33,7 @@ export interface BundleConfigContribution {
 export interface BundlePermissionContribution {
   member: string;
   config: PermissionConfig;
+  overrides?: string | undefined;
 }
 
 export interface CapabilityBundleDefinition {
@@ -61,6 +62,7 @@ export const bundlePermissionContributionSchema: z.ZodType<BundlePermissionContr
   z.strictObject({
     member: bundleIdSchema,
     config: opaquePermissionConfigSchema,
+    overrides: bundleIdSchema.optional(),
   });
 
 const rawCapabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinition> =

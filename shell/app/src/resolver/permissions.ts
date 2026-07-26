@@ -3,6 +3,7 @@ import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
   type EntityActionRequiredLevel,
+  type PermissionConfig,
 } from "@brains/templates";
 import type { BrainDefinition } from "../brain-definition";
 import type { InstanceOverrides } from "../instance-overrides";
@@ -27,30 +28,32 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
   },
 };
 
-/**
- * Build the permissions config by merging definition defaults with yaml overrides.
- *
- * Priority: yaml `permissions` section > yaml top-level `admins`/`anchors`/`trusted` > definition defaults
- */
+/** Build permissions in platform → plugin → definition → bundle → instance order. */
 export function buildPermissions(
   definitionPerms: BrainDefinition["permissions"],
+  bundlePerms: PermissionConfig | undefined,
   overrides?: Omit<InstanceOverrides, "brain">,
   plugins: Plugin[] = [],
 ): { permissions: Record<string, unknown> } | Record<string, never> {
   const yamlPerms = overrides?.permissions;
   const pluginEntityActions = mergePluginEntityActions(plugins);
+  const permissionDefaults = mergePermissionDefaults(
+    definitionPerms,
+    bundlePerms,
+  );
 
   const entityActions = mergeEntityActions(
     PLATFORM_ENTITY_ACTION_DEFAULTS,
     pluginEntityActions,
     definitionPerms?.entityActions,
+    bundlePerms?.entityActions,
     yamlPerms?.entityActions,
   );
   validatePublishPolicy(entityActions);
 
   return {
     permissions: {
-      ...(definitionPerms ?? {}),
+      ...permissionDefaults,
       // Top-level values remain a compatibility input path.
       ...(overrides?.admins && { admins: overrides.admins }),
       ...(overrides?.anchors && { anchors: overrides.anchors }),
@@ -62,6 +65,54 @@ export function buildPermissions(
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
       ...(entityActions && { entityActions }),
     },
+  };
+}
+
+function unionPrincipals(
+  base: readonly string[] | undefined,
+  contribution: readonly string[] | undefined,
+): string[] | undefined {
+  if (!base && !contribution) return undefined;
+  return [...new Set([...(base ?? []), ...(contribution ?? [])])];
+}
+
+function mergePermissionRules(
+  base: PermissionConfig["rules"],
+  contribution: PermissionConfig["rules"],
+): PermissionConfig["rules"] {
+  if (!base && !contribution) return undefined;
+  const rules = new Map(
+    (base ?? []).map((rule) => [rule.pattern, { ...rule }]),
+  );
+  for (const rule of contribution ?? []) {
+    rules.set(rule.pattern, { ...rule });
+  }
+  return [...rules.values()];
+}
+
+function mergePermissionDefaults(
+  definitionPerms: BrainDefinition["permissions"],
+  bundlePerms: PermissionConfig | undefined,
+): PermissionConfig {
+  const admins = unionPrincipals(definitionPerms?.admins, bundlePerms?.admins);
+  const anchors = unionPrincipals(
+    definitionPerms?.anchors,
+    bundlePerms?.anchors,
+  );
+  const trusted = unionPrincipals(
+    definitionPerms?.trusted,
+    bundlePerms?.trusted,
+  );
+  const rules = mergePermissionRules(
+    definitionPerms?.rules,
+    bundlePerms?.rules,
+  );
+
+  return {
+    ...(admins ? { admins } : {}),
+    ...(anchors ? { anchors } : {}),
+    ...(trusted ? { trusted } : {}),
+    ...(rules ? { rules } : {}),
   };
 }
 
@@ -111,10 +162,7 @@ const ENTITY_ACTION_RESTRICTIVENESS: Record<EntityActionRequiredLevel, number> =
     never: 3,
   };
 
-/**
- * Publishing must never be easier than editing: a brain that lets trusted
- * collaborators publish what only admins may edit has no gate at all.
- */
+/** Publishing must never be easier than editing. */
 function validatePublishPolicy(
   policy: EntityActionPolicyConfig | undefined,
 ): void {

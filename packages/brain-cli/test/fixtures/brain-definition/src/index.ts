@@ -1,8 +1,10 @@
 import {
   PLUGIN_API_VERSION,
   defineBrain,
+  defineBundle,
   type BrainDefinition,
   type BrainEnvironment,
+  type CapabilityBundleDefinition,
   type CapabilityEntry,
   type Plugin,
   type PluginConfig,
@@ -18,10 +20,16 @@ const fixturePlugin: Plugin = {
 const fixtureCapability: CapabilityEntry = [
   "fixture-service",
   (_config: PluginConfig): Plugin => fixturePlugin,
-  (env: BrainEnvironment): PluginConfig => ({
+  (env: BrainEnvironment, context): PluginConfig => ({
     greeting: env["FIXTURE_GREETING"],
+    activeBundles: context.bundles,
   }),
 ];
+
+const coreBundle: CapabilityBundleDefinition = defineBundle({
+  id: "core",
+  members: ["fixture-service"],
+});
 
 export const brain: BrainDefinition = defineBrain({
   name: "fixture-brain",
@@ -35,6 +43,7 @@ export const brain: BrainDefinition = defineBrain({
   },
   capabilities: [fixtureCapability],
   interfaces: [],
+  bundles: [coreBundle],
   defaultPreset: "core",
   presets: { core: ["fixture-service"] },
 });

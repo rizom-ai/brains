@@ -109,6 +109,32 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("publishes bundle authoring from the root declaration", () => {
+    const rootTypes = readFileSync(join(pkgDir, "dist", "index.d.ts"), "utf-8");
+
+    expect(rootTypes).toContain("CapabilityBundleDefinition");
+    expect(rootTypes).toContain("declare function defineBundle");
+  });
+
+  it("ships runtime validation for public bundle definitions", () => {
+    const result = spawnSync(
+      "bun",
+      [
+        "-e",
+        `import { defineBundle } from "./dist/index.js";
+         defineBundle({ id: "core", members: ["alpha"] });
+         try {
+           defineBundle({ id: "core", members: ["alpha", "alpha"] });
+           process.exit(1);
+         } catch {}`,
+      ],
+      { cwd: pkgDir, encoding: "utf-8" },
+    );
+
+    expect(`${result.stdout}\n${result.stderr}`).toBe("\n");
+    expect(result.status).toBe(0);
+  });
+
   it("does not leave emitted declarations in source directories", () => {
     const declarations = listDeclarationFiles(join(pkgDir, "src")).map((path) =>
       relative(pkgDir, path),
@@ -237,6 +263,7 @@ describe("@rizom/brain public plugin API surface", () => {
     );
     expect(source).toContain('from "@rizom/brain"');
     expect(source).toContain("defineBrain");
+    expect(source).toContain("defineBundle");
     expect(source).not.toContain("@brains/");
 
     const result = spawnSync(

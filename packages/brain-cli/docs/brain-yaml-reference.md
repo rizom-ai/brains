@@ -196,9 +196,28 @@ Set OpenAI reasoning effort. Supported values are `none`, `low`, `medium`,
 reasoningEffort: low
 ```
 
+### `bundles`
+
+Select capability bundles declared by the brain definition. Bundle list order has no
+config, instruction, or permission meaning; the definition's canonical order controls
+composition.
+
+```yaml
+bundles:
+  - core
+  - site
+```
+
+`bundles` and the transitional `preset` field are mutually exclusive. The current built-in
+Rover, Relay, and Ranger models still use presets while their canonical bundle definitions
+are introduced; `bundles` is available to bundle-aware definitions during that migration.
+Definition authors can import `defineBundle` and `CapabilityBundleDefinition` from
+`@rizom/brain`; `defineBundle` validates the resource-free definition immediately.
+
 ### `preset`
 
-Select a curated subset of capabilities and interfaces defined by the brain model.
+Select a transitional curated subset of capabilities and interfaces defined by the brain
+model.
 
 Current built-in presets:
 
@@ -220,7 +239,7 @@ Currently supported:
 
 ### `add` / `remove`
 
-Refine the selected preset.
+Refine the selected bundle set or transitional preset.
 
 ```yaml
 preset: default

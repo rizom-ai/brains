@@ -2,6 +2,7 @@ import type { Plugin } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput, ReasoningEffort } from "./types";
 import type { SitePackage } from "./site-package";
+import type { CapabilityBundleDefinition } from "./bundle-definition";
 
 import { z } from "@brains/utils/zod";
 
@@ -51,6 +52,7 @@ export type PluginConfig = Record<string, unknown>;
  * - undefined (plugin uses its own defaults)
  */
 export interface CapabilityContext {
+  bundles: readonly string[];
   preset?: PresetName;
 }
 
@@ -174,6 +176,12 @@ export interface BrainDefinition {
    * or null to skip (e.g. when credentials are missing).
    */
   interfaces: InterfaceEntry[];
+
+  /**
+   * Ordered capability bundles. Definition order controls deterministic
+   * config, instruction, eval, and permission composition.
+   */
+  bundles?: CapabilityBundleDefinition[];
 
   /**
    * Named presets — curated subsets of capabilities + interfaces.
