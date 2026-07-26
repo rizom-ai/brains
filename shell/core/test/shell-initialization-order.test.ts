@@ -1,58 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { resetAllSingletons } from "../src/initialization/reset";
+import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import {
-  AnchorProfileService,
-  BrainCharacterService,
-} from "@brains/identity-service";
-import type { ShellConfigInput } from "../src/config";
-import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Daemon, Plugin } from "@brains/plugins";
-import { PluginManager, SYSTEM_CHANNELS } from "@brains/plugins";
-import { EntityRegistry } from "@brains/entity-service";
-import {
-  JobQueueWorker,
-  JobQueueService,
-  BatchJobManager,
-  JobProgressMonitor,
-} from "@brains/job-queue";
-import { DataSourceRegistry } from "@brains/entity-service";
-import { MessageBus } from "@brains/messaging-service";
-
-async function resetAllSingletons(): Promise<void> {
-  await Shell.resetInstance();
-  ShellInitializer.resetInstance();
-  PluginManager.resetInstance();
-  MessageBus.resetInstance();
-  EntityRegistry.resetInstance();
-  JobQueueWorker.resetInstance();
-  JobQueueService.resetInstance();
-  BatchJobManager.resetInstance();
-  JobProgressMonitor.resetInstance();
-  DataSourceRegistry.resetInstance();
-  BrainCharacterService.resetInstance();
-  AnchorProfileService.resetInstance();
-}
-
-function createTestConfig(dir: string): ShellConfigInput {
-  return {
-    plugins: [],
-    database: { url: `file:${dir}/test.db` },
-    jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
-    conversationDatabase: { url: `file:${dir}/test-conv.db` },
-    runtimeStateDatabase: { url: `file:${dir}/test-runtime-state.db` },
-    embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
-    ai: {
-      model: "claude-haiku-4-5",
-      apiKey: "test-key",
-    },
-    embedding: {
-      cacheDir: `${dir}/embeddings`,
-      model: "fast-all-MiniLM-L6-v2",
-    },
-  };
-}
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 
 const mockEmbeddingService = {
   dimensions: 1536,
@@ -141,7 +94,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [webserverPlugin, directorySyncLikePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -176,7 +129,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [testPlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -202,7 +155,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [entityPlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -247,7 +200,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -298,7 +251,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -336,7 +289,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -390,7 +343,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "startup-check" });
@@ -425,7 +378,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
@@ -470,7 +423,7 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [orderCheckPlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize();

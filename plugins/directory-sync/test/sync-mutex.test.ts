@@ -1,13 +1,13 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import { createTempDataDir } from "@brains/plugins/test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
 import { createMockServicePluginContext } from "@brains/test-utils";
-import { mkdtemp, writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { tmpdir } from "os";
 import { rmSync } from "fs";
 
 /**
@@ -21,7 +21,7 @@ describe("sync mutex", () => {
   let context: ReturnType<typeof createMockServicePluginContext>;
 
   beforeEach(async () => {
-    testDir = await mkdtemp(join(tmpdir(), "sync-mutex-test-"));
+    testDir = await createTempDataDir("sync-mutex-test-");
 
     // Create a file so queueSyncBatch has something to work with
     await mkdir(join(testDir, "note"), { recursive: true });

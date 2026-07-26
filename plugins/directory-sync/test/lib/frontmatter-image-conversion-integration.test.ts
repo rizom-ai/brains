@@ -1,19 +1,13 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { createTempDataDirSync } from "@brains/plugins/test";
 import { DirectorySync } from "../../src/lib/directory-sync";
 import type { IEntityService } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-import {
-  mkdtempSync,
-  writeFileSync,
-  readFileSync,
-  rmSync,
-  mkdirSync,
-} from "fs";
+import { writeFileSync, readFileSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
-import { tmpdir } from "os";
 import type { JobRequest } from "../../src/types";
 
 describe("DirectorySync - Non-blocking Image Conversion", () => {
@@ -26,7 +20,7 @@ describe("DirectorySync - Non-blocking Image Conversion", () => {
 
   beforeEach(() => {
     // Create temp directory
-    tempDir = mkdtempSync(join(tmpdir(), "directory-sync-image-test-"));
+    tempDir = createTempDataDirSync("directory-sync-image-test-");
 
     // Track queued jobs
     queuedJobs = [];

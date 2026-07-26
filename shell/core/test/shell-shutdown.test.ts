@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
-import type { ShellConfigInput } from "../src/config";
 import { resetAllSingletons } from "../src/initialization/reset";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
@@ -10,25 +10,6 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
-
-function createTestConfig(dir: string): ShellConfigInput {
-  return {
-    plugins: [],
-    database: { url: `file:${dir}/test.db` },
-    jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
-    conversationDatabase: { url: `file:${dir}/test-conv.db` },
-    runtimeStateDatabase: { url: `file:${dir}/test-runtime-state.db` },
-    embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
-    ai: {
-      model: "claude-haiku-4-5",
-      apiKey: "test-key",
-    },
-    embedding: {
-      cacheDir: `${dir}/embeddings`,
-      model: "fast-all-MiniLM-L6-v2",
-    },
-  };
-}
 
 async function runMigrations(dir: string): Promise<void> {
   await migrateEntities({ url: `file:${dir}/test.db` });
@@ -85,7 +66,7 @@ describe("Shell shutdown", () => {
 
   it("should close entity database connection on shutdown", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     await shell.initialize();
 
@@ -116,7 +97,7 @@ describe("Shell shutdown", () => {
 
   it("should close job queue database connection on shutdown", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     await shell.initialize();
 
@@ -143,7 +124,7 @@ describe("Shell shutdown", () => {
 
   it("should close runtime state database connection on shutdown", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     await shell.initialize();
 
@@ -171,7 +152,7 @@ describe("Shell shutdown", () => {
 
   it("should close databases when an earlier finalizer fails", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shutdownError = new Error("worker failed to stop");
     const shell = Shell.createFresh(config, {
       ...deps,
@@ -259,7 +240,7 @@ describe("Shell shutdown", () => {
     };
 
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [daemonPlugin];
     const shell = Shell.createFresh(config, deps);
     await shell.initialize();
@@ -287,7 +268,7 @@ describe("Shell shutdown", () => {
     };
 
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [plugin];
     const shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
@@ -305,7 +286,7 @@ describe("Shell shutdown", () => {
 
   it("makes concurrent shell initialization callers join one boot", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     const initializationStarted = deferred();
     const releaseInitialization = deferred();
@@ -333,7 +314,7 @@ describe("Shell shutdown", () => {
 
   it("rejects a conflicting mode while shell boot is admitted", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     const initializationStarted = deferred();
     const releaseInitialization = deferred();
@@ -367,7 +348,7 @@ describe("Shell shutdown", () => {
 
   it("waits for admitted shell boot before shutdown", async () => {
     await runMigrations(testDir.dir);
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     const shell = Shell.createFresh(config, deps);
     const entityInitializationPaused = deferred();
     const releaseEntityInitialization = deferred();
@@ -396,7 +377,7 @@ describe("Shell shutdown", () => {
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {
     await runMigrations(testDir.dir);
-    const config1 = createTestConfig(testDir.dir);
+    const config1 = createTestShellConfig(testDir.dir);
     const shell1 = Shell.createFresh(config1, deps);
     await shell1.initialize();
 
@@ -410,7 +391,7 @@ describe("Shell shutdown", () => {
     // each Shell.createFresh() owns an independent service graph.
     const testDir2 = await createTestDirectory();
     await runMigrations(testDir2.dir);
-    const config2 = createTestConfig(testDir2.dir);
+    const config2 = createTestShellConfig(testDir2.dir);
     const shell2 = Shell.createFresh(config2, deps);
     await shell2.initialize();
 

@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mockFetch } from "@brains/test-utils";
 import { CloudflareClient } from "../src/lib/cloudflare-client";
 import type { CloudflareConfig } from "../src/config";
 
@@ -11,7 +12,7 @@ const originalFetch = globalThis.fetch;
 function installMockFetch(
   handler: (url: string, options: RequestInit) => Promise<Response>,
 ): void {
-  globalThis.fetch = mock(handler) as unknown as typeof fetch;
+  mockFetch(handler);
 }
 
 /**

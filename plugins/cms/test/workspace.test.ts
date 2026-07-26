@@ -1,6 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type {
@@ -28,7 +26,7 @@ function findRoute(
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
   const authPlugin = new AuthServicePlugin({
-    storageDir: await mkdtemp(join(tmpdir(), "brains-cms-workspace-auth-")),
+    storageDir: await createTempDataDir("brains-cms-workspace-auth-"),
   });
   await authPlugin.register(shell);
   return (await authPlugin.getService().createAuthSession()).cookie;

@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mockFetch } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { Tool, ToolResponse } from "@brains/plugins";
@@ -28,10 +29,10 @@ const originalFetch = globalThis.fetch;
  */
 function installMockFetch(responses: Response[]): void {
   let callIndex = 0;
-  globalThis.fetch = mock(() => {
+  mockFetch(() => {
     const response = responses[callIndex++];
     return Promise.resolve(response ?? new Response("", { status: 500 }));
-  }) as unknown as typeof fetch;
+  });
 }
 
 /** Create a JSON response with status 200. */

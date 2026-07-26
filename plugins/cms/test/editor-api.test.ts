@@ -1,6 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
@@ -171,7 +169,7 @@ async function seedPost(
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
   const authPlugin = new AuthServicePlugin({
-    storageDir: await mkdtemp(join(tmpdir(), "brains-cms-editor-auth-")),
+    storageDir: await createTempDataDir("brains-cms-editor-auth-"),
   });
   await authPlugin.register(shell);
   const session = await authPlugin.getService().createAuthSession();

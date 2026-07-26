@@ -13,6 +13,12 @@ import {
   AnchorProfileService,
   BrainCharacterService,
 } from "@brains/identity-service";
+import {
+  BatchJobManager,
+  JobProgressMonitor,
+  JobQueueService,
+  JobQueueWorker,
+} from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import { AttachmentRegistry, PluginManager } from "@brains/plugins";
@@ -30,6 +36,10 @@ export async function resetCoreServiceSingletons(): Promise<void> {
   PluginManager.resetInstance();
   MCPService.resetInstance();
   MessageBus.resetInstance();
+  JobQueueWorker.resetInstance();
+  JobQueueService.resetInstance();
+  BatchJobManager.resetInstance();
+  JobProgressMonitor.resetInstance();
   TemplateRegistry.resetInstance();
   RenderService.resetInstance();
   DaemonRegistry.resetInstance();

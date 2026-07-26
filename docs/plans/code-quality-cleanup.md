@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. Sourced from a five-agent codebase review (2026-07-25) covering `shell/`, `plugins/`, `entities/`, `shared/`, and `interfaces/`+`packages/`+`brains/`. All load-bearing claims below were re-verified against the current tree before this plan was written. Work happens in worktree `~/Documents/brains-worktrees/code-quality-cleanup` (branch `work/code-quality-cleanup`); each phase lands independently green.
+In progress. Phases 1–3 are complete on `work/code-quality-cleanup`; phases 4–5 remain. Sourced from a five-agent codebase review (2026-07-25) covering `shell/`, `plugins/`, `entities/`, `shared/`, and `interfaces/`+`packages/`+`brains/`. All load-bearing claims below were re-verified against the current tree before this plan was written. Work happens in worktree `~/Documents/brains-worktrees/code-quality-cleanup` (branch `work/code-quality-cleanup`); each phase lands independently green.
+
+Phase 3 deviations: the topics/conversation-memory eval-handler `./eval` move was dropped — the handlers are statically registered by their plugins at runtime, so a subpath export changes neither bundling nor registration (needs a config-gated registration design, and note `createSwotEvalPlugin`, the "assessment pattern", itself has zero consumers). The interface-barrel sweep was folded into phase 5's public-surface collapse.
 
 ## Decisions
 
