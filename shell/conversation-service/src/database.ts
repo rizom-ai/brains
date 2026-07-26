@@ -30,18 +30,3 @@ export function createConversationDatabase(config: ConversationDbConfig): {
 
   return { db, client, url };
 }
-
-/**
- * Enable WAL mode and set busy timeout for better concurrent access
- */
-export async function enableWALModeForConversations(
-  client: Client,
-  url: string,
-): Promise<void> {
-  // Only enable WAL mode and busy timeout for local SQLite files
-  if (url.startsWith("file:")) {
-    await client.execute("PRAGMA journal_mode = WAL");
-    // Set busy timeout to 5 seconds - SQLite will wait instead of returning SQLITE_BUSY
-    await client.execute("PRAGMA busy_timeout = 5000");
-  }
-}

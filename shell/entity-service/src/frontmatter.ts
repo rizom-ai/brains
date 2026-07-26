@@ -24,13 +24,6 @@ export interface FrontmatterConfig<T extends BaseEntity> {
   customSerializers?: {
     [K in keyof T]?: (value: T[K]) => unknown;
   };
-
-  /**
-   * Custom deserializers for complex fields
-   */
-  customDeserializers?: {
-    [K in keyof T]?: (value: unknown) => T[K];
-  };
 }
 
 export interface FrontmatterValidationSchema<T> {
@@ -161,30 +154,6 @@ export function parseMarkdownWithFrontmatter<T>(
     content: content.trim(),
     metadata: schema.parse(normalizedData),
   };
-}
-
-/**
- * Apply custom deserializers to metadata
- */
-export function deserializeMetadata<T extends BaseEntity>(
-  metadata: Record<string, unknown>,
-  config?: FrontmatterConfig<T>,
-): Record<string, unknown> {
-  if (!config?.customDeserializers) {
-    return metadata;
-  }
-
-  const result: Record<string, unknown> = { ...metadata };
-
-  for (const [field, deserializer] of Object.entries(
-    config.customDeserializers,
-  )) {
-    if (field in metadata) {
-      result[field] = deserializer(metadata[field]);
-    }
-  }
-
-  return result;
 }
 
 /**

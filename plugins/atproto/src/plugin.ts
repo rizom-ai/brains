@@ -665,10 +665,6 @@ export class AtprotoPlugin extends ServicePlugin<
     }
   }
 
-  protected override async getTools(): Promise<[]> {
-    return [];
-  }
-
   private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
     context: ServicePluginContext,
     options: PublishEntityOptions,

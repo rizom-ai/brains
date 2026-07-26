@@ -111,7 +111,6 @@ export { internalFullScope } from "./internal-scope";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
   getPublishBoundaryState,
-  getStatusAfterUpdate,
   type PublishBoundaryState,
 } from "./publish-policy";
 

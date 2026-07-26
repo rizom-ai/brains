@@ -40,7 +40,6 @@ export {
 } from "./agent-response";
 export {
   AGENT_CONTEXT_REQUEST_CHANNEL,
-  agentContextPermissionLevelSchema,
   agentContextRequestSchema,
   agentContextItemSchema,
   agentContextResponseSchema,

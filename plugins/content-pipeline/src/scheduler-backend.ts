@@ -4,10 +4,8 @@
  */
 export {
   CronerBackend,
-  TestSchedulerBackend,
   type CronScheduleOptions,
   type ScheduledJob,
   type SchedulerBackend,
   type SchedulerCallback,
-  type TestSchedulerBackendOptions,
 } from "@brains/scheduler";

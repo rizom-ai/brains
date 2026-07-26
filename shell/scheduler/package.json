@@ -14,7 +14,8 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./test": "./src/test.ts"
   },
   "main": "./src/index.ts",
   "private": true,

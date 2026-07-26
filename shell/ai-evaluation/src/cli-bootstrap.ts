@@ -1,6 +1,6 @@
 import { join } from "path";
 
-export async function loadCliEnvironment(): Promise<void> {
+async function loadCliEnvironment(): Promise<void> {
   const { config } = await import("dotenv");
   config({ path: join(import.meta.dir, "..", ".env") });
 }

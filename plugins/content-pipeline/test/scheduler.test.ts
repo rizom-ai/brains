@@ -5,11 +5,11 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import {
-  TestSchedulerBackend,
   type ScheduledJob,
   type SchedulerBackend,
   type SchedulerCallback,
 } from "../src/scheduler-backend";
+import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;

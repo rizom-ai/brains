@@ -1,4 +1,4 @@
-import type { BaseEntity, EntityTypeConfig } from "./types";
+import type { EntityTypeConfig } from "./types";
 
 interface EntityTypeConfigProvider {
   getEntityTypeConfig(entityType: string): EntityTypeConfig;
@@ -28,14 +28,4 @@ export function getPublishBoundaryState(
   const newIsPublish = publishStatuses.includes(newStatus);
   if (!newIsPublish) return "non-publish";
   return oldIsPublish ? "within-publish-set" : "boundary";
-}
-
-export function getStatusAfterUpdate(
-  entity: BaseEntity,
-  updated: BaseEntity,
-): { oldStatus: unknown; newStatus: unknown } {
-  return {
-    oldStatus: entity.metadata["status"],
-    newStatus: updated.metadata["status"],
-  };
 }

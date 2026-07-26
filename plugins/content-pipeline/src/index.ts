@@ -28,7 +28,6 @@ export {
 export { RetryTracker, type RetryInfo } from "./retry-tracker";
 export {
   CronerBackend,
-  TestSchedulerBackend,
   type CronScheduleOptions,
   type SchedulerBackend,
   type ScheduledJob,
