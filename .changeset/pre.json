@@ -332,6 +332,7 @@
     "proximity-map-full-width",
     "proximity-map-polish",
     "proximity-map-template-name",
+    "proxy-aware-same-origin-guard",
     "public-entity-types-reconciliation",
     "public-notes-seed-topics",
     "public-site-package-deps-republish",

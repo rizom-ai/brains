@@ -1,5 +1,14 @@
 # @brains/discord
 
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- Updated dependencies [[`db6650f`](https://github.com/rizom-ai/brains/commit/db6650f02557ff02d04111a240d0dd2903c0b87b)]:
+  - @brains/auth-service@0.2.0-alpha.228
+  - @brains/utils@0.2.0-alpha.228
+  - @brains/plugins@0.2.0-alpha.228
+
 ## 0.2.0-alpha.227
 
 ### Minor Changes

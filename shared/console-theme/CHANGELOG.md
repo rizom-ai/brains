@@ -1,5 +1,7 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.228
+
 ## 0.2.0-alpha.227
 
 ### Patch Changes

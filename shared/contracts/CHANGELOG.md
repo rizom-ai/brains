@@ -1,5 +1,12 @@
 # @brains/contracts
 
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.228
+
 ## 0.2.0-alpha.227
 
 ### Minor Changes

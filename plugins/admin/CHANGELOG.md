@@ -1,5 +1,17 @@
 # @brains/admin
 
+## 0.2.0-alpha.228
+
+### Patch Changes
+
+- [`db6650f`](https://github.com/rizom-ai/brains/commit/db6650f02557ff02d04111a240d0dd2903c0b87b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix admin and account mutations behind the TLS-terminating proxy. The same-origin guard now compares the browser Origin against the forwarded origin (x-forwarded-proto/host) instead of the internal http hop, which rejected every deployed POST with 403. Mutation error toasts also stack above the modal layer, so failures inside dialogs are visible instead of silently hidden.
+
+- Updated dependencies [[`db6650f`](https://github.com/rizom-ai/brains/commit/db6650f02557ff02d04111a240d0dd2903c0b87b)]:
+  - @brains/auth-service@0.2.0-alpha.228
+  - @brains/console-theme@0.2.0-alpha.228
+  - @brains/utils@0.2.0-alpha.228
+  - @brains/plugins@0.2.0-alpha.228
+
 ## 0.2.0-alpha.227
 
 ### Minor Changes
