@@ -23,6 +23,7 @@ async function addEntity(
     title: string;
     error?: string;
     scheduledFor?: string;
+    visibility?: "public" | "shared" | "restricted";
   },
 ): Promise<void> {
   await context.entityService.createEntity({
@@ -30,6 +31,7 @@ async function addEntity(
       id: input.id,
       entityType: input.entityType,
       content: input.title,
+      ...(input.visibility ? { visibility: input.visibility } : {}),
       metadata: {
         status: input.status,
         title: input.title,
@@ -228,6 +230,111 @@ describe("publication pipeline snapshot", () => {
       "post:post-one:1",
       "post:post-two:2",
     ]);
+  });
+
+  it("renumbers scoped queue positions so hidden entries leave no gap", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    registerType(context, "social-post");
+    await addEntity(context, {
+      entityType: "social-post",
+      id: "restricted-first",
+      status: "queued",
+      title: "Restricted first",
+      visibility: "restricted",
+    });
+    await addEntity(context, {
+      entityType: "social-post",
+      id: "shared-second",
+      status: "queued",
+      title: "Shared second",
+      visibility: "shared",
+    });
+
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote-post" }),
+    });
+    const queue = QueueManager.createFresh();
+    await queue.add("social-post", "restricted-first");
+    await queue.add("social-post", "shared-second");
+
+    const snapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      queue,
+      RetryTracker.createFresh(),
+      { visibilityScope: "shared" },
+    );
+
+    // A gap (position 2 with no position 1) would reveal that a hidden
+    // restricted publication is queued ahead of the caller's.
+    expect(
+      snapshot.queue.map((item) => [item.entityId, item.position].join(":")),
+    ).toEqual(["shared-second:1"]);
+  });
+
+  it("keeps orphaned generation jobs visible at full restricted scope", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    registerType(context, "social-post");
+
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote-post" }),
+    });
+    type ActiveJobs = Awaited<
+      ReturnType<ServicePluginContext["jobs"]["getActiveJobs"]>
+    >;
+    // The job's source entity does not exist (deleted mid-generation).
+    context.jobs.getActiveJobs = async (): Promise<ActiveJobs> => [
+      {
+        id: "job-orphan",
+        type: "image:image-render-source",
+        data: JSON.stringify({
+          sourceEntityType: "social-post",
+          sourceEntityId: "deleted-post",
+          attachmentType: "og-image",
+        }),
+        status: "processing" as const,
+        source: "content-pipeline",
+        priority: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        lastError: null,
+        createdAt: 0,
+        scheduledFor: 0,
+        startedAt: null,
+        completedAt: null,
+        metadata: {} as never,
+      },
+    ];
+
+    const adminSnapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      QueueManager.createFresh(),
+      RetryTracker.createFresh(),
+      { visibilityScope: "restricted" },
+    );
+    // Restricted scope reads everything — still-running work must not vanish
+    // from the operator view just because its source entity is gone.
+    expect(adminSnapshot.generating.map((job) => job.id)).toEqual([
+      "job-orphan",
+    ]);
+    expect(adminSnapshot.summary.generating).toBe(1);
+
+    const trustedSnapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      QueueManager.createFresh(),
+      RetryTracker.createFresh(),
+      { visibilityScope: "shared" },
+    );
+    // Narrower scopes fail closed: unverifiable sources stay hidden.
+    expect(trustedSnapshot.generating).toEqual([]);
   });
 
   it("returns an idle snapshot when no publish provider is registered", async () => {

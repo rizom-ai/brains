@@ -23,7 +23,15 @@ export interface CmsWorkspaceRegistration {
   label: string;
   rendererName: CmsWorkspaceRendererName;
   priority: number;
-  entityTypes?: string[] | undefined;
+  /**
+   * Entity types the workspace covers. Providers whose coverage depends on
+   * the caller's permissions supply a resolver so descriptors never disclose
+   * types the actor cannot act on.
+   */
+  entityTypes?:
+    | string[]
+    | ((actor: CmsWorkspaceActor) => string[] | Promise<string[]>)
+    | undefined;
   accessHandler: (actor: CmsWorkspaceActor) => boolean | Promise<boolean>;
   dataProvider: (actor: CmsWorkspaceActor) => Promise<unknown>;
   actionHandler?:

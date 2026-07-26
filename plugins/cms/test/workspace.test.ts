@@ -158,6 +158,38 @@ describe("optional CMS workspaces", () => {
     });
   });
 
+  it("resolves actor-aware entityTypes when listing descriptors", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "PublishingWorkspace",
+      priority: 40,
+      // Providers with per-actor publishable types resolve them against the
+      // real caller instead of disclosing the full registered list.
+      entityTypes: (actor) =>
+        actor.userPermissionLevel === "admin" ? ["post", "newsletter"] : [],
+      accessHandler: () => true,
+      dataProvider: async () => ({ summary: { queued: 2 } }),
+    });
+
+    const typesResponse = await findRoute(plugin, "/cms/api/types").handler(
+      request("/cms/api/types", { cookie }),
+    );
+    const typesPayload = z
+      .object({
+        workspaces: z.array(z.object({ entityTypes: z.array(z.string()) })),
+      })
+      .parse(await typesResponse.json());
+    expect(typesPayload.workspaces).toEqual([
+      { entityTypes: ["post", "newsletter"] },
+    ]);
+  });
+
   it("orders multiple workspaces deterministically", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);

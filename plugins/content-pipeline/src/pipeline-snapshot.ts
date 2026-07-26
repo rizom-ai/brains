@@ -176,14 +176,19 @@ export async function getPublicationPipelineSnapshot(
   const queue: PublicationPipelineSnapshot["queue"] = [];
   for (const entityType of publishableEntityTypes) {
     const destination = providerRegistry.get(entityType).name;
+    let viewPosition = 0;
     for (const entry of await queueManager.list(entityType)) {
       const entity = entitiesByKey.get(entityKey(entityType, entry.entityId));
       if (!entity) continue;
+      // Positions are renumbered to the caller's view: a gap left by a
+      // filtered-out entry would reveal that something hidden is queued.
+      // Reorder actions translate view slots back to absolute positions.
+      viewPosition += 1;
       queue.push({
         entityId: entry.entityId,
         entityType,
         title: entity.title,
-        position: entry.position,
+        position: viewPosition,
         queuedAt: entry.queuedAt,
         destination,
         ...(entity.scheduledFor ? { scheduledFor: entity.scheduledFor } : {}),
@@ -195,7 +200,11 @@ export async function getPublicationPipelineSnapshot(
   // move controls match the executable order they mutate.
   const generating = await getGeneratingItems(
     context,
-    options.visibilityScope ? entitiesByKey : undefined,
+    // "restricted" scope reads everything — leave those job views unfiltered
+    // so still-running work survives its source entity being deleted.
+    options.visibilityScope && options.visibilityScope !== "restricted"
+      ? entitiesByKey
+      : undefined,
   );
   summary.generating = generating.length;
 
@@ -264,6 +273,15 @@ async function getGeneratingItems(
 
 function entityKey(entityType: string, entityId: string): string {
   return `${entityType}\0${entityId}`;
+}
+
+/**
+ * Whether a metadata status is one of the pipeline's publication statuses —
+ * the same predicate the snapshot uses to admit queue rows, shared so view
+ * consumers (e.g. reorder translation) filter identically.
+ */
+export function hasPublicationStatus(status: unknown): boolean {
+  return publicationStatusSchema.safeParse(status).success;
 }
 
 function getEntityTitle(

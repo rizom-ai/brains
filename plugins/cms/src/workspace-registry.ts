@@ -14,7 +14,19 @@ const workspaceRegistrationSchema = z.object({
     "DirectorySyncWorkspace",
   ]),
   priority: z.number().int(),
-  entityTypes: z.array(z.string().trim().min(1)).default([]),
+  entityTypes: z
+    .union([
+      z.array(z.string().trim().min(1)),
+      z.custom<
+        Extract<
+          CmsWorkspaceRegistration["entityTypes"],
+          (actor: never) => unknown
+        >
+      >((value) => typeof value === "function", {
+        message: "Expected CMS workspace entity types resolver function",
+      }),
+    ])
+    .default([]),
   accessHandler: z.custom<CmsWorkspaceRegistration["accessHandler"]>(
     (value) => typeof value === "function",
     { message: "Expected CMS workspace access handler function" },
@@ -31,7 +43,11 @@ const workspaceRegistrationSchema = z.object({
     .optional(),
 });
 
-export interface StoredCmsWorkspace extends CmsWorkspaceDescriptor {
+export interface StoredCmsWorkspace extends Omit<
+  CmsWorkspaceDescriptor,
+  "entityTypes"
+> {
+  entityTypes: NonNullable<CmsWorkspaceRegistration["entityTypes"]>;
   accessHandler: CmsWorkspaceRegistration["accessHandler"];
   dataProvider: CmsWorkspaceRegistration["dataProvider"];
   actionHandler?: CmsWorkspaceRegistration["actionHandler"];
@@ -76,19 +92,20 @@ export class CmsWorkspaceRegistry {
         admitted: await workspace.accessHandler(actor),
       })),
     );
-    return admitted.flatMap(({ workspace, admitted: isAdmitted }) =>
-      isAdmitted
-        ? [
-            {
-              id: workspace.id,
-              pluginId: workspace.pluginId,
-              label: workspace.label,
-              rendererName: workspace.rendererName,
-              priority: workspace.priority,
-              entityTypes: workspace.entityTypes,
-            },
-          ]
-        : [],
+    return Promise.all(
+      admitted
+        .filter(({ admitted: isAdmitted }) => isAdmitted)
+        .map(async ({ workspace }) => ({
+          id: workspace.id,
+          pluginId: workspace.pluginId,
+          label: workspace.label,
+          rendererName: workspace.rendererName,
+          priority: workspace.priority,
+          entityTypes:
+            typeof workspace.entityTypes === "function"
+              ? await workspace.entityTypes(actor)
+              : workspace.entityTypes,
+        })),
     );
   }
 }

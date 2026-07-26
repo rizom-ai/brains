@@ -146,9 +146,15 @@ describe("content-pipeline CMS workspace registration", () => {
       label: "Publishing",
       rendererName: "PublishingWorkspace",
       priority: 40,
-      entityTypes: ["social-post"],
     });
     if (!registration) throw new Error("Workspace was not registered");
+    // Entity types resolve against the caller so descriptors never disclose
+    // types the actor cannot act on.
+    expect(
+      typeof registration.entityTypes === "function"
+        ? await registration.entityTypes(adminActor)
+        : registration.entityTypes,
+    ).toEqual(["social-post"]);
     expect(await registration.accessHandler(adminActor)).toBe(true);
     expect(await registration.dataProvider(adminActor)).toMatchObject({
       summary: { queued: 1 },
@@ -362,8 +368,8 @@ describe("content-pipeline CMS workspace registration", () => {
       publish: async () => ({ id: "remote-post" }),
     });
     const queue = QueueManager.createFresh();
-    await queue.add("social-post", "shared-queued");
     await queue.add("social-post", "restricted-queued");
+    await queue.add("social-post", "shared-queued");
     let registration: CmsWorkspaceRegistration | undefined;
     context.messaging.subscribe<
       CmsWorkspaceRegistration,
@@ -394,7 +400,9 @@ describe("content-pipeline CMS workspace registration", () => {
     ).toBe(true);
     expect(await registration.dataProvider(trustedActor)).toMatchObject({
       summary: { draft: 1, queued: 1 },
-      queue: [{ entityId: "shared-queued" }],
+      // Renumbered to the caller's view: no gap betrays the hidden
+      // restricted entry queued at absolute position 1.
+      queue: [{ entityId: "shared-queued", position: 1 }],
     });
     expect(
       await registration.actionHandler(
@@ -407,6 +415,11 @@ describe("content-pipeline CMS workspace registration", () => {
         trustedActor,
       ),
     ).toEqual({ success: true });
+    // View position 1 is the caller's own (and only) slot — the hidden
+    // restricted entry must keep absolute priority.
+    expect(
+      (await queue.list("social-post")).map((entry) => entry.entityId),
+    ).toEqual(["restricted-queued", "shared-queued"]);
     expect(
       registration.actionHandler(
         {
@@ -416,7 +429,7 @@ describe("content-pipeline CMS workspace registration", () => {
         },
         trustedActor,
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow("admin permission");
   });
 
   it("reuses confirmed publishing with content-hash protection", async () => {

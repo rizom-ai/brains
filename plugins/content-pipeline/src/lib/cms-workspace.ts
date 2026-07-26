@@ -11,7 +11,10 @@ import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
 import type { PublicationQueueService } from "../publication-queue-service";
 import type { PublishEntityExecutor } from "../publish-executor";
-import { getPublicationPipelineSnapshot } from "../pipeline-snapshot";
+import {
+  getPublicationPipelineSnapshot,
+  hasPublicationStatus,
+} from "../pipeline-snapshot";
 import { createPublishTool } from "../tools/publish";
 
 const registrationResultSchema = z.object({
@@ -107,7 +110,8 @@ export async function registerCmsWorkspace(
     label: "Publishing",
     rendererName: "PublishingWorkspace",
     priority: 40,
-    entityTypes: deps.providerRegistry.getRegisteredTypes(),
+    entityTypes: (actor) =>
+      getWorkspaceEntityTypes(context, deps.providerRegistry, actor),
     accessHandler: (actor) =>
       getWorkspaceEntityTypes(context, deps.providerRegistry, actor).length > 0,
     dataProvider: (actor) =>
@@ -270,8 +274,43 @@ async function handlePublishingAction(
       await deps.publicationQueueService.reorder(
         action.entityType,
         action.entityId,
-        action.position,
+        await toAbsoluteQueuePosition(
+          context,
+          deps.queueManager,
+          action.entityType,
+          actor,
+          action.position,
+        ),
       );
       return { success: true };
   }
+}
+
+/**
+ * Snapshot queue rows renumber positions to the caller's view after
+ * visibility filtering, so an incoming reorder position is a view slot,
+ * not an absolute queue slot. Map it to the absolute position of the entry
+ * the caller currently sees there; full-visibility callers get the
+ * identity mapping.
+ */
+async function toAbsoluteQueuePosition(
+  context: ServicePluginContext,
+  queueManager: QueueManager,
+  entityType: string,
+  actor: CmsWorkspaceActor,
+  viewPosition: number,
+): Promise<number> {
+  const viewEntries = [];
+  for (const entry of await queueManager.list(entityType)) {
+    const entity = await context.entityService.getEntity({
+      entityType,
+      id: entry.entityId,
+      visibilityScope: actor.visibilityScope,
+    });
+    if (entity && hasPublicationStatus(entity.metadata["status"])) {
+      viewEntries.push(entry);
+    }
+  }
+  const clamped = Math.min(Math.max(viewPosition, 1), viewEntries.length);
+  return viewEntries[clamped - 1]?.position ?? viewPosition;
 }
