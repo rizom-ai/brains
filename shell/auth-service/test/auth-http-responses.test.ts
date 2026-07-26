@@ -17,6 +17,42 @@ describe("auth HTTP mutation guards", () => {
     expect(requireSameOriginJson(request)).toBeUndefined();
   });
 
+  it("accepts browser requests forwarded by a TLS-terminating proxy", () => {
+    const request = new Request(
+      "http://brain.example.com/auth/admin/mutations",
+      {
+        method: "POST",
+        headers: {
+          host: "brain.example.com",
+          "x-forwarded-proto": "https",
+          origin: "https://brain.example.com",
+          "content-type": "application/json",
+        },
+      },
+    );
+
+    expect(requireSameOriginJson(request)).toBeUndefined();
+  });
+
+  it("rejects cross-origin requests behind a TLS-terminating proxy", async () => {
+    const response = requireSameOriginJson(
+      new Request("http://brain.example.com/auth/admin/mutations", {
+        method: "POST",
+        headers: {
+          host: "brain.example.com",
+          "x-forwarded-proto": "https",
+          origin: "https://attacker.example.com",
+          "content-type": "application/json",
+        },
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+    expect(await response?.json()).toEqual({
+      error: "Same-origin request required",
+    });
+  });
+
   it("returns private errors for cross-origin and non-JSON requests", async () => {
     const crossOrigin = requireSameOriginJson(
       new Request("https://brain.example.com/auth/admin/mutations", {

@@ -17,6 +17,7 @@ import {
 import { PersonDetail } from "./components/PersonDetail";
 import { AddPersonDialog } from "./dialogs/AddPersonDialog";
 import { runWithFeedback as executeWithFeedback } from "./feedback";
+import peopleStyles from "./people.css" with { type: "text" };
 import { createAdminQueryClient } from "./query-client";
 
 const admin: PeopleBootstrap = {
@@ -293,6 +294,21 @@ describe("Admin surface", () => {
     );
     expect(messageOf({ secret: "private" }, "Mutation failed")).toBe(
       "Mutation failed",
+    );
+  });
+
+  it("stacks mutation feedback above the modal layer", () => {
+    const zIndexOf = (selector: string): number => {
+      const rule = peopleStyles
+        .split("}")
+        .find((block) => block.includes(`${selector} {`));
+      const match = rule?.match(/z-index:\s*(\d+)/);
+      if (!match?.[1]) throw new Error(`No z-index found for ${selector}`);
+      return Number(match[1]);
+    };
+
+    expect(zIndexOf(".people-feedback")).toBeGreaterThan(
+      zIndexOf(".people-modal-layer"),
     );
   });
 

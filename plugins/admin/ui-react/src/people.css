@@ -344,7 +344,8 @@
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 100;
+  /* Above .people-modal-layer so mutation errors stay visible in dialogs. */
+  z-index: 1300;
   max-width: min(380px, calc(100vw - 48px));
   margin: 0;
   padding: 10px 14px;
