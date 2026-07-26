@@ -1,21 +1,13 @@
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import { paginationInfoSchema } from "@brains/plugins";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
 import { blogExcerptTemplate } from "../templates/excerpt-template";
 import { homepageTemplate } from "../templates/homepage";
 import { enrichedBlogPostSchema } from "../schemas/blog-post";
-
-const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
 
 /**
  * Datasources return posts before site-builder adds route/display fields.

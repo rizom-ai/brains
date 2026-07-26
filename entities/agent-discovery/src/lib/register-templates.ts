@@ -2,6 +2,7 @@ import { anchorProfileKindSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
 import {
   AgentListTemplate,
   type AgentListProps,
@@ -25,24 +26,6 @@ import {
   AGENT_PROXIMITY_DATASOURCE_ID,
   AGENT_PROXIMITY_TEMPLATE_NAME,
 } from "./constants";
-
-const contentVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public";
-    if (value === "private") return "restricted";
-    return value;
-  });
-
-const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
 
 const agentSkillSchema = z.object({
   name: z.string(),

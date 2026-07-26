@@ -18,6 +18,7 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+import { paginationInfoSchema } from "@brains/plugins";
 import {
   PROJECT_CHANNELS,
   PUBLISH_CHANNELS,
@@ -58,15 +59,6 @@ import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-templ
 import { ProjectOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
-
-const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
 
 const projectListSchema = z.object({
   projects: z.array(enrichedProjectSchema),

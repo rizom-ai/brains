@@ -9,6 +9,7 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import { contentVisibilitySchema } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   actionItemSchema,
@@ -24,15 +25,6 @@ import { SummaryProjector } from "./summary-projector";
 import { buildConversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
 import { getConversationSpaceId } from "./summary-space-eligibility";
-
-const contentVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public";
-    if (value === "private") return "restricted";
-    return value;
-  });
 
 const messageRoleSchema = z.enum(["user", "assistant"]);
 
