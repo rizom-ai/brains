@@ -1,11 +1,11 @@
 import type { Config } from "drizzle-kit";
+import { defineSqliteDrizzleConfig } from "@brains/db/drizzle-config";
 
-export default {
+const config: Config = defineSqliteDrizzleConfig({
   schema: "./src/schema/runtime-state.ts",
-  out: "./drizzle",
-  dialect: "sqlite",
-  dbCredentials: {
-    url: process.env.RUNTIME_STATE_DATABASE_URL ?? "file:./runtime-state.db",
-    authToken: process.env.RUNTIME_STATE_DATABASE_AUTH_TOKEN,
-  },
-} satisfies Config;
+  urlEnv: "RUNTIME_STATE_DATABASE_URL",
+  authTokenEnv: "RUNTIME_STATE_DATABASE_AUTH_TOKEN",
+  defaultUrl: "file:./runtime-state.db",
+});
+
+export default config;

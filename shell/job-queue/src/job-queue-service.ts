@@ -10,7 +10,8 @@ import type {
   JobQueueServiceConfig,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
-import { createJobQueueDatabase, enableWALMode } from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createJobQueueDatabase } from "./db";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
 import { JobQueueRepository } from "./job-queue-repository";
@@ -107,7 +108,7 @@ export class JobQueueService implements IJobQueueService {
 
   private async initializeWALMode(): Promise<void> {
     try {
-      await enableWALMode(this.client, this.databaseUrl);
+      await applySqlitePragmas(this.client, this.databaseUrl);
     } catch (error) {
       this.logger.warn("Failed to enable WAL mode (non-fatal)", error);
     } finally {

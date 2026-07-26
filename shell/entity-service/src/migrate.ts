@@ -1,53 +1,35 @@
 #!/usr/bin/env bun
-import { migrate } from "drizzle-orm/libsql/migrator";
 import {
-  createEntityDatabase,
-  enableWALModeForEntities,
-  ensureFtsTable,
-} from "./db";
+  refuseDirectMigrationRun,
+  resolveMigrationsFolder,
+  runPackageMigrations,
+} from "@brains/db";
+import { ensureFtsTable } from "./db";
+import { entities } from "./schema/entities";
 import type { EntityDbConfig } from "./types";
-import { Logger } from "@brains/utils/logger";
+import type { Logger } from "@brains/utils/logger";
 
 export async function migrateEntities(
   config: EntityDbConfig,
   logger?: Logger,
 ): Promise<void> {
-  const log =
-    logger?.child("entity-migrate") ??
-    Logger.getInstance().child("entity-migrate");
-  const { db, client, url } = createEntityDatabase(config);
-
-  log.debug("Running entity database migrations...");
-
-  try {
-    // Enable WAL mode before migrations
-    await enableWALModeForEntities(client, url);
-
-    // Run migrations - detect if running from bundled dist
-    const isBundled = import.meta.url.includes("/dist/");
-    const migrationsFolder = isBundled
-      ? new URL("./migrations/entity-service", import.meta.url).pathname
-      : new URL("../drizzle", import.meta.url).pathname;
-    await migrate(db, { migrationsFolder });
-
-    // Create FTS5 virtual table (not managed by Drizzle)
-    await ensureFtsTable(client);
-
-    log.debug("Entity database migrations completed successfully");
-  } catch (error) {
-    log.error("Entity database migration failed:", error);
-    throw error;
-  } finally {
-    client.close();
-  }
+  await runPackageMigrations({
+    label: "entity",
+    config,
+    schema: { entities },
+    migrationsFolder: resolveMigrationsFolder(
+      import.meta.url,
+      "entity-service",
+    ),
+    authTokenEnv: "DATABASE_AUTH_TOKEN",
+    logger,
+    // FTS5 virtual table is not managed by Drizzle.
+    afterMigrate: ensureFtsTable,
+  });
 }
 
 // Migration scripts should only be called from app contexts,
 // not run directly. Use your app's migration script instead.
 if (import.meta.main) {
-  console.error("Migration scripts should not be run directly.");
-  console.error(
-    "Please use your app's migration script instead (e.g., bun run scripts/migrate.ts)",
-  );
-  process.exit(1);
+  refuseDirectMigrationRun();
 }

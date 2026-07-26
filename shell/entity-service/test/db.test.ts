@@ -1,5 +1,6 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { createEntityDatabase, enableWALModeForEntities } from "../src/db";
+import { applySqlitePragmas } from "@brains/db";
+import { createEntityDatabase } from "../src/db";
 
 describe("EntityService Database", () => {
   const clients: Array<{ close: () => void }> = [];
@@ -48,27 +49,6 @@ describe("EntityService Database", () => {
     });
   });
 
-  describe("enableWALModeForEntities", () => {
-    test("handles WAL mode for in-memory database", async () => {
-      const { client } = createEntityDatabase({ url: "file::memory:" });
-      trackClient(client);
-
-      await enableWALModeForEntities(client, "file::memory:");
-
-      const result = await client.execute("PRAGMA journal_mode");
-      expect(result.rows[0]?.["journal_mode"]).toBe("memory");
-    });
-
-    test("skips WAL mode for remote database", async () => {
-      const { client } = createEntityDatabase({
-        url: "libsql://test.turso.io",
-      });
-      trackClient(client);
-
-      await enableWALModeForEntities(client, "libsql://test.turso.io");
-    });
-  });
-
   describe("integration", () => {
     test("full database initialization flow", async () => {
       const config = { url: "file::memory:" };
@@ -79,7 +59,7 @@ describe("EntityService Database", () => {
       expect(client).toBeDefined();
       expect(url).toBe(config.url);
 
-      await enableWALModeForEntities(client, url);
+      await applySqlitePragmas(client, url);
 
       await client.execute(`
         CREATE TABLE IF NOT EXISTS entities (

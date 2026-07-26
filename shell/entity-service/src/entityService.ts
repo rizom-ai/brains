@@ -1,11 +1,7 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import {
-  createEntityDatabase,
-  enableWALModeForEntities,
-  ensureFtsTable,
-  type EntityDB,
-} from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
   enableWALModeForEmbeddings,
@@ -260,7 +256,7 @@ export class EntityService implements IEntityService {
   ): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
-      await enableWALModeForEntities(this.dbClient, this.dbUrl);
+      await applySqlitePragmas(this.dbClient, this.dbUrl);
     } catch (error) {
       this.logger.warn(
         "Failed to enable WAL mode for entity database (non-fatal)",

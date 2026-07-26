@@ -1,10 +1,7 @@
 import type { Client } from "@libsql/client";
 import { Logger } from "@brains/utils/logger";
-import {
-  createRuntimeStateDatabase,
-  enableRuntimeStateWALMode,
-  type RuntimeStateDB,
-} from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createRuntimeStateDatabase, type RuntimeStateDB } from "./db";
 import { RuntimeStateStore } from "./runtime-state-store";
 import type {
   IRuntimeStateNamespace,
@@ -64,7 +61,7 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
 
   private async initializeWALMode(): Promise<void> {
     try {
-      await enableRuntimeStateWALMode(this.client, this.databaseUrl);
+      await applySqlitePragmas(this.client, this.databaseUrl);
     } catch (error) {
       this.logger.warn(
         "Failed to enable runtime state WAL mode (non-fatal)",

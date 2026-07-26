@@ -1,11 +1,11 @@
 import type { Config } from "drizzle-kit";
+import { defineSqliteDrizzleConfig } from "@brains/db/drizzle-config";
 
-export default {
+const config: Config = defineSqliteDrizzleConfig({
   schema: "./src/schema/job-queue.ts",
-  out: "./drizzle",
-  dialect: "sqlite",
-  dbCredentials: {
-    url: process.env.JOB_QUEUE_DATABASE_URL ?? "file:./brain-jobs.db",
-    authToken: process.env.JOB_QUEUE_DATABASE_AUTH_TOKEN,
-  },
-} satisfies Config;
+  urlEnv: "JOB_QUEUE_DATABASE_URL",
+  authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
+  defaultUrl: "file:./brain-jobs.db",
+});
+
+export default config;
