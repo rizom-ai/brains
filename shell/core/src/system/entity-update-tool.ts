@@ -21,7 +21,6 @@ import {
   humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
-import { getPublishBoundaryState } from "./entity-publish-policy";
 import { getErrorMessage } from "@brains/utils/error";
 
 const pendingApprovalForEntitySchema = z.looseObject({

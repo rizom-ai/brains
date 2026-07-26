@@ -530,6 +530,7 @@ export {
   toolError,
   toolResultSchema,
   type ToolResult,
+  type ToolErrorResult,
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
@@ -554,7 +555,9 @@ export type {
   WebRouteMethod,
   WebRouteHandler,
   WebRouteMatch,
+  JsonResponseInit,
 } from "./types/web-routes";
+export { jsonResponse, jsonError } from "./types/web-routes";
 export {
   CMS_WORKSPACE_REGISTER_MESSAGE,
   type CmsWorkspaceActor,

@@ -1,10 +1,10 @@
 import { z } from "@brains/utils/zod";
 import type {
   Tool,
-  ToolResponse,
   IEntityService,
   ServicePluginContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type {
   StockPhotoProvider,
   FetchImageFn,
@@ -20,7 +20,7 @@ export interface StockPhotoToolsDeps {
   jobs: ServicePluginContext["jobs"];
 }
 
-const searchInputSchema = {
+const searchInputSchema = z.object({
   query: z.string().describe("Search terms for stock photos"),
   perPage: z
     .number()
@@ -29,9 +29,9 @@ const searchInputSchema = {
     .default(10)
     .describe("Results per page (1-30)"),
   page: z.number().min(1).default(1).describe("Page number"),
-};
+});
 
-const selectInputSchema = {
+const selectInputSchema = z.object({
   photoId: z.string().describe("Photo ID from search results"),
   downloadLocation: z
     .url()
@@ -50,25 +50,6 @@ const selectInputSchema = {
     .string()
     .optional()
     .describe("Entity ID to set cover image on"),
-};
-
-const searchInputParserSchema = z.object({
-  query: z.string(),
-  perPage: z.number().min(1).max(30).default(10),
-  page: z.number().min(1).default(1),
-});
-
-const selectInputParserSchema = z.object({
-  photoId: z.string(),
-  downloadLocation: z.url(),
-  photographerName: z.string(),
-  photographerUrl: z.url(),
-  sourceUrl: z.url(),
-  imageUrl: z.url(),
-  title: z.string().optional(),
-  alt: z.string().optional(),
-  targetEntityType: z.string().optional(),
-  targetEntityId: z.string().optional(),
 });
 
 export function createStockPhotoTools(
@@ -79,26 +60,16 @@ export function createStockPhotoTools(
 }
 
 function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
-  return {
-    name: `${pluginId}_search`,
-    description:
-      "Search for stock photos. Returns photo candidates with preview URLs and metadata. Use stock-photo_select to materialize a chosen photo into an image entity.",
-    inputSchema: searchInputSchema,
-    visibility: "admin",
-    sideEffects: "none",
-    handler: async (input): Promise<ToolResponse> => {
-      const parsed = searchInputParserSchema.safeParse(input);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.message}`,
-        };
-      }
-
+  return createTool(
+    pluginId,
+    "search",
+    "Search for stock photos. Returns photo candidates with preview URLs and metadata. Use stock-photo_select to materialize a chosen photo into an image entity.",
+    searchInputSchema,
+    async (input) => {
       try {
-        const result = await deps.provider.searchPhotos(parsed.data.query, {
-          page: parsed.data.page,
-          perPage: parsed.data.perPage,
+        const result = await deps.provider.searchPhotos(input.query, {
+          page: input.page,
+          perPage: input.perPage,
         });
         return { success: true, data: result };
       } catch (err) {
@@ -106,26 +77,17 @@ function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         return { success: false, error: msg };
       }
     },
-  };
+    { sideEffects: "none" },
+  );
 }
 
 function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
-  return {
-    name: `${pluginId}_select`,
-    description:
-      "Select a stock photo from search results and materialize it as an image entity. Triggers provider download tracking per ToS. Optionally sets as cover image on a target entity.",
-    inputSchema: selectInputSchema,
-    visibility: "admin",
-    sideEffects: "external",
-    handler: async (input): Promise<ToolResponse> => {
-      const parsed = selectInputParserSchema.safeParse(input);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.message}`,
-        };
-      }
-
+  return createTool(
+    pluginId,
+    "select",
+    "Select a stock photo from search results and materialize it as an image entity. Triggers provider download tracking per ToS. Optionally sets as cover image on a target entity.",
+    selectInputSchema,
+    async (input) => {
       const {
         photoId,
         downloadLocation,
@@ -137,7 +99,7 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         alt,
         targetEntityType,
         targetEntityId,
-      } = parsed.data;
+      } = input;
 
       const attribution = { photographerName, photographerUrl, sourceUrl };
 
@@ -199,5 +161,6 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
 
       return { success: true, data: result };
     },
-  };
+    { sideEffects: "external" },
+  );
 }

@@ -1,4 +1,3 @@
-import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,
   CountEntitiesRequest,
@@ -86,90 +85,24 @@ export interface Logger {
   child(context: string): Logger;
 }
 
-export interface ToolContext {
-  progressToken?: string | number;
-  sendProgress?: (notification: {
-    progress?: number;
-    total?: number;
-    message?: string;
-  }) => Promise<void>;
-  interfaceType: string;
-  actor: ActorRef;
-  displayName?: string;
-  conversationId?: string;
-  channelId?: string;
-  channelName?: string;
-  runId?: string;
-  toolCallId?: string;
-  userPermissionLevel?: UserPermissionLevel;
-  isAnchor?: boolean;
-}
-
-export interface ToolResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-export type ToolVisibility = UserPermissionLevel;
-
-export interface ToolConfirmation {
-  required: boolean;
-  message?: string;
-}
-
-export type ToolSideEffects = "none" | "writes" | "external";
-
-export interface Tool<TArgs = unknown, TResult = unknown> {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
-  visibility?: ToolVisibility;
-  confirmation?: ToolConfirmation;
-  sideEffects?: ToolSideEffects;
-}
-
-export interface Resource<TResult = unknown> {
-  uri: string;
-  name: string;
-  description?: string;
-  mimeType?: string;
-  handler: () => Promise<TResult> | TResult;
-}
-
-export interface ResourceTemplate<K extends string = string> {
-  uriTemplate: K;
-  name: string;
-  description?: string;
-  mimeType?: string;
-}
-
-export interface Prompt {
-  name: string;
-  description?: string;
-  arguments?: Array<{ name: string; description?: string; required?: boolean }>;
-}
-
-export function createTool<TArgs = unknown, TResult = unknown>(
-  tool: Tool<TArgs, TResult>,
-): Tool<TArgs, TResult> {
-  return tool;
-}
-
-export function createResource<TResult = unknown>(
-  resource: Resource<TResult>,
-): Resource<TResult> {
-  return resource;
-}
-
-export function toolSuccess<T = unknown>(data?: T): ToolResponse<T> {
-  return data === undefined ? { success: true } : { success: true, data };
-}
-
-export function toolError(error: string): ToolResponse<never> {
-  return { success: false, error };
-}
+export type {
+  Tool,
+  ToolContext,
+  ToolResponse,
+  ToolConfirmation,
+  ToolResult,
+  ToolVisibility,
+  ToolSideEffects,
+  Resource,
+  ResourceTemplate,
+  Prompt,
+} from "@brains/mcp-service";
+export {
+  createTool,
+  createResource,
+  toolSuccess,
+  toolError,
+} from "@brains/mcp-service";
 
 export interface BaseJobTrackingInfo {
   rootJobId: string;

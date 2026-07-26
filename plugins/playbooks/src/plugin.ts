@@ -21,13 +21,12 @@ import {
   type PlaybookState,
   type PlaybookTransition,
 } from "./entity";
-import type {
-  ServicePluginContext,
-  Tool,
-  ToolContext,
-  ToolResponse,
+import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
+import {
+  ServicePlugin,
+  createTool,
+  permissionToVisibilityScope,
 } from "@brains/plugins";
-import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
@@ -253,7 +252,7 @@ export class PlaybooksPlugin extends ServicePlugin<
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
-  private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+  private readonly startLocks = new Map<string, Promise<ToolResult<unknown>>>();
   private readonly runLocks = new Map<string, Promise<void>>();
   private lifecycleStarters!: LifecycleStarterRegistry;
   private runs!: RunEngine;
@@ -367,55 +366,44 @@ export class PlaybooksPlugin extends ServicePlugin<
 
   protected override async getTools(): Promise<Tool[]> {
     return [
-      {
-        name: "playbook_status",
-        description:
-          "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
-        inputSchema: statusInputSchema,
-        visibility: "admin",
-        sideEffects: "none",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(statusInputSchema).parse(input);
-          try {
-            const data = await this.getStatus({
-              ...parsed,
-              conversationId: toolContext.conversationId,
-            });
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: getErrorMessage(error) };
-          }
+      createTool(
+        this.id,
+        "status",
+        "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
+        z.object(statusInputSchema),
+        async (input, toolContext) => {
+          const data = await this.getStatus({
+            ...input,
+            conversationId: toolContext.conversationId,
+          });
+          return { success: true, data };
         },
-      },
-      {
-        name: "playbook_start",
-        description:
-          "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
-        inputSchema: startInputSchema,
-        visibility: "admin",
-        sideEffects: "writes",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(startInputSchema).parse(input);
+        {
+          nameOverride: "playbook_status",
+          visibility: "admin",
+          sideEffects: "none",
+        },
+      ),
+      createTool(
+        this.id,
+        "start",
+        "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
+        z.object(startInputSchema),
+        async (input, toolContext) => {
           const conversationId = toolContext.conversationId;
           const lockKey = conversationId
-            ? `${conversationId}:${parsed.playbookId}`
-            : `playbook:${parsed.playbookId}`;
+            ? `${conversationId}:${input.playbookId}`
+            : `playbook:${input.playbookId}`;
           return this.withStartLock(lockKey, async () => {
-            const playbook = await this.requirePlaybook(parsed.playbookId);
+            const playbook = await this.requirePlaybook(input.playbookId);
             assertValidPlaybookBody(playbook.body);
             const lifecycle =
-              playbook.entity.metadata.lifecycle ?? parsed.lifecycle;
+              playbook.entity.metadata.lifecycle ?? input.lifecycle;
             const existing = conversationId
               ? (
                   await this.store.listActiveByConversation(conversationId)
-                ).find((run) => run.playbookId === parsed.playbookId)
-              : await this.store.findActiveByPlaybook(parsed.playbookId);
+                ).find((run) => run.playbookId === input.playbookId)
+              : await this.store.findActiveByPlaybook(input.playbookId);
             const run = existing
               ? await this.withRunLock(existing.id, async () => {
                   const current =
@@ -430,7 +418,7 @@ export class PlaybooksPlugin extends ServicePlugin<
                   });
                 })
               : await this.runs.createStartedRun({
-                  playbookId: parsed.playbookId,
+                  playbookId: input.playbookId,
                   playbookVersion: playbook.version,
                   body: playbook.body,
                   lifecycle,
@@ -440,40 +428,44 @@ export class PlaybooksPlugin extends ServicePlugin<
             return { success: true, data };
           });
         },
-      },
-      {
-        name: "playbook_send_event",
-        description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
-        inputSchema: sendEventInputSchema,
-        visibility: "admin",
-        sideEffects: "writes",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(sendEventInputSchema).parse(input);
+        {
+          nameOverride: "playbook_start",
+          visibility: "admin",
+          sideEffects: "writes",
+        },
+      ),
+      createTool(
+        this.id,
+        "send_event",
+        "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
+        z.object(sendEventInputSchema),
+        async (input, toolContext) => {
           const run = await this.resolveScopedRunResponse({
-            runId: parsed.runId,
+            runId: input.runId,
             conversationId: toolContext.conversationId,
           });
           if (!run.success) return run;
-          const result = await this.sendEventForRun(run.data.id, parsed.event, {
-            context: parsed.context,
-            fromState: parsed.fromState,
+          const result = await this.sendEventForRun(run.data.id, input.event, {
+            context: input.context,
+            fromState: input.fromState,
           });
           return result.success
             ? { success: true, data: result.data }
             : { success: false, error: result.error };
         },
-      },
+        {
+          nameOverride: "playbook_send_event",
+          visibility: "admin",
+          sideEffects: "writes",
+        },
+      ),
     ];
   }
 
   private async withStartLock(
     key: string,
-    task: () => Promise<ToolResponse>,
-  ): Promise<ToolResponse> {
+    task: () => Promise<ToolResult<unknown>>,
+  ): Promise<ToolResult<unknown>> {
     const existing = this.startLocks.get(key);
     if (existing) return existing;
 

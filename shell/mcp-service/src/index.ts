@@ -2,6 +2,7 @@ export { MCPService } from "./mcp-service";
 export type { IMCPService, IMCPTransport, ToolInfo } from "./types";
 export type {
   ToolVisibility,
+  ToolSideEffects,
   ToolContext,
   ToolResponse,
   Tool,
@@ -26,6 +27,7 @@ export {
   toolError,
   toolResultSchema,
   type ToolResult,
+  type ToolErrorResult,
 } from "./tool-helpers";
 export { mapArgsToInput } from "./schema-map";
 export {

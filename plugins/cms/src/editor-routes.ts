@@ -21,6 +21,7 @@ import {
   generateMarkdownWithFrontmatter,
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
+  jsonResponse as jsonResponseBase,
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -1761,11 +1762,8 @@ function splitEntityContent(
 }
 
 function jsonResponse(payload: unknown, status = 200): Response {
-  return new Response(JSON.stringify(payload), {
+  return jsonResponseBase(payload, {
     status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
+    headers: { "Cache-Control": "no-store" },
   });
 }
