@@ -319,14 +319,14 @@ describe("SiteBuilderPlugin", () => {
           userPermissionLevel: "public",
         },
       ),
-    ).rejects.toThrow("Site build requires anchor permission");
+    ).rejects.toThrow("Site build requires admin permission");
     expect(
       await actionHandler(
         { type: "build-production", confirmed: true },
         {
           interfaceType: "cms",
           userId: "operator",
-          userPermissionLevel: "anchor",
+          userPermissionLevel: "admin",
         },
       ),
     ).toEqual({ accepted: true, environment: "production" });
