@@ -27,7 +27,6 @@ export type {
 // Embedding database
 export {
   createEmbeddingDatabase,
-  enableWALModeForEmbeddings,
   migrateEmbeddingDatabase,
   ensureEmbeddingIndexes,
   attachEmbeddingDatabase,

@@ -4,7 +4,6 @@ import { applySqlitePragmas } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
-  enableWALModeForEmbeddings,
   migrateEmbeddingDatabase,
   ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
@@ -264,10 +263,7 @@ export class EntityService implements IEntityService {
       );
     }
     try {
-      await enableWALModeForEmbeddings(
-        this.embeddingDbClient,
-        embeddingDbConfig.url,
-      );
+      await applySqlitePragmas(this.embeddingDbClient, embeddingDbConfig.url);
     } catch (error) {
       this.logger.warn(
         "Failed to enable WAL mode for embedding database (non-fatal)",
