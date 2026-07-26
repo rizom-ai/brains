@@ -118,9 +118,17 @@ describe("TransactionalSiteBuildOutput", () => {
         }),
       ]),
     });
-    expect(
-      await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),
-    ).toContain('"buildId": "build-one"');
+    const persisted = await fs.readFile(
+      join(outputDir, ".site-build-manifest.json"),
+      "utf8",
+    );
+    expect(persisted).toContain('"buildId": "build-one"');
+    // Warnings are build feedback delivered through BuildResult and status.
+    // The manifest is committed inside the published generation, so diagnostic
+    // text — which quotes template validation errors — must not travel with it.
+    expect(JSON.parse(persisted).warnings).toBeUndefined();
+    expect(persisted).not.toContain("fixture warning");
+    expect(result.manifest.warnings).toEqual(["fixture warning"]);
     expect(
       await fs.readFile(
         join(target.environmentDir, "legacy-build-one", "index.html"),

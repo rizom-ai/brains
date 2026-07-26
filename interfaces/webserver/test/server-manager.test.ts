@@ -69,6 +69,31 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Hello");
   });
 
+  it("does not serve dotfiles from the site output", async () => {
+    // The site build publishes `.site-build-manifest.json` into the generation
+    // it commits, and the active output pointer resolves into that directory.
+    // The manifest is build metadata — route inventory, artifact hashes,
+    // diagnostics — and must not be reachable over HTTP.
+    const m = setup();
+    writeFileSync(
+      join(testDir, "dist", "production", ".site-build-manifest.json"),
+      '{"buildId":"secret"}',
+    );
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+
+    const manifest = await fetch(`${url}/.site-build-manifest.json`);
+    expect(manifest.status).toBe(404);
+    expect(await manifest.text()).not.toContain("secret");
+
+    // Ordinary files are unaffected.
+    const index = await fetch(`${url}/`);
+    expect(index.status).toBe(200);
+  });
+
   it("serves rebuilt-in-place assets (css/js) without immutable caching", async () => {
     // main.css and boot.js live at stable URLs and change on every site
     // rebuild. An immutable/max-age=1y header lets the CDN edge and browsers
