@@ -1,6 +1,19 @@
 import packageJson from "../package.json";
 
 import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import {
+  createCommandRegistry,
+  defineCommand,
+  getBooleanFlag,
+  getStringFlag,
+  renderHelp,
+  renderUsage,
+  type CommandDefinition,
+  type CommandInfo,
+  type FlagDefinition,
+  type FlagDefinitions,
+  type ParsedCliArgs,
+} from "@brains/deploy-support/cli-kit";
 import { runPilotAgeKeyBootstrap } from "./age-key-bootstrap";
 import { runPilotCertBootstrap } from "./cert-bootstrap";
 import { initPilotRepo } from "./init";
@@ -10,7 +23,6 @@ import {
   type LookupHost,
 } from "./observed-status";
 import { onboardUser } from "./onboard-user";
-import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
 import { writeUsersTable } from "./render-users-table";
@@ -37,311 +49,395 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   sshKeygen?: SshKeygen | undefined;
 }
 
-export async function runCommand(
-  parsed: ParsedArgs,
-  dependencies: CommandDependencies = {},
-): Promise<CommandResult> {
-  switch (parsed.command) {
-    case "init": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops init <repo>",
-        };
-      }
+type OpsCommand = CommandDefinition<CommandDependencies, CommandResult>;
 
-      await initPilotRepo(repo);
-      return {
-        success: true,
-        message: `Initialized ${repo}`,
-      };
+const CLI_NAME = "brains-ops";
+
+const pushToFlag: FlagDefinition = {
+  type: "string",
+  placeholder: "<target>",
+  description: "Push target (`gh` or `github`)",
+};
+
+const dryRunFlag: FlagDefinition = {
+  type: "boolean",
+  description: "Show what would happen without writing anything",
+};
+
+function usageFailure(command: CommandInfo): CommandResult {
+  return { success: false, message: renderUsage(CLI_NAME, command) };
+}
+
+const init: OpsCommand = defineCommand({
+  name: "init",
+  usage: "<repo>",
+  description: "Create a pilot repo skeleton",
+  run: async ({ args }): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(init);
     }
 
-    case "render": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops render <repo>",
-        };
-      }
+    await initPilotRepo(repo);
+    return {
+      success: true,
+      message: `Initialized ${repo}`,
+    };
+  },
+});
 
-      const resolveStatus =
-        dependencies.resolveStatus ??
-        createObservedStatusResolver({
-          ...(dependencies.fetchImpl
-            ? { fetchImpl: dependencies.fetchImpl }
-            : {}),
-          ...(dependencies.lookupHost
-            ? { lookupHost: dependencies.lookupHost }
-            : {}),
-        });
-
-      await writeUsersTable(repo, { resolveStatus });
-      return {
-        success: true,
-        message: `Rendered ${repo}/views/users.md`,
-      };
+const render: OpsCommand = defineCommand({
+  name: "render",
+  usage: "<repo>",
+  description: "Render the observed users table to views/users.md",
+  run: async ({ args }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(render);
     }
 
-    case "user:add": {
-      const repo = parsed.args[0];
-      const handle = parsed.args[1];
-      const cohort = parsed.flags.cohort;
-      if (!repo || !handle || !cohort) {
-        return {
-          success: false,
-          message:
-            "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
-        };
-      }
-
-      await addPilotUser(repo, handle, {
-        cohort,
-        ...(parsed.flags.anchorId ? { anchorId: parsed.flags.anchorId } : {}),
-      });
-      return {
-        success: true,
-        message: `Added ${handle} to ${cohort}`,
-      };
-    }
-
-    case "onboard": {
-      const repo = parsed.args[0];
-      const handle = parsed.args[1];
-      if (!repo || !handle) {
-        return {
-          success: false,
-          message: "Usage: brains-ops onboard <repo> <handle>",
-        };
-      }
-
-      await onboardUser(repo, handle, dependencies.runner, {
-        ...(dependencies.env ? { env: dependencies.env } : {}),
-      });
-      return {
-        success: true,
-        message: `Onboarded ${handle}`,
-      };
-    }
-
-    case "age-key:bootstrap": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops age-key:bootstrap <repo>",
-        };
-      }
-
-      return runPilotAgeKeyBootstrap(repo, {
-        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
-        ...(parsed.flags.pushTo ? { pushTo: parsed.flags.pushTo } : {}),
-        ...(dependencies.bootstrapRunCommand
-          ? { runCommand: dependencies.bootstrapRunCommand }
-          : {}),
-      });
-    }
-
-    case "ssh-key:bootstrap": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops ssh-key:bootstrap <repo>",
-        };
-      }
-
-      return runPilotSshKeyBootstrap(repo, {
-        ...(dependencies.env ? { env: dependencies.env } : {}),
+    const resolveStatus =
+      dependencies.resolveStatus ??
+      createObservedStatusResolver({
         ...(dependencies.fetchImpl
           ? { fetchImpl: dependencies.fetchImpl }
           : {}),
-        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
-        ...(parsed.flags.pushTo ? { pushTo: parsed.flags.pushTo } : {}),
-        ...(dependencies.bootstrapRunCommand
-          ? { runCommand: dependencies.bootstrapRunCommand }
-          : {}),
-        ...(dependencies.sshKeygen
-          ? { sshKeygen: dependencies.sshKeygen }
+        ...(dependencies.lookupHost
+          ? { lookupHost: dependencies.lookupHost }
           : {}),
       });
+
+    await writeUsersTable(repo, { resolveStatus });
+    return {
+      success: true,
+      message: `Rendered ${repo}/views/users.md`,
+    };
+  },
+});
+
+const userAdd: OpsCommand = defineCommand({
+  name: "user:add",
+  usage: "<repo> <handle> --cohort <cohort>",
+  description: "Add a user to a cohort",
+  flags: {
+    cohort: {
+      type: "string",
+      placeholder: "<cohort>",
+      description: "Cohort the user joins",
+    },
+    "anchor-id": {
+      type: "string",
+      placeholder: "<id>",
+      description: "Discord anchor user id stored on the user record",
+    },
+  },
+  run: async ({ args, flags }): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const cohort = getStringFlag(flags, "cohort");
+    if (!repo || !handle || !cohort) {
+      return usageFailure(userAdd);
     }
 
-    case "cert:bootstrap": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops cert:bootstrap <repo>",
-        };
-      }
+    const anchorId = getStringFlag(flags, "anchor-id");
+    await addPilotUser(repo, handle, {
+      cohort,
+      ...(anchorId ? { anchorId } : {}),
+    });
+    return {
+      success: true,
+      message: `Added ${handle} to ${cohort}`,
+    };
+  },
+});
 
-      return runPilotCertBootstrap(repo, {
-        ...(dependencies.env ? { env: dependencies.env } : {}),
-        ...(dependencies.fetchImpl
-          ? { fetchImpl: dependencies.fetchImpl }
-          : {}),
-        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
-        ...(parsed.flags.handle ? { handle: parsed.flags.handle } : {}),
-        ...(parsed.flags.pushTo ? { pushTo: parsed.flags.pushTo } : {}),
-        ...(dependencies.bootstrapRunCommand
-          ? { runCommand: dependencies.bootstrapRunCommand }
-          : {}),
-      });
+const onboard: OpsCommand = defineCommand({
+  name: "onboard",
+  usage: "<repo> <handle>",
+  description: "Generate a user's brain.yaml and .env",
+  run: async ({ args }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    if (!repo || !handle) {
+      return usageFailure(onboard);
     }
 
-    case "secrets:push": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops secrets:push <repo>",
-        };
-      }
+    await onboardUser(repo, handle, dependencies.runner, {
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+    });
+    return {
+      success: true,
+      message: `Onboarded ${handle}`,
+    };
+  },
+});
 
-      const result = await pushPilotSecrets(repo, {
-        env: dependencies.env,
-        logger: dependencies.logger,
-        dryRun: parsed.flags.dryRun,
-      });
-      return {
-        success: true,
-        message: result.dryRun
-          ? `Dry run: would push ${result.pushedKeys.length} secrets`
-          : `Pushed ${result.pushedKeys.length} secrets`,
-      };
+const ageKeyBootstrap: OpsCommand = defineCommand({
+  name: "age-key:bootstrap",
+  usage: "<repo>",
+  description: "Generate the pilot age key and optional GitHub secret",
+  flags: { "push-to": pushToFlag },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(ageKeyBootstrap);
     }
 
-    case "secrets:encrypt": {
-      const repo = parsed.args[0];
-      const handle = parsed.args[1];
-      if (!repo || !handle) {
-        return {
-          success: false,
-          message: "Usage: brains-ops secrets:encrypt <repo> <handle>",
-        };
-      }
+    const pushTo = getStringFlag(flags, "push-to");
+    return runPilotAgeKeyBootstrap(repo, {
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      ...(pushTo ? { pushTo } : {}),
+      ...(dependencies.bootstrapRunCommand
+        ? { runCommand: dependencies.bootstrapRunCommand }
+        : {}),
+    });
+  },
+});
 
-      const result = await encryptPilotSecrets(repo, handle, {
-        env: dependencies.env,
-        logger: dependencies.logger,
-        dryRun: parsed.flags.dryRun,
-      });
-      return {
-        success: true,
-        message: result.dryRun
-          ? `Dry run: would encrypt ${result.encryptedKeys.length} secrets for ${handle}`
-          : `Encrypted ${result.encryptedKeys.length} secrets for ${handle}`,
-      };
+const sshKeyBootstrap: OpsCommand = defineCommand({
+  name: "ssh-key:bootstrap",
+  usage: "<repo>",
+  description: "Bootstrap a deploy SSH key and optional GitHub secret",
+  flags: { "push-to": pushToFlag },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(sshKeyBootstrap);
     }
 
-    case "verify-user": {
-      const repo = parsed.args[0];
-      const handle = parsed.args[1];
-      if (!repo || !handle) {
-        return {
-          success: false,
-          message: "Usage: brains-ops verify-user <repo> <handle>",
-        };
-      }
+    const pushTo = getStringFlag(flags, "push-to");
+    return runPilotSshKeyBootstrap(repo, {
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      ...(pushTo ? { pushTo } : {}),
+      ...(dependencies.bootstrapRunCommand
+        ? { runCommand: dependencies.bootstrapRunCommand }
+        : {}),
+      ...(dependencies.sshKeygen ? { sshKeygen: dependencies.sshKeygen } : {}),
+    });
+  },
+});
 
-      const result = await verifyPilotUser(repo, handle, {
-        ...(dependencies.fetchImpl
-          ? { fetchImpl: dependencies.fetchImpl }
-          : {}),
-        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
-      });
-      const passedSummary =
-        result.checks.length > 0 ? result.checks.join(", ") : "none";
-      if (result.failedChecks.length > 0) {
-        const failedDetail = result.failedChecks
-          .map((failure) => `  ${failure.name}: ${failure.message}`)
-          .join("\n");
-        return {
-          success: false,
-          message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: passed ${passedSummary}; failed:\n${failedDetail}`,
-        };
-      }
-      return {
-        success: true,
-        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${passedSummary}`,
-      };
+const certBootstrap: OpsCommand = defineCommand({
+  name: "cert:bootstrap",
+  usage: "<repo>",
+  description: "Issue Cloudflare Origin CA certificates for pilot users",
+  flags: {
+    handle: {
+      type: "string",
+      placeholder: "<handle>",
+      description: "Only issue the certificate for this user handle",
+    },
+    "push-to": pushToFlag,
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(certBootstrap);
     }
 
-    case "reconcile-cohort": {
-      const repo = parsed.args[0];
-      const cohort = parsed.args[1];
-      if (!repo || !cohort) {
-        return {
-          success: false,
-          message: "Usage: brains-ops reconcile-cohort <repo> <cohort>",
-        };
-      }
+    const handle = getStringFlag(flags, "handle");
+    const pushTo = getStringFlag(flags, "push-to");
+    return runPilotCertBootstrap(repo, {
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      ...(handle ? { handle } : {}),
+      ...(pushTo ? { pushTo } : {}),
+      ...(dependencies.bootstrapRunCommand
+        ? { runCommand: dependencies.bootstrapRunCommand }
+        : {}),
+    });
+  },
+});
 
-      await reconcileCohort(repo, cohort, dependencies.runner, {
-        ...(dependencies.env ? { env: dependencies.env } : {}),
-      });
-      return {
-        success: true,
-        message: `Reconciled cohort ${cohort}`,
-      };
+const secretsPush: OpsCommand = defineCommand({
+  name: "secrets:push",
+  usage: "<repo>",
+  description: "Push env-backed local secrets to GitHub Secrets",
+  flags: { "dry-run": dryRunFlag },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(secretsPush);
     }
 
-    case "reconcile-all": {
-      const repo = parsed.args[0];
-      if (!repo) {
-        return {
-          success: false,
-          message: "Usage: brains-ops reconcile-all <repo>",
-        };
-      }
+    const result = await pushPilotSecrets(repo, {
+      env: dependencies.env,
+      logger: dependencies.logger,
+      dryRun: getBooleanFlag(flags, "dry-run"),
+    });
+    return {
+      success: true,
+      message: result.dryRun
+        ? `Dry run: would push ${result.pushedKeys.length} secrets`
+        : `Pushed ${result.pushedKeys.length} secrets`,
+    };
+  },
+});
 
-      await reconcileAll(repo, dependencies.runner, {
-        ...(dependencies.env ? { env: dependencies.env } : {}),
-      });
-      return {
-        success: true,
-        message: "Reconciled all cohorts",
-      };
+const secretsEncrypt: OpsCommand = defineCommand({
+  name: "secrets:encrypt",
+  usage: "<repo> <handle>",
+  description: "Encrypt pilot secrets for a user with age",
+  flags: { "dry-run": dryRunFlag },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    if (!repo || !handle) {
+      return usageFailure(secretsEncrypt);
     }
 
-    case "help":
-      return {
-        success: true,
-        message: [
-          "brains-ops — operator CLI for private brain fleet repos",
-          "",
-          "Usage: brains-ops <command> [args]",
-          "",
-          "Commands:",
-          "  init <repo>",
-          "  render <repo>",
-          "  user:add <repo> <handle> --cohort <cohort>",
-          "  onboard <repo> <handle>",
-          "  age-key:bootstrap <repo>",
-          "  ssh-key:bootstrap <repo>",
-          "  cert:bootstrap <repo>",
-          "  secrets:push <repo>",
-          "  secrets:encrypt <repo> <handle>",
-          "  verify-user <repo> <handle>",
-          "  reconcile-cohort <repo> <cohort>",
-          "  reconcile-all <repo>",
-          "  help",
-        ].join("\n"),
-      };
+    const result = await encryptPilotSecrets(repo, handle, {
+      env: dependencies.env,
+      logger: dependencies.logger,
+      dryRun: getBooleanFlag(flags, "dry-run"),
+    });
+    return {
+      success: true,
+      message: result.dryRun
+        ? `Dry run: would encrypt ${result.encryptedKeys.length} secrets for ${handle}`
+        : `Encrypted ${result.encryptedKeys.length} secrets for ${handle}`,
+    };
+  },
+});
 
-    case "version":
-      return {
-        success: true,
-        message: `brains-ops ${packageJson.version}`,
-      };
+const verifyUser: OpsCommand = defineCommand({
+  name: "verify-user",
+  usage: "<repo> <handle>",
+  description: "Probe a deployed user's endpoints",
+  run: async ({ args }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    if (!repo || !handle) {
+      return usageFailure(verifyUser);
+    }
 
-    default:
+    const result = await verifyPilotUser(repo, handle, {
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+    });
+    const passedSummary =
+      result.checks.length > 0 ? result.checks.join(", ") : "none";
+    if (result.failedChecks.length > 0) {
+      const failedDetail = result.failedChecks
+        .map((failure) => `  ${failure.name}: ${failure.message}`)
+        .join("\n");
       return {
         success: false,
-        message: `Unknown command: ${parsed.command}`,
+        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: passed ${passedSummary}; failed:\n${failedDetail}`,
       };
+    }
+    return {
+      success: true,
+      message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${passedSummary}`,
+    };
+  },
+});
+
+const reconcileCohortCommand: OpsCommand = defineCommand({
+  name: "reconcile-cohort",
+  usage: "<repo> <cohort>",
+  description: "Reconcile all users in a cohort",
+  run: async ({ args }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const cohort = args[1];
+    if (!repo || !cohort) {
+      return usageFailure(reconcileCohortCommand);
+    }
+
+    await reconcileCohort(repo, cohort, dependencies.runner, {
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+    });
+    return {
+      success: true,
+      message: `Reconciled cohort ${cohort}`,
+    };
+  },
+});
+
+const reconcileAllCommand: OpsCommand = defineCommand({
+  name: "reconcile-all",
+  usage: "<repo>",
+  description: "Reconcile every cohort",
+  run: async ({ args }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(reconcileAllCommand);
+    }
+
+    await reconcileAll(repo, dependencies.runner, {
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+    });
+    return {
+      success: true,
+      message: "Reconciled all cohorts",
+    };
+  },
+});
+
+const help: OpsCommand = defineCommand({
+  name: "help",
+  description: "Show this help message",
+  run: (): CommandResult => ({
+    success: true,
+    message: renderHelp({
+      cliName: CLI_NAME,
+      intro: "brains-ops — operator CLI for private brain fleet repos",
+      commands,
+      globalFlags,
+    }),
+  }),
+});
+
+const version: OpsCommand = defineCommand({
+  name: "version",
+  description: "Show version",
+  run: (): CommandResult => ({
+    success: true,
+    message: `brains-ops ${packageJson.version}`,
+  }),
+});
+
+export const globalFlags: FlagDefinitions = {
+  help: { type: "boolean", short: "h", description: "Show help" },
+  version: { type: "boolean", short: "v", description: "Show version" },
+};
+
+export const commands: readonly CommandDefinition<
+  CommandDependencies,
+  CommandResult
+>[] = [
+  init,
+  render,
+  userAdd,
+  onboard,
+  ageKeyBootstrap,
+  sshKeyBootstrap,
+  certBootstrap,
+  secretsPush,
+  secretsEncrypt,
+  verifyUser,
+  reconcileCohortCommand,
+  reconcileAllCommand,
+  help,
+  version,
+];
+
+const registry = createCommandRegistry(commands);
+
+export async function runCommand(
+  parsed: ParsedCliArgs,
+  dependencies: CommandDependencies = {},
+): Promise<CommandResult> {
+  const command = registry.get(parsed.command);
+  if (!command) {
+    return {
+      success: false,
+      message: `Unknown command: ${parsed.command}`,
+    };
   }
+
+  return command.run({ args: parsed.args, flags: parsed.flags }, dependencies);
 }

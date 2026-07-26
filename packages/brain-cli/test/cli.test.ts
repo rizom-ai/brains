@@ -14,13 +14,13 @@ describe("parseArgs", () => {
   it("should parse 'init' with --model flag", () => {
     const result = parseArgs(["init", "--model", "rover"]);
     expect(result.command).toBe("init");
-    expect(result.flags.model).toBe("rover");
+    expect(result.flags["model"]).toBe("rover");
   });
 
   it("should parse 'init' with --domain flag", () => {
     const result = parseArgs(["init", "--domain", "mybrain.rizom.ai"]);
     expect(result.command).toBe("init");
-    expect(result.flags.domain).toBe("mybrain.rizom.ai");
+    expect(result.flags["domain"]).toBe("mybrain.rizom.ai");
   });
 
   it("should parse 'init' with --content-repo flag", () => {
@@ -36,14 +36,14 @@ describe("parseArgs", () => {
   it("should parse 'init' with --backend flag", () => {
     const result = parseArgs(["init", "--backend", "env"]);
     expect(result.command).toBe("init");
-    expect(result.flags.backend).toBe("env");
+    expect(result.flags["backend"]).toBe("env");
   });
 
   it("should parse 'init' with --regen flag", () => {
     const result = parseArgs(["init", "mybrain", "--deploy", "--regen"]);
     expect(result.command).toBe("init");
-    expect(result.flags.deploy).toBe(true);
-    expect(result.flags.regen).toBe(true);
+    expect(result.flags["deploy"]).toBe(true);
+    expect(result.flags["regen"]).toBe(true);
   });
 
   it("should parse 'cert:bootstrap' with --push-to flag", () => {
@@ -66,8 +66,8 @@ describe("parseArgs", () => {
       "AI_API_KEY,HCLOUD_TOKEN",
     ]);
     expect(result.command).toBe("secrets:push");
-    expect(result.flags.all).toBe(true);
-    expect(result.flags.only).toBe("AI_API_KEY,HCLOUD_TOKEN");
+    expect(result.flags["all"]).toBe(true);
+    expect(result.flags["only"]).toBe("AI_API_KEY,HCLOUD_TOKEN");
   });
 
   it("should parse 'secrets:push' with --dry-run flag", () => {
@@ -98,7 +98,7 @@ describe("parseArgs", () => {
     ]);
     expect(result.command).toBe("auth");
     expect(result.args).toEqual(["reset-passkeys"]);
-    expect(result.flags.yes).toBe(true);
+    expect(result.flags["yes"]).toBe(true);
     expect(result.flags["storage-dir"]).toBe("./runtime/auth");
   });
 
@@ -112,7 +112,7 @@ describe("parseArgs", () => {
     ]);
     expect(result.command).toBe("auth");
     expect(result.args).toEqual(["reinitialize-access"]);
-    expect(result.flags.yes).toBe(true);
+    expect(result.flags["yes"]).toBe(true);
     expect(result.flags["storage-dir"]).toBe("./runtime/auth");
   });
 

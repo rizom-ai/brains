@@ -8,7 +8,7 @@ import {
   type EnvSchemaEntry,
 } from "@brains/deploy-support";
 
-import { pushSecretsToBackend } from "./push-secrets";
+import { logMissingSecrets, pushSecretsToBackend } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
 export interface SecretsPushOptions {
@@ -57,12 +57,15 @@ export async function pushPilotSecrets(
     throw new Error("No pushable local secrets found for this pilot repo");
   }
 
+  const isRequired = (key: string): boolean =>
+    requiredSecrets.get(key) ?? false;
+
   if (options.dryRun) {
     logger(
       `Dry run: would push ${pushedKeys.length} secrets to GitHub Secrets.`,
     );
     logger(`Secrets: ${pushedKeys.map(([key]) => key).join(", ")}`);
-    logMissingSecrets(logger, skippedKeys, requiredSecrets);
+    logMissingSecrets(logger, skippedKeys, isRequired);
     return {
       pushedKeys: pushedKeys.map(([key]) => key),
       skippedKeys,
@@ -74,7 +77,7 @@ export async function pushPilotSecrets(
     logger,
     runCommand: options.runCommand ?? runSubprocess,
   });
-  logMissingSecrets(logger, skippedKeys, requiredSecrets);
+  logMissingSecrets(logger, skippedKeys, isRequired);
 
   return {
     pushedKeys: pushedKeys.map(([key]) => key),
@@ -108,31 +111,4 @@ function resolveSecretValue(
   }
 
   return value;
-}
-
-function logMissingSecrets(
-  logger: (message: string) => void,
-  skippedKeys: string[],
-  requiredSecrets: Map<string, boolean>,
-): void {
-  const required = skippedKeys.filter((key) => requiredSecrets.get(key));
-  const optional = skippedKeys.filter((key) => !requiredSecrets.get(key));
-
-  logKeyGroup(logger, "Required before first deploy", required);
-  logKeyGroup(logger, "Safe to ignore for now", optional);
-}
-
-function logKeyGroup(
-  logger: (message: string) => void,
-  header: string,
-  keys: string[],
-): void {
-  if (keys.length === 0) {
-    return;
-  }
-
-  logger(`${header} (${keys.length}):`);
-  for (const key of keys) {
-    logger(`  - ${key}`);
-  }
 }

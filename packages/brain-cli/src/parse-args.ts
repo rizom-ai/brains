@@ -1,119 +1,20 @@
-import { parseArgs as nodeParseArgs } from "util";
+import {
+  parseCliArgs,
+  type ParsedCliArgs,
+} from "@brains/deploy-support/cli-kit";
 
-export interface ParsedArgs {
-  command: string;
-  args: string[];
-  flags: {
-    model?: string | undefined;
-    domain?: string | undefined;
-    "content-repo"?: string | undefined;
-    backend?: string | undefined;
-    "push-to"?: string | undefined;
-    "ai-api-key"?: string | undefined;
-    "no-interactive"?: boolean | undefined;
-    preview?: boolean | undefined;
-    deploy?: boolean | undefined;
-    regen?: boolean | undefined;
-    all?: boolean | undefined;
-    only?: string | undefined;
-    "dry-run"?: boolean | undefined;
-    "startup-check"?: boolean | undefined;
-    "storage-dir"?: string | undefined;
-    yes?: boolean | undefined;
-    remote?: string | undefined;
-    token?: string | undefined;
-    outputDir?: string | undefined;
-    help?: boolean | undefined;
-    version?: boolean | undefined;
-  };
-}
+import { commands, globalFlags } from "./run-command";
 
-const options = {
-  model: { type: "string" as const },
-  domain: { type: "string" as const },
-  "content-repo": { type: "string" as const },
-  backend: { type: "string" as const },
-  "push-to": { type: "string" as const },
-  "ai-api-key": { type: "string" as const },
-  "no-interactive": { type: "boolean" as const },
-  preview: { type: "boolean" as const },
-  deploy: { type: "boolean" as const },
-  regen: { type: "boolean" as const },
-  all: { type: "boolean" as const },
-  only: { type: "string" as const },
-  "dry-run": { type: "boolean" as const },
-  "startup-check": { type: "boolean" as const },
-  "storage-dir": { type: "string" as const },
-  yes: { type: "boolean" as const },
-  remote: { type: "string" as const },
-  token: { type: "string" as const },
-  outputDir: { type: "string" as const },
-  help: { type: "boolean" as const, short: "h" },
-  version: { type: "boolean" as const, short: "v" },
-};
-
-function getString(
-  values: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const v = values[key];
-  return typeof v === "string" ? v : undefined;
-}
-
-function getBoolean(
-  values: Record<string, unknown>,
-  key: string,
-): boolean | undefined {
-  const v = values[key];
-  return typeof v === "boolean" ? v : undefined;
-}
+export type ParsedArgs = ParsedCliArgs;
 
 /**
  * Parse CLI arguments into command, positional args, and flags.
  *
  * Usage: brain <command> [args] [--flag value]
+ *
+ * Non-strict: unknown flags are tolerated (and dropped) so dynamic brain
+ * commands can receive arbitrary positionals without tripping the parser.
  */
 export function parseArgs(argv: string[]): ParsedArgs {
-  const { values, positionals } = nodeParseArgs({
-    args: argv,
-    options,
-    allowPositionals: true,
-    strict: false,
-  });
-
-  if (values["help"]) {
-    return { command: "help", args: [], flags: { help: true } };
-  }
-
-  if (values["version"]) {
-    return { command: "version", args: [], flags: { version: true } };
-  }
-
-  const command = positionals[0] ?? "help";
-
-  return {
-    command,
-    args: positionals.slice(1),
-    flags: {
-      model: getString(values, "model"),
-      domain: getString(values, "domain"),
-      "content-repo": getString(values, "content-repo"),
-      backend: getString(values, "backend"),
-      "push-to": getString(values, "push-to"),
-      "ai-api-key": getString(values, "ai-api-key"),
-      "no-interactive": getBoolean(values, "no-interactive"),
-      preview: getBoolean(values, "preview"),
-      deploy: getBoolean(values, "deploy"),
-      regen: getBoolean(values, "regen"),
-      all: getBoolean(values, "all"),
-      only: getString(values, "only"),
-      "dry-run": getBoolean(values, "dry-run"),
-      "startup-check": getBoolean(values, "startup-check"),
-      "storage-dir": getString(values, "storage-dir"),
-      yes: getBoolean(values, "yes"),
-      remote: getString(values, "remote"),
-      token: getString(values, "token"),
-      outputDir: getString(values, "outputDir"),
-    },
-  };
+  return parseCliArgs(argv, { commands, globalFlags, strict: false });
 }
