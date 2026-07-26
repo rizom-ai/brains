@@ -26,20 +26,6 @@ export const wishPrioritySchema: z.ZodType<WishPriority, WishPriority> = z.enum(
   ["low", "medium", "high", "critical"],
 );
 
-const wishStatusParserSchema: z.ZodType<WishStatus, WishStatus> = z.enum([
-  "new",
-  "planned",
-  "in-progress",
-  "done",
-  "declined",
-]);
-const wishPriorityParserSchema: z.ZodType<WishPriority, WishPriority> = z.enum([
-  "low",
-  "medium",
-  "high",
-  "critical",
-]);
-
 export interface WishFrontmatter {
   [key: string]: unknown;
   title: string;
@@ -101,14 +87,6 @@ export const wishMetadataSchema: WishMetadataSchema = z.object({
 /**
  * Wish entity schema
  */
-const wishEntityMetadataParserSchema: WishMetadataSchema = z.object({
-  title: z.string(),
-  status: wishStatusParserSchema,
-  priority: wishPriorityParserSchema,
-  requested: z.number().int(),
-  slug: z.string(),
-});
-
 export const wishSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"wish">;
@@ -116,7 +94,7 @@ export const wishSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("wish"),
-  metadata: wishEntityMetadataParserSchema,
+  metadata: wishMetadataSchema,
 });
 
 export type WishEntity = z.output<typeof wishSchema>;

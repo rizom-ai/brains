@@ -40,7 +40,7 @@ import { z } from "@brains/utils/zod";
  * Schema for runtime call options
  * Defines type-safe inputs passed at generation time
  */
-const brainCallOptionsSchemaInternal: z.ZodObject<{
+export const brainCallOptionsSchema: z.ZodObject<{
   userPermissionLevel: z.ZodEnum<{
     admin: "admin";
     trusted: "trusted";
@@ -73,9 +73,6 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
 });
-
-export const brainCallOptionsSchema: typeof brainCallOptionsSchemaInternal =
-  brainCallOptionsSchemaInternal;
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 

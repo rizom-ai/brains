@@ -21,14 +21,6 @@ export const deckStatusSchema: DeckStatusSchema = z.enum([
 ]);
 export type DeckStatus = z.output<typeof deckStatusSchema>;
 
-const deckStatusParserSchema: DeckStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
-
 export const publishedAtRequiredMessage: string =
   "publishedAt is required when deck status is published";
 
@@ -113,37 +105,6 @@ export const deckMetadataSchema: DeckMetadataSchema = z
 
 export type DeckMetadata = z.output<typeof deckMetadataSchema>;
 
-const deckEntityMetadataParserSchema: DeckMetadataSchema = z
-  .object({
-    title: z.string(),
-    description: z.string().optional(),
-    status: deckStatusParserSchema,
-    publishedAt: z.string().datetime().optional(),
-    coverImageId: z.string().optional(),
-    slug: z.string(),
-    error: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (!isMissingPublishedAt(data)) return;
-    ctx.addIssue({
-      code: "custom",
-      path: ["publishedAt"],
-      message: publishedAtRequiredMessage,
-    });
-  });
-
-const deckFrontmatterParserSchema: DeckFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(),
-  description: z.string().optional(),
-  author: z.string().optional(),
-  status: deckStatusParserSchema,
-  publishedAt: z.string().datetime().optional(),
-  event: z.string().optional(),
-  coverImageId: z.string().optional(),
-  ogImageId: z.string().optional(),
-});
-
 /**
  * Deck entity schema (extends BaseEntity)
  * Content field contains markdown with frontmatter + slide content
@@ -156,7 +117,7 @@ export const deckSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("deck"),
-  metadata: deckEntityMetadataParserSchema,
+  metadata: deckMetadataSchema,
 });
 
 export type DeckEntity = z.output<typeof deckSchema>;
@@ -172,7 +133,7 @@ export const deckWithDataSchema: ReturnType<
     ogImageUrl: z.ZodOptional<z.ZodString>;
   }>
 > = deckSchema.extend({
-  frontmatter: deckFrontmatterParserSchema,
+  frontmatter: deckFrontmatterSchema,
   body: z.string(),
   ogImageUrl: z.string().optional(),
 });

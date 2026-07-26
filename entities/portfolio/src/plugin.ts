@@ -27,6 +27,7 @@ import {
 import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {
+  enrichedProjectSchema,
   projectSchema,
   projectFrontmatterSchema,
   type Project,
@@ -67,76 +68,8 @@ const paginationInfoSchema = z.object({
   hasPrevPage: z.boolean(),
 });
 
-const contentVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public";
-    if (value === "private") return "restricted";
-    return value;
-  });
-
-const projectStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "published",
-  "failed",
-]);
-
-const projectFrontmatterViewSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(),
-  status: projectStatusSchema,
-  publishedAt: z.string().optional(),
-  description: z.string(),
-  year: z.number(),
-  coverImageId: z.string().optional(),
-  ogImageId: z.string().optional(),
-  url: z.url().optional(),
-});
-
-const projectMetadataViewSchema = z.object({
-  title: z.string(),
-  status: projectStatusSchema,
-  publishedAt: z.string().optional(),
-  year: z.number(),
-  slug: z.string(),
-  error: z.string().optional(),
-});
-
-const projectContentViewSchema = z.object({
-  context: z.string(),
-  problem: z.string(),
-  solution: z.string(),
-  outcome: z.string(),
-});
-
-/**
- * Datasource-facing schema. URL/display fields are added by site-builder
- * after content resolution, before the component is rendered.
- */
-const enrichedProjectViewSchema = z.object({
-  id: z.string(),
-  entityType: z.literal("project"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: projectMetadataViewSchema,
-  contentHash: z.string(),
-  frontmatter: projectFrontmatterViewSchema,
-  body: z.string(),
-  structuredContent: projectContentViewSchema.optional(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
-});
-
 const projectListSchema = z.object({
-  projects: z.array(enrichedProjectViewSchema),
+  projects: z.array(enrichedProjectSchema),
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
@@ -238,18 +171,18 @@ export class PortfolioPlugin extends EntityPlugin<
       }),
       "project-detail": createTemplate<
         {
-          project: z.output<typeof enrichedProjectViewSchema>;
-          prevProject: z.output<typeof enrichedProjectViewSchema> | null;
-          nextProject: z.output<typeof enrichedProjectViewSchema> | null;
+          project: z.output<typeof enrichedProjectSchema>;
+          prevProject: z.output<typeof enrichedProjectSchema> | null;
+          nextProject: z.output<typeof enrichedProjectSchema> | null;
         },
         ProjectDetailProps
       >({
         name: "project-detail",
         description: "Individual project case study template",
         schema: z.object({
-          project: enrichedProjectViewSchema,
-          prevProject: enrichedProjectViewSchema.nullable(),
-          nextProject: enrichedProjectViewSchema.nullable(),
+          project: enrichedProjectSchema,
+          prevProject: enrichedProjectSchema.nullable(),
+          nextProject: enrichedProjectSchema.nullable(),
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",

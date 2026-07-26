@@ -17,11 +17,6 @@ export const summaryTimeRangeSchema: z.ZodType<SummaryTimeRange> = z.object({
   end: z.string().datetime(),
 });
 
-const summaryTimeRangeParserSchema: z.ZodType<SummaryTimeRange> = z.object({
-  start: z.string().datetime(),
-  end: z.string().datetime(),
-});
-
 export interface SummaryEntry {
   title: string;
   summary: string;
@@ -33,7 +28,7 @@ export interface SummaryEntry {
 export const summaryEntrySchema: z.ZodType<SummaryEntry> = z.object({
   title: z.string().min(1).describe("Brief topic or phase title"),
   summary: z.string().min(1).describe("Grounded prose summary"),
-  timeRange: summaryTimeRangeParserSchema,
+  timeRange: summaryTimeRangeSchema,
   sourceMessageCount: z.number().int().min(0),
   keyPoints: z.array(z.string()),
 });
@@ -161,7 +156,7 @@ const summaryEntityMetadataParserSchema: z.ZodType<SummaryMetadata> = z.object({
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
-  timeRange: summaryTimeRangeParserSchema.optional(),
+  timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
   entryCount: z.number().int().min(0),
   participants: z.array(summaryParticipantParserSchema).optional(),

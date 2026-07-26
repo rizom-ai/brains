@@ -12,11 +12,6 @@ export const productAvailabilitySchema: z.ZodType<
   ProductAvailability
 > = z.enum(["available", "early access", "coming soon", "planned"]);
 
-const productAvailabilityParserSchema: z.ZodType<
-  ProductAvailability,
-  ProductAvailability
-> = z.enum(["available", "early access", "coming soon", "planned"]);
-
 /**
  * Product feature/capability schema
  */
@@ -104,36 +99,17 @@ export const productMetadataSchema: ProductMetadataSchema =
 
 export type ProductMetadata = z.output<typeof productMetadataSchema>;
 
-const productEntityMetadataParserSchema: z.ZodObject<{
-  name: z.ZodString;
-  availability: z.ZodType<ProductAvailability, ProductAvailability>;
-  order: z.ZodNumber;
-  slug: z.ZodString;
-}> = z.object({
-  name: z.string(),
-  availability: productAvailabilityParserSchema,
-  order: z.number(),
-  slug: z.string(),
-});
-
-const productFrontmatterParserSchema: ProductFrontmatterSchema = z.object({
-  name: z.string(),
-  availability: productAvailabilityParserSchema,
-  order: z.number(),
-  ogImageId: z.string().optional(),
-});
-
 /**
  * Product entity schema (extends BaseEntity)
  */
 export const productSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"product">;
-    metadata: typeof productEntityMetadataParserSchema;
+    metadata: ProductMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("product"),
-  metadata: productEntityMetadataParserSchema,
+  metadata: productMetadataSchema,
 });
 
 export type Product = z.output<typeof productSchema>;
@@ -150,7 +126,7 @@ export const productWithDataSchema: ReturnType<
     ogImageUrl: z.ZodOptional<z.ZodString>;
   }>
 > = productSchema.extend({
-  frontmatter: productFrontmatterParserSchema,
+  frontmatter: productFrontmatterSchema,
   body: productBodySchema,
   labels: z.record(z.string(), z.string()),
   ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata

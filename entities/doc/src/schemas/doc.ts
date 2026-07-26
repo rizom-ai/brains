@@ -35,28 +35,14 @@ export const docMetadataSchema: z.ZodObject<{
 
 export type DocMetadata = z.output<typeof docMetadataSchema>;
 
-const docEntityMetadataParserSchema: z.ZodObject<{
-  title: z.ZodString;
-  section: z.ZodString;
-  order: z.ZodNumber;
-  description: z.ZodOptional<z.ZodString>;
-  slug: z.ZodString;
-}> = z.object({
-  title: z.string(),
-  section: z.string(),
-  order: z.number().int(),
-  description: z.string().optional(),
-  slug: z.string(),
-});
-
 export const docSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"doc">;
-    metadata: typeof docEntityMetadataParserSchema;
+    metadata: typeof docMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("doc"),
-  metadata: docEntityMetadataParserSchema,
+  metadata: docMetadataSchema,
 });
 
 export type Doc = z.output<typeof docSchema>;

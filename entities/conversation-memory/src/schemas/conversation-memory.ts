@@ -100,11 +100,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const memoryTimeRangeParserSchema: z.ZodType<SummaryTimeRange> = z.object({
-  start: z.string().datetime(),
-  end: z.string().datetime(),
-});
-
 export type DecisionStatus = "active" | "superseded";
 
 export interface DecisionMetadata {
@@ -160,7 +155,7 @@ const decisionEntityMetadataParserSchema: z.ZodType<DecisionMetadata> =
     channelName: z.string().optional(),
     interfaceType: z.string(),
     spaceId: z.string(),
-    timeRange: memoryTimeRangeParserSchema,
+    timeRange: summaryTimeRangeSchema,
     sourceSummaryId: z.string(),
     sourceMessageCount: z.number().int().min(0),
     projectionVersion: z.number().int().min(1),
@@ -236,7 +231,7 @@ const actionItemEntityMetadataParserSchema: z.ZodType<ActionItemMetadata> =
     channelName: z.string().optional(),
     interfaceType: z.string(),
     spaceId: z.string(),
-    timeRange: memoryTimeRangeParserSchema,
+    timeRange: summaryTimeRangeSchema,
     sourceSummaryId: z.string(),
     sourceMessageCount: z.number().int().min(0),
     projectionVersion: z.number().int().min(1),

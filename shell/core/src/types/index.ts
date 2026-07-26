@@ -8,7 +8,7 @@ export interface SerializableEntity {
   updated: string;
 }
 
-const serializableEntitySchemaInternal: z.ZodType<SerializableEntity, unknown> =
+export const serializableEntitySchema: z.ZodType<SerializableEntity, unknown> =
   z.object({
     id: z.string(),
     entityType: z.string(),
@@ -16,8 +16,5 @@ const serializableEntitySchemaInternal: z.ZodType<SerializableEntity, unknown> =
     created: z.string(),
     updated: z.string(),
   });
-
-export const serializableEntitySchema: typeof serializableEntitySchemaInternal =
-  serializableEntitySchemaInternal;
 
 export type SerializableQueryResult<T> = T;

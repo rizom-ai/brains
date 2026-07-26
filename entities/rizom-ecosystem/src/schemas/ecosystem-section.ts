@@ -66,13 +66,6 @@ export const ecosystemSectionMetadataSchema: EcosystemSectionMetadataSchema =
     status: z.enum(["draft", "published"]),
   });
 
-const ecosystemSectionEntityMetadataSchema: EcosystemSectionMetadataSchema =
-  z.object({
-    title: z.string(),
-    slug: z.string(),
-    status: z.enum(["draft", "published"]),
-  });
-
 export const ecosystemSectionSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"ecosystem-section">;
@@ -80,7 +73,7 @@ export const ecosystemSectionSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("ecosystem-section"),
-  metadata: ecosystemSectionEntityMetadataSchema,
+  metadata: ecosystemSectionMetadataSchema,
 });
 
 export type EcosystemSection = z.output<typeof ecosystemSectionSchema>;

@@ -35,12 +35,6 @@ export const linkStatusSchema: z.ZodType<LinkStatus, LinkStatus> = z.enum([
   "published",
 ]);
 
-const linkStatusParserSchema: z.ZodType<LinkStatus, LinkStatus> = z.enum([
-  "pending",
-  "draft",
-  "published",
-]);
-
 /**
  * Link frontmatter schema (stored in content as YAML frontmatter)
  * Contains all structured data - the body is just the summary text
@@ -101,11 +95,6 @@ export const linkMetadataSchema: LinkMetadataSchema =
 /**
  * Link entity schema
  */
-const linkEntityMetadataParserSchema: LinkMetadataSchema = z.object({
-  title: z.string(),
-  status: linkStatusParserSchema,
-});
-
 export const linkSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"link">;
@@ -113,7 +102,7 @@ export const linkSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("link"),
-  metadata: linkEntityMetadataParserSchema,
+  metadata: linkMetadataSchema,
 });
 
 export type LinkEntity = z.output<typeof linkSchema>;

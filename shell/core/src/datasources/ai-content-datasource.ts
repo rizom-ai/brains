@@ -16,7 +16,7 @@ export interface GenerationContext {
   templateName: string;
 }
 
-const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
+export const GenerationContextSchema: z.ZodType<GenerationContext, unknown> =
   z.object({
     prompt: z.string().optional(),
     conversationHistory: z.string().optional(),
@@ -30,9 +30,6 @@ const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
       .optional(),
     templateName: z.string(),
   });
-
-export const GenerationContextSchema: typeof generationContextSchemaInternal =
-  generationContextSchemaInternal;
 
 const entitySlugSchema = z.object({ slug: z.string() });
 
