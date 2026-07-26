@@ -1,5 +1,11 @@
 # @rizom/site-smoke-canary
 
+## 0.2.0-alpha.230
+
+### Patch Changes
+
+- [`fbe6803`](https://github.com/rizom-ai/brains/commit/fbe68039507bdd581391ba59aa02f2f25abd7408) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the preact JSX runtime via a `/** @jsxImportSource preact */` pragma in each shipped `.tsx`. The package ships raw `src` that the brain runtime transpiles live; without the pragma the runtime defaulted to `react/jsx-runtime` and the site failed to boot (`Cannot find module 'react/jsx-runtime'`). The pragma makes the external package self-describing about its JSX runtime instead of depending on the consumer's tsconfig.
+
 ## 0.2.0-alpha.229
 
 ### Patch Changes
