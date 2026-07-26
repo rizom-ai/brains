@@ -42,8 +42,9 @@ describe("deriveConsoleSurfaces", () => {
       permissionLevel: "trusted",
     });
 
-    // Trusted sees public (dashboard) and trusted (chat), never admin-only CMS/Admin.
-    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
+    // Trusted sees public (dashboard) and trusted (chat, CMS), never the
+    // admin-only Admin console.
+    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat", "cms"]);
   });
 
   it("shows a Public caller only public surfaces", () => {

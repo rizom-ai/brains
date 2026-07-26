@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { Plugin, WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import type { ZodType } from "@brains/utils/zod";
 import { cmsPlugin, type CmsPlugin } from "../src";
@@ -305,6 +305,36 @@ describe("CMS Trusted rollout gate", () => {
         );
       }
     }
+  });
+
+  it("renders the surface strip at the caller's own permission level", async () => {
+    const { shell, plugin, sessions } = await setup();
+    // A registered admin console route would appear in the strip for an
+    // Admin caller; the strip must never show it to a Trusted caller.
+    shell.registerPlugin({
+      id: "admin",
+      getWebRoutes: (): WebRouteDefinition[] => [
+        {
+          path: "/admin",
+          method: "GET",
+          public: true,
+          handler: async () => new Response("admin"),
+        },
+      ],
+    } as unknown as Plugin);
+    const route = findRoute(plugin, "/cms");
+
+    const adminHtml = await (
+      await route.handler(request("/cms", { cookie: sessions.admin }))
+    ).text();
+    expect(adminHtml).toContain('href="/admin"');
+
+    const trustedHtml = await (
+      await route.handler(request("/cms", { cookie: sessions.trusted }))
+    ).text();
+    expect(trustedHtml).not.toContain('href="/admin"');
+    // The Trusted caller keeps the CMS's own door.
+    expect(trustedHtml).toContain('href="/cms"');
   });
 
   it("denies Public requests before mutation or private capability code", async () => {

@@ -274,9 +274,7 @@ export function createEditorRoutes(
         basePath: shellPath,
         surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
           activeId: "cms",
-          // The CMS shell is Admin-gated (hasAdminAuthSession) until the
-          // permission-aware CMS rollout; the caller here is always an Admin.
-          permissionLevel: "admin",
+          permissionLevel: resolution.access.permissionLevel,
           self: { id: "cms", href: shellPath },
         }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
