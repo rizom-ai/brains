@@ -1,5 +1,5 @@
 {
-  "newCookieIntroducedIn": "unreleased",
-  "drizzleMigrationsIntroducedIn": "unreleased",
+  "newCookieIntroducedIn": "0.2.0-alpha.227",
+  "drizzleMigrationsIntroducedIn": "0.2.0-alpha.227",
   "minimumSupportedUpgradeVersion": null
 }

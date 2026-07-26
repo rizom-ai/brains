@@ -1,5 +1,12 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- Updated dependencies [[`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58), [`f7b3500`](https://github.com/rizom-ai/brains/commit/f7b350042c5bbcd6c5a43016d25e95e35ea3bfed), [`fa8e4eb`](https://github.com/rizom-ai/brains/commit/fa8e4eb3a237aaec54eeeb815f68e792d3a1715b)]:
+  - @brains/contracts@0.2.0-alpha.227
+
 ## 0.2.0-alpha.226
 
 ### Patch Changes

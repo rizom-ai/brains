@@ -1,5 +1,12 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.227
+
+### Patch Changes
+
+- Updated dependencies [[`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29)]:
+  - @brains/utils@0.2.0-alpha.227
+
 ## 0.2.0-alpha.226
 
 ### Patch Changes
