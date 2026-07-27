@@ -268,6 +268,82 @@ describe("runSiteBuild transactional output", () => {
     ).toHaveLength(1);
   });
 
+  it("reports a staged SEO write failure as a build failure, not a commit failure", async () => {
+    // SEO artifacts are written into staging, before the generation is
+    // validated or published, so a failure there has not reached the commit.
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Transactional Site",
+        description: "Transactional fixture",
+      },
+      siteUrl: "https://seo.example",
+      layouts: { default: TestLayout },
+    };
+    const successfulFactory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+
+    expect(
+      (
+        await runSiteBuild({
+          buildOptions,
+          progress: undefined,
+          pipelineContext: createPipelineContext(),
+          staticSiteBuilderFactory: successfulFactory,
+          signal: new AbortController().signal,
+        })
+      ).success,
+    ).toBe(true);
+
+    // Occupying the robots.txt path with a directory makes the staged write
+    // fail with EISDIR through the real code path.
+    const blockingFactory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "blocked");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+        await fs.mkdir(join(options.outputDir, "robots.txt"), {
+          recursive: true,
+        });
+      }),
+    });
+    const result = await runSiteBuild({
+      buildOptions,
+      progress: undefined,
+      pipelineContext: createPipelineContext(),
+      staticSiteBuilderFactory: blockingFactory,
+      signal: new AbortController().signal,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ code: "build-failed" }),
+    ]);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "stable",
+    );
+    expect(
+      await fs.readdir(join(testDir, ".site-builds", "preview")),
+    ).toHaveLength(1);
+  });
+
   it("fails the build when a staging subscriber reports a failed artifact", async () => {
     // Staging artifacts are produced by broadcast subscribers, and the message
     // bus swallows their errors. Without a reported failure the generation

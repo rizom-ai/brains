@@ -222,7 +222,6 @@ export async function runSiteBuild(
       signal: options.signal,
     });
 
-    failureCode = "output-commit-failed";
     await reporter?.report({
       message: "Generating SEO artifacts",
       progress: 96,
@@ -242,6 +241,9 @@ export async function runSiteBuild(
       total: 100,
     });
     options.signal.throwIfAborted();
+    // Everything above writes into staging; only from here can a failure have
+    // touched the active output pointer.
+    failureCode = "output-commit-failed";
     commitStarted = true;
     const commitResult = await outputLifecycle.commit({
       target: outputTarget,
