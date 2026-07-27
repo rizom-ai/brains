@@ -1,9 +1,8 @@
-name: CI
+name: Core CI
 
 on:
-  # Ordered include/exclude (last match wins): skip docs-only changes,
-  # but changeset files must trigger CI — Release chains off CI via
-  # workflow_run, so a changeset-only push would otherwise never publish.
+  # Site/theme packages have their own scoped CI. Ordered include/exclude
+  # patterns keep site-only work from being blocked by unrelated core checks.
   push:
     branches: ["main"]
     paths:
@@ -11,7 +10,22 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.claude/**"
-      - ".changeset/**"
+      - "!sites/docs/**"
+      - "!sites/rizom/**"
+      - "!sites/rizom-ai/**"
+      - "!sites/rizom-foundation/**"
+      - "!sites/rizom-work/**"
+      - "!sites/smoke-canary/**"
+      - "!shared/theme-default/**"
+      - "!shared/theme-rizom-ai/**"
+      - "!shared/theme-signal/**"
+      - "!packages/site/**"
+      - "!packages/site-sections/**"
+      - "!.github/workflows/site-ci.yml"
+      - "!.github/workflows/site-release.yml"
+      - "!.changeset/pre.json"
+      - ".changeset/core--*.md"
+      - "!.changeset/site--*.md"
   pull_request:
     types: [opened, synchronize]
     paths:
@@ -19,7 +33,22 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.claude/**"
-      - ".changeset/**"
+      - "!sites/docs/**"
+      - "!sites/rizom/**"
+      - "!sites/rizom-ai/**"
+      - "!sites/rizom-foundation/**"
+      - "!sites/rizom-work/**"
+      - "!sites/smoke-canary/**"
+      - "!shared/theme-default/**"
+      - "!shared/theme-rizom-ai/**"
+      - "!shared/theme-signal/**"
+      - "!packages/site/**"
+      - "!packages/site-sections/**"
+      - "!.github/workflows/site-ci.yml"
+      - "!.github/workflows/site-release.yml"
+      - "!.changeset/pre.json"
+      - ".changeset/core--*.md"
+      - "!.changeset/site--*.md"
 
 # Turbo Remote Cache: populated by Vercel-hosted cache server. TURBO_TOKEN
 # is a Vercel CLI token; TURBO_TEAM is the Vercel team slug. With both set,
@@ -57,8 +86,8 @@ jobs:
             turbo-lint-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
-      - name: Lint
-        run: bun run lint
+      - name: Lint core packages
+        run: bun scripts/lint.mjs --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
       - name: Check auth-session compatibility gate
         run: bun run auth-session:compat-check
@@ -66,8 +95,11 @@ jobs:
       # install and cache. lint-staged only formats staged files, so without
       # this nothing ever re-checks a file that stops matching prettier after a
       # version bump.
-      - name: Format
-        run: bun run format:check
+      - name: Format core files
+        run: bun run format:check:core
+
+      - name: Validate release queues
+        run: bun run changeset:check
 
   typecheck:
     name: Type check
@@ -96,8 +128,8 @@ jobs:
             turbo-typecheck-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
-      - name: Type check
-        run: bun run typecheck
+      - name: Type check core packages
+        run: bunx turbo run typecheck --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
   test:
     name: Test
@@ -126,8 +158,8 @@ jobs:
             turbo-test-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
-      - name: Test
-        run: bun run test
+      - name: Test core packages
+        run: bunx turbo run test --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
   build:
     name: Build
@@ -156,9 +188,7 @@ jobs:
             turbo-build-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
-      # Build every package in dependency order so a package that fails to
-      # build (or a cross-package dist import that no longer resolves) is caught
-      # here, not at release time. The release also builds before publishing,
-      # but this shifts detection left onto every push/PR.
-      - name: Build
-        run: bun run build
+      # Build every relevant core package in dependency order so a package that
+      # fails to build is caught here, not at release time.
+      - name: Build core packages
+        run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'

@@ -1,0 +1,107 @@
+name: Site CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "sites/docs/**"
+      - "sites/rizom/**"
+      - "sites/rizom-ai/**"
+      - "sites/rizom-foundation/**"
+      - "sites/rizom-work/**"
+      - "sites/smoke-canary/**"
+      - "shared/theme-default/**"
+      - "shared/theme-rizom-ai/**"
+      - "shared/theme-signal/**"
+      - "packages/site/**"
+      - "packages/site-sections/**"
+      - "packages/build-tools/**"
+      - "scripts/release-lane.ts"
+      - "scripts/format-release-lane.ts"
+      - "scripts/publish-packages.ts"
+      - "scripts/verify-site-publish-metadata.ts"
+      - "scripts/verify-published-peer-metadata.ts"
+      - ".changeset/site--*.md"
+      - ".changeset/config.json"
+      - ".github/workflows/site-ci.yml"
+      - ".github/workflows/site-release.yml"
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "sites/docs/**"
+      - "sites/rizom/**"
+      - "sites/rizom-ai/**"
+      - "sites/rizom-foundation/**"
+      - "sites/rizom-work/**"
+      - "sites/smoke-canary/**"
+      - "shared/theme-default/**"
+      - "shared/theme-rizom-ai/**"
+      - "shared/theme-signal/**"
+      - "packages/site/**"
+      - "packages/site-sections/**"
+      - "packages/build-tools/**"
+      - "scripts/release-lane.ts"
+      - "scripts/format-release-lane.ts"
+      - "scripts/publish-packages.ts"
+      - "scripts/verify-site-publish-metadata.ts"
+      - "scripts/verify-published-peer-metadata.ts"
+      - ".changeset/site--*.md"
+      - ".changeset/config.json"
+      - ".github/workflows/site-ci.yml"
+      - ".github/workflows/site-release.yml"
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  site:
+    name: Site and theme packages
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-site-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-site-${{ runner.os }}-
+            turbo-${{ runner.os }}-
+
+      - name: Validate release queues
+        run: bun run changeset:check
+
+      - name: Lint release tooling
+        run: bun scripts/lint.mjs --filter='@brains/build-tools'
+
+      - name: Lint site and theme packages
+        run: bun scripts/lint.mjs --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      - name: Format site and theme files
+        run: bun run format:check:site
+
+      - name: Type check site and theme packages
+        run: bunx turbo run typecheck --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      - name: Test release tooling
+        run: bun --filter @brains/build-tools test
+
+      - name: Test site and theme packages
+        run: bunx turbo run test --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      - name: Build site and theme packages
+        run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'

@@ -1,11 +1,28 @@
 # Changesets
 
-This directory is used by [Changesets](https://github.com/changesets/changesets) to manage versioning and changelogs.
+Changesets use two independent queues so a core release cannot publish a site
+or theme package, and a site release cannot publish core runtime packages.
 
-## Workflow
+## Choose a release lane
 
-1. Make your changes
-2. Run `bun changeset` to create a changeset describing what changed
-3. Commit the changeset file with your code
-4. When merged to main, the release workflow creates a "Version Packages" PR
-5. Merging that PR publishes to npm and creates a GitHub release
+- `bun changeset core` — `@brains/*`, `@rizom/brain`, `@rizom/ops`,
+  `@rizom/ui`, and other non-site packages.
+- `bun changeset site` — public `@rizom/site*` and `@rizom/theme*` packages.
+
+The wrapper adds a `core--` or `site--` filename prefix. Do not run the raw
+Changesets CLI to create a changeset. A changeset may reference packages from
+only one lane; dependency propagation must also stay in that lane.
+
+`bun run changeset:check` validates both queues and their assembled release
+plans. CI runs this before either release pipeline versions packages.
+
+## Release commands
+
+The workflows use lane-scoped commands:
+
+- `bun run changeset:version:core` / `bun run changeset:publish:core`
+- `bun run changeset:version:site` / `bun run changeset:publish:site`
+
+Unscoped publish commands are intentionally not exposed. The site pipeline also
+verifies prepared package metadata before npm publish and registry metadata
+after publish.

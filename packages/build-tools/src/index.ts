@@ -11,6 +11,15 @@ export {
 } from "./publish-manifest";
 export { runWithPreparedPublishManifests } from "./publish-workspace";
 export {
+  assertReleasePlanMatchesLane,
+  isSiteReleasePackage,
+  packageMatchesReleaseLane,
+  runWithScopedReleasePackages,
+  type ReleaseLane,
+  type ReleasePlanPackage,
+  type WorkspacePackageLike,
+} from "./release-lanes";
+export {
   assertPublishedCompatibilityMetadata,
   type PublishedCompatibilityTarget,
   type PublishedPackageManifest,

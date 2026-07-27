@@ -1,12 +1,12 @@
 name: Release
 
 on:
-  # Chain off CI so a red build never produces an npm publish. Release
+  # Chain off Core CI so a red core build never produces an npm publish. Release
   # runs as a no-op when there are no pending changesets, which keeps
   # the downstream image/deploy chain linear (CI → Release → Publish
   # Images → Deploy) for both release and non-release pushes.
   workflow_run:
-    workflows: [CI]
+    workflows: [Core CI]
     types: [completed]
     branches: [main]
   # Manual trigger so operators can kick off a release run without
@@ -14,11 +14,12 @@ on:
   # an already-bumped main, or for running a release out of band.
   workflow_dispatch:
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# Shared with Site Release so two version commits can never race on main.
+concurrency: npm-release-main
 
 jobs:
   release:
-    name: Release
+    name: Core Release
     # Fork-safety: only run on the canonical repo. Forks shouldn't
     # attempt to publish releases for the upstream packages.
     # For workflow_run events, also gate on the upstream CI run having
@@ -72,7 +73,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Version
+      - name: Validate release queues
+        run: bun run changeset:check
+
+      - name: Version core packages
         env:
           # @changesets/changelog-github hits the GitHub API to resolve
           # PR numbers, commit authors, and link URLs for the generated
@@ -80,7 +84,7 @@ jobs:
           # it can write package.json or CHANGELOG.md.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bun run changeset:version
+          bun run changeset:version:core
           if git diff --quiet -- shell/auth-service/package.json; then
             bun run auth-session:compat-check
           else
@@ -102,25 +106,17 @@ jobs:
       - name: Run pre-publish smoke tests
         run: bun --filter @rizom/ops test:smoke
 
-      # Build every package in dependency order BEFORE publishing. changeset
-      # publish skips packages already on the registry, so their per-package
-      # prepublishOnly build never runs — and a dependent published in the same
-      # run then fails to import the skipped dependency's dist (the theme-default
-      # / theme-rizom-ai failure). Building up front guarantees every dist/
-      # exists regardless of publish/skip status, and makes a build failure
-      # abort the run before any package is published (no partial releases).
-      - name: Build all packages
-        run: bun run build
+      # Build the core lane in dependency order before publishing. Site and
+      # theme packages are built and published only by Site Release.
+      - name: Build core packages
+        run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
       - name: Publish to npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          bun run changeset:publish
-
-      - name: Verify published site/theme metadata
-        run: bun scripts/verify-published-peer-metadata.ts
+          bun run changeset:publish:core
 
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''

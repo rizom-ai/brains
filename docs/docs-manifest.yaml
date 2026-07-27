@@ -113,6 +113,12 @@ docs:
     order: 135
     source: docs/external-plugin-authoring.md
 
+  - id: external-site-authoring
+    title: External Site and Theme Authoring
+    section: Customization
+    order: 140
+    source: docs/external-site-authoring.md
+
   - id: architecture-overview
     title: Architecture Overview
     section: Architecture

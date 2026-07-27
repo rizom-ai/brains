@@ -2,11 +2,24 @@
 
 ## Status
 
-Implementation in progress. Phase 0's release-group split, pre-publish
-manifest preparation, compatibility metadata, and registry verifier are
-implemented. Its exit gate remains open until freshly published site and theme
-versions pass the verifier against the npm registry; package resolution must
-not ship before that gate closes.
+Implementation in progress. Phase 0 is complete: the release-group split,
+pre-publish manifest preparation, compatibility metadata, and registry
+verifier are implemented, and the exit gate closed on 2026-07-27 —
+`0.2.0-alpha.233` site and theme packuments expose valid `peerDependencies`
+brain ranges with no authoring-only fields (root cause of the earlier broken
+packuments: the per-package `postpack` restore ran mid-publish, after the
+tarball was packed but before npm read registry metadata; restore now happens
+once in the release wrapper, with a drift-guard test). Package resolution is
+unblocked.
+
+Phases 1–4 (schema and production migration, resolver and committed lock,
+independent theme resolution, floating canary) are not started. Phase 5's code
+is implemented: core and site/theme releases have separate CI, changeset,
+version, publish, and verification scopes, and the standalone reference package
+now lives at `rizom-ai/site-smoke-canary` with a plain npm publish workflow.
+Its exit gate remains open until npm trusted publishing is assigned to that
+workflow, `0.2.0-alpha.234` is published from the standalone repository, and
+Smoke is pinned to and deployed from that release.
 
 This plan gives deployable site and theme packages genuinely independent npm
 versions and decouples their deployment pins from `brainVersion`. The monorepo
@@ -74,6 +87,54 @@ broad glob.
 Internal package dependency updates still propagate normally. For example, a
 theme that pins `@rizom/theme-default` receives a release when that dependency
 changes.
+
+### Release independence is the product, and it has three layers
+
+Sites and themes are a platform product surface: outside authors publish their
+own site and theme packages from their own repositories and have them resolved
+onto hosted instances. Independent version lines (this plan's original scope)
+are only the first layer. The decisions below extend the plan to the other two.
+
+1. **Version lines** — done (Phase 0). Site/theme releases no longer republish
+   or version-bump with `@rizom/brain`.
+2. **Release pipeline** — site and theme packages leave the core Release
+   workflow. They publish through their own workflow with their own verify
+   gate and their own changeset queue, so:
+   - a core release can never publish a site or theme package, and a
+     site/theme release can never publish `@rizom/brain` (enforced by test,
+     like the existing release-group tests);
+   - site metadata verification gates the _site_ publish and can never land
+     after an irreversible core publish;
+   - a queued core changeset cannot delay or ride along with a site fix, and
+     vice versa.
+3. **Repository** — first-party sites ultimately move out of the monorepo and
+   consume `@rizom/brain` and `@rizom/site` from npm like any third party. The
+   pilot contract already assumes nothing about the monorepo, so the move is
+   mechanical once layer 2 exists.
+
+### First-party sites dogfood the public path
+
+The privileged monorepo path is why the public path shipped broken metadata
+unnoticed: nothing consumed it. The reference implementation of "releasing a
+site" must therefore be the public path itself. `@rizom/site-smoke-canary`
+(already content-independent by design) is extracted to a standalone
+repository and released the way an outside author would: plain `npm publish`,
+hand-authored `peerDependencies`, no `@brains` build tooling, no changesets.
+The Smoke instance then consumes it through ordinary resolution, so the
+public path — not the internal one — is what the canary continuously
+exercises.
+
+### Compatibility ranges require a stated breaking-change rule
+
+A brain peer range only means something if the hosting contract is versioned
+honestly. While `@rizom/brain` remains on a perpetually bumping prerelease
+line, the rule is: a change that breaks the site hosting contract (the
+`@rizom/site` authoring surface or the runtime's site loading behavior) must
+be called out in the release notes and must advance the lower bound that new
+site/theme releases declare; ranges are authored as
+`>=<first-compatible> <0.3.0`. When the platform opens to outside authors,
+the contract graduates to plain semver (breaking hosting changes bump the
+range ceiling). Compatibility metadata without this rule is decorative.
 
 ### Standard npm compatibility metadata
 
@@ -308,6 +369,30 @@ rollback commits restore exact package locks.
 Exit gate: Smoke continuously tests newest-compatible published packages;
 production moves only through an explicit update and remains reproducible.
 
+### Phase 5 — Release pipeline independence and the public-path reference site
+
+Starts immediately; does not depend on Phases 1–4.
+
+1. Split site/theme publishing out of the core Release workflow into its own
+   workflow: own trigger, own changeset scope, own publish step, with the
+   metadata verifier gating that publish.
+2. Prove the separation with tests: core release plans never include
+   site/theme packages; site/theme release plans never include `@rizom/brain`
+   or fixed-group runtime packages.
+3. Filter CI so a site-only change runs site-scoped checks; a broken unrelated
+   package cannot block a site release, and vice versa.
+4. Extract `@rizom/site-smoke-canary` to a standalone repository releasing via
+   plain `npm publish` with hand-authored `peerDependencies` — the reference
+   third-party site. (Consuming it via `latest` additionally needs Phase 2's
+   resolver; until then Smoke pins its published versions exactly.)
+5. Document the external authoring contract: required manifest fields, the
+   brain peer range rule, and the publish flow — written against the
+   extracted reference repo, not the monorepo.
+
+Exit gate: a site fix reaches npm through a pipeline that cannot publish
+`@rizom/brain`, and at least one deployed site package is produced entirely
+outside the monorepo toolchain.
+
 ## Resolver error requirements
 
 Resolution failures identify:
@@ -334,9 +419,10 @@ Errors never include npm authentication headers or tokens.
 
 ## Non-goals
 
-- Moving packages to separate repositories during this plan. The contract is
-  deliberately repository-independent so that later moves require no pilot or
-  runtime redesign.
+- Mass-migrating first-party site packages to separate repositories during
+  this plan. The single reference-site extraction in Phase 5 is in scope —
+  it is the proof that the contract is repository-independent; the remaining
+  first-party sites move only after it, as mechanical follow-ups.
 - Inferring or floating `@rizom/brain`.
 - Resolving source branches, git URLs, local paths, or npm dist-tags as package
   versions.

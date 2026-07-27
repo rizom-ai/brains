@@ -1,0 +1,81 @@
+name: Site Release
+
+on:
+  # Site/theme publishing has an independent CI gate and trigger. Core Release
+  # never runs this workflow and cannot publish this lane.
+  workflow_run:
+    workflows: [Site CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Shared with Release so version commits cannot race on main.
+concurrency: npm-release-main
+
+jobs:
+  release:
+    name: Site and Theme Release
+    if: >
+      github.repository == 'rizom-ai/brains' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      - name: Configure git for the bot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Validate release queues
+        run: bun run changeset:check
+
+      - name: Version site and theme packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run changeset:version:site
+
+      - name: Commit and push version bump
+        env:
+          HUSKY: "0"
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No site/theme version changes to commit."
+          else
+            git commit -m "chore(release): version site and theme packages"
+            git push
+          fi
+
+      - name: Build site and theme packages
+        run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      # This checks the exact prepared manifests before npm sees them. A bad
+      # peer range, authoring-only field, or workspace: specifier aborts before
+      # the first irreversible publish.
+      - name: Verify site/theme publish metadata
+        run: bun scripts/verify-site-publish-metadata.ts
+
+      - name: Publish site and theme packages to npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+          bun run changeset:publish:site
+
+      - name: Verify registry and tarball metadata
+        run: bun scripts/verify-published-peer-metadata.ts
