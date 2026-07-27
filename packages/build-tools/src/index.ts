@@ -30,3 +30,9 @@ export {
   type PublishedCompatibilityTarget,
   type PublishedPackageManifest,
 } from "./published-metadata";
+export {
+  buildThemePackage,
+  type BuildThemePackageOptions,
+  type BuildThemePackageResult,
+  type ThemePackageBase,
+} from "./theme-package";
