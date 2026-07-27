@@ -432,6 +432,7 @@
     "upload-action-routing",
     "upload-save-tool",
     "utils-subpath-split",
+    "verify-published-workspace-guard",
     "web-chat-bundled-ui",
     "web-chat-card-history",
     "web-chat-console-climate",

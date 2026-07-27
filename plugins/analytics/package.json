@@ -1,6 +1,6 @@
 {
   "name": "@brains/analytics",
-  "version": "0.2.0-alpha.231",
+  "version": "0.2.0-alpha.232",
   "description": "Analytics plugin for collecting website and social media metrics",
   "dependencies": {
     "@brains/plugins": "workspace:*",

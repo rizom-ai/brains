@@ -1,5 +1,14 @@
 # @brains/theme-rizom-ai
 
+## 0.2.0-alpha.232
+
+### Patch Changes
+
+- [`8ec2bd7`](https://github.com/rizom-ai/brains/commit/8ec2bd745e2aa25c61f48216e7552c48e6466361) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reject published site/theme manifests that ship unresolved `workspace:` specifiers in any dependency field. The release-time peer-metadata check now guards against the alpha.144/145 packument failure mode (a `workspace:*` range surviving into the registry manifest) in addition to the `@rizom/brain` peer range and authoring-only field checks.
+
+- Updated dependencies [[`8ec2bd7`](https://github.com/rizom-ai/brains/commit/8ec2bd745e2aa25c61f48216e7552c48e6466361)]:
+  - @rizom/theme-default@0.2.0-alpha.232
+
 ## 0.2.0-alpha.231
 
 ### Patch Changes

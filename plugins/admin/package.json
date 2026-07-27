@@ -1,6 +1,6 @@
 {
   "name": "@brains/admin",
-  "version": "0.2.0-alpha.231",
+  "version": "0.2.0-alpha.232",
   "description": "Authenticated administration console for people, invitations, peers, and audit",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
