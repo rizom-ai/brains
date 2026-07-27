@@ -101,8 +101,8 @@ describe("registerDecisionsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
-    const send = mock(async (request: { type: string; payload: unknown }) => {
-      payload = request.payload as Record<string, unknown>;
+    const registerWidget = mock(async (widget: unknown) => {
+      payload = widget as Record<string, unknown>;
     });
     const subscribe = mock(
       (
@@ -114,11 +114,12 @@ describe("registerDecisionsWidget", () => {
       },
     );
     const context = {
-      messaging: { send, subscribe },
+      messaging: { subscribe },
+      dashboard: { registerWidget },
       entityService: { listEntities: mock(async () => []) },
     } as unknown as EntityPluginContext;
 
-    registerDecisionsWidget({ context, pluginId: "conversation-memory" });
+    registerDecisionsWidget({ context });
     expect(subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
@@ -127,7 +128,6 @@ describe("registerDecisionsWidget", () => {
 
     expect(payload).toMatchObject({
       id: "conversation-memory:decisions",
-      pluginId: "conversation-memory",
       title: "Recent decisions",
       group: "knowledge",
       section: "secondary",

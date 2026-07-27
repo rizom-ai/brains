@@ -1,4 +1,3 @@
-import { DASHBOARD_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -22,31 +21,26 @@ export interface RegisterDashboardWidgetDeps {
 
 export async function registerDashboardWidget(
   context: ServicePluginContext,
-  pluginId: string,
   deps: RegisterDashboardWidgetDeps,
 ): Promise<void> {
-  await context.messaging.send({
-    type: DASHBOARD_CHANNELS.registerWidget,
-    payload: {
-      id: "publication-pipeline",
-      pluginId,
-      title: "Publication Pipeline",
-      group: "publishing",
-      section: "primary",
-      priority: 100,
-      rendererName: "PipelineWidget",
-      visibility: "admin",
-      dataProvider: async (): Promise<PipelineWidgetData> => ({
-        ...(await getPublicationPipelineSnapshot(
-          context,
-          deps.providerRegistry,
-          deps.queueManager,
-          deps.retryTracker,
-        )),
-        ...(deps.managementUrl ? { managementUrl: deps.managementUrl } : {}),
-      }),
-      digestProvider: derivePipelineDigest,
-    },
+  await context.dashboard.registerWidget({
+    id: "publication-pipeline",
+    title: "Publication Pipeline",
+    group: "publishing",
+    section: "primary",
+    priority: 100,
+    rendererName: "PipelineWidget",
+    visibility: "admin",
+    dataProvider: async (): Promise<PipelineWidgetData> => ({
+      ...(await getPublicationPipelineSnapshot(
+        context,
+        deps.providerRegistry,
+        deps.queueManager,
+        deps.retryTracker,
+      )),
+      ...(deps.managementUrl ? { managementUrl: deps.managementUrl } : {}),
+    }),
+    digestProvider: derivePipelineDigest,
   });
 }
 

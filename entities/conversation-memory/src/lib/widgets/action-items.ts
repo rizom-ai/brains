@@ -1,8 +1,4 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
@@ -90,36 +86,31 @@ export async function buildActionItemsWidgetData(
 
 export function registerActionItemsWidget(params: {
   context: EntityPluginContext;
-  pluginId: string;
 }): void {
-  const { context, pluginId } = params;
+  const { context } = params;
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: WIDGET_ID,
-          pluginId,
-          title: "Open action items",
-          group: "knowledge",
-          section: "secondary",
-          priority: 25,
-          rendererName: "ListWidget",
-          dataProvider: () => buildActionItemsWidgetData(context),
-          digestProvider: (data: unknown) => {
-            const { openCount } = actionItemsDigestSourceSchema.parse(data);
-            return {
-              digest: [
-                {
-                  label: "Open actions",
-                  value: String(openCount),
-                  ...(openCount > 0 ? { tone: "warn" } : {}),
-                },
-              ],
-              needsAttention: openCount,
-            };
-          },
+      await context.dashboard.registerWidget({
+        id: WIDGET_ID,
+        title: "Open action items",
+        group: "knowledge",
+        section: "secondary",
+        priority: 25,
+        rendererName: "ListWidget",
+        dataProvider: () => buildActionItemsWidgetData(context),
+        digestProvider: (data: unknown) => {
+          const { openCount } = actionItemsDigestSourceSchema.parse(data);
+          return {
+            digest: [
+              {
+                label: "Open actions",
+                value: String(openCount),
+                ...(openCount > 0 ? { tone: "warn" } : {}),
+              },
+            ],
+            needsAttention: openCount,
+          };
         },
       });
       return { success: true };

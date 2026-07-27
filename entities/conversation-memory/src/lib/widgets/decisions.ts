@@ -1,8 +1,4 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
@@ -73,24 +69,19 @@ export async function buildDecisionsWidgetData(
 
 export function registerDecisionsWidget(params: {
   context: EntityPluginContext;
-  pluginId: string;
 }): void {
-  const { context, pluginId } = params;
+  const { context } = params;
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: WIDGET_ID,
-          pluginId,
-          title: "Recent decisions",
-          group: "knowledge",
-          section: "secondary",
-          priority: 30,
-          rendererName: "ListWidget",
-          dataProvider: () => buildDecisionsWidgetData(context),
-        },
+      await context.dashboard.registerWidget({
+        id: WIDGET_ID,
+        title: "Recent decisions",
+        group: "knowledge",
+        section: "secondary",
+        priority: 30,
+        rendererName: "ListWidget",
+        dataProvider: () => buildDecisionsWidgetData(context),
       });
       return { success: true };
     },

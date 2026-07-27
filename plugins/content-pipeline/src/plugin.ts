@@ -101,7 +101,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
     });
-    await registerDashboardWidget(context, this.id, {
+    await registerDashboardWidget(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       retryTracker: this.retryTracker,

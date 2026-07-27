@@ -41,16 +41,13 @@ describe("registerTopicsDashboardWidget", () => {
           }>;
         }
       | undefined;
-    const send = mock(
-      async (request: {
-        type: string;
-        payload: {
-          dataProvider: () => Promise<{
-            items: Array<Record<string, unknown>>;
-          }>;
-        };
+    const registerWidget = mock(
+      async (widget: {
+        dataProvider: () => Promise<{
+          items: Array<Record<string, unknown>>;
+        }>;
       }): Promise<void> => {
-        registeredWidget = request.payload;
+        registeredWidget = widget;
       },
     );
     const subscribe = mock(
@@ -64,13 +61,14 @@ describe("registerTopicsDashboardWidget", () => {
     );
 
     const context = {
-      messaging: { send, subscribe },
+      messaging: { subscribe },
+      dashboard: { registerWidget },
       entityService: {
         listEntities: mock(async (): Promise<BaseEntity[]> => topics),
       },
     } as unknown as EntityPluginContext;
 
-    registerTopicsDashboardWidget({ context, pluginId: "topics" });
+    registerTopicsDashboardWidget({ context });
 
     expect(subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
@@ -81,16 +79,14 @@ describe("registerTopicsDashboardWidget", () => {
     const result = await readyHandler?.();
     expect(result).toEqual({ success: true });
 
-    expect(send).toHaveBeenCalledWith({
-      type: "dashboard:register-widget",
-      payload: expect.objectContaining({
+    expect(registerWidget).toHaveBeenCalledWith(
+      expect.objectContaining({
         id: "topics",
-        pluginId: "topics",
         group: "knowledge",
         rendererName: "ListWidget",
         digestProvider: expect.any(Function),
       }),
-    });
+    );
 
     expect(registeredWidget).toBeDefined();
     if (!registeredWidget) throw new Error("Widget was not registered");

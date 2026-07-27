@@ -571,6 +571,10 @@ export {
   type CmsWorkspaceRendererName,
 } from "./types/cms-workspace";
 export { registerCmsWorkspace } from "./service/cms-workspace-registration";
+export type {
+  DashboardWidgetRegistration,
+  IDashboardNamespace,
+} from "./base/dashboard-namespace";
 export {
   RouteDefinitionSchema,
   NavigationSlots,

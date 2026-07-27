@@ -54,7 +54,7 @@ export class SkillPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    registerSkillsDashboardWidget(context, this.id);
+    registerSkillsDashboardWidget(context);
     registerSkillEvalHandlers(context, this.logger);
   }
 

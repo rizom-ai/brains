@@ -7,7 +7,6 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
-  DASHBOARD_CHANNELS,
   ENTITY_CHANNELS,
   DIRECTORY_SYNC_CHANNELS,
 } from "@brains/plugins";
@@ -122,43 +121,37 @@ export class SwotAssessmentPlugin extends EntityPlugin<
     context.messaging.subscribe(
       SYSTEM_CHANNELS.pluginsRegistered,
       async (): Promise<{ success: boolean }> => {
-        await context.messaging.send({
-          type: DASHBOARD_CHANNELS.registerWidget,
-          payload: {
-            id: "swot",
-            pluginId: this.id,
-            title: "SWOT",
-            group: "network",
-            section: "secondary",
-            priority: 14,
-            rendererName: "SwotWidget",
-            digestProvider: (data: unknown) => {
-              const { status } = swotDigestSourceSchema.parse(data);
-              return {
-                digest: [
-                  {
-                    label: "SWOT",
-                    value: status === "ready" ? "Ready" : "Generating",
-                    tone: status === "ready" ? "good" : "warn",
-                  },
-                ],
-              };
-            },
-            component: SwotWidget,
-            clientStyles: swotWidgetStyles,
-            dataProvider: async () => {
-              const swot = await context.entityService.getEntity<SwotEntity>({
-                entityType: "swot",
-                id: "swot",
-              });
+        await context.dashboard.registerWidget({
+          id: "swot",
+          title: "SWOT",
+          group: "network",
+          section: "secondary",
+          priority: 14,
+          rendererName: "SwotWidget",
+          digestProvider: (data: unknown) => {
+            const { status } = swotDigestSourceSchema.parse(data);
+            return {
+              digest: [
+                {
+                  label: "SWOT",
+                  value: status === "ready" ? "Ready" : "Generating",
+                  tone: status === "ready" ? "good" : "warn",
+                },
+              ],
+            };
+          },
+          component: SwotWidget,
+          clientStyles: swotWidgetStyles,
+          dataProvider: async () => {
+            const swot = await context.entityService.getEntity<SwotEntity>({
+              entityType: "swot",
+              id: "swot",
+            });
 
-              if (!swot) return { status: "generating" };
+            if (!swot) return { status: "generating" };
 
-              const { frontmatter } = swotAdapter.parseSwotContent(
-                swot.content,
-              );
-              return { status: "ready", ...frontmatter };
-            },
+            const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
+            return { status: "ready", ...frontmatter };
           },
         });
 

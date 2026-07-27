@@ -196,8 +196,8 @@ describe("registerSummaryCoverageWidget", () => {
   it("registers an Admin-only coverage widget", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
-    const send = mock(async (request: { type: string; payload: unknown }) => {
-      payload = request.payload as Record<string, unknown>;
+    const registerWidget = mock(async (widget: unknown) => {
+      payload = widget as Record<string, unknown>;
     });
     const subscribe = mock(
       (
@@ -210,7 +210,8 @@ describe("registerSummaryCoverageWidget", () => {
     );
     const context = {
       spaces: [],
-      messaging: { send, subscribe },
+      messaging: { subscribe },
+      dashboard: { registerWidget },
       entityService: {
         listEntities: mock(async (): Promise<SummaryEntity[]> => []),
       },
@@ -221,14 +222,12 @@ describe("registerSummaryCoverageWidget", () => {
 
     registerSummaryCoverageWidget({
       context,
-      pluginId: "conversation-memory",
       config: summaryConfigSchema.parse({}),
     });
     await readyHandler?.();
 
     expect(payload).toMatchObject({
       id: "conversation-memory:coverage",
-      pluginId: "conversation-memory",
       title: "Conversation memory coverage",
       group: "system",
       section: "secondary",

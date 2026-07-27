@@ -114,8 +114,8 @@ describe("registerActionItemsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
-    const send = mock(async (request: { type: string; payload: unknown }) => {
-      payload = request.payload as Record<string, unknown>;
+    const registerWidget = mock(async (widget: unknown) => {
+      payload = widget as Record<string, unknown>;
     });
     const subscribe = mock(
       (
@@ -127,11 +127,12 @@ describe("registerActionItemsWidget", () => {
       },
     );
     const context = {
-      messaging: { send, subscribe },
+      messaging: { subscribe },
+      dashboard: { registerWidget },
       entityService: { listEntities: mock(async () => []) },
     } as unknown as EntityPluginContext;
 
-    registerActionItemsWidget({ context, pluginId: "conversation-memory" });
+    registerActionItemsWidget({ context });
     expect(subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
@@ -145,7 +146,6 @@ describe("registerActionItemsWidget", () => {
 
     expect(payload).toMatchObject({
       id: "conversation-memory:action-items",
-      pluginId: "conversation-memory",
       title: "Open action items",
       group: "knowledge",
       section: "secondary",
