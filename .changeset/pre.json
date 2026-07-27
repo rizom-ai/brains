@@ -252,6 +252,7 @@
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
     "fix-document-preview-dedup",
+    "fix-packument-mid-publish-restore",
     "fix-shared-host-late-routes",
     "fix-shared-local-env-browser-build",
     "fix-site-enrichment-template-validation",

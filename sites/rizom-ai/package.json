@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.232",
+  "version": "0.2.0-alpha.233",
   "description": "Rizom AI site package for hosted Rover deployments",
   "type": "module",
   "exports": {
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@rizom/site": "0.2.0-alpha.230",
-    "@rizom/site-rizom": "0.2.0-alpha.232",
+    "@rizom/site-rizom": "0.2.0-alpha.233",
     "@rizom/site-sections": "0.2.0-alpha.230",
     "preact": "^10.27.2"
   },
