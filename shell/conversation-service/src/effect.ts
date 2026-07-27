@@ -1,4 +1,5 @@
-import { Context, Effect, Layer } from "@brains/utils/effect";
+import { Context, scopedServiceLayer } from "@brains/utils/effect";
+import type { Layer, ScopedService } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import type { MessageBus } from "@brains/messaging-service";
 import { ConversationService } from "./conversation-service";
@@ -26,14 +27,9 @@ export interface ConversationServiceLayerOptions {
   service?: IConversationService;
 }
 
-interface ConversationServiceResource {
-  service: IConversationService;
-  close(): void;
-}
-
 function acquireConversationService(
   options: ConversationServiceLayerOptions,
-): ConversationServiceResource {
+): ScopedService<IConversationService> {
   if (options.service) {
     const service = options.service;
     return {
@@ -70,14 +66,7 @@ function acquireConversationService(
 export function createConversationServiceLayer(
   options: ConversationServiceLayerOptions,
 ): Layer.Layer<ConversationServiceTag> {
-  return Layer.scoped(
-    ConversationServiceTag,
-    Effect.acquireRelease(
-      Effect.sync(() => acquireConversationService(options)),
-      (resource) =>
-        Effect.sync(() => {
-          resource.close();
-        }),
-    ).pipe(Effect.map((resource) => resource.service)),
+  return scopedServiceLayer(ConversationServiceTag, () =>
+    acquireConversationService(options),
   );
 }

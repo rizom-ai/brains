@@ -1,4 +1,5 @@
-import { Context, Effect, Layer } from "@brains/utils/effect";
+import { Context, scopedServiceLayer } from "@brains/utils/effect";
+import type { Layer } from "@brains/utils/effect";
 import { EntityService } from "./entityService";
 import type { EntityServiceOptions } from "./entityService";
 import type { EntityService as IEntityService } from "./types";
@@ -23,14 +24,13 @@ function isCloseableEntityService(
 export function createEntityServiceLayer(
   options: EntityServiceLayerOptions,
 ): Layer.Layer<EntityServiceTag> {
-  return Layer.scoped(
-    EntityServiceTag,
-    Effect.acquireRelease(
-      Effect.sync(() => options.service ?? EntityService.createFresh(options)),
-      (service) =>
-        Effect.sync(() => {
-          if (isCloseableEntityService(service)) service.close();
-        }),
-    ),
-  );
+  return scopedServiceLayer(EntityServiceTag, () => {
+    const service = options.service ?? EntityService.createFresh(options);
+    return {
+      service,
+      close: (): void => {
+        if (isCloseableEntityService(service)) service.close();
+      },
+    };
+  });
 }
