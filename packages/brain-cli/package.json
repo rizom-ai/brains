@@ -26,6 +26,7 @@
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.7.0",
     "tailwindcss": "^4.3.1",
+    "yaml": "^2.9.0",
     "zod": "^4.1.8"
   },
   "devDependencies": {
@@ -107,6 +108,10 @@
       "import": "./dist/index.js"
     },
     "./cli": "./dist/brain.js",
+    "./model": {
+      "types": "./dist/model.d.ts",
+      "import": "./dist/model.js"
+    },
     "./plugins": {
       "types": "./dist/plugins.d.ts",
       "import": "./dist/plugins.js"

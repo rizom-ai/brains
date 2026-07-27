@@ -116,6 +116,12 @@ describe("parseArgs", () => {
     expect(result.flags["storage-dir"]).toBe("./runtime/auth");
   });
 
+  it("should parse 'config migrate'", () => {
+    const result = parseArgs(["config", "migrate"]);
+    expect(result.command).toBe("config");
+    expect(result.args).toEqual(["migrate"]);
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");

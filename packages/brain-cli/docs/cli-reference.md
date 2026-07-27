@@ -214,6 +214,23 @@ Currently documented subcommands:
 - `search` — inspect search distance distribution for threshold tuning
 - `usage` — aggregate `ai:usage` events from the configured log file
 
+### `brain config migrate`
+
+Preview the deterministic migration from a legacy built-in model/preset configuration to
+the canonical explicit-bundle format.
+
+```bash
+cd mybrain
+brain config migrate
+```
+
+The command reads `brain.yaml`, prints the proposed canonical YAML, and never writes the
+file. It preserves instance-owned site/theme choices, seed paths, capability additions
+and removals, external plugin declarations, permission overrides, secret references, and
+comments where the YAML syntax permits. Review and apply the output only during the
+coordinated crossover; the canonical runtime path remains inactive during migration
+preparation.
+
 ### `brain pin`
 
 Create a local `package.json` that pins `@rizom/brain` to the current version and then run `bun install`.

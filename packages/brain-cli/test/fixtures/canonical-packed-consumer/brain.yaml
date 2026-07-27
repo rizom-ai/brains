@@ -1,0 +1,7 @@
+brain: brain
+anchor: person
+bundles:
+  - core
+plugins:
+  directory-sync:
+    seedContentPath: ./seed-content

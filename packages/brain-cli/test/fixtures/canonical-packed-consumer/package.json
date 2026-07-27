@@ -1,0 +1,8 @@
+{
+  "name": "canonical-packed-consumer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__"
+  }
+}

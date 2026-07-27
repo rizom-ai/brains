@@ -168,7 +168,7 @@ export interface PermissionServiceOptions {
 /**
  * Centralized permission service for determining user permission levels
  * Handles both explicit user lists and pattern-based rules
- * Replaces the old PermissionHandler from @brains/utils
+ * Replaces the legacy permission handler.
  */
 export class PermissionService {
   private admins: Set<string>;

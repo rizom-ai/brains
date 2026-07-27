@@ -26,8 +26,12 @@ export type { LogLevel } from "./types";
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
+export { resolveBrainPackageName } from "./brain-package";
+export type { BrainPackageResolutionOptions } from "./brain-package";
 export { registerPackage, getPackage, hasPackage } from "./package-registry";
 export { collectOverridePackageRefs } from "./override-package-refs";
+export { generateEntrypoint } from "./generate-entrypoint";
+export type { GenerateEntrypointOptions } from "./generate-entrypoint";
 export { registerOverridePackages } from "./register-override-packages";
 export type { PackageImportFn } from "./register-override-packages";
 export {

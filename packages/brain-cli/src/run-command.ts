@@ -31,6 +31,7 @@ import { runSecretsPush } from "./commands/secrets-push";
 import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
 import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
 import { reinitializeAuthAccess } from "./commands/auth-reinitialize-access";
+import { runConfigMigrationPreview } from "./commands/config-migrate";
 import type { CommandResult } from "./lib/command-result";
 
 export type { CommandResult } from "./lib/command-result";
@@ -270,6 +271,13 @@ const authReinitializeAccess: BrainCommand = defineCommand({
     }),
 });
 
+const configMigrate: BrainCommand = defineCommand({
+  name: "config:migrate",
+  description: "Preview model/preset → canonical bundle migration (no writes)",
+  run: (_invocation, dir): Promise<CommandResult> =>
+    runConfigMigrationPreview(dir),
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json]",
@@ -358,6 +366,7 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   sshKeyBootstrap,
   authResetPasskeys,
   authReinitializeAccess,
+  configMigrate,
   toolCommand,
   helpCommand,
   versionCommand,

@@ -214,6 +214,10 @@ are introduced; `bundles` is available to bundle-aware definitions during that m
 Definition authors can import `defineBundle` and `CapabilityBundleDefinition` from
 `@rizom/brain`; `defineBundle` validates the resource-free definition immediately.
 
+Use `brain config migrate` to print a deterministic preview of a built-in model/preset
+rewrite. The command does not write `brain.yaml` or activate the canonical model. Apply
+reviewed output only as part of the coordinated repository and fleet crossover.
+
 ### `preset`
 
 Select a transitional curated subset of capabilities and interfaces defined by the brain

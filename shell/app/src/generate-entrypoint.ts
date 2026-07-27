@@ -1,5 +1,9 @@
 import { existsSync } from "fs";
 import { relative, sep } from "path";
+import {
+  resolveBrainPackageName,
+  type BrainPackageResolutionOptions,
+} from "./brain-package";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import {
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
@@ -9,17 +13,13 @@ import {
   type InstanceOverrides,
 } from "./instance-overrides";
 
-export interface GenerateEntrypointOptions {
+export interface GenerateEntrypointOptions extends BrainPackageResolutionOptions {
   cwd?: string;
 }
 
 function toImportPath(fromDir: string, filePath: string): string {
   const normalized = relative(fromDir, filePath).split(sep).join("/");
   return normalized.startsWith(".") ? normalized : `./${normalized}`;
-}
-
-function normalizeBrainPackage(rawBrain: string): string {
-  return rawBrain.startsWith("@") ? rawBrain : `@brains/${rawBrain}`;
 }
 
 function packageImportLine(pkg: string, index: number): string {
@@ -182,8 +182,7 @@ export function generateEntrypoint(
   const rawBrain = overrides.brain;
   if (typeof rawBrain !== "string") return null;
 
-  // Normalize short names: "rover" → "@brains/rover"
-  const brainPackage = normalizeBrainPackage(rawBrain);
+  const brainPackage = resolveBrainPackageName(rawBrain, options);
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );

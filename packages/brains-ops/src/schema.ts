@@ -47,6 +47,98 @@ export const pilotSchema: z.ZodObject<{
   agePublicKey: agePublicKeySchema,
 });
 
+export const canonicalBundleIdSchema: z.ZodEnum<{
+  core: "core";
+  site: "site";
+  publishing: "publishing";
+  team: "team";
+}> = z.enum(["core", "site", "publishing", "team"]);
+
+export interface PilotConfigV2 {
+  schemaVersion: 2;
+  brainVersion: string;
+  bundles: Array<"core" | "site" | "publishing" | "team">;
+  add?: string[] | undefined;
+  remove?: string[] | undefined;
+  githubOrg: string;
+  contentRepoPrefix: string;
+  domainSuffix: string;
+  aiApiKey: string;
+  gitSyncToken: string;
+  contentRepoAdminToken: string;
+  agePublicKey: string;
+}
+
+export interface CohortConfigV2 {
+  members: string[];
+  brainVersionOverride?: string | undefined;
+  bundlesOverride?: Array<"core" | "site" | "publishing" | "team"> | undefined;
+  addOverride?: string[] | undefined;
+  removeOverride?: string[] | undefined;
+  aiApiKeyOverride?: string | undefined;
+  gitSyncTokenOverride?: string | undefined;
+}
+
+const canonicalBundlesSchema = z.array(canonicalBundleIdSchema).min(1);
+const memberIdsSchema = z.array(z.string().min(1));
+
+/** Prepared desired-state contract; loadPilotRegistry stays on schema v1 until crossover. */
+export const pilotSchemaV2: z.ZodType<PilotConfigV2> = z
+  .strictObject({
+    schemaVersion: z.literal(2),
+    brainVersion: exactVersionSchema,
+    bundles: canonicalBundlesSchema,
+    add: memberIdsSchema.optional(),
+    remove: memberIdsSchema.optional(),
+    githubOrg: z.string().min(1),
+    contentRepoPrefix: z.string().min(1),
+    domainSuffix: z.string().min(1),
+    aiApiKey: secretNameSchema,
+    gitSyncToken: secretNameSchema,
+    contentRepoAdminToken: secretNameSchema,
+    agePublicKey: agePublicKeySchema,
+  })
+  .superRefine((value, context) => {
+    if (new Set(value.bundles).size !== value.bundles.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["bundles"],
+        message: "canonical bundles must be unique",
+      });
+    }
+  });
+
+/** Prepared cohort override contract; not consumed by the active registry loader yet. */
+export const cohortSchemaV2: z.ZodType<CohortConfigV2> = z
+  .strictObject({
+    members: z.array(handleSchema).min(1),
+    brainVersionOverride: exactVersionSchema.optional(),
+    bundlesOverride: canonicalBundlesSchema.optional(),
+    addOverride: memberIdsSchema.optional(),
+    removeOverride: memberIdsSchema.optional(),
+    aiApiKeyOverride: secretNameSchema.optional(),
+    gitSyncTokenOverride: secretNameSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (new Set(value.members).size !== value.members.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["members"],
+        message: "cohort members must be unique",
+      });
+    }
+    if (
+      value.bundlesOverride &&
+      new Set(value.bundlesOverride).size !== value.bundlesOverride.length
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["bundlesOverride"],
+        message: "canonical bundle overrides must be unique",
+      });
+    }
+  });
+
 const anchorProfileSocialLinkSchema: z.ZodObject<{
   platform: z.ZodEnum<{
     github: "github";

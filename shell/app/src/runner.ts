@@ -12,6 +12,7 @@ import { registerConventionalSiteTheme } from "./register-conventional-site-them
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerOverridePackages } from "./register-override-packages";
+import { resolveBrainPackageName } from "./brain-package";
 import { internal } from "varlock";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -80,11 +81,9 @@ async function loadBrainDefinition(
 async function main(): Promise<void> {
   const overrides = loadBrainYaml();
   // brain is guaranteed to exist by loadBrainYaml validation above
-  // Normalize short names: "rover" → "@brains/rover"
+  // Canonical package resolution remains disabled until the coordinated crossover.
   const rawBrain = overrides.brain ?? "";
-  const brainPackage = rawBrain.startsWith("@")
-    ? rawBrain
-    : `@brains/${rawBrain}`;
+  const brainPackage = resolveBrainPackageName(rawBrain);
 
   // Validate env against the brain's .env.schema.
   // Uses varlock's `internal` API — no public API supports custom schema paths yet.

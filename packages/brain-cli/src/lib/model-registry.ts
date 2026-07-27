@@ -8,6 +8,20 @@
 
 const AVAILABLE_MODELS = ["rover", "ranger", "relay"] as const;
 
+export interface PreparedModelDescriptor {
+  name: string;
+  packageRef: string;
+  envSchemaName: string;
+}
+
+/** Dormant crossover metadata. It is intentionally absent from AVAILABLE_MODELS. */
+export const PREPARED_CANONICAL_MODEL: Readonly<PreparedModelDescriptor> =
+  Object.freeze({
+    name: "brain",
+    packageRef: "@rizom/brain/model",
+    envSchemaName: "brain",
+  });
+
 export type ModelName = (typeof AVAILABLE_MODELS)[number];
 
 // Registered model definitions — populated by the build entrypoint
