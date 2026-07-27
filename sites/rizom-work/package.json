@@ -22,6 +22,9 @@
     "@rizom/site-rizom": "0.2.0-alpha.230",
     "preact": "^10.27.2"
   },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0"
+  },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",

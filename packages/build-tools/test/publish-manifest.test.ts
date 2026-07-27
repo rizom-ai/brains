@@ -6,6 +6,7 @@ import {
   preparePublishManifest,
   restorePublishManifest,
 } from "../src/publish-manifest";
+import { runWithPreparedPublishManifests } from "../src/publish-workspace";
 
 async function createPackage(manifest: unknown): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "publish-manifest-"));
@@ -88,6 +89,20 @@ describe("preparePublishManifest", () => {
     expect(backupRemains).toBe(false);
   });
 
+  test("is idempotent without overwriting the original backup", async () => {
+    const dir = await createPackage(manifest);
+    await createWorkspaceDep(dir);
+    const original = await readFile(join(dir, "package.json"), "utf8");
+
+    await preparePublishManifest(dir);
+    const prepared = await readFile(join(dir, "package.json"), "utf8");
+    await preparePublishManifest(dir);
+
+    expect(await readFile(join(dir, "package.json"), "utf8")).toBe(prepared);
+    await restorePublishManifest(dir);
+    expect(await readFile(join(dir, "package.json"), "utf8")).toBe(original);
+  });
+
   test("resolves workspace versions from an explicit resolveFrom dir", async () => {
     const workspaceDir = await createPackage(manifest);
     await createWorkspaceDep(workspaceDir);
@@ -111,7 +126,7 @@ describe("preparePublishManifest", () => {
     }
   });
 
-  test("restore fails when no backup exists", async () => {
+  test("restore fails when no backup exists unless ifPresent is set", async () => {
     const dir = await createPackage(manifest);
     try {
       await restorePublishManifest(dir);
@@ -119,5 +134,42 @@ describe("preparePublishManifest", () => {
     } catch (error) {
       expect(String(error)).toContain("backup");
     }
+
+    await restorePublishManifest(dir, { ifPresent: true });
+  });
+});
+
+describe("runWithPreparedPublishManifests", () => {
+  test("restores source manifests after a successful publish", async () => {
+    const dir = await createPackage(manifest);
+    await createWorkspaceDep(dir);
+    const original = await readFile(join(dir, "package.json"), "utf8");
+
+    const result = await runWithPreparedPublishManifests([dir], async () => {
+      const prepared = await readManifest(dir);
+      expect(prepared["peerDependencies"]).toEqual({
+        "@x/runtime": ">=1.0.0 <2.0.0",
+      });
+      return "published";
+    });
+
+    expect(result).toBe("published");
+    expect(await readFile(join(dir, "package.json"), "utf8")).toBe(original);
+  });
+
+  test("restores source manifests when publishing fails", async () => {
+    const dir = await createPackage(manifest);
+    await createWorkspaceDep(dir);
+    const original = await readFile(join(dir, "package.json"), "utf8");
+
+    try {
+      await runWithPreparedPublishManifests([dir], async () => {
+        throw new Error("publish failed");
+      });
+      expect.unreachable("expected publishing to fail");
+    } catch (error) {
+      expect(String(error)).toContain("publish failed");
+    }
+    expect(await readFile(join(dir, "package.json"), "utf8")).toBe(original);
   });
 });

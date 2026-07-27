@@ -109,6 +109,9 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
           bun run changeset:publish
 
+      - name: Verify published site/theme metadata
+        run: bun scripts/verify-published-peer-metadata.ts
+
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''
         env:
