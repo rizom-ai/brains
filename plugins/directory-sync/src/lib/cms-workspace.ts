@@ -1,6 +1,6 @@
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
   PermissionService,
+  registerCmsWorkspace as sendWorkspaceRegistration,
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
   type ToolContext,
@@ -21,8 +21,6 @@ import type {
 } from "./directory-sync-operation-status";
 import { requestDirectorySync } from "./request-directory-sync";
 import { getErrorMessage } from "@brains/utils/error";
-
-const registrationResultSchema = z.object({ workspaceUrl: z.string() });
 
 export interface DirectorySyncWorkspaceAction {
   type: "sync-now";
@@ -280,14 +278,7 @@ export class DirectorySyncWorkspaceProvider {
       },
     };
 
-    const response = await this.options.context.messaging.send({
-      type: CMS_WORKSPACE_REGISTER_MESSAGE,
-      payload: registration,
-    });
-    if (!("success" in response) || !response.success) return undefined;
-
-    const parsed = registrationResultSchema.safeParse(response.data);
-    return parsed.success ? parsed.data.workspaceUrl : undefined;
+    return sendWorkspaceRegistration(this.options.context, registration);
   }
 
   private toSafeGitStatus(

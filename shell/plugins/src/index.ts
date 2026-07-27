@@ -570,6 +570,7 @@ export {
   type CmsWorkspaceRegistrationResult,
   type CmsWorkspaceRendererName,
 } from "./types/cms-workspace";
+export { registerCmsWorkspace } from "./service/cms-workspace-registration";
 export {
   RouteDefinitionSchema,
   NavigationSlots,
