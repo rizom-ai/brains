@@ -1,6 +1,6 @@
 {
   "name": "@brains/console-theme",
-  "version": "0.2.0-alpha.230",
+  "version": "0.2.0-alpha.231",
   "description": "Operator-console token sheet and shared chrome styles",
   "dependencies": {},
   "devDependencies": {

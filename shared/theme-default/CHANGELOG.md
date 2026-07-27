@@ -1,5 +1,11 @@
 # @brains/theme-default
 
+## 0.2.0-alpha.231
+
+### Patch Changes
+
+- [#71](https://github.com/rizom-ai/brains/pull/71) [`c7547f5`](https://github.com/rizom-ai/brains/commit/c7547f5dfa2756cfded40800b7fdb76a8375ef4f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release site and theme packages independently and publish standard `@rizom/brain` peer compatibility metadata in both npm packuments and tarballs.
+
 ## 0.2.0-alpha.230
 
 ## 0.2.0-alpha.229

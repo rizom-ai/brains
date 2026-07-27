@@ -1,5 +1,58 @@
 # @brains/rover
 
+## 0.2.0-alpha.231
+
+### Patch Changes
+
+- Updated dependencies [[`c7547f5`](https://github.com/rizom-ai/brains/commit/c7547f5dfa2756cfded40800b7fdb76a8375ef4f)]:
+  - @rizom/theme-default@0.2.0-alpha.231
+  - @brains/agent-discovery@0.2.0-alpha.231
+  - @brains/assessment@0.2.0-alpha.231
+  - @brains/blog@0.2.0-alpha.231
+  - @brains/decks@0.2.0-alpha.231
+  - @brains/doc@0.2.0-alpha.231
+  - @brains/document-plugin@0.2.0-alpha.231
+  - @brains/image-plugin@0.2.0-alpha.231
+  - @brains/link@0.2.0-alpha.231
+  - @brains/note@0.2.0-alpha.231
+  - @brains/portfolio@0.2.0-alpha.231
+  - @brains/products@0.2.0-alpha.231
+  - @brains/prompt@0.2.0-alpha.231
+  - @brains/rizom-ecosystem@0.2.0-alpha.231
+  - @brains/series@0.2.0-alpha.231
+  - @brains/site-info@0.2.0-alpha.231
+  - @brains/social-media@0.2.0-alpha.231
+  - @brains/style-guide@0.2.0-alpha.231
+  - @brains/topics@0.2.0-alpha.231
+  - @brains/wishlist@0.2.0-alpha.231
+  - @brains/a2a@0.2.0-alpha.231
+  - @brains/chat@0.2.0-alpha.231
+  - @brains/discord@0.2.0-alpha.231
+  - @brains/mcp@0.2.0-alpha.231
+  - @brains/web-chat@0.2.0-alpha.231
+  - @brains/webserver@0.2.0-alpha.231
+  - @brains/admin@0.2.0-alpha.231
+  - @brains/analytics@0.2.0-alpha.231
+  - @brains/atproto@0.2.0-alpha.231
+  - @brains/atproto-registry@0.2.0-alpha.231
+  - @brains/cms@0.2.0-alpha.231
+  - @brains/content-pipeline@0.2.0-alpha.231
+  - @brains/dashboard@0.2.0-alpha.231
+  - @brains/directory-sync@0.2.0-alpha.231
+  - @brains/email-resend@0.2.0-alpha.231
+  - @brains/newsletter@0.2.0-alpha.231
+  - @brains/notifications@0.2.0-alpha.231
+  - @brains/obsidian-vault@0.2.0-alpha.231
+  - @brains/playbooks@0.2.0-alpha.231
+  - @brains/profile@0.2.0-alpha.231
+  - @brains/rover-onboarding@0.2.0-alpha.231
+  - @brains/site-builder-plugin@0.2.0-alpha.231
+  - @brains/site-content@0.2.0-alpha.231
+  - @brains/stock-photo@0.2.0-alpha.231
+  - @brains/app@0.2.0-alpha.231
+  - @brains/auth-service@0.2.0-alpha.231
+  - @brains/site-default@0.2.0-alpha.231
+
 ## 0.2.0-alpha.230
 
 ### Patch Changes
