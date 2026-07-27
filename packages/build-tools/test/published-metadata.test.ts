@@ -53,4 +53,25 @@ describe("assertPublishedCompatibilityMetadata", () => {
       ),
     ).toThrow("authoring-only");
   });
+
+  test("rejects unresolved workspace: specifiers in dependency fields", () => {
+    const brainPeer = { "@rizom/brain": ">=0.2.0-alpha.217 <0.3.0" };
+    for (const field of [
+      "dependencies",
+      "optionalDependencies",
+      "peerDependencies",
+    ] as const) {
+      const manifest = {
+        peerDependencies: { ...brainPeer },
+        [field]: { ...brainPeer, "@rizom/site": "workspace:*" },
+      };
+      expect(() =>
+        assertPublishedCompatibilityMetadata(
+          target,
+          manifest,
+          "registry packument",
+        ),
+      ).toThrow("workspace:");
+    }
+  });
 });
