@@ -238,17 +238,9 @@
     --color-logo: var(--palette-cream);
     --color-footer: var(--palette-night-deep);
 
-    /* Status tokens (dashboard/CMS widgets rendered on-site) */
-    --color-status-neutral-bg: #34324f;
-    --color-status-neutral-text: #e5e7eb;
-    --color-status-info-bg: #1e3a5f;
-    --color-status-info-text: #93c5fd;
-    --color-status-success-bg: #14532d;
-    --color-status-success-text: #86efac;
-    --color-status-danger-bg: #7f1d1d;
-    --color-status-danger-text: #fca5a5;
-    --color-status-warning-bg: #713f12;
-    --color-status-warning-text: #fde68a;
+    /* Status badge colours live in @brains/theme-base, keyed by [data-theme];
+       this theme's one delta is below, scoped to dark so light mode keeps
+       the shared light palette. */
 
     /* Typography — Fraunces display over IBM Plex Sans/Mono */
     --font-display: "Fraunces", Georgia, serif;
@@ -287,6 +279,13 @@
     --text-label-xs: 11px;
 
     --spacing-section: clamp(88px, 12vw, 120px);
+  }
+
+  /* Indigo-tinted neutral chip, so status badges sit on the night ground
+     rather than the base's slate grey. Dark-only; light keeps the shared
+     palette from @brains/theme-base. */
+  [data-theme="dark"] {
+    --color-status-neutral-bg: #34324f;
   }
 
   /* ============================================

@@ -102,17 +102,7 @@
     );
     --color-pattern-dot: rgb(75 42 99 / 0.12);
 
-    /* Status Badge Colors */
-    --color-status-neutral-bg: #f0ece6;
-    --color-status-neutral-text: #4b4652;
-    --color-status-info-bg: #e7edf7;
-    --color-status-info-text: #31527c;
-    --color-status-success-bg: #e4f3e8;
-    --color-status-success-text: #2d6a42;
-    --color-status-danger-bg: #f8e4e4;
-    --color-status-danger-text: #8f2f2f;
-    --color-status-warning-bg: #f7edcf;
-    --color-status-warning-text: #7a4a05;
+    /* Status badge colours live in @brains/theme-base, keyed by [data-theme]. */
 
     /* Typography */
     --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
@@ -190,17 +180,6 @@
       var(--color-gradient-end) 100%
     );
     --color-pattern-dot: rgb(255 255 255 / 0.08);
-
-    --color-status-neutral-bg: #374151;
-    --color-status-neutral-text: #e5e7eb;
-    --color-status-info-bg: #1e3a5f;
-    --color-status-info-text: #93c5fd;
-    --color-status-success-bg: #14532d;
-    --color-status-success-text: #86efac;
-    --color-status-danger-bg: #7f1d1d;
-    --color-status-danger-text: #fca5a5;
-    --color-status-warning-bg: #713f12;
-    --color-status-warning-text: #fde68a;
   }
 }
 

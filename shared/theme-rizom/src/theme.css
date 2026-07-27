@@ -294,18 +294,8 @@
     /* Footer */
     --color-footer: var(--palette-bg-card);
 
-    /* Warning tokens live in theme-base — shared across all themes. */
-
-    --color-status-neutral-bg: #374151;
-    --color-status-neutral-text: #e5e7eb;
-    --color-status-info-bg: #1e3a5f;
-    --color-status-info-text: #93c5fd;
-    --color-status-success-bg: #14532d;
-    --color-status-success-text: #86efac;
-    --color-status-danger-bg: #7f1d1d;
-    --color-status-danger-text: #fca5a5;
-    --color-status-warning-bg: #713f12;
-    --color-status-warning-text: #fde68a;
+    /* Status badge colours live in @brains/theme-base, keyed by [data-theme]
+       so this dark-first theme still gets the light palette in light mode. */
 
     /* Typography — shared across all profiles. Editorial × diagnostic
        register: Fraunces for display, Barlow for body, JetBrains Mono for
