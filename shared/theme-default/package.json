@@ -25,6 +25,9 @@
     "dist",
     "src"
   ],
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.217 <0.3.0"
+  },
   "scripts": {
     "build": "bun scripts/build.ts",
     "lint": "eslint . --max-warnings 0",

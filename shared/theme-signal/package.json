@@ -38,6 +38,9 @@
   "dependencies": {
     "@rizom/theme-default": "0.2.0-alpha.230"
   },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.217 <0.3.0"
+  },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",

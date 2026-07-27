@@ -2,9 +2,11 @@
 
 ## Status
 
-Reviewed and ready for implementation. The first implementation gate is the
-publishing foundation in Phase 0; package resolution must not ship before that
-gate is verified against the npm registry.
+Implementation in progress. Phase 0's release-group split, pre-publish
+manifest preparation, compatibility metadata, and registry verifier are
+implemented. Its exit gate remains open until freshly published site and theme
+versions pass the verifier against the npm registry; package resolution must
+not ship before that gate closes.
 
 This plan gives deployable site and theme packages genuinely independent npm
 versions and decouples their deployment pins from `brainVersion`. The monorepo
