@@ -13,6 +13,11 @@ export interface PreparePublishManifestOptions {
   resolveFrom?: string;
 }
 
+export interface RestorePublishManifestOptions {
+  /** Do nothing when no backup exists. Useful for failure-safe workspace cleanup. */
+  ifPresent?: boolean;
+}
+
 type Manifest = Record<string, unknown>;
 
 /**
@@ -32,9 +37,60 @@ export async function preparePublishManifest(
   options: PreparePublishManifestOptions = {},
 ): Promise<void> {
   const manifestPath = join(packageDir, "package.json");
-  const originalText = await readFile(manifestPath, "utf8");
-  const manifest = JSON.parse(originalText) as Manifest;
+  const backupPath = join(packageDir, BACKUP_FILENAME);
   const resolveFrom = options.resolveFrom ?? packageDir;
+  const existingBackup = await readFile(backupPath, "utf8").catch(
+    () => undefined,
+  );
+
+  if (existingBackup !== undefined) {
+    const expectedText = await createPublishManifestText(
+      existingBackup,
+      resolveFrom,
+    );
+    const currentText = await readFile(manifestPath, "utf8");
+    if (currentText !== expectedText) {
+      throw new Error(
+        `Publish manifest backup already exists at ${backupPath}, but ${manifestPath} does not match its prepared form`,
+      );
+    }
+    return;
+  }
+
+  const originalText = await readFile(manifestPath, "utf8");
+  const publishText = await createPublishManifestText(
+    originalText,
+    resolveFrom,
+  );
+  await writeFile(backupPath, originalText);
+  await writeFile(manifestPath, publishText);
+}
+
+export async function restorePublishManifest(
+  packageDir: string,
+  options: RestorePublishManifestOptions = {},
+): Promise<void> {
+  const backupPath = join(packageDir, BACKUP_FILENAME);
+  const exists = await stat(backupPath).then(
+    () => true,
+    () => false,
+  );
+  if (!exists) {
+    if (options.ifPresent) {
+      return;
+    }
+    throw new Error(
+      `No publish manifest backup found at ${backupPath}; nothing to restore`,
+    );
+  }
+  await rename(backupPath, join(packageDir, "package.json"));
+}
+
+async function createPublishManifestText(
+  originalText: string,
+  resolveFrom: string,
+): Promise<string> {
+  const manifest = JSON.parse(originalText) as Manifest;
 
   delete manifest["devDependencies"];
 
@@ -65,24 +121,7 @@ export async function preparePublishManifest(
     }
   }
 
-  await writeFile(join(packageDir, BACKUP_FILENAME), originalText);
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-}
-
-export async function restorePublishManifest(
-  packageDir: string,
-): Promise<void> {
-  const backupPath = join(packageDir, BACKUP_FILENAME);
-  const exists = await stat(backupPath).then(
-    () => true,
-    () => false,
-  );
-  if (!exists) {
-    throw new Error(
-      `No publish manifest backup found at ${backupPath}; nothing to restore`,
-    );
-  }
-  await rename(backupPath, join(packageDir, "package.json"));
+  return `${JSON.stringify(manifest, null, 2)}\n`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/theme-signal",
-  "version": "0.2.0-alpha.230",
+  "version": "0.2.0-alpha.233",
   "description": "High-contrast signal-lab theme for public Rover site packages",
   "license": "Apache-2.0",
   "author": "Rizom <hello@rizom.ai> (https://rizom.ai)",
@@ -29,14 +29,16 @@
     "build": "bun scripts/build.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rizom/theme-default": "0.2.0-alpha.230"
+    "@rizom/theme-default": "0.2.0-alpha.233"
+  },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.217 <0.3.0"
   },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",

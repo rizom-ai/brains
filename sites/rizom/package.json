@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom",
-  "version": "0.2.0-alpha.230",
+  "version": "0.2.0-alpha.233",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
   "exports": {
@@ -26,7 +26,6 @@
     "build": "bun scripts/build.ts",
     "lint": "eslint src scripts/build.ts --max-warnings 0",
     "lint:fix": "eslint src scripts/build.ts --max-warnings 0 --fix",
-    "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",

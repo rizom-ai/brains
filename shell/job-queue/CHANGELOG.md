@@ -1,5 +1,32 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.233
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.233
+  - @brains/utils@0.2.0-alpha.233
+  - @brains/mcp-service@0.2.0-alpha.233
+
+## 0.2.0-alpha.232
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.232
+  - @brains/utils@0.2.0-alpha.232
+  - @brains/mcp-service@0.2.0-alpha.232
+
+## 0.2.0-alpha.231
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.231
+  - @brains/utils@0.2.0-alpha.231
+  - @brains/mcp-service@0.2.0-alpha.231
+
 ## 0.2.0-alpha.230
 
 ### Patch Changes

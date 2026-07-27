@@ -128,3 +128,37 @@ jobs:
 
       - name: Test
         run: bun run test
+
+  build:
+    name: Build
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-build-${{ runner.os }}-
+            turbo-${{ runner.os }}-
+
+      # Build every package in dependency order so a package that fails to
+      # build (or a cross-package dist import that no longer resolves) is caught
+      # here, not at release time. The release also builds before publishing,
+      # but this shifts detection left onto every push/PR.
+      - name: Build
+        run: bun run build

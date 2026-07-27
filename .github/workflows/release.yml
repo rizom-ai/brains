@@ -102,12 +102,25 @@ jobs:
       - name: Run pre-publish smoke tests
         run: bun --filter @rizom/ops test:smoke
 
+      # Build every package in dependency order BEFORE publishing. changeset
+      # publish skips packages already on the registry, so their per-package
+      # prepublishOnly build never runs — and a dependent published in the same
+      # run then fails to import the skipped dependency's dist (the theme-default
+      # / theme-rizom-ai failure). Building up front guarantees every dist/
+      # exists regardless of publish/skip status, and makes a build failure
+      # abort the run before any package is published (no partial releases).
+      - name: Build all packages
+        run: bun run build
+
       - name: Publish to npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
           bun run changeset:publish
+
+      - name: Verify published site/theme metadata
+        run: bun scripts/verify-published-peer-metadata.ts
 
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''

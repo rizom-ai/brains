@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-smoke-canary",
-  "version": "0.2.0-alpha.230",
+  "version": "0.2.0-alpha.233",
   "description": "Externally authored Rover site package used to prove the hosted package canary flow",
   "type": "module",
   "exports": {
@@ -14,7 +14,6 @@
     "test": "bun test",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare"
   },
   "publishPeerDependencies": {

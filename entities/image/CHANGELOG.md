@@ -1,5 +1,41 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.233
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/style-guide@0.2.0-alpha.233
+  - @brains/contracts@0.2.0-alpha.233
+  - @brains/image@0.2.0-alpha.233
+  - @brains/utils@0.2.0-alpha.233
+  - @brains/entity-service@0.2.0-alpha.233
+  - @brains/plugins@0.2.0-alpha.233
+
+## 0.2.0-alpha.232
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/style-guide@0.2.0-alpha.232
+  - @brains/contracts@0.2.0-alpha.232
+  - @brains/image@0.2.0-alpha.232
+  - @brains/utils@0.2.0-alpha.232
+  - @brains/entity-service@0.2.0-alpha.232
+  - @brains/plugins@0.2.0-alpha.232
+
+## 0.2.0-alpha.231
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/style-guide@0.2.0-alpha.231
+  - @brains/contracts@0.2.0-alpha.231
+  - @brains/image@0.2.0-alpha.231
+  - @brains/utils@0.2.0-alpha.231
+  - @brains/entity-service@0.2.0-alpha.231
+  - @brains/plugins@0.2.0-alpha.231
+
 ## 0.2.0-alpha.230
 
 ### Patch Changes
