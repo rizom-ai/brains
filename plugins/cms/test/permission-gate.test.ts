@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import type { Plugin, WebRouteDefinition } from "@brains/plugins";
+import { ServicePlugin, type WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import type { ZodType } from "@brains/utils/zod";
+import { z, type ZodType } from "@brains/utils/zod";
 import { cmsPlugin, type CmsPlugin } from "../src";
 
 interface SessionMatrix {
@@ -20,6 +20,26 @@ interface RouteRequest {
   routePath: string;
   method?: WebRouteDefinition["method"];
   request: (cookie?: string) => Request;
+}
+
+class AdminSurfacePlugin extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  constructor() {
+    super("admin", { name: "admin", version: "1.0.0" }, {}, z.object({}));
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [
+      {
+        path: "/admin",
+        method: "GET",
+        public: true,
+        handler: async () => new Response("admin"),
+      },
+    ];
+  }
 }
 
 function findRoute(
@@ -311,17 +331,7 @@ describe("CMS Trusted rollout gate", () => {
     const { shell, plugin, sessions } = await setup();
     // A registered admin console route would appear in the strip for an
     // Admin caller; the strip must never show it to a Trusted caller.
-    shell.registerPlugin({
-      id: "admin",
-      getWebRoutes: (): WebRouteDefinition[] => [
-        {
-          path: "/admin",
-          method: "GET",
-          public: true,
-          handler: async () => new Response("admin"),
-        },
-      ],
-    } as unknown as Plugin);
+    shell.registerPlugin(new AdminSurfacePlugin());
     const route = findRoute(plugin, "/cms");
 
     const adminHtml = await (

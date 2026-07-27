@@ -1,17 +1,38 @@
 import { describe, expect, it } from "bun:test";
+import { BaseEntityAdapter, type BaseEntity } from "@brains/plugins";
 import {
   baseEntitySchema,
   createMockShell,
   createServicePluginContext,
   type ServicePluginContext,
 } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
 import { RetryTracker } from "../src/retry-tracker";
 import { getPublicationPipelineSnapshot } from "../src/pipeline-snapshot";
 
+class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor(entityType: string) {
+    super({
+      entityType,
+      purpose: "Publication pipeline snapshot fixture",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({}),
+    });
+  }
+
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: this.entityType, content: markdown };
+  }
+}
+
 function registerType(context: ServicePluginContext, entityType: string): void {
-  context.entities.register(entityType, baseEntitySchema, {} as never);
+  context.entities.register(
+    entityType,
+    baseEntitySchema,
+    new FixtureAdapter(entityType),
+  );
 }
 
 async function addEntity(
@@ -104,7 +125,7 @@ describe("publication pipeline snapshot", () => {
           sourceEntityId: "queued-post",
           attachmentType: "og-image",
         }),
-        status: "processing" as const,
+        status: "processing",
         source: "content-pipeline",
         priority: 0,
         retryCount: 0,
@@ -114,7 +135,10 @@ describe("publication pipeline snapshot", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
-        metadata: {} as never,
+        metadata: {
+          operationType: "content_operations",
+          rootJobId: "job-1",
+        },
       },
     ];
 
@@ -298,7 +322,7 @@ describe("publication pipeline snapshot", () => {
           sourceEntityId: "deleted-post",
           attachmentType: "og-image",
         }),
-        status: "processing" as const,
+        status: "processing",
         source: "content-pipeline",
         priority: 0,
         retryCount: 0,
@@ -308,7 +332,10 @@ describe("publication pipeline snapshot", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
-        metadata: {} as never,
+        metadata: {
+          operationType: "content_operations",
+          rootJobId: "job-orphan",
+        },
       },
     ];
 
