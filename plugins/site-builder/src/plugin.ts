@@ -169,6 +169,8 @@ export class SiteBuilderPlugin extends ServicePlugin<
           sharedImagesDir: this.config.sharedImagesDir,
           siteUrl: context.siteUrl,
           previewUrl: context.previewUrl,
+          localSiteUrl: context.localSiteUrl,
+          preferLocalUrls: context.preferLocalUrls,
           themeCSS: this.config.themeCSS,
           slots: this._slotRegistry,
           getHeadScripts: (): string[] => this.getRegisteredHeadScripts(),

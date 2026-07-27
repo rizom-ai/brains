@@ -14,8 +14,8 @@ import {
 type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
 
 /**
- * Tests that SiteBuildJobHandler uses siteUrl/previewUrl from its config
- * (which the plugin populates from context.siteUrl/context.previewUrl).
+ * Tests that SiteBuildJobHandler resolves canonical, preview, and local URLs
+ * from the runtime context passed through its config.
  */
 describe("SiteBuildJobHandler - Domain URLs", () => {
   let mockSiteBuilder: ISiteBuilder;
@@ -136,8 +136,38 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     });
   });
 
-  test("should set url to undefined when no URLs configured", async () => {
-    const { handler, sendMessage } = createHandler();
+  test("should use the local runtime URL for local production builds", async () => {
+    const { handler, sendMessage } = createHandler({
+      localSiteUrl: "http://localhost:8080",
+      preferLocalUrls: true,
+    });
+
+    await handler.process(
+      { ...buildData, environment: "production" },
+      "test-job-id",
+      mockProgressReporter,
+    );
+
+    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ siteUrl: "http://localhost:8080" }),
+      expect.anything(),
+    );
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: "site:build:completed",
+      payload: expect.objectContaining({
+        siteConfig: expect.objectContaining({
+          url: "http://localhost:8080",
+        }),
+      }),
+      broadcast: true,
+    });
+  });
+
+  test("should not use the local runtime URL in deployed production", async () => {
+    const { handler, sendMessage } = createHandler({
+      localSiteUrl: "http://localhost:8080",
+      preferLocalUrls: false,
+    });
 
     await handler.process(
       { ...buildData, environment: "production" },

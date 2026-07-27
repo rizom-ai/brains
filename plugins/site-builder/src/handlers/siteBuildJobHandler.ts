@@ -21,6 +21,10 @@ export interface SiteBuildJobHandlerConfig {
   sharedImagesDir: string;
   siteUrl?: string | undefined;
   previewUrl?: string | undefined;
+  /** Local runtime URL, such as http://localhost:8080. */
+  localSiteUrl?: string | undefined;
+  /** Prefer local URLs while the app is running outside deployed production. */
+  preferLocalUrls?: boolean | undefined;
   themeCSS?: string | undefined;
   slots?: LayoutSlots | undefined;
   getHeadScripts?: (() => string[]) | undefined;
@@ -89,10 +93,13 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         this.sendMessage,
         data.siteConfig ?? this.cfg.defaultSiteConfig,
       );
-      const siteUrl =
+      const configuredSiteUrl =
         environment === "preview"
           ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
           : this.cfg.siteUrl;
+      const siteUrl = this.cfg.preferLocalUrls
+        ? (this.cfg.localSiteUrl ?? configuredSiteUrl)
+        : configuredSiteUrl;
 
       // Perform the build
       const result = await this.cfg.siteBuilder.build(
