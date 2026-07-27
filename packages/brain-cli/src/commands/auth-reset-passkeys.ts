@@ -1,5 +1,5 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
+import { resetAuthPasskeysStorage } from "@brains/auth-service";
 import type { CommandResult } from "../lib/command-result";
 
 export interface AuthResetPasskeysOptions {
@@ -7,27 +7,7 @@ export interface AuthResetPasskeysOptions {
   yes?: boolean | undefined;
 }
 
-const RESET_FILES = [
-  {
-    name: "oauth-passkeys.json",
-    value: {
-      credentials: [],
-      registrationChallenges: [],
-      authenticationChallenges: [],
-    },
-  },
-  { name: "oauth-sessions.json", value: { sessions: [] } },
-  { name: "oauth-auth-codes.json", value: { codes: [] } },
-  { name: "oauth-refresh-tokens.json", value: { refreshTokens: [] } },
-] as const;
-
-/**
- * Local break-glass recovery for lost or compromised auth passkeys.
- *
- * This intentionally preserves OAuth clients and the signing key. It clears all
- * passkey credentials and active OAuth/session state; after restart,
- * AuthService sees no passkeys and prints a fresh one-shot /setup URL.
- */
+/** Local break-glass recovery for lost or compromised auth passkeys. */
 export async function resetAuthPasskeys(
   cwd: string,
   options: AuthResetPasskeysOptions = {},
@@ -49,19 +29,18 @@ export async function resetAuthPasskeys(
     };
   }
 
-  for (const file of RESET_FILES) {
-    const filePath = resolve(storageDir, file.name);
-    await mkdir(dirname(filePath), { recursive: true, mode: 0o700 });
-    await writeFile(filePath, `${JSON.stringify(file.value, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(filePath, 0o600);
+  try {
+    const result = await resetAuthPasskeysStorage(storageDir);
+    return {
+      success: true,
+      message: `Auth passkeys and active OAuth state reset atomically in ${resolve(storageDir, "auth.db")}: ${result.passkeys} passkeys, ${result.passkeyClaims} passkey claims, ${result.challenges} challenges, ${result.sessions} sessions, ${result.authorizationCodes} authorization codes, and ${result.refreshTokens} refresh tokens removed; ${result.setupTokens} global setup links invalidated. Restart the brain to print a new one-shot /setup token. Users, OAuth clients, and signing keys were preserved.`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to reset auth passkeys: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
-
-  return {
-    success: true,
-    message: `Auth passkeys and active OAuth state reset in ${storageDir}. Restart the brain to print a new one-shot /setup token. OAuth clients and signing keys were preserved.`,
-  };
 }
 
 function isBrainDataPath(path: string): boolean {

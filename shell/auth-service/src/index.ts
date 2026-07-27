@@ -136,6 +136,8 @@ export type {
   AuthRuntimeDB,
   AuthRuntimeReplicaOptions,
 } from "./runtime-db";
+export { resetAuthPasskeysStorage } from "./passkey-reset";
+export type { AuthPasskeyResetResult } from "./passkey-reset";
 export type {
   AuthBrainAnchor,
   AuthPerson,

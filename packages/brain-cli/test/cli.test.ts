@@ -1,12 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import {
-  mkdirSync,
-  existsSync,
-  rmSync,
-  readFileSync,
-  writeFileSync,
-  statSync,
-} from "fs";
+import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
@@ -267,28 +260,76 @@ describe("brain auth recovery", () => {
     expect(result.success).toBe(true);
   });
 
-  it("clears auth passkeys and active OAuth state", async () => {
+  it("atomically clears auth.db passkeys and active OAuth state", async () => {
     const { runCommand } = await import("../src/run-command");
+    const {
+      AuthCredentialStore,
+      AuthIdentityStore,
+      AuthRuntimeDatabase,
+      AuthService,
+      RuntimeAuthorizationCodeStore,
+      RuntimeAuthSessionStore,
+      RuntimeRefreshTokenStore,
+    } = await import("@brains/auth-service");
     const authDir = join(testDir, "data", "auth");
     mkdirSync(authDir, { recursive: true });
-    writeFileSync(
-      join(authDir, "oauth-passkeys.json"),
-      JSON.stringify({ credentials: [{ id: "credential" }] }),
-    );
-    writeFileSync(
-      join(authDir, "oauth-sessions.json"),
-      JSON.stringify({ sessions: [{ id: "session" }] }),
-    );
-    writeFileSync(
-      join(authDir, "oauth-auth-codes.json"),
-      JSON.stringify({ codes: [{ code: "code" }] }),
-    );
-    writeFileSync(
-      join(authDir, "oauth-refresh-tokens.json"),
-      JSON.stringify({ refreshTokens: [{ id: "refresh" }] }),
-    );
-    writeFileSync(join(authDir, "oauth-clients.json"), "preserve-client-store");
-    writeFileSync(join(authDir, "oauth-signing-key.jwk"), "preserve-key");
+    const legacyPasskeys = JSON.stringify({
+      credentials: [{ id: "legacy-credential" }],
+    });
+    writeFileSync(join(authDir, "oauth-passkeys.json"), legacyPasskeys);
+
+    const service = new AuthService({
+      storageDir: authDir,
+      issuer: "http://localhost:8080",
+    });
+    const user = await service.createUser({
+      displayName: "Recovery Admin",
+      role: "admin",
+    });
+    const client = await service.registerClient({
+      redirect_uris: ["http://localhost:6274/oauth/callback"],
+      client_name: "Recovery client",
+    });
+    await service.getJwks();
+    const previousSetupUrl = service.getSetupUrl();
+    if (!previousSetupUrl) throw new Error("Expected initial setup URL");
+    await service.close();
+
+    const database = new AuthRuntimeDatabase({ storageDir: authDir });
+    await database.start();
+    const credentials = new AuthCredentialStore(database.db);
+    await credentials.addPasskey({
+      id: "credential-1",
+      userId: user.userId,
+      publicKey: "public-key",
+      counter: 0,
+      credentialBackedUp: false,
+    });
+    await credentials.saveChallenge({
+      challenge: "registration-challenge",
+      kind: "registration",
+      userId: user.userId,
+      expiresAt: Date.now() + 60_000,
+    });
+    await new AuthIdentityStore(database.db).attachIdentity({
+      userId: user.userId,
+      type: "passkey",
+      subject: "credential-1",
+      verifiedAt: Date.now(),
+      source: { kind: "provider", id: "webauthn" },
+    });
+    await new RuntimeAuthSessionStore(database).createSession(user.userId);
+    await new RuntimeAuthorizationCodeStore(database).createCode({
+      clientId: client.client_id,
+      redirectUri: client.redirect_uris[0] ?? "",
+      codeChallenge: "challenge",
+      subject: user.userId,
+    });
+    await new RuntimeRefreshTokenStore(database).issueToken({
+      clientId: client.client_id,
+      subject: user.userId,
+    });
+    await database.stop();
 
     const result = await runCommand(
       {
@@ -300,40 +341,58 @@ describe("brain auth recovery", () => {
     );
 
     expect(result.success).toBe(true);
+    expect(result.message).toContain("auth.db");
     expect(result.message).toContain("Restart the brain");
-    expect(
-      JSON.parse(readFileSync(join(authDir, "oauth-passkeys.json"), "utf8")),
-    ).toEqual({
-      credentials: [],
-      registrationChallenges: [],
-      authenticationChallenges: [],
-    });
-    expect(
-      JSON.parse(readFileSync(join(authDir, "oauth-sessions.json"), "utf8")),
-    ).toEqual({
-      sessions: [],
-    });
-    expect(
-      JSON.parse(readFileSync(join(authDir, "oauth-auth-codes.json"), "utf8")),
-    ).toEqual({
-      codes: [],
-    });
-    expect(
-      JSON.parse(
-        readFileSync(join(authDir, "oauth-refresh-tokens.json"), "utf8"),
-      ),
-    ).toEqual({
-      refreshTokens: [],
-    });
-    expect(readFileSync(join(authDir, "oauth-clients.json"), "utf8")).toBe(
-      "preserve-client-store",
+    const resetDatabase = new AuthRuntimeDatabase({ storageDir: authDir });
+    await resetDatabase.start();
+    try {
+      for (const table of [
+        "passkey_credentials",
+        "webauthn_challenges",
+        "auth_sessions",
+        "oauth_auth_codes",
+        "oauth_refresh_tokens",
+      ]) {
+        const count = await resetDatabase.client.execute(
+          `SELECT COUNT(*) AS count FROM ${table}`,
+        );
+        expect(Number(count.rows[0]?.["count"])).toBe(0);
+      }
+      const passkeyClaims = await resetDatabase.client.execute(
+        "SELECT COUNT(*) AS count FROM person_identity_claims WHERE type = 'passkey'",
+      );
+      expect(Number(passkeyClaims.rows[0]?.["count"])).toBe(0);
+      const activeGlobalSetupTokens = await resetDatabase.client.execute(
+        "SELECT COUNT(*) AS count FROM setup_tokens WHERE target_user_id IS NULL AND consumed_at IS NULL",
+      );
+      expect(Number(activeGlobalSetupTokens.rows[0]?.["count"])).toBe(0);
+      for (const table of [
+        "auth_users",
+        "oauth_clients",
+        "oauth_signing_keys",
+      ]) {
+        const count = await resetDatabase.client.execute(
+          `SELECT COUNT(*) AS count FROM ${table}`,
+        );
+        expect(Number(count.rows[0]?.["count"])).toBeGreaterThan(0);
+      }
+    } finally {
+      await resetDatabase.stop();
+    }
+    expect(readFileSync(join(authDir, "oauth-passkeys.json"), "utf8")).toBe(
+      legacyPasskeys,
     );
-    expect(readFileSync(join(authDir, "oauth-signing-key.jwk"), "utf8")).toBe(
-      "preserve-key",
+    const restarted = new AuthService({
+      storageDir: authDir,
+      issuer: "http://localhost:8080",
+    });
+    await restarted.initialize();
+    expect(await restarted.hasPasskeyCredentials()).toBe(false);
+    expect(restarted.getSetupUrl()).toStartWith(
+      "http://localhost:8080/setup?token=setup_",
     );
-    expect(statSync(join(authDir, "oauth-passkeys.json")).mode & 0o777).toBe(
-      0o600,
-    );
+    expect(restarted.getSetupUrl()).not.toBe(previousSetupUrl);
+    await restarted.close();
   });
 });
 
