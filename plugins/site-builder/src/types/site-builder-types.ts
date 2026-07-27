@@ -82,7 +82,9 @@ export type SiteBuildDiagnosticCode =
   | "static-asset-collision"
   | "public-asset-snapshot-failed"
   | "section-content-resolution-failed"
-  | "invalid-section-content";
+  | "invalid-section-content"
+  | "missing-site-url"
+  | "staged-artifact-failed";
 
 export interface SiteBuildDiagnostic {
   severity: "warning" | "error";
@@ -112,6 +114,8 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
     "public-asset-snapshot-failed",
     "section-content-resolution-failed",
     "invalid-section-content",
+    "missing-site-url",
+    "staged-artifact-failed",
   ]),
   message: z.string(),
   routeId: z.string().optional(),

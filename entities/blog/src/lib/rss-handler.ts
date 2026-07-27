@@ -1,5 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter, SITE_CHANNELS } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { SiteBuildStagingPayload } from "@brains/site-builder-plugin";
 import type { BlogPost } from "../schemas/blog-post";
@@ -16,16 +17,21 @@ export function subscribeToSiteBuildStaging(
   context.messaging.subscribe<SiteBuildStagingPayload, { success: boolean }>(
     SITE_CHANNELS.buildStaging,
     async (message) => {
+      const payload = message.payload;
       try {
-        const payload = message.payload;
-
         logger.info(
           `Received site:build:staging event for ${payload.environment} environment`,
         );
 
         await generateRSSAfterBuild(context, logger, payload);
       } catch (error) {
+        // Throwing here would be swallowed by the broadcast dispatcher and the
+        // build would publish a generation with no feed. Report it instead so
+        // the build fails and the previous generation stays active.
         logger.error("Failed to generate RSS feed", error);
+        payload.reportFailure(
+          `RSS feed generation failed: ${getErrorMessage(error)}`,
+        );
       }
       return { success: true };
     },

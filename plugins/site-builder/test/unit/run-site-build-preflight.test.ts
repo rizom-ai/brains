@@ -47,7 +47,7 @@ function run(
     buildOptions: {
       environment: "production",
       outputDir,
-      siteUrl: undefined,
+      siteUrl: "https://preflight.example",
       sharedImagesDir: "/tmp/site-build-preflight-images",
       enableContentGeneration: false,
       cleanBeforeBuild: true,

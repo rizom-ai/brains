@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { SITE_CHANNELS } from "@brains/plugins";
 import { RouteRegistry } from "@brains/site-engine";
 import {
   createMockServicePluginContext,
@@ -8,6 +9,7 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
+import type { SiteBuildStagingPayload } from "../../src/types/job-types";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
@@ -207,7 +209,7 @@ describe("runSiteBuild transactional output", () => {
         title: "Cancellation Site",
         description: "Cancellation fixture",
       },
-      siteUrl: undefined,
+      siteUrl: "https://cancellation.example",
       layouts: { default: TestLayout },
     };
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({
@@ -257,6 +259,88 @@ describe("runSiteBuild transactional output", () => {
         "[build-cancelled] Site build cancelled: operator cancelled build",
       ],
       diagnostics: [expect.objectContaining({ code: "build-cancelled" })],
+    });
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "stable",
+    );
+    expect(
+      await fs.readdir(join(testDir, ".site-builds", "preview")),
+    ).toHaveLength(1);
+  });
+
+  it("fails the build when a staging subscriber reports a failed artifact", async () => {
+    // Staging artifacts are produced by broadcast subscribers, and the message
+    // bus swallows their errors. Without a reported failure the generation
+    // would publish with the artifact missing and still report success.
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Transactional Site",
+        description: "Transactional fixture",
+      },
+      siteUrl: "https://staging.example",
+      layouts: { default: TestLayout },
+    };
+    const successfulFactory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+
+    expect(
+      (
+        await runSiteBuild({
+          buildOptions,
+          progress: undefined,
+          pipelineContext: createPipelineContext(),
+          staticSiteBuilderFactory: successfulFactory,
+          signal: new AbortController().signal,
+        })
+      ).success,
+    ).toBe(true);
+
+    const baseContext = createPipelineContext();
+    const reportingContext: BuildPipelineContext = {
+      ...baseContext,
+      services: {
+        ...baseContext.services,
+        sendMessage: async (request) => {
+          if (request.type === SITE_CHANNELS.buildStaging) {
+            (request.payload as SiteBuildStagingPayload).reportFailure(
+              "RSS feed generation failed: ENOENT",
+            );
+          }
+          return baseContext.services.sendMessage(request);
+        },
+      },
+    };
+
+    const result = await runSiteBuild({
+      buildOptions,
+      progress: undefined,
+      pipelineContext: reportingContext,
+      staticSiteBuilderFactory: successfulFactory,
+      signal: new AbortController().signal,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      errors: [
+        "[staged-artifact-failed] Staged site artifact failed: RSS feed generation failed: ENOENT",
+      ],
+      diagnostics: [
+        expect.objectContaining({ code: "staged-artifact-failed" }),
+      ],
     });
     expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
       "stable",

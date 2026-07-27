@@ -55,4 +55,15 @@ export interface SiteBuildCompletedPayload {
 }
 
 /** Payload for extensions that write optional artifacts into staging. */
-export type SiteBuildStagingPayload = SiteBuildCompletedPayload;
+export interface SiteBuildStagingPayload extends SiteBuildCompletedPayload {
+  /**
+   * Report that an expected staged artifact could not be written.
+   *
+   * Staging is delivered as a broadcast, and the message bus logs and discards
+   * whatever a subscriber throws. A producer that fails is therefore invisible
+   * to the build, which would publish a generation missing the artifact and
+   * still report success. Reporting here fails the build instead, leaving the
+   * previously published generation active.
+   */
+  reportFailure: (detail: string) => void;
+}

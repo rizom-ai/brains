@@ -288,6 +288,9 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         },
         generateEntityUrl: (_entityType: string, slug: string): string =>
           `/posts/${slug}`,
+        reportFailure: (): void => {
+          throw new Error("Did not expect a staging failure");
+        },
       };
 
       try {
@@ -313,6 +316,45 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
             .then(() => true)
             .catch(() => false),
         ).toBe(false);
+      } finally {
+        await fs.rm(testDir, { recursive: true, force: true });
+      }
+    });
+
+    it("reports a staging failure instead of leaving the feed silently missing", async () => {
+      // The message bus swallows subscriber errors on broadcast, so throwing
+      // here would publish a generation with no feed and still report success.
+      await harness.installPlugin(new BlogPlugin({}));
+      await harness
+        .getEntityService()
+        .createEntity({ entity: sampleDraftPost });
+      const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-failure-"));
+      const failures: string[] = [];
+
+      try {
+        await harness.sendMessage(
+          "site:build:staging",
+          {
+            environment: "preview" as const,
+            routesBuilt: 1,
+            outputDir: join(testDir, "missing-generation"),
+            siteConfig: {
+              title: "Test Blog",
+              description: "Test feed",
+              url: "https://example.com",
+            },
+            generateEntityUrl: (_entityType: string, slug: string): string =>
+              `/posts/${slug}`,
+            reportFailure: (detail: string): void => {
+              failures.push(detail);
+            },
+          },
+          "site-builder",
+          true,
+        );
+
+        expect(failures).toHaveLength(1);
+        expect(failures[0]).toContain("RSS feed generation failed");
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }

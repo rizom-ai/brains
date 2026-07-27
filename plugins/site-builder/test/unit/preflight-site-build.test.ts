@@ -47,6 +47,8 @@ describe("preflightSiteBuild", () => {
       routes: [route({ path: "/writing/" })],
       layouts: { default: layout },
       getViewTemplate: (name) => templates[name as keyof typeof templates],
+      environment: "production",
+      siteUrl: "https://example.test",
       staticAssets: {
         "/scripts/site.js": "console.log('safe');",
         "assets/site.txt": "safe",
@@ -75,6 +77,8 @@ describe("preflightSiteBuild", () => {
       layouts: { default: layout },
       getViewTemplate: (name) =>
         name === "baseline:no-web" ? noWebRenderer : undefined,
+      environment: "production",
+      siteUrl: "https://example.test",
     });
 
     expect(result.errors).toEqual([]);
@@ -124,6 +128,8 @@ describe("preflightSiteBuild", () => {
       ],
       layouts: { default: layout },
       getViewTemplate: (name) => templates[name],
+      environment: "production",
+      siteUrl: "https://example.test",
       staticAssets: { "/scripts/shared.js": "site package" },
     });
 
@@ -158,6 +164,8 @@ describe("preflightSiteBuild", () => {
       ],
       layouts: { default: layout },
       getViewTemplate: () => unsafeTemplate,
+      environment: "production",
+      siteUrl: "https://example.test",
       staticAssets: {
         "assets/../outside.txt": "unsafe",
         "\\windows\\outside.txt": "unsafe",
@@ -190,5 +198,61 @@ describe("preflightSiteBuild", () => {
         }),
       ]),
     );
+  });
+
+  it("fails a production build that has no resolvable site URL", () => {
+    // Without a URL the staged sitemap, robots, and feed are generated against
+    // a placeholder domain and published as if they were correct.
+    const templates = { "baseline:hero": template() };
+
+    const result = preflightSiteBuild({
+      routes: [route()],
+      layouts: { default: layout },
+      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      environment: "production",
+      siteUrl: undefined,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        code: "missing-site-url",
+      }),
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("warns rather than fails when a preview build has no site URL", () => {
+    const templates = { "baseline:hero": template() };
+
+    const result = preflightSiteBuild({
+      routes: [route()],
+      layouts: { default: layout },
+      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      environment: "preview",
+      siteUrl: undefined,
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        severity: "warning",
+        code: "missing-site-url",
+      }),
+    ]);
+  });
+
+  it("treats a blank site URL as missing", () => {
+    const templates = { "baseline:hero": template() };
+
+    const result = preflightSiteBuild({
+      routes: [route()],
+      layouts: { default: layout },
+      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      environment: "production",
+      siteUrl: "   ",
+    });
+
+    expect(result.errors.map(({ code }) => code)).toEqual(["missing-site-url"]);
   });
 });

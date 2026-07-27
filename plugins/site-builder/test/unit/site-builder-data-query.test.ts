@@ -72,7 +72,7 @@ describe("SiteBuilder dataQuery handling", () => {
     );
     siteBuilder = {
       build: (options): Promise<BuildResult> =>
-        builder.build({ ...options, siteUrl: undefined }),
+        builder.build({ ...options, siteUrl: "https://data-query.example" }),
     };
   });
 

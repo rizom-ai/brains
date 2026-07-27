@@ -11,6 +11,9 @@ export interface PreflightSiteBuildOptions {
   routes: RouteDefinition[];
   layouts: Record<string, LayoutComponent>;
   getViewTemplate: (name: string) => SiteViewTemplate | undefined;
+  environment: "preview" | "production";
+  /** Resolved public URL for this environment, if one is configured. */
+  siteUrl: string | undefined;
   staticAssets?: Record<string, string> | undefined;
 }
 
@@ -58,10 +61,38 @@ function validateAssetPaths(
   return diagnostics;
 }
 
+/**
+ * Staged SEO artifacts fall back to a placeholder domain when no public URL is
+ * configured, so a build with no URL publishes a sitemap, robots file, and feed
+ * whose links all point somewhere else. Production cannot recover from that
+ * once it ships; preview only misleads whoever is reviewing it.
+ */
+function validateSiteUrl(
+  siteUrl: string | undefined,
+  environment: "preview" | "production",
+): SiteBuildDiagnostic[] {
+  if (siteUrl !== undefined && siteUrl.trim().length > 0) return [];
+
+  return [
+    environment === "production"
+      ? diagnostic(
+          "error",
+          "missing-site-url",
+          "Production build has no configured site URL; staged sitemap, robots, and feed links would be published against a placeholder domain",
+        )
+      : diagnostic(
+          "warning",
+          "missing-site-url",
+          "Preview build has no configured site URL; staged sitemap, robots, and feed links fall back to a placeholder domain",
+        ),
+  ];
+}
+
 export function preflightSiteBuild(
   options: PreflightSiteBuildOptions,
 ): SiteBuildPreflightResult {
   const diagnostics = validateAssetPaths(options.staticAssets, {});
+  diagnostics.push(...validateSiteUrl(options.siteUrl, options.environment));
   const validatedTemplates = new Set<string>();
   const templateAssetOwners = new Map<
     string,

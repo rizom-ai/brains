@@ -89,10 +89,19 @@ export async function runSiteBuild(
     warnings.push(...buildRoutes.warnings);
     const { routes } = buildRoutes;
 
+    // One resolution for every consumer of the public URL. Staged SEO files
+    // used to fall back to `siteConfig.url` while the staging payload passed
+    // `siteUrl` straight through, so a site configured only through
+    // `siteConfig` published a correct sitemap next to a placeholder feed.
+    const baseUrl =
+      options.buildOptions.siteUrl ?? parsedOptions.siteConfig.url;
+
     const preflight = preflightSiteBuild({
       routes,
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
+      environment: parsedOptions.environment,
+      siteUrl: baseUrl,
       staticAssets: options.buildOptions.staticAssets,
     });
     diagnostics.push(...preflight.diagnostics);
@@ -180,16 +189,20 @@ export async function runSiteBuild(
       progress: 82,
       total: 100,
     });
+    const stagingFailures: string[] = [];
     const stagingPayload: SiteBuildStagingPayload = {
       outputDir: outputTarget.generationDir,
       environment: preparation.preparedBuild.environment,
       routesBuilt: preparation.preparedBuild.routes.length,
       siteConfig: {
         ...preparation.preparedBuild.site,
-        url: options.buildOptions.siteUrl,
+        url: baseUrl,
       },
       generateEntityUrl: (entityType, slug) =>
         EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+      reportFailure: (detail) => {
+        stagingFailures.push(detail);
+      },
     };
     await options.pipelineContext.services.sendMessage({
       type: SITE_CHANNELS.buildStaging,
@@ -197,6 +210,10 @@ export async function runSiteBuild(
       broadcast: true,
     });
     options.signal.throwIfAborted();
+    if (stagingFailures.length > 0) {
+      failureCode = "staged-artifact-failed";
+      throw new Error(stagingFailures.join("; "));
+    }
 
     await runStaticSiteBuild({
       staticSiteBuilder,
@@ -215,7 +232,7 @@ export async function runSiteBuild(
       outputDir: outputTarget.generationDir,
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
-      siteUrl: options.buildOptions.siteUrl,
+      siteUrl: baseUrl,
       signal: options.signal,
     });
 
@@ -278,7 +295,9 @@ export async function runSiteBuild(
     const messagePrefix =
       failureCode === "output-commit-failed"
         ? "Site output commit failed"
-        : "Site build process failed";
+        : failureCode === "staged-artifact-failed"
+          ? "Staged site artifact failed"
+          : "Site build process failed";
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
       code: failureCode,
