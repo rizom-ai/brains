@@ -86,10 +86,6 @@
       "types": "./dist/site.d.ts",
       "import": "./dist/site.js"
     },
-    "./themes": {
-      "types": "./dist/themes.d.ts",
-      "import": "./dist/themes.js"
-    },
     "./deploy": {
       "types": "./dist/deploy.d.ts",
       "import": "./dist/deploy.js"

@@ -11,7 +11,7 @@ import {
   type EntityActionPolicyConfig,
   type EntityActionRequiredLevel,
 } from "@brains/templates";
-import { composeTheme } from "@brains/theme-base";
+import { withThemeBase } from "@brains/theme-base";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -984,5 +984,5 @@ function resolveTheme(
     return undefined;
   }
 
-  return composeTheme(theme);
+  return withThemeBase(theme);
 }

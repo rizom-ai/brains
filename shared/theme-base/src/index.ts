@@ -4,20 +4,24 @@
 import themeBaseCSS from "./theme-base.css" with { type: "text" };
 
 /**
- * Prepend the shared base to a fully resolved theme.
+ * Prepend the shared base to a resolved theme, producing the stylesheet a
+ * site is built with.
  *
- * Called once, by the shell's brain resolver, on the concatenation of brand
- * theme + site override + instance override. Theme packages must not call
- * it: a brand theme layers itself over `@rizom/theme-default` (brand
- * values), which is a different thing from this base (shared utilities and
- * token defaults), and calling it here would inject the base twice.
+ * Called once, by the shell's brain resolver, on the concatenation of theme
+ * + site override + instance override. Theme packages never call it: a
+ * theme is just a CSS string, and the shell adds the base for it.
+ *
+ * The base is not `@rizom/theme-default`. A brand theme layering over
+ * theme-default is picking up default brand *values*; this is the shared
+ * utility layer and token defaults underneath every theme, including
+ * theme-default itself.
  *
  * Base utilities live in `@layer theme-base` and shared token defaults in
  * Tailwind's `theme` layer; theme-specific styles use `@layer
  * theme-override`. See theme-base.css for why those three rank the way
  * they do.
  */
-export function composeTheme(themeCSS: string): string {
+export function withThemeBase(themeCSS: string): string {
   return themeBaseCSS + "\n\n" + themeCSS;
 }
 

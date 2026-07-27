@@ -19,10 +19,9 @@
       concatenates @rizom/theme-default (the default brand values) and its
       own CSS, in src/index.ts and again in its published dist module.
    2. Base layering, done once by the shell. brain-resolver calls
-      composeTheme() on the fully resolved theme (brand theme + site
-      override + instance override) to prepend THIS file. Theme packages
-      must never call composeTheme themselves — it would inject the base
-      a second time.
+      withThemeBase() on the fully resolved theme (theme + site override +
+      instance override) to prepend THIS file. A theme is only ever a CSS
+      string; it never adds the base itself.
 
    LAYER ORDER — theme < theme-base < theme-override:
 

@@ -335,8 +335,8 @@
                 "routePath": "/",
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -786,8 +786,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -1161,8 +1161,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -1436,8 +1436,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -1876,8 +1876,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -2151,8 +2151,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -2569,8 +2569,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 28557,
-                    "sha256": "c8712bd35926defb8a18e5ce595b924156a90ea784223485780e2f13b4c11a9b"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -3088,8 +3088,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -3493,8 +3493,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -3886,8 +3886,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -4275,8 +4275,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -4668,8 +4668,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -5015,8 +5015,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -5213,8 +5213,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 59175,
-                    "sha256": "4a3080894e281cf397e24ee1a6d5ae5fad15ca08f43fff3f5fc00962aa5b7b31"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"

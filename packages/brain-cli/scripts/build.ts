@@ -239,10 +239,6 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
   },
   {
-    name: "themes",
-    source: join(import.meta.dir, "..", "src", "entries", "themes.ts"),
-  },
-  {
     name: "deploy",
     source: join(import.meta.dir, "..", "src", "entries", "deploy.ts"),
   },
