@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { DocumentPlugin, documentPlugin } from "../src";
 
@@ -131,16 +131,17 @@ describe("DocumentPlugin", () => {
       mediaType: "application/pdf",
       content: Buffer.from("%PDF-1.4\n%EOF\n"),
     });
-    const interceptor = harness
+    const createSpy = spyOn(harness.getEntityService(), "createEntity");
+    const registration = harness
       .getEntityRegistry()
-      .getCreateInterceptor("document");
-    if (!interceptor) throw new Error("document interceptor not registered");
+      .getUploadSaveHandler("application/pdf");
+    if (!registration)
+      throw new Error("document upload handler not registered");
 
-    const result = await interceptor(
+    const result = await registration.handler(
       {
-        entityType: "document",
         title: "Brief",
-        from: { kind: "upload", id: record.ref.id },
+        upload: { kind: "upload", id: record.ref.id },
       },
       {
         interfaceType: "web-chat",
@@ -149,22 +150,19 @@ describe("DocumentPlugin", () => {
     );
 
     expect(result).toEqual({
-      kind: "handled",
-      result: {
-        success: true,
-        data: {
-          entityId: "brief",
-          status: "created",
-          attachment: {
-            mediaType: "application/pdf",
-            url: "/api/chat/attachments/document?id=brief",
-            downloadUrl: "/api/chat/attachments/document?id=brief&download=1",
-            filename: "brief.pdf",
-            source: {
-              entityType: "document",
-              entityId: "brief",
-              attachmentType: "uploaded",
-            },
+      success: true,
+      data: {
+        entityId: "brief",
+        status: "created",
+        attachment: {
+          mediaType: "application/pdf",
+          url: "/api/chat/attachments/document?id=brief",
+          downloadUrl: "/api/chat/attachments/document?id=brief&download=1",
+          filename: "brief.pdf",
+          source: {
+            entityType: "document",
+            entityId: "brief",
+            attachmentType: "uploaded",
           },
         },
       },
@@ -182,6 +180,16 @@ describe("DocumentPlugin", () => {
       mimeType: "application/pdf",
       attachmentType: "uploaded",
     });
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          eventContext: {
+            actor: { kind: "user", userId: "operator" },
+            interfaceType: "web-chat",
+          },
+        }),
+      }),
+    );
   });
 
   it("rejects non-PDF upload promotion to document", async () => {

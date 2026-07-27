@@ -53,6 +53,19 @@ import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 
 export type MobileEditorPane = "details" | "write" | "preview";
 
+const EMPTY_TYPE_SCHEMA: TypeSchema = {
+  entityType: "",
+  format: "frontmatter",
+  isSingleton: false,
+  hasBody: false,
+  fields: [],
+};
+const MOBILE_EDITOR_PANES: readonly MobileEditorPane[] = [
+  "details",
+  "write",
+  "preview",
+];
+
 export interface CmsAppViewProps {
   activeWorkspaceId: string | null;
   types: EntityTypeInfo[];
@@ -165,11 +178,18 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     (workspace) => workspace.id === activeWorkspaceId,
   );
 
-  // The guards above guarantee these values on every entity-rendering branch.
-  // Workspace branches do not read them.
-  const entitySchema = schema as TypeSchema;
-  const selectedEntityType = entityType as string;
+  // Workspace branches do not read these entity fallbacks.
+  const entitySchema = schema ?? EMPTY_TYPE_SCHEMA;
+  const selectedEntityType = entityType ?? "";
   const editing = !activeWorkspaceId && mode.kind !== "browse";
+  const canCreate = activeType?.capabilities.canCreate === true;
+  const canEdit =
+    mode.kind === "create"
+      ? canCreate
+      : mode.kind === "edit" && activeType?.capabilities.canUpdate === true;
+  const canDelete = activeType?.capabilities.canDelete === true;
+  const canPublish = activeType?.capabilities.canPublish === true;
+  const canAssist = canEdit && activeType?.capabilities.canAssist === true;
   const heading =
     mode.kind === "edit"
       ? entityTitle(mode.entity)
@@ -273,7 +293,12 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                 {entities?.length === 1 ? "entity" : "entities"} · sorted by
                 updated
               </span>
-              <button type="button" className="btn" onClick={startCreate}>
+              <button
+                type="button"
+                className="btn"
+                disabled={!canCreate}
+                onClick={startCreate}
+              >
                 New {entryLabel.toLowerCase()}
               </button>
             </div>
@@ -319,11 +344,11 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             data-mobile-pane={mobilePane}
             onSubmit={(event) => {
               event.preventDefault();
-              save();
+              if (canEdit) save();
             }}
           >
             <nav className="cms-mobile-modes" aria-label="Editor view">
-              {(["details", "write", "preview"] as const).map((pane) => (
+              {MOBILE_EDITOR_PANES.map((pane) => (
                 <button
                   key={pane}
                   type="button"
@@ -356,38 +381,44 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                     : entityPublicationState(mode.entity)}
                 </span>
               </div>
-              {entitySchema.fields
-                .filter((descriptor) => isFieldVisible(descriptor, draft))
-                .map((descriptor) => (
-                  <div key={descriptor.name} className="field-with-assist">
-                    <Field
-                      descriptor={descriptor}
-                      value={draft[descriptor.name]}
-                      onChange={(raw) =>
-                        dispatchEditor({
-                          type: "fieldChanged",
-                          descriptor,
-                          raw,
-                        })
-                      }
-                    />
-                    {entitySchema.hasBody && body.trim().length > 0 && (
-                      <FieldAssistControls
+              <fieldset className="capability-fields" disabled={!canEdit}>
+                {entitySchema.fields
+                  .filter((descriptor) => isFieldVisible(descriptor, draft))
+                  .map((descriptor) => (
+                    <div key={descriptor.name} className="field-with-assist">
+                      <Field
                         descriptor={descriptor}
-                        state={fieldAssistState}
-                        onRun={runFieldAssist}
-                        onApply={applyFieldAssist}
-                        onDiscard={() => setFieldAssistState({ kind: "idle" })}
+                        value={draft[descriptor.name]}
+                        onChange={(raw) =>
+                          dispatchEditor({
+                            type: "fieldChanged",
+                            descriptor,
+                            raw,
+                          })
+                        }
                       />
-                    )}
-                  </div>
-                ))}
-              {entitySchema.fields.length === 0 && (
-                <p className="status">
-                  This type is raw markdown — the whole document is the body.
-                </p>
-              )}
-              {publicationWorkspace && mode.kind === "edit" && (
+                      {canAssist &&
+                        entitySchema.hasBody &&
+                        body.trim().length > 0 && (
+                          <FieldAssistControls
+                            descriptor={descriptor}
+                            state={fieldAssistState}
+                            onRun={runFieldAssist}
+                            onApply={applyFieldAssist}
+                            onDiscard={() =>
+                              setFieldAssistState({ kind: "idle" })
+                            }
+                          />
+                        )}
+                    </div>
+                  ))}
+                {entitySchema.fields.length === 0 && (
+                  <p className="status">
+                    This type is raw markdown — the whole document is the body.
+                  </p>
+                )}
+              </fieldset>
+              {publicationWorkspace && mode.kind === "edit" && canPublish && (
                 <PublicationActions
                   entityType={selectedEntityType}
                   entityId={mode.entity.id}
@@ -411,11 +442,16 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                     dispatchEditor({ type: "bodyChanged", body: nextBody })
                   }
                   onModeChange={setBodyMode}
-                  assist={{
-                    entityType: selectedEntityType,
-                    frontmatter: draft,
-                    agents: agentTargets,
-                  }}
+                  readOnly={!canEdit}
+                  {...(mode.kind === "edit" && canAssist
+                    ? {
+                        assist: {
+                          entityType: selectedEntityType,
+                          entityId: mode.entity.id,
+                          agents: agentTargets,
+                        },
+                      }
+                    : {})}
                 />
               ) : (
                 <p className="status manuscript-empty">
@@ -427,7 +463,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
               <button
                 type="submit"
                 className="save-btn"
-                disabled={saveState.kind === "saving"}
+                disabled={!canEdit || saveState.kind === "saving"}
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}
               </button>
@@ -469,38 +505,42 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                   : "entity db"}
               </span>
               <span className="spacer" />
-              {mode.kind === "edit" && !entitySchema.isSingleton && (
-                <>
-                  <button
-                    type="button"
-                    className="btn danger"
-                    onClick={() => dispatchEditor({ type: "deleteRequested" })}
-                  >
-                    Delete
-                  </button>
-                  <details className="cms-mobile-more">
-                    <summary aria-label="More document actions">•••</summary>
+              {mode.kind === "edit" &&
+                !entitySchema.isSingleton &&
+                canDelete && (
+                  <>
                     <button
                       type="button"
-                      onClick={(event) => {
-                        // Fold the disclosure so it isn't left hanging open
-                        // behind the confirmation dialog's scrim.
-                        event.currentTarget
-                          .closest("details")
-                          ?.removeAttribute("open");
-                        dispatchEditor({ type: "deleteRequested" });
-                      }}
+                      className="btn danger"
+                      onClick={() =>
+                        dispatchEditor({ type: "deleteRequested" })
+                      }
                     >
-                      Delete entry
+                      Delete
                     </button>
-                  </details>
-                </>
-              )}
+                    <details className="cms-mobile-more">
+                      <summary aria-label="More document actions">•••</summary>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          // Fold the disclosure so it isn't left hanging open
+                          // behind the confirmation dialog's scrim.
+                          event.currentTarget
+                            .closest("details")
+                            ?.removeAttribute("open");
+                          dispatchEditor({ type: "deleteRequested" });
+                        }}
+                      >
+                        Delete entry
+                      </button>
+                    </details>
+                  </>
+                )}
             </footer>
           </form>
         )}
       </div>
-      {deleteOpen && mode.kind === "edit" && (
+      {deleteOpen && mode.kind === "edit" && canDelete && (
         <DeleteDialog
           entityId={mode.entity.id}
           deleting={deleting}

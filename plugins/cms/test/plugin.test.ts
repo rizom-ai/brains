@@ -19,8 +19,8 @@ function findRoute(
   const route = routes.find((candidate) => {
     return candidate.path === path && (candidate.method ?? "GET") === method;
   });
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing CMS route: ${path}`);
+  return route;
 }
 
 describe("cms plugin", () => {
@@ -68,7 +68,7 @@ describe("cms plugin", () => {
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
   });
 
-  it("does not grant CMS access to a non-Admin session", async () => {
+  it("grants CMS access to an active Trusted session", async () => {
     const shell = createCmsTestShell();
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
@@ -92,8 +92,8 @@ describe("cms plugin", () => {
       findRoute(plugin.getWebRoutes(), "/cms/api/types").handler(request),
     ]);
 
-    expect(shellResponse.status).toBe(302);
-    expect(apiResponse.status).toBe(401);
+    expect(shellResponse.status).toBe(200);
+    expect(apiResponse.status).toBe(200);
   });
 
   it("preserves a deep CMS path through authentication", async () => {
@@ -139,5 +139,9 @@ describe("cms plugin", () => {
     expect(cms).toBeDefined();
     expect(cms?.url).toBe("/cms");
     expect(cms?.pluginId).toBe("cms");
+    expect(cms?.visibility).toBe("trusted");
+    expect(
+      shell.listInteractions().find((interaction) => interaction.id === "cms"),
+    ).toMatchObject({ visibility: "trusted" });
   });
 });

@@ -1,8 +1,10 @@
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
   PermissionService,
+  type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
+  type ToolContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { SiteBuilderConfig } from "../config";
@@ -92,6 +94,43 @@ export class SiteWorkspaceProvider {
     };
   }
 
+  private toToolContext(actor: CmsWorkspaceActor): ToolContext {
+    return {
+      interfaceType: "cms",
+      actor: actor.actor,
+      userPermissionLevel: actor.userPermissionLevel,
+    };
+  }
+
+  private canAccessWorkspace(actor: CmsWorkspaceActor): boolean {
+    if (
+      !PermissionService.hasPermission(actor.userPermissionLevel, "trusted")
+    ) {
+      return false;
+    }
+    if (PermissionService.hasPermission(actor.userPermissionLevel, "admin")) {
+      return true;
+    }
+    try {
+      this.options.context.permissions.assertEntityActionAllowed(
+        "site-info",
+        "update",
+        this.toToolContext(actor),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private assertPreviewAllowed(actor: CmsWorkspaceActor): void {
+    this.options.context.permissions.assertEntityActionAllowed(
+      "site-info",
+      "update",
+      this.toToolContext(actor),
+    );
+  }
+
   async registerCmsWorkspace(): Promise<string | undefined> {
     const registration: CmsWorkspaceRegistration = {
       id: "site",
@@ -99,15 +138,24 @@ export class SiteWorkspaceProvider {
       label: "Site",
       rendererName: "SiteWorkspace",
       priority: 50,
-      dataProvider: () => this.getSnapshot(),
-      actionHandler: async (request, actor) => {
-        if (
-          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
-        ) {
-          throw new Error("Site build requires admin permission");
+      accessHandler: (actor) => this.canAccessWorkspace(actor),
+      dataProvider: async (actor) => {
+        if (!this.canAccessWorkspace(actor)) {
+          throw new Error("Site workspace access denied");
         }
+        return this.getSnapshot();
+      },
+      actionHandler: async (request, actor) => {
         const action = siteWorkspaceActionSchema.safeParse(request);
         if (!action.success) throw new Error("Invalid site workspace action");
+
+        if (action.data.type === "build-preview") {
+          this.assertPreviewAllowed(actor);
+        } else if (
+          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
+        ) {
+          throw new Error("Production site build requires admin permission");
+        }
 
         const environment =
           action.data.type === "build-preview" ? "preview" : "production";

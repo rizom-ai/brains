@@ -50,10 +50,17 @@ export function isSameOriginRequest(request: Request): boolean {
   }
 }
 
+export function requireSameOriginRequest(
+  request: Request,
+): Response | undefined {
+  return isSameOriginRequest(request)
+    ? undefined
+    : privateJsonResponse({ error: "Same-origin request required" }, 403);
+}
+
 export function requireSameOriginJson(request: Request): Response | undefined {
-  if (!isSameOriginRequest(request)) {
-    return privateJsonResponse({ error: "Same-origin request required" }, 403);
-  }
+  const originError = requireSameOriginRequest(request);
+  if (originError) return originError;
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     return privateJsonResponse({ error: "JSON request required" }, 415);
   }
@@ -83,14 +90,14 @@ const CORS_MACHINE_ENDPOINTS = new Set([
   "/revoke",
 ]);
 
-const CORS_HEADERS = {
+const CORS_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
-} as const;
+};
 
 export function isCorsMachineEndpoint(path: string): boolean {
   return CORS_MACHINE_ENDPOINTS.has(path);

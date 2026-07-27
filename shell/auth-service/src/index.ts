@@ -48,6 +48,11 @@ export type { ReinitializeAuthAccessResult } from "./access-reinitialization";
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 export {
+  isSameOriginRequest,
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "./http-responses";
+export {
   InvalidGrantError,
   RuntimeAuthorizationCodeStore,
 } from "./auth-code-store";

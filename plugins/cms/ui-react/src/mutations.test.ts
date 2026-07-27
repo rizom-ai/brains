@@ -134,9 +134,11 @@ describe("CMS delete mutation", () => {
   it("deletes the identified entity exactly once", async () => {
     let requestedUrl = "";
     let method: string | undefined;
+    let payload: unknown;
     mockFetch(async (url, options) => {
       requestedUrl = url;
       method = options.method;
+      payload = JSON.parse(String(options.body));
       return Response.json({ deleted: true });
     });
 
@@ -149,6 +151,7 @@ describe("CMS delete mutation", () => {
       "/cms/api/entities?type=field%20note&id=day%2Fone",
     );
     expect(method).toBe("DELETE");
+    expect(payload).toEqual({ confirmed: true });
     expect(result).toEqual({ deleted: true });
   });
 });

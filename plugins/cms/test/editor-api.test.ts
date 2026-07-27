@@ -35,6 +35,44 @@ const frontmatterSchemas: Record<string, z.ZodObject<z.ZodRawShape>> = {
   note: noteFrontmatterSchema,
 };
 
+const entityIdPayloadSchema = z.object({ entityId: z.string() });
+const suggestionPayloadSchema = z.object({ suggestion: z.string() });
+const skippedPayloadSchema = z.object({ skipped: z.boolean() });
+const entityPayloadSchema = z.object({
+  entity: z.object({
+    id: z.string(),
+    entityType: z.string(),
+    frontmatter: z.record(z.string(), z.unknown()),
+    body: z.string(),
+    contentHash: z.string(),
+  }),
+});
+const entityListPayloadSchema = z.object({
+  entities: z.array(
+    z.object({
+      id: z.string(),
+      entityType: z.string().optional(),
+      frontmatter: z.record(z.string(), z.unknown()),
+    }),
+  ),
+});
+const typeListPayloadSchema = z.object({
+  types: z.array(
+    z.looseObject({
+      entityType: z.string(),
+      label: z.string().optional(),
+      isSingleton: z.boolean(),
+      hasBody: z.boolean(),
+      count: z.number().optional(),
+      capabilities: z.record(z.string(), z.boolean()).optional(),
+    }),
+  ),
+});
+const syncStatusPayloadSchema = z.object({
+  directorySync: z.unknown(),
+  git: z.unknown(),
+});
+
 class TestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor(options: {
     entityType: string;
@@ -157,8 +195,8 @@ function findRoute(
       (candidate) =>
         candidate.path === path && (candidate.method ?? "GET") === method,
     );
-  expect(route).toBeDefined();
-  return route as WebRouteDefinition;
+  if (!route) throw new Error(`Missing ${method} route: ${path}`);
+  return route;
 }
 
 function apiRequest(
@@ -170,7 +208,10 @@ function apiRequest(
     headers: {
       ...(options.cookie ? { Cookie: options.cookie } : {}),
       ...(options.body !== undefined
-        ? { "Content-Type": "application/json" }
+        ? {
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          }
         : {}),
     },
     ...(options.body !== undefined
@@ -186,7 +227,9 @@ function uploadRequest(
   if (options.file) form.set("file", options.file);
   return new Request("https://yeehaa.io/cms/api/upload", {
     method: "POST",
-    headers: options.cookie ? { Cookie: options.cookie } : {},
+    headers: options.cookie
+      ? { Cookie: options.cookie, Origin: "https://yeehaa.io" }
+      : {},
     body: form,
   });
 }
@@ -228,7 +271,7 @@ describe("cms editor uploads", () => {
     const response = await findRoute(plugin, "/cms/api/upload", "POST").handler(
       uploadRequest({ cookie, file: pngFile() }),
     );
-    const payload = (await response.json()) as { entityId: string };
+    const payload = entityIdPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(201);
     expect(payload.entityId).toBe("image-42");
@@ -410,9 +453,12 @@ describe("cms editor api", () => {
     const prompts: string[] = [];
     shell.generateObject = async <T>(
       prompt: string,
+      schema: z.ZodType<T>,
     ): Promise<{ object: T }> => {
       prompts.push(prompt);
-      return { object: { suggestion: "A tighter body." } as T };
+      return {
+        object: schema.parse({ suggestion: "A tighter body." }),
+      };
     };
     const plugin = await registerPlugin(shell);
 
@@ -422,6 +468,7 @@ describe("cms editor api", () => {
         method: "POST",
         body: {
           entityType: "post",
+          id: "hello-world",
           instruction: "tighten this",
           selection: "The original body.",
           body: "The original body.",
@@ -429,7 +476,7 @@ describe("cms editor api", () => {
         },
       }),
     );
-    const payload = (await response.json()) as { suggestion: string };
+    const payload = suggestionPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.suggestion).toBe("A tighter body.");
@@ -455,12 +502,15 @@ describe("cms editor api", () => {
     const prompts: string[] = [];
     shell.generateObject = async <T>(
       prompt: string,
+      schema: z.ZodType<T>,
     ): Promise<{ object: T }> => {
       prompts.push(prompt);
       return {
-        object: (prompt.includes("Suggest tags")
-          ? { suggestions: ["cms", "authoring"] }
-          : { suggestion: "A concise summary." }) as T,
+        object: schema.parse(
+          prompt.includes("Suggest tags")
+            ? { suggestions: ["cms", "authoring"] }
+            : { suggestion: "A concise summary." },
+        ),
       };
     };
     const plugin = await registerPlugin(shell);
@@ -473,6 +523,7 @@ describe("cms editor api", () => {
         body: {
           variant: "summarise",
           entityType: "post",
+          id: "hello-world",
           targetField: "summary",
           body: "A detailed original body.",
           frontmatter: { title: "Hello World" },
@@ -493,6 +544,7 @@ describe("cms editor api", () => {
         body: {
           variant: "tag-suggest",
           entityType: "post",
+          id: "hello-world",
           targetField: "tags",
           body: "A detailed original body.",
           frontmatter: { title: "Hello World" },
@@ -519,6 +571,7 @@ describe("cms editor api", () => {
   it("rejects prompt variants targeting incompatible fields", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
+    await seedPost(shell, { id: "hello-world", body: "Body" });
     const plugin = await registerPlugin(shell);
     const route = findRoute(plugin, "/cms/api/assist", "POST");
 
@@ -526,6 +579,7 @@ describe("cms editor api", () => {
       {
         variant: "summarise",
         entityType: "post",
+        id: "hello-world",
         targetField: "tags",
         body: "Body",
         frontmatter: { title: "Hello" },
@@ -533,6 +587,7 @@ describe("cms editor api", () => {
       {
         variant: "tag-suggest",
         entityType: "post",
+        id: "hello-world",
         targetField: "title",
         body: "Body",
         frontmatter: { title: "Hello" },
@@ -551,6 +606,7 @@ describe("cms editor api", () => {
 
   it("lists approved agents only when the a2a interface answers", async () => {
     const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "The original body." });
     shell.getMessageBus().subscribe("a2a:call:agents", async () => ({
       success: true,
       data: {
@@ -564,7 +620,7 @@ describe("cms editor api", () => {
     const plugin = await registerPlugin(shell);
 
     const response = await findRoute(plugin, "/cms/api/agents").handler(
-      apiRequest("/cms/api/agents", { cookie }),
+      apiRequest("/cms/api/agents?type=post&id=hello-world", { cookie }),
     );
 
     expect(response.status).toBe(200);
@@ -599,6 +655,8 @@ describe("cms editor api", () => {
         cookie,
         method: "POST",
         body: {
+          entityType: "post",
+          id: "hello-world",
           agent: "docs.example",
           instruction: "Is this accurate?",
           selection: "The original body.",
@@ -612,11 +670,15 @@ describe("cms editor api", () => {
       response: "The claim is accurate.",
     });
     expect(calls).toEqual([
-      {
+      expect.objectContaining({
         agent: "docs.example",
         instruction: "Is this accurate?",
         selection: "The original body.",
-      },
+        entityType: "post",
+        entityId: "hello-world",
+        actor: expect.objectContaining({ kind: "user" }),
+        interfaceType: "cms",
+      }),
     ]);
     const stored = await shell.getEntityService().getEntity({
       entityType: "post",
@@ -628,6 +690,7 @@ describe("cms editor api", () => {
 
   it("returns a clear 4xx when the a2a handler refuses an agent", async () => {
     const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "Text" });
     shell.getMessageBus().subscribe("a2a:call:request", async () => ({
       success: false,
       error: "Agent unknown.example is not saved or approved.",
@@ -644,6 +707,8 @@ describe("cms editor api", () => {
         cookie,
         method: "POST",
         body: {
+          entityType: "post",
+          id: "hello-world",
           agent: "unknown.example",
           instruction: "Review",
           selection: "Text",
@@ -659,11 +724,12 @@ describe("cms editor api", () => {
 
   it("degrades to model-only discovery when a2a is not installed", async () => {
     const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "Text" });
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
 
     const agents = await findRoute(plugin, "/cms/api/agents").handler(
-      apiRequest("/cms/api/agents", { cookie }),
+      apiRequest("/cms/api/agents?type=post&id=hello-world", { cookie }),
     );
     expect(await agents.json()).toEqual({ agents: [] });
 
@@ -672,6 +738,8 @@ describe("cms editor api", () => {
         cookie,
         method: "POST",
         body: {
+          entityType: "post",
+          id: "hello-world",
           agent: "docs.example",
           instruction: "Review",
           selection: "Text",
@@ -715,15 +783,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/types").handler(
       apiRequest("/cms/api/types", { cookie }),
     );
-    const payload = (await response.json()) as {
-      types: Array<{
-        entityType: string;
-        label: string;
-        isSingleton: boolean;
-        hasBody: boolean;
-        count: number;
-      }>;
-    };
+    const payload = typeListPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     const post = payload.types.find((t) => t.entityType === "post");
@@ -733,6 +793,15 @@ describe("cms editor api", () => {
       isSingleton: false,
       hasBody: true,
       count: 1,
+      capabilities: {
+        canRead: true,
+        canCreate: true,
+        canUpdate: true,
+        canDelete: true,
+        canExtract: true,
+        canPublish: true,
+        canAssist: true,
+      },
     });
   });
 
@@ -745,9 +814,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/types").handler(
       apiRequest("/cms/api/types", { cookie }),
     );
-    const payload = (await response.json()) as {
-      types: Array<{ entityType: string; label: string }>;
-    };
+    const payload = typeListPayloadSchema.parse(await response.json());
 
     expect(payload.types.find((t) => t.entityType === "post")?.label).toBe(
       "Essays",
@@ -762,18 +829,14 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/schema").handler(
       apiRequest("/cms/api/schema?type=post", { cookie }),
     );
-    const payload = (await response.json()) as {
-      entityType: string;
-      isSingleton: boolean;
-      hasBody: boolean;
-      fields: Array<{
-        name: string;
-        label: string;
-        widget: string;
-        required?: boolean;
-        field?: { name: string; label: string; widget: string };
-      }>;
-    };
+    const payload = z
+      .object({
+        entityType: z.string(),
+        isSingleton: z.boolean(),
+        hasBody: z.boolean(),
+        fields: z.array(z.record(z.string(), z.unknown())),
+      })
+      .parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.entityType).toBe("post");
@@ -806,11 +869,13 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/schema").handler(
       apiRequest("/cms/api/schema?type=note", { cookie }),
     );
-    const payload = (await response.json()) as {
-      format: string;
-      hasBody: boolean;
-      fields: unknown[];
-    };
+    const payload = z
+      .object({
+        format: z.string(),
+        hasBody: z.boolean(),
+        fields: z.array(z.unknown()),
+      })
+      .parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.format).toBe("raw");
@@ -841,9 +906,7 @@ describe("cms editor api", () => {
     const readBack = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=note&id=rule-note", { cookie }),
     );
-    const payload = (await readBack.json()) as {
-      entity: { frontmatter: Record<string, unknown>; body: string };
-    };
+    const payload = entityPayloadSchema.parse(await readBack.json());
     expect(payload.entity.frontmatter).toEqual({});
     expect(payload.entity.body).toBe(content);
 
@@ -926,13 +989,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=post", { cookie }),
     );
-    const payload = (await response.json()) as {
-      entities: Array<{
-        id: string;
-        entityType: string;
-        frontmatter: Record<string, unknown>;
-      }>;
-    };
+    const payload = entityListPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.entities).toHaveLength(1);
@@ -950,9 +1007,9 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=post&id=hello-world", { cookie }),
     );
-    const payload = (await response.json()) as {
-      entity: { contentHash: string };
-    };
+    const payload = z
+      .object({ entity: z.object({ contentHash: z.string() }) })
+      .parse(await response.json());
 
     expect(payload.entity.contentHash.length).toBeGreaterThan(0);
   });
@@ -981,7 +1038,9 @@ describe("cms editor api", () => {
     );
 
     expect(response.status).toBe(409);
-    const payload = (await response.json()) as { error: string };
+    const payload = z
+      .object({ error: z.string() })
+      .parse(await response.json());
     expect(payload.error).toContain("changed");
 
     // The stale write must not land.
@@ -1001,9 +1060,7 @@ describe("cms editor api", () => {
     const read = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=post&id=hello-world", { cookie }),
     );
-    const { entity } = (await read.json()) as {
-      entity: { contentHash: string };
-    };
+    const { entity } = entityPayloadSchema.parse(await read.json());
 
     const response = await findRoute(
       plugin,
@@ -1053,7 +1110,7 @@ describe("cms editor api", () => {
       }),
     );
     expect(first.status).toBe(200);
-    expect(((await first.json()) as { skipped: boolean }).skipped).toBe(false);
+    expect(skippedPayloadSchema.parse(await first.json()).skipped).toBe(false);
 
     const second = await put.handler(
       apiRequest("/cms/api/entities", {
@@ -1063,7 +1120,7 @@ describe("cms editor api", () => {
       }),
     );
     expect(second.status).toBe(200);
-    expect(((await second.json()) as { skipped: boolean }).skipped).toBe(true);
+    expect(skippedPayloadSchema.parse(await second.json()).skipped).toBe(true);
   });
 
   it("returns a single entity with frontmatter and body split", async () => {
@@ -1079,14 +1136,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=post&id=hello-world", { cookie }),
     );
-    const payload = (await response.json()) as {
-      entity: {
-        id: string;
-        entityType: string;
-        frontmatter: Record<string, unknown>;
-        body: string;
-      };
-    };
+    const payload = entityPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.entity.id).toBe("hello-world");
@@ -1131,7 +1181,7 @@ describe("cms editor api", () => {
         },
       }),
     );
-    const payload = (await response.json()) as { entityId: string };
+    const payload = entityIdPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.entityId).toBe("hello-world");
@@ -1178,9 +1228,7 @@ describe("cms editor api", () => {
     const readBack = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=post&id=hello-world", { cookie }),
     );
-    const payload = (await readBack.json()) as {
-      entity: { frontmatter: Record<string, unknown>; body: string };
-    };
+    const payload = entityPayloadSchema.parse(await readBack.json());
     expect(payload.entity.frontmatter).toEqual({ title: "Hello Body" });
     expect(payload.entity.body).toBe(
       "A **rewritten** body.\n\nWith two paragraphs.",
@@ -1275,7 +1323,7 @@ describe("cms editor api", () => {
         },
       }),
     );
-    const payload = (await response.json()) as { entityId: string };
+    const payload = entityIdPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(201);
     expect(payload.entityId.length).toBeGreaterThan(0);
@@ -1347,6 +1395,7 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=post&id=doomed", {
         cookie,
         method: "DELETE",
+        body: { confirmed: true },
       }),
     );
 
@@ -1373,6 +1422,7 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=post&id=ghost", {
         cookie,
         method: "DELETE",
+        body: { confirmed: true },
       }),
     );
 
@@ -1387,13 +1437,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/types").handler(
       apiRequest("/cms/api/types", { cookie }),
     );
-    const payload = (await response.json()) as {
-      types: Array<{
-        entityType: string;
-        isSingleton: boolean;
-        hasBody: boolean;
-      }>;
-    };
+    const payload = typeListPayloadSchema.parse(await response.json());
 
     const siteInfo = payload.types.find((t) => t.entityType === "site-info");
     expect(siteInfo).toMatchObject({ isSingleton: true, hasBody: false });
@@ -1418,9 +1462,7 @@ describe("cms editor api", () => {
     const response = await findRoute(plugin, "/cms/api/entities").handler(
       apiRequest("/cms/api/entities?type=site-info", { cookie }),
     );
-    const payload = (await response.json()) as {
-      entities: Array<{ id: string; frontmatter: Record<string, unknown> }>;
-    };
+    const payload = entityListPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.entities).toHaveLength(1);
@@ -1492,10 +1534,7 @@ describe("cms editor sync status", () => {
     const response = await findRoute(plugin, "/cms/api/sync-status").handler(
       apiRequest("/cms/api/sync-status", { cookie }),
     );
-    const payload = (await response.json()) as {
-      directorySync: { lastSync: string | null; watching: boolean } | null;
-      git: Record<string, unknown> | null;
-    };
+    const payload = syncStatusPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.directorySync).toEqual({
@@ -1520,10 +1559,7 @@ describe("cms editor sync status", () => {
     const response = await findRoute(plugin, "/cms/api/sync-status").handler(
       apiRequest("/cms/api/sync-status", { cookie }),
     );
-    const payload = (await response.json()) as {
-      directorySync: unknown;
-      git: unknown;
-    };
+    const payload = syncStatusPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.directorySync).toBeNull();
@@ -1542,10 +1578,7 @@ describe("cms editor sync status", () => {
     const response = await findRoute(plugin, "/cms/api/sync-status").handler(
       apiRequest("/cms/api/sync-status", { cookie }),
     );
-    const payload = (await response.json()) as {
-      directorySync: unknown;
-      git: unknown;
-    };
+    const payload = syncStatusPayloadSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(payload.directorySync).toBeNull();

@@ -166,6 +166,11 @@ export class RuntimeUploadStore {
     return record;
   }
 
+  async remove(uploadId: string): Promise<void> {
+    this.assertValidUploadId(uploadId);
+    await rm(this.getUploadDir(uploadId), { recursive: true, force: true });
+  }
+
   async read(uploadId: string): Promise<ResolvedRuntimeUpload> {
     const record = await this.readRecord(uploadId);
     try {

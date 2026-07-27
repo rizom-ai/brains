@@ -9,8 +9,8 @@ const NOTE_ENTITY_TYPE = "note";
  * shell callers can pass their full registry map without conversion.
  */
 export interface EntityDisplayLabel {
-  label?: string;
-  pluralName?: string;
+  label?: string | undefined;
+  pluralName?: string | undefined;
 }
 
 export type CmsEntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;

@@ -35,6 +35,8 @@ export interface EntityMutationEventContext {
   channelId?: string;
   runId?: string;
   toolCallId?: string;
+  actor?: ActorRef;
+  interfaceType?: string;
 }
 
 export interface EntityJobOptions {
@@ -575,6 +577,7 @@ export interface UpdateEntityRequest<T extends BaseEntity> {
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
+  options?: Pick<EntityJobOptions, "eventContext"> | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {

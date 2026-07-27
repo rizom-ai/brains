@@ -6,6 +6,7 @@ import type {
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
+  JobOptions,
   Plugin,
 } from "@brains/plugins";
 import {
@@ -39,6 +40,23 @@ const PENDING_IMAGE_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+function createAttributionJobOptions(
+  executionContext: CreateExecutionContext,
+): JobOptions {
+  return {
+    source: "image",
+    metadata: {
+      operationType: "content_operations",
+      interfaceType: executionContext.interfaceType,
+      requestedByActor: executionContext.actor,
+      ...(executionContext.actor.kind === "user"
+        ? { requestedByUserId: executionContext.actor.userId }
+        : {}),
+      requestedByInterface: executionContext.interfaceType,
+    },
+  };
+}
 
 interface ImageConfig {
   defaultAspectRatio: ImageAspectRatio;
@@ -198,11 +216,11 @@ export class ImagePlugin extends EntityPlugin<
 
   protected override async interceptCreate(
     input: CreateInput,
-    _executionContext: CreateExecutionContext,
+    executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     if (input.from?.kind === webChatUploadsScope.refKind) {
-      return this.promoteUpload(input, context);
+      return this.promoteUpload(input, context, executionContext);
     }
 
     const prompt = getImageGenerationPrompt(input);
@@ -318,6 +336,7 @@ export class ImagePlugin extends EntityPlugin<
   private async promoteUpload(
     input: CreateInput,
     context: EntityPluginContext,
+    executionContext: CreateExecutionContext,
   ): Promise<CreateInterceptionResult> {
     const uploadRef = input.from;
     if (uploadRef?.kind !== webChatUploadsScope.refKind) {
@@ -366,15 +385,19 @@ export class ImagePlugin extends EntityPlugin<
       };
     }
 
-    await this.createPendingImage(context, {
-      id: identity.id,
-      title: identity.title,
-      alt: identity.title,
-      sourceUploadId: uploadId,
-      sourceFilename: uploadRecord.filename,
-      sourceMediaType: uploadRecord.mediaType,
-      attachmentType: "uploaded",
-    });
+    await this.createPendingImage(
+      context,
+      {
+        id: identity.id,
+        title: identity.title,
+        alt: identity.title,
+        sourceUploadId: uploadId,
+        sourceFilename: uploadRecord.filename,
+        sourceMediaType: uploadRecord.mediaType,
+        attachmentType: "uploaded",
+      },
+      executionContext,
+    );
 
     const jobId = await context.jobs.enqueue({
       type: "upload-promote",
@@ -383,6 +406,7 @@ export class ImagePlugin extends EntityPlugin<
         imageId: identity.id,
         title: identity.title,
       },
+      options: createAttributionJobOptions(executionContext),
     });
 
     return {
@@ -512,6 +536,7 @@ export class ImagePlugin extends EntityPlugin<
       sourceMediaType?: string;
       dedupKey?: string;
     },
+    executionContext?: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
     const entityData = imageAdapter.createImageEntity({
@@ -538,6 +563,16 @@ export class ImagePlugin extends EntityPlugin<
         created: now,
         updated: now,
       },
+      ...(executionContext
+        ? {
+            options: {
+              eventContext: {
+                actor: executionContext.actor,
+                interfaceType: executionContext.interfaceType,
+              },
+            },
+          }
+        : {}),
     });
   }
 
@@ -561,7 +596,7 @@ export class ImagePlugin extends EntityPlugin<
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["image/*"],
-      handler: async (input) => {
+      handler: async (input, executionContext) => {
         const interception = await this.promoteUpload(
           {
             entityType: this.entityType,
@@ -569,6 +604,7 @@ export class ImagePlugin extends EntityPlugin<
             from: input.upload,
           },
           context,
+          executionContext,
         );
         return interception.kind === "handled"
           ? interception.result

@@ -14,8 +14,24 @@ const workspaceRegistrationSchema = z.object({
     "DirectorySyncWorkspace",
   ]),
   priority: z.number().int(),
-  entityTypes: z.array(z.string().trim().min(1)).default([]),
-  dataProvider: z.custom<() => Promise<unknown>>(
+  entityTypes: z
+    .union([
+      z.array(z.string().trim().min(1)),
+      z.custom<
+        Extract<
+          CmsWorkspaceRegistration["entityTypes"],
+          (actor: never) => unknown
+        >
+      >((value) => typeof value === "function", {
+        message: "Expected CMS workspace entity types resolver function",
+      }),
+    ])
+    .default([]),
+  accessHandler: z.custom<CmsWorkspaceRegistration["accessHandler"]>(
+    (value) => typeof value === "function",
+    { message: "Expected CMS workspace access handler function" },
+  ),
+  dataProvider: z.custom<CmsWorkspaceRegistration["dataProvider"]>(
     (value) => typeof value === "function",
     { message: "Expected CMS workspace data provider function" },
   ),
@@ -27,8 +43,13 @@ const workspaceRegistrationSchema = z.object({
     .optional(),
 });
 
-export interface StoredCmsWorkspace extends CmsWorkspaceDescriptor {
-  dataProvider: () => Promise<unknown>;
+export interface StoredCmsWorkspace extends Omit<
+  CmsWorkspaceDescriptor,
+  "entityTypes"
+> {
+  entityTypes: NonNullable<CmsWorkspaceRegistration["entityTypes"]>;
+  accessHandler: CmsWorkspaceRegistration["accessHandler"];
+  dataProvider: CmsWorkspaceRegistration["dataProvider"];
   actionHandler?: CmsWorkspaceRegistration["actionHandler"];
 }
 
@@ -47,6 +68,7 @@ export class CmsWorkspaceRegistry {
       rendererName: parsed.rendererName,
       priority: parsed.priority,
       entityTypes: parsed.entityTypes,
+      accessHandler: parsed.accessHandler,
       dataProvider: parsed.dataProvider,
       ...(parsed.actionHandler ? { actionHandler: parsed.actionHandler } : {}),
     };
@@ -58,16 +80,32 @@ export class CmsWorkspaceRegistry {
     return this.workspaces.get(id);
   }
 
-  listDescriptors(): CmsWorkspaceDescriptor[] {
-    return Array.from(this.workspaces.values())
-      .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id))
-      .map(({ id, pluginId, label, rendererName, priority, entityTypes }) => ({
-        id,
-        pluginId,
-        label,
-        rendererName,
-        priority,
-        entityTypes,
-      }));
+  async listDescriptors(
+    actor: Parameters<CmsWorkspaceRegistration["accessHandler"]>[0],
+  ): Promise<CmsWorkspaceDescriptor[]> {
+    const sorted = Array.from(this.workspaces.values()).sort(
+      (a, b) => a.priority - b.priority || a.id.localeCompare(b.id),
+    );
+    const admitted = await Promise.all(
+      sorted.map(async (workspace) => ({
+        workspace,
+        admitted: await workspace.accessHandler(actor),
+      })),
+    );
+    return Promise.all(
+      admitted
+        .filter(({ admitted: isAdmitted }) => isAdmitted)
+        .map(async ({ workspace }) => ({
+          id: workspace.id,
+          pluginId: workspace.pluginId,
+          label: workspace.label,
+          rendererName: workspace.rendererName,
+          priority: workspace.priority,
+          entityTypes:
+            typeof workspace.entityTypes === "function"
+              ? await workspace.entityTypes(actor)
+              : workspace.entityTypes,
+        })),
+    );
   }
 }

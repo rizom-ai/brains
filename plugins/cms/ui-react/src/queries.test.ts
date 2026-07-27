@@ -45,6 +45,15 @@ function entityType(entityType: string): EntityTypeInfo {
     isSingleton: false,
     hasBody: true,
     count: 1,
+    capabilities: {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: true,
+      canPublish: true,
+      canAssist: true,
+    },
   };
 }
 
@@ -272,10 +281,17 @@ describe("CMS agent-targets query", () => {
     });
     const client = createCmsQueryClient();
 
-    const first = await client.fetchQuery(agentTargetsQueryOptions());
-    const second = client.getQueryData(cmsKeys.agentTargets());
+    const first = await client.fetchQuery(
+      agentTargetsQueryOptions("post", "post-1"),
+    );
+    const second = client.getQueryData(cmsKeys.agentTargets("post", "post-1"));
 
-    expect(cmsKeys.agentTargets()).toEqual(["cms", "agent-targets"]);
+    expect(cmsKeys.agentTargets("post", "post-1")).toEqual([
+      "cms",
+      "agent-targets",
+      "post",
+      "post-1",
+    ]);
     expect(first).toEqual([{ id: "reviewer", label: "Reviewer" }]);
     expect(second).toEqual(first);
     expect(requests).toBe(1);
@@ -291,12 +307,14 @@ describe("CMS agent-targets query", () => {
     const client = createCmsQueryClient();
 
     try {
-      await client.fetchQuery(agentTargetsQueryOptions());
+      await client.fetchQuery(agentTargetsQueryOptions("post", "post-1"));
     } catch {
       // The app treats absent query data as an empty optional target list.
     }
 
-    expect(client.getQueryData(cmsKeys.agentTargets())).toBeUndefined();
+    expect(
+      client.getQueryData(cmsKeys.agentTargets("post", "post-1")),
+    ).toBeUndefined();
     expect(requests).toBe(1);
     client.clear();
   });

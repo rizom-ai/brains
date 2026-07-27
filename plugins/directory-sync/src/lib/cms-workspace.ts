@@ -233,7 +233,16 @@ export class DirectorySyncWorkspaceProvider {
       label: "Sync",
       rendererName: "DirectorySyncWorkspace",
       priority: 60,
-      dataProvider: () => this.getSnapshot(),
+      accessHandler: (actor) =>
+        PermissionService.hasPermission(actor.userPermissionLevel, "admin"),
+      dataProvider: async (actor) => {
+        if (
+          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
+        ) {
+          throw new Error("Directory sync requires admin permission");
+        }
+        return this.getSnapshot();
+      },
       actionHandler: async (request, actor) => {
         if (
           !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
@@ -247,7 +256,7 @@ export class DirectorySyncWorkspaceProvider {
 
         const toolContext: ToolContext = {
           interfaceType: "cms",
-          actor: { kind: "user", userId: actor.userId },
+          actor: actor.actor,
           userPermissionLevel: actor.userPermissionLevel,
         };
         const result = await requestDirectorySync({

@@ -122,6 +122,8 @@ export function App(): ReactElement {
   const queryClient = useQueryClient();
   const navigationQuery = useQuery(navigationQueryOptions());
   const types = navigationQuery.data?.types ?? null;
+  const activeType = types?.find((info) => info.entityType === entityType);
+  const activeCapabilities = activeType?.capabilities;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
   const workspaceQuery = useQuery({
     ...workspaceQueryOptions(activeWorkspaceId ?? ""),
@@ -132,7 +134,15 @@ export function App(): ReactElement {
   const workspaceError = workspaceQuery.error
     ? errorMessage(workspaceQuery.error)
     : null;
-  const agentTargetsQuery = useQuery(agentTargetsQueryOptions());
+  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
+  const agentTargetsQuery = useQuery({
+    ...agentTargetsQueryOptions(entityType ?? "", activeEntityId ?? ""),
+    enabled:
+      entityType !== null &&
+      activeEntityId !== null &&
+      activeCapabilities?.canAssist === true &&
+      activeCapabilities.canUpdate,
+  });
   const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
   const syncStatusQuery = useQuery(syncStatusQueryOptions());
   const syncStatus = syncStatusQuery.data ?? null;
@@ -146,7 +156,6 @@ export function App(): ReactElement {
     enabled: entityType !== null,
   });
   const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
-  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
   useQuery({
     ...entityDetailQueryOptions(entityType ?? "", activeEntityId ?? ""),
     enabled: entityType !== null && activeEntityId !== null,
@@ -317,10 +326,10 @@ export function App(): ReactElement {
               if (!active || requestId !== openRequestId.current) return;
               const document = createEditorDocument(entity);
               const pending = pendingOpenState.current;
-              const nextSave =
+              const nextSave: SaveState =
                 pending?.pathname === currentCmsPathname
                   ? pending.save
-                  : { kind: "idle" as const };
+                  : { kind: "idle" };
               if (pending?.pathname === currentCmsPathname) {
                 pendingOpenState.current = null;
               }
@@ -435,23 +444,23 @@ export function App(): ReactElement {
   );
 
   const startCreate = useCallback((): void => {
-    if (!schema) return;
+    if (!schema || activeCapabilities?.canCreate !== true) return;
     dispatchEditor({
       type: "creationStarted",
       draft: emptyDraft(schema.fields),
     });
     setFieldAssistState({ kind: "idle" });
-  }, [schema]);
+  }, [activeCapabilities, schema]);
 
   const backToList = useCallback((): void => {
     if (!entityType) return;
     const collectionPath = cmsCollectionPath(cmsBasePath, entityType);
-    const historyState = router.history.location.state as Record<
-      string,
-      unknown
-    >;
+    const historyState: unknown = router.history.location.state;
     if (
-      historyState["cmsCollectionPath"] === collectionPath &&
+      typeof historyState === "object" &&
+      historyState !== null &&
+      "cmsCollectionPath" in historyState &&
+      historyState.cmsCollectionPath === collectionPath &&
       router.history.canGoBack()
     ) {
       router.history.back();
@@ -462,14 +471,20 @@ export function App(): ReactElement {
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
-      if (!entityType || body.trim().length === 0) return;
+      if (
+        !entityType ||
+        mode.kind !== "edit" ||
+        activeCapabilities?.canUpdate !== true ||
+        activeCapabilities.canAssist !== true ||
+        body.trim().length === 0
+      )
+        return;
       setFieldAssistState({ kind: "loading", field, variant });
       requestFieldAssist({
         variant,
         entityType,
+        id: mode.entity.id,
         targetField: field,
-        body,
-        frontmatter: draft,
       })
         .then((response: FieldAssistResponse) => {
           const suggestion =
@@ -491,7 +506,7 @@ export function App(): ReactElement {
           });
         });
     },
-    [body, draft, entityType],
+    [activeCapabilities, body, entityType, mode],
   );
 
   const applyFieldAssist = useCallback(
@@ -504,6 +519,13 @@ export function App(): ReactElement {
 
   const save = useCallback((): void => {
     if (!entityType || mode.kind === "browse" || !schema) return;
+    if (
+      mode.kind === "create"
+        ? activeCapabilities?.canCreate !== true
+        : activeCapabilities?.canUpdate !== true
+    ) {
+      return;
+    }
     saveStartedAt.current = Date.now();
     setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
     dispatchEditor({ type: "saveStarted" });
@@ -551,6 +573,7 @@ export function App(): ReactElement {
       },
     });
   }, [
+    activeCapabilities,
     entityType,
     mode,
     draft,
@@ -563,7 +586,13 @@ export function App(): ReactElement {
   ]);
 
   const remove = useCallback((): void => {
-    if (!entityType || mode.kind !== "edit" || deleting) return;
+    if (
+      !entityType ||
+      mode.kind !== "edit" ||
+      deleting ||
+      activeCapabilities?.canDelete !== true
+    )
+      return;
     const { id } = mode.entity;
     // Recoverable downstream: the delete is exported and committed, so the
     // file remains in git history.
@@ -598,6 +627,7 @@ export function App(): ReactElement {
       },
     );
   }, [
+    activeCapabilities,
     cmsBasePath,
     entityType,
     mode,

@@ -49,7 +49,7 @@ const SURFACE_PLUGINS: ReadonlyArray<{
     label: "Chat",
     visibility: "trusted",
   },
-  { id: "cms", pluginId: "cms", label: "CMS", visibility: "admin" },
+  { id: "cms", pluginId: "cms", label: "CMS", visibility: "trusted" },
   { id: "admin", pluginId: "admin", label: "Admin", visibility: "admin" },
   {
     id: "account",

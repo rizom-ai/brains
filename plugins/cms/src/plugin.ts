@@ -36,11 +36,18 @@ const entityDisplayEntrySchema: z.ZodType<
   pluralName: z.string().optional(),
 });
 
+const entityDisplaySchema = z.record(z.string(), entityDisplayEntrySchema);
+
 const cmsPluginConfigSchema: z.ZodType<CmsPluginConfig, CmsPluginConfigInput> =
   z.object({
-    entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+    entityDisplay: entityDisplaySchema.optional(),
     routePath: z.string().default("/cms"),
   });
+
+function parseEntityDisplay(value: unknown): CmsEntityDisplayMap | undefined {
+  const parsed = entityDisplaySchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
 
 /**
  * First-party CMS editor: a React app served at `routePath`, gated on the
@@ -66,7 +73,7 @@ export class CmsPlugin extends ServicePlugin<
       label: "CMS",
       url: this.config.routePath,
       priority: 40,
-      visibility: "admin",
+      visibility: "trusted",
     });
     context.interactions.register({
       id: "cms",
@@ -75,7 +82,7 @@ export class CmsPlugin extends ServicePlugin<
       href: this.config.routePath,
       kind: "admin",
       priority: 40,
-      visibility: "admin",
+      visibility: "trusted",
     });
 
     context.messaging.subscribe<
@@ -103,20 +110,22 @@ export class CmsPlugin extends ServicePlugin<
     return createEditorRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
-      resolveAuthSession: hasAdminAuthSession,
+      resolveAuthPrincipal: (request) =>
+        getActiveAuthService()?.resolveSession(request) ??
+        Promise.resolve(undefined),
+      minimumPermissionLevel: "trusted",
       getEntityDisplay: () =>
-        (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
-        (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
+        this.config.entityDisplay ??
+        parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
+      recordAuditEvent: async (event) => {
+        const authService = getActiveAuthService();
+        if (authService) await authService.recordAuditEvent(event);
+      },
     });
   }
 }
 
 export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
-}
-
-async function hasAdminAuthSession(request: Request): Promise<boolean> {
-  const principal = await getActiveAuthService()?.resolveSession(request);
-  return principal?.permissionLevel === "admin";
 }

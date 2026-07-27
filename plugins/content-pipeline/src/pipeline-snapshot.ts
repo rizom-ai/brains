@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
@@ -120,14 +120,22 @@ const generatingJobDataSchema = z.object({
   attachmentType: z.string().optional(),
 });
 
+interface PublicationPipelineSnapshotOptions {
+  visibilityScope?: ContentVisibility;
+  entityTypes?: string[];
+}
+
 /** Build the content-pipeline-owned read model for operator surfaces. */
 export async function getPublicationPipelineSnapshot(
   context: ServicePluginContext,
   providerRegistry: ProviderRegistry,
   queueManager: QueueManager,
   retryTracker: RetryTracker,
+  options: PublicationPipelineSnapshotOptions = {},
 ): Promise<PublicationPipelineSnapshot> {
-  const publishableEntityTypes = providerRegistry.getRegisteredTypes().sort();
+  const publishableEntityTypes = (
+    options.entityTypes ?? providerRegistry.getRegisteredTypes()
+  ).sort();
   const entitiesByKey = new Map<string, PublicationEntityItem>();
   const summary = {
     draft: 0,
@@ -139,7 +147,12 @@ export async function getPublicationPipelineSnapshot(
   };
 
   for (const entityType of publishableEntityTypes) {
-    const entities = await context.entityService.listEntities({ entityType });
+    const entities = await context.entityService.listEntities({
+      entityType,
+      ...(options.visibilityScope
+        ? { options: { filter: { visibilityScope: options.visibilityScope } } }
+        : {}),
+    });
     for (const entity of entities) {
       const parsedStatus = publicationStatusSchema.safeParse(
         entity.metadata["status"],
@@ -163,14 +176,19 @@ export async function getPublicationPipelineSnapshot(
   const queue: PublicationPipelineSnapshot["queue"] = [];
   for (const entityType of publishableEntityTypes) {
     const destination = providerRegistry.get(entityType).name;
+    let viewPosition = 0;
     for (const entry of await queueManager.list(entityType)) {
       const entity = entitiesByKey.get(entityKey(entityType, entry.entityId));
       if (!entity) continue;
+      // Positions are renumbered to the caller's view: a gap left by a
+      // filtered-out entry would reveal that something hidden is queued.
+      // Reorder actions translate view slots back to absolute positions.
+      viewPosition += 1;
       queue.push({
         entityId: entry.entityId,
         entityType,
         title: entity.title,
-        position: entry.position,
+        position: viewPosition,
         queuedAt: entry.queuedAt,
         destination,
         ...(entity.scheduledFor ? { scheduledFor: entity.scheduledFor } : {}),
@@ -180,7 +198,14 @@ export async function getPublicationPipelineSnapshot(
   // QueueManager ordering is per publishable type because schedulers consume
   // one destination at a time. Keep each destination contiguous so operator
   // move controls match the executable order they mutate.
-  const generating = await getGeneratingItems(context);
+  const generating = await getGeneratingItems(
+    context,
+    // "restricted" scope reads everything — leave those job views unfiltered
+    // so still-running work survives its source entity being deleted.
+    options.visibilityScope && options.visibilityScope !== "restricted"
+      ? entitiesByKey
+      : undefined,
+  );
   summary.generating = generating.length;
 
   const failures = Array.from(entitiesByKey.values())
@@ -210,6 +235,7 @@ export async function getPublicationPipelineSnapshot(
 
 async function getGeneratingItems(
   context: ServicePluginContext,
+  visibleEntities: ReadonlyMap<string, PublicationEntityItem> | undefined,
 ): Promise<PublicationJobItem[]> {
   const generating: PublicationJobItem[] = [];
 
@@ -225,6 +251,14 @@ async function getGeneratingItems(
     }
     const parsed = generatingJobDataSchema.safeParse(payload);
     if (!parsed.success) continue;
+    if (
+      visibleEntities &&
+      !visibleEntities.has(
+        entityKey(parsed.data.sourceEntityType, parsed.data.sourceEntityId),
+      )
+    ) {
+      continue;
+    }
 
     generating.push({
       id: job.id,
@@ -239,6 +273,15 @@ async function getGeneratingItems(
 
 function entityKey(entityType: string, entityId: string): string {
   return `${entityType}\0${entityId}`;
+}
+
+/**
+ * Whether a metadata status is one of the pipeline's publication statuses —
+ * the same predicate the snapshot uses to admit queue rows, shared so view
+ * consumers (e.g. reorder translation) filter identically.
+ */
+export function hasPublicationStatus(status: unknown): boolean {
+  return publicationStatusSchema.safeParse(status).success;
 }
 
 function getEntityTitle(
