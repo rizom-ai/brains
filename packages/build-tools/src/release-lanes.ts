@@ -6,6 +6,7 @@ export type ReleaseLane = "core" | "site";
 export interface ReleasePlanPackage {
   name: string;
   type?: string;
+  private?: boolean;
 }
 
 export interface WorkspacePackageLike {
@@ -28,7 +29,48 @@ export function packageMatchesReleaseLane(
   return isSiteReleasePackage(name) === (lane === "site");
 }
 
-/** Fail before versioning if dependency propagation crosses a release lane. */
+/**
+ * Every package a changeset touches lives in exactly one lane, so the lane
+ * never needs to be spelled out — it is derived from the packages themselves.
+ */
+export function inferReleaseLane(
+  releases: readonly ReleasePlanPackage[],
+): ReleaseLane {
+  if (releases.length === 0) {
+    throw new Error(
+      "Cannot infer a release lane from a changeset without packages; pass core or site explicitly",
+    );
+  }
+
+  const byLane = new Map<ReleaseLane, string[]>();
+  for (const release of releases) {
+    const lane: ReleaseLane = isSiteReleasePackage(release.name)
+      ? "site"
+      : "core";
+    byLane.set(lane, [...(byLane.get(lane) ?? []), release.name]);
+  }
+  if (byLane.size > 1) {
+    const described = (["core", "site"] as const)
+      .map((lane) => `${lane} (${(byLane.get(lane) ?? []).sort().join(", ")})`)
+      .join(" and ");
+    throw new Error(
+      `A changeset may reference packages from only one release lane, but this one mixes ${described}`,
+    );
+  }
+  const [lane] = byLane.keys();
+  if (lane === undefined) {
+    throw new Error(
+      "Cannot infer a release lane from a changeset without packages; pass core or site explicitly",
+    );
+  }
+  return lane;
+}
+
+/**
+ * Fail before versioning if dependency propagation crosses a release lane.
+ * Private packages are exempt: they can never be published, so a private
+ * dependent version-bumping in the other lane's plan is harmless bookkeeping.
+ */
 export function assertReleasePlanMatchesLane(
   lane: ReleaseLane,
   releases: readonly ReleasePlanPackage[],
@@ -37,6 +79,7 @@ export function assertReleasePlanMatchesLane(
     .filter(
       (release) =>
         release.type !== "none" &&
+        release.private !== true &&
         !packageMatchesReleaseLane(release.name, lane),
     )
     .map((release) => release.name)

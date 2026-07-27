@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import {
   assertReleasePlanMatchesLane,
+  inferReleaseLane,
   packageMatchesReleaseLane,
   type ReleaseLane,
 } from "@brains/build-tools";
@@ -17,7 +18,9 @@ const command = process.argv[2];
 const requestedLane = process.argv[3];
 
 if (command === "add") {
-  await addChangeset(parseLane(requestedLane));
+  await addChangeset(
+    requestedLane === undefined ? undefined : parseLane(requestedLane),
+  );
 } else if (command === "check") {
   if (requestedLane === undefined) {
     await validateRepository();
@@ -40,7 +43,9 @@ interface PendingChangeset {
   releases: ReturnType<typeof parseChangesetFile>["releases"];
 }
 
-async function addChangeset(lane: ReleaseLane): Promise<void> {
+async function addChangeset(
+  explicitLane: ReleaseLane | undefined,
+): Promise<void> {
   await assertNoUnscopedPendingChangesets();
   const before = new Set(await rootChangesetFiles());
   const exitCode = await run([process.execPath, "run", "changeset:raw"]);
@@ -62,6 +67,10 @@ async function addChangeset(lane: ReleaseLane): Promise<void> {
   }
 
   const sourceName = created[0]!;
+  const parsed = parseChangesetFile(
+    await readFile(join(changesetDir, sourceName), "utf8"),
+  );
+  const lane = explicitLane ?? inferReleaseLane(parsed.releases);
   const targetName = `${lane}--${sourceName}`;
   await rename(join(changesetDir, sourceName), join(changesetDir, targetName));
   await validateLane(lane);
@@ -139,6 +148,11 @@ async function validateLane(
 
   const packages = await getPackages(repositoryRoot);
   const config = await readChangesetsConfig(repositoryRoot, packages);
+  const privatePackages = new Set(
+    packages.packages
+      .filter(({ packageJson }) => packageJson.private === true)
+      .map(({ packageJson }) => packageJson.name),
+  );
   const preState = await readPreState();
   const plan = assembleReleasePlan(
     pending.map(({ id, summary, releases }) => ({ id, summary, releases })),
@@ -146,7 +160,14 @@ async function validateLane(
     config,
     preState,
   );
-  assertReleasePlanMatchesLane(lane, plan.releases);
+  assertReleasePlanMatchesLane(
+    lane,
+    plan.releases.map((release) => ({
+      name: release.name,
+      type: release.type,
+      private: privatePackages.has(release.name),
+    })),
+  );
 }
 
 async function pendingChangesets(): Promise<PendingChangeset[]> {
@@ -179,7 +200,7 @@ async function assertNoUnscopedPendingChangesets(): Promise<void> {
   });
   if (unscoped.length > 0) {
     throw new Error(
-      `Pending changesets must use a core-- or site-- queue prefix. Recreate them with \`bun changeset core\` or \`bun changeset site\`: ${unscoped.join(", ")}`,
+      `Pending changesets must use a core-- or site-- queue prefix. Recreate them with \`bun changeset\` (the lane is inferred from the packages): ${unscoped.join(", ")}`,
     );
   }
 }

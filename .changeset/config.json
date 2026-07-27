@@ -2,7 +2,18 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
   "changelog": ["@changesets/changelog-github", { "repo": "rizom-ai/brains" }],
   "commit": false,
-  "fixed": [["@brains/*", "@rizom/brain", "@rizom/ops", "@rizom/ui"]],
+  "fixed": [
+    [
+      "@brains/*",
+      "!@brains/ranger",
+      "!@brains/relay",
+      "!@brains/rover",
+      "!@brains/theme-rizom",
+      "@rizom/brain",
+      "@rizom/ops",
+      "@rizom/ui"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

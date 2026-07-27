@@ -12,6 +12,7 @@ export {
 export { runWithPreparedPublishManifests } from "./publish-workspace";
 export {
   assertReleasePlanMatchesLane,
+  inferReleaseLane,
   isSiteReleasePackage,
   packageMatchesReleaseLane,
   runWithScopedReleasePackages,

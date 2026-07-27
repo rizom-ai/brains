@@ -7,15 +7,23 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertReleasePlanMatchesLane,
+  inferReleaseLane,
   isSiteReleasePackage,
   runWithScopedReleasePackages,
 } from "../src/release-lanes";
 
 const repositoryRoot = join(import.meta.dir, "../../..");
 
-async function releasedPackagesFor(name: string): Promise<Set<string>> {
+async function releasePlanFor(
+  name: string,
+): Promise<{ name: string; private: boolean }[]> {
   const packages = await getPackages(repositoryRoot);
   const config = await readChangesetsConfig(repositoryRoot, packages);
+  const privatePackages = new Set(
+    packages.packages
+      .filter(({ packageJson }) => packageJson.private === true)
+      .map(({ packageJson }) => packageJson.name),
+  );
   const plan = assembleReleasePlan(
     [
       {
@@ -29,9 +37,22 @@ async function releasedPackagesFor(name: string): Promise<Set<string>> {
     undefined,
   );
 
+  return plan.releases
+    .filter((release) => release.type !== "none")
+    .map((release) => ({
+      name: release.name,
+      private: privatePackages.has(release.name),
+    }));
+}
+
+async function releasedPackagesFor(name: string): Promise<Set<string>> {
+  return new Set((await releasePlanFor(name)).map((release) => release.name));
+}
+
+async function publishedPackagesFor(name: string): Promise<Set<string>> {
   return new Set(
-    plan.releases
-      .filter((release) => release.type !== "none")
+    (await releasePlanFor(name))
+      .filter((release) => !release.private)
       .map((release) => release.name),
   );
 }
@@ -70,6 +91,16 @@ test("deployable site and theme inventory declares brain compatibility", async (
     const peers = manifest["publishPeerDependencies"] as
       Record<string, unknown> | undefined;
     expect(peers?.["@rizom/brain"]).toBeString();
+
+    // The external authoring contract (docs/external-site-authoring.md) has
+    // the host runtime provide preact; a site that ships it as a hard
+    // dependency installs a second preact instance next to the host's.
+    if (packageJson.name.startsWith("@rizom/site-")) {
+      const dependencies = manifest["dependencies"] as
+        Record<string, unknown> | undefined;
+      expect(peers?.["preact"]).toBeString();
+      expect(dependencies?.["preact"]).toBeUndefined();
+    }
   }
 
   const extractedCanary = packages.packages.find(
@@ -108,7 +139,7 @@ test("publishable packages do not restore their manifest mid-publish", async () 
 });
 
 test("public site and theme packages release independently", async () => {
-  const siteRelease = await releasedPackagesFor("@rizom/site-docs");
+  const siteRelease = await publishedPackagesFor("@rizom/site-docs");
   expect([...siteRelease].filter(isPublicSiteOrTheme)).toEqual([
     "@rizom/site-docs",
   ]);
@@ -120,7 +151,7 @@ test("public site and theme packages release independently", async () => {
   ).not.toThrow();
   expect(siteRelease.has("@rizom/brain")).toBe(false);
 
-  const themeRelease = await releasedPackagesFor("@rizom/theme-signal");
+  const themeRelease = await publishedPackagesFor("@rizom/theme-signal");
   expect([...themeRelease].filter(isPublicSiteOrTheme)).toEqual([
     "@rizom/theme-signal",
   ]);
@@ -131,6 +162,60 @@ test("public site and theme packages release independently", async () => {
     ),
   ).not.toThrow();
   expect(themeRelease.has("@rizom/brain")).toBe(false);
+});
+
+test("a site release with private dependents stays out of the fixed core group", async () => {
+  // @rizom/site-rizom is runtime-depended on by the private relay and ranger
+  // apps. Their version bumps are npm-invisible bookkeeping and are allowed in
+  // the site release plan — but they must not drag the fixed core group in,
+  // which is the bridge that used to turn every site fix into a full core
+  // release.
+  const plan = await releasePlanFor("@rizom/site-rizom");
+  const published = plan
+    .filter((release) => !release.private)
+    .map((release) => release.name)
+    .sort();
+  expect(published).toEqual([
+    "@rizom/site-rizom",
+    "@rizom/site-rizom-ai",
+    "@rizom/site-rizom-foundation",
+    "@rizom/site-rizom-work",
+  ]);
+  expect(() => assertReleasePlanMatchesLane("site", plan)).not.toThrow();
+
+  const packages = await getPackages(repositoryRoot);
+  const config = await readChangesetsConfig(repositoryRoot, packages);
+  const fixedPackages = new Set(config.fixed.flat());
+  expect(
+    plan.map((release) => release.name).filter((n) => fixedPackages.has(n)),
+  ).toEqual([]);
+});
+
+test("fixed release group packages never depend on the site lane", async () => {
+  // A fixed-group package with a bump-propagating dependency on a site or
+  // theme package re-arms the site→core release bridge, whether the package
+  // itself is public or not. Type-only usage belongs in devDependencies.
+  const packages = await getPackages(repositoryRoot);
+  const config = await readChangesetsConfig(repositoryRoot, packages);
+  const fixedPackages = new Set(config.fixed.flat());
+  const offenders: string[] = [];
+
+  for (const { packageJson } of packages.packages) {
+    if (!fixedPackages.has(packageJson.name)) {
+      continue;
+    }
+    const manifest = packageJson as Record<string, unknown>;
+    for (const field of ["dependencies", "peerDependencies"] as const) {
+      const deps = manifest[field] as Record<string, string> | undefined;
+      for (const dependencyName of Object.keys(deps ?? {})) {
+        if (isSiteReleasePackage(dependencyName)) {
+          offenders.push(`${packageJson.name} ${field} ${dependencyName}`);
+        }
+      }
+    }
+  }
+
+  expect(offenders).toEqual([]);
 });
 
 test("brain-only changes do not version public site or theme packages", async () => {
@@ -147,6 +232,24 @@ test("brain-only changes do not version public site or theme packages", async ()
   expect(releases.has("@rizom/ops")).toBe(true);
 });
 
+test("release lane is inferred from a changeset's own packages", () => {
+  expect(
+    inferReleaseLane([
+      { name: "@rizom/site-rizom" },
+      { name: "@rizom/theme-signal" },
+    ]),
+  ).toBe("site");
+  expect(
+    inferReleaseLane([{ name: "@brains/core" }, { name: "@rizom/brain" }]),
+  ).toBe("core");
+  expect(() => inferReleaseLane([])).toThrow(
+    "Cannot infer a release lane from a changeset without packages",
+  );
+  expect(() =>
+    inferReleaseLane([{ name: "@rizom/brain" }, { name: "@rizom/site-rizom" }]),
+  ).toThrow("core (@rizom/brain) and site (@rizom/site-rizom)");
+});
+
 test("release lane guard rejects core/site plan crossover", () => {
   expect(() =>
     assertReleasePlanMatchesLane("core", [
@@ -161,6 +264,14 @@ test("release lane guard rejects core/site plan crossover", () => {
       { name: "@rizom/brain" },
     ]),
   ).toThrow("@brains/core, @rizom/brain");
+  // Private packages can never be published, so their version bumps are
+  // allowed to ride along in either lane's plan.
+  expect(() =>
+    assertReleasePlanMatchesLane("site", [
+      { name: "@rizom/site-rizom" },
+      { name: "@brains/relay", private: true },
+    ]),
+  ).not.toThrow();
 });
 
 test("publish scope restores opposite-lane manifests after failure", async () => {

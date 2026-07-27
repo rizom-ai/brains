@@ -5,11 +5,15 @@ or theme package, and a site release cannot publish core runtime packages.
 
 ## Choose a release lane
 
-- `bun changeset core` — `@brains/*`, `@rizom/brain`, `@rizom/ops`,
-  `@rizom/ui`, and other non-site packages.
-- `bun changeset site` — public `@rizom/site*` and `@rizom/theme*` packages.
+Run `bun changeset`. The wrapper infers the lane from the packages the
+changeset touches and adds a `core--` or `site--` filename prefix:
 
-The wrapper adds a `core--` or `site--` filename prefix. Do not run the raw
+- core — `@brains/*`, `@rizom/brain`, `@rizom/ops`, `@rizom/ui`, and other
+  non-site packages.
+- site — public `@rizom/site*` and `@rizom/theme*` packages.
+
+`bun changeset core` / `bun changeset site` still work as an explicit override
+(required for a changeset that lists no packages). Do not run the raw
 Changesets CLI to create a changeset. A changeset may reference packages from
 only one lane; dependency propagation must also stay in that lane.
 

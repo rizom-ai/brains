@@ -1435,11 +1435,11 @@
         "@brains/content-formatters": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@rizom/site": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@rizom/site": "workspace:*",
         "@rizom/site-sections": "workspace:*",
         "eslint": "^10.5.0",
         "preact": "^10.27.2",
@@ -1965,8 +1965,7 @@
       "name": "@rizom/site-docs",
       "version": "0.2.0-alpha.233",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.148",
-        "preact": "^10.27.2",
+        "@rizom/site": "0.2.0-alpha.230",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
@@ -1974,6 +1973,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },
@@ -2030,9 +2030,8 @@
       "name": "@rizom/site-rizom",
       "version": "0.2.0-alpha.233",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.227",
+        "@rizom/site": "0.2.0-alpha.230",
         "clsx": "^2.1.0",
-        "preact": "^10.27.2",
         "tailwind-merge": "^3.6.0",
       },
       "devDependencies": {
@@ -2048,6 +2047,7 @@
         "@rizom/ui": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "rolldown": "^1.0.0",
         "rolldown-plugin-dts": "^0.27.4",
         "typescript": "^7.0.2",
@@ -2057,10 +2057,9 @@
       "name": "@rizom/site-rizom-ai",
       "version": "0.2.0-alpha.233",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.227",
-        "@rizom/site-rizom": "0.2.0-alpha.227",
-        "@rizom/site-sections": "0.2.0-alpha.227",
-        "preact": "^10.27.2",
+        "@rizom/site": "0.2.0-alpha.230",
+        "@rizom/site-rizom": "0.2.0-alpha.233",
+        "@rizom/site-sections": "0.2.0-alpha.230",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
@@ -2068,6 +2067,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },
@@ -2075,9 +2075,8 @@
       "name": "@rizom/site-rizom-foundation",
       "version": "0.2.0-alpha.233",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.148",
-        "@rizom/site-rizom": "0.2.0-alpha.148",
-        "preact": "^10.27.2",
+        "@rizom/site": "0.2.0-alpha.230",
+        "@rizom/site-rizom": "0.2.0-alpha.233",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
@@ -2085,6 +2084,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },
@@ -2092,9 +2092,8 @@
       "name": "@rizom/site-rizom-work",
       "version": "0.2.0-alpha.233",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.148",
-        "@rizom/site-rizom": "0.2.0-alpha.148",
-        "preact": "^10.27.2",
+        "@rizom/site": "0.2.0-alpha.230",
+        "@rizom/site-rizom": "0.2.0-alpha.233",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
@@ -2102,6 +2101,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },

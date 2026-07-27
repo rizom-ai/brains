@@ -112,6 +112,26 @@ are only the first layer. The decisions below extend the plan to the other two.
    pilot contract already assumes nothing about the monorepo, so the move is
    mechanical once layer 2 exists.
 
+### The fixed core group must be unreachable from the site lane
+
+The mechanism that made every site fix ship a full core release was dependency
+propagation into the fixed changeset group: private brain apps (`rover`,
+`relay`, `ranger`) and `@brains/theme-rizom` runtime-depend on site/theme
+packages with `workspace:*` ranges, so a site patch bumped them, and the fixed
+constraint then bumped — and published — `@rizom/brain`, `@rizom/ops`, and
+`@rizom/ui`. Settled rules:
+
+- Packages that bump-propagate from the site lane are excluded from the fixed
+  group (they are all private; their versions are npm-invisible bookkeeping and
+  may drift). A drift-guard test asserts no fixed-group package declares a
+  runtime or peer dependency on a site-lane package.
+- Type-only usage of `@rizom/site` in core (site-composition, app) lives in
+  `devDependencies`, which changesets records as no-op releases.
+- The lane guard exempts private packages: a private dependent version-bumping
+  inside the other lane's version commit publishes nothing and is allowed.
+  Publishable crossings remain a hard failure, validated against the assembled
+  release plan (including pre-mode state) in CI and in both release workflows.
+
 ### First-party sites dogfood the public path
 
 The privileged monorepo path is why the public path shipped broken metadata
