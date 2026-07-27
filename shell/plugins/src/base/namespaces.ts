@@ -26,6 +26,7 @@ import type {
   IIdentityNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
+  IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
   IPluginsNamespace,
@@ -64,22 +65,29 @@ export function createProfileKindsNamespace(
   };
 }
 
-export function createChannelsNamespace(
-  shell: IShell,
-  pluginId: string,
-): IChannelsNamespace {
+export function createChannelsNamespace(shell: IShell): IChannelsNamespace {
   const registry = shell.getChannelRegistry();
   return {
+    listDescriptors: () => registry.listDescriptors(),
+    getDescriptor: (channelType) => registry.getDescriptor(channelType),
+    getDeliveryProvider: (channelType) =>
+      registry.getDeliveryProvider(channelType),
+  };
+}
+
+export function createMessageInterfaceChannelsNamespace(
+  shell: IShell,
+  pluginId: string,
+): IMessageInterfaceChannelsNamespace {
+  const registry = shell.getChannelRegistry();
+  return {
+    ...createChannelsNamespace(shell),
     registerDescriptor: (descriptor): void => {
       registry.registerDescriptor(pluginId, descriptor);
     },
     registerDeliveryProvider: (provider): void => {
       registry.registerDeliveryProvider(pluginId, provider);
     },
-    listDescriptors: () => registry.listDescriptors(),
-    getDescriptor: (channelType) => registry.getDescriptor(channelType),
-    getDeliveryProvider: (channelType) =>
-      registry.getDeliveryProvider(channelType),
   };
 }
 

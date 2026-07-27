@@ -20,6 +20,7 @@ import {
   type MessageResponse,
   type InterfacePluginContext,
   type JobProgressEvent,
+  type MessageInterfacePluginContext,
   type MessageSender,
   type PluginFactory,
   type ServicePluginContext,
@@ -138,6 +139,25 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
   }
 }
 
+export class ExampleOutboundOnlyInterfacePlugin extends MessageInterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  constructor() {
+    super("example-outbound-interface", packageJson, {}, z.object({}));
+  }
+
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    context.channels.registerDescriptor({
+      type: "example-outbound",
+      displayName: "Example outbound channel",
+      subjectLabel: "Recipient",
+    });
+  }
+}
+
 export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<
   Record<string, never>,
   Record<string, never>
@@ -148,7 +168,7 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<
     super("example-message-interface", packageJson, {}, z.object({}));
   }
 
-  protected sendMessageToChannel({
+  protected override sendMessageToChannel({
     channelId,
     message,
   }: {

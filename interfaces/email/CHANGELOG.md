@@ -1,4 +1,6 @@
-# @brains/email-resend
+# @brains/email
+
+History before the outbound-interface restructure was released as `@brains/email-resend`.
 
 ## 0.2.0-alpha.235
 

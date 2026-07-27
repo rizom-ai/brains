@@ -1,43 +1,48 @@
 import { describe, expect, it, mock } from "bun:test";
 import { EMAIL_SEND, type SendEmailPayload } from "@brains/email-contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import { EmailResendPlugin, type EmailSendResult } from "../src";
+import { EmailInterface, type EmailSendResult } from "../src";
 
-describe("EmailResendPlugin", () => {
-  it("registers an Email delivery provider only when fully configured", async () => {
-    const configuredHarness = createPluginHarness<EmailResendPlugin>();
-    configuredHarness
-      .getMockShell()
-      .getChannelRegistry()
-      .registerDescriptor("notifications", {
+describe("EmailInterface", () => {
+  it("owns Email metadata and registers a provider only with a configured transport", async () => {
+    const configuredHarness = createPluginHarness<EmailInterface>();
+    const configured = new EmailInterface({
+      transport: "resend",
+      apiKey: "resend-key",
+      from: "Rover <setup@example.com>",
+    });
+    await configuredHarness.installPlugin(configured);
+    await configuredHarness.finalizeRegistration();
+    expect(configured.type).toBe("interface");
+    expect(
+      configuredHarness.getMockShell().getChannelRegistry().listDescriptors(),
+    ).toEqual([
+      {
         type: "email",
         displayName: "Email",
         subjectLabel: "Email address",
-      });
-    await configuredHarness.installPlugin(
-      new EmailResendPlugin({
-        apiKey: "resend-key",
-        from: "Rover <setup@example.com>",
-      }),
-    );
-    await configuredHarness.finalizeRegistration();
+        subjectPattern: {
+          source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+          flags: "i",
+        },
+        manualDelivery: true,
+      },
+    ]);
     const provider = configuredHarness
       .getMockShell()
       .getChannelRegistry()
       .getDeliveryProvider("email");
     expect(await provider?.isAvailable()).toBe(true);
 
-    const disabledHarness = createPluginHarness<EmailResendPlugin>();
-    disabledHarness
-      .getMockShell()
-      .getChannelRegistry()
-      .registerDescriptor("notifications", {
-        type: "email",
-        displayName: "Email",
-        subjectLabel: "Email address",
-      });
-    await disabledHarness.installPlugin(new EmailResendPlugin());
+    const disabledHarness = createPluginHarness<EmailInterface>();
+    await disabledHarness.installPlugin(new EmailInterface());
     await disabledHarness.finalizeRegistration();
+    expect(
+      disabledHarness
+        .getMockShell()
+        .getChannelRegistry()
+        .getDescriptor("email"),
+    ).toBeDefined();
     expect(
       disabledHarness
         .getMockShell()
@@ -51,11 +56,12 @@ describe("EmailResendPlugin", () => {
       async (_input: string | URL | Request) =>
         new Response(JSON.stringify({ id: "resend_123" }), { status: 200 }),
     );
-    const harness = createPluginHarness<EmailResendPlugin>();
+    const harness = createPluginHarness<EmailInterface>();
 
     await harness.installPlugin(
-      new EmailResendPlugin(
+      new EmailInterface(
         {
+          transport: "resend",
           apiKey: "resend-key",
           from: "Rover <setup@example.com>",
         },
@@ -99,11 +105,12 @@ describe("EmailResendPlugin", () => {
           status: 500,
         }),
     );
-    const harness = createPluginHarness<EmailResendPlugin>();
+    const harness = createPluginHarness<EmailInterface>();
 
     await harness.installPlugin(
-      new EmailResendPlugin(
+      new EmailInterface(
         {
+          transport: "resend",
           apiKey: "resend-key",
           from: "Rover <setup@example.com>",
         },

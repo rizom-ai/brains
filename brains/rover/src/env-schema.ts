@@ -4,7 +4,7 @@ import { discordEnvSchema } from "@brains/discord/env-schema";
 import { atprotoEnvSchema } from "@brains/atproto/env-schema";
 import { socialMediaEnvSchema } from "@brains/social-media/env-schema";
 import { newsletterEnvSchema } from "@brains/newsletter/env-schema";
-import { emailResendEnvSchema } from "@brains/email-resend/env-schema";
+import { emailEnvSchema } from "@brains/email/env-schema";
 import { analyticsEnvSchema } from "@brains/analytics/env-schema";
 import { stockPhotoEnvSchema } from "@brains/stock-photo/env-schema";
 import type { EnvVarDecl } from "@brains/utils/env-schema";
@@ -20,7 +20,7 @@ export const roverEnvSchema: EnvVarDecl[] = [
   ...atprotoEnvSchema,
   ...socialMediaEnvSchema,
   ...newsletterEnvSchema,
-  ...emailResendEnvSchema,
+  ...emailEnvSchema,
   ...analyticsEnvSchema,
   ...stockPhotoEnvSchema,
 ];

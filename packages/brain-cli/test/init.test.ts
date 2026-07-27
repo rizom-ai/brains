@@ -186,7 +186,8 @@ describe("brain init", () => {
       expect(yaml).toContain("setupEmail: ${SETUP_EMAIL_TO}");
       expect(yaml).toContain("notifications:");
       expect(yaml).toContain("address: ${SETUP_EMAIL_TO}");
-      expect(yaml).toContain("email-resend:");
+      expect(yaml).toContain("email:");
+      expect(yaml).toContain("transport: resend");
       expect(yaml).toContain("apiKey: ${SETUP_EMAIL_API_KEY}");
       expect(yaml).toContain("from: ${SETUP_EMAIL_FROM}");
     });

@@ -4,27 +4,32 @@ import {
   type SendEmailPayload,
   type SendEmailResult,
 } from "@brains/email-contracts";
-import type { ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  MessageInterfacePlugin,
+  type MessageInterfacePluginContext,
+} from "@brains/plugins";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
-interface EmailResendConfig {
+export interface EmailConfig {
+  transport: "resend";
   apiKey?: string | undefined;
   from?: string | undefined;
 }
 
-type EmailResendConfigInput = EmailResendConfig;
+export interface EmailConfigInput {
+  transport?: "resend" | undefined;
+  apiKey?: string | undefined;
+  from?: string | undefined;
+}
 
 interface ResendEmailResponse {
   id?: string | undefined;
 }
 
-const emailResendConfigSchema: z.ZodType<
-  EmailResendConfig,
-  EmailResendConfigInput
-> = z.object({
+const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
+  transport: z.literal("resend").default("resend"),
   apiKey: z.string().min(1).optional(),
   from: z.string().min(1).optional(),
 });
@@ -36,30 +41,43 @@ const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
 
 export type EmailSendResult = SendEmailResult;
 
-export interface EmailResendPluginDependencies {
+export interface EmailInterfaceDependencies {
   fetchImpl?: FetchLike;
 }
 
-export class EmailResendPlugin extends ServicePlugin<
-  EmailResendConfig,
-  EmailResendConfigInput
+/** Outbound-first Email message interface with Resend as its initial transport. */
+export class EmailInterface extends MessageInterfacePlugin<
+  EmailConfig,
+  EmailConfigInput
 > {
   private readonly fetchImpl: FetchLike;
 
   constructor(
-    config: EmailResendConfigInput = {},
-    dependencies: EmailResendPluginDependencies = {},
+    config: EmailConfigInput = {},
+    dependencies: EmailInterfaceDependencies = {},
   ) {
-    super("email-resend", packageJson, config, emailResendConfigSchema);
+    super("email", packageJson, config, emailConfigSchema);
     this.fetchImpl = dependencies.fetchImpl ?? fetch;
   }
 
   protected override async onRegister(
-    context: ServicePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
+    await super.onRegister(context);
+    context.channels.registerDescriptor({
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+      subjectPattern: {
+        source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+        flags: "i",
+      },
+      manualDelivery: true,
+    });
+
     if (!this.config.apiKey || !this.config.from) {
       this.logger.warn(
-        "Email Resend adapter is disabled because apiKey or from is missing",
+        "Email interface transport is disabled because apiKey or from is missing",
       );
       return;
     }
@@ -156,8 +174,6 @@ export class EmailResendPlugin extends ServicePlugin<
   }
 }
 
-export function emailResendPlugin(
-  config: EmailResendConfigInput = {},
-): EmailResendPlugin {
-  return new EmailResendPlugin(config);
+export function emailInterface(config: EmailConfigInput = {}): EmailInterface {
+  return new EmailInterface(config);
 }

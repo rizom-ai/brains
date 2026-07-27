@@ -12,6 +12,7 @@ import {
   type ApprovalResolution,
   type ChatContext,
   type InterfacePluginContext,
+  type MessageInterfacePluginContext,
   type PermissionLookupContext,
   type ToolApprovalCard,
   type UserPermissionLevel,
@@ -113,7 +114,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
   }
 
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
     context.channels.registerDescriptor({

@@ -100,7 +100,6 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/site-content`     | Site section content generation                                  |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
-| `plugins/email-resend`     | Generic email delivery adapter for Resend                        |
 | `plugins/notifications`    | Notification routing for transactional + administrative messages |
 
 Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
@@ -111,6 +110,7 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                     |
 | `interfaces/discord`   | Discord chat bot                                                                    |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                   |
 | `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                               |
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                             |
 | `interfaces/webserver` | In-process Hono server: site pages, dashboard/CMS routes, API routes, and `/health` |

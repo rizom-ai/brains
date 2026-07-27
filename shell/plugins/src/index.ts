@@ -101,6 +101,7 @@ export type {
   IInsightsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
+  IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
 export type {
@@ -111,6 +112,7 @@ export type {
 } from "@brains/runtime-state";
 export type {
   InterfacePluginContext,
+  MessageInterfacePluginContext,
   IPermissionsNamespace,
   IDaemonsNamespace,
   IToolsNamespace,
@@ -122,7 +124,10 @@ export type {
 
 export { createServicePluginContext } from "./service/context";
 export { createBasePluginContext } from "./base/context";
-export { createInterfacePluginContext } from "./interface/context";
+export {
+  createInterfacePluginContext,
+  createMessageInterfacePluginContext,
+} from "./interface/context";
 
 // ============================================================================
 // Essential Plugin Interfaces & Types

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
+import { InterfacePlugin } from "../src/interface/interface-plugin";
+import type {
+  InterfacePluginContext,
+  MessageInterfacePluginContext,
+} from "../src/interface/context";
+import { MessageInterfacePlugin } from "../src/message-interface/message-interface-plugin";
 import { ServicePlugin } from "../src/service/service-plugin";
 import { createPluginHarness } from "../src/test/harness";
 import type { ServicePluginContext } from "../src/service/context";
@@ -17,8 +23,60 @@ function emailProvider(): ChannelDeliveryProvider {
 }
 
 describe("ChannelRegistry", () => {
-  it("exposes plugin-scoped registration through the base context", async () => {
-    class ChannelPlugin extends ServicePlugin<
+  it("does not expose channel registration to service plugins", async () => {
+    class NonInterfacePlugin extends ServicePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
+      constructor() {
+        super(
+          "not-an-interface",
+          { name: "not-an-interface", version: "1.0.0" },
+          {},
+          z.object({}),
+        );
+      }
+
+      protected override async onRegister(
+        context: ServicePluginContext,
+      ): Promise<void> {
+        expect("registerDescriptor" in context.channels).toBe(false);
+        expect("registerDeliveryProvider" in context.channels).toBe(false);
+      }
+    }
+
+    const harness = createPluginHarness<NonInterfacePlugin>();
+    await harness.installPlugin(new NonInterfacePlugin());
+  });
+
+  it("does not expose channel registration to non-message interfaces", async () => {
+    class NonMessageInterface extends InterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
+      constructor() {
+        super(
+          "not-a-message-interface",
+          { name: "not-a-message-interface", version: "1.0.0" },
+          {},
+          z.object({}),
+        );
+      }
+
+      protected override async onRegister(
+        context: InterfacePluginContext,
+      ): Promise<void> {
+        expect("registerDescriptor" in context.channels).toBe(false);
+        expect("registerDeliveryProvider" in context.channels).toBe(false);
+      }
+    }
+
+    const harness = createPluginHarness<NonMessageInterface>();
+    await harness.installPlugin(new NonMessageInterface());
+  });
+
+  it("exposes plugin-scoped channel registration only to message interfaces", async () => {
+    class ChannelInterface extends MessageInterfacePlugin<
       Record<string, never>,
       Record<string, never>
     > {
@@ -32,7 +90,7 @@ describe("ChannelRegistry", () => {
       }
 
       protected override async onRegister(
-        context: ServicePluginContext,
+        context: MessageInterfacePluginContext,
       ): Promise<void> {
         context.channels.registerDescriptor({
           type: "email",
@@ -43,8 +101,8 @@ describe("ChannelRegistry", () => {
       }
     }
 
-    const harness = createPluginHarness<ChannelPlugin>();
-    await harness.installPlugin(new ChannelPlugin());
+    const harness = createPluginHarness<ChannelInterface>();
+    await harness.installPlugin(new ChannelInterface());
     await harness.finalizeRegistration();
 
     expect(
@@ -60,14 +118,14 @@ describe("ChannelRegistry", () => {
 
   it("finalizes serializable descriptors separately from operational providers", async () => {
     const registry = new ChannelRegistry();
-    registry.registerDescriptor("notifications", {
+    registry.registerDescriptor("email", {
       type: "email",
       displayName: "Email",
       subjectLabel: "Email address",
       subjectPattern: { source: "^[^@]+@[^@]+$", flags: "i" },
       manualDelivery: true,
     });
-    registry.registerDeliveryProvider("email-resend", emailProvider());
+    registry.registerDeliveryProvider("email", emailProvider());
 
     registry.finalize();
 
@@ -109,7 +167,7 @@ describe("ChannelRegistry", () => {
     ]);
   });
 
-  it("fails finalization deterministically for duplicate owners or orphan providers", () => {
+  it("fails finalization deterministically for duplicate, orphan, or split owners", () => {
     const duplicate = new ChannelRegistry();
     duplicate.registerDescriptor("first", {
       type: "email",
@@ -126,9 +184,20 @@ describe("ChannelRegistry", () => {
     );
 
     const orphan = new ChannelRegistry();
-    orphan.registerDeliveryProvider("email-resend", emailProvider());
+    orphan.registerDeliveryProvider("email", emailProvider());
     expect(() => orphan.finalize()).toThrow(
       'Delivery provider for channel "email" has no descriptor',
+    );
+
+    const splitOwner = new ChannelRegistry();
+    splitOwner.registerDescriptor("email", {
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+    });
+    splitOwner.registerDeliveryProvider("transport-plugin", emailProvider());
+    expect(() => splitOwner.finalize()).toThrow(
+      'Delivery provider for channel "email" must be registered by descriptor owner "email", not "transport-plugin"',
     );
   });
 
@@ -142,13 +211,13 @@ describe("ChannelRegistry", () => {
       }),
     ).toThrow();
 
-    registry.registerDescriptor("notifications", {
+    registry.registerDescriptor("email", {
       type: "email",
       displayName: "Email",
       subjectLabel: "Email address",
     });
-    registry.registerDeliveryProvider("email-resend", emailProvider());
-    registry.unregisterPlugin("email-resend");
+    registry.registerDeliveryProvider("email", emailProvider());
+    registry.unregisterPlugin("email");
     registry.finalize();
 
     expect(registry.getDeliveryProvider("email")).toBeUndefined();

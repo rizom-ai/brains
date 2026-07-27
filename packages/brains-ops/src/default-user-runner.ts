@@ -67,7 +67,8 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   }
 
   if (user.setup?.delivery === "email") {
-    lines.push("  email-resend:");
+    lines.push("  email:");
+    lines.push("    transport: resend");
     lines.push("    apiKey: ${SETUP_EMAIL_API_KEY}");
     lines.push("    from: ${SETUP_EMAIL_FROM}");
   }

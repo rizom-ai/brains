@@ -14,7 +14,7 @@
         "playbook",
         "playbooks",
         "rover-onboarding",
-        "email-resend",
+        "email",
         "dashboard",
         "dashboard-root",
         "admin",
@@ -63,7 +63,7 @@
         "analytics",
         "dashboard",
         "dashboard-root",
-        "email-resend"
+        "email"
       ],
       "site": {
         "entityDisplay": {
@@ -232,7 +232,7 @@
             "playbook",
             "playbooks",
             "rover-onboarding",
-            "email-resend",
+            "email",
             "cms",
             "dashboard-root",
             "admin",
@@ -322,9 +322,11 @@
               }
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "dashboard",
@@ -661,7 +663,7 @@
             "playbook",
             "playbooks",
             "rover-onboarding",
-            "email-resend",
+            "email",
             "cms",
             "admin",
             "mcp",
@@ -771,9 +773,11 @@
               }
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "dashboard",
@@ -1302,7 +1306,7 @@
             "playbook",
             "playbooks",
             "rover-onboarding",
-            "email-resend",
+            "email",
             "cms",
             "admin",
             "mcp",
@@ -1419,9 +1423,11 @@
               }
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "dashboard",
@@ -2015,7 +2021,7 @@
             "playbook",
             "playbooks",
             "rover-onboarding",
-            "email-resend",
+            "email",
             "cms",
             "admin",
             "mcp",
@@ -2132,9 +2138,11 @@
               }
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "dashboard",
@@ -2704,7 +2712,7 @@
         "auth-service",
         "account",
         "notifications",
-        "email-resend",
+        "email",
         "cms",
         "dashboard",
         "admin",
@@ -2895,7 +2903,7 @@
             "auth-service",
             "account",
             "notifications",
-            "email-resend",
+            "email",
             "cms",
             "dashboard",
             "admin",
@@ -3060,9 +3068,11 @@
               "config": {}
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "cms",
@@ -3273,7 +3283,7 @@
             "auth-service",
             "account",
             "notifications",
-            "email-resend",
+            "email",
             "cms",
             "dashboard",
             "admin",
@@ -3463,9 +3473,11 @@
               "config": {}
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "cms",
@@ -4041,7 +4053,7 @@
             "auth-service",
             "account",
             "notifications",
-            "email-resend",
+            "email",
             "cms",
             "dashboard",
             "admin",
@@ -4243,9 +4255,11 @@
               "config": {}
             },
             {
-              "id": "email-resend",
-              "packageName": "@brains/email-resend",
-              "config": {}
+              "id": "email",
+              "packageName": "@brains/email",
+              "config": {
+                "transport": "resend"
+              }
             },
             {
               "id": "cms",

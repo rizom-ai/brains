@@ -3,6 +3,7 @@ import {
   getToolStatusKey,
   type AgentResponse,
   type InterfacePluginContext,
+  type MessageInterfacePluginContext,
   type MessageInterfaceOutput,
   type RuntimeUploadStore,
   type ToolActivityEvent,
@@ -190,7 +191,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   }
 
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
     if (this.config.adapters.discord) {

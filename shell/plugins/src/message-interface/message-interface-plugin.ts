@@ -1,12 +1,19 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
-import type { InterfacePluginContext } from "../interface/context";
+import {
+  createMessageInterfacePluginContext,
+  type MessageInterfacePluginContext,
+} from "../interface/context";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { AgentResponse, StructuredChatCard } from "../contracts/agent";
 import type {
   PermissionLookupContext,
   UserPermissionLevel,
 } from "@brains/templates";
-import type { BaseJobTrackingInfo } from "../interfaces";
+import type {
+  BaseJobTrackingInfo,
+  IShell,
+  PluginRegistrationContext,
+} from "../interfaces";
 import {
   setupProgressHandler,
   formatCompletionMessage,
@@ -116,15 +123,26 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
  * - Track jobs for progress routing
  * - Buffer completion messages during input processing
  *
- * Subclasses must implement:
- * - sendMessageToChannel(): Send a message to a specific channel
- * - onProgressUpdate(): Handle progress updates (optional override)
+ * Conversational subclasses implement sendMessageToChannel() to deliver replies.
+ * Outbound-only interfaces may instead expose registered delivery providers.
+ * Subclasses may override onProgressUpdate() to handle progress updates.
  */
 export abstract class MessageInterfacePlugin<
   TConfig,
   TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
 > extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
+  protected override createContext(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): MessageInterfacePluginContext {
+    return createMessageInterfacePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+  }
+
   /**
    * Check if a file is a supported text file for upload
    */
@@ -289,12 +307,13 @@ export abstract class MessageInterfacePlugin<
   );
 
   /**
-   * Send a message to a specific channel
-   * Must be implemented by each interface
+   * Send an agent message to a specific channel.
+   * Inbound/conversational interfaces override this. Outbound-only interfaces
+   * may rely exclusively on their registered delivery provider.
    */
-  protected abstract sendMessageToChannel(
-    request: SendMessageToChannelRequest,
-  ): void;
+  protected sendMessageToChannel(_request: SendMessageToChannelRequest): void {
+    return;
+  }
 
   /**
    * Send a message and return its ID for later editing
@@ -419,7 +438,7 @@ export abstract class MessageInterfacePlugin<
    * Lifecycle hook - sets up progress subscription
    */
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
 

@@ -1,6 +1,6 @@
 import {
   MessageInterfacePlugin,
-  type InterfacePluginContext,
+  type MessageInterfacePluginContext,
   PluginError,
   buildApprovalResultView,
   formatApprovalRequestText,
@@ -64,7 +64,7 @@ export class CLIInterface extends MessageInterfacePlugin<
    * Register handlers and other initialization when plugin is registered
    */
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     // Call parent to setup progress subscription
     await super.onRegister(context);

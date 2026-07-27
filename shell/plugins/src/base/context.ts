@@ -57,6 +57,7 @@ export type {
   IIdentityNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
+  IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
   IPermissionsNamespace,
   IPluginsNamespace,
@@ -278,7 +279,7 @@ export function createBasePluginContext(
 
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
-    channels: createChannelsNamespace(shell, pluginId),
+    channels: createChannelsNamespace(shell),
 
     appInfo: getAppInfo,
     judge: (input) => shell.judge(input),

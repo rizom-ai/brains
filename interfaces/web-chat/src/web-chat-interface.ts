@@ -9,7 +9,7 @@ import {
   MessageInterfacePlugin,
   type AgentResponse,
   type EditMessageRequest,
-  type InterfacePluginContext,
+  type MessageInterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
   type MessageArtifactEntity,
@@ -146,7 +146,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
 

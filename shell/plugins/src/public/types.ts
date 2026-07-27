@@ -35,6 +35,17 @@ import type {
   MessageWithPayload,
 } from "../contracts/messaging";
 import type { IEntityAINamespace } from "../entity/context";
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "../channel-registry";
+export type {
+  ChannelDeliveryInput,
+  ChannelDeliveryProvider,
+  ChannelDeliveryResult,
+  ChannelDescriptor,
+  ChannelSubjectPattern,
+} from "../channel-registry";
 
 export type PluginConfig = Record<string, unknown>;
 export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
@@ -403,6 +414,17 @@ export interface IRuntimeUploadsNamespace {
   scoped(options: RuntimeUploadScopeOptions): RuntimeUploadStore;
 }
 
+export interface IChannelsNamespace {
+  listDescriptors(): ChannelDescriptor[];
+  getDescriptor(channelType: string): ChannelDescriptor | undefined;
+  getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
+}
+
+export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
+  registerDescriptor(descriptor: ChannelDescriptor): void;
+  registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -424,6 +446,7 @@ export interface BasePluginContext {
   readonly entityService: IEntityService;
   readonly semantic: ISemanticNamespace;
   readonly identity: IIdentityNamespace;
+  readonly channels: IChannelsNamespace;
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;
   readonly eval: IEvalNamespace;
@@ -477,4 +500,8 @@ export interface EntityPluginContext extends BasePluginContext {
 
 export interface InterfacePluginContext extends BasePluginContext {
   readonly agent: AgentNamespace;
+}
+
+export interface MessageInterfacePluginContext extends InterfacePluginContext {
+  readonly channels: IMessageInterfaceChannelsNamespace;
 }

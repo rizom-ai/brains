@@ -118,6 +118,7 @@ const nodes = [
   { id:'discord',   label:'Discord',   sub:'interfaces/discord',   desc:'Discord chat bot',                x:740, y:28, w:100, h:H, layer:'interfaces' },
   { id:'webserver', label:'Webserver', sub:'interfaces/webserver', desc:'Static site + preview server',     x:850, y:28, w:100, h:H, layer:'interfaces' },
   { id:'a2a',       label:'A2A',       sub:'interfaces/a2a',       desc:'Agent-to-Agent protocol + Agent Card', x:960, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'email',     label:'Email',     sub:'interfaces/email',     desc:'Outbound-first Email interface with configurable Resend transport.', x:1070, y:28, w:100, h:H, layer:'interfaces' },
 
   // Entities (rows 1-3)
   { id:'blog',         label:'Blog',         sub:'entities/blog',         desc:'Essays + articles. EntityPlugin with generation handler.',    x:36,  y:110, w:W, h:H, layer:'entities' },
@@ -154,7 +155,6 @@ const nodes = [
   { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
   { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Compound package bundling the newsletter entity with the Buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
   { id:'notifications', label:'Notifications', sub:'plugins/notifications', desc:'Notification plugin surface for operator/runtime delivery flows.', x:1044, y:304, w:W, h:H, layer:'plugins' },
-  { id:'email-resend', label:'Email Resend', sub:'plugins/email-resend',     desc:'Resend-backed email delivery service plugin, used by hosted onboarding/setup-email flows.', x:1188, y:304, w:W, h:H, layer:'plugins' },
 
   // Shell services (rows 5-6)
   { id:'core',         label:'Core',         sub:'shell/core',               desc:'Shell init, plugin lifecycle, entity bootstrap.',   x:36,  y:386, w:W, h:H, layer:'shell' },
@@ -232,8 +232,6 @@ const connections = [
   { from:'newsletter-p', to:'plugin-fw', type:'dep' },
   { from:'rizom-eco', to:'plugin-fw', type:'dep' },
   { from:'notifications', to:'plugin-fw', type:'dep' },
-  { from:'email-resend', to:'plugin-fw', type:'dep' },
-  { from:'email-resend', to:'email-contracts', type:'dep' },
 
   // Composite + config wiring
   { from:'cms', to:'cms-config', type:'dep' },
@@ -247,6 +245,8 @@ const connections = [
   { from:'mcp-if', to:'plugin-fw', type:'dep' },
   { from:'discord', to:'plugin-fw', type:'dep' },
   { from:'a2a', to:'plugin-fw', type:'dep' },
+  { from:'email', to:'plugin-fw', type:'dep' },
+  { from:'email', to:'email-contracts', type:'dep' },
   { from:'webserver', to:'plugin-fw', type:'dep' },
 
   // MCP bridges → shared

@@ -14,7 +14,7 @@ import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
 import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
-import { emailResendPlugin } from "@brains/email-resend";
+import { emailInterface } from "@brains/email";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -87,7 +87,7 @@ const core = [
   "playbook",
   "playbooks",
   "rover-onboarding",
-  "email-resend",
+  "email",
   "cms",
   "dashboard-root",
   "admin",
@@ -153,7 +153,7 @@ const roverBrain: BrainDefinition = defineBrain({
     "analytics",
     "dashboard",
     "dashboard-root",
-    "email-resend",
+    "email",
   ],
 
   agentInstructions,
@@ -170,7 +170,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
     ["rover-onboarding", roverOnboardingPlugin, {}],
-    ["email-resend", emailResendPlugin, undefined],
+    ["email", emailInterface, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
     ["admin", adminPlugin, undefined],

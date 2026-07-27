@@ -153,7 +153,6 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                              |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
 | `plugins/directory-sync`   | File sync + git operations                                         |
-| `plugins/email-resend`     | Generic email delivery adapter for Resend                          |
 | `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability       |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                          |
@@ -171,6 +170,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                            |
 | `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
 | `interfaces/discord`   | Discord bot interface                                                                       |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                           |
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
 | `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and `/health` |

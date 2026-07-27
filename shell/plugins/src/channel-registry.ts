@@ -212,6 +212,17 @@ export class ChannelRegistry implements IChannelRegistry {
         }
         continue;
       }
+      const descriptorOwner =
+        this.descriptorRegistrations.get(type)?.[0]?.pluginId;
+      const providerOwner = registrations[0]?.pluginId;
+      if (descriptorOwner !== providerOwner) {
+        if (failOnInvalid) {
+          throw new Error(
+            `Delivery provider for channel "${type}" must be registered by descriptor owner "${descriptorOwner ?? "unknown"}", not "${providerOwner ?? "unknown"}"`,
+          );
+        }
+        continue;
+      }
       const provider = registrations[0]?.provider;
       if (provider) providers.set(type, provider);
     }

@@ -60,6 +60,13 @@ export abstract class InterfacePlugin<
    */
   protected jobTrackingTtlMs: number = DEFAULT_JOB_TRACKING_TTL_MS;
 
+  protected createContext(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): InterfacePluginContext {
+    return createInterfacePluginContext(shell, this.id, registrationContext);
+  }
+
   /**
    * Register the plugin with shell - creates InterfacePluginContext internally
    */
@@ -68,11 +75,7 @@ export abstract class InterfacePlugin<
     registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     // Create typed context from shell
-    const context = createInterfacePluginContext(
-      shell,
-      this.id,
-      registrationContext,
-    );
+    const context = this.createContext(shell, registrationContext);
     this.context = context;
 
     // Initialize daemon before registration

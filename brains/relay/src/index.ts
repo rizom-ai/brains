@@ -12,7 +12,7 @@ import { WebChatInterface } from "@brains/web-chat";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
 import { notificationsPlugin } from "@brains/notifications";
-import { emailResendPlugin } from "@brains/email-resend";
+import { emailInterface } from "@brains/email";
 
 import { join } from "path";
 import { cmsPlugin } from "@brains/cms";
@@ -79,7 +79,7 @@ const core = [
   "auth-service",
   "account",
   "notifications",
-  "email-resend",
+  "email",
   "cms",
   "dashboard",
   "admin",
@@ -162,7 +162,7 @@ const relayBrain: BrainDefinition = defineBrain({
     ["auth-service", authServicePlugin, undefined],
     ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
-    ["email-resend", emailResendPlugin, undefined],
+    ["email", emailInterface, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],

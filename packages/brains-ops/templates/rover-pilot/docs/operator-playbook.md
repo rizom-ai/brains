@@ -192,7 +192,7 @@ Use this for browser/CMS-first users who should receive their own first-passkey 
    - `bunx brains-ops onboard . <handle>`
    - or `bunx brains-ops reconcile-cohort . <cohort>`
 
-4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` and `email-resend` config.
+4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` and `email` interface config.
 5. Ask the user to complete passkey setup from the email link, then use:
    - Dashboard: `https://<handle>.rizom.ai/`
    - CMS: `https://<handle>.rizom.ai/cms`

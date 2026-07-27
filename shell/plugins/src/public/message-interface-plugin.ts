@@ -1,5 +1,8 @@
 import { MessageInterfacePlugin as RuntimeMessageInterfacePlugin } from "../message-interface/message-interface-plugin";
-import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
+import type {
+  InterfacePluginContext as RuntimeInterfacePluginContext,
+  MessageInterfacePluginContext as RuntimeMessageInterfacePluginContext,
+} from "../interface/context";
 import type {
   EditMessageRequest,
   SendMessageToChannelRequest,
@@ -17,13 +20,14 @@ import { InterfacePlugin } from "./interface-plugin";
 import type {
   InterfacePluginContext,
   JobProgressEvent,
+  MessageInterfacePluginContext,
   MessageJobTrackingInfo,
   Resource,
   Tool,
 } from "./types";
 
 interface MessageInterfacePluginHooks {
-  onRegister(context: InterfacePluginContext): Promise<void>;
+  onRegister(context: MessageInterfacePluginContext): Promise<void>;
   onReady(context: InterfacePluginContext): Promise<void>;
   onShutdown(): Promise<void>;
   getTools(): Promise<Tool[]>;
@@ -58,7 +62,7 @@ class MessageInterfacePluginDelegate<
   }
 
   protected override async onRegister(
-    context: RuntimeInterfacePluginContext,
+    context: RuntimeMessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
     await this.hooks.onRegister(context);
@@ -202,12 +206,13 @@ export abstract class MessageInterfacePlugin<
     return this.messageDelegate.register(shell, context);
   }
 
-  protected abstract sendMessageToChannel(
-    request: SendMessageToChannelRequest,
-  ): void;
+  /** Inbound/conversational interfaces override this; outbound-only interfaces need not. */
+  protected sendMessageToChannel(_request: SendMessageToChannelRequest): void {
+    return;
+  }
 
   protected override async onRegister(
-    _context: InterfacePluginContext,
+    _context: MessageInterfacePluginContext,
   ): Promise<void> {}
   protected override async onReady(
     _context: InterfacePluginContext,

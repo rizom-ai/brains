@@ -80,7 +80,7 @@
         "@brains/directory-sync": "workspace:*",
         "@brains/discord": "workspace:*",
         "@brains/doc": "workspace:*",
-        "@brains/email-resend": "workspace:*",
+        "@brains/email": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -133,7 +133,7 @@
         "@brains/discord": "workspace:*",
         "@brains/doc": "workspace:*",
         "@brains/document-plugin": "workspace:*",
-        "@brains/email-resend": "workspace:*",
+        "@brains/email": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -1011,8 +1011,8 @@
         "typescript": "^7.0.2",
       },
     },
-    "plugins/email-resend": {
-      "name": "@brains/email-resend",
+    "interfaces/email": {
+      "name": "@brains/email",
       "version": "0.2.0-alpha.230",
       "dependencies": {
         "@brains/email-contracts": "workspace:*",
@@ -2230,7 +2230,7 @@
 
     "@brains/email-contracts": ["@brains/email-contracts@workspace:shared/email-contracts"],
 
-    "@brains/email-resend": ["@brains/email-resend@workspace:plugins/email-resend"],
+    "@brains/email": ["@brains/email@workspace:interfaces/email"],
 
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 

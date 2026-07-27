@@ -4,6 +4,8 @@ import type {
   IPermissionsNamespace as IBasePermissionsNamespace,
 } from "../base/context";
 import { createBasePluginContext } from "../base/context";
+import { createMessageInterfaceChannelsNamespace } from "../base/namespaces";
+import type { IMessageInterfaceChannelsNamespace } from "../base/context-types";
 import type {
   IShell,
   IMCPTransport,
@@ -187,6 +189,11 @@ export interface InterfacePluginContext extends BasePluginContext {
   readonly plugins: IPluginsNamespace;
 }
 
+/** Context reserved for interfaces implementing the message-channel contract. */
+export interface MessageInterfacePluginContext extends InterfacePluginContext {
+  readonly channels: IMessageInterfaceChannelsNamespace;
+}
+
 /**
  * Create an InterfacePluginContext for a plugin
  */
@@ -292,5 +299,16 @@ export function createInterfacePluginContext(
       has: (candidatePluginId: string): boolean =>
         shell.hasPlugin(candidatePluginId),
     },
+  };
+}
+
+export function createMessageInterfacePluginContext(
+  shell: IShell,
+  pluginId: string,
+  registrationContext?: PluginRegistrationContext,
+): MessageInterfacePluginContext {
+  return {
+    ...createInterfacePluginContext(shell, pluginId, registrationContext),
+    channels: createMessageInterfaceChannelsNamespace(shell, pluginId),
   };
 }

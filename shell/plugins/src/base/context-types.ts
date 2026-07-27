@@ -100,13 +100,17 @@ export interface IProfileKindsNamespace {
   getSelectedDefinition(): ProfileKindDefinition | undefined;
 }
 
-/** App-scoped channel metadata and delivery providers. */
+/** Read-only app-scoped channel metadata and delivery providers. */
 export interface IChannelsNamespace {
-  registerDescriptor(descriptor: ChannelDescriptor): void;
-  registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
   listDescriptors(): ChannelDescriptor[];
   getDescriptor(channelType: string): ChannelDescriptor | undefined;
   getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
+}
+
+/** Channel registration capability exposed only to message-interface plugins. */
+export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
+  registerDescriptor(descriptor: ChannelDescriptor): void;
+  registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
 }
 
 /**

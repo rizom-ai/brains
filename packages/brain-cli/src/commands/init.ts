@@ -239,7 +239,8 @@ function writeBrainYaml(
     defaultRecipient:
       type: email
       address: \${SETUP_EMAIL_TO}
-  email-resend:
+  email:
+    transport: resend
     apiKey: \${SETUP_EMAIL_API_KEY}
     from: \${SETUP_EMAIL_FROM}
 `

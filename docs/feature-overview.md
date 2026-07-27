@@ -40,7 +40,7 @@ Core is the posture-independent foundation. It provides the knowledge system, AI
 | `directory-sync`   | Bidirectional synchronization between the entity database and `brain-data/`, with optional Git pull, commit, history, and push workflows |
 | `auth-service`     | First-run passkey registration, browser sessions, and OAuth authorization for compatible MCP clients                                     |
 | `notifications`    | A shared notification layer for setup and operational messages                                                                           |
-| `email-resend`     | Transactional email delivery through Resend when configured                                                                              |
+| `email`            | Outbound Email message interface with transactional Resend delivery when configured                                                      |
 | `mcp`              | MCP tools, resources, prompts, and resource templates over HTTP or stdio                                                                 |
 | `webserver`        | Shared HTTP host for browser routes, APIs, MCP, A2A, static output, and `/health`                                                        |
 | `web-chat`         | Operator browser chat with sessions, uploads, confirmations, sources, attachments, action cards, and job progress                        |
