@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { mockFetch, type FetchHandler } from "@brains/test-utils";
 import type { SocialPost } from "../src/schemas/social-post";
 
 const samplePost: SocialPost = {
@@ -112,8 +113,27 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
   describe("with mock provider", () => {
     let providerHarness: PluginTestHarness<SocialMediaPlugin>;
+    let originalFetch: typeof globalThis.fetch;
+    let requestedUrls: string[];
+    let respond: FetchHandler;
 
     beforeEach(async () => {
+      originalFetch = globalThis.fetch;
+      requestedUrls = [];
+      // `LinkedInClient` binds `deps.fetch ?? globalThis.fetch` in its
+      // constructor, and the plugin builds the provider without deps. The mock
+      // therefore has to be installed before the plugin, or the client captures
+      // the real transport and the publish path reaches api.linkedin.com — which
+      // is what previously made this suite time out under load.
+      respond = async (): Promise<Partial<Response>> => ({
+        ok: false,
+        status: 500,
+        text: async (): Promise<string> => "unstubbed request",
+      });
+      mockFetch(async (url, options) => {
+        requestedUrls.push(url);
+        return respond(url, options);
+      });
       providerHarness = createPluginHarness<SocialMediaPlugin>({
         dataDir: "/tmp/test-social-provider",
       });
@@ -134,7 +154,55 @@ describe("SocialMediaPlugin - Execute Handler", () => {
       );
     });
 
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
     it("should report success on successful publish", async () => {
+      respond = async (url): Promise<Partial<Response>> =>
+        url.endsWith("/v2/userinfo")
+          ? {
+              ok: true,
+              status: 200,
+              json: async (): Promise<unknown> => ({ sub: "member-1" }),
+            }
+          : {
+              ok: true,
+              status: 201,
+              json: async (): Promise<unknown> => ({}),
+              headers: new Headers({ "X-RestLi-Id": "urn:li:share:12345" }),
+            };
+      const entityService = providerHarness.getEntityService();
+      await entityService.createEntity({ entity: samplePost });
+
+      await providerHarness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        visibility: "public",
+        entityId: "post-1",
+      });
+
+      expect(receivedMessages).toHaveLength(1);
+      expect(receivedMessages[0]?.type).toBe("publish:report:success");
+      expect(requestedUrls).toEqual([
+        "https://api.linkedin.com/v2/userinfo",
+        "https://api.linkedin.com/v2/ugcPosts",
+      ]);
+    });
+
+    it("should report failure when the LinkedIn API rejects the post", async () => {
+      respond = async (url): Promise<Partial<Response>> =>
+        url.endsWith("/v2/userinfo")
+          ? {
+              ok: true,
+              status: 200,
+              json: async (): Promise<unknown> => ({ sub: "member-1" }),
+            }
+          : {
+              ok: false,
+              status: 401,
+              text: async (): Promise<string> =>
+                JSON.stringify({ message: "Invalid access token" }),
+            };
       const entityService = providerHarness.getEntityService();
       await entityService.createEntity({ entity: samplePost });
 
