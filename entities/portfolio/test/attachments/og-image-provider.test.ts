@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AttachmentRegistry } from "@brains/plugins";
 import { PortfolioPlugin } from "../../src/plugin";
-import { ProjectOgImageAttachmentProvider } from "../../src/attachments/og-image-provider";
+import { createProjectOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Project } from "../../src/schemas/project";
 
 const sampleProject: Project = {
@@ -62,7 +62,7 @@ describe("Project OG image attachment provider", () => {
     await harness.installPlugin(new PortfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
-    const provider = new ProjectOgImageAttachmentProvider(
+    const provider = createProjectOgImageProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

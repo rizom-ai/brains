@@ -9,7 +9,6 @@
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
-    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/style-guide": "workspace:*",

@@ -31,7 +31,7 @@ import {
   type DeckCarouselAttachmentProviderDeps,
 } from "./attachments/carousel-provider";
 import { DECK_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
-import { DeckOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { createDeckOgImageProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
@@ -236,7 +236,7 @@ export class DecksPlugin extends EntityPlugin<
     this.unregisterOgImageAttachmentProvider = context.attachments.register(
       "deck",
       DECK_OG_IMAGE_ATTACHMENT_TYPE,
-      new DeckOgImageAttachmentProvider(context),
+      createDeckOgImageProvider(context),
     );
   }
 

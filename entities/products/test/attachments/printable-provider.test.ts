@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AttachmentRegistry } from "@brains/plugins";
 import { ProductsPlugin } from "../../src/plugin";
-import { ProductPrintableAttachmentProvider } from "../../src/attachments/printable-provider";
+import { createProductPrintableProvider } from "../../src/attachments/printable-provider";
 import type { Product } from "../../src/schemas/product";
 
 const sampleProduct: Product = {
@@ -85,7 +85,7 @@ describe("Product printable attachment provider", () => {
     await harness.installPlugin(new ProductsPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProduct });
 
-    const provider = new ProductPrintableAttachmentProvider(
+    const provider = createProductPrintableProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

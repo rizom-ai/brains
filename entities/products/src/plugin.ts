@@ -26,9 +26,9 @@ import {
 } from "./templates/product-detail";
 import type { ProductsConfig, ProductsConfigInput } from "./config";
 import { productsConfigSchema } from "./config";
-import { ProductPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { createProductPrintableProvider } from "./attachments/printable-provider";
 import { PRODUCT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
-import { ProductOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { createProductOgImageProvider } from "./attachments/og-image-provider";
 import { PRODUCT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
@@ -94,12 +94,12 @@ export class ProductsPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "product",
       PRODUCT_PRINTABLE_ATTACHMENT_TYPE,
-      new ProductPrintableAttachmentProvider(context),
+      createProductPrintableProvider(context),
     );
     this.unregisterOgImageAttachmentProvider = context.attachments.register(
       "product",
       PRODUCT_OG_IMAGE_ATTACHMENT_TYPE,
-      new ProductOgImageAttachmentProvider(context),
+      createProductOgImageProvider(context),
     );
 
     // Second entity type: products-overview (singleton)

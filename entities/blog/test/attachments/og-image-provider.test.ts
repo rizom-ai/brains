@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createMockEntityService } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
-import { BlogOgImageAttachmentProvider } from "../../src/attachments/og-image-provider";
+import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "../../src/attachments/og-image-template";
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -67,7 +67,7 @@ Body`,
 
 describe("Blog OG image attachment provider", () => {
   it("resolves a post into a PNG OG image attachment", async () => {
-    const provider = new BlogOgImageAttachmentProvider(createContext(), {
+    const provider = createBlogOgImageProvider(createContext(), {
       screenshotPng: async (_url, viewport): Promise<Buffer> => {
         expect(viewport).toEqual({ width: 1200, height: 630 });
         return TINY_PNG;
@@ -89,7 +89,7 @@ describe("Blog OG image attachment provider", () => {
   });
 
   it("returns undefined for non-OG requests", async () => {
-    const provider = new BlogOgImageAttachmentProvider(createContext(), {
+    const provider = createBlogOgImageProvider(createContext(), {
       screenshotPng: async (): Promise<Buffer> => TINY_PNG,
     });
 

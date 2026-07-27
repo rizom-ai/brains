@@ -26,9 +26,9 @@ import {
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { createBlogAtprotoProjection } from "./atproto-projection";
-import { BlogPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { createBlogPrintableProvider } from "./attachments/printable-provider";
 import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
-import { BlogOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { createBlogOgImageProvider } from "./attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
@@ -91,12 +91,12 @@ export class BlogPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "post",
       BLOG_PRINTABLE_ATTACHMENT_TYPE,
-      new BlogPrintableAttachmentProvider(context),
+      createBlogPrintableProvider(context),
     );
     this.unregisterOgImageAttachmentProvider = context.attachments.register(
       "post",
       BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-      new BlogOgImageAttachmentProvider(context),
+      createBlogOgImageProvider(context),
     );
     this.deferPublishAssetRegistration(context);
     this.unregisterAtprotoProjection =

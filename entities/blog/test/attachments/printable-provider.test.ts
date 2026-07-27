@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AttachmentRegistry } from "@brains/plugins";
 import { BlogPlugin } from "../../src/plugin";
-import { BlogPrintableAttachmentProvider } from "../../src/attachments/printable-provider";
+import { createBlogPrintableProvider } from "../../src/attachments/printable-provider";
 import type { BlogPost } from "../../src/schemas/blog-post";
 
 const samplePost: BlogPost = {
@@ -51,7 +51,7 @@ describe("Blog printable attachment provider", () => {
     await harness.installPlugin(new BlogPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
-    const provider = new BlogPrintableAttachmentProvider({
+    const provider = createBlogPrintableProvider({
       entityService: harness.getEntityService(),
       themeCSS: "",
       identity: harness.getEntityContext("test").identity,
@@ -83,7 +83,7 @@ describe("Blog printable attachment provider", () => {
     await harness.installPlugin(new BlogPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
-    const provider = new BlogPrintableAttachmentProvider(
+    const provider = createBlogPrintableProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: ":root { --print-test-token: #123456; }",

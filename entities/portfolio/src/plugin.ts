@@ -54,9 +54,9 @@ import {
 } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
 import { createProjectAtprotoProjection } from "./atproto-projection";
-import { ProjectPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { createProjectPrintableProvider } from "./attachments/printable-provider";
 import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
-import { ProjectOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { createProjectOgImageProvider } from "./attachments/og-image-provider";
 import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
@@ -195,12 +195,12 @@ export class PortfolioPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "project",
       PROJECT_PRINTABLE_ATTACHMENT_TYPE,
-      new ProjectPrintableAttachmentProvider(context),
+      createProjectPrintableProvider(context),
     );
     this.unregisterOgImageAttachmentProvider = context.attachments.register(
       "project",
       PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
-      new ProjectOgImageAttachmentProvider(context),
+      createProjectOgImageProvider(context),
     );
     this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);
