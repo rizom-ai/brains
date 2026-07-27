@@ -1,5 +1,12 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.235
+
+### Patch Changes
+
+- Updated dependencies [[`31e732a`](https://github.com/rizom-ai/brains/commit/31e732a79a394a4e385ce7b25015c3daa8bf0afd)]:
+  - @brains/contracts@0.2.0-alpha.235
+
 ## 0.2.0-alpha.234
 
 ### Patch Changes

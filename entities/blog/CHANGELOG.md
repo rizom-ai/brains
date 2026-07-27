@@ -1,5 +1,21 @@
 # @brains/blog
 
+## 0.2.0-alpha.235
+
+### Patch Changes
+
+- [`31e732a`](https://github.com/rizom-ai/brains/commit/31e732a79a394a4e385ce7b25015c3daa8bf0afd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render site builds into isolated generation directories, validate a complete artifact manifest, and publish successful generations through an active-output symlink. Preserve the previous site on renderer, validation, and pointer-switch failures. Generate RSS and SEO files in staging so post-build events do not mutate committed generations. Snapshot binary app `public/` files during preparation within a bounded size budget and account for them explicitly in the artifact manifest. Stamp the one-time migration backup at migration time and retire it through the stale sweep once a committed generation exists to roll back to. Cancel superseded and shutdown builds across preparation, image work, rendering, CSS, assets, and SEO without interrupting an admitted output commit. Preserve each environment's configured public URL in staged RSS, robots, and sitemap output. Hash every committed artifact, derive sitemap timestamps from the prepared snapshot, and remove stale uncommitted generations safely. Keep the schema-complete build manifest out of the public site while continuing to serve legitimate dot-prefixed paths such as `/.well-known/` discovery and verification assets. Fail a build whose staged artifacts could not be written, so a swallowed RSS failure can no longer publish a generation with no feed, and reject a deployed production build that has no configured site URL instead of publishing sitemap, robots, and feed links against a placeholder domain. Use the runtime's explicit localhost URL for locally served builds so production-output verification still works without configuring a public domain.
+
+- Updated dependencies [[`31e732a`](https://github.com/rizom-ai/brains/commit/31e732a79a394a4e385ce7b25015c3daa8bf0afd)]:
+  - @brains/contracts@0.2.0-alpha.235
+  - @brains/media-page-composer@0.2.0-alpha.235
+  - @brains/plugins@0.2.0-alpha.235
+  - @brains/style-guide@0.2.0-alpha.235
+  - @brains/atproto-contracts@0.2.0-alpha.235
+  - @brains/media-renderer@0.2.0-alpha.235
+  - @brains/ui-library@0.2.0-alpha.235
+  - @brains/utils@0.2.0-alpha.235
+
 ## 0.2.0-alpha.234
 
 ### Patch Changes

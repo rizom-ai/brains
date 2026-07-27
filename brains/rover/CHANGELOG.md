@@ -1,5 +1,58 @@
 # @brains/rover
 
+## 0.2.0-alpha.235
+
+### Patch Changes
+
+- Updated dependencies [[`d34d122`](https://github.com/rizom-ai/brains/commit/d34d1229fe5ca4e0d1c8434cad4f42b2dfdb4885), [`05f476a`](https://github.com/rizom-ai/brains/commit/05f476a89286baa55e734c9a2f9b7e0808741191), [`31e732a`](https://github.com/rizom-ai/brains/commit/31e732a79a394a4e385ce7b25015c3daa8bf0afd)]:
+  - @brains/site-builder-plugin@0.2.0-alpha.235
+  - @brains/blog@0.2.0-alpha.235
+  - @brains/webserver@0.2.0-alpha.235
+  - @brains/agent-discovery@0.2.0-alpha.235
+  - @brains/decks@0.2.0-alpha.235
+  - @brains/document-plugin@0.2.0-alpha.235
+  - @brains/image-plugin@0.2.0-alpha.235
+  - @brains/link@0.2.0-alpha.235
+  - @brains/note@0.2.0-alpha.235
+  - @brains/portfolio@0.2.0-alpha.235
+  - @brains/products@0.2.0-alpha.235
+  - @brains/social-media@0.2.0-alpha.235
+  - @brains/web-chat@0.2.0-alpha.235
+  - @brains/cms@0.2.0-alpha.235
+  - @brains/content-pipeline@0.2.0-alpha.235
+  - @brains/directory-sync@0.2.0-alpha.235
+  - @brains/newsletter@0.2.0-alpha.235
+  - @brains/playbooks@0.2.0-alpha.235
+  - @brains/rover-onboarding@0.2.0-alpha.235
+  - @brains/auth-service@0.2.0-alpha.235
+  - @brains/site-default@0.2.0-alpha.235
+  - @brains/assessment@0.2.0-alpha.235
+  - @brains/series@0.2.0-alpha.235
+  - @brains/topics@0.2.0-alpha.235
+  - @brains/site-content@0.2.0-alpha.235
+  - @brains/doc@0.2.0-alpha.235
+  - @brains/prompt@0.2.0-alpha.235
+  - @brains/site-info@0.2.0-alpha.235
+  - @brains/style-guide@0.2.0-alpha.235
+  - @brains/chat@0.2.0-alpha.235
+  - @brains/discord@0.2.0-alpha.235
+  - @brains/admin@0.2.0-alpha.235
+  - @brains/analytics@0.2.0-alpha.235
+  - @brains/atproto@0.2.0-alpha.235
+  - @brains/atproto-registry@0.2.0-alpha.235
+  - @brains/dashboard@0.2.0-alpha.235
+  - @brains/email-resend@0.2.0-alpha.235
+  - @brains/notifications@0.2.0-alpha.235
+  - @brains/stock-photo@0.2.0-alpha.235
+  - @brains/a2a@0.2.0-alpha.235
+  - @brains/mcp@0.2.0-alpha.235
+  - @brains/app@0.2.0-alpha.235
+  - @brains/rizom-ecosystem@0.2.0-alpha.235
+  - @brains/wishlist@0.2.0-alpha.235
+  - @brains/obsidian-vault@0.2.0-alpha.235
+  - @brains/profile@0.2.0-alpha.235
+  - @rizom/theme-default@0.2.0-alpha.233
+
 ## 0.2.0-alpha.234
 
 ### Patch Changes

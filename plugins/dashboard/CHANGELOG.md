@@ -1,5 +1,15 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.235
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/auth-service@0.2.0-alpha.235
+  - @brains/plugins@0.2.0-alpha.235
+  - @brains/console-theme@0.2.0-alpha.235
+  - @brains/utils@0.2.0-alpha.235
+
 ## 0.2.0-alpha.234
 
 ### Patch Changes
