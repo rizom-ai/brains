@@ -83,7 +83,6 @@ export interface SiteBuildOutputFs {
   rename(oldPath: string, newPath: string): Promise<void>;
   readlink(path: string): Promise<string>;
   lstat(path: string): Promise<SiteBuildFileType>;
-  utimes(path: string, atime: Date, mtime: Date): Promise<void>;
 }
 
 /** Default adapter delegating to `fs.promises`. */
@@ -97,7 +96,6 @@ export const nodeSiteBuildOutputFs: SiteBuildOutputFs = {
   rename: (oldPath, newPath) => nodeFs.rename(oldPath, newPath),
   readlink: (path) => nodeFs.readlink(path),
   lstat: (path) => nodeFs.lstat(path),
-  utimes: (path, atime, mtime) => nodeFs.utimes(path, atime, mtime),
 };
 
 /** Filesystem-backed generation staging and active-output publication. */
@@ -253,27 +251,56 @@ async function publishGeneration(
     }
   }
 
-  // One-time migration for legacy directory outputs. This sequence is
-  // rollback-capable but not an atomic serving cutover; subsequent symlink
-  // replacements use one atomic rename on the same filesystem.
-  const legacyBackup = join(target.environmentDir, `legacy-${target.buildId}`);
-  await fs.rm(legacyBackup, { recursive: true, force: true });
-  await fs.rename(target.activeOutputDir, legacyBackup);
+  // One-time migration from the pre-transactional layout, where builds wrote
+  // directly into the active path. `rename` cannot replace a directory, so the
+  // old one moves aside before the pointer can become a symlink. This sequence
+  // is rollback-capable but not an atomic serving cutover; every later publish
+  // replaces one symlink with another in a single rename.
+  //
+  // The directory aside is scratch, not a retained backup: it exists only until
+  // the new generation verifies, then it goes. Nothing about migration outlives
+  // the build that performed it, which is why neither generation retention nor
+  // the stale sweep needs to know the concept exists.
+  const displaced = join(target.environmentDir, `.migrating-${target.buildId}`);
+  await fs.rm(displaced, { recursive: true, force: true });
+  await fs.rename(target.activeOutputDir, displaced);
   try {
-    // `rename` preserves a directory's own mtime, so the backup would arrive
-    // carrying the timestamp of the last pre-upgrade build — on a dormant site
-    // that is already past the stale threshold, and the sweep would discard the
-    // only rollback target this first build has. Stamp it at migration time so
-    // age is measured from when the backup was taken.
-    const migratedAt = new Date();
-    await fs.utimes(legacyBackup, migratedAt, migratedAt);
     await fs.rename(temporaryLink, target.activeOutputDir);
     await verifyActiveGeneration(fs, target);
   } catch (error) {
     await fs.rm(target.activeOutputDir, { recursive: true, force: true });
-    await fs.rename(legacyBackup, target.activeOutputDir);
+    await fs.rename(displaced, target.activeOutputDir);
     await fs.rm(temporaryLink, { force: true });
     throw error;
+  }
+  await preserveLegacyImageCache(fs, displaced, target.activeOutputDir);
+  await fs.rm(displaced, { recursive: true, force: true });
+}
+
+/**
+ * Rescue a sharp cache that older layouts kept inside the output directory.
+ *
+ * `sharedImagesDir` defaults outside the site directory, but main's `clean()`
+ * deliberately skips an `images/` entry within it, so deployments exist where
+ * the derivatives live there. They are the only content in the displaced
+ * directory a rebuild cannot cheaply reproduce.
+ */
+async function preserveLegacyImageCache(
+  fs: SiteBuildOutputFs,
+  displaced: string,
+  activeOutputDir: string,
+): Promise<void> {
+  const legacyImages = join(displaced, "images");
+  const sharedImages = join(dirname(activeOutputDir), "images");
+  try {
+    await fs.access(legacyImages);
+  } catch {
+    return;
+  }
+  try {
+    await fs.access(sharedImages);
+  } catch {
+    await fs.rename(legacyImages, sharedImages);
   }
 }
 
@@ -325,21 +352,10 @@ async function removeStaleUncommittedGenerations(
   const staleDirectories: string[] = [];
 
   for (const entry of entries) {
-    // Migration backups age out here alongside abandoned generations: once the
-    // threshold has passed, a later build has long since produced a real
-    // generation to roll back to instead.
     if (!entry.isDirectory()) continue;
     const path = join(environmentDir, entry.name);
     if (resolve(path) === resolve(currentGenerationDir)) continue;
-    // A dereferenced active pointer can leave a migration backup carrying the
-    // old generation manifest. Its reserved name still makes it a backup, so
-    // let the age policy retire it instead of preserving it forever.
-    if (
-      !isMigrationBackup(entry.name) &&
-      (await hasArtifactManifest(fs, path))
-    ) {
-      continue;
-    }
+    if (await hasArtifactManifest(fs, path)) continue;
     const stat = await fs.stat(path);
     if (now - stat.mtimeMs < staleGenerationAgeMs) continue;
     staleDirectories.push(path);
@@ -375,11 +391,7 @@ async function pruneGenerations(
   const entries = await fs.readdir(environmentDir, { withFileTypes: true });
   const candidates = await Promise.all(
     entries
-      // Migration backups are excluded by name rather than by lacking a
-      // manifest: a backup taken from a dereferenced symlink carries the
-      // generation's manifest with it, so manifest-presence alone cannot tell
-      // the two apart. Their lifetime belongs to the age-based sweep.
-      .filter((entry) => entry.isDirectory() && !isMigrationBackup(entry.name))
+      .filter((entry) => entry.isDirectory())
       .map(async (entry) => {
         const path = join(environmentDir, entry.name);
         try {
@@ -411,11 +423,6 @@ async function pruneGenerations(
         fs.rm(directory.path, { recursive: true, force: true }),
       ),
   );
-}
-
-/** Backups of a pre-transactional output directory, named `legacy-<buildId>`. */
-function isMigrationBackup(entryName: string): boolean {
-  return entryName.startsWith("legacy-");
 }
 
 function assertSafeBuildId(buildId: string): void {

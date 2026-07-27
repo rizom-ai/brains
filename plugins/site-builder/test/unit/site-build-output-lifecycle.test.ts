@@ -130,12 +130,35 @@ describe("TransactionalSiteBuildOutput", () => {
     );
     expect(persistedManifest).toEqual(result.manifest);
     expect(persistedManifest.warnings).toEqual(["fixture warning"]);
+    // The pre-upgrade directory is moved aside only for the duration of the
+    // swap. Once the new generation is verified it is gone, so nothing about
+    // migration outlives the build that performed it.
+    expect(await fs.readdir(target.environmentDir)).toEqual(["build-one"]);
+  });
+
+  it("preserves a pre-upgrade image cache while migrating", async () => {
+    // `sharedImagesDir` defaults outside the site directory, but older layouts
+    // kept the sharp cache at `<output>/images` — main's clean() skips exactly
+    // that path. It is the only content here that a rebuild cannot cheaply
+    // reproduce, so it moves to the shared cache instead of being discarded.
+    await fs.mkdir(join(outputDir, "images"), { recursive: true });
+    await fs.writeFile(join(outputDir, "index.html"), "legacy output");
+    await fs.writeFile(join(outputDir, "images", "hero.webp"), "derivative");
+
+    const preparedBuild = createPreparedBuild("build-images");
+    const target = await lifecycle.begin({
+      outputDir,
+      environment: "preview",
+      buildId: preparedBuild.buildId,
+    });
+    await writeCompleteGeneration(target, "new output");
+    await lifecycle.commit({ target, preparedBuild, warnings: [] });
+
+    expect((await fs.lstat(outputDir)).isSymbolicLink()).toBe(true);
     expect(
-      await fs.readFile(
-        join(target.environmentDir, "legacy-build-one", "index.html"),
-        "utf8",
-      ),
-    ).toBe("legacy output");
+      await fs.readFile(join(testDir, "images", "hero.webp"), "utf8"),
+    ).toBe("derivative");
+    expect(await fs.readdir(target.environmentDir)).toEqual(["build-images"]);
   });
 
   it("atomically replaces an existing active symlink and retains the previous generation", async () => {
@@ -222,23 +245,16 @@ describe("TransactionalSiteBuildOutput", () => {
     const environmentDir = join(testDir, ".site-builds", "preview");
     const staleDir = join(environmentDir, "stale-build");
     const recentDir = join(environmentDir, "recent-build");
-    const legacyDir = join(environmentDir, "legacy-old-build");
     const committedDir = join(environmentDir, "committed-build");
     await Promise.all(
-      [staleDir, recentDir, legacyDir, committedDir].map((directory) =>
+      [staleDir, recentDir, committedDir].map((directory) =>
         fs.mkdir(directory, { recursive: true }),
       ),
     );
-    await Promise.all([
-      fs.writeFile(join(committedDir, ".site-build-manifest.json"), "{}"),
-      // A dereferenced active pointer can leave a migration backup carrying its
-      // old manifest. Its `legacy-` name, not manifest absence, identifies it.
-      fs.writeFile(join(legacyDir, ".site-build-manifest.json"), "{}"),
-    ]);
+    await fs.writeFile(join(committedDir, ".site-build-manifest.json"), "{}");
     const oldDate = new Date(Date.now() - 10_000);
     await Promise.all([
       fs.utimes(staleDir, oldDate, oldDate),
-      fs.utimes(legacyDir, oldDate, oldDate),
       fs.utimes(committedDir, oldDate, oldDate),
     ]);
     lifecycle = new TransactionalSiteBuildOutput(
@@ -258,93 +274,7 @@ describe("TransactionalSiteBuildOutput", () => {
       expect.arrayContaining(["committed-build", "new-build", "recent-build"]),
     );
     expect(remaining).not.toContain("stale-build");
-    // A migration backup ages out through the same sweep once the threshold
-    // passes: by then a committed generation exists as the rollback target.
-    expect(remaining).not.toContain("legacy-old-build");
     await lifecycle.abort(target);
-  });
-
-  it("stamps a migration backup with the migration time, not the old output's mtime", async () => {
-    // `rename` preserves the directory's own mtime, so an untouched legacy
-    // output would arrive already older than the stale threshold and be swept
-    // on the very next build — discarding the first build's only rollback
-    // target.
-    await fs.mkdir(outputDir, { recursive: true });
-    await fs.writeFile(join(outputDir, "index.html"), "legacy output");
-    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000);
-    await fs.utimes(outputDir, eightDaysAgo, eightDaysAgo);
-
-    const preparedBuild = createPreparedBuild("build-stamped");
-    const target = await lifecycle.begin({
-      outputDir,
-      environment: "preview",
-      buildId: preparedBuild.buildId,
-    });
-    await writeCompleteGeneration(target, "new output");
-    await lifecycle.commit({ target, preparedBuild, warnings: [] });
-
-    const backupStat = await fs.stat(
-      join(target.environmentDir, "legacy-build-stamped"),
-    );
-    expect(Date.now() - backupStat.mtimeMs).toBeLessThan(60_000);
-  });
-
-  it("keeps migration backups out of the generation retention budget", async () => {
-    // A backup taken from a dereferenced symlink carries the generation's
-    // manifest with it, so manifest-presence alone cannot exclude it.
-    const retainingLifecycle = new TransactionalSiteBuildOutput(
-      createSilentLogger(),
-      1,
-      60 * 60 * 1_000,
-    );
-    const firstBuild = createPreparedBuild("build-one");
-    const firstTarget = await retainingLifecycle.begin({
-      outputDir,
-      environment: "preview",
-      buildId: firstBuild.buildId,
-    });
-    await writeCompleteGeneration(firstTarget, "first output");
-    await retainingLifecycle.commit({
-      target: firstTarget,
-      preparedBuild: firstBuild,
-      warnings: [],
-    });
-
-    const backupWithManifest = join(
-      firstTarget.environmentDir,
-      "legacy-dereferenced",
-    );
-    await fs.mkdir(backupWithManifest, { recursive: true });
-    await fs.writeFile(
-      join(backupWithManifest, ".site-build-manifest.json"),
-      "{}",
-    );
-
-    const secondBuild = createPreparedBuild("build-two");
-    const secondTarget = await retainingLifecycle.begin({
-      outputDir,
-      environment: "preview",
-      buildId: secondBuild.buildId,
-    });
-    await writeCompleteGeneration(secondTarget, "second output");
-    await retainingLifecycle.commit({
-      target: secondTarget,
-      preparedBuild: secondBuild,
-      warnings: [],
-    });
-
-    expect(
-      await fs
-        .access(backupWithManifest)
-        .then(() => true)
-        .catch(() => false),
-    ).toBe(true);
-    expect(
-      await fs
-        .access(firstTarget.generationDir)
-        .then(() => true)
-        .catch(() => false),
-    ).toBe(false);
   });
 
   it("keeps pruning old generations when one vanishes mid-scan", async () => {
