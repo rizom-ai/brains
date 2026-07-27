@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, and session-derived own-account APIs are implemented; CMS authorization is specified separately in [Permission-aware CMS](./permission-aware-cms.md). Automated provider delivery/resend remains follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, session-derived own-account APIs, and permission-aware Trusted CMS access are implemented. Automated provider delivery/resend remains follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -65,7 +65,7 @@ Each item is `file:line — problem → fix`. Verified severity in brackets.
 - [x] **Sveltia token endpoint released the content-repo PAT to any session** [fixed] — passkey CMS shell/login gates and `/auth/cms-token` resolve the active principal and require Admin permission; non-Admin token requests return 403.
 - [x] **MCP trusted client-supplied `_meta.userId`** [fixed] — tool registration derives user identity only from the server-verified auth subject. Unauthenticated metadata receives the non-user `mcp-user` sentinel, with spoofing coverage.
 
-The CMS Admin gate remains the correct containment fix until [Permission-aware CMS](./permission-aware-cms.md) lands atomically. That plan replaces the blanket gate with principal-derived visibility, central entity action policy, workspace policy, and actor attribution; it does not restore the unsafe “any session may edit” behavior.
+The CMS now replaces its former blanket Admin gate with principal-derived visibility, central entity action policy, workspace policy, and actor attribution. It admits only active Trusted and Admin principals and does not restore the unsafe “any session may edit” behavior.
 
 ### P0 — Boot crash-loop / integrity (legacy imports removed)
 
@@ -205,7 +205,7 @@ The unreleased representation implementation has been replaced by the target pee
 - **MCP OAuth**: per-session permissions from the authenticated user instead of global Admin authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content. Active Trusted browser chat must execute at Trusted permission rather than being denied or elevated.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
-- **CMS passkey login**: the first-party CMS consumes the active `AuthPrincipal` and, after [Permission-aware CMS](./permission-aware-cms.md) lands, admits Trusted/Admin callers through visibility and entity-action policy. The separate Sveltia/shared content-PAT flow remains Admin-only because it cannot enforce runtime per-action authorization. No per-editor Git commit attribution is claimed.
+- **CMS passkey login**: the first-party CMS consumes the active `AuthPrincipal` and admits Trusted/Admin callers through visibility and entity-action policy. The separate Sveltia/shared content-PAT flow remains Admin-only because it cannot enforce runtime per-action authorization. No per-editor Git commit attribution is claimed.
 - **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per the shipped A2A request-signing work — trust grants must live on this runtime plane, never in git-synced content.
 - **Admin and account consoles / future CLI**: `/admin` owns roster, access, invitations, peer links, and audit for Admins only; `/account` owns narrow session-derived display-name, own-passkey, connected-channel-label, and own-session operations for active users.
 
@@ -550,6 +550,5 @@ Validation: forged target ids cannot cross account boundaries; the last passkey 
 ## Related plans
 
 - [Multi-user and permissions](./multi-user.md)
-- [Permission-aware CMS](./permission-aware-cms.md)
 - [Connected channels](./connected-channels.md)
 - [Operator runtime database](./operator-runtime-db.md)
