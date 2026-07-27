@@ -191,6 +191,10 @@ export class SetupFlow {
     };
   }
 
+  consumeTargetedSetupTokensForUser(userId: string): Promise<number> {
+    return this.setupStateStore.consumeTargetedSetupTokensForUser(userId);
+  }
+
   async handleSetupPage(request: Request): Promise<Response> {
     const setup = await this.resolveSetupToken(request);
     if (

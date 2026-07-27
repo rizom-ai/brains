@@ -18,6 +18,7 @@ import {
   type AuthBrainAnchorSummary,
   type AuthExternalPeerSummary,
   type AuthIdentitySummary,
+  type AuthInvitationSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
 } from "./admin-contracts";
@@ -37,6 +38,25 @@ export interface AuthAdminOperations {
   listPersonExternalPeers(personId: string): Promise<AuthExternalPeerSummary[]>;
   listUserIdentities(userId: string): Promise<AuthIdentitySummary[]>;
   listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]>;
+  cancelInvitation(
+    invitationId: string,
+    actorUserId: string,
+  ): Promise<AuthInvitationSummary>;
+  createInvitation(
+    input: {
+      idempotencyKey: string;
+      displayName: string;
+      role: "admin" | "trusted";
+      delivery: AuthSetupDeliveryInput;
+      peerId?: string;
+    },
+    actorUserId: string,
+  ): Promise<{
+    invitation: AuthInvitationSummary;
+    user: AuthAdminPrincipal;
+    peer?: AuthExternalPeerSummary;
+    registration?: { setupUrl: string; expiresAt: number };
+  }>;
   createUser(
     input: {
       displayName: string;
@@ -57,6 +77,15 @@ export interface AuthAdminOperations {
     user: AuthAdminPrincipal;
     peer: AuthExternalPeerSummary;
     registration: { setupUrl: string; expiresAt: number };
+  }>;
+  resendInvitation(
+    invitationId: string,
+    actorUserId: string,
+  ): Promise<{
+    invitation: AuthInvitationSummary;
+    user: AuthAdminPrincipal;
+    peer?: AuthExternalPeerSummary;
+    registration?: { setupUrl: string; expiresAt: number };
   }>;
   linkExternalPeer(
     input: { peerId: string; userId: string },
@@ -127,6 +156,20 @@ const identityProposalSchema = z.strictObject({
 
 const adminMutationSchema = z.union([
   z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation),
+    invitationId: z.string().min(1),
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createInvitation),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createInvitation),
+    idempotencyKey: z.string().trim().min(1).max(200),
+    displayName: z.string().trim().min(1).max(200),
+    role: z.enum(["admin", "trusted"]),
+    delivery: setupDeliverySchema,
+    peerId: z.string().trim().min(1).max(2_000).optional(),
+  }),
+  z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createUser),
     displayName: z.string().trim().min(1).max(200),
@@ -142,6 +185,11 @@ const adminMutationSchema = z.union([
     displayName: z.string().trim().min(1).max(200),
     role: z.enum(["admin", "trusted"]),
     delivery: setupDeliverySchema,
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation),
+    invitationId: z.string().min(1),
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
@@ -344,6 +392,24 @@ async function executeMutation(
   operations: AuthAdminOperations,
 ): Promise<Record<string, unknown>> {
   switch (mutation.action) {
+    case "cancelInvitation":
+      return {
+        invitation: await operations.cancelInvitation(
+          mutation.invitationId,
+          actorUserId,
+        ),
+      };
+    case "createInvitation":
+      return operations.createInvitation(
+        {
+          idempotencyKey: mutation.idempotencyKey,
+          displayName: mutation.displayName,
+          role: mutation.role,
+          delivery: mutation.delivery,
+          ...(mutation.peerId ? { peerId: mutation.peerId } : {}),
+        },
+        actorUserId,
+      );
     case "createUser":
       return {
         user: await operations.createUser(
@@ -365,6 +431,8 @@ async function executeMutation(
         },
         actorUserId,
       );
+    case "resendInvitation":
+      return operations.resendInvitation(mutation.invitationId, actorUserId);
     case "linkExternalPeer":
       return {
         peer: await operations.linkExternalPeer(

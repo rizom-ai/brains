@@ -41,6 +41,7 @@ describe("AuthUserManagementService", () => {
             return 2;
           },
         },
+        consumeTargetedSetupTokensForUser: async (): Promise<number> => 0,
       });
       const admin = await users.ensureFirstAdminUser();
       const managed = await users.createUser({

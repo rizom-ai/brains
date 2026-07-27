@@ -6,6 +6,7 @@ import { AuthAdministrationService } from "../src/administration-service";
 import { AuthAuditStore } from "../src/audit-store";
 import { AuthCredentialStore } from "../src/credential-store";
 import { AuthIdentityStore } from "../src/identity-store";
+import { AuthInvitationService } from "../src/invitation-service";
 import { PersonExternalPeerStore } from "../src/person-external-peer-store";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { AuthUserManagementService } from "../src/user-management-service";
@@ -35,6 +36,7 @@ describe("AuthAdministrationService", () => {
         refreshTokens: {
           revokeTokensForSubject: async (): Promise<number> => 0,
         },
+        consumeTargetedSetupTokensForUser: async (): Promise<number> => 0,
       });
       const service = new AuthAdministrationService({
         configuredAnchorKind: "person",
@@ -42,6 +44,12 @@ describe("AuthAdministrationService", () => {
         identities: new AuthIdentityStore(database.db),
         credentials: new AuthCredentialStore(database.db),
         externalPeers: new PersonExternalPeerStore(database.db),
+        invitations: new AuthInvitationService({
+          db: database.db,
+          issuer: "https://brain.example.com",
+          setupTokenTtlSeconds: 86_400,
+          audit,
+        }),
         audit,
         management,
         startPasskeyRegistration: async (): Promise<never> => {

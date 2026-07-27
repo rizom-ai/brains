@@ -26,6 +26,8 @@ const currentAuthTableNames = [
   "auth_audit_events",
   "auth_brain_anchor",
   "auth_identity_evidence",
+  "auth_invitation_delivery_attempts",
+  "auth_invitations",
   "auth_people",
   "auth_sessions",
   "auth_users",
@@ -448,7 +450,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(9);
+      expect(migrations.rows).toHaveLength(10);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

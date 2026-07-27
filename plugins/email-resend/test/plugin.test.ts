@@ -28,6 +28,7 @@ describe("EmailResendPlugin", () => {
         subject: "Set up your Rover",
         text: "Open the setup link.",
         html: "<p>Open the setup link.</p>",
+        idempotencyKey: "invitation_attempt_1",
       },
     );
 
@@ -37,6 +38,7 @@ describe("EmailResendPlugin", () => {
       headers: {
         Authorization: "Bearer resend-key",
         "Content-Type": "application/json",
+        "Idempotency-Key": "invitation_attempt_1",
       },
       body: JSON.stringify({
         from: "Rover <setup@example.com>",

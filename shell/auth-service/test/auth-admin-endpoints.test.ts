@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService, authServicePlugin } from "../src";
+import {
+  AuthService,
+  authServicePlugin,
+  type AuthServiceOptions,
+} from "../src";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 
 const ISSUER = "https://brain.example.com";
@@ -13,6 +17,7 @@ async function createService(
     withPasskey?: boolean;
     anchor?: "person" | "team" | "organization";
     profileName?: string;
+    sendInvitationEmail?: AuthServiceOptions["sendInvitationEmail"];
   } = {},
 ): Promise<AuthService> {
   const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-admin-"));
@@ -29,6 +34,9 @@ async function createService(
           resolveProfileDisplayName: async (): Promise<string | undefined> =>
             options.profileName,
         }
+      : {}),
+    ...(options.sendInvitationEmail
+      ? { sendInvitationEmail: options.sendInvitationEmail }
       : {}),
   });
   await service.initialize();
@@ -171,6 +179,88 @@ describe("auth admin API", () => {
           ],
         }),
       ]),
+    });
+  });
+
+  it("creates one invitation for concurrent requests with one idempotency key", async () => {
+    const deliveries: string[] = [];
+    const service = await createService({
+      sendInvitationEmail: async (input) => {
+        deliveries.push(input.to);
+        return { status: "sent", deliveryId: "email_1" };
+      },
+    });
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const session = await service.createAuthSession(admin.userId);
+    const mutation = {
+      action: "createInvitation",
+      confirmation: "createInvitation",
+      idempotencyKey: "request-1",
+      displayName: "Mira",
+      role: "trusted",
+      delivery: { type: "email", subject: "mira@example.com" },
+    };
+
+    const responses = await Promise.all([
+      service.handleRequest(
+        adminRequest("/auth/admin/mutations", session.cookie, mutation),
+      ),
+      service.handleRequest(
+        adminRequest("/auth/admin/mutations", session.cookie, mutation),
+      ),
+    ]);
+    const bodies = await Promise.all(
+      responses.map((response) => response.json()),
+    );
+
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+    expect(new Set(bodies.map((body) => body.invitation.id)).size).toBe(1);
+    expect(
+      (await service.listUsers()).filter((user) => user.status === "invited"),
+    ).toHaveLength(1);
+    const roster = await service.handleRequest(
+      adminRequest("/auth/admin/users", session.cookie),
+    );
+    expect(await roster.json()).toMatchObject({
+      users: expect.arrayContaining([
+        expect.objectContaining({
+          displayName: "Mira",
+          invitation: expect.objectContaining({
+            id: bodies[0].invitation.id,
+            state: "sent",
+          }),
+        }),
+      ]),
+    });
+    expect(deliveries).toEqual(["mira@example.com"]);
+
+    const resent = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "resendInvitation",
+        confirmation: "resendInvitation",
+        invitationId: bodies[0].invitation.id,
+      }),
+    );
+    expect(resent.status).toBe(200);
+    expect(await resent.json()).toMatchObject({
+      invitation: { state: "sent" },
+      registration: { setupUrl: expect.stringContaining("/setup?token=") },
+    });
+    expect(deliveries).toEqual(["mira@example.com", "mira@example.com"]);
+
+    const cancelled = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "cancelInvitation",
+        confirmation: "cancelInvitation",
+        invitationId: bodies[0].invitation.id,
+      }),
+    );
+    expect(cancelled.status).toBe(200);
+    expect(await cancelled.json()).toMatchObject({
+      invitation: { state: "cancelled", cancelledAt: expect.any(Number) },
     });
   });
 
@@ -879,6 +969,34 @@ describe("auth admin API", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps cancelled invitation links invalid after account reactivation", async () => {
+    const service = await createService({ withPasskey: true });
+    const [anchor] = await service.listUsers();
+    if (!anchor) throw new Error("Expected migrated anchor");
+    const invited = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+      status: "invited",
+    });
+    const registration = await service.startPasskeyRegistrationForUser(
+      invited.userId,
+      { actorUserId: anchor.userId },
+      { type: "email", subject: "mira@example.com" },
+    );
+
+    await service.updateUserStatus(invited.userId, "suspended", {
+      actorUserId: anchor.userId,
+    });
+    await service.updateUserStatus(invited.userId, "active", {
+      actorUserId: anchor.userId,
+    });
+
+    const oldLink = await service.handleRequest(
+      new Request(registration.setupUrl),
+    );
+    expect(oldLink.status).toBe(404);
   });
 
   it("requires a human-facing label for Discord setup delivery", async () => {

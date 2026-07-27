@@ -1,6 +1,7 @@
 import { createPrefixedId } from "@brains/utils/id";
 import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
+import { authInvitations } from "./invitation-schema";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   authIdentities,
@@ -89,6 +90,10 @@ export class TargetedSetupService {
       if (consumed.length !== 1) {
         throw new Error("Invalid or consumed setup token");
       }
+      await tx
+        .update(authInvitations)
+        .set({ state: "claimed", claimedAt: now, updatedAt: now })
+        .where(eq(authInvitations.currentSetupTokenHash, input.setupTokenId));
       return claim?.id;
     });
 

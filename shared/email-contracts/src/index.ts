@@ -10,6 +10,7 @@ export interface SendEmailPayload {
   text: string;
   html?: string | undefined;
   sensitivity: EmailSensitivity;
+  idempotencyKey?: string | undefined;
 }
 
 export interface SendEmailPayloadInput {
@@ -18,6 +19,7 @@ export interface SendEmailPayloadInput {
   text: string;
   html?: string | undefined;
   sensitivity?: EmailSensitivity | undefined;
+  idempotencyKey?: string | undefined;
 }
 
 export const sendEmailPayloadSchema: z.ZodType<
@@ -29,6 +31,7 @@ export const sendEmailPayloadSchema: z.ZodType<
   text: z.string().min(1),
   html: z.string().min(1).optional(),
   sensitivity: z.enum(["normal", "secret"]).default("normal"),
+  idempotencyKey: z.string().trim().min(1).max(200).optional(),
 });
 
 export type SendEmailResult =

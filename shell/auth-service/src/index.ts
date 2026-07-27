@@ -41,6 +41,8 @@ export type {
   AuthIdentitySourceKind as AuthAdminIdentitySourceKind,
   AuthIdentitySummary,
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
+  AuthInvitationState,
+  AuthInvitationSummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
 export { reinitializeAuthAccessStorage } from "./access-reinitialization";
@@ -63,6 +65,8 @@ export type {
   CreateAuthorizationCodeInput,
 } from "./auth-code-store";
 export type {
+  CreatedInvitationAccess,
+  CreateInvitationRequest,
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
@@ -82,6 +86,14 @@ export type {
   AuthServiceConfig,
   AuthServiceConfigInput,
 } from "./auth-service-plugin";
+export { AuthInvitationService } from "./invitation-service";
+export type {
+  AuthInvitationServiceOptions,
+  CreateInvitationInput,
+  CreateInvitationResult,
+  InvitationEmailInput,
+  InvitationEmailResult,
+} from "./invitation-service";
 export type { AuthMutationContext } from "./mutation-context";
 export type {
   AuthBearerGrant,

@@ -103,6 +103,9 @@ export class EmailResendPlugin extends ServicePlugin<
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        ...(input.idempotencyKey
+          ? { "Idempotency-Key": input.idempotencyKey }
+          : {}),
       },
       body: JSON.stringify({
         from,

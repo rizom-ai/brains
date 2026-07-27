@@ -5,6 +5,8 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { handleAuthAccountRequest } from "./account-endpoints";
 import type {
+  CreatedInvitationAccess,
+  CreateInvitationRequest,
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
@@ -17,6 +19,7 @@ import type {
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
+  AuthInvitationSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
@@ -28,6 +31,10 @@ import type {
   AuthIdentityRecord,
   ResolveAuthIdentityInput,
 } from "./identity-store";
+import type {
+  InvitationEmailInput,
+  InvitationEmailResult,
+} from "./invitation-service";
 import type { AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type {
@@ -97,6 +104,10 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
+  /** Deliver a targeted invitation email through the installed notification adapter. */
+  sendInvitationEmail?: (
+    input: InvitationEmailInput,
+  ) => Promise<InvitationEmailResult>;
   /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
   oauthClientMaintenanceIntervalMs?: number;
   logger?: Logger;
@@ -131,6 +142,9 @@ export class AuthService {
         : {}),
       ...(options.setupTokenTtlSeconds !== undefined
         ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }
+        : {}),
+      ...(options.sendInvitationEmail
+        ? { sendInvitationEmail: options.sendInvitationEmail }
         : {}),
       ...(options.oauthClientMaintenanceIntervalMs !== undefined
         ? {
@@ -307,6 +321,36 @@ export class AuthService {
   ): Promise<AuthPrincipal> {
     await this.runtime.ensureStarted();
     return this.runtime.getAdministrationService().createUser(input, context);
+  }
+
+  async cancelInvitation(
+    invitationId: string,
+    context: AuthMutationContext,
+  ): Promise<AuthInvitationSummary> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .cancelInvitation(invitationId, context);
+  }
+
+  async createInvitation(
+    input: CreateInvitationRequest,
+    context: AuthMutationContext,
+  ): Promise<CreatedInvitationAccess> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .createInvitation(input, context);
+  }
+
+  async resendInvitation(
+    invitationId: string,
+    context: AuthMutationContext,
+  ): Promise<CreatedInvitationAccess> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .resendInvitation(invitationId, context);
   }
 
   async inviteExternalPeerPerson(
@@ -632,10 +676,16 @@ export class AuthService {
         this.listPersonExternalPeers(personId),
       listUserIdentities: (userId) => this.listUserIdentities(userId),
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),
+      cancelInvitation: (invitationId, actorUserId) =>
+        this.cancelInvitation(invitationId, { actorUserId }),
+      createInvitation: (input, actorUserId) =>
+        this.createInvitation(input, { actorUserId }),
       createUser: (input, actorUserId) =>
         this.createUser(input, { actorUserId }),
       inviteExternalPeerPerson: (input, actorUserId) =>
         this.inviteExternalPeerPerson(input, { actorUserId }),
+      resendInvitation: (invitationId, actorUserId) =>
+        this.resendInvitation(invitationId, { actorUserId }),
       linkExternalPeer: (input, actorUserId) =>
         this.linkExternalPeer(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>

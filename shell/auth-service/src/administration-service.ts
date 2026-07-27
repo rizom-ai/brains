@@ -3,6 +3,7 @@ import type {
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
+  AuthInvitationSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
@@ -13,6 +14,8 @@ import type {
   AuthIdentityRecord,
   AuthIdentityStore,
 } from "./identity-store";
+import type { AuthInvitationService } from "./invitation-service";
+import type { AuthInvitation } from "./invitation-schema";
 import { auditActor, type AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type { PersonExternalPeerStore } from "./person-external-peer-store";
@@ -26,6 +29,21 @@ import type {
   AuthUserStore,
   CreateAuthUserInput,
 } from "./user-store";
+
+export interface CreateInvitationRequest {
+  idempotencyKey: string;
+  displayName: string;
+  role: "admin" | "trusted";
+  delivery: AuthSetupDeliveryInput;
+  peerId?: string;
+}
+
+export interface CreatedInvitationAccess {
+  invitation: AuthInvitationSummary;
+  user: AuthPrincipal;
+  peer?: PersonExternalPeer;
+  registration?: { setupUrl: string; expiresAt: number };
+}
 
 export interface InviteExternalPeerPersonRequest {
   peerId: string;
@@ -54,6 +72,7 @@ export interface AuthAdministrationServiceOptions {
   identities: AuthIdentityStore;
   credentials: AuthCredentialStore;
   externalPeers: PersonExternalPeerStore;
+  invitations: AuthInvitationService;
   audit: AuthAuditStore;
   management: AuthUserManagementService;
   startPasskeyRegistration: (
@@ -71,6 +90,7 @@ export class AuthAdministrationService {
   private readonly identities: AuthIdentityStore;
   private readonly credentials: AuthCredentialStore;
   private readonly externalPeers: PersonExternalPeerStore;
+  private readonly invitations: AuthInvitationService;
   private readonly audit: AuthAuditStore;
   private readonly management: AuthUserManagementService;
   private readonly startPasskeyRegistration: (
@@ -86,6 +106,7 @@ export class AuthAdministrationService {
     this.identities = options.identities;
     this.credentials = options.credentials;
     this.externalPeers = options.externalPeers;
+    this.invitations = options.invitations;
     this.audit = options.audit;
     this.management = options.management;
     this.startPasskeyRegistration = options.startPasskeyRegistration;
@@ -122,6 +143,56 @@ export class AuthAdministrationService {
   ): Promise<AuthPrincipal> {
     const user = await this.management.createUser(input, context);
     return this.principalFromUser(user);
+  }
+
+  async cancelInvitation(
+    invitationId: string,
+    context: AuthMutationContext,
+  ): Promise<AuthInvitationSummary> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for invitation");
+    }
+    return invitationSummary(
+      await this.invitations.cancel(invitationId, context.actorUserId),
+    );
+  }
+
+  async createInvitation(
+    input: CreateInvitationRequest,
+    context: AuthMutationContext,
+  ): Promise<CreatedInvitationAccess> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for invitation");
+    }
+    const created = await this.invitations.create({
+      ...input,
+      actorUserId: context.actorUserId,
+    });
+    return {
+      invitation: invitationSummary(created.invitation),
+      user: await this.principalFromUser(created.user),
+      ...(created.peer ? { peer: created.peer } : {}),
+      ...(created.registration ? { registration: created.registration } : {}),
+    };
+  }
+
+  async resendInvitation(
+    invitationId: string,
+    context: AuthMutationContext,
+  ): Promise<CreatedInvitationAccess> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for invitation");
+    }
+    const resent = await this.invitations.resend(
+      invitationId,
+      context.actorUserId,
+    );
+    return {
+      invitation: invitationSummary(resent.invitation),
+      user: await this.principalFromUser(resent.user),
+      ...(resent.peer ? { peer: resent.peer } : {}),
+      ...(resent.registration ? { registration: resent.registration } : {}),
+    };
   }
 
   async inviteExternalPeerPerson(
@@ -206,15 +277,23 @@ export class AuthAdministrationService {
   }
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
-    const [users, people, identities, passkeys, externalPeers, anchor] =
-      await Promise.all([
-        this.users.listUsers(),
-        this.users.listPeople(),
-        this.identities.listAllIdentities(),
-        this.credentials.listPasskeys(),
-        this.externalPeers.listAll(),
-        this.users.getBrainAnchor(),
-      ]);
+    const [
+      users,
+      people,
+      identities,
+      passkeys,
+      externalPeers,
+      invitations,
+      anchor,
+    ] = await Promise.all([
+      this.users.listUsers(),
+      this.users.listPeople(),
+      this.identities.listAllIdentities(),
+      this.credentials.listPasskeys(),
+      this.externalPeers.listAll(),
+      this.invitations.list(),
+      this.users.getBrainAnchor(),
+    ]);
     const peopleById = new Map(people.map((person) => [person.id, person]));
     const identitiesByPersonId = groupBy(identities, (item) => item.personId);
     const passkeysByUserId = groupBy(passkeys, (item) => item.userId);
@@ -222,6 +301,7 @@ export class AuthAdministrationService {
       externalPeers,
       (item) => item.personId,
     );
+    const invitationsByUserId = groupBy(invitations, (item) => item.userId);
 
     return Promise.all(
       users.map(async (user) => {
@@ -230,10 +310,12 @@ export class AuthAdministrationService {
         const profileDisplayName = profileEntityId
           ? await this.profileDisplayName(profileEntityId)
           : undefined;
+        const invitation = invitationsByUserId.get(user.id)?.at(-1);
         return {
           ...principal,
           displayName: profileDisplayName ?? principal.displayName,
           ...(profileEntityId ? { profileEntityId } : {}),
+          ...(invitation ? { invitation: invitationSummary(invitation) } : {}),
           identities: (identitiesByPersonId.get(user.personId) ?? []).map(
             (identity) => identitySummary(identity, user.id),
           ),
@@ -429,6 +511,27 @@ function adminIdentityLabel(identity: AuthIdentityRecord): string | undefined {
     return identity.deliverySubject.trim();
   }
   return identity.label ?? undefined;
+}
+
+function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {
+  return {
+    id: invitation.id,
+    userId: invitation.userId,
+    state: invitation.state,
+    ...(invitation.failureCode ? { failureCode: invitation.failureCode } : {}),
+    createdAt: invitation.createdAt,
+    updatedAt: invitation.updatedAt,
+    ...(invitation.sentAt !== null ? { sentAt: invitation.sentAt } : {}),
+    ...(invitation.claimedAt !== null
+      ? { claimedAt: invitation.claimedAt }
+      : {}),
+    ...(invitation.expiredAt !== null
+      ? { expiredAt: invitation.expiredAt }
+      : {}),
+    ...(invitation.cancelledAt !== null
+      ? { cancelledAt: invitation.cancelledAt }
+      : {}),
+  };
 }
 
 function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {

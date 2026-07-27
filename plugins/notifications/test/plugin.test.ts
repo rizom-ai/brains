@@ -29,6 +29,7 @@ describe("NotificationsPlugin", () => {
         title: "Set up your Rover",
         body: "Open the secret setup link.",
         sensitivity: "secret",
+        idempotencyKey: "invitation_attempt_1",
       },
     );
 
@@ -39,6 +40,7 @@ describe("NotificationsPlugin", () => {
         subject: "Set up your Rover",
         text: "Open the secret setup link.",
         sensitivity: "secret",
+        idempotencyKey: "invitation_attempt_1",
       },
     ]);
   });

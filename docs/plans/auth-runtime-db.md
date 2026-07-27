@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, session-derived own-account APIs, and permission-aware Trusted CMS access are implemented. Automated provider delivery/resend remains follow-on work. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
+Implementation is in final hardening on `feature/auth-runtime-db`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, compatibility-safe session terminology migration, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. The bounded legacy-cookie reader and pre-Drizzle database bridge remain active until their automated release gate permits removal. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, session-derived own-account APIs, and permission-aware Trusted CMS access are implemented. Multi-user decision 18's durable invitation lifecycle and provider-backed first hardening slice are implemented; supervised crash recovery and provider-capability preflight remain. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`.
 
 A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
@@ -294,6 +294,8 @@ Active claims are unique by `identity_key_hash`; a second total index supports d
 
 Delivery model: the auth DB does not store user emails on `auth_users`. A verified email or Discord channel stores its private deliverable address on the corresponding person claim as `delivery_subject`. The Admin API may return the full human-facing verified email/handle under **Connected channels**, but never lookup hashes, tokens, or raw protocol-only subjects. A setup token records the intended delivery claim/channel so successful claim can bind that channel to the target user. CMS commit attribution continues using configured `directory-sync` author data.
 
+Invitation state is independent from account admission state. `auth_users.status = 'invited'` prevents access but is not an invitation history, provider outbox, idempotency boundary, or completion record. Multi-user decision 18 requires a durable invitation row plus immutable delivery attempts. Raw recipients are not duplicated onto either table; sends resolve the private delivery subject through the referenced person claim.
+
 ### Credentials and grants
 
 - `passkey_credentials`: credential id, user id, public key, counter, transports JSON, device type, backup state, timestamps.
@@ -304,7 +306,9 @@ Delivery model: the auth DB does not store user emails on `auth_users`. A verifi
 - `oauth_refresh_tokens`: token hash, client id, user id, scope, expiry, revoked/replaced metadata.
 - `oauth_signing_keys`: key id, purpose (`oauth` or `a2a`), private JWK, active/retired status, timestamps. At most one active key per purpose.
 - `setup_tokens`: token hash/id, purpose, target user id, optional delivery-claim/channel reference, expiry, consumed timestamp, and the bounded pre-normalization delivery-hash compatibility column.
-- `setup_token_deliveries`: setup-token hash, recipient hash, delivery timestamp, and optional provider delivery id, uniquely keyed per token and recipient.
+- `setup_token_deliveries`: setup-token hash, recipient hash, confirmed-delivery timestamp, and optional provider delivery id, uniquely keyed per token and recipient. New invitation rows enter this table only after provider acceptance or explicit audited manual-delivery confirmation; setup-link creation alone is not delivery.
+- `auth_invitations` _(planned)_: invitation id, target user id, delivery-claim id, current setup-token hash, creator user id, hashed idempotency key, lifecycle state, bounded failure code, and created/updated/sent/claimed/expired/cancelled timestamps.
+- `auth_invitation_delivery_attempts` _(planned)_: immutable attempt id, invitation id, setup-token hash, provider/interface id, provider delivery id, attempt state, bounded failure code, and queued/started/completed timestamps. It doubles as the durable send outbox; it never stores the raw recipient or setup URL.
 - `interface_principal_grants`: interface type, normalized principal-key hash, `admin | trusted` role, provenance/timestamps, and revocation state.
 - `interface_anchor_bindings`: interface type plus principal-key hash for independent `isAnchor` identity; no permission column.
 
@@ -527,13 +531,35 @@ Validation: migrations preserve released users and credentials and are restart-i
 
 Validation: forged target ids cannot cross account boundaries; the last passkey cannot be self-revoked; suspended/invited sessions cannot use self-service; Trusted chat remains Trusted; CMS remains Admin-only until its separate rollout gate passes.
 
+### Phase 10 — Durable invitation lifecycle and provider outbox
+
+**Status: implementation in progress under multi-user decision 18.** Durable schema, atomic idempotent creation, synchronous provider dispatch with provider idempotency propagation, truthful attempts, claim transitions, resend/cancel/expiry, and browser lifecycle display are implemented. Supervised recovery of interrupted queued/sending attempts and provider-capability preflight remain.
+
+- [x] Add generated Drizzle migrations for `auth_invitations` and `auth_invitation_delivery_attempts`, including foreign keys, lifecycle CHECK constraints, one hashed idempotency key per Admin request, and indexes for pending work and Admin history.
+- [x] Add one auth-domain transaction that creates or replays the person, user, optional peer link, asserted delivery claim, invitation, setup token, and queued delivery attempt. A failure rolls back all rows; the external provider call never runs inside the transaction.
+- [ ] Add a supervised delivery worker/outbox consumer that recovers interrupted queued/sending attempts without persisting a raw setup token. Synchronous dispatch already resolves the private recipient only at send time, sends secret notification content, propagates the attempt id as the provider idempotency key, and persists provider truth without logging the recipient or link.
+- [x] Stop writing `setup_token_deliveries` during invitation-link creation. The new invitation path writes it only after provider acceptance; the legacy explicit targeted-recovery path remains separate.
+- [x] Make targeted setup completion atomically consume the token, activate the invited user, verify/bind the delivery claim, and transition the matching invitation to `claimed` with `claimed_at`.
+- [x] Make resend consume every prior outstanding setup token before queuing one new token/attempt. Make cancellation consume every outstanding token before marking the invitation `cancelled` and suspending/quarantining the account. Account reactivation never restores an old link.
+- [x] Reconcile expired setup tokens to terminal `expired` invitation state. Preserve attempts and terminal invitations for Admin history and audit.
+- [ ] Fail closed before account creation when the selected channel has no installed/configured delivery capability. Provider outages after durable creation already produce one retryable `failed` invitation rather than a false `sent` row or partial account.
+- [x] Keep response contracts state-aware while exposing no token hashes, recipient hashes, raw protocol subjects, provider credentials, or secret setup links outside the one-time authorized setup response.
+
+Validation:
+
+- Concurrent requests with the same idempotency key return one invitation and produce one user, one active setup token, and one provider attempt.
+- Process death after commit but before send is recovered by the outbox; process death after provider acceptance does not duplicate a send when the provider supports idempotency.
+- Provider failure never creates a setup-delivery confirmation. Retry creates a historical attempt and one current token according to the resend policy.
+- Claimed, cancelled, and expired transitions are restart-safe and terminal; old links fail after resend, cancellation, expiry, suspension/reactivation, and replay.
+- Migration and cleanup preserve all released people, users, claims, passkeys, sessions, setup tokens, and audit history.
+
 ## Security notes
 
 - Hash bearer/session/refresh/setup tokens before storage.
 - Prefer identity-key hashes over raw account ids for lookup.
 - Store OAuth provider tokens only if a future flow truly needs them; encrypt or isolate them if added.
 - Role downgrades, suspension, and identity detach should revoke affected sessions and refresh tokens.
-- Never auto-link identities by display name or email similarity. A targeted setup link claimed through its delivery channel is explicit proof of control and may bind that channel.
+- Never auto-link identities by display name or email similarity. A targeted setup link may bind its delivery channel only after provider acceptance or explicit audited manual-delivery confirmation; creating the link is not proof of delivery.
 - Own-account endpoints derive the subject from the session, preserve non-last-passkey protection, and never accept authority or ownership mutations.
 - Browser consumers receive exact verified principals; a session must be neither elevated to Admin nor silently downgraded to Public.
 - Reject changes that leave zero active Admins or deactivate the professional Anchor.
@@ -546,6 +572,7 @@ Validation: forged target ids cannot cross account boundaries; the last passkey 
 3. **`canonical_id`**: generated `user:<id-suffix>` on user creation. Administratively renameable later when a People management surface lands; field is a nullable string so rename is a column update with no migration.
 4. **OAuth clients**: migrate in the same phase as grants (Phase 3). Avoids a JSON/SQL hybrid with weak referential integrity.
 5. **Backup/restore**: configure a private libSQL sync/backup destination or encrypted snapshots for point-in-time recovery. Never place auth state in git or `brain-data`; config is only bootstrap/recovery input.
+6. **Invitation durability**: persist invitations and immutable delivery attempts in `auth.db`; keep provider sends outside database transactions but behind a durable idempotent outbox. Account status remains authorization state, not invitation lifecycle state.
 
 ## Related plans
 

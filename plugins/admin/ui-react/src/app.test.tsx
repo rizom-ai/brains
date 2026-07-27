@@ -9,13 +9,18 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   PeopleApp,
+  buildInvitationMutation,
   initials,
   messageOf,
   roleLabel,
   type PeopleBootstrap,
 } from "./App";
+import { InvitationsView } from "./components/InvitationsView";
 import { PersonDetail } from "./components/PersonDetail";
-import { AddPersonDialog } from "./dialogs/AddPersonDialog";
+import {
+  AddPersonDialog,
+  runSingleSubmission,
+} from "./dialogs/AddPersonDialog";
 import { runWithFeedback as executeWithFeedback } from "./feedback";
 import peopleStyles from "./people.css" with { type: "text" };
 import { createAdminQueryClient } from "./query-client";
@@ -120,6 +125,88 @@ function renderPerson(
 }
 
 describe("Admin surface", () => {
+  it("builds one atomic idempotent email invitation mutation", () => {
+    expect(
+      buildInvitationMutation({
+        displayName: "Mira",
+        role: "trusted",
+        delivery: { type: "email", subject: "mira@example.com" },
+        idempotencyKey: "request-1",
+      }),
+    ).toEqual({
+      action: "createInvitation",
+      confirmation: "createInvitation",
+      idempotencyKey: "request-1",
+      displayName: "Mira",
+      role: "trusted",
+      delivery: { type: "email", subject: "mira@example.com" },
+    });
+  });
+
+  it("coalesces repeated invitation submissions while one is pending", async () => {
+    const lock = { current: false };
+    let complete: (() => void) | undefined;
+    let calls = 0;
+    const operation = (): Promise<void> => {
+      calls += 1;
+      return new Promise((resolve) => {
+        complete = resolve;
+      });
+    };
+
+    const first = runSingleSubmission(lock, operation);
+    const duplicate = runSingleSubmission(lock, operation);
+
+    expect(calls).toBe(1);
+    expect(await duplicate).toBe(false);
+    complete?.();
+    expect(await first).toBe(true);
+    expect(lock.current).toBe(false);
+  });
+
+  it("renders current and completed invitation lifecycle states", () => {
+    const html = renderToStaticMarkup(
+      createElement(InvitationsView, {
+        invitations: [
+          {
+            ...user,
+            status: "invited",
+            invitation: {
+              id: "inv_sent",
+              userId: user.userId,
+              state: "sent",
+              createdAt: 1,
+              updatedAt: 2,
+              sentAt: 2,
+            },
+          },
+          {
+            ...user,
+            userId: "usr_claimed",
+            personId: "per_claimed",
+            status: "active",
+            invitation: {
+              id: "inv_claimed",
+              userId: "usr_claimed",
+              state: "claimed",
+              createdAt: 1,
+              updatedAt: 3,
+              claimedAt: 3,
+            },
+          },
+        ],
+        onAdd: () => undefined,
+        onCreateSetup: () => undefined,
+        onCancel: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Sent");
+    expect(html).toContain("Claimed");
+    expect(html).toContain("Invitation history");
+    expect(html).not.toContain("setup not yet claimed");
+  });
+
   it("requires an explicit email or Discord delivery channel for invitations", () => {
     const html = renderToStaticMarkup(
       createElement(AddPersonDialog, {

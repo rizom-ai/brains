@@ -66,6 +66,9 @@ export class NotificationsPlugin extends ServicePlugin<
           text: input.body,
           ...(input.html ? { html: input.html } : {}),
           sensitivity: input.sensitivity,
+          ...(input.idempotencyKey
+            ? { idempotencyKey: input.idempotencyKey }
+            : {}),
         };
         const response = await context.messaging.send<
           SendEmailPayload,

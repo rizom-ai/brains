@@ -39,6 +39,17 @@ export function usersQueryOptions(): UseQueryOptions<
   return {
     queryKey: adminKeys.users(),
     queryFn: async () => (await fetchUsers()).users,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      const users = query.state.data;
+      return users?.some(
+        (user) =>
+          user.invitation !== undefined &&
+          !["claimed", "expired", "cancelled"].includes(user.invitation.state),
+      )
+        ? 5_000
+        : false;
+    },
   };
 }
 

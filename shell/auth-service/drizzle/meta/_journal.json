@@ -64,6 +64,13 @@
       "when": 1784739018803,
       "tag": "0008_slow_the_watchers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1785064040129,
+      "tag": "0009_wild_namor",
+      "breakpoints": true
     }
   ]
 }

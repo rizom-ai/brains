@@ -18,6 +18,7 @@ export interface SendNotificationInput {
   body: string;
   html?: string | undefined;
   sensitivity?: NotificationSensitivity | undefined;
+  idempotencyKey?: string | undefined;
 }
 
 export interface ParsedSendNotification {
@@ -26,6 +27,7 @@ export interface ParsedSendNotification {
   body: string;
   html?: string | undefined;
   sensitivity: NotificationSensitivity;
+  idempotencyKey?: string | undefined;
 }
 
 export type SendNotificationResult =
@@ -50,6 +52,7 @@ export const sendNotificationSchema: z.ZodType<
   body: z.string().min(1),
   html: z.string().min(1).optional(),
   sensitivity: z.enum(["normal", "secret"]).default("normal"),
+  idempotencyKey: z.string().trim().min(1).max(200).optional(),
 });
 
 export const sendNotificationResultSchema: z.ZodType<

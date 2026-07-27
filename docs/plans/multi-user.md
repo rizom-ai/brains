@@ -2,7 +2,7 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console; automated invitation delivery/resend remains follow-on work. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Decision 17 adds remaining caller-context hardening: authenticated web chat must answer configured-Anchor and permission questions directly from the resolved principal, and model behavior must be covered by integration tests and evaluations rather than prompt-string assertions. The first-party CMS now admits active Trusted users with principal-scoped visibility, central entity action policy, actor-aware workspaces, and authenticated mutation attribution. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Decision 17 adds remaining caller-context hardening: authenticated web chat must answer configured-Anchor and permission questions directly from the resolved principal, and model behavior must be covered by integration tests and evaluations rather than prompt-string assertions. The first-party CMS now admits active Trusted users with principal-scoped visibility, central entity action policy, actor-aware workspaces, and authenticated mutation attribution. Decision 18's durable invitation lifecycle and provider-backed first hardening slice are implemented; supervised crash recovery and provider-capability preflight remain. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -61,9 +61,9 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 8. **Do not reshuffle existing tool visibility in the plumbing phase.**
    - Multi-user v1 makes roles enforceable.
    - A later tool-permission audit decides which existing Admin tools can safely become trusted.
-9. **Admin-managed onboarding first; invitations later.**
+9. **Admin-managed onboarding precedes automated invitations.** _(Initial sequencing decision; the invitation follow-on is now decision 18 and Phase 7.)_
    - Admins create users and explicitly attach identities.
-   - Email/self-signup/invite delivery is deferred until real workflows need it.
+   - Public self-signup remains deferred. Admin-issued invitations now require the durable delivery and lifecycle boundary in decision 18.
 10. **Auth-user administration is not agent-visible.**
     - User, identity, role, status, and user-specific credential management stay outside the model tool surface.
     - Use a dedicated authenticated admin surface or local CLI with explicit Admin confirmation.
@@ -129,6 +129,14 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
     - **Do not turn the model into an auth database reader.** Continue passing only the minimum server-derived caller context needed for the turn. Raw identity subjects, session data, claims, credentials, and the full auth-user record stay outside model-visible instructions. The configured-Anchor answer describes the authenticated account relationship and must not claim broader proof of a human's real-world identity.
     - **Remove prompt-substring tests that masquerade as behavior coverage.** Delete `shell/ai-service/test/build-instructions.test.ts`; do not replace it with another collection of `toContain()` assertions or a prompt snapshot. Retain typed tests that verify principal, permission, Anchor, actor, tool, and confirmation propagation through runtime boundaries.
     - **Validate the real behavior at two levels.** Add an integration test that starts from resolved browser principals and captures the resulting model call context. Add model evaluations for an authenticated personal Anchor/Admin answering yes, a Trusted non-Anchor answering no, an additional Admin non-Anchor answering no, and exact permission-label answers. Evaluation fixtures must represent states the production invariants can actually create.
+18. **An invitation is a durable, idempotent lifecycle—not an `invited` user plus a copied setup link.** _(Adopted 2026-07-25; planned.)_
+    - **Persist invitation state independently.** The user status remains the account-admission boundary, but an invitation has its own identity, target user, delivery claim, current setup token, creator, state, and lifecycle timestamps. Required states are `pending`, `sending`, `sent`, `claimed`, `expired`, `cancelled`, and `failed`. Provider attempts are historical child records rather than fields overwritten by resend.
+    - **Create the local account and invitation atomically.** Hosted and peer-linked invitation paths perform person/user creation, delivery-claim attachment, setup-token creation, invitation creation, and durable delivery-attempt enqueueing in one auth-database transaction. A failure cannot leave an invited user without an invitation or setup state.
+    - **Make submission idempotent at both boundaries.** The Add Person dialog acquires a synchronous submission lock before awaiting React state, disables its controls, and renders `Creating…`. The request carries a persisted idempotency key; retries or concurrent duplicate requests return the same invitation and never create another person, user, setup token, or provider send.
+    - **Delivery state must describe real provider work.** Creating a setup link is not delivery. Email invitations dispatch through the configured notification/email adapter as secret content. `sent` means the provider accepted the message and returned success; `delivered` must not be claimed without a provider receipt/webhook. Missing provider capability fails before account creation; a runtime provider failure leaves one retryable `failed` invitation without logging the recipient or setup URL.
+    - **Delivery confirmation gates channel binding.** A targeted setup delivery row is written only after provider acceptance or an explicit audited manual-delivery confirmation. Link creation alone cannot satisfy the delivery check. Provider delivery ids and recipient hashes may persist; raw addresses remain on the private person identity claim and authorized owner/Admin responses only.
+    - **Claim, resend, expiry, and cancellation are explicit transitions.** Claiming atomically activates an invited user, consumes the token, verifies/binds the delivery claim, and marks the invitation `claimed`. Resend consumes every prior outstanding token, creates one new token and attempt, and cannot duplicate a send under retry. Cancel consumes every outstanding token before marking the invitation `cancelled` and quarantining the account; later reactivation never revives an old link. Expired links reconcile to `expired` without deleting history.
+    - **The Admin surface shows lifecycle, not inference.** Pending invitations refresh while non-terminal and on window focus. The UI shows sent/failed/expired/cancelled/claimed timestamps, safe retry actions, and completed history instead of making claimed invitations merely disappear into Members. Audit remains content-free and records creation, provider acceptance/failure, resend, claim, expiry, and cancellation.
 
 ## Terminology contract
 
@@ -492,13 +500,43 @@ Validation:
 
 ### Phase 7 — Invitation delivery and audit viewer
 
-**Status: Audit endpoint/viewer, invitation-account listing, exact email/Discord delivery intent, and single-use claim binding are implemented. Automated provider delivery and lifecycle controls remain planned.**
+**Status: implementation in progress.** Exact email/Discord intent, setup-token targeting, channel binding on successful claim, invited-account listing, and the Admin audit viewer existed before this phase. The first hardening slice now adds durable invitation/attempt rows, atomic idempotent creation, provider-backed email dispatch, truthful sent/failed state, submit locking, claim history, safe resend/cancel/expiry transitions, and active-state polling. A supervised crash-recovery outbox and provider-capability preflight remain.
+
+The red tests for this slice captured the prototype defects before implementation:
+
+- Completion was represented indirectly by `auth_users.status` changing from `invited` to `active`, token consumption, identity evidence, and audit events. There was no invitation record, terminal-state history, completion timestamp exposed to Admins, or refresh while another browser claimed the link.
+- `PasskeySetupCoordinator.startRegistration()` inserted `setup_token_deliveries` immediately after creating the link, before provider dispatch. The new invitation path no longer uses that false confirmation; the legacy targeted passkey-recovery path remains separate.
+- Targeted email invitations never called the notification/email adapter. Only separately configured first-brain bootstrap setup could request email delivery.
+- Cancelling an invitation suspended the account without consuming outstanding setup tokens, so reactivation before expiry could revive an old link.
+- `AddPersonDialog` fire-and-forgot `onCreate`, had no synchronous submission guard or pending state, and left **Create invitation** enabled during concurrent requests.
+- The hosted-member path called `createUser` and `startPasskeyRegistration` as separate mutations, allowing an orphan invited account after duplicate or setup failure, with no durable idempotency key.
+- Tests covered static copy and individual endpoint outcomes but not rapid clicks, concurrent duplicate requests, provider truth, cancellation invalidation, resend rotation, or retained claim history.
+
+Implemented foundation:
 
 - [x] capture exact email/Discord delivery intent with Admin confirmation
-- [x] bind the delivered channel when its single-use setup link is claimed
+- [x] bind the confirmed delivery channel when its single-use setup link is claimed
 - [x] retain intended Trusted/Admin role separately from invited status
-- [ ] automate provider delivery plus resend, expiry, cancel, and delivery-state UX
 - [x] provide an Admin-only audit read endpoint and plain-language event viewer
+
+Required invitation slice:
+
+- [x] add first-class invitation and delivery-attempt persistence with the decision 18 state machine and content-free audit events
+- [x] replace hosted and peer-linked multi-call creation with one atomic, idempotent Admin mutation
+- [x] dispatch email through the configured notification adapter and record provider acceptance/failure truthfully
+- [x] add synchronous client submit locking plus disabled `Creating…` controls
+- [x] make resend rotate the token, make cancel consume all outstanding tokens, and reconcile expiry
+- [x] show pending and historical invitation states, refetch on focus, and poll only while non-terminal invitations exist
+- [ ] add supervised crash recovery and provider-capability preflight before invitation creation
+- [ ] complete interaction/concurrency coverage for process interruption, partial-failure rollback, provider capability absence, and live browser refresh after claim
+
+Validation:
+
+- Ten rapid clicks and ten concurrent requests with one idempotency key create exactly one person, user, invitation, active setup token, and provider attempt.
+- A successful email invitation is marked `sent` only after provider acceptance; a missing/failed provider never produces a delivery-confirmation row or exposes the secret link in logs.
+- Claiming updates the invitation to `claimed` and the open Admin surface observes it without a full reload.
+- Resend invalidates every old link. Cancelled and expired links remain invalid after account reactivation.
+- Completed, expired, cancelled, and failed invitations remain inspectable without exposing raw lookup keys, setup tokens, or delivery subjects outside authorized Admin responses.
 
 ### Phase 8 — Role-correct browser surfaces and self-service
 
@@ -559,7 +597,7 @@ Validation:
 - hosted SaaS account system
 - changing existing tool visibility policy during role plumbing
 - public registration
-- invitation emails
+- automatic invitation email in the initial role-plumbing slice (now required by Phase 7)
 - sharing auth state through `brain-data`
 - per-entity ownership, ACLs, or arbitrary RBAC (the CMS reuses coarse roles, visibility, and entity action policy)
 
@@ -583,3 +621,4 @@ Validation:
 16. Self-service cannot mutate roles, status, Anchor identity, standalone grants, channel ownership, peers, invitations, or other users.
 17. The first-party CMS admits Trusted users with visibility, central entity action policy, workspace policy, and actor attribution enforced on every route.
 18. Authenticated chat answers configured-Anchor and permission questions directly from the resolved principal, with runtime integration coverage and model evaluations rather than prompt-string assertions.
+19. Admin invitations are atomic and idempotent, dispatch through a real provider, expose durable lifecycle/history, refresh after claim, rotate links on resend, and permanently invalidate links on cancellation or expiry.

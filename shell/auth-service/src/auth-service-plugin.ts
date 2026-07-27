@@ -19,6 +19,7 @@ import {
   type AuthBrainAnchorConfigKind,
 } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
+import type { InvitationEmailResult } from "./invitation-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
@@ -190,6 +191,37 @@ export class AuthServicePlugin extends ServicePlugin<
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
       setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
+      sendInvitationEmail: async (input): Promise<InvitationEmailResult> => {
+        const response = await context.messaging.send({
+          type: NOTIFICATIONS_SEND,
+          payload: {
+            recipient: { type: "email", address: input.to },
+            title: input.subject,
+            body: input.text,
+            sensitivity: "secret",
+            idempotencyKey: input.idempotencyKey,
+          },
+        });
+        if (!("success" in response) || !response.success || !response.data) {
+          return {
+            status: "failed" as const,
+            failureCode: "email_delivery_failed",
+          };
+        }
+        const parsed = sendNotificationResultSchema.safeParse(response.data);
+        if (!parsed.success || parsed.data.status !== "sent") {
+          return {
+            status: "failed" as const,
+            failureCode: "email_delivery_failed",
+          };
+        }
+        return {
+          status: "sent" as const,
+          ...(parsed.data.deliveryId
+            ? { deliveryId: parsed.data.deliveryId }
+            : {}),
+        };
+      },
       logger: context.logger,
     });
     await this.service.initialize();

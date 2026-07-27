@@ -9,6 +9,11 @@ import { AuthCredentialStore } from "./credential-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { AuthIdentityStore } from "./identity-store";
 import { InterfacePrincipalStore } from "./interface-principal-store";
+import {
+  AuthInvitationService,
+  type InvitationEmailInput,
+  type InvitationEmailResult,
+} from "./invitation-service";
 import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { OAuthEndpoints } from "./oauth-endpoints";
@@ -54,6 +59,9 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
+  sendInvitationEmail?: (
+    input: InvitationEmailInput,
+  ) => Promise<InvitationEmailResult>;
   oauthClientMaintenanceIntervalMs?: number;
   logger?: Logger;
 }
@@ -77,6 +85,10 @@ export class AuthRuntime {
   private readonly allowLocalhostIssuers: boolean;
   private readonly anchor: AuthBrainAnchorConfigKind;
   private readonly anchorProfileEntityId: string;
+  private readonly setupTokenTtlSeconds: number;
+  private readonly sendInvitationEmail:
+    | ((input: InvitationEmailInput) => Promise<InvitationEmailResult>)
+    | undefined;
   private readonly resolveProfileDisplayName:
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly logger: Logger | undefined;
@@ -88,6 +100,7 @@ export class AuthRuntime {
   private principalService: AuthPrincipalService | undefined;
   private administrationService: AuthAdministrationService | undefined;
   private accountService: AuthAccountService | undefined;
+  private invitationService: AuthInvitationService | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -100,6 +113,9 @@ export class AuthRuntime {
     this.allowLocalhostIssuers = options.allowLocalhostIssuers;
     this.anchor = options.anchor;
     this.anchorProfileEntityId = options.anchorProfileEntityId;
+    this.setupTokenTtlSeconds =
+      options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
+    this.sendInvitationEmail = options.sendInvitationEmail;
     this.resolveProfileDisplayName = options.resolveProfileDisplayName;
     this.logger = options.logger;
     this.runtimeDatabase = new AuthRuntimeDatabase({
@@ -123,8 +139,7 @@ export class AuthRuntime {
     this.setupFlow = new SetupFlow({
       setupStateStore,
       passkeyService: this.passkeyService,
-      setupTokenTtlSeconds:
-        options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS,
+      setupTokenTtlSeconds: this.setupTokenTtlSeconds,
       resolveSessionUserId: async (request): Promise<string | undefined> =>
         (await this.resolveActiveSession(request))?.user.id,
     });
@@ -225,6 +240,15 @@ export class AuthRuntime {
       this.runtimeDatabase.db,
     );
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
+    this.invitationService = new AuthInvitationService({
+      db: this.runtimeDatabase.db,
+      issuer: this.issuer,
+      setupTokenTtlSeconds: this.setupTokenTtlSeconds,
+      audit: this.auditStore,
+      ...(this.sendInvitationEmail
+        ? { sendEmail: this.sendInvitationEmail }
+        : {}),
+    });
     this.passkeySetupCoordinator = new PasskeySetupCoordinator({
       issuer: this.issuer,
       users: this.userStore,
@@ -238,6 +262,8 @@ export class AuthRuntime {
       audit: this.auditStore,
       sessions: this.sessionStore,
       refreshTokens: this.refreshTokenStore,
+      consumeTargetedSetupTokensForUser: (userId): Promise<number> =>
+        this.setupFlow.consumeTargetedSetupTokensForUser(userId),
     });
     this.principalService = new AuthPrincipalService({
       issuer: this.issuer,
@@ -269,6 +295,7 @@ export class AuthRuntime {
       identities: identityStore,
       credentials: credentialStore,
       externalPeers: personExternalPeerStore,
+      invitations: this.getInvitationService(),
       audit: this.auditStore,
       management: this.getUserManagementService(),
       startPasskeyRegistration: (
@@ -306,6 +333,10 @@ export class AuthRuntime {
 
   getAccountService(): AuthAccountService {
     return required(this.accountService);
+  }
+
+  getInvitationService(): AuthInvitationService {
+    return required(this.invitationService);
   }
 
   getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -370,6 +401,7 @@ export class AuthRuntime {
     this.principalService = undefined;
     this.administrationService = undefined;
     this.accountService = undefined;
+    this.invitationService = undefined;
     this.interfacePrincipalStore = undefined;
     this.auditStore = undefined;
     this.initialization = undefined;

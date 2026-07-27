@@ -3,6 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AuthIdentityStore } from "../src/identity-store";
+import {
+  authInvitationDeliveryAttempts,
+  authInvitations,
+} from "../src/invitation-schema";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { setupTokenDeliveries, setupTokens } from "../src/runtime-schema";
 import {
@@ -60,6 +64,34 @@ describe("TargetedSetupService", () => {
         deliveredAt: now,
         deliveryId: "email_1",
       });
+      await database.db.insert(authInvitations).values({
+        id: "inv_1",
+        userId: user.id,
+        deliveryClaimId: identity.id,
+        currentSetupTokenHash: tokenHash,
+        createdByUserId: null,
+        idempotencyKeyHash: "request_hash",
+        state: "sent",
+        failureCode: null,
+        createdAt: now * 1000,
+        updatedAt: now * 1000,
+        sentAt: now * 1000,
+        claimedAt: null,
+        expiredAt: null,
+        cancelledAt: null,
+      });
+      await database.db.insert(authInvitationDeliveryAttempts).values({
+        id: "ida_1",
+        invitationId: "inv_1",
+        setupTokenHash: tokenHash,
+        providerId: "email",
+        providerDeliveryId: "email_1",
+        state: "sent",
+        failureCode: null,
+        queuedAt: now * 1000,
+        startedAt: now * 1000,
+        completedAt: now * 1000,
+      });
 
       const completed = await service.complete({
         userId: user.id,
@@ -73,6 +105,13 @@ describe("TargetedSetupService", () => {
       expect((await database.db.select().from(setupTokens))[0]).toMatchObject({
         tokenHash,
         consumedAt: expect.any(Number),
+      });
+      expect(
+        (await database.db.select().from(authInvitations))[0],
+      ).toMatchObject({
+        id: "inv_1",
+        state: "claimed",
+        claimedAt: expect.any(Number),
       });
     } finally {
       await database.stop();

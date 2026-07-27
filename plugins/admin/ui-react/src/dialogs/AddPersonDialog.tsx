@@ -2,16 +2,35 @@ import type {
   AuthAdminRole,
   AuthSetupDeliveryInput,
 } from "@brains/auth-service/admin-contracts";
-import { useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { Button } from "../components/primitives";
 import type { ExternalPeerInvitationDraft } from "../people-types";
 import { ModalFrame } from "./ModalFrame";
 
 export interface AddPersonInput {
+  idempotencyKey: string;
   displayName: string;
   role: Extract<AuthAdminRole, "admin" | "trusted">;
   delivery: AuthSetupDeliveryInput;
   peerId?: string;
+}
+
+export interface SubmissionLock {
+  current: boolean;
+}
+
+export async function runSingleSubmission(
+  lock: SubmissionLock,
+  operation: () => Promise<void>,
+): Promise<boolean> {
+  if (lock.current) return false;
+  lock.current = true;
+  try {
+    await operation();
+    return true;
+  } finally {
+    lock.current = false;
+  }
 }
 
 export function AddPersonDialog(props: {
@@ -22,6 +41,9 @@ export function AddPersonDialog(props: {
   const [deliveryType, setDeliveryType] = useState<"email" | "discord">(
     "email",
   );
+  const [submitting, setSubmitting] = useState(false);
+  const submissionLock = useRef(false);
+  const idempotencyKey = useRef(globalThis.crypto.randomUUID()).current;
 
   return (
     <ModalFrame
@@ -31,6 +53,7 @@ export function AddPersonDialog(props: {
       onClose={props.onClose}
       onSubmit={(event) => {
         event.preventDefault();
+        if (submissionLock.current) return;
         const data = new FormData(event.currentTarget);
         const peerId = String(data.get("peerId") ?? "").trim();
         const deliverySubject = String(
@@ -45,20 +68,25 @@ export function AddPersonDialog(props: {
                 subject: deliverySubject,
                 label: discordLabel,
               };
-        void props.onCreate({
+        const input = {
+          idempotencyKey,
           displayName: String(data.get("displayName") ?? "").trim(),
           role: String(data.get("role") ?? "trusted") as AddPersonInput["role"],
           delivery,
           ...(peerId ? { peerId } : {}),
-        });
+        } satisfies AddPersonInput;
+        setSubmitting(true);
+        void runSingleSubmission(submissionLock, () => props.onCreate(input))
+          .catch(() => undefined)
+          .finally(() => setSubmitting(false));
       }}
       footer={
         <>
-          <Button type="button" onClick={props.onClose}>
+          <Button type="button" onClick={props.onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" tone="primary">
-            Create invitation
+          <Button type="submit" tone="primary" disabled={submitting}>
+            {submitting ? "Creating…" : "Create invitation"}
           </Button>
         </>
       }

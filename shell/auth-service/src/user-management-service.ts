@@ -15,6 +15,7 @@ export interface AuthUserManagementServiceOptions {
   audit: AuthAuditStore;
   sessions: Pick<AuthSessionPersistence, "revokeSessionsForSubject">;
   refreshTokens: Pick<RefreshTokenPersistence, "revokeTokensForSubject">;
+  consumeTargetedSetupTokensForUser(userId: string): Promise<number>;
 }
 
 export class AuthUserManagementService {
@@ -28,12 +29,17 @@ export class AuthUserManagementService {
     RefreshTokenPersistence,
     "revokeTokensForSubject"
   >;
+  private readonly consumeTargetedSetupTokensForUser: (
+    userId: string,
+  ) => Promise<number>;
 
   constructor(options: AuthUserManagementServiceOptions) {
     this.users = options.users;
     this.audit = options.audit;
     this.sessions = options.sessions;
     this.refreshTokens = options.refreshTokens;
+    this.consumeTargetedSetupTokensForUser =
+      options.consumeTargetedSetupTokensForUser;
   }
 
   async createUser(
@@ -79,13 +85,21 @@ export class AuthUserManagementService {
     const current = await this.users.getUser(userId);
     const updated = await this.users.updateUserStatus(userId, status);
     if (current && current.status !== updated.status) {
+      const consumedSetupTokens =
+        updated.status === "suspended"
+          ? await this.consumeTargetedSetupTokensForUser(userId)
+          : 0;
       await this.revokeGrants(userId);
       await this.audit.append({
         ...auditActor(context),
         action: "auth.user.status_updated",
         targetType: "user",
         targetId: userId,
-        metadata: { from: current.status, to: updated.status },
+        metadata: {
+          from: current.status,
+          to: updated.status,
+          ...(consumedSetupTokens > 0 ? { consumedSetupTokens } : {}),
+        },
       });
     }
     return updated;

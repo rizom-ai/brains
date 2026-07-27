@@ -11,7 +11,7 @@ import {
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
 
-type AuthTextColumn<
+export type AuthTextColumn<
   TTableName extends string,
   TName extends string,
   TNotNull extends boolean,
@@ -41,7 +41,7 @@ type AuthTextColumn<
   { length: number | undefined }
 >;
 
-type AuthIntegerColumn<
+export type AuthIntegerColumn<
   TTableName extends string,
   TName extends string,
   TNotNull extends boolean,
@@ -95,7 +95,7 @@ type AuthBooleanColumn<
   Record<string, never>
 >;
 
-type AuthTable<
+export type AuthTable<
   TName extends string,
   TColumns extends Record<string, SQLiteColumn>,
 > = SQLiteTableWithColumns<{

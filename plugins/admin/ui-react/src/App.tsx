@@ -46,10 +46,24 @@ export { assuranceLabel, initials, roleLabel } from "./format";
 
 const PEER_INVITATION_STORAGE_KEY = "brains:admin-peer-invitation";
 
+export function buildInvitationMutation(
+  input: AddPersonInput,
+): Extract<AuthAdminMutation, { action: "createInvitation" }> {
+  return {
+    action: AUTH_ADMIN_MUTATION_ACTIONS.createInvitation,
+    confirmation: AUTH_ADMIN_MUTATION_ACTIONS.createInvitation,
+    idempotencyKey: input.idempotencyKey,
+    displayName: input.displayName,
+    role: input.role,
+    delivery: input.delivery,
+    ...(input.peerId ? { peerId: input.peerId } : {}),
+  };
+}
+
 interface SetupRegistration {
   setupUrl: string;
   expiresAt: number;
-  delivery: { type: "email" | "discord"; label: string };
+  delivery?: { type: "email" | "discord"; label: string };
 }
 
 export interface PeopleBootstrap {
@@ -100,7 +114,12 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   const rosterLabel = organization ? "People" : "Members";
   const rosterSingular = organization ? "person" : "member";
   const activeUsers = users.filter((user) => user.status !== "invited");
-  const invitations = users.filter((user) => user.status === "invited");
+  const invitations = users.filter((user) => user.invitation !== undefined);
+  const pendingInvitationCount = invitations.filter(
+    (user) =>
+      user.invitation &&
+      !["claimed", "expired", "cancelled"].includes(user.invitation.state),
+  ).length;
   const activeAdminCount = users.filter(
     (user) => user.role === "admin" && user.status === "active",
   ).length;
@@ -111,7 +130,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   );
   const [view, setView] = useState<SurfaceView>("overview");
   const [modal, setModal] = useState<Modal>(null);
-  const { feedback, runWithFeedback } = useMutationFeedback();
+  const { feedback, setFeedback, runWithFeedback } = useMutationFeedback();
   const { mutateAsync: runAdminMutation } = useMutation({
     mutationFn: (mutation: AuthAdminMutation) => mutateAdmin<unknown>(mutation),
     onSuccess: async (_result, mutation) =>
@@ -183,7 +202,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   const showSetup = (
     user: { userId: string; displayName: string },
     registration: SetupRegistration,
-    destination = registration.delivery.label,
+    destination = registration.delivery?.label ?? "the confirmed channel",
   ): void => {
     setSelectedUserId(user.userId);
     setModal({
@@ -194,79 +213,81 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   };
 
   const createSetup = (user: AuthAdminUserSummary): void => {
+    if (!user.invitation) return;
     void runMutation(
       {
-        action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-        userId: user.userId,
+        action: AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation,
+        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation,
+        invitationId: user.invitation.id,
       },
       user.userId,
-      "Setup link created",
+      "Invitation retry recorded",
     )
       .then((result) => {
-        const registration = (result as { registration: SetupRegistration })
-          .registration;
-        showSetup(user, registration);
+        const resent = result as {
+          invitation: { state: string };
+          registration: SetupRegistration;
+        };
+        if (resent.invitation.state === "failed") {
+          setFeedback({
+            tone: "error",
+            message:
+              "Invitation saved, but delivery failed. Check email delivery configuration before retrying.",
+          });
+          return;
+        }
+        setFeedback({ message: "Invitation resent", tone: "good" });
+        const destination =
+          user.identities.find(
+            (identity) =>
+              identity.type === "email" || identity.type === "discord",
+          )?.label ?? "the confirmed channel";
+        showSetup(user, resent.registration, destination);
       })
       .catch(() => undefined);
   };
 
   const createInvitation = async (input: AddPersonInput): Promise<void> => {
-    if (input.peerId) {
-      const result = await runMutation(
-        {
-          action: AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson,
-          confirmation: AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson,
-          peerId: input.peerId,
-          displayName: input.displayName,
-          role: input.role,
-          delivery: input.delivery,
-        },
-        undefined,
-        "Invitation created",
-      );
-      const invited = result as {
-        user: { userId: string; displayName: string };
-        registration: SetupRegistration;
-      };
-      showSetup(
-        invited.user,
-        invited.registration,
-        input.delivery.type === "email"
-          ? input.delivery.subject
-          : input.delivery.label,
-      );
+    const created = (await runMutation(
+      buildInvitationMutation(input),
+      undefined,
+      "Invitation recorded",
+    )) as {
+      invitation: { state: string };
+      user: { userId: string; displayName: string };
+      registration?: SetupRegistration;
+    };
+    if (!created.registration || created.invitation.state === "failed") {
+      setSelectedUserId(created.user.userId);
+      setView("invitations");
+      closeModal();
+      if (created.invitation.state === "failed") {
+        setFeedback({
+          tone: "error",
+          message:
+            "Invitation saved, but delivery failed. Configure email delivery or retry from Invitations.",
+        });
+      }
       return;
     }
-
-    const created = (await runMutation(
-      {
-        action: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
-        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.createUser,
-        displayName: input.displayName,
-        role: input.role,
-        status: "invited",
-      },
-      undefined,
-      "Invitation created",
-    )) as { user: { userId: string; displayName: string } };
-    const setup = (await runMutation(
-      {
-        action: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration,
-        userId: created.user.userId,
-        delivery: input.delivery,
-      },
-      created.user.userId,
-      "Setup link created",
-    )) as { registration: SetupRegistration };
-    showSetup(
-      created.user,
-      setup.registration,
+    const destination =
       input.delivery.type === "email"
         ? input.delivery.subject
-        : input.delivery.label,
-    );
+        : input.delivery.label;
+    if (
+      input.delivery.type === "email" &&
+      created.invitation.state === "sent"
+    ) {
+      setFeedback({ message: "Invitation email sent", tone: "good" });
+      setSelectedUserId(created.user.userId);
+      setModal({
+        kind: "setup",
+        setupUrl: created.registration.setupUrl,
+        copy: `The invitation email to ${destination} was accepted by the delivery provider. The single-use link expires ${formatDate(created.registration.expiresAt * 1000)}.`,
+      });
+      return;
+    }
+    showSetup(created.user, created.registration, destination);
   };
 
   const openMembers = (): void => setView("members");
@@ -309,8 +330,8 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                 {section === "members"
                   ? rosterLabel
                   : section[0]?.toUpperCase() + section.slice(1)}
-                {section === "invitations" && invitations.length > 0 ? (
-                  <small>{invitations.length}</small>
+                {section === "invitations" && pendingInvitationCount > 0 ? (
+                  <small>{pendingInvitationCount}</small>
                 ) : null}
               </button>
             ),
@@ -383,13 +404,13 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                   "The person and peer association remain in audit history.",
                 submitLabel: "Cancel invitation",
                 run: async () => {
+                  if (!user.invitation) return;
                   await runMutation(
                     {
-                      action: AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
+                      action: AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation,
                       confirmation:
-                        AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus,
-                      userId: user.userId,
-                      status: "suspended",
+                        AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation,
+                      invitationId: user.invitation.id,
                     },
                     undefined,
                     "Invitation cancelled",

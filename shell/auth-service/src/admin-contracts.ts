@@ -16,6 +16,8 @@ export const AUTH_ADMIN_IDENTITY_TYPES = [
   "a2a",
 ] as const;
 export const AUTH_ADMIN_MUTATION_ACTIONS = {
+  cancelInvitation: "cancelInvitation",
+  createInvitation: "createInvitation",
   createUser: "createUser",
   inviteExternalPeerPerson: "inviteExternalPeerPerson",
   linkExternalPeer: "linkExternalPeer",
@@ -24,6 +26,7 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
   deleteUser: "deleteUser",
   attachIdentity: "attachIdentity",
   detachIdentity: "detachIdentity",
+  resendInvitation: "resendInvitation",
   revokePasskey: "revokePasskey",
   startPasskeyRegistration: "startPasskeyRegistration",
   revokeUserSessions: "revokeUserSessions",
@@ -38,6 +41,14 @@ export type AuthAdminIdentityType =
   "passkey" | (typeof AUTH_ADMIN_IDENTITY_TYPES)[number];
 export type AuthAdminMutationAction =
   (typeof AUTH_ADMIN_MUTATION_ACTIONS)[keyof typeof AUTH_ADMIN_MUTATION_ACTIONS];
+export type AuthInvitationState =
+  | "pending"
+  | "sending"
+  | "sent"
+  | "claimed"
+  | "expired"
+  | "cancelled"
+  | "failed";
 export type AuthIdentityVisibility = "private" | "trusted" | "public";
 export type AuthIdentitySourceKind =
   "admin" | "agent" | "migration" | "provider";
@@ -101,8 +112,22 @@ export interface AuthExternalPeerSummary {
   updatedAt: number;
 }
 
+export interface AuthInvitationSummary {
+  id: string;
+  userId: string;
+  state: AuthInvitationState;
+  failureCode?: string;
+  createdAt: number;
+  updatedAt: number;
+  sentAt?: number;
+  claimedAt?: number;
+  expiredAt?: number;
+  cancelledAt?: number;
+}
+
 export interface AuthAdminUserSummary extends AuthAdminPrincipal {
   profileEntityId?: string;
+  invitation?: AuthInvitationSummary;
   identities: AuthIdentitySummary[];
   passkeys: AuthPasskeySummary[];
   externalPeers: AuthExternalPeerSummary[];
@@ -163,6 +188,25 @@ export interface AuthIdentityReconciliationResponse {
 }
 
 export type AuthAdminMutation =
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
+      invitationId: string;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createInvitation;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createInvitation;
+      idempotencyKey: string;
+      displayName: string;
+      role: Extract<AuthAdminRole, "admin" | "trusted">;
+      delivery: AuthSetupDeliveryInput;
+      peerId?: string;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation;
+      invitationId: string;
+    }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;

@@ -45,6 +45,7 @@ export interface TargetedSetupStatePersistence extends SetupStatePersistence {
     { targetUserId: string | null; deliveryClaimId: string | null } | undefined
   >;
   consumeSetupToken(token: string): Promise<void>;
+  consumeTargetedSetupTokensForUser(userId: string): Promise<number>;
 }
 
 export function setupTokenId(token: string): string {
@@ -231,6 +232,20 @@ export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
           isNull(setupTokens.consumedAt),
         ),
       );
+  }
+
+  async consumeTargetedSetupTokensForUser(userId: string): Promise<number> {
+    const consumed = await this.database.db
+      .update(setupTokens)
+      .set({ consumedAt: Math.floor(Date.now() / 1000) })
+      .where(
+        and(
+          eq(setupTokens.targetUserId, userId),
+          isNull(setupTokens.consumedAt),
+        ),
+      )
+      .returning({ tokenHash: setupTokens.tokenHash });
+    return consumed.length;
   }
 
   async clearSetupState(): Promise<void> {
