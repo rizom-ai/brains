@@ -13,6 +13,14 @@ interface RegistryVersionMetadata extends PublishedPackageManifest {
   dist?: { tarball?: string };
 }
 
+/**
+ * A fetch/propagation failure that is worth retrying. Compatibility violations
+ * are NOT transient: retrying them only delays and obscures the failure, which
+ * is how a real packument corruption was reported as "metadata is not ready"
+ * for eight attempts instead of being named on the first.
+ */
+class TransientRegistryError extends Error {}
+
 const repositoryRoot = process.cwd();
 const maxAttempts = parsePositiveInteger(
   process.env["PUBLISHED_METADATA_ATTEMPTS"],
@@ -80,6 +88,11 @@ async function verifyWithRetries(
       return;
     } catch (error) {
       lastError = error;
+      // Only propagation/fetch failures are retryable. A compatibility
+      // violation is a real defect in what was published: fail fast and name it.
+      if (!(error instanceof TransientRegistryError)) {
+        throw error;
+      }
       if (attempt === maxAttempts) {
         break;
       }
@@ -111,7 +124,7 @@ async function fetchRegistryManifest(
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    throw new Error(
+    throw new TransientRegistryError(
       `Registry returned ${response.status} for ${target.name}@${target.version}`,
     );
   }
@@ -124,7 +137,7 @@ async function fetchTarballManifest(
 ): Promise<PublishedPackageManifest> {
   const tarballUrl = registryManifest.dist?.tarball;
   if (typeof tarballUrl !== "string") {
-    throw new Error(
+    throw new TransientRegistryError(
       `${target.name}@${target.version} registry metadata has no dist.tarball`,
     );
   }
@@ -133,7 +146,7 @@ async function fetchTarballManifest(
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    throw new Error(
+    throw new TransientRegistryError(
       `Tarball download returned ${response.status} for ${target.name}@${target.version}`,
     );
   }

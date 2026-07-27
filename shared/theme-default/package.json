@@ -32,7 +32,6 @@
     "build": "bun scripts/build.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",

@@ -69,6 +69,29 @@ test("deployable site and theme inventory declares brain compatibility", async (
   }
 });
 
+test("publishable packages do not restore their manifest mid-publish", async () => {
+  // npm derives the registry packument from the on-disk package.json AFTER
+  // postpack runs, while the tarball is packed from the prepared manifest. A
+  // `postpack: publish-manifest restore` therefore ships a correct tarball with
+  // a broken packument (authoring-only fields retained, workspace: ranges
+  // unresolved) — the alpha.144/145 and alpha.231/232 failures. Restoring is
+  // the release wrapper's job (runWithPreparedPublishManifests), once, after
+  // the whole publish completes.
+  const packages = await getPackages(repositoryRoot);
+  const offenders = packages.packages
+    .filter(({ packageJson }) => {
+      const scripts = (packageJson as { scripts?: Record<string, string> })
+        .scripts;
+      return (
+        packageJson.private !== true &&
+        scripts?.["postpack"]?.startsWith("publish-manifest restore") === true
+      );
+    })
+    .map(({ packageJson }) => packageJson.name);
+
+  expect(offenders).toEqual([]);
+});
+
 test("public site and theme packages release independently", async () => {
   const siteRelease = await releasedPackagesFor("@rizom/site-smoke-canary");
   expect([...siteRelease].filter(isPublicSiteOrTheme)).toEqual([
