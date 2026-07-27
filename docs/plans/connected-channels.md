@@ -45,10 +45,13 @@ channelDescriptor?: {
   displayName: string;      // "Slack"
   subjectLabel: string;     // "Slack member ID"
   subjectPattern?: RegExp;  // optional client + server validation
+  delivery?: boolean;       // interface can deliver a private message to a subject
 }
 ```
 
 Interfaces that represent a human-facing channel set it; interfaces that don't (headless/machine) omit it and are not offered as connectable channels. The shell exposes the registered channel descriptors to the auth service (for type validation) and the console (for the connect form).
+
+`delivery` declares whether the interface can push a private message to a channel subject (invitation setup links, notifications). The invitation flow's capability preflight and send dispatch ([auth-runtime-db Phase 10](./auth-runtime-db.md)) consult this bit instead of enumerating channel types: a channel without `delivery` is manual-only — invitations on it stay `pending` until an audited admin delivery confirmation, and no delivery confirmation is ever recorded from link creation alone.
 
 ## Resolution
 
