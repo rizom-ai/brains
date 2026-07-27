@@ -116,6 +116,13 @@ export class DiscordInterface extends MessageInterfacePlugin<
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    context.channels.registerDescriptor({
+      type: "discord",
+      displayName: "Discord",
+      subjectLabel: "Discord user ID",
+      subjectPattern: { source: "^[0-9]{17,20}$" },
+      manualDelivery: true,
+    });
 
     // Create Discord client during registration (not daemon start)
     this.client = new Client({

@@ -15,6 +15,20 @@ export type AuthIdentityType = AuthIdentity["type"];
 export type AuthIdentitySourceKind = AuthIdentityEvidence["sourceKind"];
 export type AuthIdentityVisibility = AuthIdentity["visibility"];
 
+export const AUTH_RESERVED_IDENTITY_TYPES = [
+  "passkey",
+  "oauth",
+  "did",
+  "a2a",
+  "mcp",
+] as const;
+
+const LEGACY_CHANNEL_IDENTITY_TYPES = ["email", "discord"] as const;
+
+export interface AuthIdentityStoreOptions {
+  isChannelTypeRegistered?: (type: string) => boolean;
+}
+
 export interface AuthIdentityRecord extends AuthIdentity {
   evidence: AuthIdentityEvidence[];
   verifiedAt: number | null;
@@ -45,9 +59,12 @@ export type AuthIdentityLookupResult =
 
 export class AuthIdentityStore {
   private readonly db: AuthRuntimeDB;
+  private readonly isChannelTypeRegistered:
+    ((type: string) => boolean) | undefined;
 
-  constructor(db: AuthRuntimeDB) {
+  constructor(db: AuthRuntimeDB, options: AuthIdentityStoreOptions = {}) {
     this.db = db;
+    this.isChannelTypeRegistered = options.isChannelTypeRegistered;
   }
 
   async ensureIdentity(
@@ -73,6 +90,7 @@ export class AuthIdentityStore {
   async attachIdentity(
     input: AttachAuthIdentityInput,
   ): Promise<AuthIdentityRecord> {
+    assertValidIdentityType(input.type, this.isChannelTypeRegistered);
     const user = await this.requireUser(input.userId);
     const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
     const sourceKind = input.source?.kind ?? "admin";
@@ -322,6 +340,21 @@ function identityRecordFromEvidence(
       : Math.max(latest, item.verifiedAt);
   }, null);
   return { ...claim, evidence, verifiedAt };
+}
+
+export function assertValidIdentityType(
+  type: string,
+  isChannelTypeRegistered?: (type: string) => boolean,
+): void {
+  if (
+    (AUTH_RESERVED_IDENTITY_TYPES as readonly string[]).includes(type) ||
+    (isChannelTypeRegistered
+      ? isChannelTypeRegistered(type)
+      : (LEGACY_CHANNEL_IDENTITY_TYPES as readonly string[]).includes(type))
+  ) {
+    return;
+  }
+  throw new Error(`Unsupported auth identity type: "${type}"`);
 }
 
 export function normalizeIdentityKey(input: ResolveAuthIdentityInput): string {

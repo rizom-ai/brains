@@ -61,13 +61,16 @@ describe("Startup Initialization Order", () => {
       );
     });
 
-    it("should finalize profile composition before initial sync", () => {
+    it("should finalize profile and channel composition before initial sync", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
       const initializePluginsIndex = source.indexOf(
         "shellInitializer.initializeAll",
       );
       const finalizeCatalogIndex = source.indexOf(
         "profileKindRegistry.finalize()",
+      );
+      const finalizeChannelsIndex = source.indexOf(
+        "channelRegistry.finalize()",
       );
       const finalizePluginsIndex = source.indexOf(
         "pluginManager.finalizePluginRegistrations()",
@@ -78,7 +81,8 @@ describe("Startup Initialization Order", () => {
 
       expect(initializePluginsIndex).toBeGreaterThan(-1);
       expect(finalizeCatalogIndex).toBeGreaterThan(initializePluginsIndex);
-      expect(finalizePluginsIndex).toBeGreaterThan(finalizeCatalogIndex);
+      expect(finalizeChannelsIndex).toBeGreaterThan(finalizeCatalogIndex);
+      expect(finalizePluginsIndex).toBeGreaterThan(finalizeChannelsIndex);
       expect(pluginsRegisteredIndex).toBeGreaterThan(finalizePluginsIndex);
     });
 

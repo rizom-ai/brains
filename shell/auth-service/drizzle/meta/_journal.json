@@ -71,6 +71,13 @@
       "when": 1785064040129,
       "tag": "0009_wild_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1785139111015,
+      "tag": "0010_mixed_red_skull",
+      "breakpoints": true
     }
   ]
 }

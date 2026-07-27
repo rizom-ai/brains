@@ -34,6 +34,7 @@ export interface AuthAccountServiceOptions {
   refreshTokens: RuntimeRefreshTokenStore;
   passkeys: PasskeyService;
   audit: AuthAuditStore;
+  isChannelTypeRegistered?: (channelType: string) => boolean;
 }
 
 export class AuthAccountService {
@@ -44,6 +45,8 @@ export class AuthAccountService {
   private readonly refreshTokens: RuntimeRefreshTokenStore;
   private readonly passkeys: PasskeyService;
   private readonly audit: AuthAuditStore;
+  private readonly isChannelTypeRegistered:
+    ((channelType: string) => boolean) | undefined;
 
   constructor(options: AuthAccountServiceOptions) {
     this.users = options.users;
@@ -53,6 +56,7 @@ export class AuthAccountService {
     this.refreshTokens = options.refreshTokens;
     this.passkeys = options.passkeys;
     this.audit = options.audit;
+    this.isChannelTypeRegistered = options.isChannelTypeRegistered;
   }
 
   async getSnapshot(context: AuthAccountContext): Promise<AuthAccountSnapshot> {
@@ -70,7 +74,9 @@ export class AuthAccountService {
       role: user.role,
       ...(profileEntityId ? { profileEntityId } : {}),
       passkeys: passkeys.map(passkeySummary),
-      connectedChannels: identities.flatMap(connectedChannelSummary),
+      connectedChannels: identities.flatMap((identity) =>
+        connectedChannelSummary(identity, this.isChannelTypeRegistered),
+      ),
       sessions: sessions.map((session) =>
         sessionSummary(session, context.sessionId),
       ),
@@ -282,11 +288,14 @@ function passkeySummary(passkey: StoredPasskey): AuthAccountPasskey {
 
 function connectedChannelSummary(
   identity: AuthIdentityRecord,
+  isChannelTypeRegistered?: (channelType: string) => boolean,
 ): AuthAccountConnectedChannel[] {
   if (
-    identity.type === "passkey" ||
     identity.revokedAt !== null ||
-    identity.verifiedAt === null
+    identity.verifiedAt === null ||
+    (isChannelTypeRegistered
+      ? !isChannelTypeRegistered(identity.type)
+      : !identity.deliverySubject && !identity.label)
   ) {
     return [];
   }
@@ -300,7 +309,7 @@ function connectedChannelSummary(
 }
 
 function connectedChannelLabel(identity: AuthIdentityRecord): string {
-  const value = identity.deliverySubject ?? identity.label;
+  const value = identity.label ?? identity.deliverySubject;
   if (value?.trim()) return value.trim();
   return `${titleCase(identity.type)} account`;
 }

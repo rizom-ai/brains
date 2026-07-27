@@ -23,6 +23,7 @@ import {
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
   type IAttachmentsNamespace,
+  type IChannelRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -638,6 +639,10 @@ export class Shell implements IShell {
 
   public getProfileKindRegistry(): IProfileKindRegistry {
     return this.services.profileKindRegistry;
+  }
+
+  public getChannelRegistry(): IChannelRegistry {
+    return this.services.channelRegistry;
   }
 
   public getDomain(): string | undefined {

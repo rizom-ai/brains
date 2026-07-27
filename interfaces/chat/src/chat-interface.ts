@@ -194,11 +194,25 @@ export class ChatInterface extends MessageInterfacePlugin<
   ): Promise<void> {
     await super.onRegister(context);
     if (this.config.adapters.discord) {
+      context.channels.registerDescriptor({
+        type: "discord",
+        displayName: "Discord",
+        subjectLabel: "Discord user ID",
+        subjectPattern: { source: "^[0-9]{17,20}$" },
+        manualDelivery: true,
+      });
       this.discordSubscriptions = createDiscordThreadSubscriptionStore(
         context.runtimeState,
       );
     }
     if (this.config.adapters.slack) {
+      context.channels.registerDescriptor({
+        type: "slack",
+        displayName: "Slack",
+        subjectLabel: "Slack member ID",
+        subjectPattern: { source: "^[UW][A-Z0-9]+$" },
+        manualDelivery: true,
+      });
       this.slackSubscriptions = createSlackThreadSubscriptionStore(
         context.runtimeState,
       );

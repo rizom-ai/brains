@@ -1,3 +1,4 @@
+import type { ChannelDescriptor } from "@brains/plugins";
 import type { AuthSetupDeliveryInput } from "./admin-contracts";
 import type { AuthAuditStore } from "./audit-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
@@ -15,7 +16,7 @@ export interface UserPasskeyRegistration {
   setupUrl: string;
   expiresAt: number;
   delivery: {
-    type: "email" | "discord";
+    type: string;
     label: string;
   };
 }
@@ -27,6 +28,7 @@ export interface PasskeySetupCoordinatorOptions {
   audit: AuthAuditStore;
   setupFlow: SetupFlow;
   targetedSetup: TargetedSetupService;
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
 }
 
 export class PasskeySetupCoordinator {
@@ -36,6 +38,8 @@ export class PasskeySetupCoordinator {
   private readonly audit: AuthAuditStore;
   private readonly setupFlow: SetupFlow;
   private readonly targetedSetup: TargetedSetupService;
+  private readonly getChannelDescriptor:
+    ((channelType: string) => ChannelDescriptor | undefined) | undefined;
 
   constructor(options: PasskeySetupCoordinatorOptions) {
     this.issuer = options.issuer;
@@ -44,6 +48,7 @@ export class PasskeySetupCoordinator {
     this.audit = options.audit;
     this.setupFlow = options.setupFlow;
     this.targetedSetup = options.targetedSetup;
+    this.getChannelDescriptor = options.getChannelDescriptor;
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {
@@ -87,9 +92,8 @@ export class PasskeySetupCoordinator {
       delivery: {
         type: deliveryIdentity.type,
         label:
-          deliveryIdentity.type === "email"
-            ? "Email address"
-            : (deliveryIdentity.label ?? "Discord account"),
+          this.getChannelDescriptor?.(deliveryIdentity.type)?.subjectLabel ??
+          "Delivery channel",
       },
     };
   }
@@ -166,18 +170,12 @@ export class PasskeySetupCoordinator {
 
   private async resolveStoredDeliveryIdentity(
     userId: string,
-  ): Promise<
-    AuthIdentityRecord & { type: "email" | "discord"; deliverySubject: string }
-  > {
+  ): Promise<AuthIdentityRecord & { deliverySubject: string }> {
     const identities = (await this.identities.listIdentities(userId)).filter(
       (
         identity,
-      ): identity is AuthIdentityRecord & {
-        type: "email" | "discord";
-        deliverySubject: string;
-      } =>
+      ): identity is AuthIdentityRecord & { deliverySubject: string } =>
         identity.revokedAt === null &&
-        (identity.type === "email" || identity.type === "discord") &&
         Boolean(identity.deliverySubject) &&
         identity.evidence.some(
           (evidence) =>
@@ -187,9 +185,7 @@ export class PasskeySetupCoordinator {
     );
     const identity = identities.at(-1);
     if (!identity) {
-      throw new Error(
-        "A confirmed email or Discord delivery channel is required",
-      );
+      throw new Error("A confirmed delivery channel is required");
     }
     return identity;
   }
@@ -197,27 +193,21 @@ export class PasskeySetupCoordinator {
   private async prepareDeliveryIdentity(
     userId: string,
     delivery: AuthSetupDeliveryInput,
-  ): Promise<
-    AuthIdentityRecord & {
-      type: "email" | "discord";
-      deliverySubject: string;
-    }
-  > {
+  ): Promise<AuthIdentityRecord & { deliverySubject: string }> {
     const subject = delivery.subject.trim();
-    const normalizedSubject =
-      delivery.type === "email" ? subject.toLowerCase() : subject;
+    const deliveryLabel = delivery.label?.trim();
     const { identity } = await this.identities.ensureIdentity({
       userId,
       type: delivery.type,
-      subject: normalizedSubject,
-      deliverySubject: normalizedSubject,
+      subject,
+      deliverySubject: subject,
       label:
-        delivery.type === "email" ? normalizedSubject : delivery.label.trim(),
+        deliveryLabel && deliveryLabel.length > 0 ? deliveryLabel : subject,
       source: { kind: "admin" },
     });
-    return identity as AuthIdentityRecord & {
-      type: "email" | "discord";
-      deliverySubject: string;
-    };
+    if (!identity.deliverySubject) {
+      throw new Error("Delivery identity subject was not persisted");
+    }
+    return { ...identity, deliverySubject: identity.deliverySubject };
   }
 }

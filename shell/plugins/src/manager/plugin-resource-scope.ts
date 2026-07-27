@@ -239,6 +239,28 @@ export function createPluginScopedShell(
     },
   });
 
+  const channelRegistry = shell.getChannelRegistry();
+  const scopedChannelRegistry = new Proxy(channelRegistry, {
+    get(target, property): unknown {
+      const value = Reflect.get(target, property, target) as unknown;
+      if (
+        (property === "registerDescriptor" ||
+          property === "registerDeliveryProvider") &&
+        typeof value === "function"
+      ) {
+        return (...args: unknown[]): unknown => {
+          const result = Reflect.apply(value, target, args);
+          const pluginId = args[0];
+          if (typeof pluginId === "string") {
+            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
+          }
+          return result;
+        };
+      }
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
   const dataSourceRegistry = shell.getDataSourceRegistry();
   const scopedDataSourceRegistry = new Proxy(dataSourceRegistry, {
     get(target, property): unknown {
@@ -299,6 +321,9 @@ export function createPluginScopedShell(
       }
       if (property === "getProfileKindRegistry") {
         return () => scopedProfileKindRegistry;
+      }
+      if (property === "getChannelRegistry") {
+        return () => scopedChannelRegistry;
       }
       if (property === "getInsightsRegistry") {
         return () => scopedInsightsRegistry;

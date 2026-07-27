@@ -15,6 +15,51 @@ afterEach(async () => {
 });
 
 describe("AuthIdentityStore", () => {
+  it("accepts reserved and registered channel types while rejecting unknown types", async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-identities-"));
+    tempDirs.push(storageDir);
+    const database = new AuthRuntimeDatabase({ storageDir });
+    await database.start();
+    try {
+      const users = new AuthUserStore(database.db);
+      const identities = new AuthIdentityStore(database.db, {
+        isChannelTypeRegistered: (type): boolean => type === "slack",
+      });
+      const user = await users.createUser({ displayName: "Identity Owner" });
+
+      expect(
+        await identities.attachIdentity({
+          userId: user.id,
+          type: "slack",
+          subject: "U123ABC",
+        }),
+      ).toMatchObject({ type: "slack" });
+      let unsupportedError: unknown;
+      try {
+        await identities.attachIdentity({
+          userId: user.id,
+          type: "unknown-channel",
+          subject: "subject",
+        });
+      } catch (error) {
+        unsupportedError = error;
+      }
+      expect(unsupportedError).toBeInstanceOf(Error);
+      expect(
+        unsupportedError instanceof Error ? unsupportedError.message : "",
+      ).toBe('Unsupported auth identity type: "unknown-channel"');
+      expect(
+        await identities.attachIdentity({
+          userId: user.id,
+          type: "passkey",
+          subject: "credential-1",
+        }),
+      ).toMatchObject({ type: "passkey" });
+    } finally {
+      await database.stop();
+    }
+  });
+
   it("owns identity claims, evidence, and access resolution independently", async () => {
     const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-identities-"));
     tempDirs.push(storageDir);

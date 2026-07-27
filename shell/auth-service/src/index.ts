@@ -10,7 +10,6 @@ export type {
   AuthAccountSnapshot,
 } from "./account-contracts";
 export {
-  AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
   AUTH_BRAIN_ANCHOR_KINDS,
@@ -25,6 +24,7 @@ export type {
   AuthAdminRole,
   AuthAdminStatus,
   AuthAdminAuditResponse,
+  AuthAdminChannelsResponse,
   AuthAdminUserSummary,
   AuthAdminUsersResponse,
   AuthAuditEventSummary,
@@ -42,6 +42,7 @@ export type {
   AuthIdentitySummary,
   AuthIdentityVisibility as AuthAdminIdentityVisibility,
   AuthInvitationState,
+  AuthInvitationChannelSummary,
   AuthInvitationSummary,
   AuthPasskeySummary,
 } from "./admin-contracts";
@@ -91,8 +92,8 @@ export type {
   AuthInvitationServiceOptions,
   CreateInvitationInput,
   CreateInvitationResult,
-  InvitationEmailInput,
-  InvitationEmailResult,
+  InvitationDeliveryInput,
+  InvitationDeliveryResult,
 } from "./invitation-service";
 export type { AuthMutationContext } from "./mutation-context";
 export type {
@@ -101,7 +102,9 @@ export type {
   AuthPrincipal,
 } from "./principal-service";
 export {
+  AUTH_RESERVED_IDENTITY_TYPES,
   AuthIdentityStore,
+  assertValidIdentityType,
   hashIdentityKey,
   normalizeIdentityKey,
 } from "./identity-store";
@@ -109,6 +112,7 @@ export type {
   AttachAuthIdentityInput,
   AuthIdentityRecord,
   AuthIdentitySourceKind,
+  AuthIdentityStoreOptions,
   AuthIdentityType,
   AuthIdentityVisibility,
   ResolveAuthIdentityInput,

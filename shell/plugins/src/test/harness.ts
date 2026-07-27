@@ -135,6 +135,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       throw new Error("No plugin installed. Call installPlugin() first.");
     }
     this.mockShell.getProfileKindRegistry().finalize();
+    this.mockShell.getChannelRegistry().finalize();
     await this.plugin.finalizeRegistration?.();
   }
 

@@ -52,6 +52,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
+import type { IChannelRegistry } from "./channel-registry";
 import type {
   AnchorProfile,
   BrainCharacter,
@@ -310,6 +311,7 @@ export interface IShell {
   getIdentity(): BrainCharacter;
   getProfile(): AnchorProfile;
   getProfileKindRegistry(): IProfileKindRegistry;
+  getChannelRegistry(): IChannelRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;

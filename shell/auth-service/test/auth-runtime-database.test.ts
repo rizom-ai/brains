@@ -170,7 +170,7 @@ describe("AuthRuntimeDatabase", () => {
     }
   });
 
-  it("preserves authorization and identity enum constraints", async () => {
+  it("preserves authorization constraints while channel identity types remain extensible", async () => {
     const storageDir = await tempStorageDir();
     const database = new AuthRuntimeDatabase({ storageDir });
     await database.start();
@@ -181,21 +181,7 @@ describe("AuthRuntimeDatabase", () => {
           "auth_users",
           ["admin", "trusted", "public", "active", "invited", "suspended"],
         ],
-        [
-          "person_identity_claims",
-          [
-            "passkey",
-            "discord",
-            "mcp",
-            "oauth",
-            "email",
-            "did",
-            "a2a",
-            "private",
-            "trusted",
-            "public",
-          ],
-        ],
+        ["person_identity_claims", ["private", "trusted", "public"]],
         [
           "auth_identity_evidence",
           ["admin", "agent", "migration", "provider", "asserted", "verified"],
@@ -214,6 +200,9 @@ describe("AuthRuntimeDatabase", () => {
         const definition = String(result.rows[0]?.["sql"]);
         expect(definition).toContain("CHECK");
         for (const value of values) expect(definition).toContain(`'${value}'`);
+        if (table === "person_identity_claims") {
+          expect(definition).not.toContain("person_identity_claims_type_check");
+        }
       }
     } finally {
       await database.stop();
@@ -450,7 +439,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(10);
+      expect(migrations.rows).toHaveLength(11);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

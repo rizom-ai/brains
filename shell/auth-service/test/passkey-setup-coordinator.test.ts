@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ChannelDescriptor } from "@brains/plugins";
 import { AuthAuditStore } from "../src/audit-store";
 import { AuthIdentityStore } from "../src/identity-store";
 import { PasskeyService } from "../src/passkey-service";
@@ -42,6 +43,14 @@ describe("PasskeySetupCoordinator", () => {
         audit: new AuthAuditStore(database.db),
         setupFlow,
         targetedSetup: new TargetedSetupService(database.db, identities),
+        getChannelDescriptor: (channelType): ChannelDescriptor | undefined =>
+          channelType === "email"
+            ? {
+                type: "email",
+                displayName: "Email",
+                subjectLabel: "Email address",
+              }
+            : undefined,
       });
       const user = await users.createUser({
         displayName: "Invited Person",

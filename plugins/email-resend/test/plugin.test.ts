@@ -4,6 +4,48 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { EmailResendPlugin, type EmailSendResult } from "../src";
 
 describe("EmailResendPlugin", () => {
+  it("registers an Email delivery provider only when fully configured", async () => {
+    const configuredHarness = createPluginHarness<EmailResendPlugin>();
+    configuredHarness
+      .getMockShell()
+      .getChannelRegistry()
+      .registerDescriptor("notifications", {
+        type: "email",
+        displayName: "Email",
+        subjectLabel: "Email address",
+      });
+    await configuredHarness.installPlugin(
+      new EmailResendPlugin({
+        apiKey: "resend-key",
+        from: "Rover <setup@example.com>",
+      }),
+    );
+    await configuredHarness.finalizeRegistration();
+    const provider = configuredHarness
+      .getMockShell()
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+    expect(await provider?.isAvailable()).toBe(true);
+
+    const disabledHarness = createPluginHarness<EmailResendPlugin>();
+    disabledHarness
+      .getMockShell()
+      .getChannelRegistry()
+      .registerDescriptor("notifications", {
+        type: "email",
+        displayName: "Email",
+        subjectLabel: "Email address",
+      });
+    await disabledHarness.installPlugin(new EmailResendPlugin());
+    await disabledHarness.finalizeRegistration();
+    expect(
+      disabledHarness
+        .getMockShell()
+        .getChannelRegistry()
+        .getDeliveryProvider("email"),
+    ).toBeUndefined();
+  });
+
   it("sends generic email messages through Resend", async () => {
     const fetchImpl = mock(
       async (_input: string | URL | Request) =>

@@ -18,6 +18,10 @@ import type {
 } from "@brains/identity-service";
 import type { EvalHandler, InsightHandler } from "../interfaces";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "../channel-registry";
 
 /**
  * Handler for typed channel subscriptions
@@ -94,6 +98,15 @@ export interface IProfileKindsNamespace {
 
   /** Read the selected definition, including its field schema. */
   getSelectedDefinition(): ProfileKindDefinition | undefined;
+}
+
+/** App-scoped channel metadata and delivery providers. */
+export interface IChannelsNamespace {
+  registerDescriptor(descriptor: ChannelDescriptor): void;
+  registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
+  listDescriptors(): ChannelDescriptor[];
+  getDescriptor(channelType: string): ChannelDescriptor | undefined;
+  getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
 }
 
 /**

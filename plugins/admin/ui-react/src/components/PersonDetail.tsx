@@ -4,6 +4,7 @@ import {
   type AuthAdminMutation,
   type AuthAdminRole,
   type AuthAdminUserSummary,
+  type AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
 import { cmsEntityHref, formatDate, initials, roleLabel } from "../format";
@@ -14,6 +15,7 @@ export function PersonDetail(props: {
   user: AuthAdminUserSummary | undefined;
   brainName: string;
   activeAdminCount: number;
+  channels: AuthInvitationChannelSummary[];
   /** The signed-in admin's own user id; their row defers to /account. */
   selfUserId: string;
   onConfirm: (confirmation: Confirmation) => void;
@@ -57,11 +59,14 @@ export function PersonDetail(props: {
     : protectsActiveAdmin
       ? "Add another active Admin before suspending this person."
       : undefined;
+  const channelDescriptors = new Map(
+    props.channels.map((channel) => [channel.type, channel]),
+  );
   const connectedChannels = user.identities.filter(
     (identity) =>
       identity.revokedAt === undefined &&
       identity.verifiedAt !== undefined &&
-      (identity.type === "email" || identity.type === "discord"),
+      channelDescriptors.has(identity.type),
   );
 
   const confirmRole = (role: AuthAdminRole): void => {
@@ -337,14 +342,15 @@ export function PersonDetail(props: {
           description="Verified human-facing channels connected to this account."
         >
           {connectedChannels.length === 0 ? (
-            <p className="people-empty">
-              No verified email or Discord channel.
-            </p>
+            <p className="people-empty">No verified connected channel.</p>
           ) : (
             connectedChannels.map((identity) => (
               <AccessItem
                 key={identity.id}
-                kind={roleLabel(identity.type)}
+                kind={
+                  channelDescriptors.get(identity.type)?.displayName ??
+                  roleLabel(identity.type)
+                }
                 value={`${identity.label ?? "Verified channel"} · verified`}
               />
             ))

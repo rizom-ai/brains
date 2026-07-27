@@ -6,56 +6,82 @@
 
 ## Goal
 
-Let an Admin connect a messaging-channel identity (Discord, Slack, Teams, WhatsApp, …) to a **person**, so that person's role governs their messages on that channel — and make adding a new channel a matter of **installing its interface**, with **zero auth-schema change and zero console change**.
+Let an Admin connect a channel identity (Email, Discord, Slack, Teams, WhatsApp, …) to a **person**, so that person's role governs their messages on that channel, and let invitation delivery use the same registered channel vocabulary. Adding a channel must be a matter of **installing its descriptor/provider plugins**, with **zero auth-schema change and zero console change**.
 
 ## Problem
 
 Today a channel identity reaches a person's permission level through two mechanisms, neither of which provides the intended browser workflow:
 
 - **Standalone interface grants** (`interfacePrincipalGrants`) — a raw `interface:subject` allowlist with no person attached. Its browser panel is removed; persistence remains for config/CLI-managed no-account channels, but it is not person-centered.
-- **`attachIdentity`** — attaches an identity to a person, but its `type` is a **locked DB CHECK enum**: `["passkey","discord","mcp","oauth","email","did","a2a"]`. Adding Slack requires editing that enum and shipping a migration. The enum also conflates **auth mechanisms** (passkey, oauth, did, a2a, mcp — proofs the auth service implements) with **channels** (discord, email — messaging surfaces that are really interfaces). The console likewise hardcodes `type === "discord"`.
+- **`attachIdentity`** — attaches an identity to a person, but its `type` is a **locked DB CHECK enum**: `["passkey","discord","mcp","oauth","email","did","a2a"]`. Adding Slack requires editing that enum and shipping a migration. The enum also conflates **auth mechanisms** (passkey, oauth, did, a2a, mcp — proofs the auth service implements) with **channels** (Discord, Email, Slack — messaging surfaces owned by message interfaces). The console likewise hardcodes `type === "discord"`.
 
-Everything downstream is **already generic**: an interface's type is its plugin id (a free string, e.g. `interfaceType: "discord"`), and permission resolution, interface-principal grants, and `resolveActorPrincipal` all key on `interfaceType:subject` with no enum. The only hardcoded chokepoints are the identity-type enum and the console UI.
+Everything downstream is **already generic**: permission resolution, interface-principal grants, and `resolveActorPrincipal` key on a free channel type plus subject. One plugin can also host several platform adapters: `interfaces/chat` currently owns Discord and Slack while its plugin id remains `chat`. A channel type therefore cannot be inferred from one plugin id or represented by one descriptor per plugin. The hardcoded chokepoints are the identity-type enum, the console UI, and invitation delivery's email/non-email branches.
 
 ## Source of truth
 
-This plan owns channel-identity typing, the interface **channel-descriptor** contract, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics belong to [auth-runtime-db.md](./auth-runtime-db.md); person/role product behavior belongs to [multi-user.md](./multi-user.md).
+This plan owns channel-identity typing, the app-scoped **channel registry**, delivery-provider registration, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics belong to [auth-runtime-db.md](./auth-runtime-db.md); person/role product behavior belongs to [multi-user.md](./multi-user.md).
 
 ## Core decisions
 
-1. **A connectable channel is a registered message interface.** The interface registry is the source of truth for channel types. The schema and the console must never enumerate channels.
-2. **`authIdentities.type` drops its DB CHECK enum and becomes validated free text.** A `type` is valid if it is a **reserved auth/credential kind** (`passkey`, `oauth`, `did`, `a2a`, `mcp`, `email` — owned by auth-service) **or** a **registered message-interface `interfaceType`**. Installing an interface makes its channel a valid identity type with no migration.
-3. **Interfaces own their channel metadata.** A message interface optionally declares a `channelDescriptor` — `{ displayName, subjectLabel, subjectPattern? }`. The auth service and console stay ignorant of any channel's ID format; the interface owns it.
-4. **Connecting a channel is a per-person Admin action.** On a member's detail, an Admin attaches a channel identity to that person via the existing `attachIdentity` mutation; the person's role then governs channel messages. Admin-attached channel identities are **operator-asserted** and authoritative for role resolution.
-5. **Subjects stay hashed at rest.** Channel identities reuse the existing `normalizeIdentityKey`/`hashIdentityKey` path — raw channel IDs are never stored, matching current identity handling.
-6. **Self-service channel connect is out of scope here.** A person cryptographically proving their own channel (OAuth-style) is a later assurance upgrade, noted below; this plan delivers the operator-attached path that the removed panel was badly approximating.
+1. **A channel is an explicitly registered app-scoped type.** Exactly one plugin owns its serializable descriptor. A plugin may own several channel types (`interfaces/chat` owns `discord` and `slack`), so channel type is independent from plugin id. The registry is the source of truth; auth schema and console code never enumerate channel names.
+2. **`authIdentities.type` drops its DB CHECK enum and becomes validated free text.** A type is valid if it is a reserved auth/credential kind (`passkey`, `oauth`, `did`, `a2a`, `mcp`) or a registered channel type. `email` moves to the channel vocabulary while existing Email rows remain valid through registration and migration compatibility.
+3. **Metadata and provider operations are separate registrations.** Browser-safe channel descriptors describe labels and subject validation. A backend delivery provider is keyed by channel type, has dynamic availability, and performs a send. Descriptor and provider may come from separate plugins; a static capability bit cannot prove credentials are configured or perform delivery.
+4. **Email is built in but not special to auth-service.** `@brains/notifications` registers Email metadata, while a configured `@brains/email-resend` registers the operational Email provider. Invitation creation, dispatch, recovery, idempotency, and confirmation contain no `type === "email"` branch. Another transport can replace the provider without changing auth-service.
+5. **One plugin may register multiple descriptors.** `interfaces/chat` registers separate `discord` and `slack` descriptors while retaining `chat` as its plugin id. Stable channel type, descriptor ownership, and provider ownership remain distinct concepts.
+6. **Connecting a channel is a per-person Admin action.** On a member's detail, an Admin attaches a channel identity to that person via the existing `attachIdentity` mutation; the person's role then governs channel messages. Admin-attached channel identities are operator-asserted and authoritative for role resolution.
+7. **Lookup subjects stay hashed; deliverable subjects stay private.** Identity lookup continues through `normalizeIdentityKey`/`hashIdentityKey`. When restart-safe delivery requires the actual destination, it may remain only on the private person claim as `delivery_subject`; it is never duplicated into invitation/outbox rows, audit, logs, model context, or public responses.
+8. **Automatic and manual delivery are explicit modes.** Automatic mode requires a registered, currently available provider and fails before account creation when absent. Manual mode is never an implicit fallback: it is allowed only when the descriptor declares support, creates a `pending` invitation, exposes the single-use link only in the authorized Admin response, and requires a separate idempotent, audited confirmation before the setup claim becomes valid.
+9. **Self-service channel connect is out of scope here.** A person cryptographically proving their own channel (OAuth-style) is a later assurance upgrade; this plan delivers the Admin-attached path that the removed panel was approximating.
 
 ## Data model
 
-`authIdentities.type`: replace the Drizzle `enum` CHECK with plain `text`. Add an application-level validator, `assertValidIdentityType(type, registeredInterfaceTypes)`, called on every write path (`attachIdentity`, seeding, migration import if any remains). Existing rows (`discord`, `email`, …) stay valid. No data migration of existing rows; the migration only relaxes the constraint.
+`authIdentities.type`: replace the Drizzle `enum` CHECK with plain `text`. Add an application-level validator, `assertValidIdentityType(type, registeredChannelTypes)`, called on every write path (`attachIdentity`, invitation creation, seeding, and migration import if any remains). Existing rows (`discord`, `email`, …) survive unchanged. The migration relaxes the constraint; it does not rewrite subjects or type values.
 
-Reserved auth/credential kinds live in one exported constant in auth-service. Channel kinds are supplied at runtime from the interface registry.
+Reserved auth/credential kinds live in one exported auth-service constant. Channel kinds come only from the finalized app-scoped registry.
 
-## Interface channel-descriptor contract
+## Channel descriptor and delivery-provider contracts
 
-Extend the message-interface plugin base (`shell/plugins` `MessageInterfacePlugin`) with an optional:
+Any plugin may contribute one or more serializable descriptors during app registration:
 
-```
-channelDescriptor?: {
-  displayName: string;      // "Slack"
-  subjectLabel: string;     // "Slack member ID"
-  subjectPattern?: RegExp;  // optional client + server validation
-  delivery?: boolean;       // interface can deliver a private message to a subject
+```ts
+interface ChannelDescriptor {
+  type: string; // "email", "discord", "slack"
+  displayName: string;
+  subjectLabel: string;
+  subjectPattern?: { source: string; flags?: string };
+  manualDelivery?: boolean;
 }
 ```
 
-Interfaces that represent a human-facing channel set it; interfaces that don't (headless/machine) omit it and are not offered as connectable channels. The shell exposes the registered channel descriptors to the auth service (for type validation) and the console (for the connect form).
+`subjectPattern` is data, not a `RegExp` object, so the shell can expose it to the Admin browser. The server compiles and enforces it independently; client validation is advisory. Headless/machine integrations omit descriptors and are not offered as connectable channels.
 
-`delivery` declares whether the interface can push a private message to a channel subject (invitation setup links, notifications). The invitation flow's capability preflight and send dispatch ([auth-runtime-db Phase 10](./auth-runtime-db.md)) consult this bit instead of enumerating channel types: a channel without `delivery` is manual-only — invitations on it stay `pending` until an audited admin delivery confirmation, and no delivery confirmation is ever recorded from link creation alone.
+Automatic delivery is a separate backend-only registration:
+
+```ts
+interface ChannelDeliveryProvider {
+  channelType: string;
+  isAvailable(): Promise<boolean>;
+  send(input: {
+    recipient: string;
+    subject: string;
+    text: string;
+    idempotencyKey: string;
+  }): Promise<
+    | { status: "sent"; providerDeliveryId?: string }
+    | { status: "failed"; failureCode: string }
+  >;
+}
+```
+
+Only one active provider may own a channel type. Registration order is finalized before provider preflight or outbox recovery begins. `isAvailable()` reflects runtime configuration, not merely installed code. Every send receives the durable invitation-attempt id as its idempotency key and returns provider acceptance truth without recipient or secret content in errors.
+
+`@brains/notifications` registers the Email descriptor. A configured `@brains/email-resend` registers the Email provider; when its API key or sender is absent, no automatic provider is registered. Discord/Slack interfaces register their descriptors and may register providers when they can privately message a subject. Auth-service consults the registry by channel type and never imports channel- or transport-specific contracts.
+
+For manual mode, `manualDelivery` only advertises that an Admin may deliberately carry the link out-of-band. Link creation does not write `setup_token_deliveries`. A separate confirmed mutation records recipient-hash confirmation, transitions the attempt/invitation according to the invitation state machine, and appends a content-free audit event.
 
 ## Resolution
 
-No change. A channel message from `interfaceType:subject` already resolves through `resolveActorPrincipal`: the hashed subject looks up its `authIdentities` row → person → the person's `permissionLevel`. The end-to-end test (channel identity attached to a trusted member ⇒ that channel user resolves as trusted) is the acceptance bar for the UI phase.
+No storage-policy change. A channel message from `channelType:subject` resolves through `resolveActorPrincipal`: the hashed subject looks up its `authIdentities` row → person → the person's permission level. Interface adapters must pass the registered channel type rather than assuming their plugin id; this preserves separate Discord and Slack identities behind `interfaces/chat`. The end-to-end test (channel identity attached to a Trusted member ⇒ that channel user resolves as Trusted) is the acceptance bar for the UI phase.
 
 ## Phased implementation
 
@@ -63,32 +89,53 @@ Thin vertical slices; tests fold into each phase.
 
 ### Phase 1 — Unlock: channel type off the enum
 
-- Drop the CHECK enum on `authIdentities.type`; add `assertValidIdentityType` validated against reserved kinds ∪ registered interface types.
-- Migration relaxing the constraint; regression test that a non-reserved registered type (`discord`) still validates and an unregistered/unknown type is rejected.
+**Status: implemented.**
+
+- Drop the CHECK enum on `authIdentities.type`; add `assertValidIdentityType` validated against reserved kinds ∪ finalized registered channel types.
+- Add the migration and regression tests proving registered `email`, `discord`, and `slack` types survive while an unknown/unregistered type fails closed.
 - No user-facing change. This is the extensibility unlock.
 
-### Phase 2 — Contract: interface channel-descriptor
+### Phase 2 — Contract: channel metadata and providers
 
-- Add `channelDescriptor` to the message-interface base; wire the registry so the shell can enumerate channel descriptors.
-- Discord adopts it (`displayName: "Discord"`, `subjectLabel: "Discord user ID"`). Proves the contract with the one channel that already exists.
-- Tests: registry surfaces Discord's descriptor; an interface without a descriptor is absent from the channel list.
+**Status: implemented.**
+
+- Add plural channel-descriptor registration to the app-scoped plugin context; plugins contribute descriptors before registration finalization.
+- Add backend-only delivery-provider registration with one owner per channel type, dynamic availability, idempotent send input, and provider acceptance/failure output.
+- `interfaces/chat` registers separate Discord and Slack descriptors, proving descriptors are not tied one-to-one to plugin ids.
+- Start invitation outbox recovery only after registry finalization. Temporary provider unavailability leaves recoverable work queued; it never fabricates a failed or sent result.
+- Tests cover duplicate registration, serializable metadata, configured/unconfigured provider availability, provider dispatch/idempotency propagation, and omission of plugins without descriptors.
+
+### Phase 2b — Email becomes registered, not special
+
+**Status: implemented.**
+
+- `@brains/notifications` registers the built-in Email descriptor.
+- Configured `@brains/email-resend` registers the Email delivery provider; unconfigured Resend leaves automatic delivery unavailable.
+- Auth-service invitation dispatch resolves the provider from the registry; the Email-specific capability callback and every `type === "email"` branch in invitation code are deleted.
+- Tests cover configured and unconfigured provider availability, idempotency-key propagation, failure truth, and manual mode without fabricated sends.
 
 ### Phase 3 — UI: connect a channel (registry-driven)
 
-- On `PersonDetail`, add a **Connect a channel** control to the read-only "Connected channels" section: pick from installed channel interfaces (from the registry), enter the channel subject (validated by the descriptor's `subjectPattern`), submit `attachIdentity` through the existing confirmation/feedback pattern. No channel strings hardcoded in the console.
+**Status: in progress.** Admin invitation choices and connected-channel presentation now come from the runtime registry. The attach/detach control remains.
+
+- On `PersonDetail`, add a **Connect a channel** control to the read-only "Connected channels" section: pick from registered channel descriptors, enter the channel subject (validated against the serialized pattern), and submit `attachIdentity` through the existing confirmation/feedback pattern. No channel strings are hardcoded in the console.
 - Re-add the client `attachIdentity` call in `api.ts`/`queries.ts` if it was removed with the deleted `IdentityDialog`.
 - **Acceptance:** end-to-end test — attach a channel identity to a trusted member, assert a message from that channel subject resolves to the member as `trusted`; detach/suspend revokes it; audit records `auth.identity.attached`.
 
 ### Phase 4 — Prove extensibility
 
-- A second channel (Slack, via `interfaces/chat`) declares its `channelDescriptor` and becomes connectable.
+**Status: descriptor registration implemented; behavioral acceptance remains.**
+
+- Slack, via `interfaces/chat`, declares its descriptor and becomes connectable alongside the same plugin's Discord descriptor.
 - **Acceptance:** Slack becomes a fully working connectable channel with **zero auth-schema change and zero console change** — only the Slack interface adopting the contract. This is the definition of "properly extensible."
 
 ## Security notes
 
-- Channel subjects are hashed at rest; raw IDs never persist and never appear in labels, responses, or audit metadata.
-- Operator-asserted channel identities are authoritative for role resolution — an Admin attaching a channel ID vouches for it. This is deliberate and audited; the trust boundary is the Admin, same as every other person mutation.
-- Type validation is fail-closed: an identity whose `type` is neither a reserved kind nor a registered interface is rejected on write, so an uninstalled/misspelled channel cannot create a dangling grant.
+- Channel lookup keys are hashed at rest. A raw deliverable destination may persist only on its private person claim, never in invitation attempts, audit metadata, logs, model context, public cards, or broad roster projections.
+- Admin-asserted channel identities are authoritative for role resolution: an Admin attaching a channel ID vouches for it. This is deliberate and audited; the trust boundary is the Admin, as with every other person mutation.
+- Type validation is fail-closed: an identity whose type is neither a reserved credential kind nor a finalized registered channel is rejected on write, so an uninstalled or misspelled channel cannot create a dangling grant.
+- Provider availability is checked outside the auth transaction immediately before automatic creation. A later outage produces provider failure truth; it never falls back silently to manual delivery.
+- Manual confirmation requires an active Admin, same-origin explicit confirmation, a still-current unconsumed token, and a content-free audit event. Resend or cancellation invalidates an unconfirmed link.
 
 ## Out of scope
 

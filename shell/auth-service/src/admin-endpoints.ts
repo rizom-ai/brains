@@ -6,7 +6,6 @@ import {
   requireSameOriginJson,
 } from "./http-responses";
 import {
-  AUTH_ADMIN_IDENTITY_TYPES,
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
   AUTH_USER_STATUSES,
@@ -18,6 +17,7 @@ import {
   type AuthBrainAnchorSummary,
   type AuthExternalPeerSummary,
   type AuthIdentitySummary,
+  type AuthInvitationChannelSummary,
   type AuthInvitationSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
@@ -31,6 +31,7 @@ export interface AuthAdminOperations {
   listUsers(): Promise<AuthAdminPrincipal[]>;
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
   listAuditEvents(): Promise<AuthAuditEventSummary[]>;
+  listInvitationChannels(): Promise<AuthInvitationChannelSummary[]>;
   listAdminUsers?(): Promise<AuthAdminUserSummary[]>;
   reconcileIdentityProposals(
     claims: AuthIdentityProposalInput[],
@@ -40,6 +41,11 @@ export interface AuthAdminOperations {
   listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]>;
   cancelInvitation(
     invitationId: string,
+    actorUserId: string,
+  ): Promise<AuthInvitationSummary>;
+  confirmManualInvitationDelivery(
+    invitationId: string,
+    deliveryAttemptId: string,
     actorUserId: string,
   ): Promise<AuthInvitationSummary>;
   createInvitation(
@@ -55,7 +61,11 @@ export interface AuthAdminOperations {
     invitation: AuthInvitationSummary;
     user: AuthAdminPrincipal;
     peer?: AuthExternalPeerSummary;
-    registration?: { setupUrl: string; expiresAt: number };
+    registration?: {
+      setupUrl: string;
+      expiresAt: number;
+      deliveryAttemptId: string;
+    };
   }>;
   createUser(
     input: {
@@ -85,7 +95,11 @@ export interface AuthAdminOperations {
     invitation: AuthInvitationSummary;
     user: AuthAdminPrincipal;
     peer?: AuthExternalPeerSummary;
-    registration?: { setupUrl: string; expiresAt: number };
+    registration?: {
+      setupUrl: string;
+      expiresAt: number;
+      deliveryAttemptId: string;
+    };
   }>;
   linkExternalPeer(
     input: { peerId: string; userId: string },
@@ -132,22 +146,30 @@ export interface AuthAdminOperations {
 const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
   z.enum(AUTH_USER_ROLES);
 const statusSchema = z.enum(AUTH_USER_STATUSES);
-const identityTypeSchema = z.enum(AUTH_ADMIN_IDENTITY_TYPES);
+const identityTypeSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z][a-z0-9-]*$/)
+  .refine((type) => type !== "passkey", {
+    message: "Passkeys must be managed through credential operations",
+  });
 
-const setupDeliverySchema = z.discriminatedUnion("type", [
-  z.strictObject({
-    type: z.literal("email"),
-    subject: z.string().trim().email().max(320),
-  }),
-  z.strictObject({
-    type: z.literal("discord"),
-    subject: z.string().trim().min(1).max(200),
-    label: z.string().trim().min(1).max(200),
-  }),
-]);
+const setupDeliverySchema = z.strictObject({
+  type: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z][a-z0-9-]*$/),
+  subject: z.string().trim().min(1).max(1_000),
+  label: z.string().trim().min(1).max(200).optional(),
+  mode: z.enum(["automatic", "manual"]).optional(),
+});
 
 const identityProposalSchema = z.strictObject({
-  type: z.enum(["discord", "mcp", "oauth", "email", "did"]),
+  type: identityTypeSchema,
   subject: z.string().trim().min(1).max(2_000),
   issuer: z.string().trim().min(1).max(2_000).optional(),
   label: z.string().trim().min(1).max(200).optional(),
@@ -159,6 +181,16 @@ const adminMutationSchema = z.union([
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation),
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation),
     invitationId: z.string().min(1),
+  }),
+  z.strictObject({
+    action: z.literal(
+      AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
+    ),
+    confirmation: z.literal(
+      AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
+    ),
+    invitationId: z.string().min(1),
+    deliveryAttemptId: z.string().min(1),
   }),
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.createInvitation),
@@ -283,6 +315,14 @@ const adminRoutes = new AuthRouteTable<AdminRouteContext>([
       }),
   },
   {
+    method: "GET",
+    path: "/auth/admin/channels",
+    handler: async (_request, context): Promise<Response> =>
+      privateJsonResponse({
+        channels: await context.operations.listInvitationChannels(),
+      }),
+  },
+  {
     method: "POST",
     path: "/auth/admin/reconciliation",
     handler: handleReconciliationRequest,
@@ -399,6 +439,14 @@ async function executeMutation(
           actorUserId,
         ),
       };
+    case "confirmManualInvitationDelivery":
+      return {
+        invitation: await operations.confirmManualInvitationDelivery(
+          mutation.invitationId,
+          mutation.deliveryAttemptId,
+          actorUserId,
+        ),
+      };
     case "createInvitation":
       return operations.createInvitation(
         {
@@ -460,11 +508,7 @@ async function executeMutation(
       await operations.deleteUser(mutation.userId, actorUserId);
       return { userId: mutation.userId, deleted: true };
     case "attachIdentity": {
-      const label = safeIdentityLabel(
-        mutation.type,
-        mutation.subject,
-        mutation.label,
-      );
+      const label = safeIdentityLabel(mutation.subject, mutation.label);
       return {
         identity: await operations.attachIdentity(
           {
@@ -509,15 +553,9 @@ async function executeMutation(
 }
 
 function safeIdentityLabel(
-  type: AuthIdentityType,
   subject: string,
   label?: string,
 ): string | undefined {
-  if (type === "email") {
-    const [localPart, domain] = subject.trim().toLowerCase().split("@", 2);
-    if (!localPart || !domain) return undefined;
-    return `${localPart}@${domain}`;
-  }
   const trimmedLabel = label?.trim();
   if (!trimmedLabel) return undefined;
   return trimmedLabel.toLowerCase().includes(subject.trim().toLowerCase())

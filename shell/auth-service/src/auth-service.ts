@@ -2,6 +2,10 @@ import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { handleAuthAccountRequest } from "./account-endpoints";
 import type {
@@ -19,6 +23,7 @@ import type {
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
   AuthIdentitySummary,
+  AuthInvitationChannelSummary,
   AuthInvitationSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
@@ -31,10 +36,7 @@ import type {
   AuthIdentityRecord,
   ResolveAuthIdentityInput,
 } from "./identity-store";
-import type {
-  InvitationEmailInput,
-  InvitationEmailResult,
-} from "./invitation-service";
+
 import type { AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type {
@@ -104,10 +106,22 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
-  /** Deliver a targeted invitation email through the installed notification adapter. */
-  sendInvitationEmail?: (
-    input: InvitationEmailInput,
-  ) => Promise<InvitationEmailResult>;
+  /** Resolve the registered delivery provider for an invitation channel. */
+  getInvitationDeliveryProvider?: (
+    channelType: string,
+  ) => ChannelDeliveryProvider | undefined;
+  /** Resolve serializable metadata for a registered invitation channel. */
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  /** List serializable channel metadata for Admin presentation. */
+  listChannelDescriptors?: () => ChannelDescriptor[];
+  /** Validate channel identity types against the finalized app registry. */
+  isChannelTypeRegistered?: (channelType: string) => boolean;
+  /** Start invitation recovery during initialize. Plugins defer this until channel registration finalizes. */
+  autoStartInvitationDeliveryRecovery?: boolean;
+  /** Interrupted invitation-delivery recovery cadence. Defaults to one minute. */
+  invitationDeliveryRecoveryIntervalMs?: number;
+  /** Age after which an unfinished invitation delivery is recoverable. Defaults to five minutes. */
+  invitationDeliveryRecoveryStaleMs?: number;
   /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
   oauthClientMaintenanceIntervalMs?: number;
   logger?: Logger;
@@ -117,11 +131,26 @@ export class AuthService {
   private readonly issuer: string;
   private readonly runtime: AuthRuntime;
   private readonly requestRouter: AuthRequestRouter;
+  private readonly getInvitationDeliveryProvider:
+    ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
+  private readonly getChannelDescriptor:
+    ((channelType: string) => ChannelDescriptor | undefined) | undefined;
+  private readonly listChannelDescriptors:
+    (() => ChannelDescriptor[]) | undefined;
   private readonly logger: Logger | undefined;
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
+    this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
+    this.getChannelDescriptor = options.getChannelDescriptor;
+    this.listChannelDescriptors = options.listChannelDescriptors;
     this.logger = options.logger;
+    const isChannelTypeRegistered =
+      options.isChannelTypeRegistered ??
+      (options.getChannelDescriptor
+        ? (channelType: string): boolean =>
+            Boolean(options.getChannelDescriptor?.(channelType))
+        : undefined);
     this.runtime = new AuthRuntime({
       storageDir: options.storageDir,
       ...(options.replica ? { replica: options.replica } : {}),
@@ -143,8 +172,33 @@ export class AuthService {
       ...(options.setupTokenTtlSeconds !== undefined
         ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }
         : {}),
-      ...(options.sendInvitationEmail
-        ? { sendInvitationEmail: options.sendInvitationEmail }
+      ...(options.getInvitationDeliveryProvider
+        ? {
+            getInvitationDeliveryProvider:
+              options.getInvitationDeliveryProvider,
+          }
+        : {}),
+      ...(options.getChannelDescriptor
+        ? { getChannelDescriptor: options.getChannelDescriptor }
+        : {}),
+      ...(isChannelTypeRegistered ? { isChannelTypeRegistered } : {}),
+      ...(options.autoStartInvitationDeliveryRecovery !== undefined
+        ? {
+            autoStartInvitationDeliveryRecovery:
+              options.autoStartInvitationDeliveryRecovery,
+          }
+        : {}),
+      ...(options.invitationDeliveryRecoveryIntervalMs !== undefined
+        ? {
+            invitationDeliveryRecoveryIntervalMs:
+              options.invitationDeliveryRecoveryIntervalMs,
+          }
+        : {}),
+      ...(options.invitationDeliveryRecoveryStaleMs !== undefined
+        ? {
+            invitationDeliveryRecoveryStaleMs:
+              options.invitationDeliveryRecoveryStaleMs,
+          }
         : {}),
       ...(options.oauthClientMaintenanceIntervalMs !== undefined
         ? {
@@ -182,6 +236,10 @@ export class AuthService {
 
   initialize(): Promise<void> {
     return this.runtime.initialize();
+  }
+
+  startInvitationDeliveryRecovery(): Promise<void> {
+    return this.runtime.startInvitationDeliveryRecovery();
   }
 
   close(): Promise<void> {
@@ -333,6 +391,21 @@ export class AuthService {
       .cancelInvitation(invitationId, context);
   }
 
+  async confirmManualInvitationDelivery(
+    invitationId: string,
+    deliveryAttemptId: string,
+    context: AuthMutationContext,
+  ): Promise<AuthInvitationSummary> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .confirmManualInvitationDelivery(
+        invitationId,
+        deliveryAttemptId,
+        context,
+      );
+  }
+
   async createInvitation(
     input: CreateInvitationRequest,
     context: AuthMutationContext,
@@ -386,6 +459,39 @@ export class AuthService {
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
     await this.runtime.ensureStarted();
     return this.runtime.getAdministrationService().listAdminUsers();
+  }
+
+  async listInvitationChannels(): Promise<AuthInvitationChannelSummary[]> {
+    await this.runtime.ensureStarted();
+    const descriptors = this.listChannelDescriptors?.() ?? [];
+    const channels = await Promise.all(
+      descriptors.map(async (descriptor) => {
+        const deliveryModes: AuthInvitationChannelSummary["deliveryModes"] = [];
+        try {
+          const provider = this.getInvitationDeliveryProvider?.(
+            descriptor.type,
+          );
+          if (provider && (await provider.isAvailable())) {
+            deliveryModes.push("automatic");
+          }
+        } catch {
+          // Dynamic provider failures make automatic delivery unavailable.
+        }
+        if (descriptor.manualDelivery === true) {
+          deliveryModes.push("manual");
+        }
+        return {
+          type: descriptor.type,
+          displayName: descriptor.displayName,
+          subjectLabel: descriptor.subjectLabel,
+          ...(descriptor.subjectPattern
+            ? { subjectPattern: descriptor.subjectPattern }
+            : {}),
+          deliveryModes,
+        } satisfies AuthInvitationChannelSummary;
+      }),
+    );
+    return channels;
   }
 
   async reconcileIdentityProposals(
@@ -468,9 +574,16 @@ export class AuthService {
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
     await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .attachIdentity(input, context);
+    const descriptor = this.validateChannelSubject(input.type, input.subject);
+    return this.runtime.getAdministrationService().attachIdentity(
+      {
+        ...input,
+        ...(descriptor && !input.deliverySubject
+          ? { deliverySubject: input.subject }
+          : {}),
+      },
+      context,
+    );
   }
 
   async detachIdentity(
@@ -587,6 +700,9 @@ export class AuthService {
     delivery?: AuthSetupDeliveryInput,
   ): Promise<UserPasskeyRegistration> {
     await this.runtime.ensureStarted();
+    if (delivery) {
+      this.validateChannelSubject(delivery.type, delivery.subject);
+    }
     return this.runtime
       .getPasskeySetupCoordinator()
       .startRegistration(userId, context, delivery);
@@ -669,6 +785,7 @@ export class AuthService {
       listUsers: () => this.listUsers(),
       getBrainAnchor: () => this.getBrainAnchor(),
       listAuditEvents: () => this.listAuditEvents(),
+      listInvitationChannels: () => this.listInvitationChannels(),
       listAdminUsers: () => this.listAdminUsers(),
       reconcileIdentityProposals: (claims) =>
         this.reconcileIdentityProposals(claims),
@@ -678,6 +795,14 @@ export class AuthService {
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),
       cancelInvitation: (invitationId, actorUserId) =>
         this.cancelInvitation(invitationId, { actorUserId }),
+      confirmManualInvitationDelivery: (
+        invitationId,
+        deliveryAttemptId,
+        actorUserId,
+      ) =>
+        this.confirmManualInvitationDelivery(invitationId, deliveryAttemptId, {
+          actorUserId,
+        }),
       createInvitation: (input, actorUserId) =>
         this.createInvitation(input, { actorUserId }),
       createUser: (input, actorUserId) =>
@@ -698,6 +823,7 @@ export class AuthService {
         identitySummary(
           await this.attachIdentity(input, { actorUserId }),
           input.userId,
+          this.getChannelDescriptor,
         ),
       detachIdentity: async (identityId, actorUserId) => {
         const identity = await this.detachIdentity(identityId, { actorUserId });
@@ -705,7 +831,7 @@ export class AuthService {
           .getUserStore()
           .getUserByPersonId(identity.personId);
         if (!user) throw new Error("Identity person has no auth user");
-        return identitySummary(identity, user.id);
+        return identitySummary(identity, user.id, this.getChannelDescriptor);
       },
       revokePasskey: (credentialId, actorUserId) =>
         this.revokePasskey(credentialId, { actorUserId }),
@@ -716,6 +842,25 @@ export class AuthService {
     });
   }
 
+  private validateChannelSubject(
+    channelType: string,
+    subject: string,
+  ): ChannelDescriptor | undefined {
+    const descriptor = this.getChannelDescriptor?.(channelType);
+    if (
+      descriptor?.subjectPattern &&
+      !new RegExp(
+        descriptor.subjectPattern.source,
+        descriptor.subjectPattern.flags,
+      ).test(subject.trim())
+    ) {
+      throw new Error(
+        `Identity subject is invalid for channel: "${channelType}"`,
+      );
+    }
+    return descriptor;
+  }
+
   private resolveRequestIssuer(request: Request): string {
     return this.runtime.getPrincipalService().resolveRequestIssuer(request);
   }
@@ -724,7 +869,16 @@ export class AuthService {
 function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
 ): AuthIdentitySummary {
+  const identityLabel = identity.label?.trim();
+  const deliverySubject = identity.deliverySubject?.trim();
+  const label =
+    identityLabel &&
+    identityLabel.length > 0 &&
+    identityLabel !== getChannelDescriptor?.(identity.type)?.subjectLabel
+      ? identityLabel
+      : deliverySubject;
   return {
     id: identity.id,
     personId: identity.personId,
@@ -738,7 +892,7 @@ function identitySummary(
       ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
     })),
     ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(identity.label ? { label: identity.label } : {}),
+    ...(label ? { label } : {}),
     ...(identity.verifiedAt !== null
       ? { verifiedAt: identity.verifiedAt }
       : {}),

@@ -316,6 +316,22 @@ describe("DiscordInterface", () => {
     await harness.installPlugin(spacedDiscord);
   }
 
+  it("registers the Discord channel descriptor", async () => {
+    await harness.finalizeRegistration();
+
+    expect(
+      harness.getMockShell().getChannelRegistry().listDescriptors(),
+    ).toEqual([
+      {
+        type: "discord",
+        displayName: "Discord",
+        subjectLabel: "Discord user ID",
+        subjectPattern: { source: "^[0-9]{17,20}$" },
+        manualDelivery: true,
+      },
+    ]);
+  });
+
   describe("Daemon lifecycle", () => {
     it("waits for an admitted message handler before stop settles", async () => {
       let signalChatStarted: (() => void) | undefined;

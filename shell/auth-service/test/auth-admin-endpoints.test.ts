@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import type {
+  ChannelDeliveryInput,
+  ChannelDeliveryProvider,
+  ChannelDeliveryResult,
+  ChannelDescriptor,
+} from "@brains/plugins";
 import {
   AuthService,
   authServicePlugin,
@@ -12,12 +18,47 @@ import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
 
+function getEmailDeliveryProvider(
+  send: (input: ChannelDeliveryInput) => Promise<ChannelDeliveryResult>,
+  available = true,
+): (channelType: string) => ChannelDeliveryProvider | undefined {
+  const provider: ChannelDeliveryProvider = {
+    channelType: "email",
+    isAvailable: async () => available,
+    send,
+  };
+  return (channelType) => (channelType === "email" ? provider : undefined);
+}
+
+function getTestChannelDescriptor(
+  channelType: string,
+): ChannelDescriptor | undefined {
+  if (channelType === "email") {
+    return {
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+    };
+  }
+  if (channelType === "discord") {
+    return {
+      type: "discord",
+      displayName: "Discord",
+      subjectLabel: "Discord user ID",
+      manualDelivery: true,
+    };
+  }
+  return undefined;
+}
+
 async function createService(
   options: {
     withPasskey?: boolean;
     anchor?: "person" | "team" | "organization";
     profileName?: string;
-    sendInvitationEmail?: AuthServiceOptions["sendInvitationEmail"];
+    getInvitationDeliveryProvider?: AuthServiceOptions["getInvitationDeliveryProvider"];
+    getChannelDescriptor?: AuthServiceOptions["getChannelDescriptor"];
+    listChannelDescriptors?: AuthServiceOptions["listChannelDescriptors"];
   } = {},
 ): Promise<AuthService> {
   const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-admin-"));
@@ -35,8 +76,15 @@ async function createService(
             options.profileName,
         }
       : {}),
-    ...(options.sendInvitationEmail
-      ? { sendInvitationEmail: options.sendInvitationEmail }
+    ...(options.getInvitationDeliveryProvider
+      ? {
+          getInvitationDeliveryProvider: options.getInvitationDeliveryProvider,
+        }
+      : {}),
+    getChannelDescriptor:
+      options.getChannelDescriptor ?? getTestChannelDescriptor,
+    ...(options.listChannelDescriptors
+      ? { listChannelDescriptors: options.listChannelDescriptors }
       : {}),
   });
   await service.initialize();
@@ -138,6 +186,71 @@ describe("auth admin API", () => {
     expect(anchor.permissionLevel).toBe("admin");
   });
 
+  it("accepts registered channel identities and rejects unknown channel types", async () => {
+    const slackDescriptor = {
+      type: "slack",
+      displayName: "Slack",
+      subjectLabel: "Slack member ID",
+      subjectPattern: { source: "^[UW][A-Z0-9]+$" },
+      manualDelivery: true,
+    };
+    const service = await createService({
+      getChannelDescriptor: (channelType) =>
+        channelType === "slack" ? slackDescriptor : undefined,
+    });
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const member = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    const session = await service.createAuthSession(admin.userId);
+
+    const attached = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "attachIdentity",
+        confirmation: "attachIdentity",
+        userId: member.userId,
+        type: "slack",
+        subject: "U123ABC",
+      }),
+    );
+    expect(attached.status).toBe(200);
+    expect(await attached.json()).toMatchObject({
+      identity: { type: "slack", label: "U123ABC" },
+    });
+
+    const invalidSubject = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "attachIdentity",
+        confirmation: "attachIdentity",
+        userId: member.userId,
+        type: "slack",
+        subject: "not-a-slack-id",
+      }),
+    );
+    expect(invalidSubject.status).toBe(400);
+    expect(await invalidSubject.json()).toEqual({
+      error: 'Identity subject is invalid for channel: "slack"',
+    });
+
+    const unknown = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "attachIdentity",
+        confirmation: "attachIdentity",
+        userId: member.userId,
+        type: "unknown-channel",
+        subject: "subject",
+      }),
+    );
+    expect(unknown.status).toBe(400);
+    expect(await unknown.json()).toEqual({
+      error: 'Unsupported auth identity type: "unknown-channel"',
+    });
+  });
+
   it("shows retained verified email addresses to active Admins", async () => {
     const service = await createService();
     const admin = await service.createUser({
@@ -185,10 +298,10 @@ describe("auth admin API", () => {
   it("creates one invitation for concurrent requests with one idempotency key", async () => {
     const deliveries: string[] = [];
     const service = await createService({
-      sendInvitationEmail: async (input) => {
-        deliveries.push(input.to);
-        return { status: "sent", deliveryId: "email_1" };
-      },
+      getInvitationDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        deliveries.push(input.recipient);
+        return { status: "sent", providerDeliveryId: "email_1" };
+      }),
     });
     const admin = await service.createUser({
       displayName: "Anchor",
@@ -262,6 +375,119 @@ describe("auth admin API", () => {
     expect(await cancelled.json()).toMatchObject({
       invitation: { state: "cancelled", cancelledAt: expect.any(Number) },
     });
+  });
+
+  it("requires an explicit audited confirmation for manual invitation delivery", async () => {
+    const discordDescriptor = {
+      type: "discord",
+      displayName: "Discord",
+      subjectLabel: "Discord user ID",
+      manualDelivery: true,
+    };
+    const service = await createService({
+      getChannelDescriptor: (channelType) =>
+        channelType === "discord" ? discordDescriptor : undefined,
+      listChannelDescriptors: () => [discordDescriptor],
+    });
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const session = await service.createAuthSession(admin.userId);
+    const channels = await service.handleRequest(
+      adminRequest("/auth/admin/channels", session.cookie),
+    );
+    expect(channels.status).toBe(200);
+    expect(await channels.json()).toEqual({
+      channels: [
+        {
+          type: "discord",
+          displayName: "Discord",
+          subjectLabel: "Discord user ID",
+          deliveryModes: ["manual"],
+        },
+      ],
+    });
+
+    const created = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "createInvitation",
+        confirmation: "createInvitation",
+        idempotencyKey: "manual-discord-request-1",
+        displayName: "Mira",
+        role: "trusted",
+        delivery: {
+          type: "discord",
+          subject: "1442828818493735015",
+          label: "@mira",
+          mode: "manual",
+        },
+      }),
+    );
+    expect(created.status).toBe(200);
+    const body = (await created.json()) as {
+      invitation: { id: string; state: string };
+      registration: { deliveryAttemptId: string };
+    };
+    expect(body.invitation.state).toBe("pending");
+
+    const confirmed = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "confirmManualInvitationDelivery",
+        confirmation: "confirmManualInvitationDelivery",
+        invitationId: body.invitation.id,
+        deliveryAttemptId: body.registration.deliveryAttemptId,
+      }),
+    );
+    expect(confirmed.status).toBe(200);
+    expect(await confirmed.json()).toMatchObject({
+      invitation: { state: "sent" },
+    });
+    const replay = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "confirmManualInvitationDelivery",
+        confirmation: "confirmManualInvitationDelivery",
+        invitationId: body.invitation.id,
+        deliveryAttemptId: body.registration.deliveryAttemptId,
+      }),
+    );
+    expect(replay.status).toBe(200);
+    expect(
+      (await service.listAuditEvents()).filter(
+        (event) => event.action === "auth.invitation.manual_delivery_confirmed",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("rejects an unavailable invitation provider without creating an account", async () => {
+    const service = await createService({
+      getInvitationDeliveryProvider: getEmailDeliveryProvider(
+        async () => ({ status: "sent" }),
+        false,
+      ),
+    });
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const session = await service.createAuthSession(admin.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "createInvitation",
+        confirmation: "createInvitation",
+        idempotencyKey: "unavailable-provider-request-1",
+        displayName: "Mira",
+        role: "trusted",
+        delivery: { type: "email", subject: "mira@example.com" },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invitation delivery provider is unavailable",
+    });
+    expect(await service.listUsers()).toHaveLength(1);
   });
 
   it("reads the config-declared Anchor with its CMS profile name", async () => {
@@ -999,7 +1225,7 @@ describe("auth admin API", () => {
     expect(oldLink.status).toBe(404);
   });
 
-  it("requires a human-facing label for Discord setup delivery", async () => {
+  it("uses registered channel metadata for setup delivery labels", async () => {
     const service = await createService({ withPasskey: true });
     const [anchor] = await service.listUsers();
     if (!anchor) throw new Error("Expected migrated anchor");
@@ -1022,11 +1248,15 @@ describe("auth admin API", () => {
       }),
     );
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      error: "Invalid or unconfirmed auth mutation",
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      registration: {
+        delivery: { type: "discord", label: "Discord user ID" },
+      },
     });
-    expect(await service.listUserIdentities(collaborator.userId)).toEqual([]);
+    expect(await service.listUserIdentities(collaborator.userId)).toEqual([
+      expect.objectContaining({ type: "discord" }),
+    ]);
   });
 
   it("lists and revokes passkeys without exposing credential material", async () => {

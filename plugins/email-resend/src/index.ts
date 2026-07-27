@@ -64,6 +64,37 @@ export class EmailResendPlugin extends ServicePlugin<
       return;
     }
 
+    context.channels.registerDeliveryProvider({
+      channelType: "email",
+      isAvailable: async () => true,
+      send: async (input) => {
+        try {
+          const result = await this.sendWithResend({
+            to: input.recipient,
+            subject: input.subject,
+            text: input.text,
+            sensitivity: "secret",
+            idempotencyKey: input.idempotencyKey,
+          });
+          return result.status === "sent"
+            ? {
+                status: "sent" as const,
+                ...(result.id ? { providerDeliveryId: result.id } : {}),
+              }
+            : {
+                status: "failed" as const,
+                failureCode: "email_delivery_failed",
+              };
+        } catch {
+          this.logger.warn("Email delivery failed for a secret message");
+          return {
+            status: "failed" as const,
+            failureCode: "email_delivery_failed",
+          };
+        }
+      },
+    });
+
     const logger = this.logger;
     context.messaging.subscribe<SendEmailPayload, EmailSendResult>(
       EMAIL_SEND,

@@ -19,6 +19,7 @@ import {
   toPublicBrainCharacter,
 } from "./public-identity";
 import type {
+  IChannelsNamespace,
   IConversationsNamespace,
   IEndpointsNamespace,
   IEvalNamespace,
@@ -60,6 +61,25 @@ export function createProfileKindsNamespace(
     },
     getResolved: () => registry.getResolved(),
     getSelectedDefinition: () => registry.getSelectedDefinition(),
+  };
+}
+
+export function createChannelsNamespace(
+  shell: IShell,
+  pluginId: string,
+): IChannelsNamespace {
+  const registry = shell.getChannelRegistry();
+  return {
+    registerDescriptor: (descriptor): void => {
+      registry.registerDescriptor(pluginId, descriptor);
+    },
+    registerDeliveryProvider: (provider): void => {
+      registry.registerDeliveryProvider(pluginId, provider);
+    },
+    listDescriptors: () => registry.listDescriptors(),
+    getDescriptor: (channelType) => registry.getDescriptor(channelType),
+    getDeliveryProvider: (channelType) =>
+      registry.getDeliveryProvider(channelType),
   };
 }
 

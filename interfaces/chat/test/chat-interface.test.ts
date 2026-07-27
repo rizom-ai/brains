@@ -700,6 +700,37 @@ describe("ChatInterface", () => {
     ).toHaveLength(1);
   });
 
+  it("registers separate channel descriptors for configured adapters", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: baseSlackConfig,
+      },
+    });
+
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+
+    expect(
+      harness.getMockShell().getChannelRegistry().listDescriptors(),
+    ).toEqual([
+      {
+        type: "discord",
+        displayName: "Discord",
+        subjectLabel: "Discord user ID",
+        subjectPattern: { source: "^[0-9]{17,20}$" },
+        manualDelivery: true,
+      },
+      {
+        type: "slack",
+        displayName: "Slack",
+        subjectLabel: "Slack member ID",
+        subjectPattern: { source: "^[UW][A-Z0-9]+$" },
+        manualDelivery: true,
+      },
+    ]);
+  });
+
   it("creates a Slack-only adapter and daemon", async () => {
     const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
 

@@ -5,12 +5,14 @@ import {
   type AuthAdminUserSummary,
   type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
+  type AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -37,6 +39,7 @@ import type {
 import {
   anchorQueryOptions,
   auditQueryOptions,
+  channelsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
 } from "./queries";
@@ -63,7 +66,8 @@ export function buildInvitationMutation(
 interface SetupRegistration {
   setupUrl: string;
   expiresAt: number;
-  delivery?: { type: "email" | "discord"; label: string };
+  deliveryAttemptId?: string;
+  delivery?: { type: string; label: string };
 }
 
 export interface PeopleBootstrap {
@@ -80,6 +84,7 @@ export interface PeopleAppProps {
   initialAnchor?: AuthBrainAnchorSummary;
   initialUsers?: AuthAdminUserSummary[];
   initialAudit?: AuthAuditEventSummary[];
+  initialChannels?: AuthInvitationChannelSummary[];
 }
 
 export function PeopleApp(props: PeopleAppProps): ReactElement {
@@ -106,8 +111,19 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       ? { initialData: props.initialAudit }
       : {}),
   });
+  const channelsQuery = useQuery({
+    ...channelsQueryOptions(),
+    enabled: isAdmin,
+    ...(props.initialChannels !== undefined
+      ? { initialData: props.initialChannels }
+      : {}),
+  });
   const users = usersQuery.data ?? [];
   const auditEvents = auditQuery.data ?? [];
+  const channels = channelsQuery.data ?? [];
+  const invitationChannels = channels.filter(
+    (channel) => channel.deliveryModes.length > 0,
+  );
   const anchor = anchorQuery.data;
   const configuredAnchorKind = anchor?.configuredKind ?? "person";
   const organization = configuredAnchorKind === "organization";
@@ -130,6 +146,9 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   );
   const [view, setView] = useState<SurfaceView>("overview");
   const [modal, setModal] = useState<Modal>(null);
+  const [manualConfirmationPending, setManualConfirmationPending] =
+    useState(false);
+  const manualConfirmationLock = useRef(false);
   const { feedback, setFeedback, runWithFeedback } = useMutationFeedback();
   const { mutateAsync: runAdminMutation } = useMutation({
     mutationFn: (mutation: AuthAdminMutation) => mutateAdmin<unknown>(mutation),
@@ -203,12 +222,21 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     user: { userId: string; displayName: string },
     registration: SetupRegistration,
     destination = registration.delivery?.label ?? "the confirmed channel",
+    invitationId?: string,
   ): void => {
     setSelectedUserId(user.userId);
     setModal({
       kind: "setup",
       setupUrl: registration.setupUrl,
       copy: `This single-use link is bound to ${destination}. Deliver it only through that confirmed private channel, and open it in the intended person’s browser or a private window—not an existing Admin session. It expires ${formatDate(registration.expiresAt * 1000)}.`,
+      ...(invitationId && registration.deliveryAttemptId
+        ? {
+            manualConfirmation: {
+              invitationId,
+              deliveryAttemptId: registration.deliveryAttemptId,
+            },
+          }
+        : {}),
     });
   };
 
@@ -232,17 +260,22 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           setFeedback({
             tone: "error",
             message:
-              "Invitation saved, but delivery failed. Check email delivery configuration before retrying.",
+              "Invitation saved, but delivery failed. Check channel delivery configuration before retrying.",
           });
           return;
         }
         setFeedback({ message: "Invitation resent", tone: "good" });
         const destination =
-          user.identities.find(
-            (identity) =>
-              identity.type === "email" || identity.type === "discord",
-          )?.label ?? "the confirmed channel";
-        showSetup(user, resent.registration, destination);
+          user.identities.find((identity) => identity.type !== "passkey")
+            ?.label ?? "the confirmed channel";
+        showSetup(
+          user,
+          resent.registration,
+          destination,
+          resent.invitation.state === "pending" && user.invitation
+            ? user.invitation.id
+            : undefined,
+        );
       })
       .catch(() => undefined);
   };
@@ -253,7 +286,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       undefined,
       "Invitation recorded",
     )) as {
-      invitation: { state: string };
+      invitation: { id: string; state: string };
       user: { userId: string; displayName: string };
       registration?: SetupRegistration;
     };
@@ -265,29 +298,31 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         setFeedback({
           tone: "error",
           message:
-            "Invitation saved, but delivery failed. Configure email delivery or retry from Invitations.",
+            "Invitation saved, but delivery failed. Configure channel delivery or retry from Invitations.",
         });
       }
       return;
     }
-    const destination =
-      input.delivery.type === "email"
-        ? input.delivery.subject
-        : input.delivery.label;
-    if (
-      input.delivery.type === "email" &&
-      created.invitation.state === "sent"
-    ) {
-      setFeedback({ message: "Invitation email sent", tone: "good" });
+    const destination = input.delivery.label ?? input.delivery.subject;
+    if (created.invitation.state === "sent") {
+      const channelName =
+        channels.find((channel) => channel.type === input.delivery.type)
+          ?.displayName ?? "Channel";
+      setFeedback({ message: `${channelName} invitation sent`, tone: "good" });
       setSelectedUserId(created.user.userId);
       setModal({
         kind: "setup",
         setupUrl: created.registration.setupUrl,
-        copy: `The invitation email to ${destination} was accepted by the delivery provider. The single-use link expires ${formatDate(created.registration.expiresAt * 1000)}.`,
+        copy: `The invitation to ${destination} was accepted by the delivery provider. The single-use link expires ${formatDate(created.registration.expiresAt * 1000)}.`,
       });
       return;
     }
-    showSetup(created.user, created.registration, destination);
+    showSetup(
+      created.user,
+      created.registration,
+      destination,
+      created.invitation.id,
+    );
   };
 
   const openMembers = (): void => setView("members");
@@ -374,6 +409,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                 users={activeUsers}
                 selectedUserId={selectedUserId}
                 currentUserId={props.bootstrap.userId}
+                channels={channels}
                 label={rosterLabel}
                 onSelect={setSelectedUserId}
               />
@@ -381,6 +417,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                 user={selectedUser}
                 brainName={props.bootstrap.brainName}
                 activeAdminCount={activeAdminCount}
+                channels={channels}
                 selfUserId={props.bootstrap.userId}
                 onConfirm={setModal}
                 onMutation={runMutation}
@@ -435,6 +472,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
 
       {modal?.kind === "add" && (
         <AddPersonDialog
+          channels={invitationChannels}
           {...(modal.draft ? { initialDraft: modal.draft } : {})}
           onClose={closeModal}
           onCreate={(input) => createInvitation(input).catch(() => undefined)}
@@ -475,9 +513,54 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           copy={modal.copy}
           onClose={closeModal}
           footer={
-            <Button tone="primary" onClick={closeModal}>
-              Done
-            </Button>
+            modal.manualConfirmation ? (
+              <>
+                <Button
+                  onClick={closeModal}
+                  disabled={manualConfirmationPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  tone="primary"
+                  disabled={manualConfirmationPending}
+                  onClick={() => {
+                    const confirmation = modal.manualConfirmation;
+                    if (!confirmation || manualConfirmationLock.current) {
+                      return;
+                    }
+                    manualConfirmationLock.current = true;
+                    setManualConfirmationPending(true);
+                    void runMutation(
+                      {
+                        action:
+                          AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
+                        confirmation:
+                          AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
+                        invitationId: confirmation.invitationId,
+                        deliveryAttemptId: confirmation.deliveryAttemptId,
+                      },
+                      undefined,
+                      "Manual delivery confirmed",
+                    )
+                      .then(closeModal)
+                      .catch(() => undefined)
+                      .finally(() => {
+                        manualConfirmationLock.current = false;
+                        setManualConfirmationPending(false);
+                      });
+                  }}
+                >
+                  {manualConfirmationPending
+                    ? "Confirming…"
+                    : "I delivered this link"}
+                </Button>
+              </>
+            ) : (
+              <Button tone="primary" onClick={closeModal}>
+                Done
+              </Button>
+            )
           }
         >
           <div className="people-setup-link">

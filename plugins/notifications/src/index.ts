@@ -50,6 +50,17 @@ export class NotificationsPlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    context.channels.registerDescriptor({
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+      subjectPattern: {
+        source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+        flags: "i",
+      },
+      manualDelivery: true,
+    });
+
     context.messaging.subscribe<SendNotificationInput, SendNotificationResult>(
       NOTIFICATIONS_SEND,
       async (message) => {

@@ -1,3 +1,7 @@
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { AuthAccountService } from "./account-service";
 import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
@@ -11,9 +15,12 @@ import { AuthIdentityStore } from "./identity-store";
 import { InterfacePrincipalStore } from "./interface-principal-store";
 import {
   AuthInvitationService,
-  type InvitationEmailInput,
-  type InvitationEmailResult,
+  DEFAULT_INVITATION_DELIVERY_RECOVERY_STALE_MS,
 } from "./invitation-service";
+import {
+  DEFAULT_INVITATION_DELIVERY_RECOVERY_INTERVAL_MS,
+  InvitationDeliverySupervisor,
+} from "./invitation-delivery-supervisor";
 import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { OAuthEndpoints } from "./oauth-endpoints";
@@ -59,9 +66,14 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
-  sendInvitationEmail?: (
-    input: InvitationEmailInput,
-  ) => Promise<InvitationEmailResult>;
+  getInvitationDeliveryProvider?: (
+    channelType: string,
+  ) => ChannelDeliveryProvider | undefined;
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  isChannelTypeRegistered?: (channelType: string) => boolean;
+  autoStartInvitationDeliveryRecovery?: boolean;
+  invitationDeliveryRecoveryIntervalMs?: number;
+  invitationDeliveryRecoveryStaleMs?: number;
   oauthClientMaintenanceIntervalMs?: number;
   logger?: Logger;
 }
@@ -86,9 +98,15 @@ export class AuthRuntime {
   private readonly anchor: AuthBrainAnchorConfigKind;
   private readonly anchorProfileEntityId: string;
   private readonly setupTokenTtlSeconds: number;
-  private readonly sendInvitationEmail:
-    | ((input: InvitationEmailInput) => Promise<InvitationEmailResult>)
-    | undefined;
+  private readonly getInvitationDeliveryProvider:
+    ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
+  private readonly getChannelDescriptor:
+    ((channelType: string) => ChannelDescriptor | undefined) | undefined;
+  private readonly isChannelTypeRegistered:
+    ((channelType: string) => boolean) | undefined;
+  private readonly autoStartInvitationDeliveryRecovery: boolean;
+  private readonly invitationDeliveryRecoveryIntervalMs: number;
+  private readonly invitationDeliveryRecoveryStaleMs: number;
   private readonly resolveProfileDisplayName:
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
   private readonly logger: Logger | undefined;
@@ -101,6 +119,8 @@ export class AuthRuntime {
   private administrationService: AuthAdministrationService | undefined;
   private accountService: AuthAccountService | undefined;
   private invitationService: AuthInvitationService | undefined;
+  private invitationDeliverySupervisor:
+    InvitationDeliverySupervisor | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -115,7 +135,17 @@ export class AuthRuntime {
     this.anchorProfileEntityId = options.anchorProfileEntityId;
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
-    this.sendInvitationEmail = options.sendInvitationEmail;
+    this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
+    this.getChannelDescriptor = options.getChannelDescriptor;
+    this.isChannelTypeRegistered = options.isChannelTypeRegistered;
+    this.autoStartInvitationDeliveryRecovery =
+      options.autoStartInvitationDeliveryRecovery ?? true;
+    this.invitationDeliveryRecoveryIntervalMs =
+      options.invitationDeliveryRecoveryIntervalMs ??
+      DEFAULT_INVITATION_DELIVERY_RECOVERY_INTERVAL_MS;
+    this.invitationDeliveryRecoveryStaleMs =
+      options.invitationDeliveryRecoveryStaleMs ??
+      DEFAULT_INVITATION_DELIVERY_RECOVERY_STALE_MS;
     this.resolveProfileDisplayName = options.resolveProfileDisplayName;
     this.logger = options.logger;
     this.runtimeDatabase = new AuthRuntimeDatabase({
@@ -223,7 +253,11 @@ export class AuthRuntime {
     if (this.userStore) return;
 
     await this.runtimeDatabase.start();
-    const identityStore = new AuthIdentityStore(this.runtimeDatabase.db);
+    const identityStore = new AuthIdentityStore(this.runtimeDatabase.db, {
+      ...(this.isChannelTypeRegistered
+        ? { isChannelTypeRegistered: this.isChannelTypeRegistered }
+        : {}),
+    });
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
     this.identityReconciliationService = new IdentityReconciliationService({
       identities: identityStore,
@@ -244,11 +278,28 @@ export class AuthRuntime {
       db: this.runtimeDatabase.db,
       issuer: this.issuer,
       setupTokenTtlSeconds: this.setupTokenTtlSeconds,
+      deliveryRecoveryStaleMs: this.invitationDeliveryRecoveryStaleMs,
       audit: this.auditStore,
-      ...(this.sendInvitationEmail
-        ? { sendEmail: this.sendInvitationEmail }
+      ...(this.getInvitationDeliveryProvider
+        ? { getDeliveryProvider: this.getInvitationDeliveryProvider }
+        : {}),
+      ...(this.getChannelDescriptor
+        ? { getChannelDescriptor: this.getChannelDescriptor }
         : {}),
     });
+    this.invitationDeliverySupervisor = new InvitationDeliverySupervisor(
+      this.invitationDeliveryRecoveryIntervalMs,
+      async (now): Promise<void> => {
+        await this.getInvitationService().recoverInterruptedDeliveries(now);
+      },
+      {
+        onError: (error): void => {
+          this.logger?.warn("Failed to recover invitation delivery", {
+            error,
+          });
+        },
+      },
+    );
     this.passkeySetupCoordinator = new PasskeySetupCoordinator({
       issuer: this.issuer,
       users: this.userStore,
@@ -256,6 +307,9 @@ export class AuthRuntime {
       audit: this.auditStore,
       setupFlow: this.setupFlow,
       targetedSetup: targetedSetupService,
+      ...(this.getChannelDescriptor
+        ? { getChannelDescriptor: this.getChannelDescriptor }
+        : {}),
     });
     this.userManagementService = new AuthUserManagementService({
       users: this.userStore,
@@ -285,6 +339,9 @@ export class AuthRuntime {
       refreshTokens: this.refreshTokenStore,
       passkeys: this.passkeyService,
       audit: this.auditStore,
+      ...(this.isChannelTypeRegistered
+        ? { isChannelTypeRegistered: this.isChannelTypeRegistered }
+        : {}),
     });
     this.administrationService = new AuthAdministrationService({
       configuredAnchorKind: this.anchor,
@@ -298,6 +355,9 @@ export class AuthRuntime {
       invitations: this.getInvitationService(),
       audit: this.auditStore,
       management: this.getUserManagementService(),
+      ...(this.getChannelDescriptor
+        ? { getChannelDescriptor: this.getChannelDescriptor }
+        : {}),
       startPasskeyRegistration: (
         userId,
         context,
@@ -339,6 +399,11 @@ export class AuthRuntime {
     return required(this.invitationService);
   }
 
+  async startInvitationDeliveryRecovery(): Promise<void> {
+    await this.ensureStarted();
+    await this.invitationDeliverySupervisor?.start();
+  }
+
   getInterfacePrincipalStore(): InterfacePrincipalStore {
     return required(this.interfacePrincipalStore);
   }
@@ -369,6 +434,9 @@ export class AuthRuntime {
 
   private async initializeInternal(): Promise<void> {
     await this.ensureStarted();
+    if (this.autoStartInvitationDeliveryRecovery) {
+      await this.startInvitationDeliveryRecovery();
+    }
     await this.projectConfiguredBrainAnchor();
     await Promise.all([
       this.keyStore.getPrivateJwk(),
@@ -394,6 +462,8 @@ export class AuthRuntime {
 
   private async closeInternal(): Promise<void> {
     await this.oauthEndpoints.stopClientMaintenance();
+    await this.invitationDeliverySupervisor?.close();
+    this.invitationDeliverySupervisor = undefined;
     this.userStore = undefined;
     this.identityReconciliationService = undefined;
     this.passkeySetupCoordinator = undefined;

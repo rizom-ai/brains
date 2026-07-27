@@ -10,6 +10,7 @@ import {
   adminKeys,
   anchorQueryOptions,
   auditQueryOptions,
+  channelsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
 } from "./queries";
@@ -38,6 +39,33 @@ describe("Admin server-state queries", () => {
     expect(first).toEqual([]);
     expect(second).toBe(first);
     expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("loads registered channel metadata without local channel choices", async () => {
+    mockFetch(async () =>
+      Response.json({
+        channels: [
+          {
+            type: "slack",
+            displayName: "Slack",
+            subjectLabel: "Slack member ID",
+            deliveryModes: ["manual"],
+          },
+        ],
+      }),
+    );
+    const client = createAdminQueryClient();
+
+    expect(await client.fetchQuery(channelsQueryOptions())).toEqual([
+      {
+        type: "slack",
+        displayName: "Slack",
+        subjectLabel: "Slack member ID",
+        deliveryModes: ["manual"],
+      },
+    ]);
+    expect(adminKeys.channels()).toEqual(["admin", "channels"]);
     client.clear();
   });
 
@@ -82,6 +110,7 @@ describe("Admin mutation invalidation", () => {
     client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
     client.setQueryData(adminKeys.users(), []);
     client.setQueryData(adminKeys.audit(), []);
+    client.setQueryData(adminKeys.channels(), []);
 
     await invalidateAfterAdminMutation(
       client,
@@ -91,6 +120,9 @@ describe("Admin mutation invalidation", () => {
     expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.audit())?.isInvalidated).toBe(true);
+    expect(client.getQueryState(adminKeys.channels())?.isInvalidated).toBe(
+      true,
+    );
     client.clear();
   });
 });

@@ -50,6 +50,7 @@ export class AuthRequestRouter {
     const adminRoutes = [
       "/auth/admin/users",
       "/auth/admin/audit",
+      "/auth/admin/channels",
       "/auth/admin/anchor",
       "/auth/admin/mutations",
       "/auth/admin/reconciliation",

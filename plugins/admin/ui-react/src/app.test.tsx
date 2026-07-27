@@ -3,6 +3,7 @@ import type {
   AuthAdminUserSummary,
   AuthAuditEventSummary,
   AuthBrainAnchorSummary,
+  AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
@@ -84,6 +85,21 @@ const user: AuthAdminUserSummary = {
   ],
 };
 
+const channels: AuthInvitationChannelSummary[] = [
+  {
+    type: "email",
+    displayName: "Email",
+    subjectLabel: "Email address",
+    deliveryModes: ["automatic"],
+  },
+  {
+    type: "discord",
+    displayName: "Discord",
+    subjectLabel: "Discord user ID",
+    deliveryModes: ["manual"],
+  },
+];
+
 const audit: AuthAuditEventSummary[] = [
   {
     id: "aae_1",
@@ -116,6 +132,7 @@ function renderPerson(
       user: member,
       brainName: "smoke-rover",
       activeAdminCount,
+      channels,
       selfUserId,
       onConfirm: () => undefined,
       onMutation: async () => undefined,
@@ -207,9 +224,23 @@ describe("Admin surface", () => {
     expect(html).not.toContain("setup not yet claimed");
   });
 
-  it("requires an explicit email or Discord delivery channel for invitations", () => {
+  it("renders invitation channels from registry metadata", () => {
     const html = renderToStaticMarkup(
       createElement(AddPersonDialog, {
+        channels: [
+          {
+            type: "email",
+            displayName: "Email",
+            subjectLabel: "Email address",
+            deliveryModes: ["automatic"],
+          },
+          {
+            type: "slack",
+            displayName: "Slack",
+            subjectLabel: "Slack member ID",
+            deliveryModes: ["manual"],
+          },
+        ],
         onClose: () => undefined,
         onCreate: async () => undefined,
       }),
@@ -217,9 +248,9 @@ describe("Admin surface", () => {
 
     expect(html).toContain("Delivery channel");
     expect(html).toContain("Email");
-    expect(html).toContain("Discord");
-    expect(html).toContain("Email address or Discord user ID");
-    expect(html).toContain("Discord display handle");
+    expect(html).toContain("Slack");
+    expect(html).toContain("Email address");
+    expect(html).not.toContain("Discord display handle");
   });
 
   it("renders the four permanent sections and Overview Anchor summary", () => {
@@ -287,7 +318,7 @@ describe("Admin surface", () => {
     });
 
     expect(html).toContain("No profile · local display name only");
-    expect(html).toContain("No verified email or Discord channel");
+    expect(html).toContain("No verified connected channel");
   });
 
   it("protects the last active Admin and professional Anchor", () => {

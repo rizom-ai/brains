@@ -16,6 +16,7 @@ import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
   createAppInfoGetter,
+  createChannelsNamespace,
   createConversationsNamespace,
   createEndpointsNamespace,
   createEvalNamespace,
@@ -29,6 +30,7 @@ import {
   createProfileKindsNamespace,
 } from "./namespaces";
 import type {
+  IChannelsNamespace,
   IConversationsNamespace,
   IEndpointsNamespace,
   IEvalNamespace,
@@ -48,6 +50,7 @@ export interface ISemanticNamespace {
 }
 
 export type {
+  IChannelsNamespace,
   IConversationsNamespace,
   IEndpointsNamespace,
   IEvalNamespace,
@@ -145,6 +148,9 @@ export interface BasePluginContext {
 
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
+
+  /** App-scoped channel metadata and delivery-provider catalog. */
+  readonly channels: IChannelsNamespace;
 
   // ============================================================================
   // Inter-Plugin Messaging
@@ -272,6 +278,7 @@ export function createBasePluginContext(
 
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
+    channels: createChannelsNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
     judge: (input) => shell.judge(input),

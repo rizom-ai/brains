@@ -1,4 +1,7 @@
-import type { AuthAdminUserSummary } from "@brains/auth-service/admin-contracts";
+import type {
+  AuthAdminUserSummary,
+  AuthInvitationChannelSummary,
+} from "@brains/auth-service/admin-contracts";
 import { useMemo, useState, type ReactElement } from "react";
 import { initials, roleLabel } from "../format";
 
@@ -6,6 +9,7 @@ export function Roster(props: {
   users: AuthAdminUserSummary[];
   selectedUserId: string | undefined;
   currentUserId: string;
+  channels: AuthInvitationChannelSummary[];
   label: "Members" | "People";
   onSelect: (userId: string) => void;
 }): ReactElement {
@@ -47,8 +51,20 @@ export function Roster(props: {
               ...(user.userId === props.currentUserId ? ["you"] : []),
               ...new Set(
                 user.identities
-                  .filter((identity) => identity.revokedAt === undefined)
-                  .map((identity) => roleLabel(identity.type).toLowerCase()),
+                  .filter(
+                    (identity) =>
+                      identity.revokedAt === undefined &&
+                      props.channels.some(
+                        (channel) => channel.type === identity.type,
+                      ),
+                  )
+                  .map(
+                    (identity) =>
+                      props.channels
+                        .find((channel) => channel.type === identity.type)
+                        ?.displayName.toLowerCase() ??
+                      roleLabel(identity.type).toLowerCase(),
+                  ),
               ),
               ...(user.passkeys.length > 0 ? ["passkey"] : []),
               ...(user.status === "invited" ? ["invited"] : []),

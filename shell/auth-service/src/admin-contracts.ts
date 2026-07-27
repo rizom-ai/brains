@@ -7,16 +7,9 @@ export const AUTH_BRAIN_ANCHOR_CONFIG_KINDS = [
   "team",
   "organization",
 ] as const;
-export const AUTH_ADMIN_IDENTITY_TYPES = [
-  "discord",
-  "mcp",
-  "oauth",
-  "email",
-  "did",
-  "a2a",
-] as const;
 export const AUTH_ADMIN_MUTATION_ACTIONS = {
   cancelInvitation: "cancelInvitation",
+  confirmManualInvitationDelivery: "confirmManualInvitationDelivery",
   createInvitation: "createInvitation",
   createUser: "createUser",
   inviteExternalPeerPerson: "inviteExternalPeerPerson",
@@ -37,8 +30,7 @@ export type AuthAdminStatus = (typeof AUTH_USER_STATUSES)[number];
 export type AuthBrainAnchorKind = (typeof AUTH_BRAIN_ANCHOR_KINDS)[number];
 export type AuthBrainAnchorConfigKind =
   (typeof AUTH_BRAIN_ANCHOR_CONFIG_KINDS)[number];
-export type AuthAdminIdentityType =
-  "passkey" | (typeof AUTH_ADMIN_IDENTITY_TYPES)[number];
+export type AuthAdminIdentityType = string;
 export type AuthAdminMutationAction =
   (typeof AUTH_ADMIN_MUTATION_ACTIONS)[keyof typeof AUTH_ADMIN_MUTATION_ACTIONS];
 export type AuthInvitationState =
@@ -149,12 +141,25 @@ export interface AuthBrainAnchorResponse {
   anchor: AuthBrainAnchorSummary;
 }
 
-export type AuthSetupDeliveryInput =
-  | { type: "email"; subject: string }
-  | { type: "discord"; subject: string; label: string };
+export type AuthInvitationDeliveryMode = "automatic" | "manual";
+
+export interface AuthInvitationChannelSummary {
+  type: string;
+  displayName: string;
+  subjectLabel: string;
+  subjectPattern?: { source: string; flags?: string | undefined } | undefined;
+  deliveryModes: AuthInvitationDeliveryMode[];
+}
+
+export interface AuthSetupDeliveryInput {
+  type: string;
+  subject: string;
+  label?: string | undefined;
+  mode?: AuthInvitationDeliveryMode | undefined;
+}
 
 export interface AuthIdentityProposalInput {
-  type: "discord" | "mcp" | "oauth" | "email" | "did";
+  type: string;
   subject: string;
   issuer?: string | undefined;
   label?: string | undefined;
@@ -192,6 +197,12 @@ export type AuthAdminMutation =
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
       invitationId: string;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery;
+      invitationId: string;
+      deliveryAttemptId: string;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createInvitation;
@@ -275,6 +286,10 @@ export type AuthAdminMutation =
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
       userId: string;
     };
+
+export interface AuthAdminChannelsResponse {
+  channels: AuthInvitationChannelSummary[];
+}
 
 export interface AuthAdminUsersResponse {
   users: AuthAdminUserSummary[];

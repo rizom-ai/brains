@@ -246,14 +246,7 @@ type PersonIdentityClaimsTable = AuthTable<
   {
     id: AuthTextColumn<"person_identity_claims", "id", true, true>;
     personId: AuthTextColumn<"person_identity_claims", "person_id", true>;
-    type: AuthTextColumn<
-      "person_identity_claims",
-      "type",
-      true,
-      false,
-      "passkey" | "discord" | "mcp" | "oauth" | "email" | "did" | "a2a",
-      ["passkey", "discord", "mcp", "oauth", "email", "did", "a2a"]
-    >;
+    type: AuthTextColumn<"person_identity_claims", "type", true>;
     issuer: AuthTextColumn<"person_identity_claims", "issuer", false>;
     identityKeyHash: AuthTextColumn<
       "person_identity_claims",
@@ -286,9 +279,7 @@ export const authIdentities: PersonIdentityClaimsTable = sqliteTable(
     personId: text("person_id")
       .notNull()
       .references(() => authPeople.id, { onDelete: "cascade" }),
-    type: text("type", {
-      enum: ["passkey", "discord", "mcp", "oauth", "email", "did", "a2a"],
-    }).notNull(),
+    type: text("type").notNull(),
     issuer: text("issuer"),
     identityKeyHash: text("identity_key_hash").notNull(),
     deliverySubject: text("delivery_subject"),
@@ -306,10 +297,6 @@ export const authIdentities: PersonIdentityClaimsTable = sqliteTable(
     keyIdx: index("idx_person_identity_claims_key").on(table.identityKeyHash),
     personIdIdx: index("idx_person_identity_claims_person_id").on(
       table.personId,
-    ),
-    typeCheck: check(
-      "person_identity_claims_type_check",
-      sql`${table.type} IN ('passkey', 'discord', 'mcp', 'oauth', 'email', 'did', 'a2a')`,
     ),
     visibilityCheck: check(
       "person_identity_claims_visibility_check",

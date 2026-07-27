@@ -1,3 +1,4 @@
+import type { ChannelDescriptor } from "@brains/plugins";
 import type {
   AuthAdminUserSummary,
   AuthBrainAnchorConfigKind,
@@ -42,7 +43,11 @@ export interface CreatedInvitationAccess {
   invitation: AuthInvitationSummary;
   user: AuthPrincipal;
   peer?: PersonExternalPeer;
-  registration?: { setupUrl: string; expiresAt: number };
+  registration?: {
+    setupUrl: string;
+    expiresAt: number;
+    deliveryAttemptId: string;
+  };
 }
 
 export interface InviteExternalPeerPersonRequest {
@@ -75,6 +80,7 @@ export interface AuthAdministrationServiceOptions {
   invitations: AuthInvitationService;
   audit: AuthAuditStore;
   management: AuthUserManagementService;
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
   startPasskeyRegistration: (
     userId: string,
     context: AuthMutationContext,
@@ -93,6 +99,8 @@ export class AuthAdministrationService {
   private readonly invitations: AuthInvitationService;
   private readonly audit: AuthAuditStore;
   private readonly management: AuthUserManagementService;
+  private readonly getChannelDescriptor:
+    ((channelType: string) => ChannelDescriptor | undefined) | undefined;
   private readonly startPasskeyRegistration: (
     userId: string,
     context: AuthMutationContext,
@@ -109,6 +117,7 @@ export class AuthAdministrationService {
     this.invitations = options.invitations;
     this.audit = options.audit;
     this.management = options.management;
+    this.getChannelDescriptor = options.getChannelDescriptor;
     this.startPasskeyRegistration = options.startPasskeyRegistration;
   }
 
@@ -154,6 +163,23 @@ export class AuthAdministrationService {
     }
     return invitationSummary(
       await this.invitations.cancel(invitationId, context.actorUserId),
+    );
+  }
+
+  async confirmManualInvitationDelivery(
+    invitationId: string,
+    deliveryAttemptId: string,
+    context: AuthMutationContext,
+  ): Promise<AuthInvitationSummary> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for invitation");
+    }
+    return invitationSummary(
+      await this.invitations.confirmManualDelivery(
+        invitationId,
+        deliveryAttemptId,
+        context.actorUserId,
+      ),
     );
   }
 
@@ -317,7 +343,8 @@ export class AuthAdministrationService {
           ...(profileEntityId ? { profileEntityId } : {}),
           ...(invitation ? { invitation: invitationSummary(invitation) } : {}),
           identities: (identitiesByPersonId.get(user.personId) ?? []).map(
-            (identity) => identitySummary(identity, user.id),
+            (identity) =>
+              identitySummary(identity, user.id, this.getChannelDescriptor),
           ),
           passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
           externalPeers: externalPeersByPersonId.get(user.personId) ?? [],
@@ -332,7 +359,7 @@ export class AuthAdministrationService {
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
     return (await this.identities.listIdentities(userId)).map((identity) =>
-      identitySummary(identity, userId),
+      identitySummary(identity, userId, this.getChannelDescriptor),
     );
   }
 
@@ -482,8 +509,9 @@ function brainAnchorSummary(
 function identitySummary(
   identity: AuthIdentityRecord,
   userId: string,
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
 ): AuthIdentitySummary {
-  const label = adminIdentityLabel(identity);
+  const label = adminIdentityLabel(identity, getChannelDescriptor);
   return {
     id: identity.id,
     personId: identity.personId,
@@ -506,11 +534,21 @@ function identitySummary(
   };
 }
 
-function adminIdentityLabel(identity: AuthIdentityRecord): string | undefined {
-  if (identity.type === "email" && identity.deliverySubject?.trim()) {
-    return identity.deliverySubject.trim();
+function adminIdentityLabel(
+  identity: AuthIdentityRecord,
+  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
+): string | undefined {
+  const label = identity.label?.trim();
+  const deliverySubject = identity.deliverySubject?.trim();
+  if (
+    label &&
+    label.length > 0 &&
+    label !== getChannelDescriptor?.(identity.type)?.subjectLabel
+  ) {
+    return label;
   }
-  return identity.label ?? undefined;
+  if (deliverySubject && deliverySubject.length > 0) return deliverySubject;
+  return label && label.length > 0 ? label : undefined;
 }
 
 function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {

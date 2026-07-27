@@ -20,6 +20,7 @@ import {
 } from "@brains/notification-contracts";
 import {
   AttachmentRegistry,
+  ChannelRegistry,
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
@@ -90,6 +91,8 @@ export function createShellServices(options: {
   const profileKindRegistry =
     dependencies?.profileKindRegistry ??
     new ProfileKindRegistry(config.profileKind);
+  const channelRegistry =
+    dependencies?.channelRegistry ?? new ChannelRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -268,6 +271,7 @@ export function createShellServices(options: {
     profileService,
     canonicalIdentityService,
     profileKindRegistry,
+    channelRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

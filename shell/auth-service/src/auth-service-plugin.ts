@@ -8,6 +8,8 @@ import {
   sendNotificationResultSchema,
 } from "@brains/notification-contracts";
 import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
   ServicePluginContext,
   Tool,
   WebRouteDefinition,
@@ -19,7 +21,6 @@ import {
   type AuthBrainAnchorConfigKind,
 } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
-import type { InvitationEmailResult } from "./invitation-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
@@ -191,37 +192,17 @@ export class AuthServicePlugin extends ServicePlugin<
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
       setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
-      sendInvitationEmail: async (input): Promise<InvitationEmailResult> => {
-        const response = await context.messaging.send({
-          type: NOTIFICATIONS_SEND,
-          payload: {
-            recipient: { type: "email", address: input.to },
-            title: input.subject,
-            body: input.text,
-            sensitivity: "secret",
-            idempotencyKey: input.idempotencyKey,
-          },
-        });
-        if (!("success" in response) || !response.success || !response.data) {
-          return {
-            status: "failed" as const,
-            failureCode: "email_delivery_failed",
-          };
-        }
-        const parsed = sendNotificationResultSchema.safeParse(response.data);
-        if (!parsed.success || parsed.data.status !== "sent") {
-          return {
-            status: "failed" as const,
-            failureCode: "email_delivery_failed",
-          };
-        }
-        return {
-          status: "sent" as const,
-          ...(parsed.data.deliveryId
-            ? { deliveryId: parsed.data.deliveryId }
-            : {}),
-        };
-      },
+      autoStartInvitationDeliveryRecovery: false,
+      getInvitationDeliveryProvider: (
+        channelType,
+      ): ChannelDeliveryProvider | undefined =>
+        context.channels.getDeliveryProvider(channelType),
+      getChannelDescriptor: (channelType): ChannelDescriptor | undefined =>
+        context.channels.getDescriptor(channelType),
+      listChannelDescriptors: (): ChannelDescriptor[] =>
+        context.channels.listDescriptors(),
+      isChannelTypeRegistered: (channelType): boolean =>
+        Boolean(context.channels.getDescriptor(channelType)),
       logger: context.logger,
     });
     await this.service.initialize();
@@ -260,6 +241,10 @@ export class AuthServicePlugin extends ServicePlugin<
         };
       },
     );
+  }
+
+  protected override async onRegistrationComplete(): Promise<void> {
+    await this.getService().startInvitationDeliveryRecovery();
   }
 
   protected override async onReady(
@@ -471,6 +456,12 @@ export class AuthServicePlugin extends ServicePlugin<
       },
       {
         path: "/auth/admin/audit",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/admin/channels",
         method: "GET",
         public: true,
         handler,

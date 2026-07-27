@@ -14,7 +14,15 @@ export interface Confirmation {
 
 export type Modal =
   | { kind: "add"; draft?: ExternalPeerInvitationDraft }
-  | { kind: "setup"; setupUrl: string; copy: string }
+  | {
+      kind: "setup";
+      setupUrl: string;
+      copy: string;
+      manualConfirmation?: {
+        invitationId: string;
+        deliveryAttemptId: string;
+      };
+    }
   | Confirmation
   | null;
 

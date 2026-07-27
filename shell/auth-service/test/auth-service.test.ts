@@ -3,6 +3,7 @@ import { createClient } from "@libsql/client";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import type { ChannelDescriptor } from "@brains/plugins";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
 import { Logger, LogLevel } from "@brains/utils/logger";
@@ -22,6 +23,27 @@ import {
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
+
+function getTestChannelDescriptor(
+  channelType: string,
+): ChannelDescriptor | undefined {
+  if (channelType === "email") {
+    return {
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+    };
+  }
+  if (channelType === "discord") {
+    return {
+      type: "discord",
+      displayName: "Discord",
+      subjectLabel: "Discord user ID",
+      manualDelivery: true,
+    };
+  }
+  return undefined;
+}
 
 const setupRequiredToolDataSchema = z.object({
   status: z.literal("setup_required"),
@@ -658,10 +680,11 @@ describe("AuthService", () => {
     expect(toolNames).not.toContain("auth-service_user_revoke_passkey");
   });
 
-  it("prepares redacted email and Discord delivery claims for targeted setup", async () => {
+  it("prepares redacted registered-channel delivery claims for targeted setup", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
+      getChannelDescriptor: getTestChannelDescriptor,
     });
     const emailUser = await service.createUser({
       displayName: "Email Invitee",
@@ -702,7 +725,7 @@ describe("AuthService", () => {
     expect(discordSetup.setupUrl).not.toContain("1442828818493735015");
     expect(discordSetup.delivery).toEqual({
       type: "discord",
-      label: "@invitee",
+      label: "Discord user ID",
     });
     const emailIdentities = await service.listUserIdentities(emailUser.userId);
     expect(emailIdentities).toEqual([
@@ -739,8 +762,7 @@ describe("AuthService", () => {
         () => false,
         (error: unknown) =>
           error instanceof Error &&
-          error.message ===
-            "A confirmed email or Discord delivery channel is required",
+          error.message === "A confirmed delivery channel is required",
       );
     expect(missingDeliveryWasRejected).toBe(true);
     await service.close();
@@ -832,6 +854,13 @@ describe("AuthService", () => {
         issuer: "https://brain.example.com",
       }),
     );
+    const discordDescriptor = getTestChannelDescriptor("discord");
+    if (!discordDescriptor) throw new Error("Discord descriptor unavailable");
+    harness
+      .getMockShell()
+      .getChannelRegistry()
+      .registerDescriptor("test", discordDescriptor);
+    await harness.finalizeRegistration();
     const service = harness.getPlugin().getService();
     const user = await service.createUser({
       displayName: "Mira",

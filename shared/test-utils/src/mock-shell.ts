@@ -1,5 +1,6 @@
 import {
   AttachmentRegistry,
+  ChannelRegistry,
   RuntimeUploadRegistry,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
@@ -221,6 +222,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   });
   const runtimeState = createMemoryRuntimeStateNamespace();
   const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
+  const channelRegistry = new ChannelRegistry();
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -790,6 +792,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       description: "Test profile for unit tests",
     }),
     getProfileKindRegistry: () => profileKindRegistry,
+    getChannelRegistry: () => channelRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

@@ -8,6 +8,30 @@ import {
 } from "../src";
 
 describe("NotificationsPlugin", () => {
+  it("registers Email as channel metadata without claiming a provider", async () => {
+    const harness = createPluginHarness<NotificationsPlugin>();
+    await harness.installPlugin(new NotificationsPlugin());
+    await harness.finalizeRegistration();
+
+    expect(
+      harness.getMockShell().getChannelRegistry().listDescriptors(),
+    ).toEqual([
+      {
+        type: "email",
+        displayName: "Email",
+        subjectLabel: "Email address",
+        subjectPattern: {
+          source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+          flags: "i",
+        },
+        manualDelivery: true,
+      },
+    ]);
+    expect(
+      harness.getMockShell().getChannelRegistry().getDeliveryProvider("email"),
+    ).toBeUndefined();
+  });
+
   it("routes email notifications to the generic email channel", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     const sent: SendEmailPayload[] = [];

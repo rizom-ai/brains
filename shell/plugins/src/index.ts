@@ -45,6 +45,15 @@ export {
 } from "./entity/pending-ingestion";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
+export {
+  ChannelRegistry,
+  type ChannelDeliveryInput,
+  type ChannelDeliveryProvider,
+  type ChannelDeliveryResult,
+  type ChannelDescriptor,
+  type ChannelSubjectPattern,
+  type IChannelRegistry,
+} from "./channel-registry";
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
 export * from "./message-channels";
@@ -91,6 +100,7 @@ export type {
   IEvalNamespace,
   IInsightsNamespace,
   IProfileKindsNamespace,
+  IChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
 export type {
