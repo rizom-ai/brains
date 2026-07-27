@@ -1,5 +1,18 @@
 # @brains/cms
 
+## 0.2.0-alpha.234
+
+### Patch Changes
+
+- [#72](https://github.com/rizom-ai/brains/pull/72) [`afa5cf4`](https://github.com/rizom-ai/brains/commit/afa5cf4cbdf75400b180d4bb89ed46dd4e6097cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow active Trusted principals to use the first-party CMS with principal-scoped reads, server-derived capabilities, policy-enforced writes, uploads, assists, and workspaces, authenticated actor attribution, and visibility-safe publication views while preserving Admin-only operational boundaries.
+
+- Updated dependencies [[`afa5cf4`](https://github.com/rizom-ai/brains/commit/afa5cf4cbdf75400b180d4bb89ed46dd4e6097cc)]:
+  - @brains/auth-service@0.2.0-alpha.234
+  - @brains/plugins@0.2.0-alpha.234
+  - @brains/console-theme@0.2.0-alpha.234
+  - @brains/contracts@0.2.0-alpha.234
+  - @brains/utils@0.2.0-alpha.234
+
 ## 0.2.0-alpha.233
 
 ### Patch Changes

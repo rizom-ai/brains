@@ -1,5 +1,16 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.234
+
+### Patch Changes
+
+- Updated dependencies [[`afa5cf4`](https://github.com/rizom-ai/brains/commit/afa5cf4cbdf75400b180d4bb89ed46dd4e6097cc)]:
+  - @brains/plugins@0.2.0-alpha.234
+  - @brains/content-formatters@0.2.0-alpha.234
+  - @brains/contracts@0.2.0-alpha.234
+  - @brains/utils@0.2.0-alpha.234
+  - @brains/runtime-state@0.2.0-alpha.234
+
 ## 0.2.0-alpha.233
 
 ### Patch Changes
