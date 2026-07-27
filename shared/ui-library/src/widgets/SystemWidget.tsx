@@ -4,6 +4,7 @@ import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
+import { WidgetCard } from "./WidgetCard";
 
 const systemDataSchema = z.object({
   version: z.string(),
@@ -27,23 +28,13 @@ export function SystemWidget({ data }: SystemWidgetProps): VNode {
   const parsed = systemDataSchema.safeParse(data);
 
   if (!parsed.success) {
-    return (
-      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-          System
-        </div>
-        <p className="text-sm text-theme-muted">No system data</p>
-      </div>
-    );
+    return <WidgetCard title="System" empty="No system data" />;
   }
 
   const systemData = parsed.data;
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-        System
-      </div>
+    <WidgetCard title="System">
       <dl>
         {SYSTEM_FIELDS.map(({ key, label }) => (
           <div
@@ -73,6 +64,6 @@ export function SystemWidget({ data }: SystemWidgetProps): VNode {
           ))}
         </dl>
       )}
-    </div>
+    </WidgetCard>
   );
 }

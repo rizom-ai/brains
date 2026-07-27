@@ -19,8 +19,6 @@ export type { SectionProps } from "./Section";
 
 export { SideNav } from "./SideNav";
 
-export { renderHighlightedText } from "./highlighted-text";
-
 export { Wordmark } from "./Wordmark";
 export type { WordmarkProps } from "./Wordmark";
 
@@ -38,4 +36,5 @@ export type {
   RizomSideNavItem,
 } from "./types";
 
-export { cn } from "./cn";
+/** Re-exported so brand components can pull everything from one entry. */
+export { cn, renderHighlightedText } from "@brains/ui-library";

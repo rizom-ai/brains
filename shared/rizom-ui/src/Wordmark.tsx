@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { cn } from "./cn";
+import { cn } from "@brains/ui-library";
 import type { RizomBrandSuffix } from "./types";
 
 export interface WordmarkProps {

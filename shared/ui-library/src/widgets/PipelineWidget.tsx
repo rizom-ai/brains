@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
+import { WidgetCard } from "./WidgetCard";
 import type { BaseWidgetProps } from "./types";
 
 const pipelineItemSchema = z.object({
@@ -163,16 +164,7 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
   const parsed = pipelineDataSchema.safeParse(data);
 
   if (!parsed.success) {
-    return (
-      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
-            {title}
-          </span>
-        </div>
-        <p className="text-sm text-theme-muted">No pipeline data</p>
-      </div>
-    );
+    return <WidgetCard title={title} empty="No pipeline data" />;
   }
 
   const { summary, items } = parsed.data;
@@ -185,16 +177,14 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
     .sort(comparePipelineItems);
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
-          {title}
-        </span>
+    <WidgetCard
+      title={title}
+      trailing={
         <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-theme text-theme-muted border border-theme font-medium">
           {totalItems} total
         </span>
-      </div>
-
+      }
+    >
       <div className="flex flex-wrap gap-1.5 mb-3">
         {STATUSES.map((status) => (
           <StatusTab
@@ -218,6 +208,6 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
           ))}
         </div>
       )}
-    </div>
+    </WidgetCard>
   );
 }

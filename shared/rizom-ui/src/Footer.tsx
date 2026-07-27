@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { cn } from "./cn";
+import { cn } from "@brains/ui-library";
 import type { RizomBrandSuffix, RizomFooterTagline, RizomLink } from "./types";
 import { GUTTER } from "./Section";
 import { Wordmark } from "./Wordmark";

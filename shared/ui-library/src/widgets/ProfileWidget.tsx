@@ -4,6 +4,7 @@ import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
+import { WidgetCard } from "./WidgetCard";
 
 const profileDataSchema = z.object({
   name: z.string(),
@@ -25,23 +26,13 @@ export function ProfileWidget({ data }: ProfileWidgetProps): VNode {
   const parsed = profileDataSchema.safeParse(data);
 
   if (!parsed.success) {
-    return (
-      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-          Anchor Profile
-        </div>
-        <p className="text-sm text-theme-muted">No profile data</p>
-      </div>
-    );
+    return <WidgetCard title="Anchor Profile" empty="No profile data" />;
   }
 
   const { name, description, links } = parsed.data;
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-        Anchor Profile
-      </div>
+    <WidgetCard title="Anchor Profile">
       <div className="text-sm font-semibold text-heading mb-1">{name}</div>
       {description && (
         <p className="text-xs text-theme-muted leading-relaxed">
@@ -68,6 +59,6 @@ export function ProfileWidget({ data }: ProfileWidgetProps): VNode {
           ))}
         </dl>
       )}
-    </div>
+    </WidgetCard>
   );
 }

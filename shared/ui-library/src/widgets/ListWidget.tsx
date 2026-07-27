@@ -3,6 +3,7 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
+import { WidgetCard } from "./WidgetCard";
 import type { BaseWidgetProps } from "./types";
 
 const listItemSchema = z.object({
@@ -99,17 +100,16 @@ export function ListWidget({ title, data }: ListWidgetProps): VNode {
   const allItems: ListItem[] = [...jobs, ...batches, ...items];
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
-          {title}
-        </span>
-        {allItems.length > 0 && (
+    <WidgetCard
+      title={title}
+      trailing={
+        allItems.length > 0 && (
           <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-neutral text-status-neutral font-medium">
             {allItems.length} items
           </span>
-        )}
-      </div>
+        )
+      }
+    >
       {allItems.length === 0 ? (
         <p className="text-theme-muted text-sm italic text-center py-4">
           No active items
@@ -121,6 +121,6 @@ export function ListWidget({ title, data }: ListWidgetProps): VNode {
           ))}
         </div>
       )}
-    </div>
+    </WidgetCard>
   );
 }

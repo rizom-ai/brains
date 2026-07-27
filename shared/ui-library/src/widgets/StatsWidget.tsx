@@ -5,6 +5,7 @@ import { useState } from "preact/hooks";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
+import { WidgetCard } from "./WidgetCard";
 
 const statsDataSchema = z.record(z.string(), z.unknown());
 const nestedStatsDataSchema = z.record(z.string(), z.unknown());
@@ -18,14 +19,7 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
   const parsed = statsDataSchema.safeParse(data);
 
   if (!parsed.success) {
-    return (
-      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-4">
-          {title}
-        </div>
-        <p className="text-sm text-theme-muted">No data available</p>
-      </div>
-    );
+    return <WidgetCard title={title} empty="No data available" />;
   }
 
   // Flatten nested stats object if present
@@ -54,11 +48,9 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
       : [...entries].sort(([a], [b]) => a.localeCompare(b));
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
-          {title}
-        </span>
+    <WidgetCard
+      title={title}
+      trailing={
         <div className="flex items-center gap-2">
           {total > 0 && (
             <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-info text-status-info font-medium">
@@ -90,7 +82,8 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
             </button>
           </div>
         </div>
-      </div>
+      }
+    >
       <div
         className="grid"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(5rem, 1fr))" }}
@@ -109,6 +102,6 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
           </div>
         ))}
       </div>
-    </div>
+    </WidgetCard>
   );
 }

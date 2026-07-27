@@ -4,6 +4,7 @@ import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
+import { WidgetCard } from "./WidgetCard";
 
 const characterDataSchema = z.object({
   name: z.string(),
@@ -18,23 +19,13 @@ export function IdentityWidget({ data }: IdentityWidgetProps): VNode {
   const parsed = characterDataSchema.safeParse(data);
 
   if (!parsed.success) {
-    return (
-      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-          Brain Character
-        </div>
-        <p className="text-sm text-theme-muted">No character data</p>
-      </div>
-    );
+    return <WidgetCard title="Brain Character" empty="No character data" />;
   }
 
   const { name, role, purpose, values } = parsed.data;
 
   return (
-    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
-      <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-3">
-        Brain Character
-      </div>
+    <WidgetCard title="Brain Character">
       <div className="text-base font-semibold text-heading mb-1">{name}</div>
       <div className="text-sm text-heading mb-1">{role}</div>
       <p className="text-xs text-theme-muted leading-relaxed mb-3">{purpose}</p>
@@ -48,6 +39,6 @@ export function IdentityWidget({ data }: IdentityWidgetProps): VNode {
           </span>
         ))}
       </div>
-    </div>
+    </WidgetCard>
   );
 }
