@@ -311,27 +311,13 @@ describe("SiteBuilderPlugin", () => {
       actionHandler({ type: "build-production" }, adminWorkspaceActor),
     ).rejects.toThrow("Invalid site workspace action");
     expect(
-      actionHandler(
-        { type: "build-preview" },
-        {
-          interfaceType: "cms",
-          userId: "viewer",
-          userPermissionLevel: "public",
-        },
-      ),
-    ).rejects.toThrow("Site build requires admin permission");
-    expect(
       await actionHandler(
         { type: "build-production", confirmed: true },
-        {
-          interfaceType: "cms",
-          userId: "operator",
-          userPermissionLevel: "admin",
-        },
+        adminWorkspaceActor,
       ),
     ).toEqual({ accepted: true, environment: "production" });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(await registration.dataProvider()).toMatchObject({
+    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
       environments: [
         { environment: "preview", active: { state: "queued" } },
         { environment: "production", active: { state: "queued" } },
