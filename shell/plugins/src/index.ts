@@ -535,6 +535,10 @@ export {
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 
+export { SerialQueue } from "./service/serial-queue";
+export { SerializedStatusStore } from "./service/serialized-status-store";
+export type { SerializedStatusStoreOptions } from "./service/serialized-status-store";
+
 export { createId } from "@brains/utils/id";
 
 // ============================================================================

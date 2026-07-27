@@ -1,7 +1,7 @@
 import {
   createId,
+  SerializedStatusStore,
   type IRuntimeStateNamespace,
-  type IRuntimeStateStore,
   type ServicePluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -130,15 +130,13 @@ const STATUS_KEY = "current";
  * Jobs and batches remain execution authority; this service gives them sync-domain meaning.
  */
 export class DirectorySyncOperationStatusService {
-  private readonly store: IRuntimeStateStore<StoredDirectorySyncOperationStatus>;
+  private readonly store: SerializedStatusStore<StoredDirectorySyncOperationStatus>;
   private readonly jobs: Pick<
     ServicePluginContext["jobs"],
     "getStatus" | "getBatchStatus"
   >;
   private readonly logger: Logger;
   private syncPath: string;
-  private statePromise: Promise<StoredDirectorySyncOperationStatus> | undefined;
-  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
@@ -146,9 +144,13 @@ export class DirectorySyncOperationStatusService {
     logger: Logger,
     syncPath: string,
   ) {
-    this.store = runtimeState.scoped({
+    this.store = new SerializedStatusStore({
+      runtimeState,
       namespace: STATUS_NAMESPACE,
+      key: STATUS_KEY,
       schema: storedStatusSchema,
+      createEmpty: (): StoredDirectorySyncOperationStatus =>
+        structuredClone(EMPTY_STATUS),
     });
     this.jobs = jobs;
     this.logger = logger;
@@ -160,7 +162,7 @@ export class DirectorySyncOperationStatusService {
   }
 
   async initialize(): Promise<void> {
-    const status = await this.load();
+    const status = await this.store.snapshot();
     if (
       status.activeRun &&
       !status.activeRun.jobId &&
@@ -337,9 +339,8 @@ export class DirectorySyncOperationStatusService {
   }
 
   async reconcile(): Promise<void> {
-    await this.writeQueue;
-    const status = await this.load();
-    const active = status.activeRun ? { ...status.activeRun } : undefined;
+    const status = await this.store.snapshot();
+    const active = status.activeRun;
     if (!active) return;
 
     try {
@@ -420,9 +421,7 @@ export class DirectorySyncOperationStatusService {
 
   async getSnapshot(): Promise<DirectorySyncOperationSnapshot> {
     await this.reconcile();
-    await this.writeQueue;
-    const status = await this.load();
-    return structuredClone(status);
+    return this.store.snapshot();
   }
 
   private finishRun(
@@ -445,31 +444,10 @@ export class DirectorySyncOperationStatusService {
     });
   }
 
-  private load(): Promise<StoredDirectorySyncOperationStatus> {
-    this.statePromise ??= this.store
-      .get(STATUS_KEY)
-      .then((stored) => stored ?? structuredClone(EMPTY_STATUS));
-    return this.statePromise;
-  }
-
   private mutate<T>(
     mutation: (status: StoredDirectorySyncOperationStatus) => T,
   ): Promise<T> {
-    const operation = this.writeQueue.then(async () => {
-      const status = await this.load();
-      const result = mutation(status);
-      await this.persist(status);
-      return result;
-    });
-    this.writeQueue = operation.then(
-      () => undefined,
-      () => undefined,
-    );
-    return operation;
-  }
-
-  private persist(status: StoredDirectorySyncOperationStatus): Promise<void> {
-    return this.store.set(STATUS_KEY, storedStatusSchema.parse(status));
+    return this.store.mutate(mutation);
   }
 
   private prependRecent(
