@@ -1,0 +1,15 @@
+brain: brain
+anchor: team
+bundles:
+  - team
+  - site
+  - core
+
+site:
+  package: "@brains/site-default"
+  theme: "@brains/theme-rizom"
+
+plugins:
+  directory-sync:
+    seedContentPath: ./seed-content
+    initialSync: true

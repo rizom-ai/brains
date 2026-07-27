@@ -55,6 +55,7 @@ import packageJson from "../../package.json" with { type: "json" };
 export const CORE_BUNDLE_ID = "core";
 export const SITE_BUNDLE_ID = "site";
 export const PUBLISHING_BUNDLE_ID = "publishing";
+export const TEAM_BUNDLE_ID = "team";
 
 export const coreBundle: CapabilityBundleDefinition = defineBundle({
   id: CORE_BUNDLE_ID,
@@ -203,6 +204,85 @@ export const publishingBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["atproto"],
 });
 
+const trustedTeamEntityActions = {
+  create: "trusted",
+  update: "trusted",
+  delete: "admin",
+  extract: "admin",
+  publish: "admin",
+} as const;
+
+export const teamBundle: CapabilityBundleDefinition = defineBundle({
+  id: TEAM_BUNDLE_ID,
+  members: [
+    "image",
+    "note",
+    "link",
+    "topics",
+    "decks",
+    "mcp",
+    "discord",
+    "conversation-memory",
+    "docs",
+  ],
+  config: [
+    {
+      member: "topics",
+      value: { extractableStatuses: ["published", "draft"] },
+    },
+    {
+      member: "conversation-memory",
+      value: { memoryVisibility: "shared" },
+    },
+    {
+      member: "discord",
+      value: { captureUrls: true },
+    },
+  ],
+  permissions: [
+    {
+      member: "image",
+      config: { entityActions: { image: trustedTeamEntityActions } },
+    },
+    {
+      member: "note",
+      config: { entityActions: { note: trustedTeamEntityActions } },
+    },
+    {
+      member: "link",
+      config: { entityActions: { link: trustedTeamEntityActions } },
+    },
+    {
+      member: "decks",
+      config: { entityActions: { deck: trustedTeamEntityActions } },
+    },
+    {
+      member: "docs",
+      config: { entityActions: { doc: trustedTeamEntityActions } },
+    },
+    {
+      member: "conversation-memory",
+      config: {
+        entityActions: {
+          decision: trustedTeamEntityActions,
+          "action-item": trustedTeamEntityActions,
+        },
+      },
+    },
+    {
+      member: "mcp",
+      config: {
+        rules: [{ pattern: "mcp:http", level: "admin" }],
+      },
+      overrides: CORE_BUNDLE_ID,
+    },
+  ],
+  agentInstructions: [
+    `This is a collaborative team-memory and synthesis posture. Optimize for capturing shared context, finding what the team already knows, summarizing cross-source evidence with attribution, and coordinating with peer brains.`,
+    `Do not default to personal publishing, personal branding, blog, newsletter, social-media, portfolio, or marketing workflows unless the installed capabilities and the user's request explicitly support them.`,
+  ],
+});
+
 /**
  * Canonical catalog for the one-brain bundle model.
  *
@@ -286,7 +366,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["chat", ChatInterface, (): PluginConfig => ({})],
   ],
-  bundles: [coreBundle, siteBundle, publishingBundle],
+  bundles: [coreBundle, siteBundle, publishingBundle, teamBundle],
   deployment: {
     cdn: {
       enabled: true,

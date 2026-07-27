@@ -16,6 +16,7 @@ import {
   coreBundle,
   publishingBundle,
   siteBundle,
+  teamBundle,
 } from "../src/model/canonical-brain";
 
 registerPackage("@brains/site-default", defaultSite);
@@ -110,6 +111,7 @@ describe("canonical personal bundles", () => {
       coreBundle,
       siteBundle,
       publishingBundle,
+      teamBundle,
     ]);
     expect(siteBundle.members).toEqual(siteMembers);
     expect(publishingBundle.members).toEqual(publishingMembers);
