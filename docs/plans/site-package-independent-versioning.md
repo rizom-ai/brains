@@ -12,14 +12,32 @@ tarball was packed but before npm read registry metadata; restore now happens
 once in the release wrapper, with a drift-guard test). Package resolution is
 unblocked.
 
-Phases 1–4 (schema and production migration, resolver and committed lock,
-independent theme resolution, floating canary) are not started. Phase 5's code
-is implemented: core and site/theme releases have separate CI, changeset,
-version, publish, and verification scopes, and the standalone reference package
-now lives at `rizom-ai/site-smoke-canary` with a plain npm publish workflow.
-Its exit gate remains open until npm trusted publishing is assigned to that
-workflow, `0.2.0-alpha.234` is published from the standalone repository, and
-Smoke is pinned to and deployed from that release.
+Phase 5 is complete; its exit gate closed on 2026-07-28. Core and site/theme
+releases run in fully separate pipelines (Core CI → Release, Site CI → Site
+Release, shared publish concurrency), and the first independent site release
+shipped the `0.2.0-alpha.234` sites through the site lane in 45 seconds while
+core stayed at `0.2.0-alpha.236`. The standalone `rizom-ai/site-smoke-canary`
+repository published `0.2.0-alpha.234` to npm via trusted publishing (OIDC,
+provenance attestation, no token), and Smoke deploys from that external
+release: brain `0.2.0-alpha.236` with `site-smoke-canary@234` plus
+`theme-signal@233` baked into its image.
+
+That first site/theme version divergence exposed a lockstep assumption in
+`@rizom/ops`: image resolution inherited the theme's version from the site's.
+`@rizom/ops@0.2.0-alpha.237` adds the explicit `themeVersion` siteOverride
+field (required for `@rizom`-scoped themes, rejected for bundled `@brains`
+themes) and installs the theme at its own pin — banking Phase 1's schema field
+and Phase 3's independent theme install ahead of schedule, without the
+originally planned migration fallback. All rover-pilot theme users pin
+explicitly (smoke at 233; docs and rizom-ai at 228, matching their previous
+effective images).
+
+Phases 1–4 remain otherwise open. Phase 1's residue: `docs` and `rizom-ai`
+site versions still ride the `?? brainVersion` fallback onto metadata-less
+`0.2.0-alpha.228` packages. Phase 2 (resolver and committed lock) is the next
+substantial slice; Phase 3 shrinks to routing themes through that same lock
+and supporting non-`@rizom` external scopes; Phase 4 (floating canary,
+`site:update`) is unchanged.
 
 This plan gives deployable site and theme packages genuinely independent npm
 versions and decouples their deployment pins from `brainVersion`. The monorepo
