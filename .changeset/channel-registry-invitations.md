@@ -4,7 +4,7 @@
 "@brains/auth-service": patch
 "@brains/admin": patch
 "@brains/notifications": patch
-"@brains/email-resend": patch
+"@brains/email": patch
 "@brains/chat": patch
 "@brains/discord": patch
 ---
