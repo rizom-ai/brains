@@ -1,0 +1,39 @@
+brain: brain
+anchor: person
+kind: professional
+bundles:
+  - core
+  - site
+  - publishing
+domain: alex.example.com
+
+add:
+  - obsidian-vault
+
+permissions:
+  rules:
+    - pattern: "discord:1442828818493735015"
+      level: admin
+    - pattern: "discord:*"
+      level: public
+
+plugins:
+  chat:
+    adapters:
+      discord:
+        botToken: ${DISCORD_BOT_TOKEN}
+        publicKey: ${DISCORD_PUBLIC_KEY}
+        applicationId: ${DISCORD_APPLICATION_ID}
+  directory-sync:
+    seedContentPath: ../../eval-content/publishing
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-publishing-test-content
+      gitUrl: file:///tmp/canonical-publishing-test-content.git
+      bootstrapFromSeed: true
+  onboarding:
+    enabled: true
+site:
+  package: "@brains/site-default"
+  theme: "@rizom/theme-default"

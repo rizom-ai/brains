@@ -1,0 +1,28 @@
+id: tool-invocation-job-status-dispute
+name: Job status dispute checks runtime status
+description: Verifies Brain checks runtime job status when the operator says logs disagree with the conversation.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - jobs
+  - tool-invocation
+  - status
+  - bundle-core
+
+turns:
+  - userMessage: "You said the background operation was still running, but my local logs show it succeeded. Check the runtime job status before answering."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_job_status
+      shouldBeCalled: true
+  responseNotContains:
+    - "based on our conversation"
+    - "I already told you"
+    - "must still be running"
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

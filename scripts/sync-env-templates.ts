@@ -1,15 +1,12 @@
 #!/usr/bin/env bun
 /**
- * Generates each brain's `env.schema.template` from its composed env
- * declarations (`brains/<model>/src/env-schema.ts`). Run after changing
+ * Generates the canonical brain's `env.schema.template` from its composed
+ * environment declarations. Run after changing
  * any env-schema.ts; `--check` verifies the templates are in sync (used
  * by pre-commit). The templates are fully generated — never edit them
  * by hand.
  */
 import { readFileSync, writeFileSync } from "fs";
-import { roverEnvSchema } from "@brains/rover/src/env-schema";
-import { rangerEnvSchema } from "@brains/ranger/src/env-schema";
-import { relayEnvSchema } from "@brains/relay/env-schema";
 import { canonicalEnvSchema } from "../packages/brain-cli/src/model/env-schema";
 import {
   ENV_SCHEMA_HEADER,
@@ -17,41 +14,26 @@ import {
   type EnvVarDecl,
 } from "@brains/utils/env-schema";
 
-const MODELS: Array<{
-  model: string;
+const DEFINITIONS: Array<{
+  definition: string;
   decls: EnvVarDecl[];
   templatePath: string;
 }> = [
   {
-    model: "brain",
+    definition: "brain",
     decls: canonicalEnvSchema,
     templatePath: "packages/brain-cli/env.schema.template",
-  },
-  {
-    model: "rover",
-    decls: roverEnvSchema,
-    templatePath: "brains/rover/env.schema.template",
-  },
-  {
-    model: "ranger",
-    decls: rangerEnvSchema,
-    templatePath: "brains/ranger/env.schema.template",
-  },
-  {
-    model: "relay",
-    decls: relayEnvSchema,
-    templatePath: "brains/relay/env.schema.template",
   },
 ];
 
 const check = process.argv.includes("--check");
 let stale = false;
 
-for (const { model, decls, templatePath } of MODELS) {
+for (const { definition, decls, templatePath } of DEFINITIONS) {
   const names = decls.map((decl) => decl.name);
   const duplicates = names.filter((name, i) => names.indexOf(name) !== i);
   if (duplicates.length > 0) {
-    console.error(`✗ ${model} declares duplicate env vars: ${duplicates}`);
+    console.error(`✗ ${definition} declares duplicate env vars: ${duplicates}`);
     process.exit(1);
   }
 

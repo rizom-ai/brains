@@ -1,0 +1,26 @@
+id: tool-invocation-delete-nonexistent
+name: Delete Non-existent Entity
+description: Tests that the agent handles deletion of a non-existent entity gracefully
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - system
+  - entity-crud
+  - error-handling
+  - bundle-core
+
+turns:
+  - userMessage: "Delete the note 'this-does-not-exist-anywhere'"
+
+successCriteria:
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 20000

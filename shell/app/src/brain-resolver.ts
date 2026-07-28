@@ -130,12 +130,7 @@ function instantiateCapabilities(
 
     const baseConfig =
       typeof config === "function"
-        ? config(env, {
-            bundles: selection.activeBundles,
-            ...(selection.activePreset
-              ? { preset: selection.activePreset }
-              : {}),
-          })
+        ? config(env, { bundles: selection.activeBundles })
         : (config ?? {});
     const bundleConfig = selection.resolution.configByMember[id];
     const withBundle = bundleConfig

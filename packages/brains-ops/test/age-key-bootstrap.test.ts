@@ -24,13 +24,13 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
 describe("bootstrapPilotAgeKey", () => {
   it("creates a local age identity, updates pilot.yaml, and can push to GitHub secrets", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -74,13 +74,13 @@ agePublicKey: age1replace-with-your-public-key
 
   it("reuses an existing local age identity", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -98,13 +98,13 @@ agePublicKey: age1replace-with-your-public-key
 
   it("fails when pilot.yaml already points at a different non-placeholder agePublicKey", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

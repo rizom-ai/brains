@@ -21,10 +21,9 @@ import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
-import { DiscordInterface } from "@brains/discord";
 import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
-import { emailResendPlugin } from "@brains/email-resend";
+import { EmailInterface } from "@brains/email";
 import { imagePlugin } from "@brains/image-plugin";
 import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
@@ -38,7 +37,7 @@ import { productsPlugin } from "@brains/products";
 import { profilePlugin } from "@brains/profile";
 import { promptPlugin } from "@brains/prompt";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
-import { roverOnboardingPlugin } from "@brains/rover-onboarding";
+import { onboardingPlugin } from "@brains/onboarding";
 import { seriesPlugin } from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
@@ -80,14 +79,14 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "playbook",
     "playbooks",
     "onboarding",
-    "email-resend",
+    "email",
     "cms",
     "dashboard",
     "admin",
     "mcp",
     "webserver",
     "web-chat",
-    "discord",
+    "chat",
     "a2a",
   ],
   config: [
@@ -113,7 +112,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
     {
-      member: "discord",
+      member: "chat",
       config: {
         rules: [{ pattern: "discord:*", level: "public" }],
       },
@@ -125,14 +124,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
   ],
-  evalDisable: [
-    "dashboard",
-    "email-resend",
-    "mcp",
-    "webserver",
-    "web-chat",
-    "discord",
-  ],
+  evalDisable: ["dashboard", "email", "mcp", "webserver", "web-chat", "chat"],
 });
 
 export const siteBundle: CapabilityBundleDefinition = defineBundle({
@@ -323,8 +315,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
-    ["onboarding", roverOnboardingPlugin, {}],
-    ["email-resend", emailResendPlugin, undefined],
+    ["onboarding", onboardingPlugin, {}],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, {}],
     ["admin", adminPlugin, undefined],
@@ -362,9 +353,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["mcp", MCPInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
-    ["discord", DiscordInterface, (): PluginConfig => ({})],
-    ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["chat", ChatInterface, (): PluginConfig => ({})],
+    ["email", EmailInterface, (): PluginConfig => ({})],
+    ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
   bundles: [coreBundle, siteBundle, publishingBundle, teamBundle],
   deployment: {

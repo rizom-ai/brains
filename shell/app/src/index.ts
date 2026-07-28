@@ -27,7 +27,6 @@ export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
 export { resolveBrainPackageName } from "./brain-package";
-export type { BrainPackageResolutionOptions } from "./brain-package";
 export { registerPackage, getPackage, hasPackage } from "./package-registry";
 export { collectOverridePackageRefs } from "./override-package-refs";
 export { generateEntrypoint } from "./generate-entrypoint";
@@ -53,7 +52,6 @@ export type {
   BrainIdentity,
   BrainEnvironment,
   BrainMode,
-  PresetName,
   PluginConfig,
   CapabilityEntry,
   CapabilityConfig,

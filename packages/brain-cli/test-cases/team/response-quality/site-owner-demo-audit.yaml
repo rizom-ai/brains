@@ -1,0 +1,42 @@
+id: team-scenario-site-owner-demo-audit
+name: Site owner demo audit from saved site content
+description: >-
+  Real user scenario: a site owner checks the public Team Brain story before a demo
+  and expects grounded claims, not generic product marketing.
+type: response_quality
+setup:
+  permissionLevel: admin
+tags:
+  - posture-team
+  - team
+  - scenario
+  - real-user
+  - site-content
+  - homepage
+  - default
+  - search
+
+turns:
+  - userMessage: >-
+      I'm reviewing the Team Brain public site before a demo. Search saved site-info
+      and site-content, then tell me what the homepage should promise, what proof
+      points are live today, and what claims we should avoid making.
+
+successCriteria:
+  toolCountRange:
+    min: 1
+    max: 6
+  responseContains:
+    - "capture"
+    - "public"
+  responseNotContains:
+    - "newsletter"
+    - "publishing pipeline"
+    - "generic AI assistant"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

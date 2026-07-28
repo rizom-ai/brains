@@ -42,13 +42,13 @@ describe("encryptPilotSecrets", () => {
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -95,13 +95,13 @@ members:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -144,13 +144,13 @@ discord:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -183,13 +183,13 @@ discord:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -238,13 +238,13 @@ discord:
     const privateKeyPem = `-----BEGIN PRIVATE KEY-----\\n${"MIIEvQIBADANBg".repeat(100)}\\n-----END PRIVATE KEY-----\\n`;
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -299,13 +299,13 @@ discord:
     const certificatePem = `-----BEGIN CERTIFICATE-----\\n${"MIICmzCCAYMCBgGB".repeat(100)}\\n-----END CERTIFICATE-----\\n`;
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -344,13 +344,13 @@ discord:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -380,13 +380,13 @@ discord:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -419,13 +419,13 @@ discord:
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -465,13 +465,13 @@ aiApiKeyOverride: ALICE_AI_KEY
     const agePublicKey = await identityToRecipient(identity);
 
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.1
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

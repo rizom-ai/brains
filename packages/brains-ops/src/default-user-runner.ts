@@ -18,11 +18,13 @@ export function createDefaultUserRunner(
 
 function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   const lines = [
-    `brain: ${user.model}`,
+    "brain: brain",
     `kind: ${user.profileKind ?? "professional"}`,
     `domain: ${user.domain}`,
-    `preset: ${user.preset}`,
-    ...renderAddConfig(user),
+    "bundles:",
+    ...user.bundles.map((bundle) => `  - ${bundle}`),
+    ...renderMemberOverrides("add", user.add),
+    ...renderMemberOverrides("remove", user.remove),
     ...renderSiteConfig(user),
     "",
     renderAnchors(user),
@@ -39,7 +41,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
         ]
       : []),
     ...(user.playbooks?.onboarding
-      ? ["  rover-onboarding:", "    enabled: true"]
+      ? ["  onboarding:", "    enabled: true"]
       : []),
     "  directory-sync:",
     "    git:",
@@ -86,12 +88,9 @@ function renderJetstreamConfig(
   return ["    jetstream:", ...rendered.map((line) => `      ${line}`)];
 }
 
-function renderAddConfig(user: ResolvedUser): string[] {
-  if (!user.addOverride || user.addOverride.length === 0) {
-    return [];
-  }
-
-  return ["", "add:", ...user.addOverride.map((id) => `  - ${id}`)];
+function renderMemberOverrides(key: "add" | "remove", ids: string[]): string[] {
+  if (ids.length === 0) return [];
+  return ["", `${key}:`, ...ids.map((id) => `  - ${id}`)];
 }
 
 function renderSiteConfig(user: ResolvedUser): string[] {

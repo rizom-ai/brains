@@ -1,9 +1,6 @@
 import { existsSync } from "fs";
 import { relative, sep } from "path";
-import {
-  resolveBrainPackageName,
-  type BrainPackageResolutionOptions,
-} from "./brain-package";
+import { resolveBrainPackageName } from "./brain-package";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import {
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
@@ -13,7 +10,7 @@ import {
   type InstanceOverrides,
 } from "./instance-overrides";
 
-export interface GenerateEntrypointOptions extends BrainPackageResolutionOptions {
+export interface GenerateEntrypointOptions {
   cwd?: string;
 }
 
@@ -179,10 +176,18 @@ export function generateEntrypoint(
     return null;
   }
 
-  const rawBrain = overrides.brain;
-  if (typeof rawBrain !== "string") return null;
-
-  const brainPackage = resolveBrainPackageName(rawBrain, options);
+  let brainPackage: string;
+  try {
+    brainPackage = resolveBrainPackageName(overrides.brain);
+  } catch {
+    return null;
+  }
+  if (
+    brainPackage === "@rizom/brain/model" &&
+    overrides.bundles === undefined
+  ) {
+    return null;
+  }
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );

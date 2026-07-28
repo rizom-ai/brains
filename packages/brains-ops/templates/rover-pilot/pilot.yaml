@@ -1,10 +1,10 @@
-schemaVersion: 1
+schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: <github-org>
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

@@ -67,36 +67,6 @@ class MockWebserver implements Plugin {
   }
 }
 
-class MockChat implements Plugin {
-  public readonly id = "chat";
-  public readonly version = "1.0.0";
-  public readonly description = "Mock chat";
-  public readonly packageName = "@brains/chat";
-  public readonly type = "interface" as const;
-  public config: PluginConfig;
-  constructor(config: PluginConfig) {
-    this.config = config;
-  }
-  async register(_shell: IShell): Promise<PluginCapabilities> {
-    return { tools: [], resources: [] };
-  }
-}
-
-class MockMCP implements Plugin {
-  public readonly id = "mcp";
-  public readonly version = "1.0.0";
-  public readonly description = "Mock MCP";
-  public readonly packageName = "@brains/mcp";
-  public readonly type = "interface" as const;
-  public config: PluginConfig;
-  constructor(config: PluginConfig) {
-    this.config = config;
-  }
-  async register(_shell: IShell): Promise<PluginCapabilities> {
-    return { tools: [], resources: [] };
-  }
-}
-
 function getConfig(plugin: Plugin | undefined): PluginConfig {
   expect(plugin).toBeDefined();
   return (plugin as MockPlugin).config;
@@ -106,14 +76,12 @@ function getConfig(plugin: Plugin | undefined): PluginConfig {
 
 describe("parseInstanceOverrides", () => {
   test("should parse brain field", () => {
-    const result = parseInstanceOverrides('brain: "@brains/rover"');
-    expect(result.brain).toBe("@brains/rover");
+    const result = parseInstanceOverrides('brain: "brain"');
+    expect(result.brain).toBe("brain");
   });
 
   test("should parse name override", () => {
-    const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nname: team-staging',
-    );
+    const result = parseInstanceOverrides('brain: "brain"\nname: team-staging');
     expect(result.name).toBe("team-staging");
   });
 
@@ -125,42 +93,40 @@ describe("parseInstanceOverrides", () => {
   });
 
   test("should parse logLevel", () => {
-    const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nlogLevel: debug',
-    );
+    const result = parseInstanceOverrides('brain: "brain"\nlogLevel: debug');
     expect(result.logLevel).toBe("debug");
   });
 
   test("should parse model reasoning effort", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nmodel: gpt-5.6-luna\nreasoningEffort: low',
+      'brain: "brain"\nmodel: gpt-5.6-luna\nreasoningEffort: low',
     );
     expect(result.model).toBe("gpt-5.6-luna");
     expect(result.reasoningEffort).toBe("low");
   });
 
   test("should parse port as number", () => {
-    const result = parseInstanceOverrides('brain: "@brains/rover"\nport: 9090');
+    const result = parseInstanceOverrides('brain: "brain"\nport: 9090');
     expect(result.port).toBe(9090);
   });
 
   test("should parse domain", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\ndomain: staging.recall.ai',
+      'brain: "brain"\ndomain: staging.recall.ai',
     );
     expect(result.domain).toBe("staging.recall.ai");
   });
 
   test("should parse database", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\ndatabase: file:./data/brain.db',
+      'brain: "brain"\ndatabase: file:./data/brain.db',
     );
     expect(result.database).toBe("file:./data/brain.db");
   });
 
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nplugins:\n  webserver:\n    productionPort: 9090',
+      'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -169,7 +135,7 @@ describe("parseInstanceOverrides", () => {
 
   test("should parse plugins section with multiple plugins", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
+      'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -180,7 +146,7 @@ describe("parseInstanceOverrides", () => {
   test("should parse external plugin declarations with nested config", () => {
     process.env["CALENDAR_API_KEY"] = "cal-secret";
     try {
-      const yaml = `brain: "@brains/rover"
+      const yaml = `brain: "brain"
 plugins:
   calendar:
     package: "@rizom/brain-plugin-calendar"
@@ -205,7 +171,7 @@ plugins:
   });
 
   test("should split built-in config overrides from external plugin declarations", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   directory-sync:
     git:
@@ -235,7 +201,7 @@ plugins:
   });
 
   test("should reject list-form plugins", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   - package: "@rizom/brain-plugin-calendar"
 `;
@@ -245,7 +211,7 @@ plugins:
   });
 
   test("should reject external plugin declarations with config beside package", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   calendar:
     package: "@rizom/brain-plugin-calendar"
@@ -258,35 +224,32 @@ plugins:
 
   test("should skip comments and empty lines", () => {
     const yaml = `# This is a comment
-brain: "@brains/rover"
+brain: "brain"
 
 # Another comment
 logLevel: debug
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/rover");
+    expect(result.brain).toBe("brain");
     expect(result.logLevel).toBe("debug");
   });
 
   test("should handle quoted string values", () => {
-    const result = parseInstanceOverrides(
-      'brain: "@brains/rover"\nname: "my-brain"',
-    );
+    const result = parseInstanceOverrides('brain: "brain"\nname: "my-brain"');
     expect(result.name).toBe("my-brain");
   });
 
   test("should return empty overrides for minimal yaml", () => {
-    const result = parseInstanceOverrides('brain: "@brains/rover"');
-    expect(result.brain).toBe("@brains/rover");
+    const result = parseInstanceOverrides('brain: "brain"');
+    expect(result.brain).toBe("brain");
     expect(result.name).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.port).toBeUndefined();
-    expect(result.preset).toBeUndefined();
     expect(result.plugins).toBeUndefined();
   });
 
   test("should parse nested maps in plugin config", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   a2a:
     organization: rizom.ai
@@ -308,7 +271,7 @@ plugins:
     process.env["TEST_DB_URL"] = "file:./test.db";
     try {
       const result = parseInstanceOverrides(
-        'brain: "@brains/rover"\ndatabase: "${TEST_DB_URL}"',
+        'brain: "brain"\ndatabase: "${TEST_DB_URL}"',
       );
       expect(result.database).toBe("file:./test.db");
     } finally {
@@ -319,7 +282,7 @@ plugins:
   test("should interpolate ${ENV_VAR} in map keys", () => {
     process.env["TEST_A2A_TOKEN"] = "secret-token-xyz";
     try {
-      const yaml = `brain: "@brains/rover"
+      const yaml = `brain: "brain"
 plugins:
   a2a:
     trustedTokens:
@@ -340,7 +303,7 @@ plugins:
 
   test("should drop entries with unset env vars", () => {
     delete process.env["NONEXISTENT_VAR"];
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   a2a:
     trustedTokens:
@@ -358,7 +321,7 @@ plugins:
   });
 
   test("should parse permissions section with rules", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 permissions:
   anchors:
     - "cli:*"
@@ -378,7 +341,7 @@ permissions:
   });
 
   test("should parse anchors and trusted in permissions", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 permissions:
   anchors:
     - "cli:*"
@@ -391,7 +354,7 @@ permissions:
   });
 
   test("should parse entity action policy in permissions", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "brain"
 permissions:
   entityActions:
     "*":
@@ -418,7 +381,7 @@ permissions:
   });
 
   test("should reject invalid entity action policy levels", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "brain"
 permissions:
   entityActions:
     summary:
@@ -457,7 +420,7 @@ describe("parseInstanceOverrides null handling", () => {
     // parsed it as null, which doesn't satisfy z.array(z.string()).optional()
     // (optional means undefined, not null). Previously this silently
     // discarded ALL overrides; now it should be normalized to absent.
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 logLevel: debug
 anchors:
 plugins:
@@ -465,23 +428,23 @@ plugins:
     authToken: abc
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/rover");
+    expect(result.brain).toBe("brain");
     expect(result.logLevel).toBe("debug");
     expect(result.anchors).toBeUndefined();
     expect(result.plugins?.["mcp"]).toEqual({ authToken: "abc" });
   });
 
   test("explicit `key: null` is treated the same as empty field", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 trusted: null
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/rover");
+    expect(result.brain).toBe("brain");
     expect(result.trusted).toBeUndefined();
   });
 
   test("explicit empty array is kept (not stripped)", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 anchors: []
 `;
     const result = parseInstanceOverrides(yaml);
@@ -499,7 +462,7 @@ logLevel: debug
   });
 
   test("null values inside nested plugin config are stripped", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   mcp:
     authToken: abc
@@ -513,7 +476,7 @@ plugins:
   test("nulls inside arrays are stripped", () => {
     // Arbitrary plugin config with a mixed array — the nulls should
     // disappear, leaving only the real entries.
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 plugins:
   webserver:
     extraHosts:
@@ -529,18 +492,18 @@ plugins:
   });
 
   test("empty top-level permissions section is treated as absent", () => {
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 permissions:
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/rover");
+    expect(result.brain).toBe("brain");
     expect(result.permissions).toBeUndefined();
   });
 });
 
 describe("parseInstanceOverrides error surfacing", () => {
   test("throws InstanceOverridesParseError on invalid YAML syntax", () => {
-    const yaml = "brain: @brains/rover\n  invalid: [unclosed";
+    const yaml = "brain: brain\n  invalid: [unclosed";
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
@@ -560,7 +523,7 @@ describe("parseInstanceOverrides error surfacing", () => {
 
   test("throws InstanceOverridesParseError on type mismatch with field path", () => {
     // logLevel expects 'debug'|'info'|'warn'|'error' — 'verbose' is invalid
-    const yaml = 'brain: "@brains/rover"\nlogLevel: verbose';
+    const yaml = 'brain: "brain"\nlogLevel: verbose';
     let caught: unknown;
     try {
       parseInstanceOverrides(yaml);
@@ -574,7 +537,7 @@ describe("parseInstanceOverrides error surfacing", () => {
 
   test("throws with nested field path on nested validation failure", () => {
     // permissions.rules[0].level expects anchor/trusted/public
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 permissions:
   rules:
     - pattern: "cli:*"
@@ -592,14 +555,14 @@ permissions:
 
   test("throws on wrong type for array field", () => {
     // anchors expects array, got string
-    const yaml = 'brain: "@brains/rover"\nanchors: "cli:*"';
+    const yaml = 'brain: "brain"\nanchors: "cli:*"';
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
   });
 
   test("throws on wrong type for number field", () => {
-    const yaml = 'brain: "@brains/rover"\nport: not-a-number';
+    const yaml = 'brain: "brain"\nport: not-a-number';
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
@@ -607,7 +570,7 @@ permissions:
 
   test("error message is multi-line and lists all issues", () => {
     // Multiple errors at once — both should appear in the message
-    const yaml = `brain: "@brains/rover"
+    const yaml = `brain: "brain"
 logLevel: loud
 port: "fourty-two"
 `;
@@ -1356,7 +1319,7 @@ permissions:
 
     process.env["CALENDAR_API_KEY"] = "cal-secret";
     try {
-      const overrides = parseInstanceOverrides(`brain: "@brains/rover"
+      const overrides = parseInstanceOverrides(`brain: "brain"
 plugins:
   calendar:
     package: "@rizom/brain-plugin-yaml-calendar"
@@ -1654,18 +1617,17 @@ describe("resolve with site package", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: {
-        core: ["webserver"],
-        default: ["site-builder", "webserver"],
-      },
-      defaultPreset: "core",
+      bundles: [
+        { id: "core", members: ["webserver"] },
+        { id: "site", members: ["site-builder", "webserver"] },
+      ],
       capabilities: [
         ["site-builder", createMockFactory("site-builder")[0], {}],
       ],
       interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
     });
 
-    const config = resolve(def, {});
+    const config = resolve(def, {}, { bundles: ["core"] });
     const webserver = config.plugins?.find((p) => p.id === "webserver");
 
     expect(getConfig(webserver)["enablePreview"]).toBe(false);
@@ -1675,24 +1637,23 @@ describe("resolve with site package", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: {
-        core: ["webserver"],
-        default: ["site-builder", "webserver"],
-      },
-      defaultPreset: "default",
+      bundles: [
+        { id: "core", members: ["webserver"] },
+        { id: "site", members: ["site-builder", "webserver"] },
+      ],
       capabilities: [
         ["site-builder", createMockFactory("site-builder")[0], {}],
       ],
       interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
     });
 
-    const config = resolve(def, {});
+    const config = resolve(def, {}, { bundles: ["site"] });
     const webserver = config.plugins?.find((p) => p.id === "webserver");
 
     expect(getConfig(webserver)["enablePreview"]).toBe(true);
   });
 
-  test("should disable webserver preview when webserver is enabled without presets or site-builder", () => {
+  test("should disable webserver preview when webserver is enabled without site-builder", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -2046,7 +2007,7 @@ describe("resolve with site package", () => {
 
   test("should parse site from brain.yaml", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: "brain"
 site:
   package: "@brains/site-default"
 logLevel: debug
@@ -2057,7 +2018,7 @@ logLevel: debug
 
   test("should parse site with variant + theme flavor fields", () => {
     const yaml = `
-brain: "@brains/relay"
+brain: "brain"
 site:
   package: "@brains/site-example"
   variant: editorial
@@ -2188,349 +2149,21 @@ site:
   });
 });
 
-// --- presets ---
-
-describe("parseInstanceOverrides presets", () => {
-  test("should parse preset field", () => {
-    const yaml = `
-brain: "@brains/rover"
-preset: core
-`;
-    const result = parseInstanceOverrides(yaml);
-    expect(result.preset).toBe("core");
-  });
-
-  test("should parse add list", () => {
-    const yaml = `
-brain: "@brains/rover"
-preset: core
-add:
-  - discord
-  - obsidian-vault
-`;
-    const result = parseInstanceOverrides(yaml);
-    expect(result.add).toEqual(["discord", "obsidian-vault"]);
-  });
-
-  test("should parse remove list", () => {
-    const yaml = `
-brain: "@brains/rover"
-preset: default
-remove:
-  - analytics
-`;
-    const result = parseInstanceOverrides(yaml);
-    expect(result.remove).toEqual(["analytics"]);
-  });
-
-  test("should parse preset with add and remove together", () => {
-    const yaml = `
-brain: "@brains/rover"
-preset: default
-add:
-  - obsidian-vault
-remove:
-  - analytics
-`;
-    const result = parseInstanceOverrides(yaml);
-    expect(result.preset).toBe("default");
-    expect(result.add).toEqual(["obsidian-vault"]);
-    expect(result.remove).toEqual(["analytics"]);
-  });
-});
-
-describe("resolve with presets", () => {
-  test("should enable only preset IDs", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [noteFactory] = createMockFactory("note");
-    const [blogFactory] = createMockFactory("blog");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        core: ["system", "note"],
-      },
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["note", noteFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "core" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("note");
-    expect(pluginIds).not.toContain("blog");
-  });
-
-  test("should use defaultPreset when no preset in overrides", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [noteFactory] = createMockFactory("note");
-    const [blogFactory] = createMockFactory("blog");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      defaultPreset: "core",
-      presets: {
-        core: ["system", "note"],
-      },
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["note", noteFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("note");
-    expect(pluginIds).not.toContain("blog");
-  });
-
-  test("should pass active preset to capability config callbacks", () => {
-    const [systemFactory, configs] = createMockFactory("system");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        core: ["system"],
-        default: ["system"],
-      },
-      capabilities: [
-        [
-          "system",
-          systemFactory,
-          (_env, context): PluginConfig => ({ seedPath: context.preset }),
-        ],
-      ],
-      interfaces: [],
-    });
-
-    resolve(def, {}, { preset: "core" });
-
-    expect(configs).toEqual([{ seedPath: "core" }]);
-  });
-
-  test("should add IDs on top of preset", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [noteFactory] = createMockFactory("note");
-    const [blogFactory] = createMockFactory("blog");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        core: ["system", "note"],
-      },
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["note", noteFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "core", add: ["blog"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("note");
-    expect(pluginIds).toContain("blog");
-  });
-
-  test("should remove IDs from preset", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [noteFactory] = createMockFactory("note");
-    const [blogFactory] = createMockFactory("blog");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        default: ["system", "note", "blog"],
-      },
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["note", noteFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "default", remove: ["blog"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("note");
-    expect(pluginIds).not.toContain("blog");
-  });
-
-  test("should apply preset to interfaces too", () => {
-    const [systemFactory] = createMockFactory("system");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        core: ["system", "mcp"],
-      },
-      capabilities: [["system", systemFactory, {}]],
-      interfaces: [
-        ["mcp", MockMCP, (): PluginConfig => ({ port: 3333 })],
-        ["chat", MockChat, (): PluginConfig => ({ botToken: "test-token" })],
-      ],
-    });
-
-    const config = resolve(def, {}, { preset: "core" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("mcp");
-    expect(pluginIds).not.toContain("chat");
-  });
-
-  test("should ignore add IDs not in brain definition", () => {
-    const [systemFactory] = createMockFactory("system");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        core: ["system"],
-      },
-      capabilities: [["system", systemFactory, {}]],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "core", add: ["nonexistent"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).not.toContain("nonexistent");
-  });
-
-  test("should register site plugin when site-builder is in preset", () => {
-    const [siteBuilderFactory] = createMockFactory("site-builder");
-    const site = createMockSitePackage("personal-site");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      site,
-      presets: {
-        default: ["site-builder"],
-      },
-      capabilities: [["site-builder", siteBuilderFactory, {}]],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("site-builder");
-    // site plugin is auto-registered alongside site-builder
-    expect(pluginIds).toContain("personal-site");
-  });
-
-  test("should not register site plugin when site-builder is not in preset", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [siteBuilderFactory] = createMockFactory("site-builder");
-    const site = createMockSitePackage("personal-site");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      site,
-      presets: {
-        core: ["system"],
-        default: ["system", "site-builder"],
-      },
-      defaultPreset: "core",
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["site-builder", siteBuilderFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "core" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).not.toContain("site-builder");
-    expect(pluginIds).not.toContain("personal-site");
-  });
-
-  test("should enable all when no presets defined", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [blogFactory] = createMockFactory("blog");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("blog");
+describe("legacy selection rejection", () => {
+  test("rejects the removed preset field with migration guidance", () => {
+    expect(() =>
+      parseInstanceOverrides("brain: brain\npreset: core\n"),
+    ).toThrow(/preset/);
   });
 });
 
 describe("resolve with mode: eval", () => {
-  test("should remove evalDisable IDs when mode is eval", () => {
+  test("removes eval-disabled members", () => {
     const [systemFactory] = createMockFactory("system");
-    const [blogFactory] = createMockFactory("blog");
     const [analyticsFactory] = createMockFactory("analytics");
-
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: {
-        default: ["system", "blog", "analytics"],
-      },
-      evalDisable: ["analytics"],
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["blog", blogFactory, {}],
-        ["analytics", analyticsFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { preset: "default", mode: "eval" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("blog");
-    expect(pluginIds).not.toContain("analytics");
-  });
-
-  test("should not remove evalDisable IDs when mode is not eval", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [analyticsFactory] = createMockFactory("analytics");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        default: ["system", "analytics"],
-      },
       evalDisable: ["analytics"],
       capabilities: [
         ["system", systemFactory, {}],
@@ -2539,97 +2172,42 @@ describe("resolve with mode: eval", () => {
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { preset: "default" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("analytics");
+    const config = resolve(def, {}, { mode: "eval" });
+    const ids = config.plugins?.map((plugin) => plugin.id) ?? [];
+    expect(ids).toContain("system");
+    expect(ids).not.toContain("analytics");
   });
 
-  test("should apply evalDisable to interfaces too", () => {
-    const [systemFactory] = createMockFactory("system");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      presets: {
-        default: ["system", "mcp", "chat"],
-      },
-      evalDisable: ["chat"],
-      capabilities: [["system", systemFactory, {}]],
-      interfaces: [
-        ["mcp", MockMCP, (): PluginConfig => ({ port: 3333 })],
-        ["chat", MockChat, (): PluginConfig => ({ botToken: "test-token" })],
-      ],
-    });
-
-    const config = resolve(def, {}, { preset: "default", mode: "eval" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("mcp");
-    expect(pluginIds).not.toContain("chat");
-  });
-
-  test("should combine evalDisable with preset and add/remove", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [blogFactory] = createMockFactory("blog");
+  test("keeps eval-disabled members outside eval mode", () => {
     const [analyticsFactory] = createMockFactory("analytics");
-    const [dashboardFactory] = createMockFactory("dashboard");
-
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: {
-        default: ["system", "blog", "analytics", "dashboard"],
-      },
-      evalDisable: ["analytics", "dashboard"],
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["blog", blogFactory, {}],
-        ["analytics", analyticsFactory, {}],
-        ["dashboard", dashboardFactory, {}],
-      ],
+      evalDisable: ["analytics"],
+      capabilities: [["analytics", analyticsFactory, {}]],
       interfaces: [],
     });
 
-    const config = resolve(
-      def,
-      {},
-      { preset: "default", mode: "eval", add: ["dashboard"] },
+    expect(resolve(def, {}).plugins?.map((plugin) => plugin.id)).toContain(
+      "analytics",
     );
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    // evalDisable removes analytics and dashboard, but add brings dashboard back
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("blog");
-    expect(pluginIds).not.toContain("analytics");
-    // add happens after evalDisable, so dashboard comes back
-    expect(pluginIds).toContain("dashboard");
   });
 
-  test("should work without evalDisable defined", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [blogFactory] = createMockFactory("blog");
-
+  test("allows an explicit add to restore an eval-disabled member", () => {
+    const [dashboardFactory] = createMockFactory("dashboard");
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: {
-        default: ["system", "blog"],
-      },
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["blog", blogFactory, {}],
-      ],
+      evalDisable: ["dashboard"],
+      capabilities: [["dashboard", dashboardFactory, {}]],
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { preset: "default", mode: "eval" });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("blog");
+    expect(
+      resolve(def, {}, { mode: "eval", add: ["dashboard"] }).plugins?.map(
+        (plugin) => plugin.id,
+      ),
+    ).toContain("dashboard");
   });
 });
 
@@ -2687,12 +2265,10 @@ describe("resolve with composite plugins", () => {
         ["other", otherFactory, {}],
       ],
       interfaces: [],
-      presets: {
-        core: ["composite"],
-      },
+      bundles: [{ id: "core", members: ["composite"] }],
     });
 
-    const config = resolve(def, {}, { preset: "core" });
+    const config = resolve(def, {}, { bundles: ["core"] });
     const ids = config.plugins?.map((p) => p.id) ?? [];
     expect(ids).toContain("sub-a");
     expect(ids).toContain("sub-b");
@@ -2751,12 +2327,17 @@ describe("resolve with composite plugins", () => {
         ["other", otherFactory, {}],
       ],
       interfaces: [],
-      presets: {
-        core: ["composite", "other"],
-      },
+      bundles: [{ id: "core", members: ["composite", "other"] }],
     });
 
-    const config = resolve(def, {}, { preset: "core", remove: ["composite"] });
+    const config = resolve(
+      def,
+      {},
+      {
+        bundles: ["core"],
+        remove: ["composite"],
+      },
+    );
     const ids = config.plugins?.map((p) => p.id) ?? [];
     expect(ids).not.toContain("sub-a");
     expect(ids).not.toContain("sub-b");
@@ -2782,8 +2363,8 @@ describe("resolve with composite plugins", () => {
 describe("parseInstanceOverrides with mode", () => {
   test("should parse mode: eval from yaml", () => {
     const yaml = `
-brain: "@brains/rover"
-preset: default
+brain: brain
+bundles: [core]
 mode: eval
 `;
     const overrides = parseInstanceOverrides(yaml);
@@ -2792,8 +2373,8 @@ mode: eval
 
   test("should leave mode undefined when not specified", () => {
     const yaml = `
-brain: "@brains/rover"
-preset: default
+brain: brain
+bundles: [core]
 `;
     const overrides = parseInstanceOverrides(yaml);
     expect(overrides.mode).toBeUndefined();

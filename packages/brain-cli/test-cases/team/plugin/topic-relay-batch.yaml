@@ -1,0 +1,126 @@
+id: team-plugin-topic-batch
+name: Team Brain batch topic extraction
+description: Verifies topics can be extracted from Team Brain's existing content types without future-plugin fixtures.
+type: plugin
+tags:
+  - posture-team
+  - team
+  - topics
+  - core
+plugin: topics
+handler: batchExtract
+
+input:
+  entities:
+    - entityType: note
+      content: |
+        ---
+        title: Team Brain POC team notes
+        ---
+        Team Brain should focus on team memory, summaries, peer-brain coordination, and topic synthesis.
+      metadata:
+        title: Team Brain POC team notes
+
+    - entityType: link
+      content: |
+        ---
+        status: draft
+        title: ActivityPub specification
+        url: "https://www.w3.org/TR/activitypub/"
+        description: Federated activity delivery.
+        domain: www.w3.org
+        capturedAt: "2026-05-06T09:00:00.000Z"
+        source:
+          ref: "discord:team-poc:architecture"
+          label: "#architecture"
+        ---
+        ActivityPub is relevant to peer-brain federation and coordination.
+      metadata:
+        title: ActivityPub specification
+        status: draft
+
+    - entityType: agent
+      content: |
+        ---
+        name: Partner Brain
+        status: approved
+        url: "https://partner-brain.io/a2a"
+        ---
+        Partner Brain is an approved peer-brain record used for Team Brain coordination.
+        Newly discovered agents must be tracked and reviewed before the team relies on them.
+      metadata:
+        name: Partner Brain
+        status: approved
+
+    - entityType: skill
+      content: |
+        ---
+        name: Knowledge Synthesis
+        description: Combine related notes, observations, and documents into clear shared summaries for future team reference.
+        tags:
+          - synthesis
+          - team-memory
+        examples:
+          - Synthesize these captures into the current Team Brain operating model.
+        ---
+        Knowledge synthesis turns scattered context into concise, durable, actionable team knowledge.
+      metadata:
+        name: Knowledge Synthesis
+
+    - entityType: summary
+      content: |
+        # Conversation Summary
+
+        ## Team Brain preset direction
+
+        Time: 2026-05-06T10:00:00.000Z → 2026-05-06T10:18:00.000Z
+        Messages summarized: 8
+
+        The team decided Team Brain full should stay limited to docs and decks for the current POC scope.
+      metadata:
+        title: Team Brain preset direction
+
+    - entityType: doc
+      content: |
+        ---
+        title: Team Brain operating model
+        status: draft
+        ---
+        Team Brain turns captured notes, links, summaries, docs, and decks into team knowledge coordination artifacts.
+        The current operating model emphasizes team memory, peer-brain coordination, and grounded topic synthesis.
+      metadata:
+        title: Team Brain operating model
+        status: draft
+
+    - entityType: deck
+      content: |
+        ---
+        title: Team Brain POC walkthrough
+        status: draft
+        ---
+        # Team Brain POC walkthrough
+
+        ## Team knowledge coordination
+        Team Brain helps teams coordinate through shared memory, peer-brain references, topic synthesis, docs, and decks.
+      metadata:
+        title: Team Brain POC walkthrough
+        status: draft
+
+expectedOutput:
+  validateEach:
+    - path: topics[0].title
+      exists: true
+    - path: batches
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 2
+    evaluationPrompt: |
+      Evaluate whether the extracted topics are grounded in the seven provided Team Brain inputs.
+      Good topics should reflect team memory, peer-brain coordination, topic synthesis,
+      knowledge synthesis, ActivityPub/federation, and the current docs/decks POC scope.
+      Do not penalize concise generalized topic titles when their descriptions are grounded.
+      This full-suite eval can include one extra ambient topic from runtime-created notes;
+      do not let one unrelated extra topic dominate the score when the Team Brain topics are grounded.
+      Penalize invented workflow details, A2A approval mechanics, or references to future plugins
+      such as meeting-notes or decision-record unless they appear in the source text.

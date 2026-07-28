@@ -99,7 +99,7 @@ brain start
 # open http://localhost:8080/cms
 ```
 
-The CMS is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, products, and newsletters. Exact CMS collections depend on the selected brain model, preset, and active entity plugins.
+The CMS is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, products, and newsletters. Exact CMS collections depend on selected bundles, additions/removals, and active entity plugins.
 
 ### Direct markdown edits
 
@@ -123,7 +123,7 @@ plugins:
 
 For the git-command-oriented lifecycle and conflict policy, see [Directory Sync Git Overview](./directory-sync-git.md).
 
-`directory-sync` also handles seed content on first run for shipped brain models. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
+`directory-sync` also handles recipe-owned seed content on first run. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
 
 ### Generation jobs
 
@@ -150,7 +150,7 @@ Publishing-oriented entities usually use status fields.
 | `newsletter`  | `generating`, `draft`, `queued`, `published`, `failed` |
 | `wish`        | `new`, `planned`, `in-progress`, `done`, `declined`    |
 
-The site builder renders the entities and routes enabled by the active site package, preset, and entity display config. For app/site verification, start the app and trigger a rebuild on the running app before inspecting generated output.
+The site builder renders the entities and routes enabled by active bundles/members, the site package, and entity display config. For app/site verification, start the app and trigger a rebuild on the running app before inspecting generated output.
 
 Preview output defaults to:
 

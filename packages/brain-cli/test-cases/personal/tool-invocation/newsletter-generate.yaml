@@ -1,0 +1,33 @@
+id: tool-invocation-newsletter-generate
+name: Newsletter Generation via system_generate
+description: Verifies that the agent uses system_generate to generate a newsletter
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - newsletter
+  - anti-hallucination
+  - posture-publishing
+
+turns:
+  - userMessage: "Generate a newsletter about AI trends"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+      argsContain:
+        operation.entityType: newsletter
+        operation.kind: prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "newsletter_generate"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

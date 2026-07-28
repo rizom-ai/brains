@@ -1,0 +1,43 @@
+id: team-tool-team-memory-overview-list
+name: Team memory overview uses content lists, not analytics
+description: >-
+  Real user scenario: a user asks to browse saved team memory; Team Brain should list
+  user-facing content rather than answer from aggregate analytics. This is an
+  overview, so list metadata/excerpts are sufficient; do not fetch every item in
+  full just to build the browse response.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - posture-team
+  - team
+  - scenario
+  - real-user
+  - browse
+  - core
+
+turns:
+  - userMessage: >-
+      Show me what Team Brain has saved for the team. I want a concise browseable
+      list of actual notes, links, summaries, and peer agents we can inspect, not
+      analytics or topic stats. Use list results; don't open every item unless a
+      specific item needs inspection.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+    - toolName: system_insights
+      shouldBeCalled: false
+  responseContains:
+    - "Team Brain"
+  responseNotContains:
+    - "topic distribution"
+    - "analytics dashboard"
+    - "blog"
+    - "newsletter"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 30000

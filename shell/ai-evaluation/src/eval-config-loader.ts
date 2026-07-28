@@ -6,8 +6,9 @@ import {
   parseInstanceOverrides,
   InstanceOverridesParseError,
   type InstanceOverrides,
-  type PresetName,
+  resolveBrainPackageName,
 } from "@brains/app";
+import { fromYaml, toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
@@ -43,8 +44,6 @@ export interface EvalConfigResult {
 export interface LoadEvalConfigOptions {
   /** CLI suite selector from brain.eval.yaml `suites:`. */
   suite?: string | undefined;
-  /** CLI preset override; takes precedence over selected suite `preset:`. */
-  preset?: PresetName | undefined;
   /** CLI tag override; takes precedence over selected suite `tags:`. */
   tags?: string[] | undefined;
 }
@@ -100,16 +99,7 @@ async function loadBrainEvalConfigIfPresent(
   const models = parseModelsField(rawYaml);
   const judge = parseJudgeField(rawYaml);
 
-  if (!overrides.brain) {
-    console.error(
-      '❌ brain.eval.yaml must contain a "brain" field, e.g.:\n  brain: rover',
-    );
-    process.exit(1);
-  }
-
-  const brainPackage = overrides.brain.startsWith("@")
-    ? overrides.brain
-    : `@brains/${overrides.brain}`;
+  const brainPackage = resolveBrainPackageName(overrides.brain);
   const brainModule = await import(brainPackage);
   if (!brainModule.default) {
     console.error(`❌ ${overrides.brain} does not have a default export`);
@@ -130,7 +120,7 @@ async function loadBrainEvalConfigIfPresent(
   // (e.g. an env var disappeared), surface the error loud.
   const freshResolve = (): AppConfig => {
     const freshOverrides = applyCliOverrides(
-      parseInstanceOverrides(content),
+      parseBrainEvalOverrides(content),
       evalSelection,
     );
     return resolveConfig(brainModule.default, process.env, freshOverrides);
@@ -148,7 +138,9 @@ async function loadBrainEvalConfigIfPresent(
 }
 
 export interface EvalSelection {
-  preset?: PresetName;
+  bundles?: string[];
+  add?: string[];
+  remove?: string[];
   tags?: string[];
   plugins?: Record<string, Record<string, unknown>>;
 }
@@ -160,11 +152,13 @@ export function resolveEvalSelection(
   const suiteSelection = options.suite
     ? resolveEvalSuite(rawYaml, options.suite)
     : undefined;
-  const preset = options.preset ?? suiteSelection?.preset;
+  const bundles = suiteSelection?.bundles;
   const tags = options.tags ?? suiteSelection?.tags;
 
   return {
-    ...(preset ? { preset } : {}),
+    ...(bundles ? { bundles } : {}),
+    ...(suiteSelection?.add ? { add: suiteSelection.add } : {}),
+    ...(suiteSelection?.remove ? { remove: suiteSelection.remove } : {}),
     ...(tags?.length ? { tags } : {}),
     ...(suiteSelection?.plugins ? { plugins: suiteSelection.plugins } : {}),
   };
@@ -201,16 +195,26 @@ function resolveEvalSuite(
     const parentSelections = parentNames.map((parentName) => visit(parentName));
     visiting.delete(name);
 
-    const ownPreset = parseSuitePreset(rawSuite["preset"], name);
+    const ownBundles = parseSuiteBundles(rawSuite["bundles"], name);
+    const ownAdd = parseSuiteMemberIds(rawSuite["add"], name, "add");
+    const ownRemove = parseSuiteMemberIds(rawSuite["remove"], name, "remove");
     const ownTags = parseSuiteTags(rawSuite["tags"], name);
     const ownPlugins = parseSuitePlugins(rawSuite["plugins"], name);
     const parentTags = parentSelections.flatMap(
       (selection) => selection.tags ?? [],
     );
-    const inheritedPreset = [...parentSelections]
+    const inheritedBundles = [...parentSelections]
       .reverse()
-      .find((selection) => selection.preset)?.preset;
-    const preset = ownPreset ?? inheritedPreset;
+      .find((selection) => selection.bundles)?.bundles;
+    const bundles = ownBundles ?? inheritedBundles;
+    const inheritedAdd = [...parentSelections]
+      .reverse()
+      .find((selection) => selection.add)?.add;
+    const inheritedRemove = [...parentSelections]
+      .reverse()
+      .find((selection) => selection.remove)?.remove;
+    const add = ownAdd ?? inheritedAdd;
+    const remove = ownRemove ?? inheritedRemove;
     const parentPlugins = parentSelections.reduce<
       Record<string, Record<string, unknown>>
     >(
@@ -227,7 +231,9 @@ function resolveEvalSuite(
     >;
 
     const selection: EvalSelection = {
-      ...(preset ? { preset } : {}),
+      ...(bundles ? { bundles } : {}),
+      ...(add ? { add } : {}),
+      ...(remove ? { remove } : {}),
       tags: uniqueStrings([...parentTags, ...ownTags]),
       ...(Object.keys(plugins).length ? { plugins } : {}),
     };
@@ -240,12 +246,16 @@ function resolveEvalSuite(
 
 function applyCliOverrides(
   overrides: InstanceOverrides,
-  options: Pick<EvalSelection, "preset" | "plugins">,
+  options: Pick<EvalSelection, "bundles" | "add" | "remove" | "plugins">,
 ): InstanceOverrides {
-  if (!options.preset && !options.plugins) return overrides;
+  if (!options.bundles && !options.add && !options.remove && !options.plugins) {
+    return overrides;
+  }
   return {
     ...overrides,
-    ...(options.preset ? { preset: options.preset } : {}),
+    ...(options.bundles ? { bundles: options.bundles } : {}),
+    ...(options.add ? { add: options.add } : {}),
+    ...(options.remove ? { remove: options.remove } : {}),
     ...(options.plugins
       ? {
           plugins: mergeRecords(
@@ -268,16 +278,37 @@ function parseSuiteExtends(value: unknown, suiteName: string): string[] {
   );
 }
 
-function parseSuitePreset(
+function parseSuiteBundles(
   value: unknown,
   suiteName: string,
-): PresetName | undefined {
+): string[] | undefined {
   if (value === undefined) return undefined;
-  if (value === "core" || value === "default" || value === "full") {
+  if (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => typeof item === "string" && item.length > 0)
+  ) {
     return value;
   }
   throw new Error(
-    `Eval suite "${suiteName}" has invalid preset; expected core, default, or full.`,
+    `Eval suite "${suiteName}" has invalid bundles; expected a non-empty string array.`,
+  );
+}
+
+function parseSuiteMemberIds(
+  value: unknown,
+  suiteName: string,
+  field: "add" | "remove",
+): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === "string" && item.length > 0)
+  ) {
+    return value;
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid ${field}; expected a string array.`,
   );
 }
 
@@ -347,7 +378,12 @@ function parseBrainEvalOverrides(
   content: string,
 ): ReturnType<typeof parseInstanceOverrides> {
   try {
-    return parseInstanceOverrides(content);
+    const raw = rawYamlSchema.parse(fromYaml(content));
+    const instanceFields = { ...raw };
+    for (const field of ["suites", "models", "judge", "keys"]) {
+      delete instanceFields[field];
+    }
+    return parseInstanceOverrides(toYaml(instanceFields));
   } catch (err) {
     if (err instanceof InstanceOverridesParseError) {
       console.error(`❌ ${err.message}`);

@@ -23,7 +23,7 @@ If you do not receive an acknowledgement within 7 days, follow up on the same th
 
 - code in this repository
 - shipped CLI and runtime behavior
-- built-in plugins, interfaces, entities, sites, layouts, and brain models
+- the canonical definition, built-in bundles, plugins, interfaces, entities, sites, and layouts
 - insecure defaults or insecure documented workflows
 
 ### Out of scope

@@ -1,0 +1,30 @@
+id: tool-invocation-entity-history
+name: Entity History Lookup
+description: Tests that the agent uses the history tool with correct entity type when asked about version history
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - history
+  - entity-type-resolution
+  - posture-personal
+
+turns:
+  - userMessage: "Show me the version history of the deck 'distributed-systems-primer'"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: history
+        entityType: "deck"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain@0.2.0-alpha.204` is published and healthy on the hosted `jo` and `smoke` canaries. The consolidated Rover deployment now serves production `rizom.ai` at alpha.204; `new.rizom.ai` has been retired. The remaining structural release gate is replacing the three-model/preset authoring contract with one canonical brain composed from explicit capability bundles. "Launch" means validating that unified contract and graduating it to stable `v0.2.0`, not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. The alpha.204 contract remains the hosted baseline. The canonical crossover is staged, deterministic checks are being completed, and no crossover artifact has been merged, published, reconciled, or deployed. The remaining structural release gate is reviewing and executing that one-brain crossover in an operator-approved maintenance window. "Launch" means certifying the unified contract and graduating it to stable `v0.2.0`.
 
 What already exists today:
 
@@ -42,7 +42,7 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 
 | Priority | Outcome                            | Current execution                                                                                                                                                                                            |
 | -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **P0**   | One brain composed from bundles    | Implement the refreshed unification plan on the alpha line, migrate standalone and hosted configuration, and keep every supported posture green before deleting model/preset compatibility.                  |
+| **P0**   | One brain composed from bundles    | Review the staged canonical repository/private-fleet crossover, complete deterministic gates, then execute only in an approved freeze window with coherent config/image pairs and paired rollback.           |
 | **P0**   | Stable `v0.2.0` release candidate  | Publish and deploy a unified alpha, complete the release-candidate gates above, then exit prerelease mode.                                                                                                   |
 | **P1**   | Real runtime identity boundary     | Implementation is complete on `main`: runtime auth storage, multi-user boundaries, People/Admin surfaces, invitations, connected delivery channels, and obsolete compatibility-path removal are implemented. |
 | **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.            |
@@ -188,7 +188,7 @@ This includes:
 Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
-- [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and lock-backed latest-compatible resolution that remains valid when packages move to external repositories.
+- [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
 - [email-triage.md](./plans/email-triage.md) — demand-gated: classify inbound mail and persist real inquiries as a `lead` entity (mail-shaped, upstream of `opportunity` via promotion); deterministic pre-filter before any model call.

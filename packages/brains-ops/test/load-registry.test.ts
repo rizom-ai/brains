@@ -24,13 +24,13 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
 describe("loadPilotRegistry", () => {
   it("loads pilot config and derives effective values per user", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -52,7 +52,10 @@ aiApiKeyOverride: BOB_AI_API_KEY
 gitSyncTokenOverride: BOB_GIT_SYNC_TOKEN
 `,
       "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
-presetOverride: default
+bundlesOverride:
+  - core
+  - site
+  - publishing
 aiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - alice
@@ -60,12 +63,13 @@ members:
       "cohorts/steady.yaml": `members:
   - bob
 `,
-      "users/alice/brain.yaml": "brain: rover\npreset: default\n",
+      "users/alice/brain.yaml":
+        "brain: brain\nbundles:\n  - core\n  - site\n  - publishing\n",
     });
 
     const registry = await loadPilotRegistry(root);
 
-    expect(registry.pilot.model).toBe("rover");
+    expect(registry.pilot.bundles).toEqual(["core"]);
     expect(registry.users).toHaveLength(2);
     expect(registry.users).toEqual([
       {
@@ -74,6 +78,9 @@ members:
           name: "Alice Example",
         },
         brainVersion: "0.1.1-alpha.15",
+        bundles: ["core", "site", "publishing"],
+        add: [],
+        remove: [],
         cohort: "canary",
         contentRepo: "rover-alice-content",
         deployStatus: "unknown",
@@ -84,8 +91,6 @@ members:
         effectiveGitSyncToken: "GIT_SYNC_TOKEN",
         handle: "alice",
         mcpStatus: "unknown",
-        model: "rover",
-        preset: "default",
         serverStatus: "unknown",
         snapshotStatus: "present",
       },
@@ -94,6 +99,9 @@ members:
           name: "Bob",
         },
         brainVersion: "0.1.1-alpha.14",
+        bundles: ["core"],
+        add: [],
+        remove: [],
         cohort: "steady",
         contentRepo: "rover-bob-content",
         deployStatus: "unknown",
@@ -105,8 +113,6 @@ members:
         effectiveGitSyncToken: "BOB_GIT_SYNC_TOKEN",
         handle: "bob",
         mcpStatus: "unknown",
-        model: "rover",
-        preset: "core",
         serverStatus: "unknown",
         snapshotStatus: "missing",
       },
@@ -115,13 +121,15 @@ members:
 
   it("loads user-level setup email delivery metadata", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: default
+bundles:
+  - core
+  - site
+  - publishing
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -149,13 +157,15 @@ discord:
 
   it("loads user-level site and deployment override metadata", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.136
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: default
+bundles:
+  - core
+  - site
+  - publishing
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -186,7 +196,7 @@ discord:
     expect(registry.users[0]?.cloudflareZoneId).toBe("rizom-work-zone");
     expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
     expect(registry.users[0]?.profileKind).toBe("collective");
-    expect(registry.users[0]?.addOverride).toEqual(["docs"]);
+    expect(registry.users[0]?.add).toEqual(["docs"]);
     expect(registry.users[0]?.siteOverride).toEqual({
       package: "@rizom/site-rizom-work",
       version: "0.2.0-alpha.136",
@@ -300,13 +310,15 @@ discord:
 
   it("defaults site package versions from effective brain versions while preserving pins", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.136
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: default
+bundles:
+  - core
+  - site
+  - publishing
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -357,13 +369,15 @@ members:
 
   it("loads user-level ATProto identifier metadata", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: default
+bundles:
+  - core
+  - site
+  - publishing
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -400,13 +414,13 @@ discord:
 
   it("fails when user belongs to no cohort", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -437,13 +451,13 @@ discord:
 
   it("fails when user belongs to multiple cohorts", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -473,13 +487,13 @@ discord:
 
   it("merges observed status from resolver", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -519,13 +533,13 @@ discord:
 
   it("fails when user file name and handle disagree", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

@@ -42,13 +42,6 @@ function loadBrainYaml(): InstanceOverrides {
     process.exit(1);
   }
 
-  if (!overrides.brain) {
-    console.error(
-      '❌ brain.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/rover"',
-    );
-    process.exit(1);
-  }
-
   return overrides;
 }
 
@@ -80,10 +73,15 @@ async function loadBrainDefinition(
  */
 async function main(): Promise<void> {
   const overrides = loadBrainYaml();
-  // brain is guaranteed to exist by loadBrainYaml validation above
-  // Canonical package resolution remains disabled until the coordinated crossover.
-  const rawBrain = overrides.brain ?? "";
-  const brainPackage = resolveBrainPackageName(rawBrain);
+  let brainPackage: string;
+  try {
+    brainPackage = resolveBrainPackageName(overrides.brain);
+  } catch (error) {
+    console.error(
+      `❌ ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  }
 
   // Validate env against the brain's .env.schema.
   // Uses varlock's `internal` API — no public API supports custom schema paths yet.

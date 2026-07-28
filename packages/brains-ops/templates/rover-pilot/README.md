@@ -1,6 +1,6 @@
-# rover-pilot
+# private brain pilot
 
-Private desired-state repo for the rover pilot.
+Private desired-state repository for the hosted brain pilot. The generated repository/service name may remain `rover-pilot` for deployment identity compatibility.
 
 This is a single operator-owned repo. Pilot users do not get their own brain repos.
 Per-user deploy config lives under `users/<handle>/`, while content stays in per-user content repos.

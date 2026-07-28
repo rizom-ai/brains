@@ -5,10 +5,10 @@ Brains is a modular, plugin-based system for running AI-powered knowledge agents
 At a high level:
 
 ```text
-brain model + brain.yaml instance config = running brain
+canonical definition + explicit brain.yaml bundles = running brain
 ```
 
-- **Brain model** (`brains/*`) decides what capabilities exist
+- **Canonical definition** (`packages/brain-cli/src/model`) owns the built-in catalog and fixed bundles
 - **Instance config** (`brain.yaml`) provides environment-specific settings
 - **Shell packages** provide the runtime, services, and plugin framework
 - **Plugins** add content types, integrations, and interfaces
@@ -19,7 +19,7 @@ brain model + brain.yaml instance config = running brain
 2. **Entity-driven** — durable content lives as typed entities stored as markdown with frontmatter.
 3. **Schema-first** — Zod schemas define config, entities, tool inputs, and API contracts.
 4. **Plugin-based** — almost all product behavior is composed from EntityPlugins, ServicePlugins, and InterfacePlugins.
-5. **Brain model / instance separation** — reusable models live in `brains/`; running instances are lightweight directories centered on `brain.yaml`.
+5. **Definition / instance separation** — the reusable definition owns catalog policy; lightweight instances own explicit selection and deployment settings in `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
 ## Effect runtime boundary
@@ -175,14 +175,14 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
 | `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and `/health` |
 
-### Sites, themes, and brains
+### Sites, themes, and the canonical definition
 
-| Area             | Current packages                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------------ |
-| `sites/`         | `default`, `personal`, `professional`, `rizom` (site compositions; may inherit from other sites) |
-| `shared/theme-*` | `note`, `default`, `rizom`                                                                       |
-| `brains/`        | `rover`, `ranger`, `relay`                                                                       |
-| `packages/`      | `brain-cli` (published as `@rizom/brain`), `brains-ops` (published as `@rizom/ops`)              |
+| Area                  | Current packages                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
+| `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
+| `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
+| `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |
 
 ## Plugin model
 
@@ -262,7 +262,7 @@ Package-specific key and invalidation rules are documented in the [CMS README](.
 A typical boot sequence looks like this:
 
 1. `@rizom/brain` or the in-repo runtime loads a `brain.yaml`
-2. `shell/app` resolves the referenced brain model from `brains/*`
+2. `shell/app` loads the canonical definition (or an explicitly scoped external definition) and resolves explicit bundles
 3. The shell constructs core services (entities, jobs, MCP, identity, messaging, AI)
 4. Plugins are instantiated and registered in dependency order
 5. Entity types, tools, resources, prompts, datasources, and daemons are registered
@@ -298,7 +298,7 @@ This makes it possible to share infrastructure across content types:
 High-level dependency direction:
 
 ```text
-brains/      -> entities/, plugins/, interfaces/, sites/, shared/
+brain-cli/   -> entities/, plugins/, interfaces/, sites/, shared/, shell/app
 entities/    -> shared/, shell/plugins
 plugins/     -> shared/, shell/plugins
 interfaces/  -> shared/, shell/plugins
@@ -327,12 +327,12 @@ Current deployment paths:
 - **Container deployment** for production brains
 - **Kamal-based self-hosted deployments** as the default deploy path, including app-local deploy artifacts, env-schema generation, Cloudflare Origin CA bootstrap, and (optionally) `@rizom/ops`-managed multi-user fleets
 
-Each deployed instance stays lightweight at the source level: a brain model package plus a lightweight instance package centered on `brain.yaml`.
+Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
 ## Where to read next
 
 - [Roadmap](./roadmap.md)
-- [Brain model guide](./brain-model.md)
+- [Brain definition and instance guide](./brain-model.md)
 - [Entity model](./entity-model.md)
 - [Theming guide](./theming-guide.md)
 - [External plugin authoring](./external-plugin-authoring.md)

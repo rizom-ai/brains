@@ -10,7 +10,6 @@ export type {
   BrainIdentity,
   BrainEnvironment,
   BrainMode,
-  PresetName,
   BundleConfigContribution,
   BundlePermissionContribution,
   CapabilityBundleDefinition,

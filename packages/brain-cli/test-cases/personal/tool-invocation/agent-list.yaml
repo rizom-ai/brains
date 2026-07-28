@@ -1,0 +1,27 @@
+id: tool-invocation-agent-list
+name: List Agents in Directory
+description: Tests that the agent uses system_list with entityType agent when asked about contacts
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - agent-discovery
+  - tool-invocation
+  - bundle-core
+
+turns:
+  - userMessage: "Who are my contacts?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: "agent"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

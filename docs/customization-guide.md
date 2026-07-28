@@ -10,12 +10,15 @@
 
 ## Instance configuration
 
-Use `brain.yaml` for model, preset, plugin, interface, permission, domain, and deployment settings.
+Use `brain.yaml` for bundle selection, AI model, plugin, interface, permission, domain, and deployment settings.
 
 ```yaml
-brain: rover
+brain: brain
 domain: mybrain.example.com
-preset: default
+bundles:
+  - core
+  - site
+  - publishing
 
 add:
   - stock-photo

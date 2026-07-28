@@ -30,6 +30,7 @@ import { encryptPilotSecrets } from "./secrets-encrypt";
 import { pushPilotSecrets } from "./secrets-push";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
+import { stageLegacyCrossover } from "./stage-legacy-crossover";
 import { addPilotUser } from "./user-add";
 import type { UserRunner } from "./user-runner";
 import { verifyPilotUser } from "./verify-user";
@@ -82,6 +83,25 @@ const init: OpsCommand = defineCommand({
     return {
       success: true,
       message: `Initialized ${repo}`,
+    };
+  },
+});
+
+const crossoverStage: OpsCommand = defineCommand({
+  name: "crossover:stage",
+  usage: "<source-repo> <output-dir>",
+  description: "Stage a reviewed canonical crossover copy",
+  run: async ({ args }): Promise<CommandResult> => {
+    const source = args[0];
+    const output = args[1];
+    if (!source || !output) {
+      return usageFailure(crossoverStage);
+    }
+
+    const staged = await stageLegacyCrossover(source, output);
+    return {
+      success: true,
+      message: `Staged ${staged.changedFiles.length} reviewed crossover files in ${staged.outputDir}`,
     };
   },
 });
@@ -410,6 +430,7 @@ export const commands: readonly CommandDefinition<
   CommandResult
 >[] = [
   init,
+  crossoverStage,
   render,
   userAdd,
   onboard,

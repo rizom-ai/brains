@@ -1,0 +1,18 @@
+brain: brain
+anchor: team
+bundles:
+  - core
+  - site
+  - team
+
+plugins:
+  directory-sync:
+    seedContentPath: ../../eval-content/team
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-team-test-content
+      gitUrl: file:///tmp/canonical-team-test-content.git
+site:
+  package: "@brains/site-default"
+  theme: "@brains/theme-rizom"

@@ -5,31 +5,32 @@ import { resolveEvalSelection } from "../src/eval-config-loader";
 const rawYaml = {
   suites: {
     core: {
-      preset: "core",
-      tags: ["preset-core"],
+      bundles: ["core"],
+      tags: ["bundle-core"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content-core",
+          seedContentPath: "eval-content/core",
         },
       },
     },
-    default: {
+    personal: {
       extends: "core",
-      preset: "default",
-      tags: ["preset-default"],
+      bundles: ["core", "site", "publishing"],
+      tags: ["posture-personal"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content-default",
+          seedContentPath: "eval-content/personal",
         },
       },
     },
-    full: {
-      extends: "default",
-      preset: "full",
-      tags: ["preset-full"],
+    commerce: {
+      extends: "core",
+      bundles: ["core", "site"],
+      add: ["products"],
+      tags: ["posture-commerce"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content",
+          seedContentPath: "eval-content/commerce",
         },
       },
     },
@@ -37,31 +38,31 @@ const rawYaml = {
 };
 
 describe("resolveEvalSelection", () => {
-  it("resolves inherited suite preset and tags", () => {
-    expect(resolveEvalSelection(rawYaml, { suite: "full" })).toEqual({
-      preset: "full",
-      tags: ["preset-core", "preset-default", "preset-full"],
+  it("resolves inherited suite bundles, additions, and tags", () => {
+    expect(resolveEvalSelection(rawYaml, { suite: "commerce" })).toEqual({
+      bundles: ["core", "site"],
+      add: ["products"],
+      tags: ["bundle-core", "posture-commerce"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content",
+          seedContentPath: "eval-content/commerce",
         },
       },
     });
   });
 
-  it("lets explicit CLI preset and tags override suite fields", () => {
+  it("lets explicit CLI tags override suite tags", () => {
     expect(
       resolveEvalSelection(rawYaml, {
-        suite: "default",
-        preset: "core",
+        suite: "personal",
         tags: ["smoke"],
       }),
     ).toEqual({
-      preset: "core",
+      bundles: ["core", "site", "publishing"],
       tags: ["smoke"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content-default",
+          seedContentPath: "eval-content/personal",
         },
       },
     });
@@ -75,7 +76,7 @@ describe("resolveEvalSelection", () => {
             core: {
               plugins: {
                 "directory-sync": {
-                  seedContentPath: "eval-content-core",
+                  seedContentPath: "eval-content/core",
                   git: { branch: "main" },
                 },
               },
@@ -95,7 +96,7 @@ describe("resolveEvalSelection", () => {
     ).toEqual({
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content-core",
+          seedContentPath: "eval-content/core",
           git: { branch: "smoke" },
         },
       },

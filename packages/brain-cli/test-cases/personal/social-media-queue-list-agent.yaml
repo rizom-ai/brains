@@ -1,0 +1,28 @@
+id: social-media-queue-list-agent
+name: List social media publish queue
+description: Tests that the agent uses the publishing management tool to show queued social posts
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - social-media
+  - queue
+  - agent
+  - posture-publishing
+
+turns:
+  - userMessage: "Show me what's in my LinkedIn publish queue"
+
+successCriteria:
+  expectedTools:
+    - toolName: publishing_manage
+      shouldBeCalled: true
+      argsContain:
+        action: queue-list
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

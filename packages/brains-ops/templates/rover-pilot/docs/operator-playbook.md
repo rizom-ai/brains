@@ -77,7 +77,7 @@ When `@rizom/ops` changes the scaffolded deploy contract:
 3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
 4. commit the updated deploy artifacts together
 
-## Rover verification notes
+## Canonical verification notes
 
 Use the verification script after deploy:
 
@@ -85,35 +85,31 @@ Use the verification script after deploy:
 bunx brains-ops verify-user . <handle>
 ```
 
-It checks every Rover preset:
+For every bundle posture it checks:
 
-- `https://<handle>.rizom.ai/health` should return `200`
-- unauthenticated `POST https://<handle>.rizom.ai/mcp` should return the expected auth failure
-- background jobs should not be repeatedly failing, except for expected missing optional integrations
+- `https://<handle>.rizom.ai/health` returns `200`;
+- unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure;
+- background jobs are not repeatedly failing, except for missing optional integrations.
 
-Additional `rover:core` note:
-
-- Rover core is MCP-only; a bare `GET /` may return `401`, which does not indicate a bad deploy.
-
-For `preset: default`, the script also checks:
-
-- `https://<handle>.rizom.ai/` loads the browser/site surface
-- `https://<handle>.rizom.ai/cms` loads the CMS/login surface
+A `core`-only instance is MCP-only; a bare `GET /` may return `401` without indicating a bad deploy. When `site` is selected, verification also checks the browser and CMS/login surfaces.
 
 Manual checks that remain:
 
-- initial site build is correct for the expected content/theme
-- content repo exists and runtime sync is healthy beyond the basic `/health` response
-- passkey setup/handoff is completed from the setup email
+- initial app-managed site output is correct for the expected content/theme;
+- content repository identity and runtime sync are healthy;
+- passkey setup/handoff is completed from the setup email.
 
-## One-user `rover:default` baseline canary
+## One-user canonical site canary
 
 Run this before adding custom site/theme packages or rolling a larger browser/CMS-first cohort.
 
-1. Create or choose a canary cohort with the default preset:
+1. Create or choose a canary cohort with explicit bundles:
 
    ```yaml
-   presetOverride: default
+   bundles:
+     - core
+     - site
+     - publishing
    ```
 
 2. Add exactly one canary user to that cohort.
@@ -131,11 +127,7 @@ Run this before adding custom site/theme packages or rolling a larger browser/CM
 7. Ask the user to complete passkey setup from the setup email.
 8. Continue to visual customization only after the canary is healthy.
 
-Rollback:
-
-- move the canary back to a core cohort, or remove `presetOverride: default` from the cohort
-- reconcile generated outputs
-- rebuild/redeploy the affected user
+Rollback must restore the prior desired-state revision and prior runtime image together. Never pair canonical config with the retired image, or retired config with the canonical image.
 
 ## Hosted site and theme package contract
 
@@ -167,7 +159,7 @@ default image.
 ### Custom-package canary and rollback
 
 1. Confirm the exact site/theme versions are public-installable without npm credentials.
-2. Apply the package names to one healthy `rover:default` canary.
+2. Apply the package names to one healthy canonical site canary.
 3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, CMS, content sync, and passkey sign-in before adding more users.
@@ -252,7 +244,7 @@ Use this when enabling Discord for a pilot user.
 
 1. Pick the user handle (for example `smoke`).
 2. Open the Discord Developer Portal.
-3. Create a **new application** for that user's rover.
+3. Create a **new application** for that user's brain.
 4. Add a **Bot** to the application.
 5. Copy the bot token.
 6. Put that value in `.env` or `.env.local` in this repo as `DISCORD_BOT_TOKEN=...` while onboarding that user.
@@ -265,11 +257,11 @@ Use this when enabling Discord for a pilot user.
 - or `bunx brains-ops reconcile-cohort . <cohort>`
 
 11. In the Discord Developer Portal, generate an install URL and invite the bot to the right server.
-12. Send a test message in Discord and confirm the rover responds.
+12. Send a test message in Discord and confirm the brain responds.
 
 Notes:
 
-- Use **one bot token per user/rover**.
+- Use **one bot token per user/brain**.
 - Do not reuse the same Discord bot token across multiple pilot users.
 - Discord is the default pilot interface moving forward.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.

@@ -31,7 +31,7 @@ model: gpt-4o-mini
   });
 
   it("should return null for yaml without plugin field", () => {
-    const result = parseEvalYaml(`brain: "@brains/rover"`);
+    const result = parseEvalYaml(`brain: "@acme/brain-definition"`);
     expect(result).toBeNull();
   });
 

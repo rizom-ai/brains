@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import type { ResolvedUser } from "../src/load-registry";
 import { onboardUser } from "../src/onboard-user";
 import { reconcileAll } from "../src/reconcile-all";
+import { dryRunReconcileAll } from "../src/reconcile-dry-run";
 import { reconcileCohort } from "../src/reconcile-cohort";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -24,7 +25,7 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
   return async (user: ResolvedUser): Promise<void> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
+      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
   };
 }
@@ -34,23 +35,23 @@ function createSnapshotRunner(
 ): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
   return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
+      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
 
+    const bundles = user.bundles.map((bundle) => `  - ${bundle}`).join("\n");
     return {
-      brainYaml: `brain: ${user.model}\npreset: ${user.preset}\ndomain: ${user.domain}\n`,
+      brainYaml: `brain: brain\nbundles:\n${bundles}\ndomain: ${user.domain}\n`,
     };
   };
 }
 
 const baseFiles = {
-  "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.14
-model: rover
+  "pilot.yaml": `brainVersion: 0.1.1-alpha.14
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -75,7 +76,10 @@ aiApiKeyOverride: CARA_AI_API_KEY
 gitSyncTokenOverride: CARA_GIT_SYNC_TOKEN
 `,
   "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
-presetOverride: default
+bundlesOverride:
+  - core
+  - site
+  - publishing
 aiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - bob
@@ -87,13 +91,44 @@ members:
 } satisfies Record<string, string>;
 
 describe("reconcile scripts", () => {
+  it("dry-runs in an isolated copy with external access blocked and converges", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      ".env":
+        "GIT_SYNC_TOKEN=must-not-be-used\nCONTENT_REPO_ADMIN_TOKEN=must-not-be-used\n",
+      "users/alice.secrets.yaml": "discordBotToken: must-not-be-copied\n",
+    });
+    const pilotBefore = await readFile(join(root, "pilot.yaml"), "utf8");
+
+    const result = await dryRunReconcileAll(root);
+
+    expect(result.firstPassChangedFiles).toContain("users/alice/brain.yaml");
+    expect(result.secondPassChangedFiles).toEqual([]);
+    expect(await Bun.file(join(root, "users/alice/brain.yaml")).exists()).toBe(
+      false,
+    );
+    expect(await readFile(join(root, "pilot.yaml"), "utf8")).toBe(pilotBefore);
+  });
+
+  it("reports zero first- and second-pass drift for reconciled input", async () => {
+    const root = await createPilotRepo(baseFiles);
+    await reconcileAll(root, undefined, { env: {} });
+
+    const result = await dryRunReconcileAll(root);
+
+    expect(result).toEqual({
+      firstPassChangedFiles: [],
+      secondPassChangedFiles: [],
+    });
+  });
+
   it("onboardUser uses the default runner and refreshes users table", async () => {
     const root = await createPilotRepo(baseFiles);
 
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\nkind: professional\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -111,7 +146,7 @@ describe("reconcile scripts", () => {
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| alice | canary | rover | default | 0.1.1-alpha.15 |",
+      "| alice | canary | core,site,publishing |  |  | 0.1.1-alpha.15 |",
     );
   });
 
@@ -130,11 +165,11 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\nkind: professional\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email:\n    transport: resend\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
+      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email:\n    transport: resend\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
     );
   });
 
-  it("renders Rover onboarding plugin config into generated brain config", async () => {
+  it("renders onboarding plugin config into generated brain config", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
       "users/alice.yaml": `handle: alice
@@ -148,7 +183,7 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\nkind: professional\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  rover-onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
   });
 
@@ -166,7 +201,7 @@ discord:
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\nkind: professional\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
+      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
     );
   });
 
@@ -190,8 +225,8 @@ discord:
     await reconcileCohort(root, "canary", createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
-      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
+      "alice:canary:core,site,publishing:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
+      "bob:canary:core,site,publishing:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
     ]);
   });
 
@@ -240,7 +275,7 @@ discord:
       "utf8",
     );
     expect(snapshot).toBe(
-      "brain: rover\npreset: core\ndomain: cara.rizom.ai\n",
+      "brain: brain\nbundles:\n  - core\ndomain: cara.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/cara/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
@@ -248,19 +283,18 @@ discord:
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| cara | steady | rover | core | 0.1.1-alpha.14 | cara.rizom.ai | rover-cara-content | off | unknown | unknown | unknown | unknown |",
+      "| cara | steady | core |  |  | 0.1.1-alpha.14 | cara.rizom.ai | rover-cara-content | off | unknown | unknown | unknown | unknown |",
     );
   });
 
   it("keeps hyphenated handles in generated content repo paths", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.14
-model: rover
+      "pilot.yaml": `brainVersion: 0.1.1-alpha.14
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

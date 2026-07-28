@@ -42,13 +42,13 @@ describe("pilot origin CA bootstrap", () => {
     writeFileSync(
       join(testDir, "pilot.yaml"),
       [
-        "schemaVersion: 1",
+        "schemaVersion: 2",
         "brainVersion: 0.2.0-alpha.3",
-        "model: rover",
+        "bundles:",
+        "  - core",
         "githubOrg: rizom-ai",
         "contentRepoPrefix: rover-",
         "domainSuffix: .rizom.ai",
-        "preset: core",
         "aiApiKey: AI_API_KEY",
         "gitSyncToken: GIT_SYNC_TOKEN",
         "contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN",
@@ -242,13 +242,13 @@ describe("pilot origin CA bootstrap", () => {
     writeFileSync(
       join(testDir, "pilot.yaml"),
       [
-        "schemaVersion: 1",
+        "schemaVersion: 2",
         "brainVersion: 0.2.0-alpha.3",
-        "model: rover",
+        "bundles:",
+        "  - core",
         "githubOrg: rizom-ai",
         "contentRepoPrefix: rover-",
         'domainSuffix: "*.rizom.ai"',
-        "preset: core",
         "aiApiKey: AI_API_KEY",
         "gitSyncToken: GIT_SYNC_TOKEN",
         "contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN",

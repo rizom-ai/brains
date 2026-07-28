@@ -1,0 +1,31 @@
+brain: brain
+anchor: person
+bundles:
+  - core
+
+permissions:
+  rules:
+    - pattern: "slack:U0BGKJ4MA5B"
+      level: admin
+    - pattern: "slack:*"
+      level: public
+
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: socket
+        botToken: ${SLACK_BOT_TOKEN}
+        appToken: ${SLACK_APP_TOKEN}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+  directory-sync:
+    seedContentPath: ../../eval-content/core
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-slack-test-content
+      gitUrl: file:///tmp/canonical-slack-test-content.git
+  onboarding:
+    enabled: false

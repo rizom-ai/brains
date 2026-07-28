@@ -26,7 +26,11 @@ describe("generateEntrypoint conventions", () => {
   test("bundles ./src/site.ts when brain.yaml omits site.package", () => {
     writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
 
-    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+    const code = generateEntrypoint(
+      `brain: brain
+bundles: [core]`,
+      { cwd: testDir },
+    );
 
     expect(code).not.toBeNull();
     expect(code).toContain('import __pkg0 from "./src/site.ts"');
@@ -41,7 +45,11 @@ describe("generateEntrypoint conventions", () => {
   test("bundles ./src/theme.css as a local theme override layer", () => {
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
-    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+    const code = generateEntrypoint(
+      `brain: brain
+bundles: [core]`,
+      { cwd: testDir },
+    );
 
     expect(code).not.toBeNull();
     expect(code).toContain(
@@ -61,7 +69,11 @@ describe("generateEntrypoint conventions", () => {
       'export default { namespace: "landing-page", sections: {} };\n',
     );
 
-    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+    const code = generateEntrypoint(
+      `brain: brain
+bundles: [core]`,
+      { cwd: testDir },
+    );
 
     expect(code).not.toBeNull();
     expect(code).toContain('import __pkg0 from "./src/site-content.ts"');
@@ -78,7 +90,8 @@ describe("generateEntrypoint conventions", () => {
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
     const code = generateEntrypoint(
-      `brain: "@brains/rover"
+      `brain: brain
+bundles: [core]
 site:
   package: "@brains/site-default"
   theme: "@brains/theme-default"

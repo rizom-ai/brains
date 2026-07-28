@@ -84,7 +84,7 @@ function expectMigrationSelection(
   expect(result.changed).toBe(true);
   expect(result.source).toEqual({ model, preset });
   expect(parsed.brain).toBe("brain");
-  expect(parsed.preset).toBeUndefined();
+  expect(result.output).not.toMatch(/^preset:/m);
   expect(parsed.bundles).toEqual(expected.bundles);
   expect(parsed.add).toEqual(expected.add);
   expect(parsed.remove).toEqual(expected.remove);
@@ -296,39 +296,14 @@ plugins:
     ).toThrow(/already has different config/);
   });
 
-  test("previews every checked-in legacy instance deterministically", () => {
+  test("has no checked-in legacy instance configs after crossover", () => {
     const repositoryRoot = join(import.meta.dir, "../../..");
-    const instancePaths = [
-      "brains/relay/test-apps/core/brain.yaml",
-      "brains/relay/test-apps/default/brain.yaml",
-      "brains/relay/test-apps/docs/brain.yaml",
-      "brains/relay/test-apps/full/brain.yaml",
-      "brains/rover/test-apps/core/brain.yaml",
-      "brains/rover/test-apps/default/brain.yaml",
-      "brains/rover/test-apps/full/brain.yaml",
-      "brains/rover/test-apps/rizom-ai/brain.yaml",
-      "brains/rover/test-apps/slack/brain.yaml",
-    ];
-    const discoveredPaths = [
+    const legacyConfigs = [
       ...new Bun.Glob("brains/**/brain.yaml").scanSync({
         cwd: repositoryRoot,
       }),
-    ].sort();
-    expect(discoveredPaths).toEqual(instancePaths);
-
-    for (const relativePath of instancePaths) {
-      const original = readFileSync(join(repositoryRoot, relativePath), "utf8");
-      const first = previewBrainConfigMigration(original);
-      const parsed = parseInstanceOverrides(first.output);
-      const second = previewBrainConfigMigration(first.output);
-
-      expect(first.changed, relativePath).toBe(true);
-      expect(parsed.brain, relativePath).toBe("brain");
-      expect(parsed.preset, relativePath).toBeUndefined();
-      expect(parsed.bundles?.includes("core"), relativePath).toBe(true);
-      expect(second.changed, relativePath).toBe(false);
-      expect(second.output, relativePath).toBe(first.output);
-    }
+    ];
+    expect(legacyConfigs).toEqual([]);
   });
 
   test("CLI command previews without writing brain.yaml", async () => {

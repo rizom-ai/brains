@@ -4,9 +4,11 @@ import {
   chmodSync,
   existsSync,
   readFileSync,
+  cpSync,
 } from "fs";
 import { basename, dirname, join, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
+import { stringify } from "yaml";
 import pkg from "../../package.json" with { type: "json" };
 import {
   legacyStandaloneDeployYmlContents,
@@ -25,6 +27,7 @@ import {
   buildInstanceEnvSchema,
   hasBitwardenPlugin,
 } from "../lib/env-schema";
+import { expandBrainRecipe, type BrainRecipeName } from "../lib/brain-recipes";
 
 /**
  * Pinned versions written into scaffolded package.json files.
@@ -39,7 +42,7 @@ const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
 const PREACT_VERSION = "^10.27.2";
 
 export interface ScaffoldOptions {
-  model: string;
+  recipe: BrainRecipeName;
   domain?: string | undefined;
   contentRepo?: string | undefined;
   backend?: string | undefined;
@@ -68,38 +71,42 @@ export interface ScaffoldOptions {
  *
  * Idempotent: on an existing directory, only missing conventional
  * artifacts are created. Existing `brain.yaml` is treated as the
- * canonical source of truth for model/domain.
+ * canonical source of truth for selection/domain.
  *
  * The scaffolded shape is a real package: it has its own `package.json`
  * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
- * start` works from the new dir. Models with an active website surface
+ * start` works from the new dir. Recipes with an active website surface
  * also ship local `src/site.ts` and `src/theme.css` convention files as
- * editable starting points while `brain.yaml` stays pinned to the model's
+ * editable starting points while `brain.yaml` stays pinned to the recipe's
  * built-in site. The local theme scaffold layers on top of the active
  * base theme automatically; the local site scaffold activates when the
  * operator switches `brain.yaml` to the local site convention.
  *
- * The `tsconfig.json` extends the public `@rizom/brain` instance preset
+ * The `tsconfig.json` extends the public `@rizom/brain` instance config
  * so standalone apps share the same JSX/runtime authoring contract.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const existing = existsSync(join(dir, "brain.yaml"))
     ? parseBrainYaml(dir)
     : undefined;
-  const model = existing?.brain ?? options.model;
-  const domain = existing?.domain ?? options.domain ?? `${model}.rizom.ai`;
+  const recipe = options.recipe;
+  const domain =
+    existing?.domain ??
+    options.domain ??
+    `${basename(pathResolve(dir))}.rizom.ai`;
 
-  writeBrainYaml(dir, model, domain, options.contentRepo);
+  writeBrainYaml(dir, recipe, domain, options.contentRepo);
+  writeRecipeSeedContent(dir, recipe);
   writePackageJson(dir);
-  writeReadme(dir, model);
+  writeReadme(dir, recipe);
   writeEnvExample(dir);
   writeGitignore(dir);
   writeTsConfig(dir);
-  if (shouldScaffoldLocalSiteTheme(model)) {
+  if (shouldScaffoldLocalSiteTheme(recipe)) {
     writeSiteSource(dir);
     writeThemeCss(dir);
   }
-  writeEnvSchema(dir, model, options.backend);
+  writeEnvSchema(dir, options.backend);
 
   // Real .env only when apiKey was supplied (interactive prompt or --api-key)
   if (options.apiKey) {
@@ -202,109 +209,84 @@ function writeReconcilableScaffoldFile(options: {
   }
 }
 
-function shouldScaffoldLocalSiteTheme(model: string): boolean {
-  return model !== "rover";
-}
-
-function getPinnedSiteTheme(
-  _model: string,
-): { sitePackage: string; themePackage: string } | undefined {
-  return undefined;
-}
-
-function defaultAnchorKind(
-  model: string,
-): "person" | "team" | "organization" | undefined {
-  if (model === "rover") return "person";
-  if (model === "relay") return "team";
-  if (model === "ranger") return "organization";
-  return undefined;
+function shouldScaffoldLocalSiteTheme(recipe: BrainRecipeName): boolean {
+  return recipe !== "minimal";
 }
 
 function writeBrainYaml(
   dir: string,
-  model: string,
+  recipe: BrainRecipeName,
   domain: string,
   contentRepo?: string,
 ): void {
-  // When the user passed --content-repo, wire it up explicitly. Otherwise
-  // keep git sync dormant and include copy-paste-ready commented snippets below.
-  // Rover also wires first-passkey setup email by default so deploy-time
-  // varlock validation catches missing Resend/setup email configuration.
-  const setupEmailOverrides =
-    model === "rover"
-      ? `  auth-service:
-    setupEmail: \${SETUP_EMAIL_TO}
-  notifications:
-    defaultRecipient:
-      type: email
-      address: \${SETUP_EMAIL_TO}
-  email:
-    transport: resend
-    apiKey: \${SETUP_EMAIL_API_KEY}
-    from: \${SETUP_EMAIL_FROM}
-`
-      : "";
-  const pluginOverrides = contentRepo
-    ? `plugins:
-${setupEmailOverrides}  directory-sync:
-    git:
-      repo: ${contentRepo.replace("github:", "")}
-      authToken: \${GIT_SYNC_TOKEN}
-`
-    : setupEmailOverrides
-      ? `plugins:
-${setupEmailOverrides}
-# Uncomment to enable git-backed sync of brain content:
-# plugins:
-#   directory-sync:
-#     git:
-#       repo: your-org/brain-data
-#       authToken: \${GIT_SYNC_TOKEN}
-`
-      : `plugins: {}
+  const expansion = expandBrainRecipe(recipe);
+  const plugins: Record<string, Record<string, unknown>> = {
+    ...(expansion.plugins ?? {}),
+  };
 
-# Uncomment to enable git-backed sync of brain content:
-# plugins:
-#   directory-sync:
-#     git:
-#       repo: your-org/brain-data
-#       authToken: \${GIT_SYNC_TOKEN}
-`;
+  if (recipe === "personal") {
+    plugins["auth-service"] = { setupEmail: "${SETUP_EMAIL_TO}" };
+    plugins["notifications"] = {
+      defaultRecipient: { type: "email", address: "${SETUP_EMAIL_TO}" },
+    };
+    plugins["email"] = {
+      transport: "resend",
+      apiKey: "${SETUP_EMAIL_API_KEY}",
+      from: "${SETUP_EMAIL_FROM}",
+    };
+  }
 
-  const pinnedSiteTheme = getPinnedSiteTheme(model);
-  const siteBlock = pinnedSiteTheme
-    ? `# Start from the model's built-in site/theme. Edit src/site.ts and src/theme.css,
-# remove site.package when you're ready to switch to the local site convention.
-# src/theme.css already layers on top of the built-in theme by default.
-site:
-  package: "${pinnedSiteTheme.sitePackage}"
-  theme: "${pinnedSiteTheme.themePackage}"
+  if (contentRepo) {
+    plugins["directory-sync"] = {
+      ...(plugins["directory-sync"] ?? {}),
+      git: {
+        repo: contentRepo.replace("github:", ""),
+        authToken: "${GIT_SYNC_TOKEN}",
+      },
+    };
+  }
 
-`
-    : "";
-
-  const anchorKind = defaultAnchorKind(model);
-  const content = `brain: ${model}
-${anchorKind ? `anchor: ${anchorKind}\n` : ""}domain: ${domain}
-
-# Plugin preset — "core" is the minimal on-ramp. Use "default" or "full"
-# for richer presets, or list capability ids in add: / remove: to fine-tune.
-preset: core
-
-${siteBlock}# Permissions
-admins: []
-anchors: []
-
-# Plugin overrides
-${pluginOverrides}
-# Optional deprecated fallback for MCP clients that cannot use OAuth/passkeys:
-# plugins:
-#   mcp:
-#     authToken: \${MCP_AUTH_TOKEN}
-`;
+  const content = stringify(
+    {
+      brain: "brain",
+      ...(expansion.anchor ? { anchor: expansion.anchor } : {}),
+      domain,
+      bundles: expansion.bundles,
+      ...(expansion.add ? { add: expansion.add } : {}),
+      ...(expansion.remove ? { remove: expansion.remove } : {}),
+      ...(expansion.site ? { site: expansion.site } : {}),
+      admins: [],
+      anchors: [],
+      plugins,
+    },
+    { lineWidth: 0 },
+  );
 
   writeScaffoldFile(join(dir, "brain.yaml"), content);
+}
+
+function writeRecipeSeedContent(dir: string, recipe: BrainRecipeName): void {
+  const destination = join(dir, "seed-content");
+  if (existsSync(destination)) return;
+
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(
+      currentDir,
+      "..",
+      "..",
+      "templates",
+      "recipes",
+      recipe,
+      "seed-content",
+    ),
+    join(currentDir, "..", "templates", "recipes", recipe, "seed-content"),
+  ];
+  const source = candidates.find((candidate) => existsSync(candidate));
+  if (!source) {
+    throw new Error(`Missing seed template for recipe "${recipe}"`);
+  }
+  cpSync(source, destination, { recursive: true, errorOnExist: true });
 }
 
 /**
@@ -382,11 +364,11 @@ KAMAL_SSH_PRIVATE_KEY=
   });
 }
 
-function writeEnvSchema(dir: string, model: string, backend?: string): void {
+function writeEnvSchema(dir: string, backend?: string): void {
   const instanceName = basename(pathResolve(dir));
   writeScaffoldFile(
     join(dir, ".env.schema"),
-    buildInstanceEnvSchema(model, instanceName, backend),
+    buildInstanceEnvSchema("brain", instanceName, backend),
   );
 }
 
@@ -641,9 +623,9 @@ function writeThemeCss(dir: string): void {
  * Write a minimal README pointing the user at the quickstart commands
  * and explaining the scaffolded layout.
  */
-function writeReadme(dir: string, model: string): void {
+function writeReadme(dir: string, recipe: BrainRecipeName): void {
   const name = basename(dir);
-  const siteAuthoringLines = shouldScaffoldLocalSiteTheme(model)
+  const siteAuthoringLines = shouldScaffoldLocalSiteTheme(recipe)
     ? "- `src/site.ts` — local site scaffold built on `@rizom/brain/site`\n- `src/theme.css` — local theme scaffold\n"
     : "";
   const content = `# ${name}
@@ -659,7 +641,7 @@ bunx brain start
 
 ## What's here
 
-- \`brain.yaml\` — instance configuration (model, plugins, secrets, permissions)
+- \`brain.yaml\` — instance configuration (bundles, plugins, secrets, permissions)
 - \`package.json\` — pins \`@rizom/brain\` and \`preact\` for module resolution
 - \`tsconfig.json\` — JSX runtime hint (Preact)
 - \`.env\` — secrets (gitignored, copy from \`.env.example\`)
@@ -669,15 +651,15 @@ ${siteAuthoringLines}
 On first start, open the one-shot \`/setup\` URL in the logs and register a passkey.
 Preserve \`data/auth/\` across deploys, but keep it separate from \`brain-data/\`.
 
-This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
-plugins, change presets, or wire up integrations like Discord and MCP.
+This brain was scaffolded from the **${recipe}** recipe. Edit \`brain.yaml\`
+to customize bundles or wire up integrations like Discord and MCP.
 `;
 
   writeScaffoldFile(join(dir, "README.md"), content);
 }
 
 // Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime.
-// Keep instance apps on the published @rizom/brain preset, but also repeat
+// Keep instance apps on the published @rizom/brain base config, but also repeat
 // the JSX hints locally because Bun's runtime transpiler needs them directly
 // when loading app-local TSX files.
 function writeTsConfig(dir: string): void {

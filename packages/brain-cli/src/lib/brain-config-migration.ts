@@ -19,6 +19,18 @@ interface MigrationTarget extends BrainRecipeExpansion {
   bundles: string[];
 }
 
+interface MigrationInput {
+  [key: string]: unknown;
+  brain?: unknown;
+  preset?: unknown;
+  bundles?: unknown;
+  add?: unknown;
+  remove?: unknown;
+  site?: unknown;
+  plugins?: unknown;
+  anchor?: unknown;
+}
+
 const memberAliases: Readonly<Record<string, string>> = {
   "dashboard-root": "dashboard",
   "rover-onboarding": "onboarding",
@@ -144,6 +156,10 @@ function mergeSelections(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMigrationInput(value: unknown): value is MigrationInput {
+  return isRecord(value);
 }
 
 function asRecord(value: unknown, field: string): Record<string, unknown> {
@@ -300,26 +316,21 @@ export function previewBrainConfigMigration(
   if (document.errors.length > 0) {
     throw new Error(`Invalid brain.yaml: ${document.errors[0]?.message}`);
   }
-  const data = document.toJS() as Record<string, unknown> | null;
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  const data: unknown = document.toJS();
+  if (!isMigrationInput(data)) {
     throw new Error("brain.yaml must contain a YAML mapping");
   }
 
-  const model = normalizeModel(data["brain"]);
-  const preset =
-    typeof data["preset"] === "string" ? data["preset"] : undefined;
-  if (data["preset"] !== undefined && preset === undefined) {
+  const model = normalizeModel(data.brain);
+  const preset = typeof data.preset === "string" ? data.preset : undefined;
+  if (data.preset !== undefined && preset === undefined) {
     throw new Error("preset must be a string before migration");
   }
-  if (data["preset"] !== undefined && data["bundles"] !== undefined) {
+  if (data.preset !== undefined && data.bundles !== undefined) {
     throw new Error('"preset" and "bundles" cannot be migrated together');
   }
 
-  if (
-    model === "brain" &&
-    preset === undefined &&
-    data["bundles"] !== undefined
-  ) {
+  if (model === "brain" && preset === undefined && data.bundles !== undefined) {
     return {
       changed: false,
       output: input,
@@ -332,20 +343,18 @@ export function previewBrainConfigMigration(
 
   const effectivePreset = preset ?? "default";
   const target = migrationTarget(model, effectivePreset);
-  const add = mergeSelections(data["add"], target.add);
-  const remove = mergeSelections(data["remove"], target.remove);
-  const site = composeSite(data["site"], target);
+  const add = mergeSelections(data.add, target.add);
+  const remove = mergeSelections(data.remove, target.remove);
+  const site = composeSite(data.site, target);
   const originalSite =
-    data["site"] === undefined ? undefined : asRecord(data["site"], "site");
+    data.site === undefined ? undefined : asRecord(data.site, "site");
   const originalPlugins =
-    data["plugins"] === undefined
-      ? undefined
-      : asRecord(data["plugins"], "plugins");
-  const plugins = composePlugins(data["plugins"], target);
+    data.plugins === undefined ? undefined : asRecord(data.plugins, "plugins");
+  const plugins = composePlugins(data.plugins, target);
 
   setScalarPreservingComment(document, "brain", "brain");
   replacePresetWithBundles(document, target.bundles);
-  if (data["anchor"] === undefined) document.set("anchor", target.anchor);
+  if (data.anchor === undefined) document.set("anchor", target.anchor);
   if (add) document.set("add", add);
   else document.delete("add");
   if (remove) document.set("remove", remove);

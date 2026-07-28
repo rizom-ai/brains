@@ -8,9 +8,9 @@ import {
 } from "./load-registry";
 
 const header =
-  "| handle | cohort | model | preset | brainVersion | domain | contentRepo | discord | serverStatus | deployStatus | dnsStatus | mcpStatus |";
+  "| handle | cohort | bundles | add | remove | brainVersion | domain | contentRepo | discord | serverStatus | deployStatus | dnsStatus | mcpStatus |";
 const separator =
-  "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |";
+  "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |";
 
 export interface WriteUsersTableOptions extends LoadPilotRegistryOptions {
   registry?: PilotRegistry;
@@ -28,8 +28,9 @@ export async function writeUsersTable(
     return [
       user.handle,
       user.cohort,
-      user.model,
-      user.preset,
+      user.bundles.join(","),
+      user.add.join(","),
+      user.remove.join(","),
       user.brainVersion,
       user.domain,
       user.contentRepo,

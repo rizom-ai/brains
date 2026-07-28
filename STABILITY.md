@@ -27,7 +27,7 @@ That includes fields such as:
 - `domain`
 - `database`
 - `model`
-- `preset`
+- `bundles`
 - `mode`
 - `add` / `remove`
 - `admins` / `anchors` / `trusted`
@@ -81,6 +81,7 @@ The documented `brain` command names are stable:
 - `brain start`
 - `brain chat`
 - `brain eval`
+- `brain config migrate`
 - `brain diagnostics`
 - `brain pin`
 - `brain tool`
@@ -91,7 +92,7 @@ Documented remote invocation via `--remote` is also part of the stable CLI surfa
 
 ### Brain-definition surface
 
-The exported brain-definition model used by shipped brain packages is intended to be stable at the top level: model identity, presets, plugin lists, site/theme defaults, and eval-disable declarations.
+The exported `BrainDefinition`, `defineBrain()`, and `defineBundle()` contracts are intended to be stable at the top level: ordered catalog and bundle definitions, identity/site defaults, instructions, permission contributions, and eval-disable declarations.
 
 ## Unstable surface
 

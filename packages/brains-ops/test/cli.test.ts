@@ -127,13 +127,13 @@ describe("brains-ops parseArgs", () => {
 
 describe("brains-ops runCommand", () => {
   const baseFiles = {
-    "pilot.yaml": `schemaVersion: 1
+    "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.1.1-alpha.14
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -165,7 +165,7 @@ discord:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(repo, "pilot.yaml"), "utf8")).toContain(
-      "schemaVersion: 1",
+      "schemaVersion: 2",
     );
   });
 
@@ -187,7 +187,7 @@ discord:
 
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
-    expect(table).toContain("| alice | canary | rover | core |");
+    expect(table).toContain("| alice | canary | core |  |  |");
     expect(table).toContain("| alice.rizom.ai | rover-alice-content |");
   });
 
@@ -241,7 +241,7 @@ discord:
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| alice | canary | rover | core | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | ready |",
+      "| alice | canary | core |  |  | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | ready |",
     );
   });
 
@@ -273,7 +273,7 @@ discord:
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| alice | canary | rover | core | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | failed |",
+      "| alice | canary | core |  |  | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | failed |",
     );
   });
 
@@ -325,10 +325,13 @@ discord:
     );
   });
 
-  it("verifies a default-preset user from the CLI", async () => {
+  it("verifies a site-enabled user from the CLI", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
-      "cohorts/canary.yaml": `presetOverride: default
+      "cohorts/canary.yaml": `bundlesOverride:
+  - core
+  - site
+  - publishing
 members:
   - alice
   - bob
@@ -380,7 +383,7 @@ members:
 
     expect(result.success).toBe(true);
     expect(result.message).toBe(
-      "Verified alice (default) at https://alice.rizom.ai: health, mcp-auth-gate, site, cms",
+      "Verified alice (core,site,publishing) at https://alice.rizom.ai: health, mcp-auth-gate, site, cms",
     );
     expect(requestedUrls).toEqual([
       "GET https://alice.rizom.ai/health",
@@ -591,7 +594,7 @@ members:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\nkind: professional\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -623,9 +626,9 @@ members:
     const runner = async (
       user: ResolvedUser,
     ): Promise<{ brainYaml: string }> => {
-      calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
+      calls.push(`${user.handle}:${user.cohort}:${user.bundles.join(",")}`);
       return {
-        brainYaml: `brain: ${user.model}\npreset: ${user.preset}\ndomain: ${user.domain}\n`,
+        brainYaml: `brain: brain\nbundles:\n  - core\ndomain: ${user.domain}\n`,
       };
     };
 
@@ -641,7 +644,7 @@ members:
     expect(result.success).toBe(true);
     expect(calls).toEqual(["alice:canary:core"]);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\npreset: core\ndomain: alice.rizom.ai\n",
+      "brain: brain\nbundles:\n  - core\ndomain: alice.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -671,7 +674,7 @@ members:
     const calls: string[] = [];
 
     const runner = async (user: ResolvedUser): Promise<void> => {
-      calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
+      calls.push(`${user.handle}:${user.cohort}:${user.bundles.join(",")}`);
     };
 
     const result = await runCommand(

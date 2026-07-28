@@ -1,0 +1,33 @@
+id: tool-invocation-agent-add-explicit-save-no-approval-gate
+name: Explicit Agent Save Does Not Require Separate Approval
+description: Tests that explicitly saving an agent does not tell the user they still need a separate approval step
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+  - bundle-core
+
+turns:
+  - userMessage: "Save mylittlephoney.com as an agent in my directory"
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_connect
+      shouldBeCalled: true
+      argsContain:
+        source.kind: "url"
+        source.url: "mylittlephoney.com"
+  responseNotContains:
+    - "approve it first"
+    - "not approved yet"
+    - "Once it’s ready and approved"
+    - "Once it's ready and approved"
+    - "discovered rather than approved"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

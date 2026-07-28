@@ -5,7 +5,7 @@
  * This file is the single entry point that the build script compiles
  * into dist/brain.js. It wires together:
  *
- * 1. Brain model definitions (rover, ranger, relay)
+ * 1. The canonical brain definition
  * 2. The boot function (reads brain.yaml, resolves config, boots App)
  * 3. The CLI (parseArgs, runCommand)
  *
@@ -13,21 +13,17 @@
  * src/index.ts directly (no models registered, subprocess runner path).
  */
 
-// ─── Register brain models and built-in package refs ──────────────────────
+// ─── Register the canonical definition and built-in package refs ─────────
 
-import { registerModel } from "../src/lib/model-registry";
+import { setCanonicalDefinition } from "../src/lib/definition-registry";
+import canonicalBrain from "../src/model/canonical-brain";
 import { registerPackage } from "@brains/app";
 
-import rover from "@brains/rover";
-import ranger from "@brains/ranger";
-import relay from "@brains/relay";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
 import rizomTheme from "@brains/theme-rizom";
 
-registerModel("rover", rover);
-registerModel("ranger", ranger);
-registerModel("relay", relay);
+setCanonicalDefinition(canonicalBrain);
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@rizom/theme-default", defaultTheme);
@@ -42,7 +38,7 @@ import { setBootFn } from "../src/lib/boot";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-setBootFn(async (cwd, _modelName, definition, flags) => {
+setBootFn(async (cwd, definition, flags) => {
   const {
     resolve,
     parseInstanceOverrides,

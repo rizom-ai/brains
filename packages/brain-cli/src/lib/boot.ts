@@ -25,7 +25,6 @@ export interface BootedBrain {
 
 type BootFn = (
   cwd: string,
-  modelName: string,
   definition: unknown,
   flags: { chat: boolean; mode?: BootMode },
 ) => Promise<BootedBrain | void>;
@@ -44,7 +43,6 @@ export function setBootFn(fn: BootFn): void {
  */
 export async function bootBrain(
   cwd: string,
-  modelName: string,
   definition: unknown,
   flags: { chat: boolean; mode?: BootMode },
 ): Promise<BootedBrain | void> {
@@ -53,7 +51,7 @@ export async function bootBrain(
       "In-process boot not available. Run from the monorepo or install @rizom/brain globally.",
     );
   }
-  return registeredBootFn(cwd, modelName, definition, flags);
+  return registeredBootFn(cwd, definition, flags);
 }
 
 /**

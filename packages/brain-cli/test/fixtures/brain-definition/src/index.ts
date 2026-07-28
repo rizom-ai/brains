@@ -44,8 +44,6 @@ export const brain: BrainDefinition = defineBrain({
   capabilities: [fixtureCapability],
   interfaces: [],
   bundles: [coreBundle],
-  defaultPreset: "core",
-  presets: { core: ["fixture-service"] },
 });
 
 void PLUGIN_API_VERSION;

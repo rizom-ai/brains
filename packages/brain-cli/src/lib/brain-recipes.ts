@@ -8,10 +8,14 @@ export const BRAIN_RECIPE_NAMES = [
 ] as const;
 
 export type BrainRecipeName = (typeof BRAIN_RECIPE_NAMES)[number];
-export type BrainRecipeExpansion = Omit<
-  InstanceOverrides,
-  "brain" | "preset" | "mode"
->;
+
+export function isBrainRecipeName(value: unknown): value is BrainRecipeName {
+  return (
+    typeof value === "string" &&
+    BRAIN_RECIPE_NAMES.some((recipe) => recipe === value)
+  );
+}
+export type BrainRecipeExpansion = Omit<InstanceOverrides, "brain" | "mode">;
 
 const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   minimal: {

@@ -42,15 +42,9 @@ export { pushPilotSecrets } from "./secrets-push";
 export { verifyPilotUser } from "./verify-user";
 export { runCommand, type CommandResult } from "./run-command";
 export {
-  migratePilotConfigV2,
-  migrateCohortConfigV2,
-  renderPilotConfigV2,
-  renderCohortConfigV2,
-} from "./pilot-v2-preview";
-export {
-  pilotSchemaV2,
-  cohortSchemaV2,
+  pilotSchema,
+  cohortSchema,
   canonicalBundleIdSchema,
-  type PilotConfigV2,
-  type CohortConfigV2,
+  type PilotConfig,
+  type CohortConfig,
 } from "./schema";

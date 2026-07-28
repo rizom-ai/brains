@@ -1,0 +1,44 @@
+id: cover-generation-failure-follow-up
+name: Cover generation failure follow-up reports failure, not pending status
+description: Verifies that after a cover-image request fails because the target post cannot be found, a follow-up like "is it ready?" does not imply the job is still pending
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - image
+  - cover
+  - multi-turn
+  - failure-handling
+  - posture-personal
+
+turns:
+  - userMessage: "Generate a cover image for the blog post 'missing-cover-target-9f3c'"
+    successCriteria:
+      responseNotContains:
+        - "has started"
+        - "I've started"
+        - "queued"
+  - userMessage: "is it ready?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_job_status
+          shouldBeCalled: false
+      responseNotContains:
+        - "finished yet"
+        - "don't have confirmation"
+        - "still running"
+        - "queued"
+        - "has started"
+        - "I've started"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+        id: "missing-cover-target-9f3c"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 33000

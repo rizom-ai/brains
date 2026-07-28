@@ -107,7 +107,7 @@ continue unchanged.
 
 ## Seed and local remote bootstrap
 
-On startup, shipped brain models usually configure `seedContentPath` to their package seed content. Seed files are copied only when the target data directory is effectively empty.
+On startup, scaffolded instances configure `seedContentPath` to recipe-owned seed content. Seed files are copied only when the target data directory is effectively empty.
 
 When `git.gitUrl` is a local `file://` remote, `git.bootstrapFromSeed` defaults to `true`. If the bare remote is missing or does not yet have the configured branch, directory-sync creates/seeds it from `seedContentPath`. Existing remote branches are left untouched.
 

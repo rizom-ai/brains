@@ -5,6 +5,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 ## Commands
 
 - `brains-ops init <repo>`
+- `brains-ops crossover:stage <source-repo> <output-dir>` — creates a separate secret-free canonical review copy without mutating the source
 - `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health`, unauthenticated `/mcp`)
 - `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
 - `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo using `CONTENT_REPO_ADMIN_TOKEN` for GitHub repo administration and `GIT_SYNC_TOKEN` for git clone/push
@@ -13,13 +14,17 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops cert:bootstrap <repo>`
 - `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
-- `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and default-preset browser/CMS routes
+- `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
 
 ## Scope
 
 `brains-ops` lives in the `brains` monorepo and is consumed as a separate package.
+
+The active loader accepts only canonical schema version 2. Legacy parsing is isolated to `crossover:stage` and is never used by render, verify, or reconciliation paths.
+
+Crossover staging excludes source `.git`, `.operator`, `.brains-ops`, `.turbo`, `dist`, `node_modules`, plaintext `.env`/`.env.local`, and `*.secrets.yaml` artifacts. It generates fresh per-user `.env` selector files in the review copy without copying source secret values.
 
 It operates on a separate private data repo, such as `rover-pilot/`, which stores:
 

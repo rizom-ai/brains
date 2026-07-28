@@ -1,0 +1,32 @@
+id: tool-invocation-git-sync-status
+name: Git Sync Status Check
+description: Tests that agent calls directory-sync status tool when user asks about sync state
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - directory-sync
+  - tool-invocation
+  - bundle-core
+
+turns:
+  - userMessage: "What's my git sync status?"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: status
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

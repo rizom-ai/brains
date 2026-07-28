@@ -16,7 +16,7 @@ export interface FailedCheck {
 
 export interface VerifyPilotUserResult {
   handle: string;
-  preset: ResolvedUser["preset"];
+  bundles: ResolvedUser["bundles"];
   domain: string;
   contentRepo: string;
   checks: string[];
@@ -70,7 +70,7 @@ export async function verifyPilotUser(
     failedChecks,
   );
 
-  if (user.preset === "default") {
+  if (user.bundles.includes("site")) {
     await runCheck(
       "site",
       () => verifyLoads(fetchImpl, `${baseUrl}/`, "site"),
@@ -90,7 +90,7 @@ export async function verifyPilotUser(
 
   return {
     handle: user.handle,
-    preset: user.preset,
+    bundles: user.bundles,
     domain: user.domain,
     contentRepo: user.contentRepo,
     checks,

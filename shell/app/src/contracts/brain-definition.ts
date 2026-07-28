@@ -21,7 +21,6 @@ import type {
   BrainIdentity,
   CapabilityContext,
   PluginConfig,
-  PresetName,
 } from "../brain-definition";
 
 export type {
@@ -31,7 +30,6 @@ export type {
   BrainMode,
   CapabilityContext,
   PluginConfig,
-  PresetName,
 } from "../brain-definition";
 export type { CapabilityBundleDefinition } from "../bundle-definition";
 export type { DeploymentConfigInput, ReasoningEffort } from "../types";
@@ -86,8 +84,6 @@ export interface BrainDefinition {
   capabilities: CapabilityEntry[];
   interfaces: InterfaceEntry[];
   bundles?: CapabilityBundleDefinition[];
-  presets?: Partial<Record<PresetName, string[]>>;
-  defaultPreset?: PresetName;
   permissions?: PermissionConfig;
   deployment?: DeploymentConfigInput;
   evalDisable?: string[];

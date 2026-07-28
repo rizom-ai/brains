@@ -1,47 +1,50 @@
-import { readFileSync, existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import { parseInstanceOverrides, type InstanceOverrides } from "@brains/app";
+import {
+  parseInstanceOverrides,
+  resolveBrainPackageName,
+  type InstanceOverrides,
+} from "@brains/app";
 import { getErrorMessage } from "@brains/utils/error";
-import { resolveModelName } from "./model-registry";
 
 export type BrainYamlConfig = InstanceOverrides & { brain: string };
 
-/**
- * Parse brain.yaml from a directory.
- *
- * Validates with the same instance-overrides schema the runtime boots
- * with, so a file the CLI accepts cannot fail at boot (and vice versa).
- * Normalizes the brain field (strips @brains/ prefix, quotes).
- * Throws if brain.yaml is missing, invalid, or brain field is absent.
- */
+/** Parse and validate an instance's canonical brain.yaml. */
 export function parseBrainYaml(cwd: string): BrainYamlConfig {
   const yamlPath = join(cwd, "brain.yaml");
-
   if (!existsSync(yamlPath)) {
     throw new Error(
       `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
     );
   }
 
-  const content = readFileSync(yamlPath, "utf-8");
   let overrides: InstanceOverrides;
   try {
-    overrides = parseInstanceOverrides(content);
+    overrides = parseInstanceOverrides(readFileSync(yamlPath, "utf-8"));
   } catch (error) {
-    throw new Error(
-      `Invalid brain.yaml: ${getErrorMessage(error)}. Expected at minimum:\n  brain: rover`,
-      { cause: error },
-    );
+    throw new Error(`Invalid brain.yaml: ${getErrorMessage(error)}`, {
+      cause: error,
+    });
   }
 
-  if (!overrides.brain) {
+  let brainPackage: string;
+  try {
+    brainPackage = resolveBrainPackageName(overrides.brain);
+  } catch (error) {
+    throw new Error(getErrorMessage(error), { cause: error });
+  }
+
+  if (
+    brainPackage === "@rizom/brain/model" &&
+    overrides.bundles === undefined
+  ) {
     throw new Error(
-      `Invalid brain.yaml: missing "brain" field. Expected at minimum:\n  brain: rover`,
+      'Invalid canonical brain.yaml: expected explicit "bundles"',
     );
   }
 
   return {
     ...overrides,
-    brain: resolveModelName(overrides.brain),
+    brain: brainPackage === "@rizom/brain/model" ? "brain" : brainPackage,
   };
 }

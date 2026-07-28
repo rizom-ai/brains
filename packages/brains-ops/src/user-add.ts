@@ -136,8 +136,17 @@ function formatCohortFile(cohort: CohortConfig): string {
     ...(cohort.brainVersionOverride
       ? [`brainVersionOverride: ${cohort.brainVersionOverride}`]
       : []),
-    ...(cohort.presetOverride
-      ? [`presetOverride: ${cohort.presetOverride}`]
+    ...(cohort.bundlesOverride
+      ? [
+          "bundlesOverride:",
+          ...cohort.bundlesOverride.map((bundle) => `  - ${bundle}`),
+        ]
+      : []),
+    ...(cohort.addOverride
+      ? ["addOverride:", ...cohort.addOverride.map((id) => `  - ${id}`)]
+      : []),
+    ...(cohort.removeOverride
+      ? ["removeOverride:", ...cohort.removeOverride.map((id) => `  - ${id}`)]
       : []),
     ...(cohort.aiApiKeyOverride
       ? [`aiApiKeyOverride: ${cohort.aiApiKeyOverride}`]

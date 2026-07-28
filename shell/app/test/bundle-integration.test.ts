@@ -54,9 +54,9 @@ function pluginIds(config: ReturnType<typeof resolve>): string[] {
 }
 
 describe("brain.yaml bundle selection", () => {
-  test("parses bundles and rejects mixing bundles with a preset", () => {
+  test("parses bundles and rejects the removed legacy selector", () => {
     expect(
-      parseInstanceOverrides(`brain: "@brains/rover"
+      parseInstanceOverrides(`brain: "brain"
 bundles: [site, core]
 add: [products]
 remove: [analytics]
@@ -68,32 +68,27 @@ remove: [analytics]
     });
 
     expect(() =>
-      parseInstanceOverrides(`brain: "@brains/rover"
+      parseInstanceOverrides(`brain: brain
 preset: core
-bundles: [core]
 `),
     ).toThrow(InstanceOverridesParseError);
     expect(() =>
-      parseInstanceOverrides(`brain: "@brains/rover"
+      parseInstanceOverrides(`brain: brain
 preset: core
-bundles: [core]
 `),
-    ).toThrow(/preset.*bundles.*mutually exclusive/i);
+    ).toThrow(/preset/i);
   });
 
-  test("also rejects programmatic preset and bundle selection", () => {
+  test("requires explicit selection when a definition declares bundles", () => {
     const definition = defineBrain({
       name: "test",
       version: "1.0.0",
       capabilities: [["alpha", trackingFactory("alpha"), {}]],
       interfaces: [],
-      presets: { core: ["alpha"] },
       bundles: [defineBundle({ id: "core", members: ["alpha"] })],
     });
 
-    expect(() =>
-      resolve(definition, {}, { preset: "core", bundles: ["core"] }),
-    ).toThrow(/preset.*bundles.*mutually exclusive/i);
+    expect(() => resolve(definition, {})).toThrow(/explicit "bundles"/i);
   });
 });
 
@@ -121,7 +116,7 @@ describe("bundle resolver integration", () => {
     expect(pluginIds(reverse)).toEqual(pluginIds(forward));
   });
 
-  test("passes canonical bundles to config callbacks and preserves legacy preset context", () => {
+  test("passes canonical bundles to config callbacks", () => {
     const contexts: CapabilityContext[] = [];
     const definition = defineBrain({
       name: "test",
@@ -137,7 +132,6 @@ describe("bundle resolver integration", () => {
         ],
       ],
       interfaces: [],
-      presets: { core: ["alpha"] },
       bundles: [
         defineBundle({ id: "core", members: ["alpha"] }),
         defineBundle({ id: "site", members: ["alpha"] }),
@@ -145,12 +139,8 @@ describe("bundle resolver integration", () => {
     });
 
     resolve(definition, {}, { bundles: ["site", "core"] });
-    resolve(definition, {}, { preset: "core" });
 
-    expect(contexts).toEqual([
-      { bundles: ["core", "site"] },
-      { bundles: [], preset: "core" },
-    ]);
+    expect(contexts).toEqual([{ bundles: ["core", "site"] }]);
   });
 
   test("applies catalog, bundle, then instance config to capabilities and interfaces", () => {
@@ -291,19 +281,8 @@ describe("bundle resolver integration", () => {
     ).toEqual(["beta"]);
   });
 
-  test("keeps legacy preset and no-preset behavior on the shared selection path", () => {
-    const presetDefinition = defineBrain({
-      name: "preset",
-      version: "1.0.0",
-      capabilities: [
-        ["alpha", trackingFactory("alpha"), {}],
-        ["beta", trackingFactory("beta"), {}],
-      ],
-      interfaces: [],
-      presets: { core: ["alpha"] },
-      bundles: [defineBundle({ id: "core", members: ["alpha"] })],
-    });
-    const noPresetDefinition = defineBrain({
+  test("keeps no-bundle custom definitions on the complete catalog path", () => {
+    const completeCatalogDefinition = defineBrain({
       name: "all",
       version: "1.0.0",
       capabilities: [
@@ -311,13 +290,9 @@ describe("bundle resolver integration", () => {
         ["beta", trackingFactory("beta"), {}],
       ],
       interfaces: [],
-      bundles: [defineBundle({ id: "core", members: ["alpha"] })],
     });
 
-    expect(
-      pluginIds(resolve(presetDefinition, {}, { preset: "core" })),
-    ).toEqual(pluginIds(resolve(presetDefinition, {}, { bundles: ["core"] })));
-    expect(pluginIds(resolve(noPresetDefinition, {}))).toEqual([
+    expect(pluginIds(resolve(completeCatalogDefinition, {}))).toEqual([
       "alpha",
       "beta",
     ]);

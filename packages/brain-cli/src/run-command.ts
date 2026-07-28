@@ -32,6 +32,7 @@ import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
 import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
 import { reinitializeAuthAccess } from "./commands/auth-reinitialize-access";
 import { runConfigMigrationPreview } from "./commands/config-migrate";
+import { BRAIN_RECIPE_NAMES, isBrainRecipeName } from "./lib/brain-recipes";
 import type { CommandResult } from "./lib/command-result";
 
 export type { CommandResult } from "./lib/command-result";
@@ -68,15 +69,16 @@ const initCommand: BrainCommand = defineCommand({
   usage: "<dir>",
   description: "Scaffold a new brain instance",
   flags: {
-    model: {
+    recipe: {
       type: "string",
       placeholder: "<name>",
-      description: "Brain model (default: rover)",
+      description:
+        "Scaffold recipe: minimal, personal, team, commerce (default: personal)",
     },
     domain: {
       type: "string",
       placeholder: "<domain>",
-      description: "Domain (default: {model}.rizom.ai)",
+      description: "Domain (default: {directory}.rizom.ai)",
     },
     "content-repo": {
       type: "string",
@@ -114,7 +116,7 @@ const initCommand: BrainCommand = defineCommand({
       return {
         success: false,
         message:
-          "Usage: brain init <directory> [--model rover] [--backend none] [--deploy] [--regen]",
+          "Usage: brain init <directory> [--recipe personal] [--backend none] [--deploy] [--regen]",
       };
     }
 
@@ -124,8 +126,16 @@ const initCommand: BrainCommand = defineCommand({
     // Build the initial options from flags. These act as defaults / pre-filled
     // values when prompting, and as the complete config when running
     // non-interactively.
+    const rawRecipe = getStringFlag(flags, "recipe") ?? "personal";
+    if (!isBrainRecipeName(rawRecipe)) {
+      return {
+        success: false,
+        message: `Unknown recipe "${rawRecipe}". Available: ${BRAIN_RECIPE_NAMES.join(", ")}`,
+      };
+    }
+
     const initialOptions: ScaffoldOptions = {
-      model: getStringFlag(flags, "model") ?? "rover",
+      recipe: rawRecipe,
       domain: getStringFlag(flags, "domain"),
       contentRepo: getStringFlag(flags, "content-repo"),
       backend: getStringFlag(flags, "backend"),

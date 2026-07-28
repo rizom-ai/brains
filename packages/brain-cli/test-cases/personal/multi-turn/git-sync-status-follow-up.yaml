@@ -1,0 +1,52 @@
+id: multi-turn-git-sync-status-follow-up
+name: Git sync status follow-up is not captured
+description: Verifies that after a git sync request, a bare status follow-up checks sync/job status instead of creating a note from the phrase.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - directory-sync
+  - multi-turn
+  - tool-invocation
+  - bundle-core
+
+turns:
+  - userMessage: "sync with git"
+    successCriteria:
+      expectedTools:
+        - toolName: directory_sync
+          shouldBeCalled: true
+          argsContain:
+            action: sync
+  - userMessage: "what is the status"
+    successCriteria:
+      expectedTools:
+        - toolName: directory_sync
+          shouldBeCalled: true
+          argsContain:
+            action: status
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "save"
+        - "capture"
+        - "create"
+        - "confirmation required"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: sync
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: status
+    - toolName: system_create
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 33000

@@ -1,0 +1,34 @@
+id: tool-invocation-blog-generate
+name: Blog Post Generation via system_generate
+description: Verifies that the agent uses system_generate operation.kind prompt for broad blog post generation
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - blog
+  - anti-hallucination
+  - posture-personal
+
+turns:
+  - userMessage: "Generate a new blog post about AI"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+      argsContain:
+        operation.entityType: post
+        operation.kind: prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+    - "blog_generate"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

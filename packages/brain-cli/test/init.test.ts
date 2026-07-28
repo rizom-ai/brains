@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
-import { join } from "path";
+import { basename, join } from "path";
 import { tmpdir } from "os";
 import { scaffold } from "../src/commands/init";
 import { buildInstanceEnvSchema } from "../src/lib/env-schema";
@@ -123,22 +123,23 @@ describe("brain init", () => {
   });
 
   describe("brain.yaml", () => {
-    it("should create brain.yaml with model and domain", () => {
-      scaffold(testDir, { model: "rover", domain: "mybrain.rizom.ai" });
+    it("should create canonical brain.yaml with explicit bundles and domain", () => {
+      scaffold(testDir, { recipe: "personal", domain: "mybrain.rizom.ai" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("brain: rover");
+      expect(yaml).toContain("brain: brain");
+      expect(yaml).toContain("bundles:");
       expect(yaml).toContain("domain: mybrain.rizom.ai");
     });
 
-    it("should declare each built-in model's Anchor profile flavor", () => {
-      for (const [model, anchor] of [
-        ["rover", "person"],
-        ["relay", "team"],
-        ["ranger", "organization"],
+    it("should declare each recipe's Anchor profile flavor", () => {
+      for (const [recipe, anchor] of [
+        ["personal", "person"],
+        ["team", "team"],
+        ["commerce", "organization"],
       ] as const) {
-        const dir = join(testDir, model);
-        scaffold(dir, { model });
+        const dir = join(testDir, recipe);
+        scaffold(dir, { recipe });
         expect(readFileSync(join(dir, "brain.yaml"), "utf-8")).toContain(
           `anchor: ${anchor}`,
         );
@@ -146,7 +147,7 @@ describe("brain init", () => {
 
       const customDir = join(testDir, "custom");
       scaffold(customDir, {
-        model: "@acme/custom-brain",
+        recipe: "minimal",
         domain: "custom.example.com",
       });
       expect(
@@ -154,16 +155,16 @@ describe("brain init", () => {
       ).not.toContain("anchor:");
     });
 
-    it("should default domain to {model}.rizom.ai", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should default domain from the target directory", () => {
+      scaffold(testDir, { recipe: "personal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("domain: rover.rizom.ai");
+      expect(yaml).toContain(`domain: ${basename(testDir)}.rizom.ai`);
     });
 
     it("should include content repo when provided", () => {
       scaffold(testDir, {
-        model: "rover",
+        recipe: "personal",
         contentRepo: "github:user/mybrain-data",
       });
 
@@ -171,15 +172,16 @@ describe("brain init", () => {
       expect(yaml).toContain("user/mybrain-data");
     });
 
-    it("should default to preset: core", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should expand the selected recipe to explicit bundles", () => {
+      scaffold(testDir, { recipe: "personal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("preset: core");
+      expect(yaml).toContain("bundles:\n  - core\n  - site\n  - publishing");
+      expect(yaml).not.toContain("preset:");
     });
 
-    it("should wire Rover first-passkey setup email", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should wire personal first-passkey setup email", () => {
+      scaffold(testDir, { recipe: "personal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
       expect(yaml).toContain("auth-service:");
@@ -192,21 +194,17 @@ describe("brain init", () => {
       expect(yaml).toContain("from: ${SETUP_EMAIL_FROM}");
     });
 
-    it("should comment out git block when no contentRepo is provided", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should leave git sync disabled when no contentRepo is provided", () => {
+      scaffold(testDir, { recipe: "personal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      // The git block should be present as a comment so users can
-      // uncomment to enable, but should not be active config.
-      expect(yaml).toContain("# Uncomment to enable git");
-      expect(yaml).toMatch(/^\s*#\s*directory-sync:/m);
-      // No active (uncommented) git block
-      expect(yaml).not.toMatch(/^\s*directory-sync:\s*$/m);
+      expect(yaml).not.toContain("git:");
+      expect(yaml).not.toContain("authToken:");
     });
 
     it("should activate git block when contentRepo is provided", () => {
       scaffold(testDir, {
-        model: "rover",
+        recipe: "personal",
         contentRepo: "github:user/brain-data",
       });
 
@@ -215,52 +213,48 @@ describe("brain init", () => {
       expect(yaml).toContain("repo: user/brain-data");
     });
 
-    it("should not scaffold dormant site refs for rover core", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should keep the minimal recipe free of site choices", () => {
+      scaffold(testDir, { recipe: "minimal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
       expect(yaml).not.toMatch(/^site:/m);
-      expect(yaml).not.toContain("@brains/site-default");
-      expect(yaml).not.toContain("@brains/theme-default");
     });
 
-    it("should not scaffold dormant site refs for ranger", () => {
-      scaffold(testDir, { model: "ranger" });
+    it("should scaffold explicit commerce site choices", () => {
+      scaffold(testDir, { recipe: "commerce" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).not.toMatch(/^site:/m);
-      expect(yaml).not.toContain("@brains/site-");
-      expect(yaml).not.toContain("@brains/theme-");
+      expect(yaml).toContain('package: "@rizom/site-rizom"');
+      expect(yaml).toContain('theme: "@brains/theme-rizom"');
     });
 
-    it("should not scaffold dormant site refs for relay", () => {
-      scaffold(testDir, { model: "relay" });
+    it("should scaffold explicit team site choices", () => {
+      scaffold(testDir, { recipe: "team" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).not.toMatch(/^site:/m);
-      expect(yaml).not.toContain("@brains/site-");
-      expect(yaml).not.toContain("@brains/theme-");
+      expect(yaml).toContain('package: "@brains/site-default"');
+      expect(yaml).toContain('theme: "@brains/theme-rizom"');
     });
   });
 
   describe("minimal scaffold (default)", () => {
     it("should create brain.yaml", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
     });
 
     it("should create package.json", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, "package.json"))).toBe(true);
     });
 
     it("should create README.md", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, "README.md"))).toBe(true);
     });
 
-    it("should not mention local site/theme files in rover README", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should not mention local site/theme files for minimal recipe", () => {
+      scaffold(testDir, { recipe: "minimal" });
 
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).not.toContain("`src/site.ts`");
@@ -268,7 +262,7 @@ describe("brain init", () => {
     });
 
     it("should create .env.example", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("CERTIFICATE_PEM=");
@@ -285,7 +279,7 @@ describe("brain init", () => {
       // section. varlock load resolves every value from process.env, which
       // in CI comes from GitHub Actions secrets. Operators who want a
       // varlock plugin pass --backend <name> explicitly.
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
       expect(envSchema).not.toContain("@plugin(");
@@ -307,7 +301,7 @@ describe("brain init", () => {
     });
 
     it("should generate built-in .env.schema content without workspace model resolution", () => {
-      const envSchema = buildInstanceEnvSchema("rover", "demo");
+      const envSchema = buildInstanceEnvSchema("brain", "demo");
 
       expect(envSchema).toContain("AI_API_KEY=");
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
@@ -319,7 +313,7 @@ describe("brain init", () => {
     });
 
     it("should fall through for an arbitrary --backend value", () => {
-      scaffold(testDir, { model: "rover", backend: "doppler" });
+      scaffold(testDir, { recipe: "personal", backend: "doppler" });
 
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
       expect(envSchema).toContain("@plugin(@varlock/doppler-plugin)");
@@ -328,12 +322,12 @@ describe("brain init", () => {
     });
 
     it("should create .gitignore", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
     });
 
     it("should create tsconfig.json extending the public instance preset", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const path = join(testDir, "tsconfig.json");
       expect(existsSync(path)).toBe(true);
       const content = JSON.parse(readFileSync(path, "utf-8"));
@@ -342,15 +336,15 @@ describe("brain init", () => {
       expect(content.compilerOptions.jsxImportSource).toBe("preact");
     });
 
-    it("should not create local site/theme scaffold for rover core", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should not create local site/theme scaffold for minimal recipe", () => {
+      scaffold(testDir, { recipe: "minimal" });
 
       expect(existsSync(join(testDir, "src", "site.ts"))).toBe(false);
       expect(existsSync(join(testDir, "src", "theme.css"))).toBe(false);
     });
 
-    it("should create src/site.ts and src/theme.css for ranger", () => {
-      scaffold(testDir, { model: "ranger" });
+    it("should create src/site.ts and src/theme.css for commerce", () => {
+      scaffold(testDir, { recipe: "commerce" });
 
       const siteSource = readFileSync(join(testDir, "src", "site.ts"), "utf-8");
       expect(siteSource).toContain('from "@rizom/brain/site"');
@@ -369,14 +363,14 @@ describe("brain init", () => {
     });
 
     it("should NOT create .env when no apiKey provided", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, ".env"))).toBe(false);
     });
   });
 
   describe("package.json", () => {
     it("should pin @rizom/brain to a version", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
@@ -384,7 +378,7 @@ describe("brain init", () => {
     });
 
     it("should depend on preact for JSX runtime", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
@@ -392,7 +386,7 @@ describe("brain init", () => {
     });
 
     it("should set private: true", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
@@ -400,7 +394,7 @@ describe("brain init", () => {
     });
 
     it("should set type: module", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
@@ -410,7 +404,7 @@ describe("brain init", () => {
     it("should derive name from the directory basename", () => {
       const childDir = join(testDir, "my-cool-brain");
       mkdirSync(childDir, { recursive: true });
-      scaffold(childDir, { model: "rover" });
+      scaffold(childDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(childDir, "package.json"), "utf-8"),
       );
@@ -420,13 +414,13 @@ describe("brain init", () => {
 
   describe("README.md", () => {
     it("should reference the bunx brain start command", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).toContain("bunx brain start");
     });
 
     it("should reference @rizom/brain", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).toContain("@rizom/brain");
     });
@@ -434,7 +428,7 @@ describe("brain init", () => {
 
   describe(".env file (when apiKey provided)", () => {
     it("should create .env with AI_API_KEY when apiKey is provided", () => {
-      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
 
       const envPath = join(testDir, ".env");
       expect(existsSync(envPath)).toBe(true);
@@ -444,7 +438,7 @@ describe("brain init", () => {
 
     it("should include GIT_SYNC_TOKEN placeholder when contentRepo is set", () => {
       scaffold(testDir, {
-        model: "rover",
+        recipe: "personal",
         apiKey: "sk-test-12345",
         contentRepo: "user/brain-data",
       });
@@ -455,19 +449,19 @@ describe("brain init", () => {
     });
 
     it("should NOT include GIT_SYNC_TOKEN when contentRepo is absent", () => {
-      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
 
       const env = readFileSync(join(testDir, ".env"), "utf-8");
       expect(env).not.toContain("GIT_SYNC_TOKEN");
     });
 
     it("should still create .env.example as a template", () => {
-      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
     });
 
     it("should NOT create deploy files by default", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, "config", "deploy.yml"))).toBe(false);
       expect(existsSync(join(testDir, ".kamal"))).toBe(false);
       expect(existsSync(join(testDir, ".github"))).toBe(false);
@@ -479,9 +473,10 @@ describe("brain init", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
         [
-          "brain: ranger",
+          "brain: brain",
+          "bundles: [core, site]",
+          "add: [products]",
           "domain: rizom.ai",
-          "preset: default",
           "plugins:",
           "  mcp:",
           "    authToken: ${MCP_AUTH_TOKEN}",
@@ -489,7 +484,7 @@ describe("brain init", () => {
         ].join("\n"),
       );
 
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
 
       expect(existsSync(join(testDir, "README.md"))).toBe(true);
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
@@ -499,19 +494,25 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "package.json"))).toBe(true);
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("brain: ranger");
+      expect(yaml).toContain("brain: brain");
       expect(yaml).toContain("domain: rizom.ai");
-      expect(yaml).not.toContain("brain: rover");
+      expect(yaml).not.toContain("preset:");
     });
 
     it("should not overwrite existing generated artifacts by default", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site]",
+          "add: [products]",
+          "domain: rizom.ai",
+          "",
+        ].join("\n"),
       );
       writeFileSync(join(testDir, "README.md"), "CUSTOM README\n");
 
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
 
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).toBe("CUSTOM README\n");
@@ -520,10 +521,16 @@ describe("brain init", () => {
     it("should create missing deploy artifacts for an existing instance when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site]",
+          "add: [products]",
+          "domain: rizom.ai",
+          "",
+        ].join("\n"),
       );
 
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       expect(existsSync(join(testDir, "config", "deploy.yml"))).toBe(true);
       expect(existsSync(join(testDir, ".kamal", "hooks", "pre-deploy"))).toBe(
@@ -541,20 +548,31 @@ describe("brain init", () => {
     it("should derive generated artifact content from existing brain.yaml", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site]",
+          "add: [products]",
+          "domain: rizom.ai",
+          "",
+        ].join("\n"),
       );
 
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
 
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
-      expect(readme).toContain("This brain runs the **ranger** model");
-      expect(readme).not.toContain("This brain runs the **rover** model");
+      expect(readme).toContain("**personal** recipe");
+      expect(readme).not.toContain("model");
     });
 
     it("should update known stale generated deploy artifacts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site, publishing]",
+          "domain: mylittlephoney.com",
+          "",
+        ].join("\n"),
       );
       writeFileSync(join(testDir, ".env.example"), legacyEnvExample);
       mkdirSync(join(testDir, "config"), { recursive: true });
@@ -563,7 +581,7 @@ describe("brain init", () => {
         legacyStandaloneDeployYml,
       );
 
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("HCLOUD_SSH_KEY_NAME=");
@@ -607,7 +625,12 @@ describe("brain init", () => {
     it("should reconcile stale standalone deploy mounts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site, publishing]",
+          "domain: mylittlephoney.com",
+          "",
+        ].join("\n"),
       );
       mkdirSync(join(testDir, "config"), { recursive: true });
       writeFileSync(
@@ -615,7 +638,7 @@ describe("brain init", () => {
         staleStandaloneDeployYml,
       );
 
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const deploy = readFileSync(
         join(testDir, "config", "deploy.yml"),
@@ -631,7 +654,12 @@ describe("brain init", () => {
     it("should preserve custom deploy artifacts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: custom.example.com", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site, publishing]",
+          "domain: custom.example.com",
+          "",
+        ].join("\n"),
       );
       const customEnvExample = "AI_API_KEY=\nCUSTOM_ONLY=1\n";
       const customDeployYml = "service: custom\nimage: custom/image\n";
@@ -653,7 +681,7 @@ describe("brain init", () => {
         customPublishWorkflow,
       );
 
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       expect(readFileSync(join(testDir, ".env.example"), "utf-8")).toBe(
         customEnvExample,
@@ -681,7 +709,12 @@ describe("brain init", () => {
     it("should regenerate deploy scaffolding when --deploy --regen is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: custom.example.com", ""].join("\n"),
+        [
+          "brain: brain",
+          "bundles: [core, site, publishing]",
+          "domain: custom.example.com",
+          "",
+        ].join("\n"),
       );
       writeFileSync(
         join(testDir, ".env.schema"),
@@ -733,7 +766,7 @@ describe("brain init", () => {
         "console.log('custom');\n",
       );
 
-      scaffold(testDir, { model: "rover", deploy: true, regen: true });
+      scaffold(testDir, { recipe: "personal", deploy: true, regen: true });
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -773,7 +806,7 @@ describe("brain init", () => {
 
   describe("deploy scaffold (--deploy flag)", () => {
     it("should create config/deploy.yml when deploy is true", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const deploy = readFileSync(
         join(testDir, "config", "deploy.yml"),
@@ -805,7 +838,7 @@ describe("brain init", () => {
     });
 
     it("should create pre-deploy hook when deploy is true", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const hook = readFileSync(
         join(testDir, ".kamal", "hooks", "pre-deploy"),
@@ -820,7 +853,7 @@ describe("brain init", () => {
     });
 
     it("should create deploy workflow when deploy is true", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -943,7 +976,7 @@ describe("brain init", () => {
     });
 
     it("should map every generated env schema key into the deploy workflow", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
       const workflow = readFileSync(
@@ -960,7 +993,7 @@ describe("brain init", () => {
     });
 
     it("should map only the Bitwarden bootstrap token for Bitwarden-backed schemas", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
       writeFileSync(
         join(testDir, ".env.schema"),
         `# @plugin(@varlock/bitwarden-plugin@1.0.0)
@@ -979,7 +1012,7 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
 `,
       );
 
-      scaffold(testDir, { model: "rover", deploy: true, regen: true });
+      scaffold(testDir, { recipe: "personal", deploy: true, regen: true });
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -999,7 +1032,7 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
     });
 
     it("should create publish workflow when deploy is true", () => {
-      scaffold(testDir, { model: "rover", deploy: true });
+      scaffold(testDir, { recipe: "personal", deploy: true });
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "publish-image.yml"),
@@ -1022,9 +1055,9 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
       mkdirSync(dir1, { recursive: true });
       mkdirSync(dir2, { recursive: true });
 
-      scaffold(dir1, { model: "rover", deploy: true });
+      scaffold(dir1, { recipe: "personal", deploy: true });
       scaffold(dir2, {
-        model: "ranger",
+        recipe: "commerce",
         domain: "custom.example.com",
         deploy: true,
       });
@@ -1037,7 +1070,7 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
 
   describe(".gitignore", () => {
     it("should exclude .env and node_modules", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
 
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain(".env");
@@ -1045,14 +1078,14 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
     });
 
     it("should preserve env templates and schemas as tracked files", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain("!.env.example");
       expect(gitignore).toContain("!.env.schema");
     });
 
     it("should exclude runtime artifacts (brain.log, brain-data, cache, data, dist, origin certs)", () => {
-      scaffold(testDir, { model: "rover" });
+      scaffold(testDir, { recipe: "personal" });
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain("brain.log");
       expect(gitignore).toContain("brain-data/");

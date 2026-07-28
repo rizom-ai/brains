@@ -4,11 +4,6 @@ const exactVersionPattern: RegExp =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const handlePattern: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const presetSchema: z.ZodEnum<{
-  core: "core";
-  default: "default";
-  pro: "pro";
-}> = z.enum(["core", "default", "pro"]);
 export const exactVersionSchema: z.ZodString = z
   .string()
   .regex(exactVersionPattern, "expected exact pinned version");
@@ -21,43 +16,18 @@ export const agePublicKeySchema: z.ZodString = z
   .startsWith("age1")
   .min(1);
 
-export const pilotSchema: z.ZodObject<{
-  schemaVersion: z.ZodLiteral<1>;
-  brainVersion: z.ZodString;
-  model: z.ZodLiteral<"rover">;
-  githubOrg: z.ZodString;
-  contentRepoPrefix: z.ZodString;
-  domainSuffix: z.ZodString;
-  preset: typeof presetSchema;
-  aiApiKey: z.ZodString;
-  gitSyncToken: z.ZodString;
-  contentRepoAdminToken: z.ZodString;
-  agePublicKey: z.ZodString;
-}> = z.strictObject({
-  schemaVersion: z.literal(1),
-  brainVersion: exactVersionSchema,
-  model: z.literal("rover"),
-  githubOrg: z.string().min(1),
-  contentRepoPrefix: z.string().min(1),
-  domainSuffix: z.string().min(1),
-  preset: presetSchema,
-  aiApiKey: secretNameSchema,
-  gitSyncToken: secretNameSchema,
-  contentRepoAdminToken: secretNameSchema,
-  agePublicKey: agePublicKeySchema,
-});
-
 export const canonicalBundleIdSchema: z.ZodEnum<{
   core: "core";
   site: "site";
   publishing: "publishing";
   team: "team";
 }> = z.enum(["core", "site", "publishing", "team"]);
+export type CanonicalBundleId = z.output<typeof canonicalBundleIdSchema>;
 
-export interface PilotConfigV2 {
+export interface PilotConfig {
   schemaVersion: 2;
   brainVersion: string;
-  bundles: Array<"core" | "site" | "publishing" | "team">;
+  bundles: CanonicalBundleId[];
   add?: string[] | undefined;
   remove?: string[] | undefined;
   githubOrg: string;
@@ -69,10 +39,10 @@ export interface PilotConfigV2 {
   agePublicKey: string;
 }
 
-export interface CohortConfigV2 {
+export interface CohortConfig {
   members: string[];
   brainVersionOverride?: string | undefined;
-  bundlesOverride?: Array<"core" | "site" | "publishing" | "team"> | undefined;
+  bundlesOverride?: CanonicalBundleId[] | undefined;
   addOverride?: string[] | undefined;
   removeOverride?: string[] | undefined;
   aiApiKeyOverride?: string | undefined;
@@ -82,8 +52,8 @@ export interface CohortConfigV2 {
 const canonicalBundlesSchema = z.array(canonicalBundleIdSchema).min(1);
 const memberIdsSchema = z.array(z.string().min(1));
 
-/** Prepared desired-state contract; loadPilotRegistry stays on schema v1 until crossover. */
-export const pilotSchemaV2: z.ZodType<PilotConfigV2> = z
+/** Sole active desired-state contract for the canonical brain. */
+export const pilotSchema: z.ZodType<PilotConfig> = z
   .strictObject({
     schemaVersion: z.literal(2),
     brainVersion: exactVersionSchema,
@@ -108,8 +78,7 @@ export const pilotSchemaV2: z.ZodType<PilotConfigV2> = z
     }
   });
 
-/** Prepared cohort override contract; not consumed by the active registry loader yet. */
-export const cohortSchemaV2: z.ZodType<CohortConfigV2> = z
+export const cohortSchema: z.ZodType<CohortConfig> = z
   .strictObject({
     members: z.array(handleSchema).min(1),
     brainVersionOverride: exactVersionSchema.optional(),
@@ -268,6 +237,7 @@ export const userSchema: z.ZodObject<{
   contentRepoOverride: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<z.ZodString>;
   addOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  removeOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   siteOverride: z.ZodOptional<typeof siteOverrideSchema>;
   setup: z.ZodOptional<typeof setupDeliverySchema>;
   atproto: z.ZodOptional<typeof atprotoSchema>;
@@ -286,6 +256,7 @@ export const userSchema: z.ZodObject<{
   contentRepoOverride: z.string().min(1).optional(),
   profileKind: z.string().trim().min(1).optional(),
   addOverride: z.array(z.string().min(1)).optional(),
+  removeOverride: z.array(z.string().min(1)).optional(),
   siteOverride: siteOverrideSchema.optional(),
   setup: setupDeliverySchema.optional(),
   atproto: atprotoSchema.optional(),
@@ -293,41 +264,7 @@ export const userSchema: z.ZodObject<{
   anchorProfile: anchorProfileSchema.optional(),
 });
 
-export const cohortSchema: z.ZodObject<{
-  members: z.ZodArray<z.ZodString>;
-  brainVersionOverride: z.ZodOptional<z.ZodString>;
-  presetOverride: z.ZodOptional<typeof presetSchema>;
-  aiApiKeyOverride: z.ZodOptional<z.ZodString>;
-  gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
-}> = z
-  .strictObject({
-    members: z.array(handleSchema).min(1),
-    brainVersionOverride: exactVersionSchema.optional(),
-    presetOverride: presetSchema.optional(),
-    aiApiKeyOverride: secretNameSchema.optional(),
-    gitSyncTokenOverride: secretNameSchema.optional(),
-  })
-  .superRefine((value, context) => {
-    const seen = new Set<string>();
-
-    for (const member of value.members) {
-      if (seen.has(member)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["members"],
-          message: `duplicate cohort member: ${member}`,
-        });
-        continue;
-      }
-
-      seen.add(member);
-    }
-  });
-
-export type PilotConfig = z.output<typeof pilotSchema>;
 export type PilotConfigInput = z.input<typeof pilotSchema>;
 export type UserConfig = z.output<typeof userSchema>;
 export type UserConfigInput = z.input<typeof userSchema>;
-export type CohortConfig = z.output<typeof cohortSchema>;
 export type CohortConfigInput = z.input<typeof cohortSchema>;
-export type PilotPreset = z.output<typeof presetSchema>;

@@ -247,13 +247,13 @@ describe("runResolveMissingImages", () => {
 
   it("emits a GitHub matrix of missing images from the declared state", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 1
+      "pilot.yaml": `schemaVersion: 2
 brainVersion: 0.2.0-alpha.160
-model: rover
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

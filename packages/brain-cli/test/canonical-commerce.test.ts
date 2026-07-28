@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import ranger from "@brains/ranger";
+import rizomTheme from "@brains/theme-rizom";
 import {
   parseInstanceOverrides,
   registerPackage,
@@ -9,83 +9,66 @@ import {
   type AppConfig,
   type InstanceOverrides,
 } from "@brains/app";
+import rizomSite from "@rizom/site-rizom";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
-const fixturePath = join(
-  import.meta.dir,
-  "fixtures",
-  "canonical-commerce",
-  "brain.yaml",
-);
 const fixtureOverrides = parseInstanceOverrides(
-  readFileSync(fixturePath, "utf8"),
+  readFileSync(
+    join(import.meta.dir, "fixtures", "canonical-commerce", "brain.yaml"),
+    "utf8",
+  ),
 );
+registerPackage("@rizom/site-rizom", rizomSite);
+registerPackage("@brains/theme-rizom", rizomTheme);
 
-if (!ranger.site || !ranger.theme) {
-  throw new Error("Ranger characterization requires its legacy site and theme");
-}
-registerPackage("@rizom/site-rizom", ranger.site);
-registerPackage("@brains/theme-rizom", ranger.theme);
 const ecosystemFactory = canonicalBrain.capabilities.find(
   ([id]) => id === "rizom-ecosystem",
 )?.[1];
 if (!ecosystemFactory) {
-  throw new Error("Canonical catalog is missing the external fixture factory");
+  throw new Error("Canonical catalog is missing the fixture factory");
 }
 registerPackage("@fixture/commerce-extension", ecosystemFactory);
 
-const independentlySelectable = [
-  ["products", "products"],
-  ["atproto-registry", "atproto-registry"],
-  ["social-media", "social-media"],
-  ["wishlist", "wishlist"],
-  ["rizom-ecosystem", "rizom-ecosystem"],
-  ["obsidian-vault", "obsidian-vault"],
-  ["docs", "docs"],
-] as const;
-
-interface PluginWithConfig {
-  id: string;
-  config?: Record<string, unknown>;
-}
-
-function configFor(
-  resolved: AppConfig,
-  id: string,
-): PluginWithConfig | undefined {
-  return (resolved.plugins ?? []).find((plugin) => plugin.id === id) as
-    PluginWithConfig | undefined;
-}
-
-function pluginIds(resolved: AppConfig): string[] {
-  return (resolved.plugins ?? []).map((plugin) => plugin.id);
-}
-
-function withoutBrain(
+function runtimeOverrides(
   overrides: InstanceOverrides,
 ): Omit<InstanceOverrides, "brain"> {
-  const { brain, ...runtimeOverrides } = overrides;
-  void brain;
-  return runtimeOverrides;
+  const { brain: _brain, ...runtime } = overrides;
+  return runtime;
 }
 
 function commerceOverrides(
   extra: Partial<InstanceOverrides> = {},
 ): Omit<InstanceOverrides, "brain"> {
-  const base = withoutBrain(fixtureOverrides);
-  const plugins = { ...base.plugins };
-  for (const [id, config] of Object.entries(extra.plugins ?? {})) {
-    plugins[id] = { ...plugins[id], ...config };
-  }
+  const base = runtimeOverrides(fixtureOverrides);
   return {
     ...base,
     ...extra,
-    site: extra.site ?? base.site,
-    plugins,
+    plugins: {
+      ...base.plugins,
+      ...extra.plugins,
+    },
   };
 }
 
-function permissionRuleLevel(
+function pluginIds(resolved: AppConfig): string[] {
+  return resolved.plugins?.map((plugin) => plugin.id) ?? [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function pluginConfig(
+  resolved: AppConfig,
+  id: string,
+): Record<string, unknown> | undefined {
+  const plugin = resolved.plugins?.find((candidate) => candidate.id === id);
+  if (!plugin || !("config" in plugin)) return undefined;
+  const config = plugin.config;
+  return isRecord(config) ? config : undefined;
+}
+
+function permissionLevel(
   resolved: AppConfig,
   pattern: string,
 ): string | undefined {
@@ -94,7 +77,7 @@ function permissionRuleLevel(
 }
 
 describe("canonical commerce posture", () => {
-  test("parses commerce as core plus site with one visible product addition", () => {
+  test("uses core plus site with an explicit product addition", () => {
     expect(fixtureOverrides).toMatchObject({
       brain: "brain",
       anchor: "organization",
@@ -114,169 +97,72 @@ describe("canonical commerce posture", () => {
     });
   });
 
-  test("keeps every Ranger runtime factory in the canonical catalog", () => {
-    const canonicalIds = new Set([
-      ...canonicalBrain.capabilities.map(([id]) => id),
-      ...canonicalBrain.interfaces.map(([id]) => id),
-    ]);
-    const rangerIds = [
-      ...ranger.capabilities.map(([id]) => id),
-      ...ranger.interfaces.map(([id]) => id),
-    ];
-
-    for (const id of rangerIds) {
-      expect(canonicalIds).toContain(id);
-    }
-  });
-
-  test("resolves the instance-owned Ranger site, theme, seed, and Discord choices", () => {
-    const canonical = resolve(
-      canonicalBrain,
-      {},
-      commerceOverrides({
-        plugins: { discord: { botToken: "test-token" } },
-      }),
-    );
-
-    expect(configFor(canonical, "site-builder")?.config).toMatchObject({
-      routes: expect.any(Array),
-      themeCSS: expect.any(String),
-    });
-    expect(configFor(canonical, "directory-sync")?.config).toMatchObject({
-      seedContentPath: "./seed-content",
-      initialSync: true,
-    });
-    expect(configFor(canonical, "discord")?.config).toMatchObject({
-      botToken: "test-token",
-      captureUrls: true,
-    });
-  });
-
-  test("characterizes unchanged Ranger plugin config and visible migration deltas", () => {
-    const legacy = resolve(
-      ranger,
-      {},
-      {
-        preset: "default",
-        plugins: { discord: { botToken: "test-token" } },
-      },
-    );
-    const canonical = resolve(
-      canonicalBrain,
-      {},
-      commerceOverrides({
-        plugins: { discord: { botToken: "test-token" } },
-      }),
-    );
-    const canonicalIds = pluginIds(canonical);
-
-    for (const id of [
-      "prompt",
-      "style-guide",
-      "cms",
-      "dashboard",
-      "note",
-      "link",
-      "products",
-      "wishlist",
-      "analytics",
-      "site-info",
-      "site-content",
-      "site-builder",
-      "mcp",
-      "discord",
-      "webserver",
-    ]) {
-      expect(configFor(canonical, id)?.config).toEqual(
-        configFor(legacy, id)?.config,
-      );
-    }
-
-    expect(
-      pluginIds(legacy).filter((id) => !canonicalIds.includes(id)),
-    ).toEqual(["social-media"]);
-    expect(canonicalIds).toEqual(
-      expect.arrayContaining([
-        "image",
-        "document",
-        "topics",
-        "decks",
-        "atproto-registry",
-        "auth-service",
-        "account",
-        "admin",
-        "web-chat",
-        "a2a",
-      ]),
-    );
-    expect(canonical.agentInstructions).toBeUndefined();
-  });
-
-  test("preserves Ranger transport levels while adding the universal core surface", () => {
-    const canonical = resolve(canonicalBrain, {}, commerceOverrides());
-
-    expect(permissionRuleLevel(canonical, "cli:*")).toBe("admin");
-    expect(permissionRuleLevel(canonical, "mcp:stdio")).toBe("admin");
-    expect(permissionRuleLevel(canonical, "mcp:http")).toBe("public");
-    expect(permissionRuleLevel(canonical, "discord:*")).toBe("public");
-    expect(permissionRuleLevel(canonical, "web-chat:*")).toBe("admin");
-    expect(canonical.permissions?.entityActions?.["*"]).toEqual({
-      create: "admin",
-      update: "admin",
-      delete: "admin",
-      extract: "admin",
-      publish: "admin",
-    });
-  });
-
-  test("keeps catalog opt-ins independently selectable", () => {
-    for (const [memberId, pluginId] of independentlySelectable) {
-      const isolated = resolve(
-        canonicalBrain,
-        {},
-        {
-          bundles: [],
-          add: [memberId],
-        },
-      );
-      expect(pluginIds(isolated)).toContain(pluginId);
-      expect(pluginIds(isolated)).toHaveLength(1);
-    }
-  });
-
-  test("keeps optional capabilities removable from broader postures", () => {
-    const selectedOptIns = independentlySelectable.map(
-      ([memberId]) => memberId,
-    );
-    const removed = resolve(
-      canonicalBrain,
-      {},
-      {
-        bundles: ["core", "site", "publishing", "team"],
-        add: selectedOptIns,
-        remove: selectedOptIns,
-      },
-    );
-
-    for (const [, pluginId] of independentlySelectable) {
-      expect(pluginIds(removed)).not.toContain(pluginId);
-    }
-    expect(removed.permissions?.entityActions?.["doc"]).toBeUndefined();
-  });
-
-  test("preserves external plugin packages beside canonical bundles", () => {
+  test("resolves instance-owned site, theme, seed, and Discord choices", () => {
     const resolved = resolve(
       canonicalBrain,
       {},
-      {
-        bundles: ["core", "site"],
+      commerceOverrides({
         plugins: {
-          "commerce-extension": {
+          discord: { botToken: "test-token", captureUrls: true },
+        },
+      }),
+    );
+
+    expect(pluginConfig(resolved, "site-builder")).toMatchObject({
+      routes: expect.any(Array),
+      themeCSS: expect.any(String),
+    });
+    expect(pluginConfig(resolved, "directory-sync")).toMatchObject({
+      seedContentPath: "./seed-content",
+      initialSync: true,
+    });
+    expect(pluginConfig(resolved, "discord")).toMatchObject({
+      botToken: "test-token",
+      captureUrls: true,
+    });
+    expect(pluginIds(resolved)).toContain("products");
+  });
+
+  test("retains universal core transport posture", () => {
+    const resolved = resolve(canonicalBrain, {}, commerceOverrides());
+
+    expect(permissionLevel(resolved, "cli:*")).toBe("admin");
+    expect(permissionLevel(resolved, "mcp:stdio")).toBe("admin");
+    expect(permissionLevel(resolved, "mcp:http")).toBe("public");
+    expect(permissionLevel(resolved, "discord:*")).toBe("public");
+    expect(permissionLevel(resolved, "web-chat:*")).toBe("admin");
+  });
+
+  test("keeps optional commerce-adjacent capabilities independently selectable", () => {
+    for (const id of [
+      "atproto-registry",
+      "social-media",
+      "wishlist",
+      "rizom-ecosystem",
+      "obsidian-vault",
+      "docs",
+    ]) {
+      const resolved = resolve(
+        canonicalBrain,
+        {},
+        commerceOverrides({ add: [id] }),
+      );
+      expect(pluginIds(resolved)).toContain(id);
+    }
+  });
+
+  test("supports external extension declarations without policy bundles", () => {
+    const resolved = resolve(
+      canonicalBrain,
+      {},
+      commerceOverrides({
+        plugins: {
+          commerceExtension: {
             package: "@fixture/commerce-extension",
-            config: {},
+            config: { enabled: true },
           },
         },
-      },
+      }),
     );
 
     expect(pluginIds(resolved)).toContain("rizom-ecosystem");

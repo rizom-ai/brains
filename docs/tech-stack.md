@@ -233,7 +233,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
   - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
-- **Brain models** declare `[id, factory, config]` capability tuples; presets (`core`/`default`/`full`) curate which capabilities are active per instance
+- The **canonical definition** declares `[id, factory, config]` catalog tuples; ordered `core`, `site`, `publishing`, and `team` bundles compose active members per instance
 
 ### Data Management
 
@@ -279,7 +279,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### Published Packages (`packages/*`)
 
 - `@rizom/brain` (`packages/brain-cli`) — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`, `brain secrets:push`, `brain cert:bootstrap`, `brain ssh-key:bootstrap`. Bundles the runtime while `brain init` scaffolds instance-local support files such as `package.json`, `tsconfig.json`, and optional deploy artifacts.
-- `@rizom/ops` (`packages/brains-ops`) — operator CLI for rover-pilot fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.
+- `@rizom/ops` (`packages/brains-ops`) — operator CLI for private fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, and multi-user deploy management.
 
 ### Interface Packages (`interfaces/*`)
 
