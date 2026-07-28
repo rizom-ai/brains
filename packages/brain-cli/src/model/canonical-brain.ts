@@ -280,7 +280,7 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
  *
  * Existing Rover, Relay, and Ranger definitions remain the production inputs
  * until the repository and fleet cross over together. This definition is built
- * and characterized in parallel; it does not contain legacy capability aliases.
+ * and characterized in parallel; it does not contain retired capability aliases.
  */
 export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",

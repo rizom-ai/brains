@@ -94,7 +94,7 @@ bundles: [core]`,
 bundles: [core]
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 `,
       { cwd: testDir },
     );

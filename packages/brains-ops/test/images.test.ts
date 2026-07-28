@@ -97,7 +97,7 @@ describe("sitePackagesFor", () => {
       sitePackagesFor({
         package: "@rizom/site-rizom-ai",
         version: "0.2.0-alpha.167",
-        theme: "@brains/theme-default",
+        theme: "@brains/theme-rizom",
       }),
     ).toEqual(["@rizom/site-rizom-ai@0.2.0-alpha.167"]);
   });

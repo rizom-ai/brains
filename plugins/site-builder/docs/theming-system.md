@@ -36,25 +36,20 @@ Users provide custom themes as CSS files containing variable overrides:
 
 ### Configuration
 
-Theme files are specified in `brain.config.ts`:
+A local `src/theme.css` is discovered automatically when `site.themeOverride` is
+omitted. A published theme package is selected explicitly in `brain.yaml`:
 
-```typescript
-// Option 1: Local file path (default)
-export default {
-  siteBuilder: {
-    themeFile: "./theme.css", // Default value
-  },
-};
-
-// Option 2: Imported module
-import myTheme from "@my-org/brand-theme";
-
-export default {
-  siteBuilder: {
-    themeFile: myTheme, // CSS string from package
-  },
-};
+```yaml
+brain: brain
+bundles:
+  - core
+  - site
+site:
+  package: "@brains/site-default"
+  theme: "@my-org/brand-theme"
 ```
+
+An explicit `site.themeOverride` takes precedence over the local convention.
 
 ### CSS Layer Order
 
@@ -266,15 +261,17 @@ export default `
     /* ... more brand variables ... */
   }
 `;
+```
 
-// brain.config.ts
-import acmeTheme from "@acme/brand-theme";
-
-export default {
-  siteBuilder: {
-    themeFile: acmeTheme,
-  },
-};
+```yaml
+# brain.yaml
+brain: brain
+bundles:
+  - core
+  - site
+site:
+  package: "@brains/site-default"
+  theme: "@acme/brand-theme"
 ```
 
 ## Testing Strategy

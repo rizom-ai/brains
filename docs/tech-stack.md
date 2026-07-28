@@ -298,7 +298,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/test-utils` — mock factories, test harnesses, MockShell
 - `@brains/image` — image schema, adapter, utilities
 - `@brains/deploy-support` — canonical deploy templates, deploy script helpers, env parsing, and cert support
-- `@brains/theme-base` / `@brains/theme-default` / `@brains/theme-rizom` — shared CSS themes
+- `@brains/theme-base` / `@rizom/theme-default` / `@brains/theme-rizom` — shared CSS themes
 - `@brains/eslint-config` / `@brains/typescript-config` — shared lint and TS configs
 
 ## Version Requirements

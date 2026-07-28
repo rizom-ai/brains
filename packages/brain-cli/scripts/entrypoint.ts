@@ -27,9 +27,6 @@ setCanonicalDefinition(canonicalBrain);
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@rizom/theme-default", defaultTheme);
-// Legacy alias: brain.yaml files written before the theme was published
-// under the @rizom scope may still reference the old name.
-registerPackage("@brains/theme-default", defaultTheme);
 registerPackage("@brains/theme-rizom", rizomTheme);
 
 // ─── Register boot function ───────────────────────────────────────────────

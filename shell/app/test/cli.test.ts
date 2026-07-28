@@ -53,7 +53,7 @@ describe("handleCLI", () => {
   });
 
   it("should run the app by default", async () => {
-    process.argv = ["bun", "brain.config.ts"];
+    process.argv = ["bun", ".brain-entrypoint.ts"];
 
     await handleCLI(testConfig);
 
@@ -61,7 +61,7 @@ describe("handleCLI", () => {
   });
 
   it("should show help with --help flag", async () => {
-    process.argv = ["bun", "brain.config.ts", "--help"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
 
     await handleCLI(testConfig);
 
@@ -75,7 +75,7 @@ describe("handleCLI", () => {
   });
 
   it("should show help with -h flag", async () => {
-    process.argv = ["bun", "brain.config.ts", "-h"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "-h"];
 
     await handleCLI(testConfig);
 
@@ -86,7 +86,7 @@ describe("handleCLI", () => {
   });
 
   it("should show version with --version flag", async () => {
-    process.argv = ["bun", "brain.config.ts", "--version"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--version"];
 
     await handleCLI(testConfig);
 
@@ -95,7 +95,7 @@ describe("handleCLI", () => {
   });
 
   it("should show version with -v flag", async () => {
-    process.argv = ["bun", "brain.config.ts", "-v"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "-v"];
 
     await handleCLI(testConfig);
 
@@ -104,7 +104,7 @@ describe("handleCLI", () => {
   });
 
   it("should pass --cli flag through to app", async () => {
-    process.argv = ["bun", "brain.config.ts", "--cli"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--cli"];
 
     await handleCLI(testConfig);
 
@@ -112,7 +112,7 @@ describe("handleCLI", () => {
   });
 
   it("should handle multiple flags", async () => {
-    process.argv = ["bun", "brain.config.ts", "--help", "--cli"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--help", "--cli"];
 
     await handleCLI(testConfig);
 
@@ -128,7 +128,7 @@ describe("handleCLI", () => {
     const stop = mock(() => Promise.resolve());
     const createSpy = mock(() => ({ initialize, stop }));
     App.create = createSpy as unknown as typeof App.create;
-    process.argv = ["bun", "brain.config.ts", "--startup-check"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--startup-check"];
 
     await handleCLI(testConfig);
 
@@ -139,7 +139,7 @@ describe("handleCLI", () => {
   });
 
   it("should handle unknown flags by running app", async () => {
-    process.argv = ["bun", "brain.config.ts", "--unknown-flag"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--unknown-flag"];
 
     await handleCLI(testConfig);
 
@@ -161,7 +161,7 @@ describe("CLI Integration", () => {
     });
     console.log = mockConsoleLog;
     process.exit = mockExit;
-    process.argv = ["bun", "brain.config.ts", "--help"];
+    process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
 
     await handleCLI(testConfig);
 

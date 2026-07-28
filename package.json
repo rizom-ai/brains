@@ -75,6 +75,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "format:check:core": "bun scripts/format-release-lane.ts core",
     "format:check:site": "bun scripts/format-release-lane.ts site",
+    "legacy:check": "bun scripts/check-legacy-code.ts",
     "lint": "bun scripts/lint.mjs",
     "lint:fix": "turbo run lint:fix",
     "prepare": "husky install",

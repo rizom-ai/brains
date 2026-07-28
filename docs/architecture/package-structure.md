@@ -119,12 +119,12 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package              | Purpose                                                                |
-| -------------------- | ---------------------------------------------------------------------- |
-| `sites/default`      | Default structural site, typically paired with `@brains/theme-default` |
-| `sites/personal`     | Personal site composition, blog-focused                                |
-| `sites/professional` | Professional site composition, editorial + portfolio + decks           |
-| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances             |
+| Package              | Purpose                                                               |
+| -------------------- | --------------------------------------------------------------------- |
+| `sites/default`      | Default structural site, typically paired with `@rizom/theme-default` |
+| `sites/personal`     | Personal site composition, blog-focused                               |
+| `sites/professional` | Professional site composition, editorial + portfolio + decks          |
+| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances            |
 
 ## Canonical brain
 

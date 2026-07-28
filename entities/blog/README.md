@@ -286,51 +286,26 @@ The `blog:entities` data source provides:
 
 ### Professional Blog Setup
 
-```typescript
-// brain.config.ts
-import { defineConfig } from "@brains/app";
-import { blogPlugin } from "@brains/blog";
-import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+```yaml
+# brain.yaml
+brain: brain
+anchor: person
+bundles:
+  - core
+  - site
+  - publishing
 
-const routes = [
-  {
-    id: "home",
-    path: "/",
-    title: "Home",
-    sections: [
-      {
-        id: "latest-post",
-        template: "blog:post-detail",
-        dataQuery: {
-          entityType: "post",
-          query: { latest: true },
-        },
-      },
-    ],
-  },
-  {
-    id: "blog",
-    path: "/posts",
-    title: "Blog",
-    sections: [
-      {
-        id: "post-list",
-        template: "blog:post-list",
-        dataQuery: { entityType: "post" },
-      },
-    ],
-  },
-];
+plugins:
+  blog:
+    defaultPrompt: Write about my recent work and insights
 
-export default defineConfig({
-  plugins: [
-    blogPlugin({
-      defaultPrompt: "Write about my recent work and insights",
-    }),
-    siteBuilderPlugin({ routes }),
-  ],
-});
+site:
+  package: "@brains/site-default"
+  theme: "@rizom/theme-default"
 ```
+
+The publishing bundle provides the blog capability and its templates. Use a local
+`src/site.ts` package when the default site routes need to be replaced or extended.
 
 ### Creating a Blog Post Programmatically
 

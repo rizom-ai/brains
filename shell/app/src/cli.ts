@@ -165,8 +165,7 @@ function exportDeployConfig(config: AppConfig): void {
 }
 
 /**
- * Handle CLI arguments and run appropriate commands
- * This should be called from brain.config.ts files when they're run directly
+ * Handle CLI arguments and run appropriate commands from a generated brain entrypoint.
  */
 export async function handleCLI(config: AppConfig): Promise<void> {
   const args = process.argv.slice(2);

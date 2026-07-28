@@ -1,7 +1,37 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { cohortSchema, pilotSchema } from "../src/schema";
+
+const packageRoot = join(import.meta.dir, "..");
+
+function staticImportGraph(entry: string): Set<string> {
+  const visited = new Set<string>();
+  const visit = (path: string): void => {
+    if (visited.has(path)) return;
+    visited.add(path);
+
+    const contents = readFileSync(path, "utf8");
+    const imports = contents.matchAll(
+      /(?:^|\n)\s*(?:import|export)\s+(?:type\s+)?(?:[^"']*?\s+from\s+)?["'](\.[^"']+)["']/g,
+    );
+    for (const match of imports) {
+      const reference = match[1];
+      if (!reference) continue;
+      const unresolved = resolve(dirname(path), reference);
+      const dependency = [
+        unresolved,
+        `${unresolved}.ts`,
+        `${unresolved}.tsx`,
+        join(unresolved, "index.ts"),
+      ].find((candidate) => existsSync(candidate));
+      if (dependency) visit(dependency);
+    }
+  };
+
+  visit(join(packageRoot, entry));
+  return visited;
+}
 
 const canonicalPilot = {
   schemaVersion: 2,
@@ -49,6 +79,17 @@ describe("ops clean canonical crossover", () => {
         agePublicKey: "age1pilotpublickey",
       }).success,
     ).toBe(false);
+  });
+
+  test("keeps offline pilot migration outside the active ops graph", () => {
+    const graph = staticImportGraph("src/index.ts");
+
+    expect(graph.has(join(packageRoot, "src/stage-legacy-crossover.ts"))).toBe(
+      false,
+    );
+    expect(graph.has(join(packageRoot, "src/legacy-pilot-migration.ts"))).toBe(
+      false,
+    );
   });
 
   test("keeps legacy parsing private to offline migration", () => {

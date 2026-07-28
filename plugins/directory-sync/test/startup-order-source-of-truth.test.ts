@@ -241,8 +241,7 @@ coverImageId: remote-cover-image
 
   describe("Plugin Order Configuration", () => {
     it("should document that git-sync pull must happen before directory-sync import", () => {
-      // The brain.config.ts plugin order matters
-      // But more importantly, the EVENT order matters
+      // Resolved plugin order matters, but the event order is authoritative.
 
       // plugins-registered handlers should execute in order:
       // 1. git-sync: pull from remote

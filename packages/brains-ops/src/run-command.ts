@@ -30,7 +30,6 @@ import { encryptPilotSecrets } from "./secrets-encrypt";
 import { pushPilotSecrets } from "./secrets-push";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
-import { stageLegacyCrossover } from "./stage-legacy-crossover";
 import { addPilotUser } from "./user-add";
 import type { UserRunner } from "./user-runner";
 import { verifyPilotUser } from "./verify-user";
@@ -98,6 +97,7 @@ const crossoverStage: OpsCommand = defineCommand({
       return usageFailure(crossoverStage);
     }
 
+    const { stageLegacyCrossover } = await import("./stage-legacy-crossover");
     const staged = await stageLegacyCrossover(source, output);
     return {
       success: true,

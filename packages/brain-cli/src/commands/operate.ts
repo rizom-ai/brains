@@ -11,7 +11,7 @@ import { loadDefinition } from "../lib/definition-registry";
  * Run a CLI command via the brain's tool registry.
  *
  * Two paths:
- * 1. Monorepo/Docker: spawns runner with --cli-command
+ * 1. Monorepo: spawns runner with --cli-command
  * 2. Builtin: boots in-process, invokes tool, prints result, exits
  */
 export async function operate(
@@ -34,8 +34,8 @@ export async function operate(
     return operateBuiltin(cwd, commandName, args, flags);
   }
 
-  // Monorepo/Docker: subprocess
-  if (runnerType === "monorepo" || runnerType === "docker") {
+  // Monorepo: subprocess
+  if (runnerType === "monorepo") {
     return operateSubprocess(cwd, commandName, args, flags);
   }
 

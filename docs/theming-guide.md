@@ -393,7 +393,7 @@ bundles:
   - site
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 ```
 
 ```yaml

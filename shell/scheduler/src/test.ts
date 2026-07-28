@@ -38,7 +38,7 @@ interface DueCallback {
 /**
  * Deterministic scheduler backend.
  *
- * Tests can retain the legacy manual `tick*` controls or advance the injected
+ * Tests can retain the manual `tick*` controls or advance the injected
  * clock to exercise actual cron and interval cadence without wall-time sleeps.
  */
 export class TestSchedulerBackend implements SchedulerBackend {

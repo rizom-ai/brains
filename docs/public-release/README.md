@@ -108,7 +108,7 @@ bundles:
   - publishing
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 domain: mybrain.example.com
 
 anchors:

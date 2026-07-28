@@ -35,22 +35,14 @@ export function findMonorepoRoot(from: string): string | undefined {
 /**
  * Find the monorepo runner script.
  */
-export function findRunner(
-  cwd: string,
-): { path: string; type: "monorepo" | "standalone" } | undefined {
+export function findRunner(cwd: string): { path: string } | undefined {
   const monorepoRoot = findMonorepoRoot(cwd);
 
   if (monorepoRoot) {
     const runner = join(monorepoRoot, "shell", "app", "src", "runner.ts");
     if (existsSync(runner)) {
-      return { path: runner, type: "monorepo" };
+      return { path: runner };
     }
-  }
-
-  // Legacy Docker path — fallback during transition
-  const entrypoint = join(cwd, "dist", ".model-entrypoint.js");
-  if (existsSync(entrypoint)) {
-    return { path: entrypoint, type: "standalone" };
   }
 
   return undefined;
@@ -61,9 +53,9 @@ export function findRunner(
  */
 export function resolveRunnerType(
   cwd: string,
-): "monorepo" | "docker" | "builtin" | undefined {
+): "monorepo" | "builtin" | undefined {
   const runner = findRunner(cwd);
-  if (runner) return runner.type === "monorepo" ? "monorepo" : "docker";
+  if (runner) return "monorepo";
 
   // Bundled mode — canonical definition registered in-process
   if (hasCanonicalDefinition()) return "builtin";

@@ -138,19 +138,6 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(testDir)).toBe("builtin");
   });
 
-  it("should return 'docker' when dist/.model-entrypoint.js exists", () => {
-    mkdirSync(join(testDir, "dist"), { recursive: true });
-    writeFileSync(join(testDir, "dist", ".model-entrypoint.js"), "");
-    expect(resolveRunnerType(testDir)).toBe("docker");
-  });
-
-  it("should prefer docker over builtin when both exist", () => {
-    setCanonicalDefinition(definition);
-    mkdirSync(join(testDir, "dist"), { recursive: true });
-    writeFileSync(join(testDir, "dist", ".model-entrypoint.js"), "");
-    expect(resolveRunnerType(testDir)).toBe("docker");
-  });
-
   it("should return undefined when nothing matches", () => {
     expect(resolveRunnerType(testDir)).toBeUndefined();
   });

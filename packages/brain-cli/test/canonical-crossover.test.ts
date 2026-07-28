@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { generateEntrypoint, parseInstanceOverrides } from "@brains/app";
 import { scaffold, type ScaffoldOptions } from "../src/commands/init";
 import { parseBrainYaml } from "../src/lib/brain-yaml";
@@ -16,6 +16,34 @@ const repositoryRoot = join(import.meta.dir, "../../..");
 
 function source(path: string): string {
   return readFileSync(join(repositoryRoot, path), "utf8");
+}
+
+function staticImportGraph(entry: string): Set<string> {
+  const visited = new Set<string>();
+  const visit = (path: string): void => {
+    if (visited.has(path)) return;
+    visited.add(path);
+
+    const contents = readFileSync(path, "utf8");
+    const imports = contents.matchAll(
+      /(?:^|\n)\s*(?:import|export)\s+(?:type\s+)?(?:[^"']*?\s+from\s+)?["'](\.[^"']+)["']/g,
+    );
+    for (const match of imports) {
+      const reference = match[1];
+      if (!reference) continue;
+      const unresolved = resolve(dirname(path), reference);
+      const dependency = [
+        unresolved,
+        `${unresolved}.ts`,
+        `${unresolved}.tsx`,
+        join(unresolved, "index.ts"),
+      ].find((candidate) => existsSync(candidate));
+      if (dependency) visit(dependency);
+    }
+  };
+
+  visit(join(repositoryRoot, entry));
+  return visited;
 }
 
 describe("single canonical crossover", () => {
@@ -119,6 +147,39 @@ describe("single canonical crossover", () => {
     expect(source("shell/ai-evaluation/src/cli-help.ts")).not.toContain(
       "--preset",
     );
+  });
+
+  test("removes active canonical crossover fallbacks", () => {
+    expect(source("packages/brain-cli/src/commands/start.ts")).not.toContain(
+      ".model-entrypoint.js",
+    );
+    expect(source("packages/brain-cli/scripts/entrypoint.ts")).not.toContain(
+      "@brains/theme-default",
+    );
+    expect(source("shell/app/scripts/build.ts")).not.toContain(
+      "brain.config.ts",
+    );
+  });
+
+  test("keeps offline config migration outside the runtime boot graph", () => {
+    const graph = staticImportGraph("packages/brain-cli/scripts/entrypoint.ts");
+
+    expect(
+      graph.has(
+        join(
+          repositoryRoot,
+          "packages/brain-cli/src/lib/brain-config-migration.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      graph.has(
+        join(
+          repositoryRoot,
+          "packages/brain-cli/src/commands/config-migrate.ts",
+        ),
+      ),
+    ).toBe(false);
   });
 
   test("removes archetype packages after moving their owned assets", () => {

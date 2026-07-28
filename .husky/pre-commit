@@ -21,6 +21,10 @@ find . -type d -perm 700 ! -path "./.git/*" ! -path "*/node_modules/*" -exec chm
 echo "🔍 Checking dependency versions..."
 bun run deps:check
 
+# Keep every active legacy compatibility path owned and time-bounded.
+echo "🏷️  Checking legacy code inventory..."
+bun run legacy:check
+
 # Scan for leaked secrets
 echo "🔐 Scanning for secrets..."
 bunx varlock scan --staged

@@ -20,14 +20,14 @@ brain: brain
 bundles: [core]
 plugins:
   site-builder:
-    themeCSS: "@brains/theme-default"
+    themeCSS: "@rizom/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import * as __pkg0 from "@brains/theme-default"');
+    expect(code).toContain('import * as __pkg0 from "@rizom/theme-default"');
     expect(code).toContain(
-      'registerPackage("@brains/theme-default", __pkg0.default ?? __pkg0)',
+      'registerPackage("@rizom/theme-default", __pkg0.default ?? __pkg0)',
     );
   });
 
@@ -154,14 +154,14 @@ brain: brain
 bundles: [core]
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import * as __pkg1 from "@brains/theme-default"');
+    expect(code).toContain('import * as __pkg1 from "@rizom/theme-default"');
     expect(code).toContain(
-      'registerPackage("@brains/theme-default", __pkg1.default ?? __pkg1)',
+      'registerPackage("@rizom/theme-default", __pkg1.default ?? __pkg1)',
     );
   });
 
