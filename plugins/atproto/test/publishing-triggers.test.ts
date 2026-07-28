@@ -377,6 +377,30 @@ describe("AT Protocol ambient publishing triggers", () => {
     expect(createPdsClient).not.toHaveBeenCalled();
   });
 
+  it("stays silent rather than reporting failures without credentials", async () => {
+    // The credentials gate lives on the trigger path, not just at the PDS
+    // client. Without it an unconfigured brain would attempt every ambient
+    // publish, fail, and broadcast a publish-failed event for each one.
+    const plugin = new AtprotoPlugin(
+      { lexiconAuthority: true },
+      { projectionRegistry: createRegistry() },
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const failures: unknown[] = [];
+    shell.getMessageBus().subscribe(ATPROTO_PUBLISH_FAILED, async (message) => {
+      failures.push(message.payload);
+      return { success: true };
+    });
+    await plugin.register(shell);
+
+    await armFullBoot(shell);
+    await plugin.ready();
+    await settleTicks();
+    await plugin.shutdown?.();
+
+    expect(failures).toEqual([]);
+  });
+
   it("skips boot publishing when the registration broadcast never fired", async () => {
     // startup-check boots run ready hooks but never emit pluginsRegistered;
     // they are documented as side-effect-free and must not write to the PDS.
