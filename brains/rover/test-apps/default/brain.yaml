@@ -1,5 +1,6 @@
 brain: rover
 anchor: person
+kind: professional
 preset: default
 
 add:
