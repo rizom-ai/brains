@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { resetAuthPasskeysStorage } from "@brains/auth-service";
+import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "../lib/command-result";
 
 export interface AuthResetPasskeysOptions {
@@ -38,7 +39,7 @@ export async function resetAuthPasskeys(
   } catch (error) {
     return {
       success: false,
-      message: `Failed to reset auth passkeys: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Failed to reset auth passkeys: ${getErrorMessage(error)}`,
     };
   }
 }

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getErrorMessage } from "@brains/utils/error";
 import { AuthIdentityStore } from "../src/identity-store";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { AuthUserStore } from "../src/user-store";
@@ -45,9 +46,9 @@ describe("AuthIdentityStore", () => {
         unsupportedError = error;
       }
       expect(unsupportedError).toBeInstanceOf(Error);
-      expect(
-        unsupportedError instanceof Error ? unsupportedError.message : "",
-      ).toBe('Unsupported auth identity type: "unknown-channel"');
+      expect(getErrorMessage(unsupportedError, "")).toBe(
+        'Unsupported auth identity type: "unknown-channel"',
+      );
       expect(
         await identities.attachIdentity({
           userId: user.id,

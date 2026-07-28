@@ -8,6 +8,7 @@ import type {
   ChannelDeliveryResult,
   ChannelDescriptor,
 } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import { AuthAuditStore } from "../src/audit-store";
 import { AuthService } from "../src/auth-service";
 import { AuthInvitationService } from "../src/invitation-service";
@@ -34,7 +35,7 @@ async function rejectionMessage(operation: Promise<unknown>): Promise<string> {
     await operation;
     return "";
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return getErrorMessage(error);
   }
 }
 
