@@ -500,7 +500,7 @@ Validation:
 
 ### Phase 7 — Invitation delivery and audit viewer
 
-**Status: implemented; live hardening remains.** Durable invitation/attempt rows, atomic idempotent creation, registry-backed provider dispatch, truthful sent/failed state, explicit audited manual confirmation, submit locking, claim history, safe resend/cancel/expiry transitions, active-state polling, and supervised crash recovery are implemented.
+**Status: implemented and live-verified.** Durable invitation/attempt rows, atomic idempotent creation, registry-backed provider dispatch, truthful sent/failed state, explicit audited manual confirmation, submit locking, claim history, safe resend/cancel/expiry transitions, active-state polling, and supervised crash recovery are implemented. Live verification exercised unavailable-provider suppression and atomic rejection, automatic/manual controls with truthful provider-failure feedback, manual confirmation, a virtual-authenticator passkey claim, and Admin polling that observed the claim without a reload.
 
 The red tests for this slice captured the prototype defects before implementation:
 
@@ -530,7 +530,7 @@ Required invitation slice:
 - [x] finish supervised crash recovery with one active worker, stale-attempt claiming, late-result guards, token rotation, and one provider idempotency key per attempt
 - [x] register channel metadata and dynamic delivery providers app-wide; make Email the first built-in registered channel rather than a special auth branch
 - [x] fail automatic creation before account state when its provider is unavailable; add explicit pending/manual creation plus idempotent audited confirmation without implicit fallback
-- [ ] complete live browser verification of registry-driven automatic/manual invitation controls and refresh after claim; process interruption, late results, rollback, capability absence, and manual-confirmation concurrency have automated coverage
+- [x] complete live browser verification of registry-driven automatic/manual invitation controls and refresh after claim; process interruption, late results, rollback, capability absence, and manual-confirmation concurrency have automated coverage
 
 Validation:
 
