@@ -629,23 +629,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "interfaces/discord": {
-      "name": "@brains/discord",
-      "version": "0.2.0-alpha.237",
-      "dependencies": {
-        "@brains/auth-service": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "discord.js": "^14.26.4",
-      },
-      "devDependencies": {
-        "@brains/core": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.14",
-      },
-    },
     "interfaces/email": {
       "name": "@brains/email",
       "version": "0.2.0-alpha.237",
@@ -2219,8 +2202,6 @@
     "@brains/deploy-support": ["@brains/deploy-support@workspace:shared/deploy-support"],
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:plugins/directory-sync"],
-
-    "@brains/discord": ["@brains/discord@workspace:interfaces/discord"],
 
     "@brains/doc": ["@brains/doc@workspace:entities/doc"],
 
