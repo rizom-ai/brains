@@ -1,5 +1,58 @@
 # @brains/rover
 
+## 0.2.0-alpha.237
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.237
+  - @brains/assessment@0.2.0-alpha.237
+  - @brains/blog@0.2.0-alpha.237
+  - @brains/decks@0.2.0-alpha.237
+  - @brains/doc@0.2.0-alpha.237
+  - @brains/document-plugin@0.2.0-alpha.237
+  - @brains/image-plugin@0.2.0-alpha.237
+  - @brains/link@0.2.0-alpha.237
+  - @brains/note@0.2.0-alpha.237
+  - @brains/portfolio@0.2.0-alpha.237
+  - @brains/products@0.2.0-alpha.237
+  - @brains/prompt@0.2.0-alpha.237
+  - @brains/rizom-ecosystem@0.2.0-alpha.237
+  - @brains/series@0.2.0-alpha.237
+  - @brains/site-info@0.2.0-alpha.237
+  - @brains/social-media@0.2.0-alpha.237
+  - @brains/style-guide@0.2.0-alpha.237
+  - @brains/topics@0.2.0-alpha.237
+  - @brains/wishlist@0.2.0-alpha.237
+  - @brains/a2a@0.2.0-alpha.237
+  - @brains/chat@0.2.0-alpha.237
+  - @brains/discord@0.2.0-alpha.237
+  - @brains/email@0.2.0-alpha.237
+  - @brains/mcp@0.2.0-alpha.237
+  - @brains/web-chat@0.2.0-alpha.237
+  - @brains/webserver@0.2.0-alpha.237
+  - @brains/admin@0.2.0-alpha.237
+  - @brains/analytics@0.2.0-alpha.237
+  - @brains/atproto@0.2.0-alpha.237
+  - @brains/atproto-registry@0.2.0-alpha.237
+  - @brains/cms@0.2.0-alpha.237
+  - @brains/content-pipeline@0.2.0-alpha.237
+  - @brains/dashboard@0.2.0-alpha.237
+  - @brains/directory-sync@0.2.0-alpha.237
+  - @brains/newsletter@0.2.0-alpha.237
+  - @brains/notifications@0.2.0-alpha.237
+  - @brains/obsidian-vault@0.2.0-alpha.237
+  - @brains/playbooks@0.2.0-alpha.237
+  - @brains/profile@0.2.0-alpha.237
+  - @brains/rover-onboarding@0.2.0-alpha.237
+  - @brains/site-builder-plugin@0.2.0-alpha.237
+  - @brains/site-content@0.2.0-alpha.237
+  - @brains/stock-photo@0.2.0-alpha.237
+  - @brains/app@0.2.0-alpha.237
+  - @brains/auth-service@0.2.0-alpha.237
+  - @brains/site-default@0.2.0-alpha.237
+  - @rizom/theme-default@0.2.0-alpha.233
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes

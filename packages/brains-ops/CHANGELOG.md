@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.237
+
+### Minor Changes
+
+- [`c46d46b`](https://github.com/rizom-ai/brains/commit/c46d46b74cfbd48ea557dc07350fe9a882a05acc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require an explicit themeVersion pin for @rizom-scoped themes in siteOverride. Sites and themes now publish on independent release cadences, so the theme's version can no longer be inferred from the site's — inferring it produced image builds that referenced npm versions that do not exist. Registry loading rejects a @rizom theme without a themeVersion (and a themeVersion on a bundled @brains theme) with a clear per-user error.
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes
