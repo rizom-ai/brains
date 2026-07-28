@@ -314,6 +314,51 @@ void mock.module("@chat-adapter/state-memory", () => ({
   createMemoryState: createMemoryStateMock,
 }));
 
+interface MockConversationService {
+  startConversation: Mock<(request: { sessionId: string }) => Promise<string>>;
+  addMessage: Mock<(request: unknown) => Promise<void>>;
+  getConversation: Mock<() => Promise<null>>;
+  listConversations: Mock<() => Promise<never[]>>;
+  searchConversations: Mock<() => Promise<never[]>>;
+  getMessages: Mock<() => Promise<never[]>>;
+  countMessages: Mock<() => Promise<number>>;
+  updateConversationMetadata: Mock<() => Promise<boolean>>;
+  deleteConversation: Mock<() => Promise<boolean>>;
+  close: Mock<() => void>;
+}
+
+interface MockAuthPrincipal {
+  userId: string;
+  personId: string;
+  displayName: string;
+  role: "admin" | "trusted" | "public";
+  status: "active" | "invited" | "suspended";
+  permissionLevel: "admin" | "trusted" | "public";
+  isAnchor: boolean;
+  canonicalId?: string;
+}
+
+type MockIdentityResolution =
+  | { state: "resolved"; principal: MockAuthPrincipal }
+  | { state: "denied" }
+  | { state: "unbound" };
+
+let resolveIdentityAccessMock:
+  | Mock<
+      (input: {
+        type: string;
+        subject: string;
+      }) => Promise<MockIdentityResolution>
+    >
+  | undefined;
+
+void mock.module("@brains/auth-service", () => ({
+  getActiveAuthService: (): { resolveIdentityAccess: unknown } | undefined =>
+    resolveIdentityAccessMock
+      ? { resolveIdentityAccess: resolveIdentityAccessMock }
+      : undefined,
+}));
+
 const { ChatInterface } = await import("../src/chat-interface");
 
 type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
@@ -631,6 +676,7 @@ describe("ChatInterface", () => {
     createSlackAdapterMock.mockClear();
     lastSlackAdapter = undefined;
     createMemoryStateMock.mockClear();
+    resolveIdentityAccessMock = undefined;
     originalFetch = globalThis.fetch;
     globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
       Promise.resolve(new Response("{}")),
@@ -1266,6 +1312,371 @@ describe("ChatInterface", () => {
     const context = agentService.chat.mock.calls[0]?.[2];
     expect(context?.interfaceType).toBe("discord");
     expect(context?.userPermissionLevel).toBe("trusted");
+  });
+
+  describe("passive space capture", () => {
+    function createConversationService(): MockConversationService {
+      return {
+        startConversation: mock((request: { sessionId: string }) =>
+          Promise.resolve(request.sessionId),
+        ),
+        addMessage: mock(() => Promise.resolve()),
+        getConversation: mock(() => Promise.resolve(null)),
+        listConversations: mock(() => Promise.resolve([])),
+        searchConversations: mock(() => Promise.resolve([])),
+        getMessages: mock(() => Promise.resolve([])),
+        countMessages: mock(() => Promise.resolve(0)),
+        updateConversationMetadata: mock(() => Promise.resolve(true)),
+        deleteConversation: mock(() => Promise.resolve(true)),
+        close: mock(() => undefined),
+      };
+    }
+
+    async function installWithSpaces(
+      spaces: string[],
+      conversationService: MockConversationService,
+      discordConfig: Partial<DiscordChatAdapterConfig> = {},
+    ): Promise<ChatInterfaceInstance> {
+      const mockShell = harness.getMockShell();
+      mockShell.getSpaces = (): string[] => spaces;
+      mockShell.getConversationService = (): MockConversationService =>
+        conversationService;
+      const plugin = createPlugin(discordConfig);
+      await harness.installPlugin(plugin);
+      return plugin;
+    }
+
+    function findCatchAllHandler(
+      chat: InstanceType<typeof MockChatSdk> | undefined,
+      text: string,
+    ):
+      | ((thread: MockThread, message: MockMessage) => Promise<void>)
+      | undefined {
+      return chat?.handlers.messagePatterns.find((entry) =>
+        entry.pattern.test(text),
+      )?.handler;
+    }
+
+    const channelThread = {
+      id: "discord:guild-123:channel-123",
+      channelId: "discord:guild-123:channel-123",
+    };
+
+    it("captures unmentioned space messages without routing them to the agent", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const thread = createThread(channelThread);
+      const message = createMessage({
+        text: "Team update for summary",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(thread, message);
+
+      expect(conversationService.startConversation).toHaveBeenCalledWith({
+        sessionId: "discord-discord:guild-123:channel-123",
+        interfaceType: "discord",
+        channelId: "discord:guild-123:channel-123",
+        metadata: {
+          channelName: "discord:guild-123:channel-123",
+          interfaceType: "discord",
+          channelId: "discord:guild-123:channel-123",
+        },
+      });
+      expect(conversationService.addMessage).toHaveBeenCalledWith({
+        conversationId: "discord-discord:guild-123:channel-123",
+        role: "user",
+        content: "Team update for summary",
+        metadata: expect.objectContaining({
+          actor: expect.objectContaining({
+            identity: discordExternalIdentity,
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Mira Ops",
+            username: "mira",
+            isBot: false,
+          }),
+          source: expect.objectContaining({
+            messageId: "message-123",
+            channelId: "discord:guild-123:channel-123",
+          }),
+        }),
+      });
+      expect(agentService.chat).not.toHaveBeenCalled();
+      expect(thread.post).not.toHaveBeenCalled();
+    });
+
+    it("attributes passive space messages to linked canonical users", async () => {
+      resolveIdentityAccessMock = mock(async () => ({
+        state: "resolved" as const,
+        principal: {
+          userId: "usr_mira",
+          personId: "per_mira",
+          displayName: "Mira",
+          role: "trusted" as const,
+          status: "active" as const,
+          permissionLevel: "trusted" as const,
+          isAnchor: false,
+          canonicalId: "user:mira",
+        },
+      }));
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "Team update for summary",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(
+        createThread(channelThread),
+        message,
+      );
+
+      expect(conversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              identity: {
+                kind: "user",
+                userId: "usr_mira",
+                canonicalId: "user:mira",
+              },
+              displayName: "Mira",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("ignores unmentioned messages outside configured spaces", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:other-channel"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "Team update for summary",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(
+        createThread(channelThread),
+        message,
+      );
+
+      expect(conversationService.startConversation).not.toHaveBeenCalled();
+      expect(conversationService.addMessage).not.toHaveBeenCalled();
+    });
+
+    it("captures thread messages against the configured parent channel space", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "Thread side chatter",
+        isMention: false,
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(createThread(), message);
+
+      expect(conversationService.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: "discord-discord:guild-123:channel-123",
+        }),
+      );
+      expect(conversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: "discord-discord:guild-123:channel-123",
+          metadata: expect.objectContaining({
+            source: expect.objectContaining({
+              threadId: "thread-456",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("does not double-write space messages the agent turn already records", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService, {
+        requireMention: false,
+      });
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "No mention needed",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(
+        createThread(channelThread),
+        message,
+      );
+
+      expect(agentService.chat).toHaveBeenCalledWith(
+        "No mention needed",
+        "discord-discord:guild-123:channel-123",
+        expect.objectContaining({ interfaceType: "discord" }),
+      );
+      expect(conversationService.addMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not double-write mentions answered in the space channel itself", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "Hello bot",
+        isMention: true,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(
+        createThread(channelThread),
+        message,
+      );
+
+      expect(conversationService.addMessage).not.toHaveBeenCalled();
+    });
+
+    it("skips messages the bot itself authored", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const message = createMessage({
+        text: "Agent response text.",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+        author: {
+          userId: "bot-user-123",
+          userName: "brain",
+          fullName: "Brain",
+          isBot: true,
+          isMe: true,
+        },
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(
+        createThread(channelThread),
+        message,
+      );
+
+      expect(conversationService.addMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  it("uses linked auth principal permissions for Discord users", async () => {
+    resolveIdentityAccessMock = mock(async () => ({
+      state: "resolved" as const,
+      principal: {
+        userId: "usr_mira",
+        personId: "per_mira",
+        displayName: "Mira",
+        role: "trusted" as const,
+        status: "active" as const,
+        permissionLevel: "trusted" as const,
+        isAnchor: true,
+        canonicalId: "user:mira",
+      },
+    }));
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(createThread(), createMessage());
+
+    expect(resolveIdentityAccessMock).toHaveBeenCalledWith({
+      type: "discord",
+      subject: "user-789",
+    });
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        userPermissionLevel: "trusted",
+        isAnchor: true,
+        actor: expect.objectContaining({
+          identity: {
+            kind: "user",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+          },
+          displayName: "Mira",
+        }),
+      }),
+    );
+  });
+
+  it("lets a connected account override standalone config grants", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        admins: ["discord:user-789"],
+        anchors: ["discord:user-789"],
+      }),
+    );
+    resolveIdentityAccessMock = mock(async () => ({
+      state: "resolved" as const,
+      principal: {
+        userId: "usr_member",
+        personId: "per_member",
+        displayName: "Member",
+        role: "public" as const,
+        status: "active" as const,
+        permissionLevel: "public" as const,
+        isAnchor: false,
+      },
+    }));
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(createThread(), createMessage());
+
+    const context = agentService.chat.mock.calls[0]?.[2];
+    expect(context?.userPermissionLevel).toBe("public");
+    expect(context?.isAnchor).toBe(false);
+  });
+
+  it("denies known inactive bindings before permission-rule fallback", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    resolveIdentityAccessMock = mock(async () => ({
+      state: "denied" as const,
+    }));
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(createThread(), createMessage());
+
+    const context = agentService.chat.mock.calls[0]?.[2];
+    expect(context?.userPermissionLevel).toBe("public");
+  });
+
+  it("uses a config-seeded channel grant when no account is connected", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    resolveIdentityAccessMock = mock(async () => ({
+      state: "unbound" as const,
+    }));
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(createThread(), createMessage());
+
+    const context = agentService.chat.mock.calls[0]?.[2];
+    expect(context?.userPermissionLevel).toBe("trusted");
+    expect(context?.actor).toMatchObject({ identity: discordExternalIdentity });
   });
 
   it("propagates configured Anchor identity independently from permission", async () => {

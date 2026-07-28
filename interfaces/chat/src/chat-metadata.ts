@@ -1,3 +1,4 @@
+import type { AuthPrincipal } from "@brains/auth-service";
 import { createExternalActorId } from "@brains/contracts";
 import {
   buildCoalescedInput,
@@ -68,14 +69,19 @@ export function buildChatUserMessageMetadata(
   thread: RoutedThread,
   message: ChatMetadataMessage,
   metadata?: Record<string, unknown>,
+  principal?: AuthPrincipal,
 ): Record<string, unknown> {
   return {
-    actor: buildChatActorMetadata(platform, {
-      userId: message.author.userId,
-      userName: message.author.userName,
-      fullName: message.author.fullName,
-      isBot: message.author.isBot,
-    }),
+    actor: buildChatActorMetadata(
+      platform,
+      {
+        userId: message.author.userId,
+        userName: message.author.userName,
+        fullName: message.author.fullName,
+        isBot: message.author.isBot,
+      },
+      principal,
+    ),
     source: buildChatSourceMetadata(thread, {
       messageId: message.id,
       channelName: getChannelName(thread),
@@ -84,18 +90,59 @@ export function buildChatUserMessageMetadata(
   };
 }
 
+/**
+ * Metadata for a message captured passively into a space conversation. The
+ * source is channel-scoped rather than thread-scoped: `channelId` is the
+ * space's own id, with the originating thread recorded alongside it.
+ */
+export function buildChatSpaceMessageMetadata(
+  platform: string,
+  thread: RoutedThread,
+  spaceThreadId: string,
+  message: ChatMetadataMessage,
+  principal?: AuthPrincipal,
+): Record<string, unknown> {
+  const ids = getThreadIdParts(thread.id);
+  return {
+    actor: buildChatActorMetadata(
+      platform,
+      {
+        userId: message.author.userId,
+        userName: message.author.userName,
+        fullName: message.author.fullName,
+        isBot: message.author.isBot,
+      },
+      principal,
+    ),
+    source: buildMessageSourceMetadata({
+      messageId: message.id,
+      channelId: spaceThreadId,
+      channelName: getChannelName(thread),
+      ...(ids.threadId ? { threadId: ids.threadId } : {}),
+      metadata: {
+        ...(ids.guildId ? { guildId: ids.guildId } : {}),
+      },
+    }),
+  };
+}
+
 export function buildChatActionEventMetadata(
   platform: string,
   thread: RoutedThread,
   event: ChatMetadataActionEvent,
+  principal?: AuthPrincipal,
 ): Record<string, unknown> {
   return {
-    actor: buildChatActorMetadata(platform, {
-      userId: event.user.userId,
-      userName: event.user.userName,
-      fullName: event.user.fullName,
-      isBot: event.user.isBot,
-    }),
+    actor: buildChatActorMetadata(
+      platform,
+      {
+        userId: event.user.userId,
+        userName: event.user.userName,
+        fullName: event.user.fullName,
+        isBot: event.user.isBot,
+      },
+      principal,
+    ),
     source: buildChatSourceMetadata(thread, {
       messageId: event.messageId,
       channelName: getChannelName(thread),
@@ -107,17 +154,31 @@ export function buildChatActionEventMetadata(
   };
 }
 
+/**
+ * A speaker bound to a brain account is attributed to that account, so their
+ * messages stay linked across interfaces. Unbound speakers keep the
+ * platform-scoped external id.
+ */
 function buildChatActorMetadata(
   platform: string,
   actor: ChatActorInput,
+  principal: AuthPrincipal | undefined,
 ): ConversationMessageActor {
   return buildMessageActorMetadata({
-    identity: {
-      kind: "external",
-      externalActorId: createExternalActorId(platform, actor.userId),
-    },
+    identity: principal
+      ? {
+          kind: "user",
+          userId: principal.userId,
+          ...(principal.canonicalId
+            ? { canonicalId: principal.canonicalId }
+            : {}),
+        }
+      : {
+          kind: "external",
+          externalActorId: createExternalActorId(platform, actor.userId),
+        },
     interfaceType: platform,
-    displayName: actor.fullName || actor.userName,
+    displayName: principal?.displayName ?? (actor.fullName || actor.userName),
     username: actor.userName,
     isBot: actor.isBot,
   });

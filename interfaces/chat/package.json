@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.240",
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@chat-adapter/discord": "^4.34.0",
