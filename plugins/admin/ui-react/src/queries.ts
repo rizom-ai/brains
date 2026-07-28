@@ -43,7 +43,7 @@ export function usersQueryOptions(): UseQueryOptions<
     queryKey: adminKeys.users(),
     queryFn: async () => (await fetchUsers()).users,
     refetchOnWindowFocus: true,
-    refetchInterval: (query) => {
+    refetchInterval: (query): number | false => {
       const users = query.state.data;
       return users?.some(
         (user) =>
