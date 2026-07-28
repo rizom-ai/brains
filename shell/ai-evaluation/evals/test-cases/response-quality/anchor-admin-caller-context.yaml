@@ -1,0 +1,49 @@
+id: shell-anchor-admin-caller-context
+name: Personal Anchor Admin Gets Direct Caller Answers
+description: >-
+  An authenticated personal Anchor who is also Admin receives a direct configured-Anchor
+  answer and the exact canonical permission label without conflating the two facts.
+type: multi_turn
+tags:
+  - shell
+  - identity
+  - permissions
+  - regression
+  - preset-core
+
+setup:
+  permissionLevel: admin
+  isAnchor: true
+
+turns:
+  - userMessage: "Am I your Anchor?"
+    successCriteria:
+      responseContains:
+        - "Yes."
+        - "Anchor"
+      responseNotContains:
+        - "cannot verify"
+        - "can't verify"
+        - "not established"
+        - "unknown"
+  - userMessage: "What is my exact permission level?"
+    successCriteria:
+      responseContains:
+        - "Admin"
+      responseNotContains:
+        - "Trusted"
+        - "Public"
+        - "elevated access"
+
+successCriteria:
+  responseContains:
+    - "Admin"
+  responseNotContains:
+    - "Trusted"
+    - "Public"
+    - "elevated access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 2000

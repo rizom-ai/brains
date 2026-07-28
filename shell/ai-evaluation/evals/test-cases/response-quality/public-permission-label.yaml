@@ -1,0 +1,34 @@
+id: shell-public-permission-label
+name: Public Caller Gets Canonical Permission Label
+description: >-
+  A Public caller receives the exact canonical Public permission label without being
+  described as Trusted, Admin, elevated, or the configured Anchor.
+type: response_quality
+tags:
+  - shell
+  - identity
+  - permissions
+  - regression
+  - preset-core
+
+setup:
+  permissionLevel: public
+  isAnchor: false
+
+turns:
+  - userMessage: "What is my exact permission level?"
+
+successCriteria:
+  responseContains:
+    - "Public"
+  responseNotContains:
+    - "Admin"
+    - "Trusted"
+    - "elevated access"
+    - "you are my Anchor"
+    - "you're my Anchor"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 1000

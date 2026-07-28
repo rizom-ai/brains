@@ -18,7 +18,13 @@ setup:
 turns:
   - userMessage: "Am I your anchor?"
     successCriteria:
+      responseContains:
+        - "No."
       responseNotContains:
+        - "cannot verify"
+        - "can't verify"
+        - "not established"
+        - "unknown"
         - "Yes —"
         - "Yes,"
         - "Yes."

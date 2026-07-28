@@ -52,6 +52,9 @@
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
+    "@brains/ai-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@rizom/site-rizom-ai": "workspace:*",
     "@rizom/theme-rizom-ai": "workspace:*",

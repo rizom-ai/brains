@@ -1,0 +1,49 @@
+id: shell-trusted-non-anchor-caller-context
+name: Trusted Non-Anchor Gets Direct Caller Answers
+description: >-
+  An authenticated Trusted account is definitively not the configured Anchor and receives
+  the exact canonical Trusted permission label without vague elevated-access language.
+type: multi_turn
+tags:
+  - shell
+  - identity
+  - permissions
+  - regression
+  - preset-core
+
+setup:
+  permissionLevel: trusted
+  isAnchor: false
+
+turns:
+  - userMessage: "Am I your Anchor?"
+    successCriteria:
+      responseContains:
+        - "No."
+        - "Anchor"
+      responseNotContains:
+        - "cannot verify"
+        - "can't verify"
+        - "not established"
+        - "unknown"
+  - userMessage: "What is my exact permission level?"
+    successCriteria:
+      responseContains:
+        - "Trusted"
+      responseNotContains:
+        - "Admin"
+        - "Public"
+        - "elevated access"
+
+successCriteria:
+  responseContains:
+    - "Trusted"
+  responseNotContains:
+    - "Admin"
+    - "Public"
+    - "elevated access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 2000

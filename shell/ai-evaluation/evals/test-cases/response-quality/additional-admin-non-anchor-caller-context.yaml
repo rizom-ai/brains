@@ -1,0 +1,50 @@
+id: shell-additional-admin-non-anchor-caller-context
+name: Additional Admin Is Not Inferred To Be Anchor
+description: >-
+  A production-valid additional Admin account receives a direct non-Anchor answer while
+  retaining the exact canonical Admin permission label.
+type: multi_turn
+tags:
+  - shell
+  - identity
+  - permissions
+  - regression
+  - preset-core
+
+setup:
+  permissionLevel: admin
+  isAnchor: false
+
+turns:
+  - userMessage: "Am I your Anchor?"
+    successCriteria:
+      responseContains:
+        - "No."
+        - "Anchor"
+      responseNotContains:
+        - "cannot verify"
+        - "can't verify"
+        - "not established"
+        - "unknown"
+        - "owner"
+  - userMessage: "What is my exact permission level?"
+    successCriteria:
+      responseContains:
+        - "Admin"
+      responseNotContains:
+        - "Trusted"
+        - "Public"
+        - "elevated access"
+
+successCriteria:
+  responseContains:
+    - "Admin"
+  responseNotContains:
+    - "Trusted"
+    - "Public"
+    - "elevated access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 2000
