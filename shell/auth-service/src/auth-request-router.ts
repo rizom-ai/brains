@@ -16,7 +16,7 @@ import {
 import { isSecureRequest } from "./issuer";
 import { renderLoginPage } from "./pages";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
-import { clearAuthSessionCookies } from "./session-store";
+import { clearAuthSessionCookie } from "./session-store";
 
 interface AuthRouteContext {
   issuer: string;
@@ -248,8 +248,9 @@ async function handleLogout(
     Location: returnTo,
     "Cache-Control": "no-store",
   });
-  for (const cookie of clearAuthSessionCookies(isSecureRequest(request))) {
-    headers.append("Set-Cookie", cookie);
-  }
+  headers.append(
+    "Set-Cookie",
+    clearAuthSessionCookie(isSecureRequest(request)),
+  );
   return new Response(null, { status: 302, headers });
 }

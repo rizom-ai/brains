@@ -1792,7 +1792,7 @@ describe("AuthService", () => {
     expect(token).toMatchObject({ token_type: "Bearer", scope: "mcp" });
   });
 
-  it("logs out, revokes the current auth session, and clears both cookie names", async () => {
+  it("logs out, revokes the current auth session, and clears its cookie", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
@@ -1817,21 +1817,20 @@ describe("AuthService", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/dashboard");
     const cleared = response.headers.getSetCookie();
-    expect(cleared).toHaveLength(2);
-    expect(cleared.join("\n")).toContain("brains_auth_session=");
-    expect(cleared.join("\n")).toContain("brains_operator_session=");
-    expect(cleared.join("\n")).toContain("Max-Age=0");
-    expect(cleared.join("\n")).toContain("; Secure");
+    expect(cleared).toHaveLength(1);
+    expect(cleared[0]).toContain("brains_auth_session=");
+    expect(cleared[0]).toContain("Max-Age=0");
+    expect(cleared[0]).toContain("; Secure");
     expect(await service.getAuthSession(request)).toBeUndefined();
   });
 
-  it("reads the legacy browser cookie during the compatibility window", async () => {
+  it("rejects obsolete browser cookie names", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
     const session = await service.createAuthSession();
-    const legacyCookie = session.cookie.replace(
+    const obsoleteCookie = session.cookie.replace(
       "brains_auth_session",
       "brains_operator_session",
     );
@@ -1839,39 +1838,19 @@ describe("AuthService", () => {
     expect(
       await service.resolveSession(
         new Request("https://brain.example.com/dashboard", {
-          headers: { cookie: legacyCookie },
+          headers: { cookie: obsoleteCookie },
         }),
       ),
-    ).toMatchObject({ permissionLevel: "admin" });
+    ).toBeUndefined();
   });
 
-  it("prefers the current cookie when both browser cookie names are present", async () => {
+  it("does not recognize the removed single-operator subject alias", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
-    const anchorSession = await service.createAuthSession();
-    const trustedUser = await service.createUser({
-      displayName: "Mira",
-      role: "trusted",
-      status: "active",
-    });
-    const currentSession = await service.createAuthSession(trustedUser.userId);
-    const legacyCookie = anchorSession.cookie.replace(
-      "brains_auth_session",
-      "brains_operator_session",
-    );
 
-    expect(
-      await service.resolveSession(
-        new Request("https://brain.example.com/dashboard", {
-          headers: { cookie: `${legacyCookie}; ${currentSession.cookie}` },
-        }),
-      ),
-    ).toMatchObject({
-      userId: trustedUser.userId,
-      permissionLevel: "trusted",
-    });
+    expect(service.createAuthSession("single-operator")).rejects.toThrow();
   });
 
   it("marks the auth session cookie Secure outside loopback", async () => {
@@ -1880,12 +1859,12 @@ describe("AuthService", () => {
       issuer: "https://brain.example.com",
     });
 
-    const secure = await service.createAuthSession("single-operator", {
+    const secure = await service.createAuthSession(undefined, {
       secure: true,
     });
     expect(secure.cookie).toContain("; Secure");
 
-    const insecure = await service.createAuthSession("single-operator", {
+    const insecure = await service.createAuthSession(undefined, {
       secure: false,
     });
     expect(insecure.cookie).not.toContain("Secure");

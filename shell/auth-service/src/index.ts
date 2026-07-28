@@ -194,7 +194,6 @@ export type {
 export {
   AUTH_SESSION_COOKIE,
   clearAuthSessionCookie,
-  clearAuthSessionCookies,
   RuntimeAuthSessionStore,
 } from "./session-store";
 export { AuthUserStore } from "./user-store";

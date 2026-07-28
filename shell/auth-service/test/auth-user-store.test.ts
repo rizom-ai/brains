@@ -201,14 +201,17 @@ describe("AuthUserStore", () => {
       expect(identity.personId).toBe(user.personId);
 
       expect(
-        await identities.resolveIdentity({
+        await identities.resolveIdentityAccess({
           type: "discord",
           subject: "1442828818493735015",
         }),
       ).toMatchObject({
-        id: user.id,
-        displayName: "Discord Collaborator",
-        role: "trusted",
+        state: "resolved",
+        user: {
+          id: user.id,
+          displayName: "Discord Collaborator",
+          role: "trusted",
+        },
       });
 
       const rows = await database.client.execute({
@@ -267,11 +270,14 @@ describe("AuthUserStore", () => {
         boundIdentity: { id: identity.id, type: "email" },
       });
       expect(
-        await identities.resolveIdentity({
+        await identities.resolveIdentityAccess({
           type: "email",
           subject: "invited@example.com",
         }),
-      ).toMatchObject({ id: user.id, status: "active" });
+      ).toMatchObject({
+        state: "resolved",
+        user: { id: user.id, status: "active" },
+      });
       expect(await identities.listIdentities(user.id)).toEqual([
         expect.objectContaining({
           id: identity.id,
@@ -454,11 +460,11 @@ describe("AuthUserStore", () => {
       );
       expect(await identities.listIdentities(user.id)).toHaveLength(1);
       expect(
-        await identities.resolveIdentity({
+        await identities.resolveIdentityAccess({
           type: "discord",
           subject: "1442828818493735015",
         }),
-      ).toMatchObject({ id: user.id });
+      ).toMatchObject({ state: "resolved", user: { id: user.id } });
     });
   });
 
@@ -540,11 +546,11 @@ describe("AuthUserStore", () => {
       });
 
       expect(
-        await identities.resolveIdentity({
+        await identities.resolveIdentityAccess({
           type: "email",
           subject: "alex@example.com",
         }),
-      ).toMatchObject({ id: second.id });
+      ).toMatchObject({ state: "resolved", user: { id: second.id } });
     });
   });
 

@@ -49,11 +49,11 @@ describe("runtime passkey registration persistence", () => {
       });
 
       expect(
-        await new AuthIdentityStore(database.db).resolveIdentity({
+        await new AuthIdentityStore(database.db).resolveIdentityAccess({
           type: "passkey",
           subject: "new-credential",
         }),
-      ).toMatchObject({ id: user.id });
+      ).toMatchObject({ state: "resolved", user: { id: user.id } });
       expect(
         (await new AuthAuditStore(database.db).list()).map((event) => ({
           action: event.action,

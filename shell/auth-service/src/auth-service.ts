@@ -615,20 +615,6 @@ export class AuthService {
     return this.runtime.getPrincipalService().resolveActor(actor);
   }
 
-  /**
-   * Compatibility-only projection for identity enrichment.
-   *
-   * @deprecated Use `resolveIdentityAccess()` for every authorization decision.
-   * This helper intentionally returns `undefined` for both denied and unbound
-   * identities, so callers must never use it before a permission-rule fallback.
-   */
-  async resolveIdentity(
-    input: ResolveAuthIdentityInput,
-  ): Promise<AuthPrincipal | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().resolveIdentity(input);
-  }
-
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {

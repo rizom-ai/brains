@@ -83,13 +83,7 @@ jobs:
           # changelog. Without a token, changeset version crashes before
           # it can write package.json or CHANGELOG.md.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          bun run changeset:version:core
-          if git diff --quiet -- shell/auth-service/package.json; then
-            bun run auth-session:compat-check
-          else
-            bun run auth-session:compat-check --stamp-release
-          fi
+        run: bun run changeset:version:core
 
       - name: Commit and push version bump
         env:

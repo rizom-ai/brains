@@ -89,8 +89,6 @@ jobs:
       - name: Lint core packages
         run: bun scripts/lint.mjs --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
-      - name: Check auth-session compatibility gate
-        run: bun run auth-session:compat-check
       # Runs here rather than as its own job so it reuses this job's checkout,
       # install and cache. lint-staged only formats staged files, so without
       # this nothing ever re-checks a file that stops matching prettier after a

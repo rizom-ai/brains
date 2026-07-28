@@ -1,24 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
-import { and, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { nowSeconds } from "@brains/utils/date";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { authSessions } from "./runtime-schema";
 
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 export const AUTH_SESSION_COOKIE = "brains_auth_session";
-/**
- * TODO(auth-session-compat): Remove the legacy cookie reader when both
- * conditions are true:
- * 1. Repository consumers use only AuthSession APIs.
- * 2. The minimum supported upgrade source already issues
- *    `brains_auth_session` (so pre-migration browser sessions are no longer a
- *    supported direct-upgrade case).
- *
- * Until then, issue only AUTH_SESSION_COOKIE, dual-read both names, and clear
- * both names on logout.
- */
-const LEGACY_OPERATOR_SESSION_COOKIE = "brains_operator_session";
 export interface AuthSessionRecord {
   id: string;
   token_hash: string;
@@ -70,14 +58,6 @@ export function clearAuthSessionCookie(secure = false): string {
   return clearSessionCookie(AUTH_SESSION_COOKIE, secure);
 }
 
-function clearLegacyAuthSessionCookie(secure = false): string {
-  return clearSessionCookie(LEGACY_OPERATOR_SESSION_COOKIE, secure);
-}
-
-export function clearAuthSessionCookies(secure = false): [string, string] {
-  return [clearAuthSessionCookie(secure), clearLegacyAuthSessionCookie(secure)];
-}
-
 export class RuntimeAuthSessionStore implements AuthSessionPersistence {
   private readonly database: AuthRuntimeDatabase;
 
@@ -109,30 +89,29 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
   async getSessionFromRequest(
     request: Request,
   ): Promise<AuthSessionRecord | undefined> {
-    const tokens = getSessionTokensFromRequest(request);
-    for (const token of tokens) {
-      const [row] = await this.database.db
-        .select()
-        .from(authSessions)
-        .where(
-          and(
-            eq(authSessions.tokenHash, hashToken(token)),
-            isNull(authSessions.revokedAt),
-            gt(authSessions.expiresAt, nowSeconds()),
-          ),
-        )
-        .limit(1);
-      if (row) {
-        return {
+    const token = getSessionTokenFromRequest(request);
+    if (!token) return undefined;
+
+    const [row] = await this.database.db
+      .select()
+      .from(authSessions)
+      .where(
+        and(
+          eq(authSessions.tokenHash, hashToken(token)),
+          isNull(authSessions.revokedAt),
+          gt(authSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .limit(1);
+    return row
+      ? {
           id: row.tokenHash,
           token_hash: row.tokenHash,
           subject: row.userId,
           created_at: row.createdAt,
           expires_at: row.expiresAt,
-        };
-      }
-    }
-    return undefined;
+        }
+      : undefined;
   }
 
   async listActiveSessionsForSubject(
@@ -212,15 +191,15 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
   }
 
   async revokeSessionFromRequest(request: Request): Promise<boolean> {
-    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
-    if (tokenHashes.length === 0) return false;
+    const token = getSessionTokenFromRequest(request);
+    if (!token) return false;
 
     const revoked = await this.database.db
       .update(authSessions)
       .set({ revokedAt: nowSeconds() })
       .where(
         and(
-          inArray(authSessions.tokenHash, tokenHashes),
+          eq(authSessions.tokenHash, hashToken(token)),
           isNull(authSessions.revokedAt),
         ),
       )
@@ -240,12 +219,8 @@ export class RuntimeAuthSessionStore implements AuthSessionPersistence {
   }
 }
 
-function getSessionTokensFromRequest(request: Request): string[] {
-  const cookieHeader = request.headers.get("cookie");
-  return [
-    getCookie(cookieHeader, AUTH_SESSION_COOKIE),
-    getCookie(cookieHeader, LEGACY_OPERATOR_SESSION_COOKIE),
-  ].filter((token): token is string => token !== undefined);
+function getSessionTokenFromRequest(request: Request): string | undefined {
+  return getCookie(request.headers.get("cookie"), AUTH_SESSION_COOKIE);
 }
 
 function getCookie(

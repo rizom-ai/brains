@@ -249,13 +249,6 @@ export class AuthIdentityStore {
     return { ...identity, revokedAt };
   }
 
-  async resolveIdentity(
-    input: ResolveAuthIdentityInput,
-  ): Promise<AuthUser | undefined> {
-    const result = await this.resolveIdentityAccess(input);
-    return result.state === "resolved" ? result.user : undefined;
-  }
-
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityLookupResult> {

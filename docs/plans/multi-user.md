@@ -45,8 +45,8 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - `admins`, `anchors`, and `trusted` have clean, independent seed semantics; decision 14 removes request-time config fallback.
 4. **Real user ids replace `single-operator` as the canonical subject.**
    - Fresh setups use `usr_<uuid>` as the passkey/session/OAuth subject.
-   - Existing file-store installs re-onboard once into a real user id; pre-Drizzle database rows retain their bounded schema bridge.
-   - `single-operator` remains only a compatibility input alias, not new canonical state.
+   - Existing file-store installs re-onboard once into a real user id; unreleased pre-Drizzle development databases are unsupported.
+   - `single-operator` is not accepted as an input or written as canonical state.
 5. **First passkey setup creates the first admin, who is the anchor on a personal brain.**
    - First setup creates one active **`admin`** user, binds the passkey to that user, and configures that person's subject as the personal Anchor.
    - On a **personal** brain that first admin is also the **anchor/owner** (admin _is_ anchor). On a **collective** brain the anchor is the team/org; the first admin runs it but is not the anchor.
@@ -144,8 +144,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - **Operator is not a role.** Existing names such as `operator_sessions`, `OperatorSessionStore`, `getOperatorSession`, `brains_operator_session`, and “Operator access” are legacy single-user terminology and must be migrated to authenticated/browser-session naming.
 - Rename the persisted session table to `auth_sessions` in an ordered auth DB migration. Preserve existing sessions during the rename.
 - Use `AuthSession`/`BrowserSession` service names; the private workspace API keeps no deprecated session wrappers.
-- Move the cookie to `brains_auth_session`; accept the legacy cookie during a bounded compatibility window and clear both names on logout.
-- Remove the legacy cookie reader only after CI confirms there are no deprecated source consumers and the recorded minimum supported upgrade version already issues `brains_auth_session`.
+- Use only `brains_auth_session`; obsolete cookie names are rejected and logout clears only the current cookie.
 - Rename first-setup types and copy from “operator setup” to generic “passkey setup.”
 - `single-operator` remains only as a historical migration subject and must not appear in newly created state or user-facing copy.
 - The separate “Operator runtime database” plan may retain its infrastructure meaning; it does not define a human auth role.
@@ -351,7 +350,7 @@ The external brain remains a separate peer actor; it does not represent the pers
 
 ### Existing file-store installs
 
-Use a clean cutover. Legacy JSON/JWK files are never read automatically and remain optional manual backups. Existing operators re-register a passkey, re-approve MCP/OAuth clients, and log in again. The new setup writes only real `usr_<uuid>` subjects to `auth.db`; pre-Drizzle database rows continue through the bounded schema bridge.
+Use a clean cutover. Legacy JSON/JWK files are never read automatically and remain optional manual backups. Existing operators re-register a passkey, re-approve MCP/OAuth clients, and log in again. The new setup writes only real `usr_<uuid>` subjects to `auth.db`; unreleased pre-Drizzle development databases fail closed.
 
 ## Phased implementation
 
@@ -434,7 +433,7 @@ Validation:
 
 ### Phase 5 — Admin console and terminology migration
 
-**Status: implemented.** The standalone four-section `/admin` console and bounded legacy-cookie compatibility are in place.
+**Status: implemented.** The standalone four-section `/admin` console and current auth-session terminology are in place; obsolete compatibility paths have been removed.
 
 - [x] Capture the revised console design per Anchor profile flavor: [professional](../design/admin-console-person-mockup.html), [team](../design/admin-console-team-mockup.html), and [collective](../design/admin-console-org-mockup.html).
 - [x] Add Admin-only roster administration over the existing auth APIs.
@@ -449,9 +448,9 @@ Validation:
 - [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
 - [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-Admin elevation.
 - [x] Show `Name · Admin|Trusted|Public · Sign out`, with Anchor shown separately in the console masthead.
-- [x] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
+- [x] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, then remove the obsolete cookie and input aliases.
 - [x] Update tests, docs, and shared auth UI copy so Operator and Owner are never presented as permission roles.
-- [x] Enforce compatibility removal with `bun run auth-session:compat-check` and release metadata in `shell/auth-service/auth-session-compat.json`.
+- [x] Remove the temporary compatibility gate after the current cookie and generated Drizzle migration baseline shipped.
 
 Validation:
 

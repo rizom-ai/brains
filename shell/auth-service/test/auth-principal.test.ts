@@ -302,12 +302,6 @@ describe("AuthService principals", () => {
 
     expect(await service.resolveSession(request)).toBeUndefined();
     expect(
-      await service.resolveIdentity({
-        type: "discord",
-        subject: "1442828818493735015",
-      }),
-    ).toBeUndefined();
-    expect(
       await service.resolveIdentityAccess({
         type: "discord",
         subject: "1442828818493735015",
@@ -393,7 +387,7 @@ describe("AuthService principals", () => {
     ).toBeUndefined();
   });
 
-  it("resolves verified identities to active auth principals", async () => {
+  it("resolves verified identity access to active auth principals", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
@@ -411,17 +405,20 @@ describe("AuthService principals", () => {
       verifiedAt: Date.now(),
     });
 
-    const principal = await service.resolveIdentity({
+    const result = await service.resolveIdentityAccess({
       type: "discord",
       subject: "1442828818493735015",
     });
 
-    expect(principal).toMatchObject({
-      userId: collaborator.userId,
-      displayName: "Discord Collaborator",
-      role: "trusted",
-      status: "active",
-      permissionLevel: "trusted",
+    expect(result).toMatchObject({
+      state: "resolved",
+      principal: {
+        userId: collaborator.userId,
+        displayName: "Discord Collaborator",
+        role: "trusted",
+        status: "active",
+        permissionLevel: "trusted",
+      },
     });
   });
 });

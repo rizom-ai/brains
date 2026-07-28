@@ -13,7 +13,7 @@ import {
 } from "./http-responses";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
-import { clearAuthSessionCookies } from "./session-store";
+import { clearAuthSessionCookie } from "./session-store";
 
 export interface AuthAccountOperations {
   resolveSession(request: Request): Promise<AuthAccountContext | undefined>;
@@ -211,9 +211,10 @@ function withClearedSessionCookies(
   request: Request,
 ): Response {
   const headers = new Headers(response.headers);
-  for (const cookie of clearAuthSessionCookies(isSecureRequest(request))) {
-    headers.append("Set-Cookie", cookie);
-  }
+  headers.append(
+    "Set-Cookie",
+    clearAuthSessionCookie(isSecureRequest(request)),
+  );
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

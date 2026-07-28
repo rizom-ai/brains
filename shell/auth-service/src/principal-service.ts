@@ -15,8 +15,6 @@ import type { VerifiedAccessToken } from "./token-verifier";
 import type { JwksResponse } from "./types";
 import type { AuthUserStore } from "./user-store";
 
-const LEGACY_SINGLE_OPERATOR_SUBJECT = "single-operator";
-
 export interface AuthPrincipal {
   userId: string;
   personId: string;
@@ -94,20 +92,6 @@ export class AuthPrincipalService {
       : undefined;
   }
 
-  /**
-   * Compatibility-only projection for identity enrichment.
-   *
-   * @deprecated Use `resolveIdentityAccess()` for every authorization decision.
-   * This helper intentionally returns `undefined` for both denied and unbound
-   * identities, so callers must never use it before a permission-rule fallback.
-   */
-  async resolveIdentity(
-    input: ResolveAuthIdentityInput,
-  ): Promise<AuthPrincipal | undefined> {
-    const result = await this.resolveIdentityAccess(input);
-    return result.state === "resolved" ? result.principal : undefined;
-  }
-
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {
@@ -124,10 +108,7 @@ export class AuthPrincipalService {
     subject?: string,
     options: { secure?: boolean } = {},
   ): Promise<CreateAuthSessionResult> {
-    const sessionSubject =
-      !subject || subject === LEGACY_SINGLE_OPERATOR_SUBJECT
-        ? (await this.ensureFirstAdminUser()).id
-        : subject;
+    const sessionSubject = subject ?? (await this.ensureFirstAdminUser()).id;
     return this.sessions.createSession(sessionSubject, options);
   }
 

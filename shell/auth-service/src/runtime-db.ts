@@ -3,7 +3,6 @@ import { chmod, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { upgradeLegacyAuthDatabase } from "./legacy-auth-database-upgrade";
 import { authRuntimeSchema } from "./runtime-schema";
 
 export type AuthRuntimeDB = LibSQLDatabase<typeof authRuntimeSchema>;
@@ -155,7 +154,6 @@ export class AuthRuntimeDatabase {
     try {
       if (this.replica) await client.sync();
       await this.configureConnection(client);
-      await upgradeLegacyAuthDatabase(client);
       await migrate(db, { migrationsFolder: authMigrationsFolder() });
       await this.secureLocalDatabaseFile();
       this.active = { client, db, url: this.url };

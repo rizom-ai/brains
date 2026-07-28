@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-20
+Last updated: 2026-07-28
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -40,13 +40,13 @@ Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. 
 
 Priority is explicit; an existing worktree does not automatically outrank release work.
 
-| Priority | Outcome                            | Current execution                                                                                                                                                                                                                |
-| -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | One brain composed from bundles    | Implement the refreshed unification plan on the alpha line, migrate standalone and hosted configuration, and keep every supported posture green before deleting model/preset compatibility.                                      |
-| **P0**   | Stable `v0.2.0` release candidate  | Publish and deploy a unified alpha, complete the release-candidate gates above, then exit prerelease mode.                                                                                                                       |
-| **P1**   | Real runtime identity boundary     | Finish final hardening on `feature/auth-runtime-db`; the database cutover, People admin surface, role invariants, and P0 security findings are implemented, while compatibility gates and lower-priority review findings remain. |
-| **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.                                |
-| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                        |
+| Priority | Outcome                            | Current execution                                                                                                                                                                                            |
+| -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **P0**   | One brain composed from bundles    | Implement the refreshed unification plan on the alpha line, migrate standalone and hosted configuration, and keep every supported posture green before deleting model/preset compatibility.                  |
+| **P0**   | Stable `v0.2.0` release candidate  | Publish and deploy a unified alpha, complete the release-candidate gates above, then exit prerelease mode.                                                                                                   |
+| **P1**   | Real runtime identity boundary     | Implementation is complete on `main`: runtime auth storage, multi-user boundaries, People/Admin surfaces, invitations, connected delivery channels, and obsolete compatibility-path removal are implemented. |
+| **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.            |
+| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                    |
 
 Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
 

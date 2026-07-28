@@ -128,7 +128,7 @@ export class SetupFlow {
     await this.setupStateStore.consumeSetupToken(token);
   }
 
-  /** Clear first-anchor setup state after legacy bootstrap completes. */
+  /** Clear first-Anchor setup state after initial bootstrap completes. */
   async clearSetupState(): Promise<void> {
     this.setupToken = undefined;
     await this.setupStateStore.clearSetupState();

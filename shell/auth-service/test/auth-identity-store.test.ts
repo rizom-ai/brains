@@ -83,11 +83,11 @@ describe("AuthIdentityStore", () => {
         verifiedAt: 123,
       });
       expect(
-        await identities.resolveIdentity({
+        await identities.resolveIdentityAccess({
           type: "email",
           subject: "owner@example.com",
         }),
-      ).toMatchObject({ id: user.id });
+      ).toMatchObject({ state: "resolved", user: { id: user.id } });
     } finally {
       await database.stop();
     }
