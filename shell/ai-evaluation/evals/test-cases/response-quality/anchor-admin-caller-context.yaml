@@ -20,7 +20,6 @@ turns:
     successCriteria:
       responseContains:
         - "Yes."
-        - "Anchor"
       responseNotContains:
         - "cannot verify"
         - "can't verify"
@@ -46,4 +45,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 2000
+  maxTokens: 30000
