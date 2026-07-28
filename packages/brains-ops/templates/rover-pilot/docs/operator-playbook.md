@@ -38,6 +38,32 @@ When a push changes only deploy contract files and no generated `users/<handle>/
 
 They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
 
+## Canonical contract crossover maintenance window
+
+Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together.
+
+Before the window, record and review:
+
+- the prior pilot commit and exact `@rizom/ops` version;
+- every prior runtime image tag and immutable digest;
+- the reviewed canonical pilot commit;
+- the exact unified `@rizom/brain` and `@rizom/ops` versions;
+- every unified image tag and immutable digest;
+- canary-first rollout order, followed by the remaining cohorts;
+- expected `/health` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
+
+During the approved window:
+
+1. Freeze unrelated merges and releases. Wait for active Build, Reconcile, and Deploy runs to finish, then disable all three pilot workflows with `gh workflow disable build.yml`, `gh workflow disable reconcile.yml`, and `gh workflow disable deploy.yml`.
+2. Publish and verify the reviewed unified runtime and matching ops artifacts. Do not update pilot desired state until the exact versions are installable and the expected images can be built.
+3. Apply the reviewed canonical pilot revision while automation remains disabled. Confirm repository names, server/domain identity, content repositories, secret selectors, image names, and tag identity against the review diff.
+4. Enable only Build, run it for the canonical desired-state revision, and record every resulting image digest. Stop if the observed digest set differs from the cutover record.
+5. Enable only Reconcile, run it once, and review its generated config commit. No generated file may combine canonical config with a retired image version.
+6. Enable Deploy and deploy one handle at a time in the approved order. After each deploy, run `bunx brains-ops verify-user . <handle>` and complete the manual identity, content-sync, and app-managed site checks.
+7. Run Reconcile a second time. Require no generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze.
+
+If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
+
 ## Stale deploy lock recovery
 
 Kamal intentionally leaves its remote deploy lock in place when a deployment is cancelled or interrupted. Confirm that no deployment for the user is still active before releasing the lock, then use the deploy workflow's explicit recovery input:
