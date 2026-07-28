@@ -18,32 +18,28 @@ Release, shared publish concurrency), and the first independent site release
 shipped the `0.2.0-alpha.234` sites through the site lane in 45 seconds while
 core stayed at `0.2.0-alpha.236`. The standalone `rizom-ai/site-smoke-canary`
 repository published `0.2.0-alpha.234` to npm via trusted publishing (OIDC,
-provenance attestation, no token), and Smoke deploys from that external
-release: brain `0.2.0-alpha.236` with `site-smoke-canary@234` plus
-`theme-signal@233` baked into its image.
+provenance attestation, no token), and Smoke first deployed that external
+release with `theme-signal@0.2.0-alpha.233` baked into its image.
 
 That first site/theme version divergence exposed a lockstep assumption in
 `@rizom/ops`: image resolution inherited the theme's version from the site's.
-`@rizom/ops@0.2.0-alpha.237` adds the explicit `themeVersion` siteOverride
-field (required for `@rizom`-scoped themes, rejected for bundled `@brains`
-themes) and installs the theme at its own pin — banking Phase 1's schema field
-and Phase 3's independent theme install ahead of schedule, without the
-originally planned migration fallback. All rover-pilot theme users pin
-explicitly (smoke at 233; docs and rizom-ai at 228, matching their previous
-effective images).
+`@rizom/ops@0.2.0-alpha.237` added an explicit `themeVersion` siteOverride
+field for independently published `@rizom/*` themes. That compatibility alpha
+is historical input to the canonical crossover, not a surviving resolver.
 
-Phases 1–4 remain otherwise open. Phase 1's residue: `docs` and `rizom-ai`
-site versions still ride the `?? brainVersion` fallback onto metadata-less
-`0.2.0-alpha.228` packages. Phase 2 (resolver and committed lock) is the next
-substantial slice; Phase 3 shrinks to routing themes through that same lock
-and supporting non-`@rizom` external scopes; Phase 4 (floating canary,
-`site:update`) is unchanged.
+The planned resolver, committed package lock, omitted/`latest` policy, and
+floating canary in former Phases 1–4 are cancelled before implementation. There
+are only three real hosted sites, so the canonical brain crossover moves all
+three directly to explicit exact site and external-theme versions. Active ops
+has one strict desired-state contract: it never defaults a site version from
+`brainVersion`, infers a theme version from a site version, or resolves floating
+npm state. Temporary offline crossover staging requires a separately reviewed
+pin manifest and is deleted after crossover convergence plus the one-week soak.
 
 This plan gives deployable site and theme packages genuinely independent npm
-versions and decouples their deployment pins from `brainVersion`. The monorepo
-is only their current publishing location. Resolution and deployment depend on
-standard published npm metadata, so packages can later move to independent
-repositories without changing the pilot contract.
+versions and decouples their exact deployment pins from `brainVersion`. The
+monorepo is only their current publishing location. Packages can later move to
+independent repositories without changing the exact-pin pilot contract.
 
 ## Problem
 
@@ -82,15 +78,14 @@ prerelease semver strings.
 
 1. Deployable site and theme packages receive npm versions only when they or
    their relevant dependencies change.
-2. `brainVersion` remains an explicit exact pin and is never a source for site
-   or theme versions.
-3. Site and theme packages resolve independently against their published brain
-   compatibility ranges.
-4. Every build and deploy consumes committed exact package resolutions.
-5. The Smoke canary may follow newest-compatible packages without making
-   production float.
-6. Nothing in resolution assumes a package lives in this monorepo or under the
-   `@rizom` npm scope.
+2. Brain, site, and external-theme versions are separate required exact pins;
+   none is inferred from another.
+3. Every build and deploy consumes the exact package refs declared in reviewed
+   desired state.
+4. The three existing hosted sites cross over together without a compatibility
+   release, floating policy, or runtime package resolver.
+5. Package publishing remains repository-independent and exposes standard npm
+   compatibility metadata for release-time verification.
 
 ## Settled decisions
 
@@ -186,106 +181,55 @@ A deployable site or external theme declares brain compatibility in:
 }
 ```
 
-This is the only compatibility signal consumed by brains-ops. External
-repositories publish ordinary `peerDependencies`; they do not need Rizom's
-monorepo build tooling.
+This is the compatibility signal verified when publishing and reviewing a
+hosted package. Active brains-ops does not query npm or resolve a compatible
+version during registry loading or reconciliation. External repositories
+publish ordinary `peerDependencies`; they do not need Rizom's monorepo build
+tooling.
 
 Monorepo packages may retain an authoring-only manifest field if required to
 avoid workspace cycles, but the npm registry packument must contain the
-standard `peerDependencies` field. Resolver behavior never recognizes
-`publishPeerDependencies`.
+standard `peerDependencies` field.
 
-### Semver behavior
+### Exact desired state
 
-- Versions and compatibility ranges use the `semver` package.
-- Prerelease brains are evaluated with `includePrerelease: true`.
-- Resolution chooses the highest non-deprecated, valid semver version whose
-  `@rizom/brain` peer range includes the configured brain version.
-- Missing or malformed compatibility metadata is incompatible, with a
-  descriptive error.
-- Exact pins are also compatibility-checked during reconciliation and explicit
-  updates.
-
-### Desired policy and resolved lock are separate
-
-`users/<handle>.yaml` expresses operator intent:
+`users/<handle>.yaml` declares complete install refs:
 
 ```yaml
 siteOverride:
-  package: "@scope/my-site"
-  version: 1.4.2 # exact | latest | absent
-  theme: "@scope/my-theme"
-  themeVersion: 3.1.0 # exact | latest | absent
-```
-
-Per package:
-
-- exact version: retain that version and validate compatibility;
-- `latest`: resolve newest-compatible on every reconcile;
-- absent: resolve newest-compatible once, then write the exact pin back to the
-  desired user config.
-
-A generated, committed lock records what Build and Deploy must use, including
-for `latest`:
-
-```yaml
-schemaVersion: 1
-brainVersion: 0.2.0-alpha.230
-site:
-  package: "@scope/my-site"
+  package: "@rizom/site-example"
   version: 1.4.2
-  brainRange: ">=0.2.0-alpha.217 <0.3.0"
-theme:
-  package: "@scope/my-theme"
-  version: 3.1.0
-  brainRange: ">=0.2.0-alpha.217 <0.3.0"
+  theme: "@rizom/theme-example"
+  themeVersion: 3.1.0
 ```
 
-The lock contains no timestamp or other nondeterministic field. A second
-reconcile with the same registry state is a no-op.
+`version` is always required for a site override. `themeVersion` is required
+for an external `@rizom/*` theme. Bundled `@brains/*` themes ship inside
+`@rizom/brain`, reject `themeVersion`, and are not installed separately.
+Missing or malformed pins fail Zod validation before registry loading.
 
-The source sentinel and exact lock solve the canary race: `latest` remains
-visible intent, while image tags and deploys always use one committed snapshot.
-
-### External versus bundled themes
-
-`@brains/*` themes are bundled runtime choices and do not resolve from npm.
-They reject `themeVersion`. Any valid npm package outside the bundled namespace
-may be an external theme and receives an independently resolved version. The
-current `@rizom/*`-only installation check is removed.
-
-### Network boundary
-
-Npm access belongs to reconciliation and explicit update operations, not every
-local registry read.
-
-- The npm client fetches one packument per package per run, with an injectable
-  fetch implementation, timeout, bounded retries, and in-run cache.
-- Reconcile resolves and validates before writing any files, preventing partial
-  pin updates.
-- Build, deploy, render, and verification read committed exact locks and do not
-  re-resolve npm state.
-- A missing or stale lock fails with an instruction to reconcile; it never
-  silently falls back to `brainVersion`.
+Build and Deploy derive the image package set directly from these exact values.
+There is no generated package lock, `latest` sentinel, absent-version policy, or
+npm resolution step. Reconciliation remains offline with respect to package
+repositories. Publish verification and crossover evidence prove that each
+reviewed exact ref exists and declares a compatible brain peer range.
 
 ## Migration safety
 
-Changing the meaning of an omitted version without migration would silently
-upgrade production. Historical npm versions also cannot have their registry
-metadata repaired in place.
+There is no compatibility release. Before the authorized canonical crossover:
 
-Rollout therefore follows this order:
+1. Enumerate the three existing real hosted sites in a reviewed pin manifest.
+2. Verify every exact site and theme version against package, lockfile, and
+   current image evidence.
+3. Use temporary offline staging to materialize missing exact pins in a
+   secret-free review copy while leaving the pilot source untouched.
+4. Require strict canonical desired-state validation and two-pass zero-drift
+   reconciliation on the isolated copy.
+5. During the frozen crossover, move config and image together; rollback
+   restores their prior pair.
 
-1. Publish new metadata-correct site and theme versions.
-2. Verify those exact versions against every currently deployed brain version.
-3. Add schema support for `themeVersion` while retaining the old runtime
-   behavior for one migration release.
-4. Pin existing production site and theme selections explicitly to
-   metadata-correct versions.
-5. Only then remove the `brainVersion` and site-to-theme fallbacks.
-
-No production config reaches the new resolver with an ambiguous omission.
-Smoke moves to `latest` only after the lock-backed path is deployed.
+The active canonical loader has no fallback or old-format union. The offline
+stager survives only through convergence plus the one-week soak.
 
 ## Phases
 
@@ -335,77 +279,28 @@ Therefore a tarball-only test already passes and is not the gate.
 Exit gate: a freshly published independent site and theme version expose valid
 brain ranges through `npm view <pkg>@<version> peerDependencies`.
 
-### Phase 1 — Compatibility-preserving schema and production migration
+### Phase 1 — Strict exact-pin crossover
 
-1. Add the `latest`-or-exact version intent schema and independent
-   `themeVersion` field.
-2. For this migration release only, preserve existing image behavior when
-   `themeVersion` is absent.
-3. Publish metadata-correct package versions from Phase 0.
-4. Update rover-pilot production site users to explicit site and theme versions
-   verified against their pinned brains.
-5. Confirm the migration produces only intended per-site images and deploys.
+1. Require exact `siteOverride.version` and independent exact external
+   `themeVersion` values in the sole active ops schema.
+2. Remove loader and image-builder version inference.
+3. Enumerate the three hosted sites in an external reviewed pin manifest;
+   staging rejects missing, extra, identity-mismatched, or conflicting pins.
+4. Preserve comments while materializing those pins in the isolated crossover
+   copy.
+5. Prove the resulting site/theme pairs drive deterministic image tags and
+   converge with zero second-pass drift.
 
-Exit gate: every existing production npm site/theme selection is explicit and
-points at metadata-correct versions. No production omission depends on legacy
-fallback semantics.
+Exit gate: every hosted site has explicit exact refs, no active ops path infers
+or resolves package versions, and the reviewed config/image pairs are ready for
+the frozen canonical crossover.
 
-### Phase 2 — Resolver and committed lock, site walking skeleton
+### Former Phases 2–4 — Removed
 
-1. Implement an injectable npm packument client and pure
-   `resolveCompatibleVersion` function.
-2. Resolve and validate the site package during reconcile.
-3. Write `users/<handle>/site-packages.lock.yaml` atomically.
-4. For an absent site version, write the resolved exact version into
-   `users/<handle>.yaml` using a comment-preserving YAML document update.
-5. Make Build and Deploy consume the exact site lock; remove the site
-   `?? brainVersion` fallback.
-6. Align workflow ordering/triggers so reconciliation materializes the lock
-   before an image is selected. Build and Deploy must never resolve npm
-   independently.
-
-Tests cover highest-compatible selection, prerelease ranges, deprecated and
-malformed versions, missing metadata, no-compatible-version errors, first-run
-pinning, second-run no-op, comment preservation, stale locks, and Build/Deploy
-agreement.
-
-Exit gate: an unpinned site resolves once and pins; an exact compatible site is
-reproducible offline from committed state; incompatible input fails before an
-image build.
-
-### Phase 3 — Independent theme resolution
-
-1. Resolve external themes through the same client and lock contract.
-2. Install the theme at `themeVersion`, independent of the site version.
-3. Generalize external theme installation beyond the `@rizom` scope while
-   keeping bundled `@brains/*` themes versionless.
-4. Remove the migration-only site-version fallback for themes.
-
-Tests cover different site/theme versions, external third-party scopes,
-bundled themes, independent pinning, and compatibility failures naming the
-correct package.
-
-Exit gate: site and theme versions can differ, and both exact resolutions drive
-one deterministic image tag.
-
-### Phase 4 — Floating canary and update command
-
-1. Implement `brains-ops site:update <repo> <handle>` to resolve
-   newest-compatible site and theme versions, update exact production pins,
-   and refresh the lock.
-2. Support `--dry-run` with the old/new versions and compatibility ranges.
-3. Set Smoke to `version: latest` and `themeVersion: latest`.
-4. Keep production exact. Promote versions only after the Smoke package canary
-   passes.
-5. Document the resolve, canary, promote, and rollback flow in the rover-pilot
-   operator guide.
-
-Tests prove that `latest` updates the lock without replacing the sentinel,
-`site:update` advances exact pins, unchanged resolution is a no-op, and
-rollback commits restore exact package locks.
-
-Exit gate: Smoke continuously tests newest-compatible published packages;
-production moves only through an explicit update and remains reproducible.
+Do not implement an npm resolver, generated site-package lock, absent/`latest`
+policy, floating Smoke config, or `site:update` command. With three known sites,
+explicit reviewed updates are smaller, safer, and auditable. Revisit automated
+package discovery only if fleet scale creates a demonstrated operational need.
 
 ### Phase 5 — Release pipeline independence and the public-path reference site
 
@@ -421,8 +316,8 @@ Starts immediately; does not depend on Phases 1–4.
    package cannot block a site release, and vice versa.
 4. Extract `@rizom/site-smoke-canary` to a standalone repository releasing via
    plain `npm publish` with hand-authored `peerDependencies` — the reference
-   third-party site. (Consuming it via `latest` additionally needs Phase 2's
-   resolver; until then Smoke pins its published versions exactly.)
+   third-party site. Smoke consumes each reviewed release through an explicit
+   exact desired-state pin.
 5. Document the external authoring contract: required manifest fields, the
    brain peer range rule, and the publish flow — written against the
    extracted reference repo, not the monorepo.
@@ -431,29 +326,24 @@ Exit gate: a site fix reaches npm through a pipeline that cannot publish
 `@rizom/brain`, and at least one deployed site package is produced entirely
 outside the monorepo toolchain.
 
-## Resolver error requirements
+## Exact-pin error requirements
 
-Resolution failures identify:
-
-- package name;
-- configured brain version;
-- requested version or policy;
-- valid versions and brain ranges considered, bounded to a readable summary;
-- missing, malformed, or deprecated metadata reason;
-- the command needed to reconcile or update when a lock is stale.
-
-Errors never include npm authentication headers or tokens.
+Validation failures identify the user, package, and missing or conflicting
+exact version. Offline staging also rejects pin-manifest entries whose package
+or theme identity differs from source desired state. Errors never include npm
+authentication headers, tokens, or secret values.
 
 ## Validation strategy
 
-- Pure resolver fixtures; no network in unit tests.
-- Mock npm packuments for brains-ops integration tests.
+- Strict schema tests for required site and external-theme exact pins.
+- Comment-preserving offline staging tests for missing, extra, mismatched, and
+  conflicting reviewed pins.
 - Changesets fixture/release-plan tests for independent bump behavior.
 - Publish-manifest unit tests plus packed-consumer smoke tests.
 - Post-publish checks against actual npm registry metadata.
-- Rover-pilot image derivation tests proving site/theme/brain versions are
-  independent inputs to the image tag.
-- A live Smoke rollout before production migration or promotion.
+- Image derivation tests proving site/theme/brain versions are independent
+  inputs to the image tag.
+- An explicitly authorized live Smoke rollout before wider promotion.
 
 ## Non-goals
 
@@ -461,7 +351,8 @@ Errors never include npm authentication headers or tokens.
   this plan. The single reference-site extraction in Phase 5 is in scope —
   it is the proof that the contract is repository-independent; the remaining
   first-party sites move only after it, as mechanical follow-ups.
-- Inferring or floating `@rizom/brain`.
-- Resolving source branches, git URLs, local paths, or npm dist-tags as package
-  versions.
-- Making ordinary production users float.
+- Inferring or floating brain, site, or theme versions.
+- Runtime/reconcile-time npm compatibility resolution or generated package
+  locks.
+- Resolving source branches, git URLs, local paths, npm dist-tags, or `latest`
+  policies as package versions.

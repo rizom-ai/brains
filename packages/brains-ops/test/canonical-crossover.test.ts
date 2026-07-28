@@ -34,7 +34,6 @@ function staticImportGraph(entry: string): Set<string> {
 }
 
 const canonicalPilot = {
-  schemaVersion: 2,
   brainVersion: "0.2.0-alpha.231",
   bundles: ["core", "site", "publishing"],
   add: ["obsidian-vault"],
@@ -65,8 +64,11 @@ describe("ops clean canonical crossover", () => {
     expect(pilotSchema.safeParse(canonicalPilot).success).toBe(true);
     expect(cohortSchema.safeParse(canonicalCohort).success).toBe(true);
     expect(
+      pilotSchema.safeParse({ ...canonicalPilot, schemaVersion: 1 }).success,
+    ).toBe(false);
+    expect(
       pilotSchema.safeParse({
-        schemaVersion: 2,
+        schemaVersion: 1,
         brainVersion: "0.2.0-alpha.231",
         model: "rover",
         preset: "default",
@@ -106,7 +108,7 @@ describe("ops clean canonical crossover", () => {
       "utf8",
     );
 
-    expect(indexSource).not.toMatch(/pilotSchemaV2|cohortSchemaV2/);
+    expect(indexSource).not.toContain("schemaVersion");
     expect(loaderSource).not.toMatch(/\bmodel\b|\bpreset\b/);
     expect(rendererSource).toContain('"brain: brain"');
     expect(rendererSource).toContain("bundles:");

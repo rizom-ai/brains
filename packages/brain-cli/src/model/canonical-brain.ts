@@ -14,7 +14,7 @@ import { atprotoPlugin } from "@brains/atproto";
 import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import { blogPlugin } from "@brains/blog";
-import { ChatInterface } from "@brains/chat";
+import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { cmsPlugin } from "@brains/cms";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
@@ -213,7 +213,7 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
     "topics",
     "decks",
     "mcp",
-    "discord",
+    "chat",
     "conversation-memory",
     "docs",
   ],
@@ -225,10 +225,6 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
     {
       member: "conversation-memory",
       value: { memoryVisibility: "shared" },
-    },
-    {
-      member: "discord",
-      value: { captureUrls: true },
     },
   ],
   permissions: [
@@ -353,8 +349,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["mcp", MCPInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
-    ["chat", ChatInterface, (): PluginConfig => ({})],
-    ["email", EmailInterface, (): PluginConfig => ({})],
+    [
+      "chat",
+      ChatInterface,
+      (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
+    ],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
   bundles: [coreBundle, siteBundle, publishingBundle, teamBundle],

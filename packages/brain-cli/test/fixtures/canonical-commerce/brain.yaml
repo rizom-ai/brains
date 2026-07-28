@@ -14,5 +14,3 @@ plugins:
   directory-sync:
     seedContentPath: ./seed-content
     initialSync: true
-  discord:
-    captureUrls: true

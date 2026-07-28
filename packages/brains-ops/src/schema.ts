@@ -25,7 +25,6 @@ export const canonicalBundleIdSchema: z.ZodEnum<{
 export type CanonicalBundleId = z.output<typeof canonicalBundleIdSchema>;
 
 export interface PilotConfig {
-  schemaVersion: 2;
   brainVersion: string;
   bundles: CanonicalBundleId[];
   add?: string[] | undefined;
@@ -37,6 +36,13 @@ export interface PilotConfig {
   gitSyncToken: string;
   contentRepoAdminToken: string;
   agePublicKey: string;
+}
+
+export interface SiteOverrideConfig {
+  package: string;
+  version: string;
+  theme?: string | undefined;
+  themeVersion?: string | undefined;
 }
 
 export interface CohortConfig {
@@ -55,7 +61,6 @@ const memberIdsSchema = z.array(z.string().min(1));
 /** Sole active desired-state contract for the canonical brain. */
 export const pilotSchema: z.ZodType<PilotConfig> = z
   .strictObject({
-    schemaVersion: z.literal(2),
     brainVersion: exactVersionSchema,
     bundles: canonicalBundlesSchema,
     add: memberIdsSchema.optional(),
@@ -206,17 +211,30 @@ const atprotoSchema: z.ZodObject<{
   jetstream: atprotoJetstreamSchema.optional(),
 });
 
-const siteOverrideSchema: z.ZodObject<{
-  package: z.ZodString;
-  version: z.ZodOptional<typeof exactVersionSchema>;
-  theme: z.ZodOptional<z.ZodString>;
-  themeVersion: z.ZodOptional<typeof exactVersionSchema>;
-}> = z.strictObject({
-  package: z.string().min(1),
-  version: exactVersionSchema.optional(),
-  theme: z.string().min(1).optional(),
-  themeVersion: exactVersionSchema.optional(),
-});
+export const siteOverrideSchema: z.ZodType<SiteOverrideConfig> = z
+  .strictObject({
+    package: z.string().min(1),
+    version: exactVersionSchema,
+    theme: z.string().min(1).optional(),
+    themeVersion: exactVersionSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    const hasExternalTheme = value.theme?.startsWith("@rizom/") === true;
+    if (hasExternalTheme && value.themeVersion === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["themeVersion"],
+        message: "external @rizom themes require an exact version pin",
+      });
+    }
+    if (!hasExternalTheme && value.themeVersion !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["themeVersion"],
+        message: "themeVersion is valid only for external @rizom themes",
+      });
+    }
+  });
 
 const playbooksSchema: z.ZodObject<{
   onboarding: z.ZodOptional<z.ZodBoolean>;

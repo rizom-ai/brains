@@ -61,10 +61,7 @@ describe("sitePackagesFor", () => {
     expect(sitePackagesFor(undefined)).toEqual([]);
   });
 
-  // A @rizom-scoped theme is an independently published npm package with its
-  // own release cadence — sites and themes version independently, so the
-  // theme installs at its own pinned version, never the site's.
-  it("includes a @rizom-scoped theme at its own pinned version", () => {
+  it("includes an external theme at its own exact version", () => {
     expect(
       sitePackagesFor({
         package: "@rizom/site-rizom-ai",
@@ -78,16 +75,14 @@ describe("sitePackagesFor", () => {
     ]);
   });
 
-  // Guessing a theme version (e.g. reusing the site's) produces install
-  // failures the moment the two packages diverge on npm.
-  it("refuses a @rizom-scoped theme without an explicit version", () => {
+  it("refuses an external theme without an exact version", () => {
     expect(() =>
       sitePackagesFor({
         package: "@rizom/site-rizom-ai",
         version: "0.2.0-alpha.167",
         theme: "@rizom/theme-rizom-ai",
       }),
-    ).toThrow("@rizom/theme-rizom-ai");
+    ).toThrow("no explicit version pin");
   });
 
   // @brains/* themes are bundled inside @rizom/brain and must not be
@@ -247,8 +242,7 @@ describe("runResolveMissingImages", () => {
 
   it("emits a GitHub matrix of missing images from the declared state", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 2
-brainVersion: 0.2.0-alpha.160
+      "pilot.yaml": `brainVersion: 0.2.0-alpha.160
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -266,6 +260,7 @@ discord:
       "users/new.yaml": `handle: new
 siteOverride:
   package: "@rizom/site-rizom-ai"
+  version: 0.2.0-alpha.167
   theme: "@rizom/theme-rizom-ai"
   themeVersion: 0.2.0-alpha.165
 discord:

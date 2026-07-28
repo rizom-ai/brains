@@ -42,7 +42,6 @@ describe("pilot origin CA bootstrap", () => {
     writeFileSync(
       join(testDir, "pilot.yaml"),
       [
-        "schemaVersion: 2",
         "brainVersion: 0.2.0-alpha.3",
         "bundles:",
         "  - core",
@@ -242,7 +241,6 @@ describe("pilot origin CA bootstrap", () => {
     writeFileSync(
       join(testDir, "pilot.yaml"),
       [
-        "schemaVersion: 2",
         "brainVersion: 0.2.0-alpha.3",
         "bundles:",
         "  - core",

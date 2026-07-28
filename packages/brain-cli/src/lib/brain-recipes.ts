@@ -53,7 +53,6 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     },
     plugins: {
       "directory-sync": { seedContentPath: "./seed-content" },
-      discord: { captureUrls: true },
     },
   },
 };

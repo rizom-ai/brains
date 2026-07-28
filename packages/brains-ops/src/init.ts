@@ -37,6 +37,7 @@ const starterFilePaths = [
   "deploy/scripts/sync-content-repo.ts",
   ".kamal/hooks/pre-deploy",
   "docs/onboarding-checklist.md",
+  "docs/canonical-crossover-record.md",
   "docs/operator-playbook.md",
   "docs/user-onboarding.md",
   "README.md",

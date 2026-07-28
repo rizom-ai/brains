@@ -30,9 +30,9 @@ When `pilot.yaml.brainVersion` changes and you push:
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
 
-An omitted `siteOverride.version` follows the user's effective brain version, so a
-cohort or pilot version bump advances its site and theme packages automatically.
-Set an exact `siteOverride.version` only when that user needs a deliberate pin.
+Every external site and theme package has its own exact version pin. A cohort or
+pilot brain-version bump never changes those package versions implicitly; update each
+pin deliberately from reviewed package and image evidence.
 
 When a push changes only deploy contract files and no generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files, the deploy workflow exits through its explicit no-op path and prints `No affected user configs; skipping deploy.`
 
@@ -40,7 +40,7 @@ They are scaffolded from `@rizom/ops`, then versioned in this repo like any othe
 
 ## Canonical contract crossover maintenance window
 
-Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together.
+Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together. Complete `docs/canonical-crossover-record.md` as the approval evidence without adding secret values.
 
 Before the window, record and review:
 
@@ -51,6 +51,8 @@ Before the window, record and review:
 - every unified image tag and immutable digest;
 - canary-first rollout order, followed by the remaining cohorts;
 - expected `/health` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
+
+Run `bunx brains-ops reconcile-all <canonical-review-copy> --dry-run` against the isolated review copy. The command blocks external content-repository access, leaves the review copy untouched, and must report second-pass zero drift.
 
 During the approved window:
 
@@ -162,7 +164,7 @@ Start with the public [site mockup migration guide](https://github.com/rizom-ai/
 - A site package must default-export a valid `SitePackage` and use documented public APIs such as `@rizom/brain/site`.
 - A theme package must default-export its CSS as a string. Hosted custom themes currently use the `@rizom/*` scope so the fleet image installs them with the site package; `@brains/*` themes are bundled with `@rizom/brain`.
 - Site and custom theme packages must be public npm packages that install without registry credentials.
-- Site and theme packages publish on their own release cadences, independent of `@rizom/brain` and of each other. Hosted configuration resolves package names plus pinned versions into exact npm refs.
+- Site, theme, and brain packages publish independently. Hosted configuration requires exact site and external-theme version pins and never derives one package version from another.
 - Keep site structure and theme CSS in separate packages. Do not put private content or secrets in either package.
 
 Configure a user in `users/<handle>.yaml`:
@@ -170,22 +172,20 @@ Configure a user in `users/<handle>.yaml`:
 ```yaml
 siteOverride:
   package: "@rizom/site-example"
+  version: <exact-site-version>
   theme: "@rizom/theme-example"
-  themeVersion: <exact-theme-version> # required for @rizom/* themes
-  # version: <exact-site-version> # optional deliberate pin
+  themeVersion: <exact-theme-version>
 ```
 
-When `version` is omitted, it defaults to the user's effective brain version
-(cohort override first, then `pilot.yaml.brainVersion`). A `@rizom/*` theme
-always requires an explicit `themeVersion` — themes and sites version
-independently, so the theme's version is never inferred. A site override
-produces an isolated per-instance image; it never changes the fleet's shared
-default image.
+Missing external package versions fail desired-state validation. A site override
+produces an isolated per-instance image; it never changes the fleet's shared default
+image. Bundled `@brains/*` themes omit `themeVersion` because they are not installed as
+separate packages.
 
 ### Custom-package canary and rollback
 
 1. Confirm the exact site/theme versions are public-installable without npm credentials.
-2. Apply the package names to one healthy canonical site canary.
+2. Apply the exact package names and versions to one healthy canonical site canary.
 3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, CMS, content sync, and passkey sign-in before adding more users.

@@ -25,7 +25,6 @@ const expectedCatalogIds = [
   "playbook",
   "playbooks",
   "onboarding",
-  "email-resend",
   "cms",
   "dashboard",
   "admin",
@@ -47,11 +46,11 @@ const expectedCatalogIds = [
   "obsidian-vault",
   "rizom-ecosystem",
   "mcp",
+  "email",
   "webserver",
   "web-chat",
-  "discord",
-  "a2a",
   "chat",
+  "a2a",
 ];
 
 const expectedCoreMembers = [
@@ -75,14 +74,14 @@ const expectedCoreMembers = [
   "playbook",
   "playbooks",
   "onboarding",
-  "email-resend",
+  "email",
   "cms",
   "dashboard",
   "admin",
   "mcp",
   "webserver",
   "web-chat",
-  "discord",
+  "chat",
   "a2a",
 ];
 

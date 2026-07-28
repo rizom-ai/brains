@@ -228,13 +228,7 @@ export async function loadPilotRegistry(
           ? { profileKind: userFile.data.profileKind }
           : {}),
         ...(userFile.data.siteOverride
-          ? {
-              siteOverride: resolveSiteOverride(
-                userFile.data.handle,
-                userFile.data.siteOverride,
-                brainVersion,
-              ),
-            }
+          ? { siteOverride: { ...userFile.data.siteOverride } }
           : {}),
         discordEnabled: userFile.data.discord.enabled,
         ...(userFile.data.discord.anchorUserId
@@ -381,38 +375,6 @@ function resolveAnchorProfile(
           })),
         }
       : {}),
-  };
-}
-
-/**
- * Sites and themes publish on independent release cadences, so a @rizom-scoped
- * theme's version can never be inferred from the site's — it must be pinned
- * explicitly. @brains/* themes ship inside @rizom/brain and take no pin.
- */
-function resolveSiteOverride(
-  handle: string,
-  siteOverride: {
-    package: string;
-    version?: string | undefined;
-    theme?: string | undefined;
-    themeVersion?: string | undefined;
-  },
-  brainVersion: string,
-): ResolvedSiteOverride {
-  const external = siteOverride.theme?.startsWith("@rizom/") === true;
-  if (external && siteOverride.themeVersion === undefined) {
-    throw new PilotRegistryError(
-      `User ${handle} pins theme ${siteOverride.theme} without a themeVersion; independently published themes require an explicit version pin`,
-    );
-  }
-  if (!external && siteOverride.themeVersion !== undefined) {
-    throw new PilotRegistryError(
-      `User ${handle} sets themeVersion, but ${siteOverride.theme ?? "no theme"} is not an independently published @rizom theme`,
-    );
-  }
-  return {
-    ...siteOverride,
-    version: siteOverride.version ?? brainVersion,
   };
 }
 

@@ -2,9 +2,37 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { stageLegacyCrossover } from "../src/stage-legacy-crossover";
+import {
+  parseReviewedSitePins,
+  stageLegacyCrossover,
+} from "../src/stage-legacy-crossover";
 
 describe("stageLegacyCrossover", () => {
+  test("parses only fully pinned reviewed hosted sites", () => {
+    expect(
+      parseReviewedSitePins(`sites:
+  alice:
+    package: "@rizom/site-alice"
+    version: 0.2.0-alpha.231
+    theme: "@rizom/theme-alice"
+    themeVersion: 0.2.0-alpha.230
+`),
+    ).toEqual({
+      alice: {
+        package: "@rizom/site-alice",
+        version: "0.2.0-alpha.231",
+        theme: "@rizom/theme-alice",
+        themeVersion: "0.2.0-alpha.230",
+      },
+    });
+    expect(() =>
+      parseReviewedSitePins(`sites:
+  alice:
+    package: "@rizom/site-alice"
+`),
+    ).toThrow("Invalid reviewed site pins");
+  });
+
   test("creates a complete canonical review copy without touching the source", async () => {
     const root = await mkdtemp(join(tmpdir(), "ops-crossover-stage-"));
     const source = join(root, "source");
@@ -13,13 +41,14 @@ describe("stageLegacyCrossover", () => {
     await mkdir(join(source, "users"), { recursive: true });
     await mkdir(join(source, ".brains-ops", "age"), { recursive: true });
     await mkdir(join(source, "dist"), { recursive: true });
-    const legacyPilot = `schemaVersion: 1
+    const legacyPilot = `# Pilot identity must survive migration.
+schemaVersion: 1
 brainVersion: 0.2.0-alpha.231
-model: rover
+model: rover # Retired model selector.
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: default
+preset: default # Retired selection.
 aiApiKey: PILOT_AI_API_KEY
 gitSyncToken: PILOT_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
@@ -38,20 +67,52 @@ agePublicKey: age1pilotpublickey
     await writeFile(join(source, "dist", "bundle.js"), "build artifact\n");
     await writeFile(
       join(source, "cohorts", "canary.yaml"),
-      "members:\n  - alice\npresetOverride: core\n",
+      "# Canary rollout identity.\nmembers:\n  - alice\npresetOverride: core # Retired cohort selection.\n",
     );
-    await writeFile(
-      join(source, "users", "alice.yaml"),
-      "handle: alice\ndiscord:\n  enabled: false\n",
-    );
+    const legacyUser = `handle: alice
+siteOverride:
+  package: "@rizom/site-alice"
+  theme: "@rizom/theme-alice"
+  themeVersion: 0.2.0-alpha.230 # Preserve the deployed theme pin.
+discord:
+  enabled: false
+`;
+    await writeFile(join(source, "users", "alice.yaml"), legacyUser);
 
-    const staged = await stageLegacyCrossover(source, output);
+    const staged = await stageLegacyCrossover(source, output, {
+      sitePins: {
+        alice: {
+          package: "@rizom/site-alice",
+          version: "0.2.0-alpha.231",
+          theme: "@rizom/theme-alice",
+          themeVersion: "0.2.0-alpha.230",
+        },
+      },
+    });
 
     expect(await readFile(join(source, "pilot.yaml"), "utf8")).toBe(
       legacyPilot,
     );
-    expect(await readFile(join(output, "pilot.yaml"), "utf8")).toContain(
-      "schemaVersion: 2",
+    const stagedPilot = await readFile(join(output, "pilot.yaml"), "utf8");
+    expect(stagedPilot).not.toContain("schemaVersion:");
+    expect(stagedPilot).toContain("# Pilot identity must survive migration.");
+    expect(stagedPilot).toContain("# Retired model selector.");
+    expect(stagedPilot).toContain("# Retired selection.");
+    const stagedCohort = await readFile(
+      join(output, "cohorts", "canary.yaml"),
+      "utf8",
+    );
+    expect(stagedCohort).toContain("# Canary rollout identity.");
+    expect(stagedCohort).toContain("# Retired cohort selection.");
+    const stagedUser = await readFile(
+      join(output, "users", "alice.yaml"),
+      "utf8",
+    );
+    expect(stagedUser).toContain("version: 0.2.0-alpha.231");
+    expect(stagedUser).toContain("themeVersion: 0.2.0-alpha.230");
+    expect(stagedUser).toContain("# Preserve the deployed theme pin.");
+    expect(await readFile(join(source, "users", "alice.yaml"), "utf8")).toBe(
+      legacyUser,
     );
     const stagedBrain = await readFile(
       join(output, "users", "alice", "brain.yaml"),
@@ -68,14 +129,102 @@ agePublicKey: age1pilotpublickey
     expect(
       await Bun.file(join(output, "users", "alice", ".env")).exists(),
     ).toBe(true);
+    expect(
+      await Bun.file(
+        join(output, "docs", "canonical-crossover-record.md"),
+      ).exists(),
+    ).toBe(true);
     expect(staged.changedFiles).toEqual(
       expect.arrayContaining([
         "pilot.yaml",
         "cohorts/canary.yaml",
+        "docs/canonical-crossover-record.md",
+        "users/alice.yaml",
         "users/alice/brain.yaml",
         "views/users.md",
       ]),
     );
+  });
+
+  test("requires a complete identity-matched hosted site pin manifest", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ops-crossover-pins-"));
+    const source = join(root, "source");
+    await mkdir(join(source, "cohorts"), { recursive: true });
+    await mkdir(join(source, "users"), { recursive: true });
+    await writeFile(
+      join(source, "pilot.yaml"),
+      `schemaVersion: 1
+brainVersion: 0.2.0-alpha.231
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: PILOT_AI_API_KEY
+gitSyncToken: PILOT_GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1pilotpublickey
+`,
+    );
+    await writeFile(
+      join(source, "cohorts", "sites.yaml"),
+      "members:\n  - alice\n",
+    );
+    await writeFile(
+      join(source, "users", "alice.yaml"),
+      `handle: alice
+siteOverride:
+  package: "@rizom/site-alice"
+  theme: "@rizom/theme-alice"
+  themeVersion: 0.2.0-alpha.230
+discord:
+  enabled: false
+`,
+    );
+
+    expect(
+      stageLegacyCrossover(source, join(root, "missing-pins")),
+    ).rejects.toThrow("no reviewed site pin");
+    expect(
+      stageLegacyCrossover(source, join(root, "wrong-identity"), {
+        sitePins: {
+          alice: {
+            package: "@rizom/site-other",
+            version: "0.2.0-alpha.231",
+            theme: "@rizom/theme-alice",
+            themeVersion: "0.2.0-alpha.230",
+          },
+        },
+      }),
+    ).rejects.toThrow("identity does not match");
+    expect(
+      stageLegacyCrossover(source, join(root, "conflicting-pin"), {
+        sitePins: {
+          alice: {
+            package: "@rizom/site-alice",
+            version: "0.2.0-alpha.231",
+            theme: "@rizom/theme-alice",
+            themeVersion: "0.2.0-alpha.229",
+          },
+        },
+      }),
+    ).rejects.toThrow("theme version does not match");
+    expect(
+      stageLegacyCrossover(source, join(root, "extra-pin"), {
+        sitePins: {
+          alice: {
+            package: "@rizom/site-alice",
+            version: "0.2.0-alpha.231",
+            theme: "@rizom/theme-alice",
+            themeVersion: "0.2.0-alpha.230",
+          },
+          bob: {
+            package: "@rizom/site-bob",
+            version: "0.2.0-alpha.231",
+          },
+        },
+      }),
+    ).rejects.toThrow("do not match site users: bob");
   });
 
   test("refuses to write inside the source repository", async () => {

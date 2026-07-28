@@ -100,7 +100,7 @@
       "symbol": "crossover:stage",
       "owner": "@rizom/ops",
       "class": "offline-migration",
-      "behavior": "Stages schema-v1 pilot desired state as an isolated canonical review copy.",
+      "behavior": "Stages the retired model/preset pilot desired state as an isolated canonical review copy with explicit hosted package pins.",
       "currentConsumers": "The one reviewed private-pilot crossover and its offline rollback preparation.",
       "removalPrerequisite": "Phase 8 reaches zero-drift second reconcile and hosted canaries plus yeehaa.io soak one week on the unified alpha.",
       "rollbackDependency": "Retained through the defined crossover rollback horizon; active ops loading never imports it.",

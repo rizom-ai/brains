@@ -35,7 +35,6 @@ describe("offline legacy pilot migration", () => {
     const migrated = migrateLegacyPilotConfig(legacyPilot);
 
     expect(migrated).toEqual({
-      schemaVersion: 2,
       brainVersion: "0.2.0-alpha.231",
       bundles: ["core", "site", "publishing"],
       add: ["obsidian-vault"],
@@ -81,7 +80,7 @@ describe("offline legacy pilot migration", () => {
 
     expect(pilotYaml).not.toContain("model:");
     expect(pilotYaml).not.toContain("preset:");
-    expect(pilotYaml).toContain("schemaVersion: 2");
+    expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(cohortYaml).toContain("bundlesOverride:");
     expect(parseYamlDocument(pilotYaml, pilotSchema).ok).toBe(true);

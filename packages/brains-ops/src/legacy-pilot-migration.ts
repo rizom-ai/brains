@@ -1,5 +1,6 @@
 import { toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
+import { isMap, isNode, isScalar, parseDocument, type Pair } from "yaml";
 import {
   cohortSchema,
   exactVersionSchema,
@@ -80,7 +81,6 @@ function canonicalSelection(selection: LegacySelection): CanonicalSelection {
 export function migrateLegacyPilotConfig(input: unknown): PilotConfig {
   const legacy = legacyPilotSchema.parse(input);
   return pilotSchema.parse({
-    schemaVersion: 2,
     brainVersion: legacy.brainVersion,
     ...canonicalSelection(legacy.preset),
     githubOrg: legacy.githubOrg,
@@ -118,6 +118,136 @@ export function migrateLegacyCohortConfig(input: unknown): CohortConfig {
       ? { gitSyncTokenOverride: legacy.gitSyncTokenOverride }
       : {}),
   });
+}
+
+type MigrationDocument = ReturnType<typeof parseDocument>;
+
+function parseMigrationDocument(input: string): MigrationDocument {
+  const document = parseDocument(input, { keepSourceTokens: true });
+  if (document.errors.length > 0) {
+    throw new Error(
+      `Invalid desired-state YAML: ${document.errors[0]?.message}`,
+    );
+  }
+  if (!isMap(document.contents)) {
+    throw new Error("Desired-state YAML must contain a mapping");
+  }
+  return document;
+}
+
+function findPair(document: MigrationDocument, key: string): Pair | undefined {
+  if (!isMap(document.contents)) return undefined;
+  return document.contents.items.find(
+    (entry) => isScalar(entry.key) && entry.key.value === key,
+  );
+}
+
+function copyNodePresentation(from: unknown, to: unknown): void {
+  if (!isNode(from) || !isNode(to)) return;
+  if (from.commentBefore !== undefined) {
+    to.commentBefore = from.commentBefore;
+  }
+  if (from.comment !== undefined) {
+    to.comment = from.comment;
+  }
+  if (from.spaceBefore !== undefined) {
+    to.spaceBefore = from.spaceBefore;
+  }
+}
+
+function appendPairComments(from: Pair | undefined, to: unknown): void {
+  if (!from || !isNode(to)) return;
+  const comments = [
+    isNode(from.key) ? from.key.commentBefore : undefined,
+    isNode(from.key) ? from.key.comment : undefined,
+    isNode(from.value) ? from.value.commentBefore : undefined,
+    isNode(from.value) ? from.value.comment : undefined,
+  ].filter((comment): comment is string => comment !== undefined);
+  if (comments.length === 0) return;
+  to.commentBefore = [to.commentBefore, ...comments]
+    .filter((comment): comment is string => comment !== undefined)
+    .join("\n");
+}
+
+function replaceArrayFieldPreservingComments(
+  document: MigrationDocument,
+  sourceKey: string,
+  targetKey: string,
+  values: readonly string[],
+): Pair {
+  if (!isMap(document.contents)) {
+    throw new Error("Desired-state YAML must contain a mapping");
+  }
+  const sourceIndex = document.contents.items.findIndex(
+    (entry) => isScalar(entry.key) && entry.key.value === sourceKey,
+  );
+  const replacement = document.createPair(targetKey, [...values]);
+  if (sourceIndex >= 0) {
+    const previous = document.contents.items[sourceIndex];
+    copyNodePresentation(previous?.key, replacement.key);
+    copyNodePresentation(previous?.value, replacement.value);
+    document.contents.items.splice(sourceIndex, 1, replacement);
+  } else {
+    document.contents.add(replacement);
+  }
+  return replacement;
+}
+
+/** Offline-only YAML rewrite that retains comments while changing the schema. */
+export function migrateLegacyPilotYaml(input: string): string {
+  const document = parseMigrationDocument(input);
+  const migrated = migrateLegacyPilotConfig(document.toJS());
+  const removedSchemaVersion = findPair(document, "schemaVersion");
+  const removedModel = findPair(document, "model");
+
+  appendPairComments(
+    removedSchemaVersion,
+    findPair(document, "brainVersion")?.key,
+  );
+  document.delete("schemaVersion");
+  const bundles = replaceArrayFieldPreservingComments(
+    document,
+    "preset",
+    "bundles",
+    migrated.bundles,
+  );
+  appendPairComments(removedModel, bundles.key);
+  document.delete("model");
+  if (migrated.add) document.set("add", migrated.add);
+  else document.delete("add");
+  if (migrated.remove) document.set("remove", migrated.remove);
+  else document.delete("remove");
+
+  pilotSchema.parse(document.toJS());
+  return document.toString({ lineWidth: 0 });
+}
+
+/** Offline-only cohort rewrite that retains comments while changing selection. */
+export function migrateLegacyCohortYaml(input: string): string {
+  const document = parseMigrationDocument(input);
+  const migrated = migrateLegacyCohortConfig(document.toJS());
+
+  if (migrated.bundlesOverride) {
+    replaceArrayFieldPreservingComments(
+      document,
+      "presetOverride",
+      "bundlesOverride",
+      migrated.bundlesOverride,
+    );
+  } else {
+    document.delete("presetOverride");
+    document.delete("bundlesOverride");
+  }
+  if (migrated.addOverride) document.set("addOverride", migrated.addOverride);
+  else document.delete("addOverride");
+  if (migrated.removeOverride) {
+    document.set("removeOverride", migrated.removeOverride);
+  } else {
+    document.delete("removeOverride");
+  }
+
+  cohortSchema.parse(document.toJS());
+  return document.toString({ lineWidth: 0 });
 }
 
 export function renderPilotConfig(config: PilotConfig): string {

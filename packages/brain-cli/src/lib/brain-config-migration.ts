@@ -33,6 +33,7 @@ interface MigrationInput {
 
 const memberAliases: Readonly<Record<string, string>> = {
   "dashboard-root": "dashboard",
+  "email-resend": "email",
   "rover-onboarding": "onboarding",
 };
 

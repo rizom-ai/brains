@@ -92,7 +92,6 @@ describe("canonical commerce posture", () => {
           seedContentPath: "./seed-content",
           initialSync: true,
         },
-        discord: { captureUrls: true },
       },
     });
   });
@@ -100,12 +99,12 @@ describe("canonical commerce posture", () => {
   test("resolves instance-owned site, theme, seed, and Discord choices", () => {
     const resolved = resolve(
       canonicalBrain,
-      {},
-      commerceOverrides({
-        plugins: {
-          discord: { botToken: "test-token", captureUrls: true },
-        },
-      }),
+      {
+        DISCORD_BOT_TOKEN: "test-token",
+        DISCORD_PUBLIC_KEY: "test-public-key",
+        DISCORD_APPLICATION_ID: "test-application-id",
+      },
+      commerceOverrides(),
     );
 
     expect(pluginConfig(resolved, "site-builder")).toMatchObject({
@@ -116,9 +115,15 @@ describe("canonical commerce posture", () => {
       seedContentPath: "./seed-content",
       initialSync: true,
     });
-    expect(pluginConfig(resolved, "discord")).toMatchObject({
-      botToken: "test-token",
-      captureUrls: true,
+    expect(pluginConfig(resolved, "chat")).toMatchObject({
+      adapters: {
+        discord: {
+          botToken: "test-token",
+          publicKey: "test-public-key",
+          applicationId: "test-application-id",
+          captureUrls: true,
+        },
+      },
     });
     expect(pluginIds(resolved)).toContain("products");
   });

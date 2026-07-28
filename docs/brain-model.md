@@ -180,4 +180,4 @@ An explicitly scoped external package may default-export a `BrainDefinition`. Th
 
 `brain config migrate` is an offline preview command for old built-in configuration. The active parser and resolver do not accept the retired contract.
 
-Hosted desired state follows the same rule: `@rizom/ops` loads only schema version 2. Its legacy reader exists only inside offline crossover staging tooling.
+Hosted desired state follows the same rule: `@rizom/ops` loads one strict, unversioned canonical format with exact external site and theme package pins. Its temporary legacy reader exists only inside offline crossover staging tooling.

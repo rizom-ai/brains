@@ -168,6 +168,10 @@ remove:
 site:
   theme: "@custom/theme"
 plugins:
+  email-resend:
+    transport: resend
+    apiKey: \${SETUP_EMAIL_API_KEY}
+    from: \${SETUP_EMAIL_FROM}
   rover-onboarding:
     enabled: true
   directory-sync:
@@ -192,6 +196,8 @@ permissions:
     expect(result.output).toContain("# Keep this external plugin note");
     expect(result.output).toContain("# Keep this package note");
     expect(result.output).toContain("${GIT_SYNC_TOKEN}");
+    expect(result.output).toContain("${SETUP_EMAIL_API_KEY}");
+    expect(result.output).toContain("${SETUP_EMAIL_FROM}");
     expect(result.output).toContain("${CALENDAR_API_KEY}");
     expect(parsed.kind).toBe("professional");
     expect(parsed.add).toEqual(["docs", "onboarding", "obsidian-vault"]);
@@ -208,6 +214,8 @@ permissions:
       package: "@brains/site-default",
       theme: "@custom/theme",
     });
+    expect(parsed.plugins?.["email"]).toEqual({ transport: "resend" });
+    expect(parsed.plugins?.["email-resend"]).toBeUndefined();
     expect(parsed.plugins?.["onboarding"]).toEqual({ enabled: true });
     expect(parsed.plugins?.["rover-onboarding"]).toBeUndefined();
     expect(parsed.plugins?.["directory-sync"]).toMatchObject({

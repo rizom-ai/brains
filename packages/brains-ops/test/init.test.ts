@@ -132,6 +132,9 @@ describe("initPilotRepo", () => {
     expect(existsSync(join(repo, "docs", "onboarding-checklist.md"))).toBe(
       true,
     );
+    expect(
+      existsSync(join(repo, "docs", "canonical-crossover-record.md")),
+    ).toBe(true);
     expect(existsSync(join(repo, "docs", "operator-playbook.md"))).toBe(true);
     expect(existsSync(join(repo, "docs", "user-onboarding.md"))).toBe(true);
     expect(existsSync(join(repo, "package.json"))).toBe(true);
@@ -183,7 +186,7 @@ describe("initPilotRepo", () => {
     ).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
-    expect(pilotYaml).toContain("schemaVersion: 2");
+    expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("bundles:\n  - core");
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
@@ -557,7 +560,8 @@ describe("initPilotRepo", () => {
     );
     expect(operatorPlaybook).toContain("default-export a valid `SitePackage`");
     expect(operatorPlaybook).toContain("site-mockup-migration.md");
-    expect(operatorPlaybook).toContain("siteOverride.version");
+    expect(operatorPlaybook).toContain("version: <exact-site-version>");
+    expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
     expect(operatorPlaybook).toContain("per-instance image");
     expect(operatorPlaybook).toContain(
       "### Custom-package canary and rollback",
@@ -590,7 +594,7 @@ describe("initPilotRepo", () => {
     expect(readme).toContain("single source of truth");
     expect(readme).toContain("brain-${brainVersion}");
     expect(readme).toContain("brain-${brainVersion}-sites-${packageHash}");
-    expect(readme).toContain("siteOverride.version");
+    expect(readme).toContain("required exact version pin");
     expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
   });
@@ -719,7 +723,7 @@ describe("initPilotRepo", () => {
     await mkdir(repo, { recursive: true });
     await writeFile(
       join(repo, "pilot.yaml"),
-      "schemaVersion: 2\nbrainVersion: 0.1.1-alpha.99\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\nbundles:\n  - core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nagePublicKey: age1custompublickey\n",
+      "brainVersion: 0.1.1-alpha.99\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\nbundles:\n  - core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nagePublicKey: age1custompublickey\n",
     );
 
     await initPilotRepo(repo);

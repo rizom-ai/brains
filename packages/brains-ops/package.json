@@ -17,7 +17,8 @@
   },
   "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {
-    "age-encryption": "^0.3.0"
+    "age-encryption": "^0.3.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@brains/deploy-support": "workspace:*",

@@ -20,8 +20,7 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
 describe("writeUsersTable", () => {
   it("renders desired-state markdown table to views/users.md", async () => {
     const root = await createPilotRepo({
-      "pilot.yaml": `schemaVersion: 2
-brainVersion: 0.1.1-alpha.14
+      "pilot.yaml": `brainVersion: 0.1.1-alpha.14
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

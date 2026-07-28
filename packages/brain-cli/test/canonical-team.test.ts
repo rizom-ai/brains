@@ -100,7 +100,7 @@ describe("canonical team bundle", () => {
       "topics",
       "decks",
       "mcp",
-      "discord",
+      "chat",
       "conversation-memory",
       "docs",
     ]);

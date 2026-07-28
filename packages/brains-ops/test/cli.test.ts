@@ -55,6 +55,21 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
   });
 
+  it("parses crossover staging with reviewed site pins", () => {
+    const result = parseArgs([
+      "crossover:stage",
+      "/tmp/rover-pilot",
+      "/tmp/review",
+      "/tmp/site-pins.yaml",
+    ]);
+    expect(result.command).toBe("crossover:stage");
+    expect(result.args).toEqual([
+      "/tmp/rover-pilot",
+      "/tmp/review",
+      "/tmp/site-pins.yaml",
+    ]);
+  });
+
   it("parses secrets:push with repo path and dry-run", () => {
     const result = parseArgs(["secrets:push", "/tmp/rover-pilot", "--dry-run"]);
     expect(result.command).toBe("secrets:push");
@@ -127,8 +142,7 @@ describe("brains-ops parseArgs", () => {
 
 describe("brains-ops runCommand", () => {
   const baseFiles = {
-    "pilot.yaml": `schemaVersion: 2
-brainVersion: 0.1.1-alpha.14
+    "pilot.yaml": `brainVersion: 0.1.1-alpha.14
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -164,8 +178,8 @@ discord:
     });
 
     expect(result.success).toBe(true);
-    expect(await readFile(join(repo, "pilot.yaml"), "utf8")).toContain(
-      "schemaVersion: 2",
+    expect(await readFile(join(repo, "pilot.yaml"), "utf8")).not.toContain(
+      "schemaVersion:",
     );
   });
 
@@ -666,6 +680,22 @@ members:
     );
     expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
       "CONTENT_REPO=rizom-ai/rover-bob-content",
+    );
+  });
+
+  it("dry-runs reconcile-all without writing the source repo", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand({
+      command: "reconcile-all",
+      args: [root],
+      flags: { "dry-run": true },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("second pass converged with zero drift");
+    expect(await Bun.file(join(root, "users/alice/brain.yaml")).exists()).toBe(
+      false,
     );
   });
 
