@@ -15,11 +15,9 @@
 "@brains/mcp": patch
 "@brains/chat": patch
 "@brains/chat-repl": patch
-"@brains/discord": patch
 "@brains/web-chat": patch
 "@brains/dashboard": patch
 "@brains/cms": patch
-"@brains/sveltia-cms": patch
 "@brains/rover": patch
 "@brains/relay": patch
 "@brains/ranger": patch

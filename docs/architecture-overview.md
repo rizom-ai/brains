@@ -169,7 +169,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | ---------------------- | ------------------------------------------------------------------------------------------- |
 | `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                            |
 | `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
-| `interfaces/discord`   | Discord bot interface                                                                       |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                              |
 | `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                           |
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
@@ -240,7 +240,7 @@ Service plugins provide the system's operational surface area:
 Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
-- chat users connect through `interfaces/discord` or `interfaces/chat-repl`
+- chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
 - browsers connect through `interfaces/webserver` for public pages, dashboard/CMS routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 

@@ -6,8 +6,7 @@ import {
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
-import { DiscordInterface } from "@brains/discord";
-import { ChatInterface } from "@brains/chat";
+import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
@@ -94,7 +93,7 @@ const core = [
   "mcp",
   "webserver",
   "web-chat",
-  "discord",
+  "chat",
   "a2a",
 ];
 
@@ -144,7 +143,6 @@ const roverBrain: BrainDefinition = defineBrain({
   },
 
   evalDisable: [
-    "discord",
     "chat",
     "webserver",
     "web-chat",
@@ -259,8 +257,7 @@ const roverBrain: BrainDefinition = defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["discord", DiscordInterface, (): PluginConfig => ({})],
-    ["chat", ChatInterface, (): PluginConfig => ({})],
+    ["chat", ChatInterface, (env): PluginConfig => chatConfigFromEnv(env)],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],

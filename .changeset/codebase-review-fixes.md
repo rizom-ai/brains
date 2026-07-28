@@ -6,7 +6,6 @@
 "@brains/analytics": patch
 "@brains/dashboard": patch
 "@brains/a2a": patch
-"@brains/discord": patch
 "@brains/mcp": patch
 "@brains/web-chat": patch
 "@brains/webserver": patch

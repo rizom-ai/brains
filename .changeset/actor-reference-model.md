@@ -11,7 +11,6 @@
 "@brains/conversation-service": patch
 "@brains/core": patch
 "@brains/entity-service": minor
-"@brains/discord": patch
 "@brains/identity-service": patch
 "@brains/job-queue": patch
 "@brains/link": patch

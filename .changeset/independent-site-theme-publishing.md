@@ -7,7 +7,6 @@
 "@rizom/site-smoke-canary": patch
 "@rizom/theme-default": patch
 "@rizom/theme-rizom-ai": patch
-"@rizom/theme-signal": patch
 ---
 
 Release site and theme packages independently and publish standard `@rizom/brain` peer compatibility metadata in both npm packuments and tarballs.

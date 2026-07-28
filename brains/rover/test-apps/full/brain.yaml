@@ -3,11 +3,6 @@ anchor: person
 preset: full
 domain: alex.example.com
 
-add:
-  - chat
-remove:
-  - discord
-
 permissions:
   rules:
     - pattern: "discord:1442828818493735015"

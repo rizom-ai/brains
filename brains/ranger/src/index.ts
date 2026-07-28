@@ -5,7 +5,7 @@ import {
 } from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
-import { DiscordInterface } from "@brains/discord";
+import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { atprotoRegistryPlugin } from "@brains/atproto-registry";
@@ -68,12 +68,12 @@ const rangerBrain: BrainDefinition = defineBrain({
       "site-content",
       "site-builder",
       "mcp",
-      "discord",
+      "chat",
       "webserver",
     ],
   },
 
-  evalDisable: ["discord", "webserver", "analytics", "dashboard"],
+  evalDisable: ["chat", "webserver", "analytics", "dashboard"],
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
@@ -108,7 +108,11 @@ const rangerBrain: BrainDefinition = defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["discord", DiscordInterface, (): PluginConfig => ({ captureUrls: true })],
+    [
+      "chat",
+      ChatInterface,
+      (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
+    ],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
   ],
 

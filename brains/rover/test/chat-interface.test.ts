@@ -2,12 +2,15 @@ import { describe, expect, it } from "bun:test";
 import { resolve } from "@brains/app";
 import rover from "../src/index";
 
-describe("Rover ChatInterface opt-in", () => {
-  it("keeps ChatInterface out of default presets", () => {
-    expect(rover.presets?.core).not.toContain("chat");
-    expect(rover.presets?.default).not.toContain("chat");
-    expect(rover.presets?.full).not.toContain("chat");
+describe("Rover ChatInterface", () => {
+  it("ships chat in every preset as the only chat transport", () => {
+    expect(rover.presets?.core).toContain("chat");
+    expect(rover.presets?.default).toContain("chat");
+    expect(rover.presets?.full).toContain("chat");
     expect(rover.evalDisable).toContain("chat");
+
+    const interfaceIds = rover.interfaces.map(([id]) => id);
+    expect(interfaceIds).not.toContain("discord");
   });
 
   it("ships a dedicated Socket Mode trial app and start command", async () => {
@@ -19,8 +22,6 @@ describe("Rover ChatInterface opt-in", () => {
     ).json()) as { scripts?: Record<string, string> };
 
     expect(brainYaml).toContain("preset: core");
-    expect(brainYaml).toContain("- chat");
-    expect(brainYaml).toContain("- discord");
     expect(brainYaml).toContain("mode: socket");
     expect(brainYaml).toContain("botToken: ${SLACK_BOT_TOKEN}");
     expect(brainYaml).toContain("appToken: ${SLACK_APP_TOKEN}");
@@ -32,34 +33,29 @@ describe("Rover ChatInterface opt-in", () => {
     expect(packageJson.scripts?.["start:slack"]).toContain("test-apps/slack");
   });
 
-  it("can switch local trials from discord to chat with add/remove overrides", () => {
+  it("wires the Discord adapter from env without a brain.yaml override", () => {
     const config = resolve(
       rover,
-      {},
       {
-        preset: "core",
-        add: ["chat"],
-        remove: ["discord"],
-        plugins: {
-          chat: {
-            adapters: {
-              discord: {
-                botToken: "discord-token",
-                publicKey: "discord-public-key",
-                applicationId: "discord-application-id",
-              },
-            },
-          },
-        },
+        DISCORD_BOT_TOKEN: "discord-token",
+        DISCORD_PUBLIC_KEY: "a".repeat(64),
+        DISCORD_APPLICATION_ID: "discord-application-id",
       },
+      { preset: "core" },
     );
-    const plugins = config.plugins ?? [];
-    const pluginIds = plugins.map((plugin) => plugin.id);
-    const packageNames = plugins.map((plugin) => plugin.packageName);
+    const chat = (config.plugins ?? []).find((plugin) => plugin.id === "chat");
 
-    expect(pluginIds).toContain("chat");
-    expect(packageNames).toContain("@brains/chat");
-    expect(pluginIds).not.toContain("discord");
-    expect(packageNames).not.toContain("@brains/discord");
+    expect(chat).toBeDefined();
+    expect(chat?.packageName).toBe("@brains/chat");
+  });
+
+  it("can be dropped from a local trial with a remove override", () => {
+    const config = resolve(rover, {}, { preset: "core", remove: ["chat"] });
+    const plugins = config.plugins ?? [];
+
+    expect(plugins.map((plugin) => plugin.id)).not.toContain("chat");
+    expect(plugins.map((plugin) => plugin.packageName)).not.toContain(
+      "@brains/chat",
+    );
   });
 });

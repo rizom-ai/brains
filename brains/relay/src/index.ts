@@ -5,7 +5,7 @@ import {
 } from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
-import { DiscordInterface } from "@brains/discord";
+import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { A2AInterface } from "@brains/a2a";
 import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
@@ -86,7 +86,7 @@ const core = [
   "mcp",
   "webserver",
   "web-chat",
-  "discord",
+  "chat",
   "a2a",
 ];
 
@@ -130,7 +130,7 @@ const relayBrain: BrainDefinition = defineBrain({
     full,
   },
 
-  evalDisable: ["webserver", "web-chat", "mcp", "discord"],
+  evalDisable: ["webserver", "web-chat", "mcp", "chat"],
 
   agentInstructions,
 
@@ -187,7 +187,11 @@ const relayBrain: BrainDefinition = defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["discord", DiscordInterface, (): PluginConfig => ({ captureUrls: true })],
+    [
+      "chat",
+      ChatInterface,
+      (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
+    ],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],

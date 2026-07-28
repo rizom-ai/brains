@@ -153,8 +153,8 @@ const slackAdapterConfigSchema: z.ZodType<
     }
   });
 
-export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> =
-  z.object({
+export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> = z
+  .object({
     userName: z.string().default("brain"),
     adapters: z
       .object({
@@ -168,4 +168,16 @@ export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> =
       .positive()
       .default(9 * 60 * 1000),
     gatewayRestartDelayMs: z.number().int().nonnegative().default(1_000),
+  })
+  .superRefine((config, context) => {
+    // An adapterless interface would register webhook routes that only ever
+    // 404. The resolver reads this as "missing required config" and skips the
+    // interface, which is what a brain with no chat credentials wants.
+    if (!config.adapters.discord && !config.adapters.slack) {
+      context.addIssue({
+        code: "custom",
+        message: "At least one chat adapter must be configured",
+        path: ["adapters"],
+      });
+    }
   });

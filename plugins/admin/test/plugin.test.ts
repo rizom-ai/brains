@@ -64,8 +64,8 @@ describe("admin console plugin", () => {
       .getService()
       .createAuthSession(admin.userId);
     shell.addPlugin({
-      id: "discord",
-      packageName: "@brains/discord",
+      id: "chat",
+      packageName: "@brains/chat",
     } as never);
     const plugin = adminPlugin();
     await plugin.register(shell);

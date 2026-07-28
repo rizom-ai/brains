@@ -151,7 +151,7 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `admin`                | x      | x         | x      |
 | `mcp`                  | x      | x         | x      |
 | `webserver`            | x      | x         | x      |
-| `discord`              | x      | x         | x      |
+| `chat`                 | x      | x         | x      |
 | `a2a`                  | x      | x         | x      |
 | `image`                |        | x         | x      |
 | `blog`                 |        | x         | x      |
@@ -168,7 +168,7 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `newsletter`           |        |           | x      |
 | `stock-photo`          |        |           | x      |
 
-- **`core`** — minimal on-ramp: capture, sync, dashboard + CMS + Admin, MCP/web/Discord/A2A, but no site-builder
+- **`core`** — minimal on-ramp: capture, sync, dashboard + CMS + Admin, MCP/web/chat/A2A, but no site-builder
 - **`default`** — adds the website and publishing surface
 - **`full`** — adds portfolio, automation, document/PDF, newsletter, and stock-photo workflows
 
@@ -179,29 +179,25 @@ preset: default
 add:
   - portfolio
 remove:
-  - discord
+  - chat
 ```
 
-### Experimental Chat SDK Discord trial
+### Chat interface
 
-Rover still uses `@brains/discord` by default. Hosted/shared Discord gateway work will use `@brains/chat` first; self-hosted migration comes later after that path is stable. To trial the new unified Chat SDK interface locally, explicitly add `chat` and remove `discord` in your instance config:
+`chat` is the single chat transport, covering Discord and Slack through the Chat SDK. Set `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID` and the Discord adapter wires itself up; leave any of them unset and no Discord adapter is created. Anything else is configured per instance:
 
 ```yaml
-preset: default
-add:
-  - chat
-remove:
-  - discord
 plugins:
   chat:
     adapters:
       discord:
-        botToken: ${DISCORD_BOT_TOKEN}
-        publicKey: ${DISCORD_PUBLIC_KEY}
-        applicationId: ${DISCORD_APPLICATION_ID}
+        requireMention: true
+        allowDMs: true
+        useThreads: true
+        captureUrls: true
 ```
 
-This keeps self-hosted production defaults unchanged while allowing local Discord parity testing. Eval mode disables both `discord` and `chat`.
+Slack is configured under the same `adapters` key — see [`@brains/chat`](../../interfaces/chat/README.md). Eval mode disables `chat`.
 
 ## Get Your Own Rover
 

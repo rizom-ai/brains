@@ -1,7 +1,6 @@
 ---
 "@brains/ai-service": patch
 "@brains/core": patch
-"@brains/discord": patch
 "@brains/job-queue": patch
 "@brains/plugins": patch
 "@brains/recurring-checks": patch

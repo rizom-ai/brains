@@ -845,18 +845,16 @@ describe("ChatInterface", () => {
     expect(lastSlackAdapter?.startSocketModeListener).toHaveBeenCalled();
   });
 
-  it("does not create a chat adapter or daemon when none is configured", async () => {
-    const plugin = new ChatInterface();
-
-    await harness.installPlugin(plugin);
-
+  it("refuses to mount with no adapter configured", () => {
+    // The resolver turns this into a skipped interface, so a brain without
+    // chat credentials carries no chat plugin at all rather than one that
+    // registers webhook routes only to 404 on them.
+    expect(() => new ChatInterface()).toThrow(/Invalid plugin config for chat/);
+    expect(() => new ChatInterface({ adapters: {} })).toThrow(
+      /Invalid plugin config for chat/,
+    );
     expect(createDiscordAdapterMock).not.toHaveBeenCalled();
     expect(createSlackAdapterMock).not.toHaveBeenCalled();
-    expect(createMemoryStateMock).toHaveBeenCalledTimes(1);
-    expect(MockChatSdk.instances[0]?.config.adapters.discord).toBeUndefined();
-    expect(
-      harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
-    ).toEqual([]);
   });
 
   it("ignores unsupported Chat SDK threads", async () => {
@@ -6843,7 +6841,7 @@ describe("ChatInterface", () => {
   });
 
   it("returns 404 from Discord webhook route when no Discord adapter is configured", async () => {
-    const plugin = new ChatInterface();
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
     await harness.installPlugin(plugin);
     const route = plugin
       .getWebRoutes()
@@ -6904,7 +6902,7 @@ describe("ChatInterface", () => {
   });
 
   it("returns 404 from Discord upload route when no Discord adapter is configured", async () => {
-    const plugin = new ChatInterface();
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
     await harness.installPlugin(plugin);
     const route = plugin
       .getWebRoutes()

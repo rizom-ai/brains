@@ -45,16 +45,8 @@
         "site-content",
         "site-builder"
       ],
-      "interfaceIds": [
-        "mcp",
-        "discord",
-        "chat",
-        "webserver",
-        "web-chat",
-        "a2a"
-      ],
+      "interfaceIds": ["mcp", "chat", "webserver", "web-chat", "a2a"],
       "evalDisable": [
-        "discord",
         "chat",
         "webserver",
         "web-chat",
@@ -239,7 +231,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a"
           ],
           "add": [],
@@ -669,7 +661,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -1312,7 +1304,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -2027,7 +2019,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -2722,8 +2714,8 @@
         "site-info",
         "site-builder"
       ],
-      "interfaceIds": ["mcp", "discord", "a2a", "webserver", "web-chat"],
-      "evalDisable": ["webserver", "web-chat", "mcp", "discord"],
+      "interfaceIds": ["mcp", "chat", "a2a", "webserver", "web-chat"],
+      "evalDisable": ["webserver", "web-chat", "mcp", "chat"],
       "site": {
         "entityDisplay": {},
         "headScripts": [
@@ -2910,7 +2902,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a"
           ],
           "add": [],
@@ -3290,7 +3282,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "image",
             "site-info",
@@ -4060,7 +4052,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "image",
             "site-info",
@@ -4841,8 +4833,8 @@
         "site-content",
         "site-builder"
       ],
-      "interfaceIds": ["mcp", "discord", "webserver"],
-      "evalDisable": ["discord", "webserver", "analytics", "dashboard"],
+      "interfaceIds": ["mcp", "chat", "webserver"],
+      "evalDisable": ["chat", "webserver", "analytics", "dashboard"],
       "site": {
         "entityDisplay": {},
         "headScripts": ["<script src=\"/boot.js\" defer></script>"],
@@ -4967,7 +4959,7 @@
             "site-content",
             "site-builder",
             "mcp",
-            "discord",
+            "chat",
             "webserver"
           ],
           "add": [],

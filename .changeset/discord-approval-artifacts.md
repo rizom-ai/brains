@@ -1,6 +1,5 @@
 ---
 "@rizom/brain": patch
-"@brains/discord": patch
 "@brains/plugins": patch
 ---
 

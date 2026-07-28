@@ -2,7 +2,6 @@
 "@brains/admin": patch
 "@brains/auth-service": minor
 "@brains/contracts": minor
-"@brains/discord": patch
 "@brains/plugins": minor
 "@brains/templates": minor
 "@rizom/brain": minor
