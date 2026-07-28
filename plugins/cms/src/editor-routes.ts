@@ -2,26 +2,17 @@ import { join } from "node:path";
 import {
   requireSameOriginJson,
   requireSameOriginRequest,
-  type AppendAuthAuditEventInput,
-  type AuthPrincipal,
 } from "@brains/auth-service";
-import type { ActorRef } from "@brains/contracts";
 import type {
   BaseEntity,
-  CmsWorkspaceActor,
-  ContentVisibility,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
-  A2A_CHANNELS,
   canWriteVisibility,
-  contentVisibilitySchema,
   DIRECTORY_SYNC_CHANNELS,
   generateMarkdownWithFrontmatter,
   getPublishBoundaryState,
-  parseMarkdownWithFrontmatter,
-  jsonResponse as jsonResponseBase,
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -36,6 +27,39 @@ import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeCmsBasePath } from "./cms-paths";
 import type { CmsWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
+import { jsonResponse } from "./editor-response";
+import {
+  handleAskAgent,
+  handleAssist,
+  handleListAgents,
+} from "./editor-assist";
+import {
+  rejectBodyForBodylessType,
+  resolveCmsVisibility,
+  splitEntityContent,
+  stripCmsPolicyMetadata,
+  withCmsVisibility,
+} from "./editor-content";
+import {
+  cmsMutationOptions,
+  deriveTypeCapabilities,
+  getTypeCapabilities,
+  recordCmsMutationAudit,
+  requireAdminCapability,
+  requireEntityAction,
+  toCmsWorkspaceActor,
+} from "./editor-access";
+import type {
+  CmsRequestAccess,
+  CmsRequestAccessResolution,
+  EditorRouteOptions,
+} from "./editor-contracts";
+
+export type {
+  CmsRequestAccess,
+  CmsTypeCapabilities,
+  EditorRouteOptions,
+} from "./editor-contracts";
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
 // to the shared dist/ui directory, where app.js is web-chat's bundle.
@@ -65,59 +89,6 @@ const workspaceActionPayloadSchema = z.object({
   action: z.unknown(),
 });
 
-const assistContextShape = {
-  entityType: z.string(),
-  id: z.string(),
-};
-
-const assistPayloadSchema = z.union([
-  z.object({
-    ...assistContextShape,
-    variant: z.literal("rewrite").optional(),
-    instruction: z.string().trim().min(1),
-    selection: z.string().min(1).max(8_000),
-  }),
-  z.object({
-    ...assistContextShape,
-    variant: z.literal("summarise"),
-    targetField: z.string().trim().min(1),
-  }),
-  z.object({
-    ...assistContextShape,
-    variant: z.literal("tag-suggest"),
-    targetField: z.string().trim().min(1),
-  }),
-]);
-
-const assistResponseSchema = z.object({
-  suggestion: z.string(),
-});
-
-const tagAssistResponseSchema = z.object({
-  suggestions: z.array(z.string().trim().min(1)).max(12),
-});
-
-const askAgentPayloadSchema = z.object({
-  entityType: z.string(),
-  id: z.string(),
-  selection: z.string().min(1).max(8_000),
-  instruction: z.string().trim().min(1).max(2_000),
-  agent: z.string().trim().min(1).max(253),
-});
-
-const a2aCallResultSchema = z.looseObject({
-  response: z.string(),
-});
-
-const a2aAgentListSchema = z.object({
-  agents: z.array(
-    z.object({
-      id: z.string(),
-      label: z.string(),
-    }),
-  ),
-});
-
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -136,44 +107,6 @@ const syncStatusMessageSchema = z.object({
     })
     .nullable(),
 });
-
-export interface CmsRequestAccess {
-  principal: AuthPrincipal;
-  actor: Extract<ActorRef, { kind: "user" }>;
-  permissionLevel: "trusted" | "admin";
-  visibilityScope: Extract<ContentVisibility, "shared" | "restricted">;
-  isAnchor: boolean;
-}
-
-export interface CmsTypeCapabilities {
-  canRead: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canExtract: boolean;
-  canPublish: boolean;
-  canAssist: boolean;
-}
-
-export interface EditorRouteOptions {
-  /** Base route the editor is served from, e.g. "/cms". */
-  routePath: string;
-  getContext: () => ServicePluginContext;
-  resolveAuthPrincipal: (
-    request: Request,
-  ) => Promise<AuthPrincipal | undefined>;
-  /** Atomic rollout gate. Production remains Admin-only through Phase 4. */
-  minimumPermissionLevel: "trusted" | "admin";
-  getEntityDisplay: () => CmsEntityDisplayMap | undefined;
-  workspaceRegistry: CmsWorkspaceRegistry;
-  recordAuditEvent?:
-    ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
-}
-
-type CmsRequestAccessResolution =
-  | { state: "allowed"; access: CmsRequestAccess }
-  | { state: "unauthenticated" }
-  | { state: "forbidden" };
 
 /**
  * Routes for the first-party CMS editor: the React shell, its bundled
@@ -503,172 +436,6 @@ export function createEditorRoutes(
       },
     },
   ];
-}
-
-function toCmsWorkspaceActor(access: CmsRequestAccess): CmsWorkspaceActor {
-  return {
-    interfaceType: "cms",
-    userId: access.principal.userId,
-    actor: access.actor,
-    userPermissionLevel: access.permissionLevel,
-    visibilityScope: access.visibilityScope,
-    isAnchor: access.isAnchor,
-  };
-}
-
-type CmsMutationOperation = "create" | "update" | "delete" | "upload";
-type CmsMutationOutcome = "allowed" | "denied";
-
-async function recordCmsMutationAudit(
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
-  access: CmsRequestAccess,
-  operation: CmsMutationOperation,
-  outcome: CmsMutationOutcome,
-  entityType: string,
-  targetId?: string,
-  reason?: string,
-): Promise<void> {
-  if (!recordAuditEvent) return;
-  await recordAuditEvent({
-    actorUserId: access.principal.userId,
-    action: `cms.entity.${operation}.${outcome}`,
-    targetType: "entity",
-    ...(targetId ? { targetId } : {}),
-    metadata: {
-      entityType,
-      interfaceType: "cms",
-      outcome,
-      ...(reason ? { reason } : {}),
-    },
-  });
-}
-
-function cmsMutationOptions(access: CmsRequestAccess): {
-  eventContext: {
-    actor: CmsRequestAccess["actor"];
-    interfaceType: "cms";
-  };
-} {
-  return {
-    eventContext: {
-      actor: access.actor,
-      interfaceType: "cms",
-    },
-  };
-}
-
-function requireAdminCapability(access: CmsRequestAccess): Response | null {
-  return access.permissionLevel === "admin"
-    ? null
-    : jsonResponse({ error: "Admin CMS capability required" }, 403);
-}
-
-function requireEntityAction(
-  context: ServicePluginContext,
-  entityType: string,
-  action: "create" | "update" | "delete" | "extract" | "publish",
-  access: CmsRequestAccess,
-): Response | null {
-  try {
-    context.permissions.assertEntityActionAllowed(entityType, action, {
-      userPermissionLevel: access.permissionLevel,
-    });
-    return null;
-  } catch (error) {
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, `CMS ${action} permission denied`),
-      },
-      403,
-    );
-  }
-}
-
-function canPerformEntityAction(
-  context: ServicePluginContext,
-  entityType: string,
-  action: "create" | "update" | "delete" | "extract" | "publish",
-  access: CmsRequestAccess,
-): boolean {
-  try {
-    context.permissions.assertEntityActionAllowed(entityType, action, {
-      userPermissionLevel: access.permissionLevel,
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function deriveTypeCapabilities(
-  context: ServicePluginContext,
-  entityType: string,
-  visibleCount: number,
-  access: CmsRequestAccess,
-): CmsTypeCapabilities | undefined {
-  const canCreate = canPerformEntityAction(
-    context,
-    entityType,
-    "create",
-    access,
-  );
-  const canUpdate = canPerformEntityAction(
-    context,
-    entityType,
-    "update",
-    access,
-  );
-  const canDelete = canPerformEntityAction(
-    context,
-    entityType,
-    "delete",
-    access,
-  );
-  const canExtract = canPerformEntityAction(
-    context,
-    entityType,
-    "extract",
-    access,
-  );
-  const canPublish = canPerformEntityAction(
-    context,
-    entityType,
-    "publish",
-    access,
-  );
-  const canRead =
-    visibleCount > 0 ||
-    canCreate ||
-    canUpdate ||
-    canDelete ||
-    canExtract ||
-    canPublish;
-  if (!canRead) return undefined;
-
-  return {
-    canRead,
-    canCreate,
-    canUpdate,
-    canDelete,
-    canExtract,
-    canPublish,
-    canAssist: canUpdate,
-  };
-}
-
-async function getTypeCapabilities(
-  context: ServicePluginContext,
-  entityType: string,
-  access: CmsRequestAccess,
-): Promise<CmsTypeCapabilities | undefined> {
-  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
-    return undefined;
-  }
-  const visibleCount = await context.entityService.countEntities({
-    entityType,
-    options: { filter: { visibilityScope: access.visibilityScope } },
-  });
-  return deriveTypeCapabilities(context, entityType, visibleCount, access);
 }
 
 /**
@@ -1314,285 +1081,6 @@ async function handleDeleteEntity(
   return jsonResponse({ deleted });
 }
 
-interface CmsAssistEntityContext {
-  entity: BaseEntity;
-  frontmatter: Record<string, unknown>;
-  body: string;
-}
-
-async function resolveCmsAssistEntity(
-  context: ServicePluginContext,
-  entityType: string,
-  id: string,
-  access: CmsRequestAccess,
-): Promise<CmsAssistEntityContext | Response> {
-  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
-    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
-  }
-  const entity = await context.entityService.getEntity({
-    entityType,
-    id,
-    visibilityScope: access.visibilityScope,
-  });
-  if (!entity) {
-    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
-  }
-  const denied = requireEntityAction(context, entityType, "update", access);
-  if (denied) return denied;
-  const content = splitEntityContent(entityType, entity.content);
-  return { entity, ...content };
-}
-
-function requireStoredSelection(
-  context: CmsAssistEntityContext,
-  selection: string,
-): Response | null {
-  return context.body.includes(selection)
-    ? null
-    : jsonResponse(
-        { error: "Selection no longer matches the stored entity" },
-        409,
-      );
-}
-
-async function handleAssist(
-  context: ServicePluginContext,
-  request: Request,
-  access: CmsRequestAccess,
-): Promise<Response> {
-  let payload: z.infer<typeof assistPayloadSchema>;
-  try {
-    payload = assistPayloadSchema.parse(await request.json());
-  } catch {
-    return jsonResponse(
-      { error: "Invalid assist payload or selection length" },
-      400,
-    );
-  }
-
-  const entityContext = await resolveCmsAssistEntity(
-    context,
-    payload.entityType,
-    payload.id,
-    access,
-  );
-  if (entityContext instanceof Response) return entityContext;
-
-  const frontmatterSchema = context.entities.getEffectiveFrontmatterSchema(
-    payload.entityType,
-  );
-  if (!frontmatterSchema) {
-    return jsonResponse(
-      { error: `Unknown entity type: ${payload.entityType}` },
-      404,
-    );
-  }
-
-  if (payload.variant === "summarise" || payload.variant === "tag-suggest") {
-    const fieldSchema = frontmatterSchema.shape[payload.targetField];
-    if (!fieldSchema) {
-      return jsonResponse(
-        { error: `Unknown frontmatter field: ${payload.targetField}` },
-        400,
-      );
-    }
-    const descriptor = zodFieldToCmsWidget(payload.targetField, fieldSchema);
-    const compatible =
-      payload.variant === "summarise"
-        ? descriptor.widget === "string" || descriptor.widget === "text"
-        : descriptor.widget === "list" && descriptor.field?.widget === "string";
-    if (!compatible) {
-      return jsonResponse(
-        {
-          error: `Field ${payload.targetField} is incompatible with ${payload.variant}`,
-        },
-        400,
-      );
-    }
-
-    const contextLines = [
-      "You are editing CMS frontmatter from an existing markdown body.",
-      `Entity type: ${payload.entityType}`,
-      `Target field: ${payload.targetField}`,
-      `Existing frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
-      "",
-      "Full markdown body:",
-      entityContext.body,
-    ];
-
-    if (payload.variant === "summarise") {
-      const { object } = await context.ai.generateObject(
-        [
-          "Summarise the body for the target frontmatter field.",
-          "Return only the field value in the suggestion field.",
-          ...contextLines,
-        ].join("\n"),
-        assistResponseSchema,
-      );
-      return jsonResponse({
-        variant: payload.variant,
-        targetField: payload.targetField,
-        suggestion: object.suggestion,
-      });
-    }
-
-    const { object } = await context.ai.generateObject(
-      [
-        "Suggest tags for the target frontmatter field.",
-        "Return concise tag strings in the suggestions field without duplicates.",
-        ...contextLines,
-      ].join("\n"),
-      tagAssistResponseSchema,
-    );
-    return jsonResponse({
-      variant: payload.variant,
-      targetField: payload.targetField,
-      suggestions: [...new Set(object.suggestions)],
-    });
-  }
-
-  const selectionError = requireStoredSelection(
-    entityContext,
-    payload.selection,
-  );
-  if (selectionError) return selectionError;
-  const prompt = [
-    "You are editing markdown for the CMS.",
-    "Rewrite only the selected text according to the instruction.",
-    "Return only replacement markdown in the suggestion field.",
-    "Do not include commentary, code fences, or unchanged surrounding body text.",
-    "",
-    `Entity type: ${payload.entityType}`,
-    `Frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
-    `Instruction: ${payload.instruction}`,
-    "",
-    "Selected markdown:",
-    payload.selection,
-    "",
-    "Full body for context:",
-    entityContext.body,
-  ].join("\n");
-
-  const { object } = await context.ai.generateObject(
-    prompt,
-    assistResponseSchema,
-  );
-  return jsonResponse({ suggestion: object.suggestion });
-}
-
-async function handleListAgents(
-  context: ServicePluginContext,
-  request: Request,
-  access: CmsRequestAccess,
-): Promise<Response> {
-  const params = new URL(request.url).searchParams;
-  const entityType = params.get("type");
-  const id = params.get("id");
-  if (!entityType || !id) {
-    return jsonResponse(
-      { error: "type and id query parameters are required" },
-      400,
-    );
-  }
-  const entityContext = await resolveCmsAssistEntity(
-    context,
-    entityType,
-    id,
-    access,
-  );
-  if (entityContext instanceof Response) return entityContext;
-
-  const response = await context.messaging.send({
-    type: A2A_CHANNELS.callAgents,
-    payload: {
-      entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "cms",
-    },
-  });
-  if (!("success" in response) || !response.success) {
-    // No a2a interface (or no directory) means the client keeps the existing
-    // model-only assist bar.
-    return jsonResponse({ agents: [] });
-  }
-
-  const parsed = a2aAgentListSchema.safeParse(response.data);
-  return jsonResponse(parsed.success ? parsed.data : { agents: [] });
-}
-
-async function handleAskAgent(
-  context: ServicePluginContext,
-  request: Request,
-  access: CmsRequestAccess,
-): Promise<Response> {
-  let payload: z.infer<typeof askAgentPayloadSchema>;
-  try {
-    payload = askAgentPayloadSchema.parse(await request.json());
-  } catch {
-    return jsonResponse(
-      { error: "Invalid agent ask payload or selection length" },
-      400,
-    );
-  }
-
-  const entityContext = await resolveCmsAssistEntity(
-    context,
-    payload.entityType,
-    payload.id,
-    access,
-  );
-  if (entityContext instanceof Response) return entityContext;
-  const selectionError = requireStoredSelection(
-    entityContext,
-    payload.selection,
-  );
-  if (selectionError) return selectionError;
-
-  const result = await context.messaging.send({
-    type: A2A_CHANNELS.callRequest,
-    payload: {
-      agent: payload.agent,
-      instruction: payload.instruction,
-      selection: payload.selection,
-      entityType: payload.entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "cms",
-    },
-  });
-  if (!("success" in result) || !result.success) {
-    const error =
-      "error" in result && typeof result.error === "string"
-        ? result.error
-        : "Agent call failed";
-    const unavailable = error.startsWith("No handler found");
-    return jsonResponse(
-      { error: unavailable ? "Agent asking is unavailable" : error },
-      unavailable ? 503 : 400,
-    );
-  }
-
-  if (result.data === undefined) {
-    return jsonResponse({ error: "Agent asking is unavailable" }, 503);
-  }
-  const parsed = a2aCallResultSchema.safeParse(result.data);
-  if (!parsed.success) {
-    return jsonResponse({ error: "Invalid response from agent" }, 502);
-  }
-
-  return jsonResponse({
-    agentId: payload.agent,
-    response: parsed.data.response,
-  });
-}
-
-/**
- * Store the uploaded bytes in the shared runtime upload store, then promote
- * them through the upload-save handler the owning entity plugin registered
- * (images: the `image` plugin's promotion pipeline). The editor never
- * writes media entities itself — the pipeline stays the single owner.
- */
 async function handleUpload(
   context: ServicePluginContext,
   request: Request,
@@ -1687,83 +1175,4 @@ async function handleUpload(
     { entityId: result.data.entityId, jobId: result.data.jobId },
     201,
   );
-}
-
-function stripCmsPolicyMetadata(
-  metadata: Record<string, unknown>,
-): Record<string, unknown> {
-  const { visibility: _visibility, ...rest } = metadata;
-  return rest;
-}
-
-function resolveCmsVisibility(
-  frontmatter: Record<string, unknown>,
-  fallback: ContentVisibility,
-):
-  | { success: true; visibility: ContentVisibility }
-  | { success: false; response: Response } {
-  if (!Object.hasOwn(frontmatter, "visibility")) {
-    return { success: true, visibility: fallback };
-  }
-  const parsed = contentVisibilitySchema.safeParse(frontmatter["visibility"]);
-  return parsed.success
-    ? { success: true, visibility: parsed.data }
-    : {
-        success: false,
-        response: jsonResponse({ error: "Invalid content visibility" }, 400),
-      };
-}
-
-function withCmsVisibility(
-  frontmatter: Record<string, unknown>,
-  visibility: ContentVisibility,
-): Record<string, unknown> {
-  const { visibility: _untrustedVisibility, ...fields } = frontmatter;
-  return visibility === "public" ? fields : { ...fields, visibility };
-}
-
-function rejectBodyForBodylessType(
-  context: ServicePluginContext,
-  entityType: string,
-  body: string | undefined,
-): Response | null {
-  if (body === undefined) return null;
-  const adapter = context.entities.getAdapter(entityType);
-  if (adapter?.hasBody === false) {
-    return jsonResponse(
-      { error: `Entity type ${entityType} does not have a body` },
-      400,
-    );
-  }
-  return null;
-}
-
-function splitEntityContent(
-  entityType: string,
-  content: string,
-): {
-  frontmatter: Record<string, unknown>;
-  body: string;
-} {
-  // Raw types never carry frontmatter — a leading `---` is a horizontal
-  // rule and must not be parsed as a YAML delimiter.
-  if (isRawEntityType(entityType)) {
-    return { frontmatter: {}, body: content };
-  }
-  try {
-    const parsed = parseMarkdownWithFrontmatter(
-      content,
-      z.record(z.string(), z.unknown()),
-    );
-    return { frontmatter: parsed.metadata, body: parsed.content };
-  } catch {
-    return { frontmatter: {}, body: content };
-  }
-}
-
-function jsonResponse(payload: unknown, status = 200): Response {
-  return jsonResponseBase(payload, {
-    status,
-    headers: { "Cache-Control": "no-store" },
-  });
 }
