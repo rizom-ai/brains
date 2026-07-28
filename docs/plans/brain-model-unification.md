@@ -722,6 +722,53 @@ legacy-tagged; only explicitly time-bounded brain-crossover offline migration en
 remain; every unrelated retained entry has an owner, exemption or deletion gate, and
 target release; and pre-commit/CI prevents untracked legacy compatibility from returning.
 
+#### Legacy-tagged code retirement strategy
+
+Treat code explicitly named, commented, or tagged `legacy` as an owned migration
+inventory, not an informal cleanup list.
+
+1. Add a checked-in manifest for every active-source `legacy` occurrence. Each entry
+   records its file and symbol, owning subsystem, whether it reads, writes, rejects, or
+   migrates old state, current consumers, removal prerequisite, rollback dependency, and
+   target release. A repository check fails when a new occurrence appears without a
+   manifest entry.
+2. Classify every entry:
+   - **brain crossover compatibility** — Docker runner fallback, old theme alias, and
+     `brain.config.ts` flow;
+   - **offline migration** — brain config migration, private-pilot schema migration, and
+     crossover staging;
+   - **rejection-only compatibility** — actionable errors for removed config;
+   - **durable-data compatibility** — auth databases/cookies, message metadata, workflow
+     snapshots, and stored entity schemas;
+   - **historical terminology** — tests, comments, plans, and changelogs;
+   - **third-party naming** — upstream paths such as `pdfjs-dist/legacy`, which require an
+     explicit exemption rather than local renaming.
+3. Before Phase 8, remove active brain crossover compatibility after proving canonical
+   consumers no longer require it: the `.model-entrypoint.js` fallback, old theme package
+   alias, `brain.config.ts` build fallback, and any other mixed canonical/legacy
+   resolution. All checked-in consumers use canonical `brain.yaml`. Legacy model and
+   preset knowledge remains only in offline migration modules and migration/rejection
+   tests. Dependency tests prove runtime boot and active ops loading cannot import those
+   offline modules.
+4. During Phase 8, old instances remain on their immutable old config/image pair until
+   their turn, while migrated instances use the canonical pair. Rollback restores the
+   prior Git revision and old image; the new runtime does not carry a compatibility path
+   for rollback. Record that no deployed config contains model, preset, or schema-v1
+   fields.
+5. After the operator-defined rollback horizon, delete the private-pilot migration and
+   crossover staging modules, command, exports, tests, and documentation. Delete public
+   brain config migration after its separately declared upgrade-support window, then
+   remove the corresponding legacy-name inventories and rejection messages.
+6. Retire unrelated durable-data compatibility independently through
+   **expand → backfill → stop old writes → observe zero old reads → contract**. It must
+   have its own owner and gate and must not be coupled mechanically to the brain
+   crossover.
+
+Legacy retirement exit gate: no active runtime or ops path is legacy-tagged; only
+explicitly time-bounded offline migration entries remain; every unrelated retained entry
+has an owner, exemption or deletion gate, and target release; and pre-commit/CI prevents
+untracked legacy compatibility from returning.
+
 ### Phase 8 — Execute the clean crossover and certify the unified alpha
 
 Execute only in an explicitly authorized maintenance window:
