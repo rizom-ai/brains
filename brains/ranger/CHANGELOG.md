@@ -1,5 +1,12 @@
 # @brains/ranger
 
+## 0.2.0-alpha.237
+
+### Patch Changes
+
+- Updated dependencies [[`d897f41`](https://github.com/rizom-ai/brains/commit/d897f41e93640c1e30c0637fcca3736a10d8c3ec)]:
+  - @rizom/site-rizom@0.2.0-alpha.234
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes

@@ -405,6 +405,7 @@
     "shell-lifecycle-registration-rollback",
     "shell-lifecycle-transitions",
     "show-account-contact-details",
+    "site--first-party-preact-peer",
     "site-build-preflight-diagnostics",
     "site-build-prepared-snapshots",
     "site-build-transactional-output",

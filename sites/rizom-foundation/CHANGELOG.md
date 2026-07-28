@@ -1,5 +1,16 @@
 # @rizom/site-rizom-foundation
 
+## 0.2.0-alpha.234
+
+### Patch Changes
+
+- [`d897f41`](https://github.com/rizom-ai/brains/commit/d897f41e93640c1e30c0637fcca3736a10d8c3ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare preact as a peer dependency instead of a hard dependency. The external
+  site authoring contract has the host runtime provide preact; shipping it in
+  `dependencies` installed a second preact instance next to the host's. This
+  aligns the first-party site packages with the standalone reference canary.
+- Updated dependencies [[`d897f41`](https://github.com/rizom-ai/brains/commit/d897f41e93640c1e30c0637fcca3736a10d8c3ec)]:
+  - @rizom/site-rizom@0.2.0-alpha.234
+
 ## 0.2.0-alpha.233
 
 ### Patch Changes
