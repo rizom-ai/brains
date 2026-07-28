@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { ProductsPlugin } from "../../src/plugin";
 import { createProductPrintableProvider } from "../../src/attachments/printable-provider";
 import type { Product } from "../../src/schemas/product";
@@ -61,9 +60,7 @@ Rover helps operators keep momentum.
 };
 
 describe("Product printable attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a product printable attachment provider", async () => {
     const harness = createPluginHarness<ProductsPlugin>();

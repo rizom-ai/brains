@@ -24,41 +24,13 @@ const embeddingJobDataSchema = z.object({
 /**
  * Job handler for embedding generation
  * Processes entities to generate embeddings using the EmbeddingService
- * Implements Component Interface Standardization pattern
  */
 export class EmbeddingJobHandler implements JobHandler<"embedding"> {
-  private static instance: EmbeddingJobHandler | null = null;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
   private entityService: IEntityService;
   private messageBus?: EntityEventBus;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    entityService: IEntityService,
-    embeddingService: IEmbeddingService,
-    messageBus?: EntityEventBus,
-  ): EmbeddingJobHandler {
-    EmbeddingJobHandler.instance ??= new EmbeddingJobHandler(
-      entityService,
-      embeddingService,
-      messageBus,
-    );
-    return EmbeddingJobHandler.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    EmbeddingJobHandler.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     entityService: IEntityService,
     embeddingService: IEmbeddingService,
@@ -67,9 +39,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
     return new EmbeddingJobHandler(entityService, embeddingService, messageBus);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(
     entityService: IEntityService,
     embeddingService: IEmbeddingService,

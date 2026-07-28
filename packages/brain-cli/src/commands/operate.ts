@@ -74,11 +74,16 @@ async function operateBuiltin(
       mode: "register-only",
     });
 
-    // After boot, the shell is initialized with tools registered.
-    // Prefer the booted App's shell; fall back to the singleton for older boot functions.
-    const { Shell } = await import("@brains/core");
-    const shell = bootedBrain?.getShell() ?? Shell.getInstance();
-    const mcpService = shell.getMCPService();
+    // After boot, the shell is initialized with tools registered. A boot in
+    // register-only mode always returns the App, so a missing brain means the
+    // entrypoint's boot function did not honour the mode it was given.
+    if (!bootedBrain) {
+      return {
+        success: false,
+        message: "Boot did not return a brain; cannot run CLI commands.",
+      };
+    }
+    const mcpService = bootedBrain.getShell().getMCPService();
     const cliTools = mcpService.getCliTools();
     const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 

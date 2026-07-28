@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { resetAllSingletons } from "../src/initialization/reset";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger } from "@brains/test-utils";
@@ -40,12 +39,10 @@ describe("Shell initialization order", () => {
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
     initOrder.length = 0;
-    await resetAllSingletons();
   });
 
   afterEach(async (): Promise<void> => {
     await shell.shutdown();
-    await resetAllSingletons();
     await testDir.cleanup();
   });
 

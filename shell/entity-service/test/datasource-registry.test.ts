@@ -52,29 +52,7 @@ describe("DataSourceRegistry", () => {
   const logger = createSilentLogger();
 
   beforeEach(() => {
-    DataSourceRegistry.resetInstance();
     registry = DataSourceRegistry.createFresh(logger);
-  });
-
-  describe("Component Interface Standardization", () => {
-    test("should implement singleton pattern", () => {
-      const instance1 = DataSourceRegistry.getInstance(logger);
-      const instance2 = DataSourceRegistry.getInstance(logger);
-      expect(instance1).toBe(instance2);
-    });
-
-    test("should reset instance", () => {
-      const instance1 = DataSourceRegistry.getInstance(logger);
-      DataSourceRegistry.resetInstance();
-      const instance2 = DataSourceRegistry.getInstance(logger);
-      expect(instance1).not.toBe(instance2);
-    });
-
-    test("should create fresh instance", () => {
-      const singleton = DataSourceRegistry.getInstance(logger);
-      const fresh = DataSourceRegistry.createFresh(logger);
-      expect(singleton).not.toBe(fresh);
-    });
   });
 
   describe("Registration", () => {

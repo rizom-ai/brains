@@ -38,7 +38,6 @@ import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
 export class ConversationService implements IConversationService {
   private readonly db: ConversationDB;
   private readonly logger: Logger;
-  private static instance: ConversationService | null = null;
   private readonly messageBus: MessageBus;
   private readonly config: ConversationServiceConfig;
   private dbClient: Client | null = null;
@@ -59,36 +58,6 @@ export class ConversationService implements IConversationService {
       digestWindowSize: 10,
       ...config,
     };
-  }
-
-  /**
-   * Get singleton instance
-   */
-  public static getInstance(
-    logger: Logger,
-    messageBus: MessageBus,
-    dbConfig: ConversationDbConfig,
-    config?: ConversationServiceConfig,
-  ): ConversationService {
-    if (!ConversationService.instance) {
-      // Create database internally
-      const { db, client, url } = createConversationDatabase(dbConfig);
-      const instance = new ConversationService(db, logger, messageBus, config);
-      instance.dbClient = client;
-      instance.dbUrl = url;
-      ConversationService.instance = instance;
-    }
-    return ConversationService.instance;
-  }
-
-  /**
-   * Reset singleton instance (for testing)
-   */
-  public static resetInstance(): void {
-    if (ConversationService.instance) {
-      ConversationService.instance.close();
-      ConversationService.instance = null;
-    }
   }
 
   /**

@@ -39,7 +39,6 @@ import type {
   EntityTypeConfig,
   EntityRegistry as IEntityRegistry,
 } from "./types";
-import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
 import { sql } from "drizzle-orm";
 import { Logger } from "@brains/utils/logger";
@@ -59,7 +58,7 @@ import { makeIndexReadinessPollingEffect } from "./index-readiness";
  */
 export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
-  entityRegistry?: IEntityRegistry;
+  entityRegistry: IEntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
@@ -78,8 +77,6 @@ export interface EntityServiceOptions {
  * - ContentResolver: entity reference resolution
  */
 export class EntityService implements IEntityService {
-  private static instance: EntityService | null = null;
-
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
@@ -97,18 +94,6 @@ export class EntityService implements IEntityService {
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
-
-  public static getInstance(options: EntityServiceOptions): EntityService {
-    EntityService.instance ??= new EntityService(options);
-    return EntityService.instance;
-  }
-
-  public static resetInstance(): void {
-    if (EntityService.instance) {
-      EntityService.instance.close();
-      EntityService.instance = null;
-    }
-  }
 
   /**
    * Close the underlying database connections.
@@ -158,9 +143,7 @@ export class EntityService implements IEntityService {
       this.embeddingDb = emb.db;
       this.embeddingDbClient = emb.client;
 
-      this.entityRegistry =
-        options.entityRegistry ??
-        EntityRegistry.getInstance(Logger.getInstance());
+      this.entityRegistry = options.entityRegistry;
       this.logger = (options.logger ?? Logger.getInstance()).child(
         "EntityService",
       );

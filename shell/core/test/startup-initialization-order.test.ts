@@ -1,25 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
-import {
-  BrainCharacterService,
-  AnchorProfileService,
-  CanonicalIdentityService,
-} from "@brains/identity-service";
 
 describe("Startup Initialization Order", () => {
-  beforeEach(() => {
-    BrainCharacterService.resetInstance();
-    AnchorProfileService.resetInstance();
-    CanonicalIdentityService.resetInstance();
-  });
-
-  afterEach(() => {
-    BrainCharacterService.resetInstance();
-    AnchorProfileService.resetInstance();
-    CanonicalIdentityService.resetInstance();
-  });
-
   describe("ShellInitializer must not own ready-state identity initialization", () => {
     const shellInitializerPath = join(
       __dirname,

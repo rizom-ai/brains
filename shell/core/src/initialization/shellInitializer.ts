@@ -13,28 +13,13 @@ import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
-import { resetCoreServiceSingletons } from "./service-singletons";
 
 export type { ShellServices } from "../types/shell-types";
 export type { PluginInitializeOptions } from "./shell-registration";
 
 export class ShellInitializer {
-  private static instance: ShellInitializer | null = null;
-
   private logger: Logger;
   private config: ShellConfig;
-
-  public static getInstance(
-    logger: Logger,
-    config: ShellConfig,
-  ): ShellInitializer {
-    ShellInitializer.instance ??= new ShellInitializer(logger, config);
-    return ShellInitializer.instance;
-  }
-
-  public static resetInstance(): void {
-    ShellInitializer.instance = null;
-  }
 
   public static createFresh(
     logger: Logger,
@@ -150,17 +135,4 @@ export class ShellInitializer {
       throw error;
     }
   }
-}
-
-/**
- * Compatibility/test utility for legacy package singleton factories.
- * Normal Shell construction and rollback do not call this function, and
- * createFresh() services never depend on it.
- *
- * Does NOT touch Shell.instance — call Shell.resetInstance() or
- * shell.shutdown() separately when you need to stop background services.
- */
-export async function resetServiceSingletons(): Promise<void> {
-  ShellInitializer.resetInstance();
-  await resetCoreServiceSingletons();
 }

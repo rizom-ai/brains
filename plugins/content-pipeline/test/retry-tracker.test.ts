@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { RetryTracker } from "../src/retry-tracker";
 
 describe("RetryTracker", () => {
@@ -57,27 +57,6 @@ describe("RetryTracker", () => {
         retryCount: 1,
         lastError: "Network error",
       });
-    });
-  });
-
-  describe("singleton pattern", () => {
-    it("should return same instance from getInstance", () => {
-      const instance1 = RetryTracker.getInstance();
-      const instance2 = RetryTracker.getInstance();
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should return fresh instance after reset", () => {
-      const instance1 = RetryTracker.getInstance();
-      RetryTracker.resetInstance();
-      const instance2 = RetryTracker.getInstance();
-
-      expect(instance1).not.toBe(instance2);
-    });
-
-    afterEach(() => {
-      RetryTracker.resetInstance();
     });
   });
 });

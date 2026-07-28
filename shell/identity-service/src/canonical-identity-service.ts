@@ -50,36 +50,17 @@ interface CachedIdentityResolution {
 }
 
 export class CanonicalIdentityService implements ICanonicalIdentityService {
-  private static instance: CanonicalIdentityService | null = null;
   private readonly logger: Logger;
   private resolver: CanonicalIdentityResolver | undefined;
   private links: CanonicalIdentityLink[] = [];
   private actorIndex = new Map<string, CachedIdentityResolution>();
   private negativeActorIndex = new Map<string, number>();
 
-  public static getInstance(
-    logger: Logger,
-    resolver?: CanonicalIdentityResolver,
-  ): CanonicalIdentityService {
-    CanonicalIdentityService.instance ??= new CanonicalIdentityService(
-      logger,
-      resolver,
-    );
-    if (resolver) {
-      CanonicalIdentityService.instance.resolver = resolver;
-    }
-    return CanonicalIdentityService.instance;
-  }
-
   public static createFresh(
     logger: Logger,
     resolver?: CanonicalIdentityResolver,
   ): CanonicalIdentityService {
     return new CanonicalIdentityService(logger, resolver);
-  }
-
-  public static resetInstance(): void {
-    CanonicalIdentityService.instance = null;
   }
 
   private constructor(logger: Logger, resolver?: CanonicalIdentityResolver) {

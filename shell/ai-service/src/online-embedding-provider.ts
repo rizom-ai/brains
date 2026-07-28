@@ -22,23 +22,10 @@ const DEFAULT_DIMENSIONS = 1536;
  * Uses the OpenAI embeddings API for vector generation.
  */
 export class OnlineEmbeddingProvider implements IEmbeddingService {
-  private static instance: OnlineEmbeddingProvider | null = null;
-
   public readonly model: string;
   public readonly dimensions: number;
   private readonly openai: ReturnType<typeof createOpenAI>;
   private readonly logger: Logger;
-
-  public static getInstance(
-    config: OnlineEmbeddingConfig,
-  ): OnlineEmbeddingProvider {
-    OnlineEmbeddingProvider.instance ??= new OnlineEmbeddingProvider(config);
-    return OnlineEmbeddingProvider.instance;
-  }
-
-  public static resetInstance(): void {
-    OnlineEmbeddingProvider.instance = null;
-  }
 
   public static createFresh(
     config: OnlineEmbeddingConfig,

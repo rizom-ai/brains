@@ -61,18 +61,7 @@ function getPublishAssetKey(input: {
 }
 
 export class PublishAssetRegistry {
-  private static instance: PublishAssetRegistry | null = null;
-
   private readonly definitions = new Map<string, PublishAssetDefinition>();
-
-  public static getInstance(): PublishAssetRegistry {
-    PublishAssetRegistry.instance ??= new PublishAssetRegistry();
-    return PublishAssetRegistry.instance;
-  }
-
-  public static resetInstance(): void {
-    PublishAssetRegistry.instance = null;
-  }
 
   public static createFresh(): PublishAssetRegistry {
     return new PublishAssetRegistry();

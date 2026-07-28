@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { resetAllSingletons } from "../src/initialization/reset";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { ProfileKindRegistry } from "@brains/identity-service";
@@ -15,11 +14,6 @@ import {
   AtprotoProjectionRegistry,
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
-
-async function resetAllTestSingletons(): Promise<void> {
-  await resetAllSingletons();
-  AtprotoProjectionRegistry.resetInstance();
-}
 
 const mockEmbeddingService = {
   dimensions: 1536,
@@ -105,7 +99,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
-    await resetAllTestSingletons();
+    AtprotoProjectionRegistry.resetInstance();
     // The card publisher queries entity stats; the schema must exist before
     // boot schedules the publish task.
     await migrateEntities({ url: `file:${testDir.dir}/test.db` });
@@ -118,7 +112,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   afterEach(async (): Promise<void> => {
     await shell.shutdown();
-    await resetAllTestSingletons();
+    AtprotoProjectionRegistry.resetInstance();
     await testDir.cleanup();
   });
 

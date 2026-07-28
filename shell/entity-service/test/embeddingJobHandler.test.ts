@@ -28,9 +28,7 @@ function createMockEntityService(overrides: {
 }
 
 describe("EmbeddingJobHandler", () => {
-  beforeEach(() => {
-    EmbeddingJobHandler.resetInstance();
-  });
+  beforeEach(() => {});
 
   describe("CREATE operation handling", () => {
     test("should skip when entity does not exist", async () => {

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { DecksPlugin, type DecksPluginDeps } from "../../src/plugin";
 import { DeckCarouselAttachmentProvider } from "../../src/attachments/carousel-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
@@ -30,9 +29,7 @@ slug: test-deck
 };
 
 describe("Deck carousel attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a deck carousel attachment provider", async () => {
     const harness = createPluginHarness<DecksPlugin>();

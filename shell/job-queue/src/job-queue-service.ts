@@ -20,11 +20,9 @@ import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Service for managing the generic job queue
- * Implements Component Interface Standardization pattern
  * Refactored to use separate classes for specific responsibilities
  */
 export class JobQueueService implements IJobQueueService {
-  private static instance: JobQueueService | null = null;
   private client: Client;
   private logger: Logger;
 
@@ -38,30 +36,6 @@ export class JobQueueService implements IJobQueueService {
   private readonly databaseUrl: string;
 
   /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    config: JobQueueServiceConfig,
-    logger?: Logger,
-  ): JobQueueService {
-    JobQueueService.instance ??= new JobQueueService(
-      config,
-      logger ?? Logger.getInstance(),
-    );
-    return JobQueueService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    if (JobQueueService.instance) {
-      JobQueueService.instance.close();
-      JobQueueService.instance = null;
-    }
-  }
-
-  /**
    * Close the underlying database connection.
    */
   public close(): void {
@@ -71,9 +45,6 @@ export class JobQueueService implements IJobQueueService {
     }
   }
 
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     config: JobQueueServiceConfig,
     logger?: Logger,
@@ -81,9 +52,6 @@ export class JobQueueService implements IJobQueueService {
     return new JobQueueService(config, logger ?? Logger.getInstance());
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(config: JobQueueServiceConfig, logger?: Logger) {
     const { db, client, url } = createJobQueueDatabase(config);
     this.client = client;

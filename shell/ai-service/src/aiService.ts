@@ -32,38 +32,16 @@ import {
  * AI Service for generating responses using Vercel AI SDK
  */
 export class AIService implements IAIService {
-  private static instance: AIService | null = null;
   private config: AIModelConfig;
   private logger: Logger;
   private providers: ProviderClients;
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(config: AIModelConfig, logger: Logger): AIService {
-    AIService.instance ??= new AIService(config, logger);
-    return AIService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    AIService.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(config: AIModelConfig, logger: Logger): AIService {
     return new AIService(config, logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(config: AIModelConfig, logger: Logger) {
     this.config = withAIModelDefaults(config);
     this.logger = logger.child("AIService");

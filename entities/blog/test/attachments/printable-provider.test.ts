@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { BlogPlugin } from "../../src/plugin";
 import { createBlogPrintableProvider } from "../../src/attachments/printable-provider";
 import type { BlogPost } from "../../src/schemas/blog-post";
@@ -34,9 +33,7 @@ Resilience is the capacity to change shape under pressure.
 };
 
 describe("Blog printable attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a post printable attachment provider", async () => {
     const harness = createPluginHarness<BlogPlugin>();

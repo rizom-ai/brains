@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "bun:test";
+import { execFileSync } from "node:child_process";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -26,7 +26,6 @@ import {
 } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
 import { DaemonRegistry } from "../src/daemon-registry";
-import { resetAllSingletons } from "../src/initialization/reset";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createTestDirectory } from "./helpers/test-db";
 
@@ -145,15 +144,10 @@ describe("Shell service ownership", () => {
   const directories: TestDirectory[] = [];
   const shells: Shell[] = [];
 
-  beforeEach(async () => {
-    await resetAllSingletons();
-  });
-
   afterEach(async () => {
     for (const shell of shells.splice(0).reverse()) {
       await shutdownIgnoringFailure(shell);
     }
-    await resetAllSingletons();
     for (const directory of directories.splice(0).reverse()) {
       await directory.cleanup();
     }
@@ -177,24 +171,30 @@ describe("Shell service ownership", () => {
     return shell;
   }
 
-  it("keeps singleton resets out of normal shell composition", () => {
-    const serviceFactory = readFileSync(
-      new URL("../src/initialization/service-factory.ts", import.meta.url),
-      "utf8",
-    );
-    const shell = readFileSync(
-      new URL("../src/shell.ts", import.meta.url),
-      "utf8",
-    );
-    const bootloader = readFileSync(
-      new URL("../src/initialization/shellBootloader.ts", import.meta.url),
-      "utf8",
-    );
+  it("declares no service singletons anywhere in the workspace", () => {
+    // Services are owned by the shell's layer graph and handed to their
+    // consumers. A `static getInstance` reintroduces process-global state that
+    // outlives shutdown and leaks between tests, so the ban is repo-wide
+    // rather than a grep over three known files.
+    //
+    // Logger, AtprotoProjectionRegistry, EntityUrlGenerator, and
+    // EvalHandlerRegistry are deliberate ambient registries with real
+    // production callers; they are not shell-owned services.
+    const allowed = new Set([
+      "shared/utils/src/logger.ts",
+      "shared/atproto-contracts/src/projection-registry.ts",
+      "shared/site-composition/src/entity-url-generator.ts",
+      "shell/ai-evaluation/src/eval-handler-registry.ts",
+    ]);
+    const declaring = execFileSync(
+      "git",
+      ["grep", "-l", "static getInstance", "--", "*/src/*.ts"],
+      { cwd: new URL("../../../", import.meta.url).pathname, encoding: "utf8" },
+    )
+      .split("\n")
+      .filter(Boolean);
 
-    expect(serviceFactory).not.toContain(".getInstance(");
-    expect(serviceFactory).not.toContain("resetServiceSingletons");
-    expect(shell).not.toContain("resetServiceSingletons");
-    expect(bootloader).not.toContain("ShellInitializer.getInstance");
+    expect(declaring.filter((file: string) => !allowed.has(file))).toEqual([]);
   });
 
   it("audits every ShellDependencies override without ignored services", () => {
@@ -285,25 +285,15 @@ describe("Shell service ownership", () => {
     expect(shellBTools).toEqual(["shell-b_tool"]);
   });
 
-  it("recreates Shell.getInstance without resetting package services", async () => {
-    const directoryA = await createDirectory();
-    const directoryB = await createDirectory();
-    await migrateTestDatabases(directoryA.dir);
-    await migrateTestDatabases(directoryB.dir);
-
-    const shellA = Shell.getInstance(createTestConfig(directoryA.dir));
-    await shellA.initialize({ mode: "register-only" });
-    await Shell.resetInstance();
-
-    const shellB = Shell.getInstance(createTestConfig(directoryB.dir));
-    await shellB.initialize({ mode: "register-only" });
+  it("gives a second shell its own entity service", async () => {
+    const shellA = await createInitializedShell();
+    const shellB = await createInitializedShell();
 
     expect(shellB).not.toBe(shellA);
+    expect(shellB.getEntityService()).not.toBe(shellA.getEntityService());
     expect(
       await shellB.getEntityService().listEntities({ entityType: "note" }),
     ).toEqual([]);
-
-    await Shell.resetInstance();
   });
 
   it("keeps shell A usable when construction of shell B fails", async () => {

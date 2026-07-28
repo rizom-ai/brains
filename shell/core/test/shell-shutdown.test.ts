@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
-import { resetAllSingletons } from "../src/initialization/reset";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -56,11 +55,9 @@ describe("Shell shutdown", () => {
 
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
-    await resetAllSingletons();
   });
 
   afterEach(async (): Promise<void> => {
-    await resetAllSingletons();
     await testDir.cleanup();
   });
 

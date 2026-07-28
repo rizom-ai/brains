@@ -55,7 +55,6 @@ export class AgentService implements IAgentService {
   private mcpService: IMCPService;
   private identityService: IBrainCharacterService;
   private profileService: IAnchorProfileService;
-  private static instance: AgentService | null = null;
   private logger: Logger;
   private stepLimit: number;
   private agentFactory: AgentConfig["agentFactory"];
@@ -96,40 +95,6 @@ export class AgentService implements IAgentService {
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    mcpService: IMCPService,
-    conversationService: IConversationService,
-    identityService: IBrainCharacterService,
-    profileService: IAnchorProfileService,
-    logger: Logger,
-    config: AgentConfig,
-  ): AgentService {
-    AgentService.instance ??= new AgentService(
-      mcpService,
-      conversationService,
-      identityService,
-      profileService,
-      logger,
-      config,
-    );
-    return AgentService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (for testing)
-   */
-  public static resetInstance(): Promise<void> {
-    const instance = AgentService.instance;
-    AgentService.instance = null;
-    return instance?.shutdown() ?? Promise.resolve();
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     mcpService: IMCPService,
     conversationService: IConversationService,

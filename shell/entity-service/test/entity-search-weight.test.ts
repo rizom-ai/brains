@@ -76,7 +76,6 @@ describe("EntitySearch weight behavior", () => {
 
   beforeEach(() => {
     const logger: Logger = createSilentLogger();
-    EntityRegistry.resetInstance();
     const entityRegistry = EntityRegistry.createFresh(logger);
 
     entityRegistry.registerEntityType(

@@ -63,8 +63,6 @@ describe("BatchJobManager", () => {
 
   afterEach(async () => {
     await batchManager.stop();
-    JobQueueService.resetInstance();
-    BatchJobManager.resetInstance();
     await cleanup();
   });
 

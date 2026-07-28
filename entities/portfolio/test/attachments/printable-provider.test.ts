@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { PortfolioPlugin } from "../../src/plugin";
 import { createProjectPrintableProvider } from "../../src/attachments/printable-provider";
 import type { Project } from "../../src/schemas/project";
@@ -47,9 +46,7 @@ Teams spotted patterns earlier.
 };
 
 describe("Project printable attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a project printable attachment provider", async () => {
     const harness = createPluginHarness<PortfolioPlugin>();

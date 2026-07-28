@@ -32,26 +32,11 @@ export type {
 } from "./types/scheduler";
 
 export class ContentScheduler {
-  private static instance: ContentScheduler | null = null;
-
   private config: SchedulerConfig;
   private publishRunner: PublishScheduleRunner;
   private generationRunner: GenerationScheduleRunner;
   private running = false;
   private stopPromise: Promise<void> | null = null;
-
-  public static getInstance(config: SchedulerConfig): ContentScheduler {
-    ContentScheduler.instance ??= new ContentScheduler(config);
-    return ContentScheduler.instance;
-  }
-
-  public static async resetInstance(): Promise<void> {
-    const instance = ContentScheduler.instance;
-    ContentScheduler.instance = null;
-    if (instance) {
-      await instance.stop();
-    }
-  }
 
   public static createFresh(config: SchedulerConfig): ContentScheduler {
     return new ContentScheduler(config);

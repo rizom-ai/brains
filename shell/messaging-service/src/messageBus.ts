@@ -17,40 +17,16 @@ import {
 
 /**
  * Message bus for handling messages between components
- * Implements Component Interface Standardization pattern
  */
 export class MessageBus implements IMessageBus {
-  private static instance: MessageBus | null = null;
-
   private readonly registry = new HandlerRegistry();
   private readonly publisher: MessagePublisher;
   private readonly logger: Logger;
 
-  /**
-   * Get the singleton instance of MessageBus
-   */
-  public static getInstance(logger: Logger): MessageBus {
-    MessageBus.instance ??= new MessageBus(logger);
-    return MessageBus.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    MessageBus.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(logger: Logger): MessageBus {
     return new MessageBus(logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger) {
     this.logger = logger;
     this.publisher = new MessagePublisher(this.registry, logger);

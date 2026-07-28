@@ -4,7 +4,6 @@ import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { IMCPService } from "@brains/mcp-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
-import { StreamableHTTPServer } from "../src/transports/http-server";
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -55,7 +54,6 @@ describe("MCPInterface", () => {
 
   afterEach(async () => {
     await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
-    await StreamableHTTPServer.resetInstance();
   });
 
   describe("initialization", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { ProviderRegistry } from "../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
 
@@ -146,27 +146,6 @@ describe("ProviderRegistry", () => {
       expect(provider.name).toBe("internal");
       const result = await provider.publish("content", {});
       expect(result.id).toBe("internal");
-    });
-  });
-
-  describe("singleton pattern", () => {
-    it("should return same instance from getInstance", () => {
-      const instance1 = ProviderRegistry.getInstance();
-      const instance2 = ProviderRegistry.getInstance();
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should return fresh instance after reset", () => {
-      const instance1 = ProviderRegistry.getInstance();
-      ProviderRegistry.resetInstance();
-      const instance2 = ProviderRegistry.getInstance();
-
-      expect(instance1).not.toBe(instance2);
-    });
-
-    afterEach(() => {
-      ProviderRegistry.resetInstance();
     });
   });
 });

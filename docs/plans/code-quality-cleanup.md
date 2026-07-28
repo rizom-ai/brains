@@ -71,21 +71,25 @@ Separate slices; each needs its own careful landing.
 
    Two findings outside the stated scope, both fixed in the same commit: the release train was already broken — phase 1 deleted `plugins/sveltia-cms` and `shared/theme-signal` but left five retained pre-mode changesets naming them, and `changeset version` throws on any package not in the workspace; and `brains/relay` registered the Discord interface without ever declaring `DISCORD_BOT_TOKEN`, so the var reached neither its `env.schema.template` nor its `secrets push` candidates.
 
-1a. **Migrate `yeehaa-io/brain.yaml` before its next deploy.** It is the only live instance still on the old shape (`mylittlephoney` is deprecated; the `doc-brain` checkout is gone). Without this the interface is skipped at boot with a `Skipping interface "chat"` warning and Discord goes silent — the failure is quiet, so do it ahead of the deploy rather than after.
+2. **Migrate `yeehaa-io/brain.yaml` before its next deploy.** Outstanding. It is the only live instance still on the old shape (`mylittlephoney` is deprecated; the `doc-brain` checkout is gone). Without this the interface is skipped at boot with a `Skipping interface "chat"` warning and Discord goes silent — the failure is quiet, so do it ahead of the deploy rather than after.
 
-    ```yaml
-    plugins:
-      chat:
-        adapters:
-          discord:
-            botToken: ${DISCORD_BOT_TOKEN}
-            publicKey: ${DISCORD_PUBLIC_KEY}
-            applicationId: ${DISCORD_APPLICATION_ID}
-    ```
+   ```yaml
+   plugins:
+     chat:
+       adapters:
+         discord:
+           botToken: ${DISCORD_BOT_TOKEN}
+           publicKey: ${DISCORD_PUBLIC_KEY}
+           applicationId: ${DISCORD_APPLICATION_ID}
+   ```
 
-    Then push `DISCORD_PUBLIC_KEY` and `DISCORD_APPLICATION_ID` (both from the Discord developer portal, neither secret) via `brain secrets push`. No `add: - chat` is needed — `preset: full` already carries it. `anchors: ["discord:…"]` and any `discord:*` permission rules are unaffected: they select on the message origin namespace, which is still `discord`.
+   Then push `DISCORD_PUBLIC_KEY` and `DISCORD_APPLICATION_ID` (both from the Discord developer portal, neither secret) via `brain secrets push`. No `add: - chat` is needed — `preset: full` already carries it. `anchors: ["discord:…"]` and any `discord:*` permission rules are unaffected: they select on the message origin namespace, which is still `discord`.
 
-2. **Remove the shell singleton machinery.** `getInstance`/`resetInstance`/`private static instance` on ~20 services has zero production callers (verified counts; the factory is guarded by a source-grep test asserting it never calls `.getInstance(`). Make the one `EntityRegistry` fallback an explicit option. Cascades away `service-singletons.ts`, `reset.ts`, the copied test reset lists, and the tautological singleton tests. 3. **God-file splits:** `plugins/atproto/src/plugin.ts` (1,296 → identity/discovery-admission/publishing/routes modules, following the already-extracted `jetstream-consumer.ts` precedent), `shell/app/src/brain-resolver.ts` (976 → resolver/ modules), `plugins/cms/src/editor-routes.ts` (1,059 → routes/ modules), `plugins/playbooks/src/plugin.ts` (1,125 → schemas/tools/lib), `interfaces/web-chat/ui-react/src/App.tsx` (1,027 → hooks + components), `interfaces/chat/test/chat-interface.test.ts` (6,606 → split along src module boundaries; shared mocks to test-utils). 4. **Collapse the `shell/plugins/src/public/*` delegate hierarchy** (1,322 lines, one consumer) via a generic hook-delegate factory; make `shell/app/src/contracts/brain-definition.ts` re-export the real types instead of hand-mirroring them (currently degrades `site`/`permissions`/`deployment` to `unknown`). 5. **`MessageInterfacePlugin` split:** extract `ProgressMessageCoordinator` (the three tracking Maps + cleanup/edit/buffer logic) and upload policy; class keeps only transport hooks. 6. **Contracts hygiene:** merge `email-contracts` into `notification-contracts` (same shape, email is a recipient variant); push single-owner channel groups (`BUTTONDOWN_`, `SERIES_`, `PROJECT_`, `SOCIAL_`, `PUBLISH_ASSET_`, `CONVERSATION_`) from `shared/contracts` down to their owning packages; delete the `shell/plugins/src/message-channels.ts` re-export barrel; relocate `dbConfigSchema` and the playbook starter schema to their single consumers.
+3. ~~**Remove the shell singleton machinery.**~~ Done. "Zero production callers" was wrong: `EntityService` fell back to `EntityRegistry.getInstance()` when no registry was passed, and `brain-cli`'s `operate` fell back to `Shell.getInstance()` for "older boot functions" that no longer exist. Both are now explicit — the registry option is required, and a boot that returns no brain is an error rather than a silent reach for process-global state. 35 classes lost `getInstance`/`resetInstance`/`static instance`; `service-singletons.ts`, `reset.ts`, and 65 test reset calls went with them. Four ambient registries keep theirs and are allow-listed in the guard: `Logger`, `AtprotoProjectionRegistry`, `EntityUrlGenerator`, `EvalHandlerRegistry`. The old three-file source grep in `service-ownership.test.ts` is replaced by a repo-wide one, so a new singleton fails the suite wherever it is added.
+4. **God-file splits:** `plugins/atproto/src/plugin.ts` (1,296 → identity/discovery-admission/publishing/routes modules, following the already-extracted `jetstream-consumer.ts` precedent), `shell/app/src/brain-resolver.ts` (976 → resolver/ modules), `plugins/cms/src/editor-routes.ts` (1,059 → routes/ modules), `plugins/playbooks/src/plugin.ts` (1,125 → schemas/tools/lib), `interfaces/web-chat/ui-react/src/App.tsx` (1,027 → hooks + components), `interfaces/chat/test/chat-interface.test.ts` (6,606 → split along src module boundaries; shared mocks to test-utils).
+5. **Collapse the `shell/plugins/src/public/*` delegate hierarchy** (1,322 lines, one consumer) via a generic hook-delegate factory; make `shell/app/src/contracts/brain-definition.ts` re-export the real types instead of hand-mirroring them (currently degrades `site`/`permissions`/`deployment` to `unknown`).
+6. **`MessageInterfacePlugin` split:** extract `ProgressMessageCoordinator` (the three tracking Maps + cleanup/edit/buffer logic) and upload policy; class keeps only transport hooks.
+7. **Contracts hygiene:** merge `email-contracts` into `notification-contracts` (same shape, email is a recipient variant); push single-owner channel groups (`BUTTONDOWN_`, `SERIES_`, `PROJECT_`, `SOCIAL_`, `PUBLISH_ASSET_`, `CONVERSATION_`) from `shared/contracts` down to their owning packages; delete the `shell/plugins/src/message-channels.ts` re-export barrel; relocate `dbConfigSchema` and the playbook starter schema to their single consumers.
 
 ## Verification per phase
 

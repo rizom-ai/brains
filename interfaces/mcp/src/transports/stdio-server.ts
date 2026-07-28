@@ -14,34 +14,11 @@ export interface StdioMCPServerConfig {
  * Does NOT create its own MCP server - accepts one via connectMCPServer
  */
 export class StdioMCPServer {
-  private static instance: StdioMCPServer | null = null;
-
   private mcpServer: McpServer | null = null;
   private transport: StdioServerTransport | null = null;
   private readonly config: StdioMCPServerConfig;
   private readonly logger: TransportLogger;
 
-  /**
-   * Get the singleton instance of StdioMCPServer
-   */
-  public static getInstance(config?: StdioMCPServerConfig): StdioMCPServer {
-    StdioMCPServer.instance ??= new StdioMCPServer(config);
-    return StdioMCPServer.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    if (StdioMCPServer.instance) {
-      StdioMCPServer.instance.stop();
-      StdioMCPServer.instance = null;
-    }
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(config?: StdioMCPServerConfig): StdioMCPServer {
     return new StdioMCPServer(config);
   }

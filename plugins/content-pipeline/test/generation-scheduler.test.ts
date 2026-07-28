@@ -63,7 +63,6 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    await ContentScheduler.resetInstance();
   });
 
   describe("generation schedule configuration", () => {

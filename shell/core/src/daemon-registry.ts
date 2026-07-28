@@ -1,5 +1,5 @@
 import { toError } from "@brains/utils/error";
-import { Logger } from "@brains/utils/logger";
+import type { Logger } from "@brains/utils/logger";
 import type {
   Daemon,
   DaemonHealth,
@@ -27,43 +27,17 @@ interface DaemonTransitionQueue {
 
 /**
  * Daemon registry for managing long-running interface processes
- * Implements Component Interface Standardization pattern
  */
 export class DaemonRegistry {
-  private static instance: DaemonRegistry | null = null;
-
   private daemons: Map<string, DaemonInfo> = new Map();
   private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
   private daemonTransitions = new Map<string, DaemonTransitionQueue>();
   private logger: Logger;
 
-  /**
-   * Get the singleton instance of DaemonRegistry
-   */
-  public static getInstance(
-    logger: Logger = Logger.getInstance(),
-  ): DaemonRegistry {
-    DaemonRegistry.instance ??= new DaemonRegistry(logger);
-    return DaemonRegistry.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    DaemonRegistry.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(logger: Logger): DaemonRegistry {
     return new DaemonRegistry(logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger) {
     this.logger = logger.child("DaemonRegistry");
   }

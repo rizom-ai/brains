@@ -22,9 +22,6 @@ describe("BrainCharacterService", () => {
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
-    // Reset singleton
-    BrainCharacterService.resetInstance();
-
     // Default implementations
     mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> => null;
     mockCreateEntityImpl = async (): Promise<EntityMutationResult> => ({

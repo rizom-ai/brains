@@ -45,7 +45,6 @@ describe("Entity cache invalidation", () => {
   }
 
   beforeEach(() => {
-    MessageBus.resetInstance();
     messageBus = MessageBus.createFresh(logger);
   });
 

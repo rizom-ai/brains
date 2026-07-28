@@ -7,17 +7,7 @@ import type {
 import type { TemplateRegistry } from "./registry";
 
 export class RenderService implements IViewTemplateRegistry {
-  private static instance: RenderService | null = null;
   private templateRegistry: TemplateRegistry;
-
-  public static getInstance(templateRegistry: TemplateRegistry): RenderService {
-    RenderService.instance ??= new RenderService(templateRegistry);
-    return RenderService.instance;
-  }
-
-  public static resetInstance(): void {
-    RenderService.instance = null;
-  }
 
   public static createFresh(templateRegistry: TemplateRegistry): RenderService {
     return new RenderService(templateRegistry);

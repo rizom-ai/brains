@@ -34,7 +34,6 @@ const defaultIdentitySource: SiteInfoIdentitySource = {
 };
 
 export class SiteInfoService {
-  private static instance: SiteInfoService | null = null;
   private logger: Logger;
   private entityService: IEntityService;
   private adapter: SiteInfoAdapter;
@@ -50,31 +49,6 @@ export class SiteInfoService {
       title: "Brain",
       description: "A knowledge management system",
     };
-  }
-
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    entityService: IEntityService,
-    logger: Logger,
-    defaultSiteInfo?: Partial<SiteInfoBody>,
-    identitySource?: SiteInfoIdentitySource,
-  ): SiteInfoService {
-    SiteInfoService.instance ??= new SiteInfoService(
-      entityService,
-      logger,
-      defaultSiteInfo,
-      identitySource,
-    );
-    return SiteInfoService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (for testing)
-   */
-  public static resetInstance(): void {
-    SiteInfoService.instance = null;
   }
 
   /**

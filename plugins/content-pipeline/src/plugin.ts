@@ -173,10 +173,6 @@ export class ContentPipelinePlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     await this.scheduler.stop();
-    QueueManager.resetInstance();
-    ProviderRegistry.resetInstance();
-    RetryTracker.resetInstance();
-    PublishAssetRegistry.resetInstance();
   }
 }
 

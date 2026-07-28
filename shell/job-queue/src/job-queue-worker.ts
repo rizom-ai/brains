@@ -37,10 +37,8 @@ interface WorkerTransition {
 /**
  * Generic job queue worker that processes jobs from the queue
  * Supports configurable concurrency and polling intervals
- * Implements Component Interface Standardization pattern
  */
 export class JobQueueWorker {
-  private static instance: JobQueueWorker | null = null;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
   private progressMonitor: IJobProgressMonitor;
@@ -58,34 +56,6 @@ export class JobQueueWorker {
   private readonly transitionQueue: WorkerTransition[] = [];
   private readonly clock: Clock.Clock | undefined;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    jobQueueService: IJobQueueService,
-    progressMonitor: IJobProgressMonitor,
-    logger: Logger,
-    config?: JobQueueWorkerConfig,
-  ): JobQueueWorker {
-    JobQueueWorker.instance ??= new JobQueueWorker(
-      jobQueueService,
-      progressMonitor,
-      logger,
-      config,
-    );
-    return JobQueueWorker.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    JobQueueWorker.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,
@@ -108,9 +78,6 @@ export class JobQueueWorker {
     );
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(
     jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,

@@ -76,7 +76,6 @@ function requestOrigin(request: Request): string {
  * Handles session management and request routing
  */
 export class StreamableHTTPServer {
-  private static instance: StreamableHTTPServer | null = null;
   private transports: Record<string, WebStandardStreamableHTTPServerTransport> =
     {};
   private sessionLastActivity = new Map<string, number>();
@@ -123,19 +122,6 @@ export class StreamableHTTPServer {
         },
       },
     );
-  }
-
-  public static getInstance(
-    config?: StreamableHTTPServerConfig,
-  ): StreamableHTTPServer {
-    StreamableHTTPServer.instance ??= new StreamableHTTPServer(config);
-    return StreamableHTTPServer.instance;
-  }
-
-  public static async resetInstance(): Promise<void> {
-    const instance = StreamableHTTPServer.instance;
-    StreamableHTTPServer.instance = null;
-    await instance?.stop();
   }
 
   public static createFresh(

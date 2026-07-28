@@ -45,8 +45,6 @@ interface BatchManagerTransition {
 export class BatchJobManager {
   private jobQueue: IJobQueueService;
   private logger: Logger;
-  private static instance: BatchJobManager | null = null;
-
   // In-memory tracking of batch metadata
   // In production, this could be stored in a database table
   private batches = new Map<
@@ -74,18 +72,6 @@ export class BatchJobManager {
   private readonly transitionQueue: BatchManagerTransition[] = [];
   private acceptingCleanup = true;
   private readonly clock: Clock.Clock | undefined;
-
-  public static getInstance(
-    jobQueue: IJobQueueService,
-    logger: Logger,
-  ): BatchJobManager {
-    BatchJobManager.instance ??= new BatchJobManager(jobQueue, logger);
-    return BatchJobManager.instance;
-  }
-
-  public static resetInstance(): void {
-    BatchJobManager.instance = null;
-  }
 
   public static createFresh(
     jobQueue: IJobQueueService,

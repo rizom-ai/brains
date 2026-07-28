@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { QueueManager } from "../src/queue-manager";
 
 describe("QueueManager", () => {
@@ -206,28 +206,6 @@ describe("QueueManager", () => {
       const types = await queueManager.getQueuedEntityTypes();
 
       expect(types).toEqual([]);
-    });
-  });
-
-  describe("singleton pattern", () => {
-    it("should return same instance from getInstance", () => {
-      const instance1 = QueueManager.getInstance();
-      const instance2 = QueueManager.getInstance();
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should return fresh instance after reset", () => {
-      const instance1 = QueueManager.getInstance();
-      QueueManager.resetInstance();
-      const instance2 = QueueManager.getInstance();
-
-      expect(instance1).not.toBe(instance2);
-    });
-
-    // Clean up singleton after tests
-    afterEach(() => {
-      QueueManager.resetInstance();
     });
   });
 });

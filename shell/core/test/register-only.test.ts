@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { resetAllSingletons } from "../src/initialization/reset";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger } from "@brains/test-utils";
@@ -34,12 +33,10 @@ describe("Shell register-only mode", () => {
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
-    await resetAllSingletons();
   });
 
   afterEach(async () => {
     await shell.shutdown();
-    await resetAllSingletons();
     await testDir.cleanup();
   });
 

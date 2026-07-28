@@ -7,7 +7,6 @@ describe("registerInstructions should invalidate agent", () => {
   const logger = createSilentLogger();
 
   beforeEach(() => {
-    MessageBus.resetInstance();
     messageBus = MessageBus.createFresh(logger);
   });
 

@@ -21,28 +21,8 @@ interface RetryEntry {
 }
 
 export class RetryTracker {
-  private static instance: RetryTracker | null = null;
-
   private retries: Map<string, RetryEntry> = new Map();
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(): RetryTracker {
-    RetryTracker.instance ??= new RetryTracker();
-    return RetryTracker.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    RetryTracker.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(): RetryTracker {
     return new RetryTracker();
   }

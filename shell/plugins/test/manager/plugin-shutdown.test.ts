@@ -19,7 +19,6 @@ describe("Plugin shutdown lifecycle", () => {
   let mockShell: ReturnType<typeof createMockShell>;
 
   beforeEach(() => {
-    PluginManager.resetInstance();
     const logger = createSilentLogger();
     mockShell = createMockShell({ logger });
     pluginManager = PluginManager.createFresh(

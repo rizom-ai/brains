@@ -67,8 +67,6 @@ describe("PluginManager - Direct Registration", () => {
   }> = [];
 
   beforeEach(() => {
-    // Reset PluginManager singleton
-    PluginManager.resetInstance();
     // Reset registered items
     registeredTools = [];
     registeredResources = [];
@@ -103,7 +101,7 @@ describe("PluginManager - Direct Registration", () => {
     );
 
     // Create plugin manager and wire shell
-    pluginManager = PluginManager.getInstance(
+    pluginManager = PluginManager.createFresh(
       createSilentLogger(),
       mockShell.getDaemonRegistry(),
     );
@@ -215,7 +213,7 @@ describe("PluginManager - Direct Registration", () => {
 
     it("should use direct registration instead of MessageBus", async () => {
       // Create plugin manager (MessageBus no longer needed)
-      pluginManager = PluginManager.getInstance(
+      pluginManager = PluginManager.createFresh(
         createSilentLogger(),
         mockShell.getDaemonRegistry(),
       );

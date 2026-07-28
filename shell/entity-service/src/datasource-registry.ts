@@ -8,35 +8,13 @@ import type { DataSource, DataSourceCapabilities } from "./types";
  * Follows Component Interface Standardization pattern.
  */
 export class DataSourceRegistry {
-  private static instance: DataSourceRegistry | null = null;
   private dataSources = new Map<string, DataSource>();
   private logger: Logger;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(logger: Logger): DataSourceRegistry {
-    DataSourceRegistry.instance ??= new DataSourceRegistry(logger);
-    return DataSourceRegistry.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    DataSourceRegistry.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(logger: Logger): DataSourceRegistry {
     return new DataSourceRegistry(logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger) {
     this.logger = logger.child("DataSourceRegistry");
   }

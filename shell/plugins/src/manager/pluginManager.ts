@@ -40,11 +40,8 @@ export { PluginEvent, PluginStatus } from "./types";
 
 /**
  * Plugin manager that handles plugin registration, initialization, and lifecycle
- * Implements Component Interface Standardization pattern
  */
 export class PluginManager implements IPluginManager {
-  private static instance: PluginManager | null = null;
-
   private plugins: Map<string, PluginInfo> = new Map();
   private logger: Logger;
   private events = new EventEmitter();
@@ -55,27 +52,6 @@ export class PluginManager implements IPluginManager {
   private dependencyResolver: DependencyResolver;
   private capabilityRegistrar: CapabilityRegistrar;
 
-  /**
-   * Get the singleton instance of PluginManager
-   */
-  public static getInstance(
-    logger: Logger,
-    daemonRegistry: IDaemonRegistry,
-  ): PluginManager {
-    PluginManager.instance ??= new PluginManager(logger, daemonRegistry);
-    return PluginManager.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    PluginManager.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     logger: Logger,
     daemonRegistry: IDaemonRegistry,
@@ -90,9 +66,6 @@ export class PluginManager implements IPluginManager {
     this.shell = shell;
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger, daemonRegistry: IDaemonRegistry) {
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();

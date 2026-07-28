@@ -148,7 +148,6 @@ describe("AgentService", () => {
   let mockConversationService: IConversationService;
 
   beforeEach(async () => {
-    await AgentService.resetInstance();
     logger = createSilentLogger();
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
@@ -176,86 +175,7 @@ describe("AgentService", () => {
     mockAgentFactory.mockClear();
   });
 
-  afterEach(async () => {
-    await AgentService.resetInstance();
-  });
-
-  describe("Component Interface Standardization", () => {
-    it("should implement singleton pattern", () => {
-      const instance1 = AgentService.getInstance(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-      const instance2 = AgentService.getInstance(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should reset instance", async () => {
-      const instance1 = AgentService.getInstance(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      await AgentService.resetInstance();
-
-      const instance2 = AgentService.getInstance(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-      expect(instance1).not.toBe(instance2);
-    });
-
-    it("should create fresh instance without affecting singleton", () => {
-      const singleton = AgentService.getInstance(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-      const fresh = AgentService.createFresh(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      expect(fresh).not.toBe(singleton);
-      expect(
-        AgentService.getInstance(
-          mockMCPService,
-          mockConversationService as IConversationService,
-          mockCharacterService,
-          mockProfileService,
-          logger,
-          { agentFactory: mockAgentFactory },
-        ),
-      ).toBe(singleton);
-    });
-  });
+  afterEach(async () => {});
 
   describe("chat", () => {
     it("should send message to agent and return response", async () => {
