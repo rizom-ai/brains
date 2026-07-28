@@ -61,19 +61,33 @@ describe("sitePackagesFor", () => {
     expect(sitePackagesFor(undefined)).toEqual([]);
   });
 
-  // A @rizom-scoped theme is an independently published npm package and is
-  // installed alongside the site package at the same lockstep version.
-  it("includes a @rizom-scoped theme at the site's version", () => {
+  // A @rizom-scoped theme is an independently published npm package with its
+  // own release cadence — sites and themes version independently, so the
+  // theme installs at its own pinned version, never the site's.
+  it("includes a @rizom-scoped theme at its own pinned version", () => {
     expect(
       sitePackagesFor({
         package: "@rizom/site-rizom-ai",
         version: "0.2.0-alpha.167",
         theme: "@rizom/theme-rizom-ai",
+        themeVersion: "0.2.0-alpha.165",
       }),
     ).toEqual([
       "@rizom/site-rizom-ai@0.2.0-alpha.167",
-      "@rizom/theme-rizom-ai@0.2.0-alpha.167",
+      "@rizom/theme-rizom-ai@0.2.0-alpha.165",
     ]);
+  });
+
+  // Guessing a theme version (e.g. reusing the site's) produces install
+  // failures the moment the two packages diverge on npm.
+  it("refuses a @rizom-scoped theme without an explicit version", () => {
+    expect(() =>
+      sitePackagesFor({
+        package: "@rizom/site-rizom-ai",
+        version: "0.2.0-alpha.167",
+        theme: "@rizom/theme-rizom-ai",
+      }),
+    ).toThrow("@rizom/theme-rizom-ai");
   });
 
   // @brains/* themes are bundled inside @rizom/brain and must not be
@@ -104,6 +118,7 @@ describe("requiredImages", () => {
           package: "@rizom/site-rizom-ai",
           version: "0.2.0-alpha.167",
           theme: "@rizom/theme-rizom-ai",
+          themeVersion: "0.2.0-alpha.165",
         },
       },
     ]);
@@ -123,7 +138,7 @@ describe("requiredImages", () => {
     expect(site?.brainVersion).toBe("0.2.0-alpha.167");
     expect(site?.sitePackages).toEqual([
       "@rizom/site-rizom-ai@0.2.0-alpha.167",
-      "@rizom/theme-rizom-ai@0.2.0-alpha.167",
+      "@rizom/theme-rizom-ai@0.2.0-alpha.165",
     ]);
     expect(site?.tag).toBe(
       siteImageTag("0.2.0-alpha.167", site?.sitePackages ?? []),
@@ -252,6 +267,7 @@ discord:
 siteOverride:
   package: "@rizom/site-rizom-ai"
   theme: "@rizom/theme-rizom-ai"
+  themeVersion: 0.2.0-alpha.165
 discord:
   enabled: false
 `,
@@ -297,7 +313,7 @@ members:
         tag: builds[0]?.tag ?? "",
         brain_version: "0.2.0-alpha.167",
         site_packages:
-          "@rizom/site-rizom-ai@0.2.0-alpha.167 @rizom/theme-rizom-ai@0.2.0-alpha.167",
+          "@rizom/site-rizom-ai@0.2.0-alpha.167 @rizom/theme-rizom-ai@0.2.0-alpha.165",
       },
     ]);
   });

@@ -149,10 +149,12 @@ const siteOverrideSchema: z.ZodObject<{
   package: z.ZodString;
   version: z.ZodOptional<typeof exactVersionSchema>;
   theme: z.ZodOptional<z.ZodString>;
+  themeVersion: z.ZodOptional<typeof exactVersionSchema>;
 }> = z.strictObject({
   package: z.string().min(1),
   version: exactVersionSchema.optional(),
   theme: z.string().min(1).optional(),
+  themeVersion: exactVersionSchema.optional(),
 });
 
 const playbooksSchema: z.ZodObject<{

@@ -144,7 +144,7 @@ Start with the public [site mockup migration guide](https://github.com/rizom-ai/
 - A site package must default-export a valid `SitePackage` and use documented public APIs such as `@rizom/brain/site`.
 - A theme package must default-export its CSS as a string. Hosted custom themes currently use the `@rizom/*` scope so the fleet image installs them with the site package; `@brains/*` themes are bundled with `@rizom/brain`.
 - Site and custom theme packages must be public npm packages that install without registry credentials.
-- Publish packages at the same exact version as the compatible `@rizom/brain` release. Hosted configuration resolves package names plus the effective version into exact npm refs.
+- Site and theme packages publish on their own release cadences, independent of `@rizom/brain` and of each other. Hosted configuration resolves package names plus pinned versions into exact npm refs.
 - Keep site structure and theme CSS in separate packages. Do not put private content or secrets in either package.
 
 Configure a user in `users/<handle>.yaml`:
@@ -153,13 +153,16 @@ Configure a user in `users/<handle>.yaml`:
 siteOverride:
   package: "@rizom/site-example"
   theme: "@rizom/theme-example"
-  # version: <exact-brain-version> # optional deliberate pin
+  themeVersion: <exact-theme-version> # required for @rizom/* themes
+  # version: <exact-site-version> # optional deliberate pin
 ```
 
 When `version` is omitted, it defaults to the user's effective brain version
-(cohort override first, then `pilot.yaml.brainVersion`). A site override produces
-an isolated per-instance image; it never changes the fleet's shared default
-image.
+(cohort override first, then `pilot.yaml.brainVersion`). A `@rizom/*` theme
+always requires an explicit `themeVersion` — themes and sites version
+independently, so the theme's version is never inferred. A site override
+produces an isolated per-instance image; it never changes the fleet's shared
+default image.
 
 ### Custom-package canary and rollback
 

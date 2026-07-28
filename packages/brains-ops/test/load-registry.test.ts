@@ -197,6 +197,110 @@ discord:
     });
   });
 
+  it("resolves a @rizom theme at its own pinned version", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.136
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/smoke.yaml": `handle: smoke
+siteOverride:
+  package: "@rizom/site-smoke-canary"
+  version: 0.2.0-alpha.234
+  theme: "@rizom/theme-signal"
+  themeVersion: 0.2.0-alpha.233
+discord:
+  enabled: false
+`,
+      "cohorts/sites.yaml": `members:
+  - smoke
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.users[0]?.siteOverride).toEqual({
+      package: "@rizom/site-smoke-canary",
+      version: "0.2.0-alpha.234",
+      theme: "@rizom/theme-signal",
+      themeVersion: "0.2.0-alpha.233",
+    });
+  });
+
+  // Sites and themes release independently, so a theme version can never be
+  // inferred from the site's — guessing produced images that referenced npm
+  // versions that do not exist.
+  it("rejects a @rizom theme without an explicit themeVersion", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.136
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/smoke.yaml": `handle: smoke
+siteOverride:
+  package: "@rizom/site-smoke-canary"
+  version: 0.2.0-alpha.234
+  theme: "@rizom/theme-signal"
+discord:
+  enabled: false
+`,
+      "cohorts/sites.yaml": `members:
+  - smoke
+`,
+    });
+
+    expect(loadPilotRegistry(root)).rejects.toThrow(/themeVersion/);
+  });
+
+  // @brains/* themes are bundled inside @rizom/brain — a version pin on one
+  // is meaningless and indicates a misconfigured override.
+  it("rejects a themeVersion on a bundled (@brains) theme", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.136
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/rizom-work.yaml": `handle: rizom-work
+siteOverride:
+  package: "@rizom/site-rizom-work"
+  version: 0.2.0-alpha.136
+  theme: "@brains/theme-rizom"
+  themeVersion: 0.2.0-alpha.136
+discord:
+  enabled: false
+`,
+      "cohorts/sites.yaml": `members:
+  - rizom-work
+`,
+    });
+
+    expect(loadPilotRegistry(root)).rejects.toThrow(/themeVersion/);
+  });
+
   it("defaults site package versions from effective brain versions while preserving pins", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1

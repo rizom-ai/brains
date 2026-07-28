@@ -37,9 +37,9 @@ export function siteImageTag(
 
 /**
  * The npm packages a site override installs into its per-instance image.
- * A @rizom-scoped theme is an independently published package and rides along
- * at the same lockstep version; @brains/* themes are bundled inside
- * @rizom/brain and must not be npm-installed.
+ * A @rizom-scoped theme is an independently published package on its own
+ * release cadence and installs at its own pinned version; @brains/* themes
+ * are bundled inside @rizom/brain and must not be npm-installed.
  */
 export function sitePackagesFor(
   siteOverride: ResolvedSiteOverride | undefined,
@@ -47,11 +47,17 @@ export function sitePackagesFor(
   if (!siteOverride) {
     return [];
   }
+  if (!siteOverride.theme?.startsWith("@rizom/")) {
+    return [`${siteOverride.package}@${siteOverride.version}`];
+  }
+  if (siteOverride.themeVersion === undefined) {
+    throw new Error(
+      `Theme ${siteOverride.theme} has no themeVersion; independently published themes require an explicit version pin`,
+    );
+  }
   return [
     `${siteOverride.package}@${siteOverride.version}`,
-    ...(siteOverride.theme?.startsWith("@rizom/")
-      ? [`${siteOverride.theme}@${siteOverride.version}`]
-      : []),
+    `${siteOverride.theme}@${siteOverride.themeVersion}`,
   ];
 }
 
