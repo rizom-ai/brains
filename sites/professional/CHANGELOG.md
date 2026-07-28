@@ -1,5 +1,21 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- Updated dependencies [[`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a), [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d)]:
+  - @brains/plugins@0.2.0-alpha.236
+  - @brains/blog@0.2.0-alpha.236
+  - @brains/decks@0.2.0-alpha.236
+  - @brains/site-info@0.2.0-alpha.236
+  - @brains/profile@0.2.0-alpha.236
+  - @brains/site-composition@0.2.0-alpha.236
+  - @brains/site-engine@0.2.0-alpha.236
+  - @brains/ui-library@0.2.0-alpha.236
+  - @brains/utils@0.2.0-alpha.236
+  - @brains/templates@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

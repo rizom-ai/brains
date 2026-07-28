@@ -1,5 +1,21 @@
 # @brains/notifications
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the app-scoped channel descriptor and delivery-provider registry, registry-driven auth identities and Admin channel presentation, supervised invitation recovery, and explicit audited manual invitation delivery.
+
+- [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add durable idempotent invitation lifecycles, provider-backed email delivery, safe resend/cancellation/expiry handling, and Admin invitation status history.
+
+- [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the standalone Email Resend service with an outbound-first Email message interface. Email now owns its channel descriptor and configured Resend provider, Notifications remains channel-agnostic, channel registration is restricted to message-interface plugins, and brain configuration uses `plugins.email`; existing `plugins.email-resend` configuration must be renamed.
+
+- Updated dependencies [[`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a), [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f), [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d)]:
+  - @brains/plugins@0.2.0-alpha.236
+  - @brains/notification-contracts@0.2.0-alpha.236
+  - @brains/email-contracts@0.2.0-alpha.236
+  - @brains/utils@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

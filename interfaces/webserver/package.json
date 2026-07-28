@@ -1,6 +1,6 @@
 {
   "name": "@brains/webserver",
-  "version": "0.2.0-alpha.235",
+  "version": "0.2.0-alpha.236",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",

@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the standalone Email Resend service with an outbound-first Email message interface. Email now owns its channel descriptor and configured Resend provider, Notifications remains channel-agnostic, channel registration is restricted to message-interface plugins, and brain configuration uses `plugins.email`; existing `plugins.email-resend` configuration must be renamed.
+
 ## 0.2.0-alpha.235
 
 ## 0.2.0-alpha.234

@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`386a6ea`](https://github.com/rizom-ai/brains/commit/386a6ea2b299fcc23ea6676adc75c87d7fe0dae6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Treat authenticated Anchor and permission facts as authoritative model context. Non-Anchor callers now receive a definitive relationship, permission answers use canonical Admin/Trusted/Public labels, and prompt-substring tests are replaced by resolved-principal integration coverage plus passing behavioral model evaluations for personal Anchor/Admin, Trusted non-Anchor, additional Admin non-Anchor, and Public callers.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.236
+  - @brains/utils@0.2.0-alpha.236
+  - @brains/conversation-service@0.2.0-alpha.236
+  - @brains/entity-service@0.2.0-alpha.236
+  - @brains/identity-service@0.2.0-alpha.236
+  - @brains/mcp-service@0.2.0-alpha.236
+  - @brains/messaging-service@0.2.0-alpha.236
+  - @brains/templates@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

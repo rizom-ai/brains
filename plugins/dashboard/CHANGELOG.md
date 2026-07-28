@@ -1,5 +1,15 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- Updated dependencies [[`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a), [`4d9a36b`](https://github.com/rizom-ai/brains/commit/4d9a36b618782071c8fe3c685907fbd4767c34da), [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f), [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d)]:
+  - @brains/plugins@0.2.0-alpha.236
+  - @brains/auth-service@0.2.0-alpha.236
+  - @brains/console-theme@0.2.0-alpha.236
+  - @brains/utils@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

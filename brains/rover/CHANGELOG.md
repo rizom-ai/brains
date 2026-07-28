@@ -1,5 +1,62 @@
 # @brains/rover
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`386a6ea`](https://github.com/rizom-ai/brains/commit/386a6ea2b299fcc23ea6676adc75c87d7fe0dae6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Treat authenticated Anchor and permission facts as authoritative model context. Non-Anchor callers now receive a definitive relationship, permission answers use canonical Admin/Trusted/Public labels, and prompt-substring tests are replaced by resolved-principal integration coverage plus passing behavioral model evaluations for personal Anchor/Admin, Trusted non-Anchor, additional Admin non-Anchor, and Public callers.
+
+- [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the standalone Email Resend service with an outbound-first Email message interface. Email now owns its channel descriptor and configured Resend provider, Notifications remains channel-agnostic, channel registration is restricted to message-interface plugins, and brain configuration uses `plugins.email`; existing `plugins.email-resend` configuration must be renamed.
+
+- Updated dependencies [[`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a), [`4d9a36b`](https://github.com/rizom-ai/brains/commit/4d9a36b618782071c8fe3c685907fbd4767c34da), [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f), [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d)]:
+  - @brains/auth-service@0.2.0-alpha.236
+  - @brains/admin@0.2.0-alpha.236
+  - @brains/notifications@0.2.0-alpha.236
+  - @brains/email@0.2.0-alpha.236
+  - @brains/chat@0.2.0-alpha.236
+  - @brains/discord@0.2.0-alpha.236
+  - @brains/agent-discovery@0.2.0-alpha.236
+  - @brains/assessment@0.2.0-alpha.236
+  - @brains/blog@0.2.0-alpha.236
+  - @brains/decks@0.2.0-alpha.236
+  - @brains/doc@0.2.0-alpha.236
+  - @brains/document-plugin@0.2.0-alpha.236
+  - @brains/image-plugin@0.2.0-alpha.236
+  - @brains/link@0.2.0-alpha.236
+  - @brains/note@0.2.0-alpha.236
+  - @brains/portfolio@0.2.0-alpha.236
+  - @brains/products@0.2.0-alpha.236
+  - @brains/prompt@0.2.0-alpha.236
+  - @brains/rizom-ecosystem@0.2.0-alpha.236
+  - @brains/series@0.2.0-alpha.236
+  - @brains/site-info@0.2.0-alpha.236
+  - @brains/social-media@0.2.0-alpha.236
+  - @brains/style-guide@0.2.0-alpha.236
+  - @brains/topics@0.2.0-alpha.236
+  - @brains/wishlist@0.2.0-alpha.236
+  - @brains/a2a@0.2.0-alpha.236
+  - @brains/mcp@0.2.0-alpha.236
+  - @brains/web-chat@0.2.0-alpha.236
+  - @brains/webserver@0.2.0-alpha.236
+  - @brains/analytics@0.2.0-alpha.236
+  - @brains/atproto@0.2.0-alpha.236
+  - @brains/atproto-registry@0.2.0-alpha.236
+  - @brains/cms@0.2.0-alpha.236
+  - @brains/content-pipeline@0.2.0-alpha.236
+  - @brains/dashboard@0.2.0-alpha.236
+  - @brains/directory-sync@0.2.0-alpha.236
+  - @brains/newsletter@0.2.0-alpha.236
+  - @brains/obsidian-vault@0.2.0-alpha.236
+  - @brains/playbooks@0.2.0-alpha.236
+  - @brains/profile@0.2.0-alpha.236
+  - @brains/rover-onboarding@0.2.0-alpha.236
+  - @brains/site-builder-plugin@0.2.0-alpha.236
+  - @brains/site-content@0.2.0-alpha.236
+  - @brains/stock-photo@0.2.0-alpha.236
+  - @brains/app@0.2.0-alpha.236
+  - @brains/site-default@0.2.0-alpha.236
+  - @rizom/theme-default@0.2.0-alpha.233
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

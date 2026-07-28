@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`4d9a36b`](https://github.com/rizom-ai/brains/commit/4d9a36b618782071c8fe3c685907fbd4767c34da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make `brain auth reset-passkeys --yes` atomically clear passkeys, WebAuthn challenges, sessions, authorization codes, refresh tokens, and global setup links from `auth.db` while preserving users, OAuth clients, signing keys, and untouched legacy backup files.
+
+- [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the standalone Email Resend service with an outbound-first Email message interface. Email now owns its channel descriptor and configured Resend provider, Notifications remains channel-agnostic, channel registration is restricted to message-interface plugins, and brain configuration uses `plugins.email`; existing `plugins.email-resend` configuration must be renamed.
+
 ## 0.2.0-alpha.235
 
 ## 0.2.0-alpha.234

@@ -1,5 +1,14 @@
 # @brains/email-contracts
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add durable idempotent invitation lifecycles, provider-backed email delivery, safe resend/cancellation/expiry handling, and Admin invitation status history.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

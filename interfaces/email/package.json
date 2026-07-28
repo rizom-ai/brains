@@ -1,6 +1,6 @@
 {
   "name": "@brains/email",
-  "version": "0.2.0-alpha.235",
+  "version": "0.2.0-alpha.236",
   "description": "Outbound-first Email message interface for Brains",
   "dependencies": {
     "@brains/email-contracts": "workspace:*",

@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the app-scoped channel descriptor and delivery-provider registry, registry-driven auth identities and Admin channel presentation, supervised invitation recovery, and explicit audited manual invitation delivery.
+
+- Updated dependencies [[`a6ca836`](https://github.com/rizom-ai/brains/commit/a6ca836f4cd5abef038584de13944765d7b4843a), [`8bd7c18`](https://github.com/rizom-ai/brains/commit/8bd7c18678822bafdb796f20c44db3220a7c1d0f), [`9655faf`](https://github.com/rizom-ai/brains/commit/9655faf210917e322ce2bdce0a95adaabd816a8d)]:
+  - @brains/plugins@0.2.0-alpha.236
+  - @brains/notification-contracts@0.2.0-alpha.236
+  - @brains/contracts@0.2.0-alpha.236
+  - @brains/image@0.2.0-alpha.236
+  - @brains/site-composition@0.2.0-alpha.236
+  - @brains/utils@0.2.0-alpha.236
+  - @brains/recurring-checks@0.2.0-alpha.236
+  - @brains/runtime-state@0.2.0-alpha.236
+  - @brains/scheduler@0.2.0-alpha.236
+  - @brains/templates@0.2.0-alpha.236
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes
