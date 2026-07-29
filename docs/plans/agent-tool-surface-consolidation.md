@@ -32,7 +32,7 @@ It also marked `directory-sync_history` stale even though the full eval invoked 
 
 The latest full eval passed 186/191 cases. Tool-surface symptoms among the failures include:
 
-- an explicit playbook status request answered without `playbook_status`;
+- an explicit playbook status request answered without the consolidated `playbook_manage` status action;
 - an inline playbook transformation incorrectly routed through durable `system_generate` and confirmation;
 - repeated playbook status calls returning very large definitions, state, evidence, and guidance payloads.
 
@@ -43,7 +43,7 @@ This is not a reason to collapse every tool. The core read and mutation boundari
 1. Give the brain agent a deliberate tool surface independent of MCP, CLI, API, and internal registration.
 2. Reduce the normal git-backed personal-publishing agent surface from 29 tools to 20 before optional provider tools.
 3. Preserve caller permissions, confirmation semantics, actor attribution, cancellation, and side-effect metadata.
-4. Preserve existing MCP debug and CLI integrations during migration.
+4. Ask case-by-case before retaining legacy compatibility aliases or migration shims.
 5. Consolidate playbook, directory-sync, and publishing lifecycle actions behind typed discriminated unions.
 6. Keep tool schemas specific enough for reliable model selection; count reduction alone is not success.
 7. Make tool coverage reproduce normal and eval compositions and distinguish agent coverage from protocol coverage.
@@ -126,11 +126,11 @@ Add explicit registry views rather than filtering ad hoc:
 
 `AgentService` must build `BrainAgent` only from the agent-specific view. MCP protocol registration must continue to use the protocol-specific view.
 
-### Compatibility aliases are not model tools
+### Compatibility aliases are case-by-case
 
-When lifecycle tools are consolidated, existing names remain registered as protocol-only compatibility aliases for at least one release. Aliases delegate to the same service methods; they do not duplicate business logic. Remove them only after a usage audit shows no supported external consumer needs them.
+Do not keep legacy names by default when lifecycle tools are consolidated. Ask case-by-case whether any supported protocol, CLI, or external consumer needs a compatibility shim; if not, remove the old registered tools outright.
 
-Evals and agent instructions migrate to canonical names immediately so aliases never inflate the model surface.
+Evals and agent instructions migrate to canonical names immediately so legacy names never inflate the model surface.
 
 ### Core entity tools stay separate
 
@@ -230,7 +230,7 @@ type PlaybookManageInput =
    - unmet current-state requirements;
    - final-state indicator.
 3. Do not return full markdown, parsed playbook body, all historical runs, or complete guidance unless an explicit non-agent/debug option requests it.
-4. Keep `playbook_start`, `playbook_status`, and `playbook_send_event` as protocol-only aliases during migration.
+4. Remove `playbook_start`, `playbook_status`, and `playbook_send_event` rather than keeping compatibility aliases.
 5. Migrate playbook instructions and eval assertions to `playbook_manage`.
 6. Add a contextual tool rule for inline transformation states: `system_generate` remains unavailable unless the operator explicitly asks to save or persist the result.
 
@@ -256,8 +256,8 @@ type DirectorySyncInput =
 1. Delegate to the existing sync request, status, and git history implementations.
 2. Include the history branch only when git is configured; the generated union and description must reflect actual runtime capability.
 3. Normalize sync operation identifiers and status output so the model does not need prose explaining that a sync job ID is not a system batch ID.
-4. Keep the existing three names as protocol-only compatibility aliases.
-5. Preserve the existing `sync` CLI command.
+4. Ask before retaining or removing the existing three registered tool names.
+5. Preserve the existing `sync` CLI command unless separately directed.
 
 Exit gate: sync, status follow-up, and history evals use only `directory_sync`; conditional coverage is accurate with and without git.
 
@@ -274,7 +274,7 @@ Introduce `publishing_manage` with actions for:
 1. Reuse the queue manager, publication queue service, provider registry, publish executor, and current confirmation implementation.
 2. Keep publish as an Admin external side effect with content-hash and expiry validation.
 3. Preserve per-action entity permission checks; one tool-level visibility must not replace action-level authorization.
-4. Keep `content-pipeline_queue` and `content-pipeline_publish` as protocol-only aliases.
+4. Ask before retaining or removing existing registered publishing tool names.
 5. Keep publish-asset reconciliation out of the agent union.
 
 Exit gate: queue and direct-publish evals pass through `publishing_manage`, including follow-up target reuse and confirmation replay protection.
@@ -295,12 +295,12 @@ Exit gate: queue and direct-publish evals pass through `publishing_manage`, incl
 
 Exit gate: configured optional providers add at most three model tools—newsletter subscribers and the two-step stock-photo flow—and analytics has no duplicate LLM surface.
 
-### Phase 7 — Remove compatibility aliases when safe
+### Phase 7 — Audit legacy registered names
 
 1. Instrument or audit debug-protocol and operator usage of old tool names without logging arguments or content.
 2. Document canonical replacements in release notes.
-3. Remove aliases only when no supported consumer depends on them; otherwise retain protocol-only aliases because they do not affect model context.
-4. Delete obsolete instructions, eval assertions, and tool-name repair logic after alias removal.
+3. Ask case-by-case before keeping any protocol-only legacy adapter.
+4. Delete obsolete instructions, eval assertions, and tool-name repair logic after legacy-name removal.
 
 ## Validation strategy
 
@@ -367,9 +367,9 @@ Final exit targets:
 
 ## Migration and release safety
 
-- Land audience filtering before introducing aliases so old names can remain protocol-visible without re-entering the model set.
+- Land audience filtering before any temporary legacy adapter so old names cannot re-enter the model set.
 - Migrate one lifecycle namespace per release: playbooks, directory sync, then publishing.
-- Keep business logic behind existing services; canonical tools and compatibility aliases are adapters only.
+- Keep business logic behind existing services; canonical tools and any explicitly approved legacy adapters are adapters only.
 - Update generated docs, feature overview tool tables, eval fixtures, and changelogs in the same release as each canonical tool.
 - Do not silently remove a CLI command or MCP basic capability.
 - A phase can roll back by restoring the prior agent audience while leaving the shared service implementation unchanged.
@@ -379,7 +379,7 @@ Final exit targets:
 - **Union complexity:** fewer tool names can still produce a larger or less reliable schema. Size and routing evals gate every consolidation.
 - **Confirmation identity:** changing tool names can break pending confirmations across a deploy. Do not guarantee replay of pre-deploy pending confirmations; fail them clearly and request fresh approval.
 - **Plugin registration order:** conditional action variants must be assembled only after capability registration is complete.
-- **Protocol compatibility:** debug MCP consumers may call old names. Protocol-only aliases prevent an unnecessary flag day.
+- **Protocol compatibility:** debug MCP consumers may call old names. Ask whether each old name needs a temporary adapter or can be removed outright.
 - **Eval/runtime drift:** eval-disabled interfaces can hide production-only agent leakage. Normal-mode surface snapshots are mandatory.
 - **Model-unification overlap:** preset names are temporary. Put implementation in shared registries and capability packages, and move only composition fixtures when bundles replace presets.
 
@@ -394,4 +394,4 @@ This plan is complete when:
 5. playbooks, directory sync, and publishing each have one canonical model tool;
 6. analytics and Buttondown no longer create duplicate or fragmented model surfaces;
 7. affected targeted evals are green and the full eval does not regress;
-8. compatibility aliases are either safely removed or intentionally retained as protocol-only adapters.
+8. legacy registered names are either removed or intentionally retained after a case-by-case decision.

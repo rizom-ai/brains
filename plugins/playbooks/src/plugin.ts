@@ -165,23 +165,36 @@ const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
   })
   .passthrough();
 
-const statusInputSchema = {
+const manageInputSchema = {
+  action: z.enum(["status", "start", "send-event"]),
   runId: z.string().min(1).optional(),
   playbookId: z.string().min(1).optional(),
   lifecycle: z.string().min(1).optional(),
-};
-
-const startInputSchema = {
-  playbookId: z.string().min(1),
-  lifecycle: z.string().min(1).optional(),
-};
-
-const sendEventInputSchema = {
-  runId: z.string().min(1).optional(),
-  event: z.string().min(1),
+  event: z.string().min(1).optional(),
   fromState: z.string().min(1).optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 };
+
+const playbookManageInputSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("status"),
+    runId: z.string().min(1).optional(),
+    playbookId: z.string().min(1).optional(),
+    lifecycle: z.string().min(1).optional(),
+  }),
+  z.object({
+    action: z.literal("start"),
+    playbookId: z.string().min(1),
+    lifecycle: z.string().min(1).optional(),
+  }),
+  z.object({
+    action: z.literal("send-event"),
+    runId: z.string().min(1).optional(),
+    event: z.string().min(1),
+    fromState: z.string().min(1).optional(),
+    context: z.record(z.string(), z.unknown()).optional(),
+  }),
+]);
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -368,106 +381,111 @@ export class PlaybooksPlugin extends ServicePlugin<
   protected override async getTools(): Promise<Tool[]> {
     return [
       {
-        name: "playbook_status",
+        name: "playbook_manage",
         description:
-          "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
-        inputSchema: statusInputSchema,
+          "Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+        inputSchema: manageInputSchema,
         visibility: "admin",
-        sideEffects: "none",
+        sideEffects: "writes",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = z.object(statusInputSchema).parse(input);
-          try {
-            const data = await this.getStatus({
-              ...parsed,
-              conversationId: toolContext.conversationId,
-            });
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: errorMessage(error) };
+          const parsed = playbookManageInputSchema.parse(input);
+          if (parsed.action === "status") {
+            return this.handleStatus(parsed, toolContext);
           }
-        },
-      },
-      {
-        name: "playbook_start",
-        description:
-          "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
-        inputSchema: startInputSchema,
-        visibility: "admin",
-        sideEffects: "writes",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(startInputSchema).parse(input);
-          const conversationId = toolContext.conversationId;
-          const lockKey = conversationId
-            ? `${conversationId}:${parsed.playbookId}`
-            : `playbook:${parsed.playbookId}`;
-          return this.withStartLock(lockKey, async () => {
-            const playbook = await this.requirePlaybook(parsed.playbookId);
-            assertValidPlaybookBody(playbook.body);
-            const lifecycle =
-              playbook.entity.metadata.lifecycle ?? parsed.lifecycle;
-            const existing = conversationId
-              ? (
-                  await this.store.listActiveByConversation(conversationId)
-                ).find((run) => run.playbookId === parsed.playbookId)
-              : await this.store.findActiveByPlaybook(parsed.playbookId);
-            const run = existing
-              ? await this.withRunLock(existing.id, async () => {
-                  const current =
-                    (await this.store.findById(existing.id)) ?? existing;
-                  return this.store.upsert({
-                    ...current,
-                    status: "active",
-                    ...(conversationId ? { conversationId } : {}),
-                    ...(current.startedAt
-                      ? {}
-                      : { startedAt: new Date().toISOString() }),
-                  });
-                })
-              : await this.runs.createStartedRun({
-                  playbookId: parsed.playbookId,
-                  playbookVersion: playbook.version,
-                  body: playbook.body,
-                  lifecycle,
-                  conversationId,
-                });
-            const data = await this.getStatus({ runId: run.id });
-            return { success: true, data };
-          });
-        },
-      },
-      {
-        name: "playbook_send_event",
-        description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
-        inputSchema: sendEventInputSchema,
-        visibility: "admin",
-        sideEffects: "writes",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(sendEventInputSchema).parse(input);
-          const run = await this.resolveScopedRunResponse({
-            runId: parsed.runId,
-            conversationId: toolContext.conversationId,
-          });
-          if (!run.success) return run;
-          const result = await this.sendEventForRun(run.data.id, parsed.event, {
-            context: parsed.context,
-            fromState: parsed.fromState,
-          });
-          return result.success
-            ? { success: true, data: result.data }
-            : { success: false, error: result.error };
+          if (parsed.action === "start") {
+            return this.handleStart(parsed, toolContext);
+          }
+          return this.handleSendEvent(parsed, toolContext);
         },
       },
     ];
+  }
+
+  private async handleStatus(
+    input: {
+      runId?: string | undefined;
+      playbookId?: string | undefined;
+      lifecycle?: string | undefined;
+    },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
+    try {
+      const data = await this.getStatus({
+        ...input,
+        conversationId: toolContext.conversationId,
+      });
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: errorMessage(error) };
+    }
+  }
+
+  private async handleStart(
+    input: { playbookId: string; lifecycle?: string | undefined },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
+    const conversationId = toolContext.conversationId;
+    const lockKey = conversationId
+      ? `${conversationId}:${input.playbookId}`
+      : `playbook:${input.playbookId}`;
+    return this.withStartLock(lockKey, async () => {
+      const playbook = await this.requirePlaybook(input.playbookId);
+      assertValidPlaybookBody(playbook.body);
+      const lifecycle = playbook.entity.metadata.lifecycle ?? input.lifecycle;
+      const existing = conversationId
+        ? (await this.store.listActiveByConversation(conversationId)).find(
+            (run) => run.playbookId === input.playbookId,
+          )
+        : await this.store.findActiveByPlaybook(input.playbookId);
+      const run = existing
+        ? await this.withRunLock(existing.id, async () => {
+            const current =
+              (await this.store.findById(existing.id)) ?? existing;
+            return this.store.upsert({
+              ...current,
+              status: "active",
+              ...(conversationId ? { conversationId } : {}),
+              ...(current.startedAt
+                ? {}
+                : { startedAt: new Date().toISOString() }),
+            });
+          })
+        : await this.runs.createStartedRun({
+            playbookId: input.playbookId,
+            playbookVersion: playbook.version,
+            body: playbook.body,
+            lifecycle,
+            conversationId,
+          });
+      const data = await this.getStatus({ runId: run.id });
+      return { success: true, data };
+    });
+  }
+
+  private async handleSendEvent(
+    input: {
+      runId?: string | undefined;
+      event: string;
+      fromState?: string | undefined;
+      context?: Record<string, unknown> | undefined;
+    },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
+    const run = await this.resolveScopedRunResponse({
+      runId: input.runId,
+      conversationId: toolContext.conversationId,
+    });
+    if (!run.success) return run;
+    const result = await this.sendEventForRun(run.data.id, input.event, {
+      context: input.context,
+      fromState: input.fromState,
+    });
+    return result.success
+      ? { success: true, data: result.data }
+      : { success: false, error: result.error };
   }
 
   private async withStartLock(
@@ -520,6 +538,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!scopedRun.success) return undefined;
 
     const args = {
+      action: "send-event",
       runId: scopedRun.data.id,
       event: request.action.event,
       ...(request.action.fromState
@@ -534,7 +553,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!result.success) {
       return {
         text: `I couldn't continue the playbook: ${result.error}`,
-        toolResults: [{ toolName: "playbook_send_event", args }],
+        toolResults: [{ toolName: "playbook_manage", args }],
         usage: zeroUsage(),
       };
     }
@@ -543,9 +562,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     return {
       text: formatActionResponseText(state),
       ...(result.data.cards ? { cards: result.data.cards } : {}),
-      toolResults: [
-        { toolName: "playbook_send_event", args, data: result.data },
-      ],
+      toolResults: [{ toolName: "playbook_manage", args, data: result.data }],
       usage: zeroUsage(),
     };
   }
@@ -590,7 +607,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (options.fromState && options.fromState !== run.currentState) {
       return {
         success: false,
-        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_status and act on the current state.`,
+        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_manage with action=status and act on the current state.`,
       };
     }
     const playbook = await this.requirePlaybook(run.playbookId);

@@ -17,9 +17,10 @@ turns:
   - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-onboarding
       responseNotContains:
         - "I cannot"
@@ -65,9 +66,10 @@ turns:
   - userMessage: "Start playbook rover-first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-first-knowledge-loop
       responseNotContains:
         - "I cannot"
@@ -108,12 +110,11 @@ turns:
       responseNotContains:
         - "I cannot"
         - "I don't have access"
-        - "playbook_status"
-        - "playbook_send_event"
+        - "playbook_manage"
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_start
+    - toolName: playbook_manage
       shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true
@@ -127,8 +128,7 @@ successCriteria:
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "playbook_status"
-    - "playbook_send_event"
+    - "playbook_manage"
 
 efficiency:
   maxToolCalls: 16

@@ -17,9 +17,10 @@ turns:
   - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-onboarding
       responseContains:
         - Rover
@@ -78,9 +79,10 @@ turns:
   - userMessage: "Start playbook rover-first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-first-knowledge-loop
       responseContains:
         - "idea"
@@ -118,8 +120,7 @@ turns:
         - "another note"
         - "I cannot"
         - "I don't have access"
-        - "playbook_status"
-        - "playbook_send_event"
+        - "playbook_manage"
 
   - userMessage: "Find that saved note now."
     successCriteria:
@@ -176,7 +177,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_start
+    - toolName: playbook_manage
       shouldBeCalled: true
     - toolName: system_update
       shouldBeCalled: true
@@ -190,8 +191,7 @@ successCriteria:
     - "see-it-come-back"
     - "make-something"
     - "wrap-up"
-    - "playbook_status"
-    - "playbook_send_event"
+    - "playbook_manage"
     - "I cannot"
     - "I don't have access"
 
