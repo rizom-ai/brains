@@ -180,7 +180,7 @@ export class CLIInterface extends MessageInterfacePlugin<
           lastCheck: new Date(),
           details: {
             hasInkApp: this.inkApp !== null,
-            hasCallbacks: this.progressCallback !== undefined,
+            hasCallbacks: this.hasProgressCallback(),
           },
         };
       },

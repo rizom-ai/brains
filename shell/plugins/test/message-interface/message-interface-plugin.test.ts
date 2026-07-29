@@ -89,8 +89,9 @@ class TestMessageInterface extends MessageInterfacePlugin<
     this.toolStatuses.push(update);
   }
 
+  /** Same view the old protected map gave, built from the public accessor. */
   public getProgressEventsMap(): Map<string, JobProgressEvent> {
-    return this.progressEvents;
+    return new Map(this.getProgressEvents().map((event) => [event.id, event]));
   }
 
   public override startProcessingInput(): void {
@@ -394,26 +395,34 @@ describe("MessageInterfacePlugin", () => {
       expect(lastUpdate).toHaveLength(1);
     });
 
-    it("should filter to processing events on initial registration", () => {
-      plugin.getProgressEventsMap().set("completed-job", {
-        id: "completed-job",
-        type: "job",
-        status: "completed",
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "completed-job",
+    it("should filter to processing events on initial registration", async () => {
+      // No channelId, so these are background jobs: state is tracked but
+      // nothing is delivered.
+      await plugin.testHandleProgressEvent(
+        {
+          id: "completed-job",
+          type: "job",
+          status: "completed",
+          metadata: {
+            operationType: "content_operations",
+            rootJobId: "completed-job",
+          },
         },
-      });
+        createJobContext(),
+      );
 
-      plugin.getProgressEventsMap().set("active-job", {
-        id: "active-job",
-        type: "job",
-        status: "processing",
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "active-job",
+      await plugin.testHandleProgressEvent(
+        {
+          id: "active-job",
+          type: "job",
+          status: "processing",
+          metadata: {
+            operationType: "content_operations",
+            rootJobId: "active-job",
+          },
         },
-      });
+        createJobContext(),
+      );
 
       const receivedEvents: JobProgressEvent[][] = [];
       plugin.registerProgressCallback((events) => {
@@ -426,25 +435,31 @@ describe("MessageInterfacePlugin", () => {
   });
 
   describe("getActiveProgressEvents", () => {
-    it("should return only processing events", () => {
-      plugin.getProgressEventsMap().set("completed", {
-        id: "completed",
-        type: "job",
-        status: "completed",
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "completed",
+    it("should return only processing events", async () => {
+      await plugin.testHandleProgressEvent(
+        {
+          id: "completed",
+          type: "job",
+          status: "completed",
+          metadata: {
+            operationType: "content_operations",
+            rootJobId: "completed",
+          },
         },
-      });
-      plugin.getProgressEventsMap().set("processing", {
-        id: "processing",
-        type: "job",
-        status: "processing",
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "processing",
+        createJobContext(),
+      );
+      await plugin.testHandleProgressEvent(
+        {
+          id: "processing",
+          type: "job",
+          status: "processing",
+          metadata: {
+            operationType: "content_operations",
+            rootJobId: "processing",
+          },
         },
-      });
+        createJobContext(),
+      );
 
       const active = plugin.getActiveProgressEvents();
 

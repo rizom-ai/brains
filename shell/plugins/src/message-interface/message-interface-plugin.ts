@@ -23,11 +23,14 @@ import {
   setupToolActivityHandler,
   type ToolActivityEvent,
 } from "./tool-event-handler";
+import type { ToolStatusUpdate } from "./tool-status";
 import {
-  responseHasPendingConfirmationForTool,
-  toToolStatusUpdate,
-  type ToolStatusUpdate,
-} from "./tool-status";
+  ProgressMessageCoordinator,
+  type EditMessageRequest,
+  type SendMessageToChannelRequest,
+  type SendMessageWithIdRequest,
+} from "./progress-message-coordinator";
+import type { Logger } from "@brains/utils/logger";
 import {
   extractCaptureableUrls,
   formatFileUploadMessage,
@@ -46,7 +49,6 @@ import {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
 } from "./artifact-entity";
-import { KeyedCleanupSupervisor } from "./keyed-cleanup-supervisor";
 
 export { urlCaptureConfigSchema };
 
@@ -69,37 +71,11 @@ export interface NativeArtifactDelivery {
   deniedCardIds: Set<string>;
 }
 
-export interface SendMessageToChannelRequest {
-  /** The channel/room to send to (null for single-channel interfaces like CLI) */
-  channelId: string | null;
-  /** The message or structured output to send */
-  message: MessageInterfaceOutput;
-}
-
-export type SendMessageWithIdRequest = SendMessageToChannelRequest;
-
-export interface EditMessageRequest {
-  channelId: string | null;
-  messageId: string;
-  newMessage: MessageInterfaceOutput;
-}
-
-/**
- * Tracked progress message for editing
- * Maps job/batch ID to the message ID used for progress updates
- */
-interface ProgressMessageTracking {
-  messageId: string;
-  channelId: string;
-  lastUpdate: number; // Timestamp of last update (for throttling)
-}
-
-/**
- * Minimum time between progress message edits (in ms)
- * Prevents hitting Matrix rate limits while still providing responsive feedback
- */
-const PROGRESS_EDIT_THROTTLE_MS = 500;
-const PROGRESS_CLEANUP_DELAY_MS = 500;
+export type {
+  EditMessageRequest,
+  SendMessageToChannelRequest,
+  SendMessageWithIdRequest,
+} from "./progress-message-coordinator";
 
 /**
  * Job tracking info for message-based interfaces
@@ -294,17 +270,28 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Track progress events for UI state
-   * Key: event ID, Value: latest event data
+   * All progress bookkeeping — live events, editable messages, deferred tool
+   * completions, and the completion buffer. The transport methods below are
+   * this class's remaining responsibility.
    */
-  protected progressEvents: Map<string, JobProgressEvent> = new Map<
-    string,
-    JobProgressEvent
-  >();
-
-  private readonly progressCleanupSupervisor = new KeyedCleanupSupervisor(
-    PROGRESS_CLEANUP_DELAY_MS,
-  );
+  protected readonly progress: ProgressMessageCoordinator =
+    new ProgressMessageCoordinator({
+      interfaceId: (): string => this.id,
+      logger: (): Logger => this.logger,
+      sendMessageToChannel: (request): void =>
+        this.sendMessageToChannel(request),
+      sendMessageWithId: (request): Promise<string | undefined> =>
+        this.sendMessageWithId(request),
+      editMessage: (request): Promise<boolean> => this.editMessage(request),
+      supportsMessageEditing: (): boolean => this.supportsMessageEditing(),
+      formatProgressOutput: (event): MessageInterfaceOutput =>
+        this.formatProgressOutput(event),
+      formatCompletionOutput: (event): MessageInterfaceOutput =>
+        this.formatCompletionOutput(event),
+      onProgressUpdate: (event): Promise<void> => this.onProgressUpdate(event),
+      handleToolStatusUpdate: (update): Promise<void> =>
+        this.handleToolStatusUpdate(update),
+    });
 
   /**
    * Send an agent message to a specific channel.
@@ -344,94 +331,32 @@ export abstract class MessageInterfacePlugin<
     return false;
   }
 
-  /**
-   * Optional callback for progress updates (for UI components)
-   */
-  protected progressCallback?: (events: JobProgressEvent[]) => void;
-
-  /**
-   * Track if we're processing user input
-   * When true, completion messages are buffered until processing ends
-   */
-  private isProcessingInput = false;
-
-  /**
-   * Current channel being processed - for routing progress messages
-   */
-  private currentChannelId: string | null = null;
-
-  /**
-   * Buffer for completion messages received during input processing
-   * These are flushed after the agent response is sent
-   * Each entry includes the message and target channel
-   */
-  private bufferedCompletionMessages: Array<{
-    message: MessageInterfaceOutput;
-    channelId: string | null;
-  }> = [];
-
-  /**
-   * Track progress messages for editing
-   * Maps rootJobId to the message tracking info
-   * Used for updating progress messages rather than sending new ones
-   */
-  private progressMessageTracking = new Map<string, ProgressMessageTracking>();
-
-  /**
-   * Track agent response messages for editing on job completion
-   * Maps jobId to the message tracking info
-   */
-  private agentResponseTracking = new Map<string, ProgressMessageTracking>();
-
-  /**
-   * Tool completions whose final status depends on the agent response.
-   * Keyed by interface/conversation/tool so failed retries clear stale state.
-   */
-  private pendingToolCompletions = new Map<string, ToolActivityEvent>();
-
-  /**
-   * Register progress callback for reactive UI updates
-   */
+  /** Register progress callback for reactive UI updates. */
   public registerProgressCallback(
     callback: (events: JobProgressEvent[]) => void,
   ): void {
-    this.progressCallback = callback;
-    // Send current state immediately
-    const events = Array.from(this.progressEvents.values()).filter(
-      (e) => e.status === "processing",
-    );
-    callback(events);
+    this.progress.registerProgressCallback(callback);
   }
 
-  /**
-   * Unregister progress callback
-   */
   public unregisterProgressCallback(): void {
-    delete this.progressCallback;
+    this.progress.unregisterProgressCallback();
+  }
+
+  /** Whether a reactive UI is currently attached. */
+  protected hasProgressCallback(): boolean {
+    return this.progress.hasProgressCallback();
   }
 
   /**
-   * Track an agent response message for editing on job completion
-   * Call this when sending an agent response that contains async job IDs
-   * @param jobId - The job ID from the tool result
-   * @param messageId - The message ID returned by the messaging system
-   * @param channelId - The channel the message was sent to
+   * Track an agent response message for editing on job completion.
+   * Call this when sending an agent response that contains async job IDs.
    */
   protected trackAgentResponseForJob(
     jobId: string,
     messageId: string,
     channelId: string,
   ): void {
-    this.agentResponseTracking.set(jobId, {
-      messageId,
-      channelId,
-      lastUpdate: Date.now(),
-    });
-    this.logger.debug("Tracking agent response for job", {
-      jobId,
-      messageId,
-      channelId,
-    });
+    this.progress.trackAgentResponseForJob(jobId, messageId, channelId);
   }
 
   /**
@@ -487,262 +412,20 @@ export abstract class MessageInterfacePlugin<
 
   /** Interrupt delayed cleanup before plugin-owned state is released. */
   protected override async onShutdown(): Promise<void> {
-    await this.progressCleanupSupervisor.close();
-    this.progressEvents.clear();
-    this.progressMessageTracking.clear();
-    this.agentResponseTracking.clear();
-    this.pendingToolCompletions.clear();
-    this.bufferedCompletionMessages = [];
-    this.isProcessingInput = false;
-    this.currentChannelId = null;
-    delete this.progressCallback;
+    await this.progress.close();
     await super.onShutdown();
   }
 
   /**
-   * Default progress event handler
-   * - Updates progress state for UI
-   * - Sends/edits progress messages (if supported)
-   * - Sends completion/failure messages to the appropriate channel
-   * - Cleans up after delay
+   * Default progress event handler. All bookkeeping lives in the coordinator;
+   * this only adapts the base class's signature.
    */
   protected override async handleProgressEvent(
     event: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {
-    if (!this.shouldHandleProgressEvent(event)) {
-      return;
-    }
-
-    this.updateProgressState(event);
-
-    // Only use explicit channelId - background jobs without channelId should not
-    // send messages to any chat room (prevents rate limiting from many concurrent jobs)
-    const targetChannelId = event.metadata.channelId ?? null;
-    const rootJobId = event.metadata.rootJobId;
-
-    const handledByTrackedAgentResponse = await this.handleProcessingProgress(
-      event,
-      targetChannelId,
-      rootJobId,
-    );
-    if (handledByTrackedAgentResponse) {
-      return;
-    }
-
-    if (event.status === "completed" || event.status === "failed") {
-      await this.handleTerminalProgress(event, targetChannelId, rootJobId);
-    }
-
-    // Allow subclasses to add custom handling
-    await this.onProgressUpdate(event);
-
-    this.logProgressProcessed(event);
+    await this.progress.handleProgressEvent(event);
   }
-
-  private shouldHandleProgressEvent(event: JobProgressEvent): boolean {
-    // Filter: only handle events for this interface type.
-    // If interfaceType is specified in metadata, only matching interfaces should handle it.
-    const eventInterfaceType = event.metadata.interfaceType;
-    return !eventInterfaceType || eventInterfaceType === this.id;
-  }
-
-  private updateProgressState(event: JobProgressEvent): void {
-    this.progressEvents.set(event.id, event);
-    this.notifyProgressCallback();
-  }
-
-  /**
-   * Handle processing updates. Returns true when a tracked agent response handled
-   * the update and the legacy flow should stop immediately.
-   */
-  private async handleProcessingProgress(
-    event: JobProgressEvent,
-    targetChannelId: string | null,
-    rootJobId: string,
-  ): Promise<boolean> {
-    if (event.status !== "processing" || !this.supportsMessageEditing()) {
-      return false;
-    }
-
-    // If we have agent response tracking for this job, edit that response with
-    // progress and stop to preserve the previous early-return behavior.
-    const agentTracking = this.agentResponseTracking.get(event.id);
-    if (agentTracking) {
-      await this.editTrackedProgressMessage(event, agentTracking);
-      return true;
-    }
-
-    const progressMessage = this.formatProgressOutput(event);
-    const existingTracking = this.progressMessageTracking.get(rootJobId);
-    const now = Date.now();
-
-    if (existingTracking) {
-      // Throttle updates to prevent rate limiting.
-      if (now - existingTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
-        await this.editMessage({
-          channelId: existingTracking.channelId,
-          messageId: existingTracking.messageId,
-          newMessage: progressMessage,
-        });
-        existingTracking.lastUpdate = now;
-      }
-    } else if (targetChannelId && !this.isProcessingInput) {
-      await this.sendInitialProgressMessage(
-        rootJobId,
-        targetChannelId,
-        progressMessage,
-        now,
-      );
-    }
-
-    return false;
-  }
-
-  private async editTrackedProgressMessage(
-    event: JobProgressEvent,
-    tracking: ProgressMessageTracking,
-  ): Promise<void> {
-    const now = Date.now();
-    if (now - tracking.lastUpdate < PROGRESS_EDIT_THROTTLE_MS) {
-      return;
-    }
-
-    await this.editMessage({
-      channelId: tracking.channelId,
-      messageId: tracking.messageId,
-      newMessage: this.formatProgressOutput(event),
-    });
-    tracking.lastUpdate = now;
-  }
-
-  private async sendInitialProgressMessage(
-    rootJobId: string,
-    targetChannelId: string,
-    progressMessage: MessageInterfaceOutput,
-    now: number,
-  ): Promise<void> {
-    // Only send NEW progress messages after agent response is sent.
-    // This ensures the agent response appears first.
-    const messageId = await this.sendMessageWithId({
-      channelId: targetChannelId,
-      message: progressMessage,
-    });
-    if (!messageId) {
-      return;
-    }
-
-    this.progressMessageTracking.set(rootJobId, {
-      messageId,
-      channelId: targetChannelId,
-      lastUpdate: now,
-    });
-    this.logger.debug("Tracking progress message", {
-      rootJobId,
-      messageId,
-      channelId: targetChannelId,
-    });
-  }
-
-  private async handleTerminalProgress(
-    event: JobProgressEvent,
-    targetChannelId: string | null,
-    rootJobId: string,
-  ): Promise<void> {
-    const completionMessage = this.formatCompletionOutput(event);
-    const progressTracking = this.progressMessageTracking.get(rootJobId);
-    const agentTracking = this.agentResponseTracking.get(event.id);
-
-    this.logger.debug("Completion event received", {
-      eventId: event.id,
-      rootJobId,
-      hasProgressTracking: !!progressTracking,
-      hasAgentTracking: !!agentTracking,
-      supportsEditing: this.supportsMessageEditing(),
-    });
-
-    if (this.supportsMessageEditing()) {
-      await this.updateTrackedCompletion(
-        event,
-        completionMessage,
-        progressTracking,
-        agentTracking,
-        rootJobId,
-      );
-    }
-
-    // If no tracked messages to edit, send as new message.
-    // Only send if we have a target channel (jobs without explicit channelId are silent).
-    if (!progressTracking && !agentTracking && targetChannelId) {
-      this.sendOrBufferCompletionMessage(completionMessage, targetChannelId);
-    }
-
-    this.scheduleProgressCleanup(event.id);
-  }
-
-  private async updateTrackedCompletion(
-    event: JobProgressEvent,
-    completionMessage: MessageInterfaceOutput,
-    progressTracking: ProgressMessageTracking | undefined,
-    agentTracking: ProgressMessageTracking | undefined,
-    rootJobId: string,
-  ): Promise<void> {
-    // Prefer editing the agent response message (for async jobs).
-    // This updates "queued" messages to show actual completion.
-    if (agentTracking) {
-      await this.editMessage({
-        channelId: agentTracking.channelId,
-        messageId: agentTracking.messageId,
-        newMessage: completionMessage,
-      });
-      this.agentResponseTracking.delete(event.id);
-      // Also clean up any progress tracking without sending duplicate.
-      if (progressTracking) {
-        this.progressMessageTracking.delete(rootJobId);
-      }
-      return;
-    }
-
-    if (progressTracking) {
-      await this.editMessage({
-        channelId: progressTracking.channelId,
-        messageId: progressTracking.messageId,
-        newMessage: completionMessage,
-      });
-      this.progressMessageTracking.delete(rootJobId);
-    }
-  }
-
-  private sendOrBufferCompletionMessage(
-    message: MessageInterfaceOutput,
-    channelId: string,
-  ): void {
-    // Buffer completion messages while processing input.
-    // This ensures agent response appears before completion messages.
-    if (this.isProcessingInput) {
-      this.bufferedCompletionMessages.push({ message, channelId });
-      return;
-    }
-
-    this.sendMessageToChannel({ channelId, message });
-  }
-
-  private scheduleProgressCleanup(eventId: string): void {
-    this.progressCleanupSupervisor.schedule(eventId, () => {
-      this.progressEvents.delete(eventId);
-      this.notifyProgressCallback();
-    });
-  }
-
-  private logProgressProcessed(event: JobProgressEvent): void {
-    this.logger.debug("Progress event processed", {
-      eventId: event.id,
-      status: event.status,
-      operationType: event.metadata.operationType,
-      targetChannel: event.metadata.channelId,
-    });
-  }
-
   /**
    * Format in-flight progress output. Interfaces may override to render native
    * cards/components while preserving the shared progress lifecycle.
@@ -771,38 +454,11 @@ export abstract class MessageInterfacePlugin<
     // Default: no additional handling
   }
 
-  /**
-   * Derive semantic status updates from raw tool activity events.
-   */
+  /** Derive semantic status updates from raw tool activity events. */
   protected async handleToolActivityEvent(
     event: ToolActivityEvent,
   ): Promise<void> {
-    if (event.interfaceType !== this.id) {
-      return;
-    }
-
-    switch (event.type) {
-      case "tool:invoking":
-        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
-        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "running"));
-        return;
-      case "tool:completed":
-        if (this.isProcessingInput) {
-          this.pendingToolCompletions.set(
-            this.getToolCompletionKey(event),
-            event,
-          );
-          return;
-        }
-        await this.handleToolStatusUpdate(
-          toToolStatusUpdate(event, "completed"),
-        );
-        return;
-      case "tool:failed":
-        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
-        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "failed"));
-        return;
-    }
+    await this.progress.handleToolActivityEvent(event);
   }
 
   /**
@@ -814,98 +470,41 @@ export abstract class MessageInterfacePlugin<
     // Default: no additional handling
   }
 
-  /**
-   * Resolve deferred tool completions after an agent response is available.
-   */
+  /** Resolve deferred tool completions after an agent response is available. */
   protected async handleAgentResponseToolStatuses(
     response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
     conversationId: string,
   ): Promise<void> {
-    if (this.pendingToolCompletions.size === 0) {
-      return;
-    }
-
-    const completions = Array.from(this.pendingToolCompletions.values()).filter(
-      (event) =>
-        event.interfaceType === this.id &&
-        event.conversationId === conversationId,
+    await this.progress.handleAgentResponseToolStatuses(
+      response,
+      conversationId,
     );
-
-    for (const event of completions) {
-      this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
-      const state = responseHasPendingConfirmationForTool(
-        response,
-        event.toolName,
-      )
-        ? "awaiting-approval"
-        : "completed";
-      await this.handleToolStatusUpdate(toToolStatusUpdate(event, state));
-    }
   }
-
-  private getToolCompletionKey(event: ToolActivityEvent): string {
-    return `${event.interfaceType}:${event.conversationId}:${event.toolName}`;
-  }
-
-  /**
-   * Notify progress callback with current events
-   */
-  private notifyProgressCallback(): void {
-    if (this.progressCallback) {
-      const events = Array.from(this.progressEvents.values());
-      this.progressCallback(events);
-    }
-  }
-
-  /**
-   * Get all current progress events
-   */
+  /** All current progress events. */
   public getProgressEvents(): JobProgressEvent[] {
-    return Array.from(this.progressEvents.values());
+    return this.progress.getProgressEvents();
   }
 
-  /**
-   * Get processing events only (for status displays)
-   */
+  /** Processing events only (for status displays). */
   public getActiveProgressEvents(): JobProgressEvent[] {
-    return Array.from(this.progressEvents.values()).filter(
-      (e) => e.status === "processing",
-    );
+    return this.progress.getActiveProgressEvents();
   }
 
   /**
-   * Start processing user input from a specific channel
-   * Completion messages will be buffered until endProcessingInput() is called
-   * This ensures agent responses appear before job completion messages
-   *
-   * @param channelId - The channel/room being processed (null for CLI)
+   * Start processing user input from a specific channel. Completion messages
+   * are buffered until endProcessingInput(), so the agent response lands
+   * before any job completion message.
    */
   public startProcessingInput(channelId: string | null = null): void {
-    this.isProcessingInput = true;
-    this.currentChannelId = channelId;
+    this.progress.startProcessingInput(channelId);
   }
 
-  /**
-   * End processing user input and flush buffered completion messages
-   * Should be called after sending the agent response
-   */
+  /** End processing and flush buffered completion messages. */
   public endProcessingInput(): void {
-    this.isProcessingInput = false;
-
-    // Flush buffered completion messages to their respective channels
-    for (const { message, channelId } of this.bufferedCompletionMessages) {
-      this.sendMessageToChannel({ channelId, message });
-    }
-    this.bufferedCompletionMessages = [];
-
-    // Clear channel context
-    this.currentChannelId = null;
+    this.progress.endProcessingInput();
   }
 
-  /**
-   * Get the current channel ID being processed
-   */
   protected getCurrentChannelId(): string | null {
-    return this.currentChannelId;
+    return this.progress.getCurrentChannelId();
   }
 }
