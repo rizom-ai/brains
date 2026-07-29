@@ -158,3 +158,5 @@ This project is currently maintainer-led. Bug reports, documentation fixes, and 
 ## License
 
 [Apache-2.0](LICENSE)
+
+The Rizom name and logo are trademarks; see [TRADEMARKS.md](TRADEMARKS.md).
