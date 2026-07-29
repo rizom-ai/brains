@@ -2054,40 +2054,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "sites/rizom-foundation": {
-      "name": "@rizom/site-rizom-foundation",
-      "version": "0.2.0-alpha.234",
-      "dependencies": {
-        "@rizom/site": "0.2.0-alpha.230",
-        "@rizom/site-rizom": "0.2.0-alpha.233",
-      },
-      "devDependencies": {
-        "@brains/build-tools": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.14",
-        "eslint": "^10.5.0",
-        "preact": "^10.27.2",
-        "typescript": "^7.0.2",
-      },
-    },
-    "sites/rizom-work": {
-      "name": "@rizom/site-rizom-work",
-      "version": "0.2.0-alpha.234",
-      "dependencies": {
-        "@rizom/site": "0.2.0-alpha.230",
-        "@rizom/site-rizom": "0.2.0-alpha.233",
-      },
-      "devDependencies": {
-        "@brains/build-tools": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.14",
-        "eslint": "^10.5.0",
-        "preact": "^10.27.2",
-        "typescript": "^7.0.2",
-      },
-    },
     "sites/smoke-canary": {
       "name": "@rizom/site-smoke-canary",
       "version": "0.2.0-alpha.233",
@@ -2848,10 +2814,6 @@
     "@rizom/site-rizom": ["@rizom/site-rizom@workspace:sites/rizom"],
 
     "@rizom/site-rizom-ai": ["@rizom/site-rizom-ai@workspace:sites/rizom-ai"],
-
-    "@rizom/site-rizom-foundation": ["@rizom/site-rizom-foundation@workspace:sites/rizom-foundation"],
-
-    "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
 
     "@rizom/site-sections": ["@rizom/site-sections@workspace:packages/site-sections"],
 

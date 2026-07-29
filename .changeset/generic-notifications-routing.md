@@ -1,6 +1,5 @@
 ---
 "@brains/notifications": minor
-"@brains/email-contracts": minor
 "@brains/email": minor
 ---
 

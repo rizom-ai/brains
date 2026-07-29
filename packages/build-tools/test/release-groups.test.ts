@@ -82,8 +82,6 @@ test("deployable site and theme inventory declares brain compatibility", async (
       "@rizom/site-docs",
       "@rizom/site-rizom",
       "@rizom/site-rizom-ai",
-      "@rizom/site-rizom-foundation",
-      "@rizom/site-rizom-work",
       "@rizom/theme-default",
       "@rizom/theme-rizom-ai",
     ],
@@ -177,12 +175,7 @@ test("a site release with private dependents stays out of the fixed core group",
     .filter((release) => !release.private)
     .map((release) => release.name)
     .sort();
-  expect(published).toEqual([
-    "@rizom/site-rizom",
-    "@rizom/site-rizom-ai",
-    "@rizom/site-rizom-foundation",
-    "@rizom/site-rizom-work",
-  ]);
+  expect(published).toEqual(["@rizom/site-rizom", "@rizom/site-rizom-ai"]);
   expect(() => assertReleasePlanMatchesLane("site", plan)).not.toThrow();
 
   const packages = await getPackages(repositoryRoot);
