@@ -70,11 +70,12 @@ export {
   publishOutputSchema,
   type PublishInput,
   type PublishOutput,
-  createEnsureAssetsTool,
+  ensurePublishAssets,
   ensureAssetsInputSchema,
   ensureAssetsOutputSchema,
   type EnsureAssetsInput,
   type EnsureAssetsOutput,
+  type EnsurePublishAssetsOptions,
 } from "./tools";
 
 // Plugin

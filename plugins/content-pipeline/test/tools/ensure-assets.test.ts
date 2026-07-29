@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { PublishAssetPreflight } from "../../src/publish-asset-preflight";
 import { PublishAssetRegistry } from "../../src/publish-assets";
-import { createEnsureAssetsTool } from "../../src/tools/ensure-assets";
+import { ensurePublishAssets } from "../../src/tools/ensure-assets";
 
 function createPost(
   id: string,
@@ -24,7 +24,7 @@ Body`,
   };
 }
 
-describe("ensure-assets tool", () => {
+describe("publish asset reconciliation", () => {
   it("reconciles published entities and queues missing assets", async () => {
     const registry = PublishAssetRegistry.createFresh();
     registry.register({
@@ -51,24 +51,17 @@ describe("ensure-assets tool", () => {
       logger: { debug: mock(() => {}), warn: mock(() => {}) },
     } as unknown as ServicePluginContext;
     const preflight = new PublishAssetPreflight({ context, registry });
-    const tool = createEnsureAssetsTool(
+    const result = await ensurePublishAssets({
       context,
-      "content-pipeline",
       registry,
       preflight,
-    );
-
-    expect(tool.visibility).toBe("admin");
-    expect(tool.sideEffects).toBe("writes");
-
-    const result = await tool.handler(
-      { entityType: "post", status: "published", assetType: "og-image" },
-      {
+      input: { entityType: "post", status: "published", assetType: "og-image" },
+      toolContext: {
         interfaceType: "test",
         actor: { kind: "user", userId: "test-user" },
         userPermissionLevel: "admin",
       },
-    );
+    });
 
     expect(result).toEqual({
       success: true,

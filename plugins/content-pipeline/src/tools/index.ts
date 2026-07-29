@@ -17,9 +17,10 @@ export {
 } from "./publish";
 
 export {
-  createEnsureAssetsTool,
+  ensurePublishAssets,
   ensureAssetsInputSchema,
   ensureAssetsOutputSchema,
   type EnsureAssetsInput,
   type EnsureAssetsOutput,
+  type EnsurePublishAssetsOptions,
 } from "./ensure-assets";

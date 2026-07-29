@@ -83,6 +83,13 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getScheduler()).toBeDefined();
     });
 
+    it("does not register publish asset reconciliation as a tool", () => {
+      const toolNames = harness
+        .getCapabilities()
+        .tools.map((tool) => tool.name);
+      expect(toolNames).not.toContain("content-pipeline_ensure-assets");
+    });
+
     it("should start scheduler during ready lifecycle", async () => {
       expect(plugin.getScheduler().isRunning()).toBe(false);
 
