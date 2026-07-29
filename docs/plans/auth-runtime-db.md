@@ -2,9 +2,9 @@
 
 ## Status
 
-Implementation is complete on `main`. The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, session-derived own-account APIs, and permission-aware Trusted CMS access are implemented. Multi-user decision 18 provides durable invitation/attempt rows, atomic idempotent creation, provider-backed delivery, safe lifecycle transitions, history, Admin refresh, supervised interruption recovery, an app-scoped channel descriptor/provider registry, registry-driven invitation choices, and explicit audited manual delivery. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`. The obsolete browser-cookie reader, unreleased pre-Drizzle database bridge, `single-operator` input alias, and their compatibility gate have been removed; generated Drizzle migrations are the only supported database history.
+**Completed — 2026-07-29.** The role-aware four-section `/admin` console, Admin-only audit viewer, config-seeded and CLI-managed channel allowlist, access-neutral external-peer associations, generated Drizzle auth schema, normalized identity evidence, and decision 14's DB-backed exact-principal bootstrap/recovery path are implemented. The channel allowlist is intentionally absent from the person-centered console. Decision 15's connected delivery-channel binding and the clean file-store cutover are implemented. Multi-user decision 16's role-correct Trusted web chat, strict Admin-console admission, session-derived own-account APIs, and permission-aware Trusted CMS access are implemented. Multi-user decision 18 provides durable invitation/attempt rows, atomic idempotent creation, provider-backed delivery, safe lifecycle transitions, history, Admin refresh, supervised interruption recovery, an app-scoped channel descriptor/provider registry, registry-driven invitation choices, and explicit audited manual delivery. Legacy JSON/JWK files are optional manual backups and are never read by `AuthService`. The obsolete browser-cookie reader, unreleased pre-Drizzle database bridge, `single-operator` input alias, and their compatibility gate have been removed; generated Drizzle migrations are the only supported database history.
 
-A high-effort multi-agent review (2026-07-16) surfaced privilege-escalation and boot-integrity defects introduced by multi-user capability. All confirmed P0 findings are now fixed with regression coverage; remaining lower-priority findings are tracked below. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
+The final cleanup shipped in `@rizom/brain@0.2.0-alpha.239`. Jo and Smoke passed the `.239` canary rollout, including Jo's Email setup and passkey registration and Smoke's custom site/theme path. `yeehaa.io` upgraded from `.223`, moved auth state onto a persistent `/app/data` mount, registered a `.239` passkey, and retained it across a subsequent deploy. The high-effort multi-agent review findings from 2026-07-16 are resolved with regression coverage. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
 ## Goal
 
@@ -16,9 +16,9 @@ The database is runtime state. It must never live under `brain-data`, be exporte
 
 This plan owns the auth-specific schema, auth storage APIs, clean JSON/JWK cutover, and `usr_<uuid>` subjects. Broader runtime storage location, deploy persistence, and backup/restore policy belong to [Operator runtime database](./operator-runtime-db.md). Product behavior, permissions, user-management UX, and attribution phases belong to [Multi-User & Permissions](./multi-user.md).
 
-## Current baseline
+## Historical baseline
 
-On `main`, `shell/auth-service` provides the OAuth/passkey/JWT and A2A signing/trust foundation, but persistence is split across JSON/JWK files in `./data/auth`:
+Before this plan, `shell/auth-service` provided the OAuth/passkey/JWT and A2A signing/trust foundation, but persistence was split across JSON/JWK files in `./data/auth`:
 
 - `oauth-passkeys.json`
 - `oauth-sessions.json`
@@ -30,7 +30,7 @@ On `main`, `shell/auth-service` provides the OAuth/passkey/JWT and A2A signing/t
 - `a2a-signing-key.jwk`
 - `a2a-peer-trust.json`
 
-The mainline runtime subject is still `single-operator`. Canonical identity plumbing exists, but has no private store after the git-backed `canonical-identity-link` entity was removed.
+The historical runtime subject was `single-operator`. Canonical identity plumbing existed but had no private store after the git-backed `canonical-identity-link` entity was removed.
 
 ## Implementation checkpoint — 2026-07-13
 
@@ -138,7 +138,7 @@ A follow-up audit of the full HTTP surface confirmed the admin/session/identity/
 - [x] **`POST /revoke` skips client auth when `client_id` is omitted** [fixed] — revocation now requires a registered `client_id`, authenticates confidential clients, and scopes the token update to that client. Public clients remain secretless by design but can no longer submit an unbound revocation.
 - [x] **JWT verified twice per MCP request** [fixed, perf] — `resolveBearerGrant()` performs one verification and returns both scope claims and the active principal; `resolveBearerToken()` remains a compatibility projection over that grant.
 - [x] **Duplicated request helpers across admin/representation endpoints** [fixed, cleanup] — same-origin checks, tolerant JSON reading, and private no-store JSON responses now share the auth HTTP response module.
-- [x] **`resolveIdentity` collapses `denied` into `undefined`** [fixed] — `resolveIdentity` is retained only as an explicitly deprecated compatibility projection for non-authorizing enrichment; its contract warns that denied and unbound both return `undefined`. Authorization guidance and APIs use the discriminated `resolveIdentityAccess` result so denied bindings cannot fall through to static rules.
+- [x] **`resolveIdentity` collapses `denied` into `undefined`** [fixed] — the deprecated projection is removed. Authorization APIs use the discriminated `resolveIdentityAccess` result so denied bindings cannot fall through to standalone grants.
 
 **Resolved — open dynamic client registration stays open; bound it, don't gate it.** Exposure model: this is an **internet-facing** OAuth authorization server — external MCP clients (Claude.ai, IDEs) connect over the public internet (`identity-and-trust.md:22`). Open DCR (`POST /register`, `oauth-endpoints.ts:248-268`, RFC 7591) is therefore _required_ for MCP client auto-registration and must **not** be gated behind an Admin/setup token, which would break onboarding. It is not an access hole: `/token` supports only `authorization_code` and `refresh_token` — no `client_credentials` grant (`oauth-endpoints.ts:294-304`) — so a self-registered client is inert until a human completes consent at `/authorize`, and the code is bound to that session's subject. The residual risk is storage/DoS (unbounded client rows) and consent-phishing, so:
 
@@ -386,7 +386,7 @@ At shell/interface boundaries:
 5. If no account is connected, resolve the standalone interface-principal grant from `auth.db`.
 6. Resolve `isAnchor` independently; it never changes permission.
 
-The current request-time `brain.yaml` rule path remains only as a migration bridge. Final request processing reads DB state alone.
+Request processing reads exact grants and connected-account state from `auth.db` alone. `brain.yaml` remains only bootstrap/recovery input; contextual pattern rules remain explicit policy.
 
 ## Canonical identity and conversation attribution
 
@@ -416,7 +416,7 @@ Operators with old JSON auth files may keep them as a manual backup; nothing rea
 
 ### Phase 1 — DB foundation and schema
 
-**Status: implemented.** Local lifecycle, generated Drizzle migrations, release-gated legacy upgrade bridge, permissions, explicit declaration-safe schema types, and temp-DB tests exist.
+**Status: implemented.** Local lifecycle, generated Drizzle migrations, private permissions, explicit declaration-safe schema types, and temp-DB tests exist. Unreleased pre-Drizzle databases fail closed.
 
 - Add auth DB open/close lifecycle and migrations.
 - Add repositories and tests against a temp SQLite DB.
@@ -457,7 +457,7 @@ Validation: OAuth code flow, refresh rotation, logout, setup-token flow, and cli
 - Add identity lookup before rule fallback for Discord/MCP/chat interfaces.
 - Keep static `MCP_AUTH_TOKEN` as a deprecated Admin-only fallback; it never establishes Anchor identity.
 
-Validation: trusted users cannot call admin-only tools; suspended users are denied; MCP session ids cannot be reused by another user or retain a superseded role; legacy rule fallback still works.
+Validation: trusted users cannot call admin-only tools; suspended users are denied; MCP session ids cannot be reused by another user or retain a superseded role; standalone DB grants and contextual pattern rules still work.
 
 ### Phase 5 — Management surface
 
@@ -503,7 +503,7 @@ Validation: existing sessions survive migration; trusted sessions stay trusted i
 
 ### Phase 8 — Person subjects, connected channels, and external peers
 
-**Status: person backfill, normalized claims, the clean pre-release peer-association correction, and targeted delivery-channel binding are complete. Automated provider delivery and invitation lifecycle UX remain follow-on work.**
+**Status: implemented.** Person backfill, normalized claims, the clean pre-release peer-association correction, targeted delivery-channel binding, provider delivery, and invitation lifecycle UX are complete.
 
 - Preserve stable runtime people, user links, user ids, passkeys, sessions, roles, statuses, claims, evidence, and historical link ids.
 - Keep canonical provider claims person-owned while retaining user authentication bindings and assurance.
@@ -511,7 +511,7 @@ Validation: existing sessions survive migration; trusted sessions stay trusted i
 - [x] Replace the unreleased representation table directly; no released rows require conversion.
 - [x] Remove representation endpoints/UI after adding the peer association.
 - [x] Record setup delivery-claim context and bind verified email/Discord on successful single-use claim without exposing raw destinations in tokens, responses, or audit metadata.
-- Keep raw delivery subjects private except for explicit Admin-only connected-channel display.
+- [x] Keep raw delivery subjects private except for explicit Admin-only connected-channel display.
 
 Validation: migrations preserve released users and credentials and are restart-idempotent; peer association never changes actor attribution. Connected-account precedence and suspension fallback blocking remain part of decision 14.
 
@@ -527,11 +527,11 @@ Validation: migrations preserve released users and credentials and are restart-i
 - [x] Let web chat consume the exact active principal; first-party CMS authorization remains owned by its separate rollout plan.
 - [x] Append actor-attributed, content-free audit events for self-service security mutations.
 
-Validation: forged target ids cannot cross account boundaries; the last passkey cannot be self-revoked; suspended/invited sessions cannot use self-service; Trusted chat remains Trusted; CMS remains Admin-only until its separate rollout gate passes.
+Validation: forged target ids cannot cross account boundaries; the last passkey cannot be self-revoked; suspended/invited sessions cannot use self-service; Trusted chat remains Trusted; CMS enforces principal-scoped visibility and entity action policy.
 
 ### Phase 10 — Durable invitation lifecycle and provider outbox
 
-**Status: implemented under multi-user decision 18; live hardening remains.** Durable schema, atomic idempotent creation, generic provider dispatch with idempotency propagation, truthful attempts, supervised recovery, explicit manual confirmation, claim transitions, resend/cancel/expiry, and registry-driven browser lifecycle controls are implemented. Review (2026-07-27) found that a non-Email attempt short-circuited to `sent` and wrote `setup_token_deliveries` without provider or Admin confirmation. The channel-agnostic fix now resolves descriptors and operational providers from the [Connected channels](./connected-channels.md) registry; Email is its first built-in registered channel, not a branch in auth-service. Automatic mode requires a currently available provider. Explicit manual mode creates `pending` work and requires a separate audited confirmation; it is never an implicit fallback.
+**Status: implemented and live-verified under multi-user decision 18.** Durable schema, atomic idempotent creation, generic provider dispatch with idempotency propagation, truthful attempts, supervised recovery, explicit manual confirmation, claim transitions, resend/cancel/expiry, and registry-driven browser lifecycle controls are implemented. Review (2026-07-27) found that a non-Email attempt short-circuited to `sent` and wrote `setup_token_deliveries` without provider or Admin confirmation. The channel-agnostic fix now resolves descriptors and operational providers from the [Connected channels](./connected-channels.md) registry; Email is its first built-in registered channel, not a branch in auth-service. Automatic mode requires a currently available provider. Explicit manual mode creates `pending` work and requires a separate audited confirmation; it is never an implicit fallback.
 
 - [x] Add generated Drizzle migrations for `auth_invitations` and `auth_invitation_delivery_attempts`, including foreign keys, lifecycle CHECK constraints, one hashed idempotency key per Admin request, and indexes for pending work and Admin history.
 - [x] Add one auth-domain transaction that creates or replays the person, user, optional peer link, asserted delivery claim, invitation, setup token, and queued delivery attempt. A failure rolls back all rows; the external provider call never runs inside the transaction.
