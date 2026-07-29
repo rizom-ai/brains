@@ -5,8 +5,8 @@
 Proposed durable operator/security tier. The separate ephemeral operational tier already
 ships as `shell/runtime-state`; this plan does not duplicate it. This plan owns the
 persisted, private database needed for identity and security state whose loss would cause
-a lockout or security incident. Auth-specific schema and migration details are tracked in
-[Auth runtime database](./auth-runtime-db.md).
+a lockout or security incident. The shipped auth schema, lifecycle, and clean-cutover
+behavior are documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md).
 
 ## Goal
 
@@ -25,7 +25,7 @@ This plan owns the durable storage boundary, storage-root/deploy persistence con
 backup/restore expectations, and operator DB lifecycle. It intentionally does not own
 auth table schemas or multi-user behavior:
 
-- auth schema, auth migrations, and `single-operator` migration live in [Auth runtime database](./auth-runtime-db.md)
+- auth schema, generated migrations, and clean-cutover behavior live in [`shell/auth-service`](../../shell/auth-service/README.md)
 - roles, permissions, People UX, and runtime user behavior live in [Multi-User & Permissions](./multi-user.md)
 
 ## Scope
@@ -76,7 +76,7 @@ Plugins consume this service through a narrow, namespaced handle rather than a r
 
 This is the "shell-owned runtime persistence" the onboarding plan defers to. The relative-path default footgun lives in auth-service (`./data/auth`), a plugin-relative root that resolves under the Docker `WORKDIR` instead of the canonical `dataDir`. The service closes that footgun by owning the path.
 
-The same plugin-facing shape is shared by the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs already prove that shape: as an **ephemeral-tier** consumer they consume the namespaced runtime-state store (`plugins/playbooks/src/run-store.ts`), not this operator plane. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
+The same plugin-facing shape is shared by the runtime state store (`shell/runtime-state`); the difference is the physical store and tier, not the interface. Playbook runs already prove that shape: as an **ephemeral-tier** consumer they consume the namespaced runtime-state store (`plugins/playbooks/src/run-store.ts`), not this operator plane. Auth is the current durable-tier implementation: its private Drizzle/libSQL `auth.db` replaced runtime JSON/JWK reads through a clean cutover and remains isolated from content and disposable operational state.
 
 ## Incremental path
 
@@ -86,16 +86,16 @@ The same plugin-facing shape is shared by the runtime state store (`shell/runtim
 2. Add regression coverage that generated deploy templates persist the auth/operator-runtime storage path.
 3. Keep immediate Rover setup-email dedupe file-backed behind a small storage interface until the DB service exists.
 4. Define the operator DB service contract and ownership boundary in shell/app or a shared shell package.
-5. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the runtime state store (`shell/runtime-state`).)
-6. Add optional audit/delivery history only after the auth migration is stable.
+5. [x] Replace auth-service JSON runtime reads with private generated-migration `auth.db` storage and a clean re-onboarding cutover. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the runtime state store (`shell/runtime-state`).)
+6. [x] Keep auth audit and invitation-delivery history in the private auth database; add other durable security domains only when they have a concrete owner.
 
 ## Compatibility and migration notes
 
-Existing hosted installs may already have auth state under `/app/data/auth`. The migration path must avoid silently resetting passkeys:
+Existing hosted installs may already have `auth.db` under `/app/data/auth` or another configured storage directory. Any future storage-root change must avoid silently resetting passkeys:
 
-- detect existing `/app/data/auth` before changing the default auth storage root
-- copy or migrate passkeys, OAuth clients, signing keys, sessions, refresh tokens, and setup-email dedupe records into the new runtime location
-- preserve file permissions for token-bearing stores
+- detect the configured auth database before changing the default storage root
+- move or restore `auth.db` only while the brain is stopped; never reconstruct it from legacy JSON/JWK files
+- preserve private directory/database permissions
 - make reset/destructive recovery explicit through `brain auth reset-passkeys --yes`, never an accidental side effect of deploy
 - verify after deploy with `brains-ops verify-user` and, where needed, an auth-state-specific check that does not expose secrets
 
@@ -122,5 +122,5 @@ The earlier open question — "one shared runtime-state DB file, or one per cons
 ## Related plans
 
 - `shell/runtime-state` — the shipped ephemeral operational tier this plan is deliberately not part of
-- [Auth runtime database](./auth-runtime-db.md)
+- [`shell/auth-service` implementation guide](../../shell/auth-service/README.md)
 - [Multi-user and permissions](./multi-user.md)

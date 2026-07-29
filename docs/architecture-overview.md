@@ -95,25 +95,25 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 
 ### Shell packages
 
-| Package                      | Purpose                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| `shell/app`                  | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap    |
-| `shell/core`                 | Core shell, lifecycle orchestration, system tools/resources/prompts     |
-| `shell/ai-service`           | AI querying, orchestration, provider abstraction                        |
-| `shell/content-service`      | Template-based content generation support                               |
-| `shell/conversation-service` | Conversation state and message history                                  |
-| `shell/entity-service`       | Entity CRUD, indexing, search, embeddings                               |
-| `shell/identity-service`     | Brain identity, anchor profile, URL derivation                          |
-| `shell/job-queue`            | Background jobs, progress events, handler registration                  |
-| `shell/mcp-service`          | MCP tool/resource/prompt/template registration                          |
-| `shell/messaging-service`    | Typed event bus used across plugins                                     |
-| `shell/runtime-state`        | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`) |
-| `shell/scheduler`            | Shared scheduler contracts and deterministic test backend               |
-| `shell/recurring-checks`     | Recurring cadence, retries, dedupe, and alert delivery orchestration    |
-| `shell/plugins`              | Base plugin classes, contexts, harnesses                                |
-| `shell/templates`            | Template registry and resolution                                        |
-| `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                              |
-| `shell/auth-service`         | Embedded OAuth metadata, JWKS, and auth route foundation                |
+| Package                                                 | Purpose                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
+| `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
+| `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
+| `shell/content-service`                                 | Template-based content generation support                                |
+| `shell/conversation-service`                            | Conversation state and message history                                   |
+| `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                |
+| `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                           |
+| `shell/job-queue`                                       | Background jobs, progress events, handler registration                   |
+| `shell/mcp-service`                                     | MCP tool/resource/prompt/template registration                           |
+| `shell/messaging-service`                               | Typed event bus used across plugins                                      |
+| `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
+| `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
+| `shell/recurring-checks`                                | Recurring cadence, retries, dedupe, and alert delivery orchestration     |
+| `shell/plugins`                                         | Base plugin classes, contexts, harnesses                                 |
+| `shell/templates`                                       | Template registry and resolution                                         |
+| `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |
+| [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit |
 
 ### Entity packages
 

@@ -7,8 +7,8 @@ Last updated: 2026-07-21
 Phase 0 complete; Phase 1A's pure bundle kernel is **in progress on
 `feature/brain-model-unification-phase-1a`** (bundle definition/resolution committed on
 the worktree; unmerged) and remains a **pre-`v0.2.0` release-candidate gate**. Phase 1A
-can proceed while `feature/auth-runtime-db` finishes; Phase 1B's parser, resolver, and
-permission integration waits for that branch. No bundle runtime is on `main` yet. The alpha.204 model and preset contract is frozen in
+is no longer gated by auth-runtime work; the private auth DB and permission boundaries
+have shipped. No bundle runtime is on `main` yet. The alpha.204 model and preset contract is frozen in
 `packages/brain-cli/test/fixtures/brain-model-unification-baseline.json`, including
 catalog IDs, selected members, sanitized resolved config, instruction text, effective
 permissions, site/theme identity, and the consolidated Rizom additions. The fixture was
@@ -24,8 +24,8 @@ Changesets exits prerelease mode.
 This plan supersedes the preset/three-reference-model framing of the retired
 `relay-presets.md` and the retired `custom-brain-definitions.md`. Team-native product work
 remains in [team-posture-capabilities.md](./team-posture-capabilities.md); real multi-user
-identity remains in [auth-runtime-db.md](./auth-runtime-db.md) and
-[multi-user.md](./multi-user.md).
+identity is documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md)
+and [multi-user.md](./multi-user.md).
 
 ## Goal
 
@@ -159,8 +159,8 @@ Posture-independent runtime foundation:
   decks;
 - discovery/trust: agents, assessment, ATProto registry;
 - interfaces: MCP, webserver, web chat, Discord, and A2A;
-- the admin-only platform permission baseline from `feature/auth-runtime-db`; alpha.204's
-  anchor-only baseline remains frozen only as migration evidence.
+- the shipped admin-only platform permission baseline; alpha.204's anchor-only baseline
+  remains frozen only as migration evidence.
 
 Model-specific capability IDs are normalized during migration:
 
@@ -352,11 +352,11 @@ vocabulary.
 
 Phase 0 assigns every overlapping worktree an explicit disposition:
 
-| Branch                             | Disposition                                                                                                                                                                                                                                                              |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `feature/auth-runtime-db`          | Merge before Phase 1B, not Phase 1A. The pure kernel avoids its files and does not merge policy values. Resolver integration then uses its Admin capability and four-level permission model rather than the obsolete alpha.204 anchor/admin conflation.                  |
-| `work/professional-profile-v2`     | Rebase/port after auth and before Phase 2 catalog freeze. Keep the provider-neutral profile extension/migration in `core`; LinkedIn import and the OAuth broker remain explicit opt-ins even though the current worktree temporarily adds LinkedIn import to Rover core. |
-| `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                                       |
+| Branch                             | Disposition                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth runtime dependency            | Landed. Resolver integration uses the shipped Admin capability and permission model rather than the obsolete alpha.204 anchor/admin conflation.                                                                                                           |
+| `work/professional-profile-v2`     | Rebase/port before Phase 2 catalog freeze. Keep the provider-neutral profile extension/migration in `core`; LinkedIn import and the OAuth broker remain explicit opt-ins even though the current worktree temporarily adds LinkedIn import to Rover core. |
+| `feat/opportunity-priority-engine` | Merge independently as an explicit opt-in. It must not enter a built-in bundle during unification.                                                                                                                                                        |
 
 Do not edit generated/scaffolded pilot files to work around branch conflicts. Pilot changes
 start upstream in `@rizom/ops` during Phase 6 and are regenerated after release.
@@ -371,8 +371,8 @@ separately rather than silently regenerating the baseline.
 ### Phase 1A — Build the pure bundle kernel
 
 This slice deliberately avoids `brain-resolver.ts`, `instance-overrides.ts`, model
-packages, permission schemas, and every file currently changed by the auth branch. Put the
-new contracts and pure resolution logic in isolated `shell/app` modules with direct unit
+packages, and permission schemas. Put the new contracts and pure resolution logic in
+isolated `shell/app` modules with direct unit
 tests; do not expose or call the kernel from production resolution yet.
 
 - Add the TypeScript/Zod bundle definition and `defineBundle` validation contract.
@@ -399,8 +399,8 @@ alpha.204's preset path and baseline fixture remain byte-for-byte unchanged.
 
 ### Phase 1B — Integrate bundles behind presets
 
-Prerequisite: merge/rebase `feature/auth-runtime-db`. Preserve the immutable alpha.204
-fixture as migration evidence and assert its expected Admin/permission delta separately.
+The auth-runtime prerequisite has landed. Preserve the immutable alpha.204 fixture as
+migration evidence and assert its expected Admin/permission delta separately.
 
 - Parse `bundles:` and reject `bundles` + `preset` together.
 - Extend `BrainDefinition` and `CapabilityContext` with active bundles while preserving

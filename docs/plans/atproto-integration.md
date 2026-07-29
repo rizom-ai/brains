@@ -151,13 +151,13 @@ Preserve hostile-input, collision, cursor, retry, reconnect, heartbeat, stalenes
 - After explicit approval, publish a corrective alpha release so the fixed package replaces alpha.224 on the active dist-tag. Deprecating alpha.224 is a separate operator decision.
 - Implementation, merge to `main`, and release are three independent approvals. Approval of one does not imply either of the others.
 
-### 3. Outbound ATProto OAuth (fleet-user publishing) — blocked on auth-runtime-db
+### 3. Outbound ATProto OAuth (fleet-user publishing) — auth boundary available
 
 App password is the sanctioned headless credential for operator-configured brains; OAuth is the fleet-user story.
 
-**Dependency gate:** implementation waits for [Auth runtime database](./auth-runtime-db.md) to merge and stabilize its runtime storage and Admin API boundaries. Design and protocol research may proceed in parallel, but the ATProto plugin must not create a second token database or plugin-local JSON store. The existing OAuth grant tables hold credentials the brain **issues** to MCP clients; outbound ATProto OAuth needs a distinct external-provider connection store for credentials the brain **receives** from Bluesky. That store belongs on the same private auth runtime plane, with provider tokens and DPoP key material encrypted or otherwise isolated and never written to entities, Git, or `brain.yaml`.
+**Storage boundary:** the private [`auth-service` runtime](../../shell/auth-service/README.md) and Admin APIs have shipped. The ATProto plugin must not create a second token database or plugin-local JSON store. The existing OAuth grant tables hold credentials the brain **issues** to MCP clients; outbound ATProto OAuth needs a distinct external-provider connection store for credentials the brain **receives** from Bluesky. That store belongs on the same private auth runtime plane, with provider tokens and DPoP key material encrypted or otherwise isolated and never written to entities, Git, or `brain.yaml`.
 
-After the dependency lands:
+Implementation requirements:
 
 - Add an Admin-only Console "connect Bluesky" flow using `@atproto/oauth-client-node` (confidential client via existing JWKS); browser user-delegation with PAR/PKCE, DPoP, callback-state binding, and rotating refresh tokens.
 - Persist the connection against the authenticated runtime user, with reconnect, disconnect/revocation, audit, expiry, and suspended-user behavior following auth-service policy.

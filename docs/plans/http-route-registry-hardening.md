@@ -4,7 +4,7 @@
 
 **Proposed.** This is correctness, security, and maintainability work for the shared HTTP surface. It is not a stable `v0.2.0` release gate unless a concrete collision or authorization vulnerability is found.
 
-Phase 1 can proceed independently. Central operator authorization should align with [Auth runtime database](./auth-runtime-db.md) and [Multi-user and permissions](./multi-user.md); this plan must not create a second user or identity system.
+Phase 1 can proceed independently. Central operator authorization should align with the shipped [`auth-service` boundary](../../shell/auth-service/README.md) and [Multi-user and permissions](./multi-user.md); this plan must not create a second user or identity system.
 
 ## Goal
 
@@ -336,7 +336,7 @@ Gate:
 
 ## Related plans
 
-- [Auth runtime database](./auth-runtime-db.md)
+- [`shell/auth-service` implementation guide](../../shell/auth-service/README.md)
 - [Multi-user and permissions](./multi-user.md)
 - [Operator runtime database](./operator-runtime-db.md)
 - [Installable operator-console PWA](./operator-console-pwa.md)

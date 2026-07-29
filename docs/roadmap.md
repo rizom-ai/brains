@@ -125,7 +125,7 @@ Plans:
 
 ### 3. Trust & identity — the frontier
 
-The runtime substrate is implemented: distinct people have private auth users, roles, per-user state, canonical attribution, and cross-interface identity links. Admin permission and Anchor ownership are independent facets. The frontier now moves to real-world trust calibration, profile-on-subjects, and sustained collective-brain validation.
+The runtime substrate is implemented: distinct people have private auth users, roles, per-user state, canonical attribution, and cross-interface identity links. Admin permission and Anchor ownership are independent facets. The auth runtime database and multi-user foundation shipped in `@rizom/brain@0.2.0-alpha.239`; durable implementation details live in the [`auth-service` README](../shell/auth-service/README.md). The frontier now moves to real-world trust calibration, profile-on-subjects, and sustained collective-brain validation.
 
 It carries a genuine architectural puzzle: content is markdown/git-synced and shareable, but user identity and auth **must not** be git-synced — so multi-user needs a second data plane (a runtime DB) beside the content plane. This is **not posture-specific**: every brain runs on the same auth, runtime-user, and signing layer. The bar is enough identity and provenance to support real collaboration without prematurely becoming a full SaaS account system.
 
@@ -141,7 +141,6 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, management surfaces, person-scoped Trusted browser chat, and own-account self-service.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — completed and released in `@rizom/brain@0.2.0-alpha.239`, including database-backed auth, People administration, Admin/Anchor invariants, normalized identity evidence, strict Admin admission, invitations, and own-account self-service.
 - [connected-channels.md](./plans/connected-channels.md) — registry-driven, person-centered channel identity attachment without channel enums in auth schema or console code.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 

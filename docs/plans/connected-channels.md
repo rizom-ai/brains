@@ -19,7 +19,7 @@ Everything downstream is **already generic**: permission resolution, interface-p
 
 ## Source of truth
 
-This plan owns channel-identity typing, the app-scoped **channel registry**, delivery-provider registration, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics belong to [auth-runtime-db.md](./auth-runtime-db.md); person/role product behavior belongs to [multi-user.md](./multi-user.md).
+This plan owns channel-identity typing, the app-scoped **channel registry**, delivery-provider registration, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics are documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md); person/role product behavior belongs to [multi-user.md](./multi-user.md).
 
 ## Core decisions
 
@@ -151,9 +151,9 @@ Thin vertical slices; tests fold into each phase.
 ## Out of scope
 
 - **Self-service channel proof.** A person connecting their own channel via a verifiable flow (OAuth handshake, challenge message) — a later assurance upgrade over operator-asserted attach.
-- **The standalone raw-ID grant surface.** Removed, not migrated; see [auth-runtime-db.md](./auth-runtime-db.md). Config + `brain auth reinitialize-access` remains the ops path for no-person channel allowlists.
+- **The standalone raw-ID grant surface.** Removed, not migrated; see the [`auth-service` implementation guide](../../shell/auth-service/README.md). Config + `brain auth reinitialize-access` remains the ops path for no-person channel allowlists.
 
 ## Related plans
 
-- [auth-runtime-db.md](./auth-runtime-db.md) — auth DB foundation, identity schema, resolution, standalone-grant removal.
+- [`shell/auth-service`](../../shell/auth-service/README.md) — auth DB foundation, identity schema, resolution, and standalone-grant behavior.
 - [multi-user.md](./multi-user.md) — person/role product model and console UX.

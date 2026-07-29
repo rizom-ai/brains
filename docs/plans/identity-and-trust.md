@@ -3,9 +3,9 @@
 ## Status
 
 Positioning doc for roadmap §3 (Trust & identity). Not an execution plan —
-the execution units are [multi-user.md](./multi-user.md),
-[auth-runtime-db.md](./auth-runtime-db.md), and the identity parts
-of [atproto-integration.md](./atproto-integration.md); A2A request signing
+the execution units are [multi-user.md](./multi-user.md), the identity parts
+of [atproto-integration.md](./atproto-integration.md), and the shipped
+[`auth-service` implementation](../../shell/auth-service/README.md); A2A request signing
 shipped (RFC 9421 via `shared/http-signatures`, peer-trust store,
 task-caller binding) and its plan is retired. This doc exists
 because those plans each answer a slice of "who is talking to the brain,
@@ -138,14 +138,14 @@ discovery stays pointed at the shared agent directory.
 The two subject tracks can otherwise proceed in parallel, with one explicit
 provider-connection dependency:
 
-- **Humans**: auth-runtime-db → multi-user phases 1–2 (real users, roles,
-  per-session MCP permissions).
+- **Humans**: the auth runtime and multi-user phases 1–2 have shipped (real
+  users, roles, and per-session MCP permissions).
 - **Brains**: A2A request signing shipped (keys, signing, verification,
   task binding); ATProto protocol work remains independent.
-- **Outbound ATProto OAuth**: auth-runtime-db must land first. Bluesky access
-  tokens, rotating refresh tokens, and DPoP key material are received provider
-  credentials and belong in a dedicated external-provider connection store on
-  the private auth runtime plane, not in the ATProto plugin or the brain's
-  existing issued-grant tables.
+- **Outbound ATProto OAuth**: the auth storage boundary is available. Bluesky
+  access tokens, rotating refresh tokens, and DPoP key material are received
+  provider credentials and belong in a dedicated external-provider connection
+  store on the private auth runtime plane, not in the ATProto plugin or the
+  brain's existing issued-grant tables.
 
 Optional person-to-peer association can land only after both tracks can verify their own subjects; it never merges those subjects or their authorization.
