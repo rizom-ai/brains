@@ -1,5 +1,6 @@
 {
   "name": "@brains/messaging-service",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.237",
   "dependencies": {
     "@brains/templates": "workspace:*",

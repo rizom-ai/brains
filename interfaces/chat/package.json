@@ -1,5 +1,6 @@
 {
   "name": "@brains/chat",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.237",
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {

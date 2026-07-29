@@ -1,5 +1,6 @@
 {
   "name": "@brains/atproto",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.237",
   "description": "AT Protocol integration for identity, publishing, discovery, and feeds",
   "dependencies": {

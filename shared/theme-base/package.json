@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-base",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.237",
   "description": "Shared base CSS utilities for all Brain themes",
   "dependencies": {},

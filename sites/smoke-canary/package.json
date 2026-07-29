@@ -7,5 +7,5 @@
     "type": "git",
     "url": "git+https://github.com/rizom-ai/site-smoke-canary.git"
   },
-  "license": "Apache-2.0"
+  "license": "AGPL-3.0-only"
 }

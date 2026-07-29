@@ -7,7 +7,7 @@
     "app",
     "factory"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": "",
   "bin": {
     "brains": "./src/runner.ts",

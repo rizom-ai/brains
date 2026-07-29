@@ -281,4 +281,4 @@ local/operator inspection when you intentionally need raw tool access.
 
 ## License
 
-Apache-2.0
+AGPL-3.0-only
