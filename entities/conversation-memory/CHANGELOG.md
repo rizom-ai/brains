@@ -1,5 +1,19 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.238
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.238
+  - @brains/content-formatters@0.2.0-alpha.238
+  - @brains/contracts@0.2.0-alpha.238
+  - @brains/ui-library@0.2.0-alpha.238
+  - @brains/utils@0.2.0-alpha.238
+  - @brains/conversation-service@0.2.0-alpha.238
+  - @brains/plugins@0.2.0-alpha.238
+  - @brains/templates@0.2.0-alpha.238
+
 ## 0.2.0-alpha.237
 
 ### Patch Changes

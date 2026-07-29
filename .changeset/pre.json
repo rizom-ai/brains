@@ -219,6 +219,7 @@
     "content-pipeline-scheduler-lifecycle",
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
+    "core--fix-professional-profile-view-schema",
     "core--ops-explicit-theme-version",
     "core-preset-eval-release",
     "current-main-alpha-release",

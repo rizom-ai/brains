@@ -1,5 +1,23 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.238
+
+### Patch Changes
+
+- [`679d06a`](https://github.com/rizom-ai/brains/commit/679d06aa869d5afb9db3438afcdc395f5fac6eaf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate professional homepage and about datasource output with the loose public profile view schema so transitional profile fields such as `kind` do not remove those sections from site builds.
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.238
+  - @brains/decks@0.2.0-alpha.238
+  - @brains/site-info@0.2.0-alpha.238
+  - @brains/profile@0.2.0-alpha.238
+  - @brains/site-composition@0.2.0-alpha.238
+  - @brains/site-engine@0.2.0-alpha.238
+  - @brains/ui-library@0.2.0-alpha.238
+  - @brains/utils@0.2.0-alpha.238
+  - @brains/plugins@0.2.0-alpha.238
+  - @brains/templates@0.2.0-alpha.238
+
 ## 0.2.0-alpha.237
 
 ### Patch Changes
