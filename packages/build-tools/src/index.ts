@@ -1,6 +1,7 @@
 export {
   findInternalDeclarationImports,
   formatDeclarationLeakError,
+  stripDeclarationComments,
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
 export {

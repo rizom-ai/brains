@@ -8,15 +8,10 @@ import type {
   SendMessageToChannelRequest,
   SendMessageWithIdRequest,
 } from "../message-interface/message-interface-plugin";
-import type {
-  IShell,
-  PluginCapabilities,
-  PluginRegistrationContext,
-} from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { PermissionLookupContext } from "@brains/templates";
 import type { PluginConfigSchema } from "../config";
-import { InterfacePlugin } from "./interface-plugin";
+import { InterfacePlugin, type InterfacePluginHooks } from "./interface-plugin";
 import type {
   InterfacePluginContext,
   JobProgressEvent,
@@ -25,16 +20,10 @@ import type {
   Resource,
   Tool,
 } from "./types";
+import type { PluginPackageJson, RuntimePluginDelegate } from "./public-plugin";
 
-interface MessageInterfacePluginHooks {
+interface MessageInterfacePluginHooks extends InterfacePluginHooks<InterfacePluginContext> {
   onRegister(context: MessageInterfacePluginContext): Promise<void>;
-  onReady(context: InterfacePluginContext): Promise<void>;
-  onShutdown(): Promise<void>;
-  getTools(): Promise<Tool[]>;
-  getResources(): Promise<Resource[]>;
-  getInstructions(): Promise<string | undefined>;
-  getWebRoutes(): WebRouteDefinition[];
-  requiresDaemonStartup(): boolean;
   sendMessageToChannel(request: SendMessageToChannelRequest): void;
   sendMessageWithId(
     request: SendMessageWithIdRequest,
@@ -50,9 +39,10 @@ class MessageInterfacePluginDelegate<
   TTrackingInfo extends MessageJobTrackingInfo,
 > extends RuntimeMessageInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   private readonly hooks: MessageInterfacePluginHooks;
+
   constructor(
     id: string,
-    packageJson: { name: string; version: string; description?: string },
+    packageJson: PluginPackageJson,
     config: TConfigInput,
     configSchema: PluginConfigSchema<TConfig>,
     hooks: MessageInterfacePluginHooks,
@@ -78,12 +68,12 @@ class MessageInterfacePluginDelegate<
     return this.hooks.onShutdown();
   }
 
-  protected override getTools(): Promise<never[]> {
-    return this.hooks.getTools() as Promise<never[]>;
+  protected override getTools(): Promise<Tool[]> {
+    return this.hooks.getTools();
   }
 
-  protected override getResources(): Promise<never[]> {
-    return this.hooks.getResources() as Promise<never[]>;
+  protected override getResources(): Promise<Resource[]> {
+    return this.hooks.getResources();
   }
 
   protected override getInstructions(): Promise<string | undefined> {
@@ -158,34 +148,35 @@ export abstract class MessageInterfacePlugin<
   TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
 > extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
-  private readonly messageDelegate: MessageInterfacePluginDelegate<
+  private messageDelegateInstance:
+    | MessageInterfacePluginDelegate<TConfig, TConfigInput, TTrackingInfo>
+    | undefined;
+
+  /**
+   * The delegate the base class drives. Overriding it here means the plain
+   * interface delegate is never built — the base creates its delegate lazily,
+   * so this replaces it rather than adding a second, unused one.
+   *
+   * @internal
+   */
+  protected override createDelegate(): RuntimePluginDelegate {
+    return this.messageDelegate;
+  }
+
+  /** Private so the concrete delegate type stays out of the published .d.ts. */
+  private get messageDelegate(): MessageInterfacePluginDelegate<
     TConfig,
     TConfigInput,
     TTrackingInfo
-  >;
-
-  protected constructor(
-    id: string,
-    packageJson: { name: string; version: string; description?: string },
-    config: TConfigInput,
-    configSchema: PluginConfigSchema<TConfig>,
-  ) {
-    super(id, packageJson, config, configSchema);
-    this.messageDelegate = new MessageInterfacePluginDelegate(
-      id,
-      packageJson,
-      config,
-      configSchema,
+  > {
+    this.messageDelegateInstance ??= new MessageInterfacePluginDelegate(
+      this.id,
+      this.packageJson,
+      this.pluginConfig,
+      this.configSchema,
       {
+        ...this.interfaceHooks(),
         onRegister: (context): Promise<void> => this.onRegister(context),
-        onReady: (context): Promise<void> => this.onReady(context),
-        onShutdown: (): Promise<void> => this.onShutdown(),
-        getTools: (): Promise<Tool[]> => this.getTools(),
-        getResources: (): Promise<Resource[]> => this.getResources(),
-        getInstructions: (): Promise<string | undefined> =>
-          this.getInstructions(),
-        getWebRoutes: (): WebRouteDefinition[] => this.getWebRoutes(),
-        requiresDaemonStartup: (): boolean => this.requiresDaemonStartup(),
         sendMessageToChannel: (request): void =>
           this.sendMessageToChannel(request),
         sendMessageWithId: (request): Promise<string | undefined> =>
@@ -196,48 +187,32 @@ export abstract class MessageInterfacePlugin<
           this.onProgressUpdate(event),
       },
     );
+    return this.messageDelegateInstance;
   }
 
-  /** @internal */
-  override register(
-    shell: IShell,
-    context?: PluginRegistrationContext,
-  ): Promise<PluginCapabilities> {
-    return this.messageDelegate.register(shell, context);
-  }
+  protected override async onRegister(
+    _context: MessageInterfacePluginContext,
+  ): Promise<void> {}
 
   /** Inbound/conversational interfaces override this; outbound-only interfaces need not. */
   protected sendMessageToChannel(_request: SendMessageToChannelRequest): void {
     return;
   }
 
-  protected override async onRegister(
-    _context: MessageInterfacePluginContext,
-  ): Promise<void> {}
-  protected override async onReady(
-    _context: InterfacePluginContext,
-  ): Promise<void> {}
-  protected override async onShutdown(): Promise<void> {}
-  protected override async getTools(): Promise<Tool[]> {
-    return [];
-  }
-  protected override async getResources(): Promise<Resource[]> {
-    return [];
-  }
-  protected override async getInstructions(): Promise<string | undefined> {
-    return undefined;
-  }
   protected sendMessageWithId(
     _request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     return Promise.resolve(undefined);
   }
+
   protected editMessage(_request: EditMessageRequest): Promise<boolean> {
     return Promise.resolve(false);
   }
+
   protected supportsMessageEditing(): boolean {
     return false;
   }
+
   protected async onProgressUpdate(_event: JobProgressEvent): Promise<void> {}
 
   /** @internal */
@@ -313,9 +288,7 @@ export abstract class MessageInterfacePlugin<
   public registerProgressCallback(
     callback: (events: JobProgressEvent[]) => void,
   ): void {
-    this.messageDelegate.registerProgressCallback(
-      callback as (events: JobProgressEvent[]) => void,
-    );
+    this.messageDelegate.registerProgressCallback(callback);
   }
 
   public unregisterProgressCallback(): void {
@@ -323,11 +296,11 @@ export abstract class MessageInterfacePlugin<
   }
 
   public getProgressEvents(): JobProgressEvent[] {
-    return this.messageDelegate.getProgressEvents() as JobProgressEvent[];
+    return this.messageDelegate.getProgressEvents();
   }
 
   public getActiveProgressEvents(): JobProgressEvent[] {
-    return this.messageDelegate.getActiveProgressEvents() as JobProgressEvent[];
+    return this.messageDelegate.getActiveProgressEvents();
   }
 
   public startProcessingInput(channelId: string | null = null): void {
@@ -340,13 +313,5 @@ export abstract class MessageInterfacePlugin<
 
   protected getCurrentChannelId(): string | null {
     return this.messageDelegate.getCurrentChannelIdPublic();
-  }
-
-  override ready(): Promise<void> {
-    return this.messageDelegate.ready();
-  }
-
-  override shutdown(): Promise<void> {
-    return this.messageDelegate.shutdown?.() ?? Promise.resolve();
   }
 }
