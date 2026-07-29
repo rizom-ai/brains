@@ -3,4 +3,4 @@
 "@brains/core": patch
 ---
 
-Own conversation-service database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+Own conversation-service database acquisition and release through a private package Effect Layer composed by the shell lifecycle. Apply WAL and `busy_timeout` pragmas to that owned runtime connection before plugin initialization.

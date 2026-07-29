@@ -33,6 +33,7 @@ describe("Startup Initialization Order", () => {
       expect(source).toContain("entityService.initialize()");
       expect(source).toContain("jobQueueService.initialize?.()");
       expect(source).toContain("runtimeStateService.initialize()");
+      expect(source).toContain("conversationService.initialize?.()");
       expect(source.indexOf("entityService.initialize()")).toBeLessThan(
         pluginInitializationIndex,
       );
@@ -40,6 +41,9 @@ describe("Startup Initialization Order", () => {
         pluginInitializationIndex,
       );
       expect(source.indexOf("runtimeStateService.initialize()")).toBeLessThan(
+        pluginInitializationIndex,
+      );
+      expect(source.indexOf("conversationService.initialize?.()")).toBeLessThan(
         pluginInitializationIndex,
       );
     });
