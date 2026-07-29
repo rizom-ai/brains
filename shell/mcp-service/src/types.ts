@@ -336,6 +336,14 @@ export interface IMCPService extends IMCPTransport {
   ): Array<{ pluginId: string; tool: Tool }>;
 
   /**
+   * List protocol-visible tools filtered by user permission level and protocol mode
+   */
+  listProtocolToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+    mode: MCPProtocolMode,
+  ): Array<{ pluginId: string; tool: Tool }>;
+
+  /**
    * List all registered resources
    */
   listResources(): Array<{ pluginId: string; resource: Resource }>;

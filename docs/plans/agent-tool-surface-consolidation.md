@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 audience-boundary work has started; Phase 0 inventory snapshots and lifecycle consolidation phases remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 audience-boundary work has started, and Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering. Preset snapshots and lifecycle consolidation phases remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Context
 

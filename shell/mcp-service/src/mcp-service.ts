@@ -279,6 +279,15 @@ export class MCPService implements IMCPService {
     return filterAgentToolsForPermission(this.listTools(), userLevel);
   }
 
+  public listProtocolToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+    mode: MCPProtocolMode,
+  ): RegisteredTool[] {
+    return this.listTools().filter(({ tool }) =>
+      canExposeToolOnProtocol(userLevel, tool, mode),
+    );
+  }
+
   /**
    * List all registered resources
    */

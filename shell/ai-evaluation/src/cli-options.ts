@@ -6,6 +6,7 @@ export interface CliOptions {
   maxParallel: number;
   verbose: boolean;
   toolCoverage: boolean;
+  toolSurface: boolean;
   suite?: string;
   tags?: string[];
   testCaseIds?: string[];
@@ -65,6 +66,7 @@ export function parseCliOptions(args: string[]): CliOptions {
     maxParallel: maxParallelArg ? parseInt(maxParallelArg, 10) : 3,
     verbose: args.includes("--verbose") || args.includes("-v"),
     toolCoverage: args.includes("--tool-coverage"),
+    toolSurface: args.includes("--tool-surface"),
   };
 
   if (suite) options.suite = suite;

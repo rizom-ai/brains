@@ -9,7 +9,8 @@
  *   bun run eval --tags core                  # Run only tests with 'core' tag
  *   bun run eval --preset core                # Boot a specific brain preset
  *   bun run eval --suite core                 # Run an eval suite from brain.eval.yaml
- *   bun run eval --tool-coverage              # Show registered vs asserted tool coverage
+ *   bun run eval --tool-coverage              # Show agent vs asserted tool coverage
+ *   bun run eval --tool-surface               # Show internal/agent/protocol/CLI tool surfaces
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
  *   bun run eval --url http://localhost:8080  # Run against remote instance
@@ -29,6 +30,7 @@ import {
   renderToolCoverageReport,
   runToolCoverageReport,
 } from "./tool-coverage";
+import { renderToolSurfaceReport, runToolSurfaceReport } from "./tool-surface";
 
 export { runEvaluations, runEvaluationsCollect };
 
@@ -56,6 +58,7 @@ export async function main(): Promise<void> {
     testType,
     preset,
     toolCoverage,
+    toolSurface,
     remoteUrl,
     authToken,
     compareAgainst,
@@ -86,6 +89,18 @@ export async function main(): Promise<void> {
         brainModelPath,
         cloneData,
       });
+      process.exit(0);
+    }
+
+    // ── Tool surface inventory ────────────────────────────────────────
+    if (toolSurface) {
+      const report = await runToolSurfaceReport({
+        config,
+        evalHandlerRegistry,
+        brainModelPath,
+        cloneData,
+      });
+      process.stdout.write(`${renderToolSurfaceReport(report)}\n`);
       process.exit(0);
     }
 

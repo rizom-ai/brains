@@ -672,6 +672,52 @@ describe("MCPService", () => {
       ).toEqual(["audience_default_search", "audience_agent_only"]);
     });
 
+    it("lists protocol tools by permission and mode without changing server state", () => {
+      const readTool: Tool = {
+        name: "surface_search",
+        description: "Search",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+      const writeTool: Tool = {
+        name: "surface_create",
+        description: "Create",
+        inputSchema: {},
+        visibility: "trusted",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: {} }),
+      };
+      const agentOnlyTool: Tool = {
+        name: "surface_agent_only",
+        description: "Agent-only",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        audiences: ["agent"],
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      mcpService.registerTool("plugin", readTool);
+      mcpService.registerTool("plugin", writeTool);
+      mcpService.registerTool("plugin", agentOnlyTool);
+
+      expect(
+        mcpService
+          .listProtocolToolsForPermissionLevel("trusted", "basic")
+          .map((entry) => entry.tool.name),
+      ).toEqual(["surface_search"]);
+      expect(
+        mcpService
+          .listProtocolToolsForPermissionLevel("trusted", "debug")
+          .map((entry) => entry.tool.name),
+      ).toEqual(["surface_search", "surface_create"]);
+      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
+        "surface_search",
+      ]);
+    });
+
     it("keeps agent-only tools off protocol servers even in debug mode", () => {
       const defaultTool: Tool = {
         name: "protocol_default_search",

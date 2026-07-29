@@ -29,6 +29,7 @@ describe("cli options", () => {
       "5",
       "--verbose",
       "--tool-coverage",
+      "--tool-surface",
       "--suite",
       "default",
       "--tags",
@@ -55,6 +56,7 @@ describe("cli options", () => {
       maxParallel: 5,
       verbose: true,
       toolCoverage: true,
+      toolSurface: true,
       suite: "default",
       tags: ["core", "smoke"],
       testCaseIds: ["a", "b"],
@@ -79,6 +81,7 @@ describe("cli options", () => {
     expect(options.parallel).toBe(true);
     expect(options.verbose).toBe(true);
     expect(options.toolCoverage).toBe(false);
+    expect(options.toolSurface).toBe(false);
     expect(options.testCaseIds).toEqual(["fallback"]);
     expect(options.compareAgainst).toBe("");
   });
