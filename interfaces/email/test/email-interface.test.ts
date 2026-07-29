@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
-import { EMAIL_SEND, type SendEmailPayload } from "@brains/email-contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import { EmailInterface, type EmailSendResult } from "../src";
+
+import { EmailInterface, shouldRedactDelivery } from "../src";
 
 describe("EmailInterface", () => {
   it("owns Email metadata and registers a provider only with a configured transport", async () => {
@@ -50,8 +50,7 @@ describe("EmailInterface", () => {
         .getDeliveryProvider("email"),
     ).toBeUndefined();
   });
-
-  it("sends generic email messages through Resend", async () => {
+  it("sends through the registered delivery provider", async () => {
     const fetchImpl = mock(
       async (_input: string | URL | Request) =>
         new Response(JSON.stringify({ id: "resend_123" }), { status: 200 }),
@@ -68,19 +67,25 @@ describe("EmailInterface", () => {
         { fetchImpl },
       ),
     );
+    await harness.finalizeRegistration();
 
-    const result = await harness.sendMessage<unknown, EmailSendResult>(
-      EMAIL_SEND,
-      {
-        to: "user@example.com",
-        subject: "Set up your Rover",
-        text: "Open the setup link.",
-        html: "<p>Open the setup link.</p>",
-        idempotencyKey: "invitation_attempt_1",
-      },
-    );
+    const provider = harness
+      .getMockShell()
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+    const result = await provider?.send({
+      recipient: "user@example.com",
+      subject: "Set up your Rover",
+      text: "Open the setup link.",
+      html: "<p>Open the setup link.</p>",
+      idempotencyKey: "invitation_attempt_1",
+      sensitivity: "normal",
+    });
 
-    expect(result).toEqual({ status: "sent", id: "resend_123" });
+    expect(result).toEqual({
+      status: "sent",
+      providerDeliveryId: "resend_123",
+    });
     expect(fetchImpl).toHaveBeenCalledWith("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -117,25 +122,31 @@ describe("EmailInterface", () => {
         { fetchImpl },
       ),
     );
+    await harness.finalizeRegistration();
 
-    const response = await harness
+    const provider = harness
       .getMockShell()
-      .getMessageBus()
-      .send<SendEmailPayload, EmailSendResult>({
-        type: EMAIL_SEND,
-        sender: "test",
-        payload: {
-          to: "user@example.com",
-          subject: "Set up your Rover",
-          text: "SECRET_SETUP_URL",
-          sensitivity: "secret",
-        },
-      });
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+    const result = await provider?.send({
+      recipient: "user@example.com",
+      subject: "Set up your Rover",
+      text: "SECRET_SETUP_URL",
+      idempotencyKey: "attempt_1",
+      sensitivity: "secret",
+    });
 
-    expect("success" in response && response.success).toBe(false);
-    expect("error" in response ? response.error : undefined).toBe(
-      "Email delivery failed",
-    );
-    expect(JSON.stringify(response)).not.toContain("SECRET_SETUP_URL");
+    expect(result).toEqual({
+      status: "failed",
+      failureCode: "email_delivery_failed",
+    });
+    expect(JSON.stringify(result)).not.toContain("SECRET_SETUP_URL");
+  });
+
+  it("redacts failed deliveries unless the caller stated they are normal", () => {
+    // Only an explicit opt-out logs the address; an absent value must not.
+    expect(shouldRedactDelivery("normal")).toBe(false);
+    expect(shouldRedactDelivery("secret")).toBe(true);
+    expect(shouldRedactDelivery(undefined)).toBe(true);
   });
 });

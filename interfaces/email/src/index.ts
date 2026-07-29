@@ -1,11 +1,6 @@
 import {
-  EMAIL_SEND,
-  sendEmailPayloadSchema,
-  type SendEmailPayload,
-  type SendEmailResult,
-} from "@brains/email-contracts";
-import {
   MessageInterfacePlugin,
+  type ChannelDeliveryInput,
   type MessageInterfacePluginContext,
 } from "@brains/plugins";
 import { type FetchLike } from "@brains/utils/fetch-like";
@@ -40,7 +35,20 @@ const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
     id: z.string().optional(),
   });
 
-export type EmailSendResult = SendEmailResult;
+export type EmailSendResult =
+  { status: "sent"; id?: string } | { status: "failed" };
+
+/**
+ * Whether a failed delivery must keep recipient and subject out of the logs.
+ *
+ * Only an explicit "normal" opts out. A caller that never considered
+ * sensitivity gets the safe treatment rather than leaking an address.
+ */
+export function shouldRedactDelivery(
+  sensitivity: ChannelDeliveryInput["sensitivity"],
+): boolean {
+  return sensitivity !== "normal";
+}
 
 export interface EmailInterfaceDependencies {
   fetchImpl?: FetchLike;
@@ -83,65 +91,63 @@ export class EmailInterface extends MessageInterfacePlugin<
       return;
     }
 
+    // The one way to send email. Senders resolve this provider by channel
+    // type rather than publishing to a transport-specific channel, so they
+    // never need to know the transport exists.
     context.channels.registerDeliveryProvider({
       channelType: "email",
       isAvailable: async () => true,
-      send: async (input) => {
-        try {
-          const result = await this.sendWithResend({
-            to: input.recipient,
-            subject: input.subject,
-            text: input.text,
-            sensitivity: "secret",
-            idempotencyKey: input.idempotencyKey,
-          });
-          return result.status === "sent"
-            ? {
-                status: "sent" as const,
-                ...(result.id ? { providerDeliveryId: result.id } : {}),
-              }
-            : {
-                status: "failed" as const,
-                failureCode: "email_delivery_failed",
-              };
-        } catch {
-          this.logger.warn("Email delivery failed for a secret message");
-          return {
-            status: "failed" as const,
-            failureCode: "email_delivery_failed",
-          };
-        }
-      },
+      send: async (input) => this.deliver(input),
     });
-
-    const logger = this.logger;
-    context.messaging.subscribe<SendEmailPayload, EmailSendResult>(
-      EMAIL_SEND,
-      async (message) => {
-        const input = sendEmailPayloadSchema.parse(message.payload);
-
-        try {
-          const result = await this.sendWithResend(input);
-          return { success: true, data: result };
-        } catch (error) {
-          if (input.sensitivity === "secret") {
-            logger.warn("Email delivery failed for a secret message");
-          } else {
-            logger.warn("Email delivery failed", {
-              to: input.to,
-              subject: input.subject,
-              error: getErrorMessage(error),
-            });
-          }
-          return { success: false, error: "Email delivery failed" };
-        }
-      },
-    );
   }
 
-  private async sendWithResend(
-    input: SendEmailPayload,
-  ): Promise<EmailSendResult> {
+  private async deliver(input: ChannelDeliveryInput): Promise<
+    | { status: "sent"; providerDeliveryId?: string }
+    | {
+        status: "failed";
+        failureCode: string;
+      }
+  > {
+    const secret = shouldRedactDelivery(input.sensitivity);
+
+    try {
+      const result = await this.sendWithResend({
+        to: input.recipient,
+        subject: input.subject,
+        text: input.text,
+        ...(input.html ? { html: input.html } : {}),
+        idempotencyKey: input.idempotencyKey,
+      });
+      return result.status === "sent"
+        ? {
+            status: "sent" as const,
+            ...(result.id ? { providerDeliveryId: result.id } : {}),
+          }
+        : { status: "failed" as const, failureCode: "email_delivery_failed" };
+    } catch (error) {
+      if (secret) {
+        this.logger.warn("Email delivery failed for a secret message");
+      } else {
+        this.logger.warn("Email delivery failed", {
+          to: input.recipient,
+          subject: input.subject,
+          error: getErrorMessage(error),
+        });
+      }
+      return {
+        status: "failed" as const,
+        failureCode: "email_delivery_failed",
+      };
+    }
+  }
+
+  private async sendWithResend(input: {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string | undefined;
+    idempotencyKey?: string | undefined;
+  }): Promise<EmailSendResult> {
     const apiKey = this.config.apiKey;
     const from = this.config.from;
     if (!apiKey || !from) {

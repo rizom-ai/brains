@@ -639,7 +639,6 @@
       "name": "@brains/email",
       "version": "0.2.0-alpha.239",
       "dependencies": {
-        "@brains/email-contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1052,7 +1051,6 @@
       "name": "@brains/notifications",
       "version": "0.2.0-alpha.239",
       "dependencies": {
-        "@brains/email-contracts": "workspace:*",
         "@brains/notification-contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1304,19 +1302,6 @@
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.19.43",
         "bun-types": "^1.3.14",
-        "typescript": "^7.0.2",
-      },
-    },
-    "shared/email-contracts": {
-      "name": "@brains/email-contracts",
-      "version": "0.2.0-alpha.239",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -2223,8 +2208,6 @@
     "@brains/document-plugin": ["@brains/document-plugin@workspace:entities/document"],
 
     "@brains/email": ["@brains/email@workspace:interfaces/email"],
-
-    "@brains/email-contracts": ["@brains/email-contracts@workspace:shared/email-contracts"],
 
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 
