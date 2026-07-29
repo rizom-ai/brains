@@ -98,6 +98,7 @@ export function createMCPTools(
       inputSchema: chatInputSchema.shape,
       visibility: "public",
       sideEffects: "writes",
+      audiences: ["protocol"],
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = chatInputSchema.parse(rawInput);
         const context = getContext();
@@ -140,6 +141,7 @@ export function createMCPTools(
       inputSchema: confirmInputSchema.shape,
       visibility: "public",
       sideEffects: "writes",
+      audiences: ["protocol"],
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = confirmInputSchema.parse(rawInput);
         const context = getContext();

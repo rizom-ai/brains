@@ -47,8 +47,10 @@ describe("MCP tools", () => {
     expect(tools.map((tool) => tool.name)).toEqual(["chat", "confirm"]);
     expect(tools[0]?.visibility).toBe("public");
     expect(tools[0]?.sideEffects).toBe("writes");
+    expect(tools[0]?.audiences).toEqual(["protocol"]);
     expect(tools[1]?.visibility).toBe("public");
     expect(tools[1]?.sideEffects).toBe("writes");
+    expect(tools[1]?.audiences).toEqual(["protocol"]);
   });
 
   it("routes chat through the shared agent entrypoint with MCP context", async () => {

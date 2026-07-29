@@ -206,7 +206,7 @@ export class TurnProcessor {
 
     // Log available tools
     const tools = this.deps.mcpService
-      .listToolsForPermissionLevel(userPermissionLevel)
+      .listAgentToolsForPermissionLevel(userPermissionLevel)
       .map((t) => t.tool.name);
     this.deps.logger.debug("Available tools for this call", {
       toolCount: tools.length,
@@ -359,7 +359,9 @@ export class TurnProcessor {
     const attributedActor = await this.enrichActor(actor);
 
     const tools =
-      this.deps.mcpService.listToolsForPermissionLevel(userPermissionLevel);
+      this.deps.mcpService.listAgentToolsForPermissionLevel(
+        userPermissionLevel,
+      );
     const tool = tools.find(
       (t) => t.tool.name === pendingConfirmation.toolName,
     );

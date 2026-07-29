@@ -482,6 +482,23 @@ describe("MCPService", () => {
       expect(cliTools[0]?.tool.cli?.name).toBe("list");
     });
 
+    it("should keep CLI discovery independent from tool audiences", () => {
+      const cliTool: Tool = {
+        name: "agent_cli_only",
+        description: "Agent and CLI command",
+        inputSchema: {},
+        audiences: ["agent"],
+        handler: async () => ({ success: true, data: {} }),
+        cli: { name: "agent-command" },
+      };
+
+      mcpService.registerTool("plugin", cliTool);
+
+      expect(mcpService.getCliTools().map((entry) => entry.tool.name)).toEqual([
+        "agent_cli_only",
+      ]);
+    });
+
     it("should return empty array when no tools have cli metadata", () => {
       const tool: Tool = {
         name: "internal_tool",
@@ -610,6 +627,89 @@ describe("MCPService", () => {
       expect(
         mcpService.listToolsForPermissionLevel("admin").map((t) => t.tool.name),
       ).toEqual(["public_tool", "trusted_tool", "admin_tool"]);
+    });
+  });
+
+  describe("tool audiences", () => {
+    it("keeps protocol-only tools out of agent-visible tool lists", () => {
+      const defaultTool: Tool = {
+        name: "audience_default_search",
+        description: "Default audience search",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+
+      const agentOnlyTool: Tool = {
+        name: "audience_agent_only",
+        description: "Agent-only workflow tool",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "writes",
+        audiences: ["agent"],
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      const protocolOnlyTool: Tool = {
+        name: "audience_protocol_only",
+        description: "Protocol-only query adapter",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        audiences: ["protocol"],
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      mcpService.registerTool("plugin", defaultTool);
+      mcpService.registerTool("plugin", agentOnlyTool);
+      mcpService.registerTool("plugin", protocolOnlyTool);
+
+      expect(
+        mcpService
+          .listAgentToolsForPermissionLevel("public")
+          .map((t) => t.tool.name),
+      ).toEqual(["audience_default_search", "audience_agent_only"]);
+    });
+
+    it("keeps agent-only tools off protocol servers even in debug mode", () => {
+      const defaultTool: Tool = {
+        name: "protocol_default_search",
+        description: "Default audience search",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+
+      const agentOnlyTool: Tool = {
+        name: "protocol_agent_only",
+        description: "Agent-only workflow tool",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        audiences: ["agent"],
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      const protocolOnlyTool: Tool = {
+        name: "protocol_protocol_only",
+        description: "Protocol-only query adapter",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        audiences: ["protocol"],
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      mcpService.setProtocolMode("debug");
+      mcpService.registerTool("plugin", defaultTool);
+      mcpService.registerTool("plugin", agentOnlyTool);
+      mcpService.registerTool("plugin", protocolOnlyTool);
+
+      expect(
+        listProtocolToolNames(mcpService.createMcpServer("public")),
+      ).toEqual(["protocol_default_search", "protocol_protocol_only"]);
     });
   });
 

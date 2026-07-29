@@ -19,6 +19,7 @@ import type {
   Resource,
   ResourceTemplate,
   Tool,
+  ToolAudience,
 } from "./types";
 import { normalizeToolExecutionMessageResponse } from "./tool-response-validation";
 
@@ -28,6 +29,7 @@ const MCP_SERVER_INFO = {
 };
 
 const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "admin";
+const DEFAULT_TOOL_AUDIENCES: ToolAudience[] = ["agent", "protocol"];
 const RESOURCE_VISIBILITY: UserPermissionLevel = "admin";
 const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "admin";
 
@@ -65,12 +67,26 @@ export function canExposeTool(
   );
 }
 
+function hasToolAudience(tool: Tool, audience: ToolAudience): boolean {
+  return (tool.audiences ?? DEFAULT_TOOL_AUDIENCES).includes(audience);
+}
+
+export function canExposeToolToAgent(
+  permissionLevel: UserPermissionLevel,
+  tool: Tool,
+): boolean {
+  return canExposeTool(permissionLevel, tool) && hasToolAudience(tool, "agent");
+}
+
 export function canExposeToolOnProtocol(
   permissionLevel: UserPermissionLevel,
   tool: Tool,
   mode: MCPProtocolMode,
 ): boolean {
-  if (!canExposeTool(permissionLevel, tool)) {
+  if (
+    !canExposeTool(permissionLevel, tool) ||
+    !hasToolAudience(tool, "protocol")
+  ) {
     return false;
   }
 
@@ -120,6 +136,13 @@ export function filterToolsForPermission(
   userLevel: UserPermissionLevel,
 ): RegisteredTool[] {
   return tools.filter(({ tool }) => canExposeTool(userLevel, tool));
+}
+
+export function filterAgentToolsForPermission(
+  tools: RegisteredTool[],
+  userLevel: UserPermissionLevel,
+): RegisteredTool[] {
+  return tools.filter(({ tool }) => canExposeToolToAgent(userLevel, tool));
 }
 
 export function getToolAnnotations(tool: Tool): ToolAnnotations | undefined {

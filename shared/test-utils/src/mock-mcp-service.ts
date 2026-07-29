@@ -24,6 +24,7 @@ export function createMockMCPService(): IMCPService {
     listTools: mock(() => []),
     getCliTools: mock(() => []),
     listToolsForPermissionLevel: mock(() => []),
+    listAgentToolsForPermissionLevel: mock(() => []),
     listResources: mock(() => []),
     getInstructions: mock(() => []),
     getMcpServer: mock(mcpServerNotMocked),

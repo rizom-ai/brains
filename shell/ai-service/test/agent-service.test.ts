@@ -1859,7 +1859,7 @@ describe("AgentService", () => {
       mockMCPService.listTools = mock(() => [
         { pluginId: "test-plugin", tool: searchTool },
       ]);
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test-plugin", tool: searchTool },
       ]);
 
@@ -1879,6 +1879,50 @@ describe("AgentService", () => {
       const tools = createCallArgs?.tools ?? [];
       expect(tools.length).toBe(1);
       expect(tools[0]?.name).toBe("search");
+    });
+
+    it("does not pass protocol-only tools to the agent factory", async () => {
+      const unsubscribeFn = mock(() => {});
+      const realMCPService = MCPService.createFresh(
+        {
+          send: mock(async () => ({ success: true as const })),
+          subscribe: mock(() => unsubscribeFn),
+          unsubscribe: mock(() => {}),
+        },
+        logger,
+      );
+      realMCPService.registerTool("system", {
+        name: "system_search",
+        description: "Search for content",
+        inputSchema: { query: z.string() },
+        visibility: "public",
+        handler: mock(async () => ({ success: true as const, data: [] })),
+      });
+      realMCPService.registerTool("mcp", {
+        name: "chat",
+        description: "Protocol chat adapter",
+        inputSchema: { message: z.string() },
+        visibility: "public",
+        sideEffects: "writes",
+        audiences: ["protocol"],
+        handler: mock(async () => ({ success: true as const, data: "ok" })),
+      });
+
+      const service = AgentService.createFresh(
+        realMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Search for something", "test-conversation");
+
+      const createCallArgs = mockAgentFactory.mock.calls[0]?.[0];
+      expect(createCallArgs?.tools.map((tool) => tool.name)).toEqual([
+        "system_search",
+      ]);
     });
   });
 
@@ -1900,16 +1944,18 @@ describe("AgentService", () => {
         handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
-      // Mock listToolsForPermissionLevel to return filtered tools
-      mockMCPService.listToolsForPermissionLevel = mock((level: string) => {
-        if (level === "public") {
-          return [{ pluginId: "test", tool: publicTool }];
-        }
-        return [
-          { pluginId: "test", tool: publicTool },
-          { pluginId: "test", tool: adminTool },
-        ];
-      });
+      // Mock listAgentToolsForPermissionLevel to return filtered tools
+      mockMCPService.listAgentToolsForPermissionLevel = mock(
+        (level: string) => {
+          if (level === "public") {
+            return [{ pluginId: "test", tool: publicTool }];
+          }
+          return [
+            { pluginId: "test", tool: publicTool },
+            { pluginId: "test", tool: adminTool },
+          ];
+        },
+      );
 
       const service = AgentService.createFresh(
         mockMCPService,
@@ -2350,7 +2396,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -2541,7 +2587,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -2570,7 +2616,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -2608,7 +2654,7 @@ describe("AgentService", () => {
         visibility: "admin",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -2651,7 +2697,7 @@ describe("AgentService", () => {
         visibility: "admin",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock((level) =>
+      mockMCPService.listAgentToolsForPermissionLevel = mock((level) =>
         level === "admin" ? [{ pluginId: "test", tool: deleteTool }] : [],
       );
 
@@ -2727,7 +2773,7 @@ describe("AgentService", () => {
         visibility: "admin",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock((level) =>
+      mockMCPService.listAgentToolsForPermissionLevel = mock((level) =>
         level === "admin" ? [{ pluginId: "test", tool: deleteTool }] : [],
       );
 
@@ -2875,7 +2921,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -2976,7 +3022,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: updateHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "system", tool: updateTool },
       ]);
 
@@ -3079,7 +3125,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: createHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "system", tool: createTool },
       ]);
 
@@ -3200,7 +3246,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: createHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "system", tool: createTool },
       ]);
       const service = AgentService.createFresh(
@@ -3234,7 +3280,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: mock(async () => ({ success: true as const, data: {} })),
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "notes", tool: deleteTool },
       ]);
       const service = AgentService.createFresh(
@@ -3272,7 +3318,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -3372,7 +3418,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: updateHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: updateTool },
       ]);
 
@@ -3450,7 +3496,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -3522,7 +3568,7 @@ describe("AgentService", () => {
           throw new Error("Database unavailable");
         }),
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
       ]);
 
@@ -3709,7 +3755,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: updateHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "core", tool: updateTool },
       ]);
 
@@ -3819,7 +3865,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: updateHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
         { pluginId: "test", tool: deleteTool },
         { pluginId: "test", tool: updateTool },
       ]);
@@ -3924,7 +3970,7 @@ describe("AgentService", () => {
         visibility: "trusted",
         handler: deleteHandler,
       };
-      mockMCPService.listToolsForPermissionLevel = mock((level: string) =>
+      mockMCPService.listAgentToolsForPermissionLevel = mock((level: string) =>
         level === "trusted" ? [{ pluginId: "test", tool: deleteTool }] : [],
       );
 
@@ -3975,9 +4021,9 @@ describe("AgentService", () => {
         },
       );
 
-      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
-        "trusted",
-      );
+      expect(
+        mockMCPService.listAgentToolsForPermissionLevel,
+      ).toHaveBeenCalledWith("trusted");
       expect(deleteHandler).toHaveBeenCalledWith(
         { noteId: "123" },
         expect.objectContaining({
