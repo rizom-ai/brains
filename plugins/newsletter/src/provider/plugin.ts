@@ -3,11 +3,9 @@ import type {
   ServicePluginContext,
   ApiRouteDefinition,
 } from "@brains/plugins";
-import {
-  ServicePlugin,
-  BUTTONDOWN_CHANNELS,
-  PUBLISH_CHANNELS,
-} from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { ButtondownClient } from "./lib/buttondown-client";

@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { A2A_CHANNELS } from "@brains/plugins";
+import { A2A_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { CmsRequestAccess } from "./editor-contracts";
 import { requireEntityAction } from "./editor-access";

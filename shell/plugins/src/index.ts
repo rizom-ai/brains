@@ -56,7 +56,6 @@ export {
 } from "./channel-registry";
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
-export * from "./message-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 
 // Plugin contexts (needed for plugin initialization)

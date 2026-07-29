@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.240",
   "description": "Analytics plugin for collecting website and social media metrics",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

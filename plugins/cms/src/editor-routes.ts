@@ -4,10 +4,8 @@ import {
   requireSameOriginRequest,
 } from "@brains/auth-service";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import {
-  DIRECTORY_SYNC_CHANNELS,
-  permissionToVisibilityScope,
-} from "@brains/plugins";
+import { permissionToVisibilityScope } from "@brains/plugins";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,

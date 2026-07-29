@@ -20,11 +20,11 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { paginationInfoSchema } from "@brains/plugins";
 import {
-  PROJECT_CHANNELS,
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
+import { PROJECT_CHANNELS } from "./project-channels";
 import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {

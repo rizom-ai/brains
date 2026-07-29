@@ -10,8 +10,8 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
-  PUBLISH_CHANNELS,
 } from "@brains/plugins";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";

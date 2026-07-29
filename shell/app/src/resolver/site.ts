@@ -1,10 +1,10 @@
 import {
-  SITE_BUILDER_CHANNELS,
   SYSTEM_CHANNELS,
   type IShell,
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { withThemeBase } from "@brains/theme-base";
 import { z } from "@brains/utils/zod";
 import type { BrainDefinition } from "../brain-definition";

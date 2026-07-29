@@ -2,7 +2,8 @@ import { Hono, type Context } from "hono";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils/logger";
 import { createExternalActorId } from "@brains/contracts";
-import { PLUGIN_CHANNELS, toolResultSchema } from "@brains/plugins";
+import { toolResultSchema } from "@brains/plugins";
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 
 /**

@@ -1,4 +1,4 @@
-import { CONVERSATION_CHANNELS } from "@brains/contracts";
+import { CONVERSATION_CHANNELS } from "./conversation-channels";
 import { applySqlitePragmas } from "@brains/db";
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";

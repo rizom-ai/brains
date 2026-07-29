@@ -8,12 +8,9 @@ import type {
   BaseEntity,
   DerivedEntityProjection,
 } from "@brains/plugins";
-import {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-  ENTITY_CHANNELS,
-  SERIES_CHANNELS,
-} from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { SERIES_CHANNELS } from "./series-channels";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import { seriesSchema, type Series } from "./schemas/series";

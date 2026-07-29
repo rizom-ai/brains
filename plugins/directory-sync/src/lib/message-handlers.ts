@@ -1,4 +1,4 @@
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/plugins";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type {

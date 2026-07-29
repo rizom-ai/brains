@@ -1,4 +1,5 @@
-import { BaseJobHandler, SITE_CHANNELS } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/plugins";
+import { SITE_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";

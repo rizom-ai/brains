@@ -1,4 +1,4 @@
-import { SHELL_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/plugins";
+import { SHELL_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import type {
   ServicePluginContext,
   JobContext,

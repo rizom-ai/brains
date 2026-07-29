@@ -1,8 +1,5 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  PUBLISH_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishProvider } from "@brains/contracts";
 import {

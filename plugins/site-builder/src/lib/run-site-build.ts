@@ -1,4 +1,4 @@
-import { SITE_CHANNELS } from "@brains/plugins";
+import { SITE_CHANNELS } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { ProgressReporter } from "@brains/utils/progress";

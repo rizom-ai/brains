@@ -1,4 +1,4 @@
-import { ENTITY_CHANNELS } from "@brains/plugins";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";

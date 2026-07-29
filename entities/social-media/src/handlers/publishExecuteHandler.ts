@@ -11,10 +11,8 @@ import type {
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  PUBLISH_CHANNELS,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";

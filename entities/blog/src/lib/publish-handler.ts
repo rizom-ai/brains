@@ -1,10 +1,7 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, ToolContext } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  PUBLISH_CHANNELS,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";

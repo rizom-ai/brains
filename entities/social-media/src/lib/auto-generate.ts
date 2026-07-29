@@ -1,10 +1,7 @@
 import { getErrorMessage } from "@brains/utils/error";
-import {
-  ENTITY_CHANNELS,
-  GENERATE_CHANNELS,
-  SOCIAL_CHANNELS,
-  type EntityPluginContext,
-} from "@brains/plugins";
+import { type EntityPluginContext } from "@brains/plugins";
+import { SOCIAL_CHANNELS } from "../social-channels";
+import { ENTITY_CHANNELS, GENERATE_CHANNELS } from "@brains/contracts";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils/logger";
 

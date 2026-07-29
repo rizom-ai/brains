@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { SITE_CHANNELS } from "@brains/plugins";
+import { SITE_CHANNELS } from "@brains/contracts";
 import { RouteRegistry } from "@brains/site-engine";
 import {
   createMockServicePluginContext,

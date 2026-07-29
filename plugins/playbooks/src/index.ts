@@ -2,7 +2,8 @@ export {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   lifecycleStarterRegistrationSchema,
   type LifecycleStarterRegistration,
-} from "@brains/contracts";
+  type LifecycleStarterRegistrationInput,
+} from "./lifecycle-starter-contract";
 export {
   PlaybookPlugin,
   playbookPlugin,

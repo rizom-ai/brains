@@ -1,8 +1,8 @@
 import {
   internalFullScope,
   type InterfacePluginContext,
-  A2A_CHANNELS,
 } from "@brains/plugins";
+import { A2A_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { executeAgentCall, type A2AClientDeps } from "./client";
 

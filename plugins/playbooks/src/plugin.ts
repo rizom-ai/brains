@@ -2,16 +2,18 @@ import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
   ENTITY_CHANNELS,
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionRequestSchema,
   agentContextRequestSchema,
-  lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
   type AgentContextResponse,
   type AgentResponse,
-  type LifecycleStarterRegistration,
 } from "@brains/contracts";
+import {
+  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationSchema,
+  type LifecycleStarterRegistration,
+} from "./lifecycle-starter-contract";
 import {
   assertValidPlaybookBody,
   playbookAdapter,

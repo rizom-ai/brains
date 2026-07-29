@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { createId, ENTITY_CHANNELS } from "@brains/plugins";
+import { createId } from "@brains/plugins";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { DirectorySync } from "./directory-sync";

@@ -7,9 +7,8 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
-  ENTITY_CHANNELS,
-  DIRECTORY_SYNC_CHANNELS,
 } from "@brains/plugins";
+import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
 

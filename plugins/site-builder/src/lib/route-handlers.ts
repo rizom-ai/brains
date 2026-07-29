@@ -10,7 +10,7 @@ import type {
   RouteDefinition,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
-import { SITE_BUILDER_CHANNELS } from "@brains/plugins";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { registerConfigRoutes } from "./route-helpers";

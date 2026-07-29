@@ -43,6 +43,7 @@
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/build-tools": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",

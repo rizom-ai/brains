@@ -10,13 +10,13 @@ import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
-  BUTTONDOWN_CHANNELS,
   GENERATE_CHANNELS,
   NEWSLETTER_CHANNELS,
   PUBLISH_CHANNELS,
   SITE_BUILDER_CHANNELS,
   type PublishProvider,
 } from "@brains/contracts";
+import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
 import { h } from "preact";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import { NewsletterSignup } from "@brains/ui-library";

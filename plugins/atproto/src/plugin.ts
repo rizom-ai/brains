@@ -3,12 +3,8 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  ServicePlugin,
-  ENTITY_CHANNELS,
-  PUBLISH_CHANNELS,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
+import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import { ENTITY_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import {
