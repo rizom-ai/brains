@@ -84,11 +84,11 @@ The plugin registers CLI/MCP tools through the shell:
 
 ```bash
 brain tool sync
-brain tool status
-brain tool directory-sync_history '{"entityType":"post","id":"my-first-post"}'
+brain tool directory_sync '{"action":"status"}'
+brain tool directory_sync '{"action":"history","entityType":"post","id":"my-first-post"}'
 ```
 
-`sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. `status` reports sync and git state. `directory-sync_history` reads git history for synced files.
+`directory_sync` action `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. Action `status` reports sync and git state. Action `history` reads git history for synced files when git is configured.
 
 ## Optional CMS workspace
 
@@ -96,7 +96,7 @@ When `@brains/cms` is installed, directory-sync registers an **Operations → Sy
 workspace at `/cms/workspaces/sync`. It shows directory, watcher, Git, automation, recent-run,
 and quarantined-file status from a bounded runtime projection.
 
-**Sync now** follows the same request path as the `directory-sync_sync` tool. The workspace
+**Sync now** follows the same request path as `directory_sync` action `sync`. The workspace
 is intentionally not a file browser or configuration editor. It exposes relative content
 paths and a sanitized remote label; credentials and internal stack traces are never sent
 to the browser.

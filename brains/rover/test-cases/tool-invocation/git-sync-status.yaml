@@ -15,8 +15,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory-sync_status
+    - toolName: directory_sync
       shouldBeCalled: true
+      argsContain:
+        action: status
   toolCountRange:
     min: 1
   responseNotContains:

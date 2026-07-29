@@ -1,10 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { ToolContext } from "@brains/mcp-service";
+import type { ToolContext } from "@brains/plugins";
+import { createMockServicePluginContext } from "@brains/test-utils";
 import { createDirectorySyncTools } from "../../src/tools";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
-describe("directory-sync_sync tool", () => {
+describe("directory_sync tool", () => {
   it("queues git-backed sync requests instead of pulling inline", async () => {
     const enqueue = mock(async () => "job-sync-request");
     const queueSyncBatch = mock(async () => ({
@@ -15,20 +15,22 @@ describe("directory-sync_sync tool", () => {
       totalFiles: 1,
     }));
     const gitSync = createMockGitSync();
+    const context = createMockServicePluginContext();
     const tools = createDirectorySyncTools(
       createMockDirectorySync({ queueSyncBatch }),
-      { jobs: { enqueue } } as unknown as ServicePluginContext,
+      { ...context, jobs: { ...context.jobs, enqueue } },
       "directory-sync",
       gitSync,
     );
-    const syncTool = tools.find((tool) => tool.name === "directory-sync_sync");
+    const syncTool = tools.find((tool) => tool.name === "directory_sync");
     if (!syncTool) throw new Error("Expected sync tool");
 
-    const result = await syncTool.handler({}, {
+    const toolContext = {
       interfaceType: "web-chat",
       channelId: "channel-1",
       actor: { kind: "user", userId: "user-1" },
-    } as ToolContext);
+    } satisfies ToolContext;
+    const result = await syncTool.handler({ action: "sync" }, toolContext);
 
     expect(result).toEqual({
       success: true,

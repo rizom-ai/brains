@@ -1,72 +1,69 @@
-import type { Tool, ToolResult } from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
+import type { ToolResult } from "@brains/plugins";
+import { toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";
 
-/**
- * Create the directory-sync_history tool.
- * Only call this when git is configured — the plugin decides whether to register it.
- */
-export function createHistoryTool(pluginId: string, gitSync: IGitSync): Tool {
-  return createTool(
-    pluginId,
-    "history",
-    "Get version history for an entity from git. Without sha: returns commit list. With sha: returns entity content at that version.",
-    z.object({
-      entityType: z.string().describe("Entity type (e.g. post, note, link)"),
-      id: z.string().describe("Entity ID"),
-      sha: z
-        .string()
-        .optional()
-        .describe(
-          "Commit SHA to retrieve content at. Omit to list commit history.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .default(10)
-        .describe("Max commits to return (list mode only)"),
-    }),
-    async (input): Promise<ToolResult> => {
-      const filePath = `${input.entityType}/${input.id}.md`;
+export interface HistoryInput {
+  entityType: string;
+  id: string;
+  sha?: string | undefined;
+  limit?: number | undefined;
+}
 
-      try {
-        if (input.sha) {
-          // Version mode: get content at specific commit
-          const content = await gitSync.show(input.sha, filePath);
-          return toolSuccess(
-            {
-              sha: input.sha,
-              entityType: input.entityType,
-              id: input.id,
-              content,
-            },
-            `Content at ${input.sha.slice(0, 7)}`,
-          );
-        }
+const historyInputSchema = z.object({
+  entityType: z.string(),
+  id: z.string(),
+  sha: z.string().optional(),
+  limit: z.number().int().positive().optional().default(10),
+});
 
-        // List mode: get commit history
-        const commits = await gitSync.log(filePath, input.limit);
+export function parseHistoryInput(input: unknown): HistoryInput {
+  const parsed = historyInputSchema.parse(input);
+  return {
+    entityType: parsed.entityType,
+    id: parsed.id,
+    ...(parsed.sha ? { sha: parsed.sha } : {}),
+    limit: parsed.limit,
+  };
+}
 
-        if (commits.length === 0) {
-          return toolSuccess(
-            { commits: [] },
-            `No history found for ${input.entityType}/${input.id}`,
-          );
-        }
+export async function handleHistory(
+  input: HistoryInput,
+  gitSync: IGitSync,
+): Promise<ToolResult> {
+  const filePath = `${input.entityType}/${input.id}.md`;
+  const limit = input.limit ?? 10;
 
-        return toolSuccess(
-          { commits, entityType: input.entityType, id: input.id },
-          `${commits.length} version${commits.length === 1 ? "" : "s"} found`,
-        );
-      } catch (error) {
-        return toolError(
-          error instanceof Error ? error.message : "History lookup failed",
-        );
-      }
-    },
-    { visibility: "admin", sideEffects: "none" },
-  );
+  try {
+    if (input.sha) {
+      const content = await gitSync.show(input.sha, filePath);
+      return toolSuccess(
+        {
+          sha: input.sha,
+          entityType: input.entityType,
+          id: input.id,
+          content,
+        },
+        `Content at ${input.sha.slice(0, 7)}`,
+      );
+    }
+
+    const commits = await gitSync.log(filePath, limit);
+
+    if (commits.length === 0) {
+      return toolSuccess(
+        { commits: [] },
+        `No history found for ${input.entityType}/${input.id}`,
+      );
+    }
+
+    return toolSuccess(
+      { commits, entityType: input.entityType, id: input.id },
+      `${commits.length} version${commits.length === 1 ? "" : "s"} found`,
+    );
+  } catch (error) {
+    return toolError(
+      error instanceof Error ? error.message : "History lookup failed",
+    );
+  }
 }

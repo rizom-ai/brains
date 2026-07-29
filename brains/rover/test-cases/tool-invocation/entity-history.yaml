@@ -15,9 +15,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory-sync_history
+    - toolName: directory_sync
       shouldBeCalled: true
       argsContain:
+        action: history
         entityType: "deck"
   responseNotContains:
     - "I cannot"

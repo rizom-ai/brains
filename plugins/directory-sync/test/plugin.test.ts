@@ -74,9 +74,7 @@ describe("DirectorySyncPlugin", () => {
 
     it("should provide expected tools", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("directory-sync_sync");
-      expect(toolNames).toContain("directory-sync_status");
-      expect(toolNames.length).toBe(2);
+      expect(toolNames).toEqual(["directory_sync"]);
     });
 
     it("should register templates", () => {
@@ -105,13 +103,13 @@ describe("DirectorySyncPlugin", () => {
     it("should handle sync operation", async () => {
       // Sync using the tool
       const syncTool = capabilities.tools.find(
-        (t) => t.name === "directory-sync_sync",
+        (t) => t.name === "directory_sync",
       );
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");
 
       const syncResult: ToolResponse = await syncTool.handler(
-        {},
+        { action: "sync" },
         {
           interfaceType: "test",
           actor: { kind: "user", userId: "test-user" },
@@ -195,7 +193,7 @@ describe("DirectorySyncPlugin", () => {
       authorName: "Test",
       authorEmail: "test@example.com",
       bootstrapFromSeed: true,
-    } as const;
+    };
 
     it("should not enable git when git block has no repo and no gitUrl", async () => {
       const path = join(tmpdir(), `test-no-git-${Date.now()}`);

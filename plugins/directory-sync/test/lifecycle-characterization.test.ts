@@ -115,7 +115,9 @@ describe("directory-sync lifecycle characterization", () => {
     await plugin.configure({ syncPath: replacementPath });
 
     expect(plugin.getDirectorySync()).not.toBe(originalService);
-    const result = await harness.executeTool("directory-sync_status");
+    const result = await harness.executeTool("directory_sync", {
+      action: "status",
+    });
     expectSuccess(result);
     expect(result.data).toMatchObject({ syncPath: replacementPath });
   });
@@ -147,7 +149,9 @@ describe("directory-sync lifecycle characterization", () => {
 
     expect(plugin.getDirectorySync()).toBe(originalService);
     expect((await originalService.getStatus()).watching).toBe(true);
-    const result = await harness.executeTool("directory-sync_status");
+    const result = await harness.executeTool("directory_sync", {
+      action: "status",
+    });
     expectSuccess(result);
     expect(result.data).toMatchObject({ syncPath: originalPath });
   });

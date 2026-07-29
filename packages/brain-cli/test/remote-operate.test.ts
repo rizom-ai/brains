@@ -21,7 +21,7 @@ const mockListTools = mock(() =>
       inputSchema: { type: "object", properties: {} },
     },
     {
-      name: "directory-sync_sync",
+      name: "directory_sync",
       description: "Sync",
       inputSchema: { type: "object", properties: {} },
     },
@@ -92,7 +92,7 @@ describe("operateRemote", () => {
       {},
       undefined,
     );
-    expect(mockCallTool).toHaveBeenCalledWith("directory-sync_sync", {});
+    expect(mockCallTool).toHaveBeenCalledWith("directory_sync", {});
   });
 
   it("should always close even on error", async () => {

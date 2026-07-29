@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, and Phase 2 has removed the two maintenance tool registrations while retaining their automatic/direct service paths and adding positive agent-directory scan coverage. Preset snapshots and lifecycle consolidation phases remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, and Phase 4 consolidated directory sync actions behind `directory_sync`. Preset snapshots, publishing consolidation, and optional provider cleanup remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Context
 
@@ -18,7 +18,7 @@ Tool visibility filters by caller permission, but there is no separate audience 
 The full-preset inventory measured on 2026-07-28 is:
 
 - 26 tools in `bun run eval:full:coverage`;
-- 27 in git-backed full eval execution, where conditional `directory-sync_history` is present;
+- 27 in git-backed full eval execution, where conditional directory history was present;
 - 29 in normal git-backed full mode after MCP registers `chat` and `confirm`;
 - up to 35 when Cloudflare Analytics, Buttondown, and Unsplash provider tools are configured.
 
@@ -28,7 +28,7 @@ The 191-case full eval used 24 distinct tool names. The coverage report found no
 - `content-pipeline_ensure-assets`;
 - `obsidian-vault_sync-templates`.
 
-It also marked `directory-sync_history` stale even though the full eval invoked it, showing that coverage boot does not reproduce the git-backed runtime composition exactly.
+It also marked directory history stale even though the full eval invoked it, showing that coverage boot did not reproduce the git-backed runtime composition exactly.
 
 The latest full eval passed 186/191 cases. Tool-surface symptoms among the failures include:
 
@@ -160,11 +160,11 @@ Confirmation responses must return the canonical consolidated tool name and froz
    - CLI tools;
    - conditional tools and the capability that registered them;
    - serialized tool schema and description byte counts.
-2. Fix tool-coverage environment preparation so git-backed configuration registers `directory-sync_history` consistently.
+2. Fix tool-coverage environment preparation so git-backed configuration registers the `directory_sync` history action consistently.
 3. Add checked snapshots for Rover `core`, `default`, and `full` while those presets exist. Move the same assertions to unified-brain bundle compositions when model unification lands.
 4. Record the pre-change Admin agent count and serialized definition size as the comparison baseline.
 
-Exit gate: inventory and coverage agree on `directory-sync_history`, and normal full mode visibly distinguishes agent tools from protocol tools.
+Exit gate: inventory and coverage agree on `directory_sync` history coverage, and normal full mode visibly distinguishes agent tools from protocol tools.
 
 ### Phase 1 — Audience boundary
 
