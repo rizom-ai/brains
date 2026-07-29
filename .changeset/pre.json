@@ -221,6 +221,7 @@
     "conversation-service-effect-layer",
     "core--fix-professional-profile-view-schema",
     "core--ops-explicit-theme-version",
+    "core--remove-obsolete-auth-compatibility",
     "core-preset-eval-release",
     "current-main-alpha-release",
     "dashboard-light-surface-tokens",

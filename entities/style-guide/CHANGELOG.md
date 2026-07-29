@@ -1,5 +1,13 @@
 # @brains/style-guide
 
+## 0.2.0-alpha.239
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.239
+  - @brains/plugins@0.2.0-alpha.239
+
 ## 0.2.0-alpha.238
 
 ### Patch Changes

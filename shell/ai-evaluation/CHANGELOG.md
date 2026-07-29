@@ -1,5 +1,17 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.239
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.239
+  - @brains/utils@0.2.0-alpha.239
+  - @brains/ai-service@0.2.0-alpha.239
+  - @brains/app@0.2.0-alpha.239
+  - @brains/plugins@0.2.0-alpha.239
+  - @brains/templates@0.2.0-alpha.239
+
 ## 0.2.0-alpha.238
 
 ### Patch Changes

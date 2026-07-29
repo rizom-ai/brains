@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.239
+
+### Patch Changes
+
+- [`086d6c0`](https://github.com/rizom-ai/brains/commit/086d6c03bba79846858b942ceffb6c9057ba62eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove obsolete auth compatibility paths now that released database auth begins with generated Drizzle migrations and file-store sessions are intentionally not imported. Reject the retired browser cookie and `single-operator` subject, remove deprecated identity projections, and fail closed for unreleased pre-Drizzle development databases.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.239
+  - @brains/contracts@0.2.0-alpha.239
+  - @brains/notification-contracts@0.2.0-alpha.239
+  - @brains/utils@0.2.0-alpha.239
+  - @brains/plugins@0.2.0-alpha.239
+
 ## 0.2.0-alpha.238
 
 ### Patch Changes
