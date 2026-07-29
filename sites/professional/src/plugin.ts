@@ -5,7 +5,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { professionalProfileSchema } from "@brains/profile";
+import { professionalProfileSchema } from "./schemas";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
