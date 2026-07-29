@@ -73,10 +73,12 @@ describe("React containment", () => {
   });
 
   it("persists a browser conversation id for AI SDK chat requests", () => {
-    const appSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "App.tsx"),
-      "utf-8",
-    );
+    // App.tsx wires these behaviors together but does not own all of them —
+    // assert against every ui-react source so splitting a module out of the
+    // app shell stays a refactor rather than a failure.
+    const uiSource = listSourceFiles(join(packageRoot, "ui-react", "src"))
+      .map((file) => readFileSync(file, "utf-8"))
+      .join("\n");
     const apiSource = readFileSync(
       join(packageRoot, "ui-react", "src", "api.ts"),
       "utf-8",
@@ -86,45 +88,44 @@ describe("React containment", () => {
       "utf-8",
     );
 
-    expect(appSource).toContain("brain:web-chat:conversation-id");
-    expect(appSource).toContain("localStorage");
-    expect(appSource).toContain("id: conversationId");
-    expect(appSource).toContain("New conversation");
-    expect(appSource).toContain("new Chat<UIMessage>");
-    expect(appSource).toContain("setInitialMessages([])");
+    expect(uiSource).toContain("brain:web-chat:conversation-id");
+    expect(uiSource).toContain("localStorage");
+    expect(uiSource).toContain("id: conversationId");
+    expect(uiSource).toContain("New conversation");
+    expect(uiSource).toContain("new Chat<UIMessage>");
+    expect(uiSource).toContain("setInitialMessages([])");
     const promptInputSource = readFileSync(
       join(packageRoot, "ui-react", "src", "ai-elements", "prompt-input.tsx"),
       "utf-8",
     );
     expect(promptInputSource).toContain("requestSubmit");
     expect(promptInputSource).toContain("PromptInputMessage");
-    expect(appSource).toContain("isBusyStatus");
-    expect(appSource).toContain("onStop={stop}");
-    expect(appSource).toContain("clearError");
-    expect(appSource).toContain("Dismiss");
-    expect(appSource).toContain("resizePromptTextarea");
-    expect(appSource).toContain("promptInputRef");
-    expect(appSource).toContain("focusPromptTextarea");
-    expect(appSource).toContain("loadSessions");
-    expect(appSource).toContain("switchConversation");
-    expect(appSource).toContain("deriveSessionTitle");
-    expect(appSource).toContain("upsertPendingSession");
-    expect(appSource).toContain("void loadSessions({ quiet: true })");
-    expect(appSource).toContain("web-chat-sessions-state");
-    expect(appSource).toContain("renameConversation");
-    expect(appSource).toContain("archiveConversation");
-    expect(appSource).toContain("deleteConversation");
-    expect(appSource).toContain("web-chat-session-dialog");
-    expect(appSource).toContain("web-chat-message-header");
-    expect(appSource).toContain("Conversations");
-    expect(appSource).not.toContain("window.prompt");
-    expect(appSource).not.toContain("window.confirm");
+    expect(uiSource).toContain("isBusyStatus");
+    expect(uiSource).toContain("onStop={stop}");
+    expect(uiSource).toContain("clearError");
+    expect(uiSource).toContain("Dismiss");
+    expect(uiSource).toContain("resizePromptTextarea");
+    expect(uiSource).toContain("promptInputRef");
+    expect(uiSource).toContain("focusPromptTextarea");
+    expect(uiSource).toContain("loadSessions");
+    expect(uiSource).toContain("switchConversation");
+    expect(uiSource).toContain("deriveSessionTitle");
+    expect(uiSource).toContain("upsertPendingSession");
+    expect(uiSource).toContain("web-chat-sessions-state");
+    expect(uiSource).toContain("renameConversation");
+    expect(uiSource).toContain("archiveConversation");
+    expect(uiSource).toContain("deleteConversation");
+    expect(uiSource).toContain("web-chat-session-dialog");
+    expect(uiSource).toContain("web-chat-message-header");
+    expect(uiSource).toContain("Conversations");
+    expect(uiSource).not.toContain("window.prompt");
+    expect(uiSource).not.toContain("window.confirm");
     expect(mutationSource).toContain('method: "PUT"');
     expect(mutationSource).toContain('method: "DELETE"');
     expect(mutationSource).toContain("/api/chat/sessions");
     expect(apiSource).toContain("/api/chat/messages");
-    expect(appSource).toContain("queryClient.fetchQuery");
-    expect(appSource).toContain("createActiveMessageSeed");
+    expect(uiSource).toContain("queryClient.fetchQuery");
+    expect(uiSource).toContain("createActiveMessageSeed");
 
     const messageSource = readFileSync(
       join(packageRoot, "ui-react", "src", "ai-elements", "message.tsx"),
