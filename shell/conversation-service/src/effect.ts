@@ -3,7 +3,6 @@ import type { Layer, ScopedService } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import type { MessageBus } from "@brains/messaging-service";
 import { ConversationService } from "./conversation-service";
-import { createConversationDatabase } from "./database";
 import type {
   ConversationDbConfig,
   ConversationServiceConfig,
@@ -38,26 +37,23 @@ function acquireConversationService(
     };
   }
 
-  const { db, client } = createConversationDatabase(options.dbConfig);
+  // createFreshFromConfig, not createFresh: it records the client and url, and
+  // without them the service's initialize() cannot apply busy_timeout. A
+  // connection without it fails an insert outright the moment another writer
+  // holds the lock, which is constant while a brain seeds content.
+  const service = ConversationService.createFreshFromConfig(
+    options.logger,
+    options.messageBus,
+    options.dbConfig,
+    options.config,
+  );
   try {
-    const service = ConversationService.createFresh(
-      db,
-      options.logger,
-      options.messageBus,
-      options.config,
-    );
     return {
       service,
-      close: (): void => {
-        try {
-          service.close();
-        } finally {
-          client.close();
-        }
-      },
+      close: (): void => service.close(),
     };
   } catch (error) {
-    client.close();
+    service.close();
     throw error;
   }
 }
