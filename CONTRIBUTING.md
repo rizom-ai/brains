@@ -136,6 +136,18 @@ Follow the existing project rules:
 - test behavior, not implementation details
 - keep changes narrow and architectural intent explicit
 
+## Developer Certificate of Origin
+
+Every commit must carry a `Signed-off-by:` line matching the commit author
+(`git commit -s` adds it). By signing off, you certify the
+[Developer Certificate of Origin v1.1](DCO) for your contribution, and you
+agree that your contribution is licensed to Rizom B.V. and its successors and
+assigns, for release under the repository's licenses: AGPL-3.0-only for the
+core, Apache-2.0 for the SDK and contract packages (see the License section
+of the [README](README.md)).
+
+Commits without a sign-off will not be accepted.
+
 ## PR expectations
 
 A good PR has:

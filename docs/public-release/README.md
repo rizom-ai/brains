@@ -177,7 +177,7 @@ docs/                 Architecture, plugin development, deployment, theming
 
 ## License
 
-[Apache-2.0](../../LICENSE)
+Split model: the core (runtime, brain models, agents, CLI, deploy tooling, apps) is [AGPL-3.0-only](../../LICENSE); the SDK and contract packages (`@rizom/site`, `@rizom/site-sections`, `@rizom/ui`, the published `@rizom` themes, `@brains/contracts`, `@brains/atproto-contracts`) are Apache-2.0. Plugins, themes, and site packages built against the Apache-licensed interfaces are not considered derivative works of the runtime and may be licensed however their authors choose.
 
 ## Security
 

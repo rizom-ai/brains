@@ -1,5 +1,6 @@
 {
   "name": "@brains/social-media",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "Multi-provider social media posting with queue-based publishing",
   "dependencies": {

@@ -105,4 +105,4 @@ v0.1.0 ships with **rover** — a personal knowledge management brain for indepe
 
 ## License
 
-Apache-2.0
+AGPL-3.0-only

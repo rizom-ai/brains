@@ -1,5 +1,6 @@
 {
   "name": "@brains/profile",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "Anchor-profile extensions and context-generated starter identity lifecycle",
   "dependencies": {

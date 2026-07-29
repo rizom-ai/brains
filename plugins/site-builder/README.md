@@ -360,4 +360,4 @@ expect(site.exists("index.html")).toBe(true);
 
 ## License
 
-Apache-2.0
+AGPL-3.0-only

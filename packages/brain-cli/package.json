@@ -11,7 +11,7 @@
     "personal-ai",
     "knowledge-management"
   ],
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-only",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "bin": {
     "brain": "./dist/brain.js"

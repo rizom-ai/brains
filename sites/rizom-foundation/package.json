@@ -41,7 +41,7 @@
     "url": "https://github.com/rizom-ai/brains.git",
     "directory": "sites/rizom-foundation"
   },
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-only",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "homepage": "https://github.com/rizom-ai/brains/tree/main/sites/rizom-foundation#readme",
   "bugs": {

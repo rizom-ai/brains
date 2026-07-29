@@ -8,7 +8,7 @@
     "ai",
     "brain"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": "Brain Team",
   "dependencies": {
     "@brains/ai-service": "workspace:*",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/note",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "Personal knowledge capture with markdown-first workflow",
   "dependencies": {

@@ -1,5 +1,6 @@
 {
   "name": "@brains/portfolio",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "Portfolio showcase for projects and case studies",
   "dependencies": {

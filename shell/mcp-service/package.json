@@ -1,5 +1,6 @@
 {
   "name": "@brains/mcp-service",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "dependencies": {

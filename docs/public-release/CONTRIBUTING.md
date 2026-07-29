@@ -48,7 +48,18 @@ This is a side project for one person. Realistic expectations:
 - **Small PRs**: reviewed within ~1 week
 - **Security issues**: within 7 days (see [SECURITY.md](SECURITY.md))
 
-If something is urgent, fork. The license is Apache-2.0; you have all the rights you need.
+If something is urgent, fork. The core is AGPL-3.0-only and the SDK/contract packages are Apache-2.0; both give you the right to fork, modify, and self-host.
+
+## Developer Certificate of Origin
+
+Every commit in a PR must carry a `Signed-off-by:` line matching the commit
+author (`git commit -s` adds it). By signing off, you certify the
+[Developer Certificate of Origin v1.1](../../DCO) for your contribution, and
+you agree that your contribution is licensed to Rizom B.V. and its successors
+and assigns, for release under the repository's licenses: AGPL-3.0-only for
+the core, Apache-2.0 for the SDK and contract packages.
+
+Commits without a sign-off will not be accepted.
 
 ## Local development (for your own fork)
 

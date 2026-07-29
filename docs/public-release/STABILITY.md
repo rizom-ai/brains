@@ -112,7 +112,7 @@ The `defineBrain()` function from `@rizom/brain` is the stable public way to dec
 
 ### License and provenance
 
-Apache-2.0, with author metadata in `package.json`. The license itself is stable.
+AGPL-3.0-only for the core, Apache-2.0 for the SDK and contract packages, with author metadata in `package.json`. The license split itself is stable.
 
 ---
 

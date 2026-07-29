@@ -1,5 +1,6 @@
 {
   "name": "@brains/agent-discovery",
+  "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.239",
   "description": "Agent discovery — brain+anchor contacts and skills",
   "dependencies": {
