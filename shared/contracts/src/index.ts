@@ -96,7 +96,7 @@ export {
   SITE_BUILDER_CHANNELS,
   SITE_CHANNELS,
 } from "./message-channels";
-export { dbConfigSchema, type DbConfig } from "./db-config";
+export type { DbConfig } from "./db-config";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export type {
   PublishResult,

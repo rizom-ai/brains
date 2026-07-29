@@ -1,5 +1,6 @@
 import type { ReasoningEffort } from "@brains/ai-service";
-import { dbConfigSchema, type DbConfig } from "@brains/contracts";
+import type { DbConfig } from "@brains/contracts";
+import { dbConfigSchema } from "./db-config-schema";
 import { z } from "@brains/utils/zod";
 import type {
   Plugin,
