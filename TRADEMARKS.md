@@ -6,8 +6,8 @@ logo are trademarks, and the name does not travel with the code.
 
 The marks include "Rizom", "Rizom Brains", the Rizom logo, and the
 "Rizom Certified" and "Rizom Certification candidate" designations. They are
-held by Rizom B.V., to be assigned to the independent Rizom Foundation upon its
-establishment.
+held by Rizom B.V.; the intention is to transfer them to an independent
+foundation once one is established.
 
 **Always fine, no permission needed:** truthful descriptive use — "built on
 Rizom Brains", "compatible with Rizom Brains", offering services to deploy or
