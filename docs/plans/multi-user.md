@@ -2,13 +2,13 @@
 
 ## Status
 
-Core multi-user access is complete. The current implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Decision 17's authoritative caller-context hardening is implemented and its targeted behavioral model evaluations pass. The first-party CMS admits active Trusted users with principal-scoped visibility, central entity action policy, actor-aware workspaces, and authenticated mutation attribution. Decision 18 now provides durable state, atomic idempotent account creation, registry-backed automatic delivery, explicit audited manual delivery, supervised interruption recovery, safe resend/cancel/expiry, claim history, and live Admin refresh. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+**Completed — 2026-07-29.** The implementation includes the standalone four-section `@brains/admin` console at `/admin`, role-aware dashboard access, current auth-session terminology with obsolete compatibility removed, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, an Admin-only audit viewer, access-neutral person-to-external-peer links, and decision 14's DB-backed exact-principal bootstrap/recovery path. Decision 15's targeted delivery-channel binding is implemented. The no-login channel allowlist is config-seeded and CLI-managed rather than exposed in the person-centered console. Decision 16's browser surfaces are implemented: active Trusted users use person-scoped web chat at exact Trusted permission, `/admin` rejects authenticated non-Admins before rendering, and `/account` provides session-derived self-service without authority mutation. Decision 17's authoritative caller-context hardening is implemented and its targeted behavioral model evaluations pass. The first-party CMS admits active Trusted users with principal-scoped visibility, central entity action policy, actor-aware workspaces, and authenticated mutation attribution. Decision 18 provides durable state, atomic idempotent account creation, registry-backed automatic delivery, explicit audited manual delivery, supervised interruption recovery, safe resend/cancel/expiry, claim history, and live Admin refresh. Final rollout evidence is recorded in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
 Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-Admin/self-hosted path.
 
-The first version should stay small: coarse permission levels, explicit Admin-managed users, no SaaS account system, and no per-entity ownership or arbitrary RBAC. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed; browser surfaces must now consume those permissions without flattening every authenticated user to either Admin or denied.
+The first version stays small: coarse permission levels, explicit Admin-managed users, no SaaS account system, and no per-entity ownership or arbitrary RBAC. Shared-space trust for Relay/team spaces, central entity action policy enforcement, and role-correct browser consumers have landed without flattening every authenticated user to either Admin or denied.
 
 ## Source of truth
 
@@ -21,7 +21,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Fresh setup uses durable `usr_<uuid>` subjects; legacy files are optional manual backups and are never read automatically.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations. Active Admin and Trusted web-chat sessions run at their exact permission level; Public, suspended, and missing principals are denied.
-- Authenticated web chat already propagates the resolved principal's exact `permissionLevel` and `isAnchor` value, but the model instruction currently renders `isAnchor: false` as “not established” rather than the definitive configured relationship. The existing `build-instructions.test.ts` assertions inspect prompt substrings and do not validate the resulting interaction; decision 17 replaces that claimed coverage.
+- Authenticated web chat propagates the resolved principal's exact `permissionLevel` and `isAnchor` value. Decision 17 makes the model-facing relationship definitive and validates behavior with targeted evaluations rather than prompt-substring assertions.
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin Admin-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; Anchor ownership is read-only runtime projection from configuration, and administration remains intentionally absent from model tools.
@@ -216,7 +216,7 @@ Do not make the existing pure `PermissionService` entity-aware. Add a resolver l
 5. If the channel identity is not connected, resolve its standalone DB principal grant.
 6. Resolve `isAnchor` independently; it never changes the permission level.
 
-During migration only, the old request-time `brain.yaml` path remains as a bridge. The final resolver never reads config per request.
+The resolver never reads exact principal grants from config per request. `brain.yaml` is bootstrap/recovery input; contextual pattern rules remain explicit request policy.
 
 ### MCP HTTP sessions
 
@@ -461,7 +461,7 @@ Validation:
 
 ### Phase 6 — Person-centered identity and external peer links
 
-**Status: person backfill, normalized person-owned identity claims, access-neutral external-peer associations, and targeted delivery-channel binding are implemented. Automated delivery lifecycle UX remains in Phase 7.**
+**Status: implemented.** Person backfill, normalized person-owned identity claims, access-neutral external-peer associations, targeted delivery-channel binding, and the Phase 7 automated delivery lifecycle UX are complete.
 
 The stable subject model is:
 
@@ -613,7 +613,7 @@ Validation:
 6. Multiple active Admins are supported, with atomic last-active-Admin protection.
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.
-9. Dashboard permissions use the authenticated user's actual role; `/admin` provides separate Overview, Members/People, Invitations, and Audit sections; legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
+9. Dashboard permissions use the authenticated user's actual role; `/admin` provides separate Overview, Members/People, Invitations, and Audit sections; legacy Operator/Owner role terminology and temporary session compatibility are removed.
 10. External brains remain distinct peer actors linked optionally to local people; no representation consent or inherited person permission remains.
 11. Passkeys are shown as Sign-in, verified email/Discord as Connected channels, and setup-link claim binds the delivery channel.
 12. Runtime permission reads use DB state only, while explicit config seeds and access-only reinitialization provide bootstrap and recovery.
