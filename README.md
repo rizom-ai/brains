@@ -165,3 +165,5 @@ This repository uses a split licensing model:
 Plugins, themes, and site packages built against the Apache-licensed interfaces are **not** considered derivative works of the runtime and may be licensed however their authors choose. In particular, importing types and interfaces from `@rizom/brain` for the purpose of authoring a plugin, theme, or site package does not, by itself, make the resulting work a derivative of the AGPL-licensed runtime.
 
 Copyright © Rizom B.V.
+
+The Rizom name and logo are trademarks; see [TRADEMARKS.md](TRADEMARKS.md).
