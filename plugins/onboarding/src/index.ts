@@ -92,10 +92,7 @@ export class OnboardingPlugin extends ServicePlugin<
     });
     if (existing) return;
 
-    const markdown = await readFile(
-      join(import.meta.dir, "..", "content", "playbook", playbook.fileName),
-      "utf8",
-    );
+    const markdown = await readBundledPlaybook(playbook.fileName);
     await context.entityService.createEntityFromMarkdown({
       input: {
         entityType: "playbook",
@@ -104,6 +101,25 @@ export class OnboardingPlugin extends ServicePlugin<
       },
     });
   }
+}
+
+async function readBundledPlaybook(fileName: string): Promise<string> {
+  try {
+    return await readFile(
+      join(import.meta.dir, "..", "content", "playbook", fileName),
+      "utf8",
+    );
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !("code" in error) ||
+      error.code !== "ENOENT"
+    ) {
+      throw error;
+    }
+  }
+
+  return readFile(join(import.meta.dir, "onboarding", fileName), "utf8");
 }
 
 export function onboardingPlugin(config: OnboardingConfigInput = {}): Plugin {

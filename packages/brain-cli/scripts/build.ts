@@ -68,6 +68,14 @@ const accountUiAssetPath = join(
   "ui",
   "account-app.js",
 );
+const onboardingContentSourceDir = join(
+  monorepoRoot,
+  "plugins",
+  "onboarding",
+  "content",
+  "playbook",
+);
+const bundledOnboardingContentDir = join(outdir, "onboarding");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -354,6 +362,13 @@ const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
 await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
+
+// ─── Copy package-owned onboarding assets ────────────────────────────────
+
+rmSync(bundledOnboardingContentDir, { recursive: true, force: true });
+cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
+  recursive: true,
+});
 
 // ─── Copy bundled web chat UI asset ───────────────────────────────────────
 
