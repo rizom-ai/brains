@@ -11,13 +11,18 @@ export {
 } from "./publish-manifest";
 export { runWithPreparedPublishManifests } from "./publish-workspace";
 export {
+  assertCoordinatedStableReleasePlan,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
   packageMatchesReleaseLane,
+  resolveReleaseVersionStrategy,
+  resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
   type ReleaseLane,
   type ReleasePlanPackage,
+  type ReleaseVersionStrategy,
+  type ReleaseWorkflowMode,
   type WorkspacePackageLike,
 } from "./release-lanes";
 export {

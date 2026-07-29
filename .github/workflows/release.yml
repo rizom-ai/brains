@@ -2,9 +2,10 @@ name: Release
 
 on:
   # Chain off Core CI so a red core build never produces an npm publish. Release
-  # runs as a no-op when there are no pending changesets, which keeps
-  # the downstream image/deploy chain linear (CI → Release → Publish
-  # Images → Deploy) for both release and non-release pushes.
+  # runs as a no-op when there are no pending changesets. On prerelease exit,
+  # this workflow versions the one global stable plan before the two workflows
+  # publish their own lanes. This keeps the downstream image/deploy chain linear
+  # (CI → Release → Publish Images → Deploy) for release and non-release pushes.
   workflow_run:
     workflows: [Core CI]
     types: [completed]
@@ -32,6 +33,7 @@ jobs:
     env:
       DOCS_CONTENT_SYNC_TOKEN: ${{ secrets.DOCS_CONTENT_SYNC_TOKEN }}
     permissions:
+      actions: write
       contents: write
       id-token: write
     steps:
@@ -65,18 +67,28 @@ jobs:
       #      packages/brain-cli/scripts/build.ts) then `npm publish`.
       #      Only publishes versions not already on npm.
       #
-      # No version PR, no second workflow run dependency. Trade-off: no
-      # review window on auto-generated version bumps. Fine for the
-      # alpha cycle; revisit when we exit pre mode for stable releases.
+      # No version PR and no second workflow dependency. Alpha bumps remain
+      # automatic. Stable graduation requires the reviewed `pre exit` state;
+      # queue validation checks its global plan before this job versions it.
       - name: Configure git for the bot
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Detect release mode
+        id: release_mode
+        run: |
+          mode="$(bun scripts/release-lane.ts mode)"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Release mode: $mode"
+
       - name: Validate release queues
         run: bun run changeset:check
 
-      - name: Version core packages
+      # Normal releases hide site changesets and version only core. Changesets
+      # prerelease exit is global, so core owns that one version pass while Site
+      # Release waits for the generated version commit.
+      - name: Version core packages or coordinated stable plan
         env:
           # @changesets/changelog-github hits the GitHub API to resolve
           # PR numbers, commit authors, and link URLs for the generated
@@ -100,8 +112,8 @@ jobs:
       - name: Run pre-publish smoke tests
         run: bun --filter @rizom/ops test:smoke
 
-      # Build the core lane in dependency order before publishing. Site and
-      # theme packages are built and published only by Site Release.
+      # Build the core lane in dependency order before publishing. Even after
+      # global stable versioning, site/theme publication remains in Site Release.
       - name: Build core packages
         run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
@@ -111,6 +123,15 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
           bun run changeset:publish:core
+
+      # Version commits pushed with GITHUB_TOKEN do not start push workflows.
+      # Explicitly dispatch the site check chain only after stable core publish
+      # succeeds; Site Release remains the sole site/theme publisher.
+      - name: Start stable site release checks
+        if: steps.release_mode.outputs.mode != 'standard'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run site-ci.yml --ref main
 
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''

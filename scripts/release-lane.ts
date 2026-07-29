@@ -1,8 +1,11 @@
 #!/usr/bin/env bun
 import {
+  assertCoordinatedStableReleasePlan,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   packageMatchesReleaseLane,
+  resolveReleaseVersionStrategy,
+  resolveReleaseWorkflowMode,
   type ReleaseLane,
 } from "@brains/build-tools";
 import assembleReleasePlan from "@changesets/assemble-release-plan";
@@ -29,9 +32,15 @@ if (command === "add") {
   }
 } else if (command === "version") {
   await versionLane(parseLane(requestedLane));
+} else if (command === "mode") {
+  const currentPreState = await readPreState();
+  const previousPreState = await readPreviousPreState();
+  console.log(
+    resolveReleaseWorkflowMode(currentPreState?.mode, previousPreState?.mode),
+  );
 } else {
   throw new Error(
-    "Usage: bun scripts/release-lane.ts <add|check|version> [core|site]",
+    "Usage: bun scripts/release-lane.ts <add|check|version|mode> [core|site]",
   );
 }
 
@@ -66,19 +75,43 @@ async function addChangeset(
     );
   }
 
-  const sourceName = created[0]!;
+  const sourceName = created[0];
+  if (sourceName === undefined) {
+    throw new Error("Expected a newly created changeset");
+  }
   const parsed = parseChangesetFile(
     await readFile(join(changesetDir, sourceName), "utf8"),
   );
   const lane = explicitLane ?? inferReleaseLane(parsed.releases);
   const targetName = `${lane}--${sourceName}`;
   await rename(join(changesetDir, sourceName), join(changesetDir, targetName));
-  await validateLane(lane);
+  await validateRepository();
   console.log(`Queued .changeset/${targetName} for the ${lane} release lane.`);
 }
 
 async function versionLane(lane: ReleaseLane): Promise<void> {
+  const preState = await readPreState();
+  const strategy = resolveReleaseVersionStrategy(lane, preState?.mode);
   const pending = await validateRepository();
+
+  if (strategy === "defer") {
+    console.log(
+      "Stable prerelease exit is versioned once by the core release; site versioning is deferred.",
+    );
+    return;
+  }
+  if (strategy === "stable") {
+    const exitCode = await run([
+      process.execPath,
+      "run",
+      "changeset:version:raw",
+    ]);
+    if (exitCode !== 0) {
+      process.exit(exitCode);
+    }
+    return;
+  }
+
   const selected = pending.filter((changeset) => changeset.lane === lane);
   if (selected.length === 0) {
     console.log(`No pending ${lane} changesets.`);
@@ -87,7 +120,7 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
 
   const opposite = pending.filter((changeset) => changeset.lane !== lane);
   const stashDir = await mkdtemp(join(repositoryRoot, ".release-lane-stash-"));
-  let exitCode = 1;
+  let exitCode: number;
 
   try {
     for (const changeset of opposite) {
@@ -116,8 +149,18 @@ async function validateRepository(): Promise<PendingChangeset[]> {
   await assertNoUnscopedPendingChangesets();
   const pending = await pendingChangesets();
   for (const lane of ["core", "site"] as const) {
-    await validateLane(lane, pending);
+    assertChangesetsMatchLane(lane, pending);
   }
+
+  const preState = await readPreState();
+  if (preState?.mode === "exit") {
+    await validateStableReleasePlan(pending, preState);
+  } else {
+    for (const lane of ["core", "site"] as const) {
+      await validateLanePlan(lane, pending, preState);
+    }
+  }
+
   console.log(
     `Validated ${pending.length} pending changeset${pending.length === 1 ? "" : "s"} across independent release lanes.`,
   );
@@ -128,34 +171,47 @@ async function validateLane(
   lane: ReleaseLane,
   knownPending?: readonly PendingChangeset[],
 ): Promise<void> {
-  const pending = (knownPending ?? (await pendingChangesets())).filter(
-    (changeset) => changeset.lane === lane,
-  );
+  const pending = knownPending ?? (await pendingChangesets());
+  assertChangesetsMatchLane(lane, pending);
+  const preState = await readPreState();
+  if (preState?.mode === "exit") {
+    await validateStableReleasePlan(pending, preState);
+    return;
+  }
+  await validateLanePlan(lane, pending, preState);
+}
 
-  const wrongExplicitPackages = pending.flatMap((changeset) =>
-    changeset.releases
-      .filter((release) => !packageMatchesReleaseLane(release.name, lane))
-      .map((release) => `${changeset.fileName}: ${release.name}`),
-  );
+function assertChangesetsMatchLane(
+  lane: ReleaseLane,
+  pending: readonly PendingChangeset[],
+): void {
+  const wrongExplicitPackages = pending
+    .filter((changeset) => changeset.lane === lane)
+    .flatMap((changeset) =>
+      changeset.releases
+        .filter((release) => !packageMatchesReleaseLane(release.name, lane))
+        .map((release) => `${changeset.fileName}: ${release.name}`),
+    );
   if (wrongExplicitPackages.length > 0) {
     throw new Error(
       `${lane} changeset queue contains packages from the other lane:\n${wrongExplicitPackages.join("\n")}`,
     );
   }
+}
+
+async function validateLanePlan(
+  lane: ReleaseLane,
+  allPending: readonly PendingChangeset[],
+  preState: Parameters<typeof assembleReleasePlan>[3],
+): Promise<void> {
+  const pending = allPending.filter((changeset) => changeset.lane === lane);
   if (pending.length === 0) {
     return;
   }
 
-  const packages = await getPackages(repositoryRoot);
-  const config = await readChangesetsConfig(repositoryRoot, packages);
-  const privatePackages = new Set(
-    packages.packages
-      .filter(({ packageJson }) => packageJson.private === true)
-      .map(({ packageJson }) => packageJson.name),
-  );
-  const preState = await readPreState();
+  const { packages, privatePackages, config } = await releasePlanContext();
   const plan = assembleReleasePlan(
-    pending.map(({ id, summary, releases }) => ({ id, summary, releases })),
+    pending.map(changesetInput),
     packages,
     config,
     preState,
@@ -166,8 +222,53 @@ async function validateLane(
       name: release.name,
       type: release.type,
       private: privatePackages.has(release.name),
+      newVersion: release.newVersion,
     })),
   );
+}
+
+async function validateStableReleasePlan(
+  pending: readonly PendingChangeset[],
+  preState: NonNullable<Parameters<typeof assembleReleasePlan>[3]>,
+): Promise<void> {
+  const { packages, privatePackages, config } = await releasePlanContext();
+  const plan = assembleReleasePlan(
+    pending.map(changesetInput),
+    packages,
+    config,
+    preState,
+  );
+  assertCoordinatedStableReleasePlan(
+    plan.releases.map((release) => ({
+      name: release.name,
+      type: release.type,
+      private: privatePackages.has(release.name),
+      newVersion: release.newVersion,
+    })),
+  );
+}
+
+async function releasePlanContext(): Promise<{
+  packages: Awaited<ReturnType<typeof getPackages>>;
+  privatePackages: Set<string>;
+  config: Awaited<ReturnType<typeof readChangesetsConfig>>;
+}> {
+  const packages = await getPackages(repositoryRoot);
+  const config = await readChangesetsConfig(repositoryRoot, packages);
+  const privatePackages = new Set(
+    packages.packages
+      .filter(({ packageJson }) => packageJson.private === true)
+      .map(({ packageJson }) => packageJson.name),
+  );
+  return { packages, privatePackages, config };
+}
+
+function changesetInput({ id, summary, releases }: PendingChangeset): {
+  id: string;
+  summary: string;
+  releases: PendingChangeset["releases"];
+} {
+  return { id, summary, releases };
 }
 
 async function pendingChangesets(): Promise<PendingChangeset[]> {
@@ -222,6 +323,27 @@ async function readPreState(): Promise<
       throw error;
     },
   );
+  return parsePreState(text);
+}
+
+async function readPreviousPreState(): Promise<
+  Parameters<typeof assembleReleasePlan>[3]
+> {
+  const child = Bun.spawn(["git", "show", "HEAD^:.changeset/pre.json"], {
+    cwd: repositoryRoot,
+    stdout: "pipe",
+    stderr: "ignore",
+  });
+  const [exitCode, text] = await Promise.all([
+    child.exited,
+    new Response(child.stdout).text(),
+  ]);
+  return exitCode === 0 ? parsePreState(text) : undefined;
+}
+
+function parsePreState(
+  text: string | undefined,
+): Parameters<typeof assembleReleasePlan>[3] {
   return text === undefined
     ? undefined
     : (JSON.parse(text) as Parameters<typeof assembleReleasePlan>[3]);

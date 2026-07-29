@@ -1,6 +1,9 @@
 name: Site CI
 
 on:
+  # Core Release dispatches this check set after writing the global stable
+  # version commit. GITHUB_TOKEN pushes do not trigger push workflows.
+  workflow_dispatch:
   push:
     branches: ["main"]
     paths:

@@ -23,7 +23,6 @@ on:
       - "!packages/site-sections/**"
       - "!.github/workflows/site-ci.yml"
       - "!.github/workflows/site-release.yml"
-      - "!.changeset/pre.json"
       - ".changeset/core--*.md"
       - "!.changeset/site--*.md"
   pull_request:
@@ -46,7 +45,6 @@ on:
       - "!packages/site-sections/**"
       - "!.github/workflows/site-ci.yml"
       - "!.github/workflows/site-release.yml"
-      - "!.changeset/pre.json"
       - ".changeset/core--*.md"
       - "!.changeset/site--*.md"
 

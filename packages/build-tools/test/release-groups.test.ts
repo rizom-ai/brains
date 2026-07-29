@@ -6,9 +6,12 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  assertCoordinatedStableReleasePlan,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
+  resolveReleaseVersionStrategy,
+  resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
 } from "../src/release-lanes";
 
@@ -272,6 +275,49 @@ test("release lane guard rejects core/site plan crossover", () => {
       { name: "@brains/relay", private: true },
     ]),
   ).not.toThrow();
+});
+
+test("stable prerelease exit is versioned globally by the core lane", () => {
+  expect(resolveReleaseVersionStrategy("core", "exit")).toBe("stable");
+  expect(resolveReleaseVersionStrategy("site", "exit")).toBe("defer");
+  expect(resolveReleaseVersionStrategy("core", "pre")).toBe("lane");
+  expect(resolveReleaseVersionStrategy("site", undefined)).toBe("lane");
+
+  expect(resolveReleaseWorkflowMode("exit", "pre")).toBe("stable-exit");
+  expect(resolveReleaseWorkflowMode(undefined, "exit")).toBe("stable-version");
+  expect(resolveReleaseWorkflowMode("pre", "pre")).toBe("standard");
+  expect(resolveReleaseWorkflowMode(undefined, undefined)).toBe("standard");
+});
+
+test("coordinated stable plan accepts both lanes but only stable versions", () => {
+  expect(() =>
+    assertCoordinatedStableReleasePlan([
+      { name: "@rizom/brain", type: "minor", newVersion: "0.2.0" },
+      {
+        name: "@rizom/site-rizom",
+        type: "patch",
+        newVersion: "0.2.0",
+      },
+      {
+        name: "private-fixture",
+        type: "patch",
+        private: true,
+        newVersion: "0.2.0-alpha.1",
+      },
+    ]),
+  ).not.toThrow();
+  expect(() =>
+    assertCoordinatedStableReleasePlan([
+      {
+        name: "@rizom/brain",
+        type: "minor",
+        newVersion: "0.2.0-alpha.240",
+      },
+    ]),
+  ).toThrow("@rizom/brain@0.2.0-alpha.240");
+  expect(() => assertCoordinatedStableReleasePlan([])).toThrow(
+    "produced no public package releases",
+  );
 });
 
 test("publish scope restores opposite-lane manifests after failure", async () => {

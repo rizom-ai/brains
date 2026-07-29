@@ -2,11 +2,14 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export type ReleaseLane = "core" | "site";
+export type ReleaseWorkflowMode = "standard" | "stable-exit" | "stable-version";
+export type ReleaseVersionStrategy = "lane" | "stable" | "defer";
 
 export interface ReleasePlanPackage {
   name: string;
   type?: string;
   private?: boolean;
+  newVersion?: string;
 }
 
 export interface WorkspacePackageLike {
@@ -27,6 +30,31 @@ export function packageMatchesReleaseLane(
   lane: ReleaseLane,
 ): boolean {
   return isSiteReleasePackage(name) === (lane === "site");
+}
+
+/** Classify the checked-out release revision from current and parent pre state. */
+export function resolveReleaseWorkflowMode(
+  currentPreMode: string | undefined,
+  previousPreMode: string | undefined,
+): ReleaseWorkflowMode {
+  if (currentPreMode === "exit") {
+    return "stable-exit";
+  }
+  if (currentPreMode === undefined && previousPreMode === "exit") {
+    return "stable-version";
+  }
+  return "standard";
+}
+
+/** Core versions a prerelease exit globally; the site lane waits for that commit. */
+export function resolveReleaseVersionStrategy(
+  lane: ReleaseLane,
+  preMode: string | undefined,
+): ReleaseVersionStrategy {
+  if (preMode !== "exit") {
+    return "lane";
+  }
+  return lane === "core" ? "stable" : "defer";
 }
 
 /**
@@ -88,6 +116,36 @@ export function assertReleasePlanMatchesLane(
   if (unexpected.length > 0) {
     throw new Error(
       `${lane} release plan crosses into the other release lane: ${unexpected.join(", ")}`,
+    );
+  }
+}
+
+/** A prerelease exit is one intentional global plan and must target stable versions. */
+export function assertCoordinatedStableReleasePlan(
+  releases: readonly ReleasePlanPackage[],
+): void {
+  const publicReleases = releases.filter(
+    (release) => release.type !== "none" && release.private !== true,
+  );
+  if (publicReleases.length === 0) {
+    throw new Error(
+      "Stable prerelease exit produced no public package releases",
+    );
+  }
+
+  const invalid = publicReleases
+    .filter(
+      (release) =>
+        release.newVersion === undefined || release.newVersion.includes("-"),
+    )
+    .map(
+      (release) =>
+        `${release.name}@${release.newVersion ?? "<missing version>"}`,
+    )
+    .sort();
+  if (invalid.length > 0) {
+    throw new Error(
+      `Stable prerelease exit contains non-stable versions: ${invalid.join(", ")}`,
     );
   }
 }
