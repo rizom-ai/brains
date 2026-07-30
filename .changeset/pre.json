@@ -409,6 +409,7 @@
     "shell-lifecycle-transitions",
     "show-account-contact-details",
     "site--first-party-preact-peer",
+    "site--relicense-agpl-apache-split",
     "site-build-preflight-diagnostics",
     "site-build-prepared-snapshots",
     "site-build-transactional-output",

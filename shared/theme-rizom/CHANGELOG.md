@@ -1,5 +1,12 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.237
+
+### Patch Changes
+
+- Updated dependencies [[`b2e45ab`](https://github.com/rizom-ai/brains/commit/b2e45ab653f68fb995821e84143d3be39e9a8dd5)]:
+  - @rizom/theme-default@0.2.0-alpha.234
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes

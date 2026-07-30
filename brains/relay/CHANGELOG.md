@@ -1,5 +1,14 @@
 # @brains/relay
 
+## 0.2.0-alpha.241
+
+### Patch Changes
+
+- Updated dependencies [[`b2e45ab`](https://github.com/rizom-ai/brains/commit/b2e45ab653f68fb995821e84143d3be39e9a8dd5)]:
+  - @rizom/site-rizom@0.2.0-alpha.235
+  - @brains/site-composition@0.2.0-alpha.239
+  - @brains/theme-rizom@0.2.0-alpha.237
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes
