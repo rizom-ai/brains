@@ -74,6 +74,7 @@ export interface BrainDefinition {
   name: string;
   version: string;
   anchor?: BrainAnchorConfigKind;
+  kind?: string;
   model?: string;
   reasoningEffort?: ReasoningEffort;
   identity?: BrainIdentity;

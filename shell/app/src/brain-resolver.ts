@@ -319,6 +319,7 @@ export function resolve(
   const effectiveReasoningEffort =
     overrides?.reasoningEffort ?? definition.reasoningEffort;
   const effectiveAnchor = overrides?.anchor ?? definition.anchor ?? "person";
+  const effectiveProfileKind = overrides?.kind ?? definition.kind;
   const webserverEnabled = hasActiveInterface(
     definition,
     activeIds,
@@ -386,7 +387,7 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
-    ...(overrides?.kind && { profileKind: overrides.kind }),
+    ...(effectiveProfileKind && { profileKind: effectiveProfileKind }),
     ...(definition.agentInstructions && {
       agentInstructions: definition.agentInstructions,
     }),

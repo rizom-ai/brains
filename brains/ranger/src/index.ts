@@ -46,6 +46,7 @@ const rangerBrain: BrainDefinition = defineBrain({
   name: "ranger",
   version: "0.1.0",
   anchor: "organization",
+  kind: "organization",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: rizomSite,
@@ -77,11 +78,7 @@ const rangerBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    [
-      "profile",
-      profilePlugin,
-      { starterIdentity: { anchorKind: "organization" } },
-    ],
+    ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],

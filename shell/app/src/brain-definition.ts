@@ -123,6 +123,14 @@ export interface BrainDefinition {
   anchor?: BrainAnchorConfigKind;
 
   /**
+   * Default semantic profile kind selected from the composed catalog, e.g.
+   * `professional`. It decides which field schema validates the anchor
+   * profile, so a brain whose content or playbooks use kind-specific fields
+   * must name one. Instances may override this with `kind` in brain.yaml.
+   */
+  kind?: string;
+
+  /**
    * Default text model for this brain.
    * Can be overridden per-instance via `model` in brain.yaml.
    */

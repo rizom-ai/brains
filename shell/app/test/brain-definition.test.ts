@@ -513,6 +513,32 @@ describe("resolve", () => {
     expect(() => resolve(def, {})).toThrow("stack overflow");
   });
 
+  test("should resolve the profile kind from the definition", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      kind: "professional",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(resolve(def, {}).profileKind).toBe("professional");
+  });
+
+  test("should let an instance override the definition profile kind", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      kind: "professional",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(resolve(def, {}, { kind: "organization" }).profileKind).toBe(
+      "organization",
+    );
+  });
+
   test("should pass through permissions and deployment", () => {
     const def = defineBrain({
       name: "test",

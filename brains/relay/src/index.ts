@@ -120,6 +120,7 @@ const relayBrain: BrainDefinition = defineBrain({
   name: "relay",
   version: packageJson.version,
   anchor: "team",
+  kind: "team",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: relaySite,
@@ -136,7 +137,7 @@ const relayBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["profile", profilePlugin, { starterIdentity: { anchorKind: "team" } }],
+    ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

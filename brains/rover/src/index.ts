@@ -132,6 +132,7 @@ const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
   anchor: "person",
+  kind: "professional",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: defaultSite,
@@ -158,7 +159,7 @@ const roverBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["profile", profilePlugin, { starterIdentity: { anchorKind: "person" } }],
+    ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
