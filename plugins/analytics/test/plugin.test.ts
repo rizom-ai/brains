@@ -98,6 +98,8 @@ describe("AnalyticsPlugin", () => {
       expect(queryTool?.description).toContain("Date range options");
       expect(queryTool?.visibility).toBe("admin");
       expect(queryTool?.sideEffects).toBe("none");
+      expect(queryTool?.agentTool).toBe(false);
+      expect(queryTool?.directMcpExposure).toBe("basic");
       harness.reset();
     });
   });
