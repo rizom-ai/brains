@@ -420,8 +420,8 @@ describe("WebChatInterface", () => {
           text: "Continuing onboarding.",
           toolResults: [
             {
-              toolName: "playbook_send_event",
-              args: { event: "NEXT" },
+              toolName: "playbook_manage",
+              args: { action: "send-event", event: "NEXT" },
               data: { currentState: "identity" },
             },
           ],
@@ -446,8 +446,8 @@ describe("WebChatInterface", () => {
       text: "Continuing onboarding.",
       toolResults: [
         {
-          toolName: "playbook_send_event",
-          args: { event: "NEXT" },
+          toolName: "playbook_manage",
+          args: { action: "send-event", event: "NEXT" },
           data: { currentState: "identity" },
         },
       ],
@@ -1389,7 +1389,7 @@ describe("WebChatInterface", () => {
     const agent: IAgentService = {
       chat: async (_message, conversationId) => {
         await harness.sendMessage("tool:invoking", {
-          toolName: "playbook_start",
+          toolName: "playbook_manage",
           conversationId,
           interfaceType: "web-chat",
           channelId: conversationId,
@@ -1431,7 +1431,7 @@ describe("WebChatInterface", () => {
     expect(body).toContain("data-status");
     expect(body).toContain("tool-running");
     expect(body).toContain("Using playbook…");
-    expect(body).not.toContain("Using playbook_start…");
+    expect(body).not.toContain("Using playbook_manage…");
   });
 
   it("streams awaiting approval when a completed tool returns a pending confirmation", async () => {

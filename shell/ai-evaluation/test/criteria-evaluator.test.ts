@@ -62,7 +62,7 @@ describe("evaluateCriteria", () => {
         ],
       },
       { text: "found it" },
-      [{ toolName: "playbook_send_event", args: {}, result: {} }],
+      [{ toolName: "playbook_manage", args: {}, result: {} }],
     );
 
     expect(results).toEqual([

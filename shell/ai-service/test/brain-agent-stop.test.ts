@@ -26,14 +26,21 @@ describe("BrainAgent stop conditions", () => {
     expect(shouldStop).toBe(true);
   });
 
-  it("stops the tool loop after starting a playbook", () => {
+  it("stops the tool loop after playbook_manage starts a playbook", () => {
     const shouldStop = shouldStopToolLoop({
       steps: [
         {
+          toolCalls: [
+            {
+              toolCallId: "call-1",
+              toolName: "playbook_manage",
+              input: { action: "start", playbookId: "rover-onboarding" },
+            },
+          ],
           toolResults: [
             {
               toolCallId: "call-1",
-              toolName: "playbook_start",
+              toolName: "playbook_manage",
               output: {
                 success: true,
                 data: {

@@ -4289,9 +4289,10 @@ describe("AgentService", () => {
           {
             toolCalls: [
               {
-                toolName: "playbook_start",
+                toolName: "playbook_manage",
                 toolCallId: "call1",
                 input: {
+                  action: "start",
                   playbookId: "rover-onboarding",
                   lifecycle: "first-admin-web-chat",
                 },
@@ -4299,7 +4300,7 @@ describe("AgentService", () => {
             ],
             toolResults: [
               {
-                toolName: "playbook_start",
+                toolName: "playbook_manage",
                 toolCallId: "call1",
                 output: {
                   success: true,
