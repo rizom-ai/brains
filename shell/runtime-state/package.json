@@ -1,7 +1,7 @@
 {
   "name": "@brains/runtime-state",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.239",
+  "version": "0.2.0-alpha.240",
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",

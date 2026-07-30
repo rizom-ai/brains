@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ui",
-  "version": "0.2.0-alpha.239",
+  "version": "0.2.0-alpha.240",
   "description": "Shared Rizom UI primitives for app-owned Rizom site variants.",
   "type": "module",
   "main": "./src/index.ts",

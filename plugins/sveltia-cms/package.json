@@ -2,7 +2,7 @@
   "name": "@brains/sveltia-cms",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.2.0-alpha.239",
+  "version": "0.2.0-alpha.240",
   "description": "Archived Sveltia-based CMS plugin (original browser CMS, superseded by the first-party editor in @brains/cms)",
   "type": "module",
   "exports": {

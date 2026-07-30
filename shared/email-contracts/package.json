@@ -1,7 +1,7 @@
 {
   "name": "@brains/email-contracts",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.239",
+  "version": "0.2.0-alpha.240",
   "description": "Shared email delivery message contracts",
   "dependencies": {
     "@brains/utils": "workspace:*"
