@@ -45,3 +45,10 @@ Core Release explicitly dispatches Site CI because version commits pushed with
 global version commit only after Site CI passes and the exact stable
 `@rizom/brain` version is available on npm. Do not run raw `changeset version`
 or bypass the lane-scoped publish commands.
+
+If Core Release fails after pushing the global version commit and further
+commits land before the retry, mode detection reports `standard` and the
+automatic Site CI dispatch is skipped. Re-run Core Release (publishing is
+idempotent), then dispatch Site CI manually. This is safe in any mode: Site
+Release always verifies the checked-out core version is on npm before
+publishing site packages.

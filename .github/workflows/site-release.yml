@@ -77,11 +77,14 @@ jobs:
             git push
           fi
 
-      # The shared release concurrency prevents simultaneous publishes. If the
-      # core publish failed after writing the global version commit, this check
-      # stops stable site packages and leaves Site Release safely retryable.
-      - name: Verify stable core runtime is published
-        if: steps.release_mode.outputs.mode == 'stable-version'
+      # The site lane never publishes while the repo's current core version is
+      # missing from npm. This guards every publish run, not just a detected
+      # prerelease exit — if a core publish failed after its version commit,
+      # mode detection may read standard here, but this check still blocks and
+      # leaves Site Release safely retryable. Normal runs pass on the first
+      # lookup because the checked-out core version is already published.
+      - name: Verify core runtime is published
+        if: steps.release_mode.outputs.mode != 'stable-exit'
         run: |
           set -euo pipefail
           expected="$(bun -e 'console.log((await Bun.file("packages/brain-cli/package.json").json()).version)')"
@@ -97,7 +100,7 @@ jobs:
               sleep "$sleep_seconds"
             fi
           done
-          echo "@rizom/brain@${expected} must be published before the stable site lane." >&2
+          echo "@rizom/brain@${expected} must be published before the site lane publishes." >&2
           exit 1
 
       - name: Build site and theme packages
