@@ -27,9 +27,7 @@ successCriteria:
   expectedTools:
     - toolName: system_update
       shouldBeCalled: true
-    - toolName: content-pipeline_publish
-      shouldBeCalled: false
-    - toolName: content-pipeline_queue
+    - toolName: publishing_manage
       shouldBeCalled: false
   responseContains:
     - "Confirmation required"

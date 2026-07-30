@@ -842,8 +842,13 @@ describe("TestRunner", () => {
           createMockResponse({
             toolResults: [
               {
-                toolName: "content-pipeline_publish",
-                args: { entityType: "post", id: "post-1", confirmed: true },
+                toolName: "publishing_manage",
+                args: {
+                  action: "publish",
+                  entityType: "post",
+                  id: "post-1",
+                  confirmed: true,
+                },
                 data: { success: true },
               },
             ],
@@ -859,9 +864,9 @@ describe("TestRunner", () => {
         successCriteria: {
           expectedTools: [
             {
-              toolName: "content-pipeline_publish",
+              toolName: "publishing_manage",
               shouldBeCalled: true,
-              argsContain: { confirmed: true },
+              argsContain: { action: "publish", confirmed: true },
             },
           ],
         },

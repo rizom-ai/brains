@@ -58,15 +58,19 @@ export {
 
 // Tools
 export {
-  createQueueTool,
-  queueInputSchema,
+  createPublishingManageTool,
+  publishingManageInputSchema,
+  publishingManageOutputSchema,
+  type PublishingManageInput,
+  type PublishingManageOutput,
+  type PublishingManageServices,
+  handleQueueAction,
   queueOutputSchema,
   queueItemSchema,
   type QueueInput,
   type QueueOutput,
   type QueueItem,
-  createPublishTool,
-  publishInputSchema,
+  handlePublishAction,
   publishOutputSchema,
   type PublishInput,
   type PublishOutput,

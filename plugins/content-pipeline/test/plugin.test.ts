@@ -83,10 +83,13 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getScheduler()).toBeDefined();
     });
 
-    it("does not register publish asset reconciliation as a tool", () => {
+    it("registers only the canonical publishing management tool", () => {
       const toolNames = harness
         .getCapabilities()
         .tools.map((tool) => tool.name);
+      expect(toolNames).toContain("publishing_manage");
+      expect(toolNames).not.toContain("content-pipeline_queue");
+      expect(toolNames).not.toContain("content-pipeline_publish");
       expect(toolNames).not.toContain("content-pipeline_ensure-assets");
     });
 

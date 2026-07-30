@@ -314,7 +314,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
       const result = await tool.handler(
         {
-          ...(confirmation.args as Record<string, unknown>),
+          ...confirmation.args,
           confirmationToken: "invalid-token",
         },
         createMockToolContext(),

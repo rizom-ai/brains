@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type {
   BaseEntity,
   Tool,
-  ToolResponse,
+  ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -78,7 +78,7 @@ export interface PublishConfirmationOutput {
   toolName: string;
   summary: string;
   preview?: string | undefined;
-  args: unknown;
+  args: PublishInput;
 }
 
 export type PublishOutput =
@@ -119,7 +119,7 @@ export const publishConfirmationSchema: z.ZodType<
   toolName: z.string(),
   summary: z.string(),
   preview: z.string().optional(),
-  args: z.unknown(),
+  args: z.custom<PublishInput>(),
 });
 
 export const publishOutputSchema: z.ZodType<PublishOutput, PublishOutput> =
@@ -163,92 +163,104 @@ export function createPublishTool(
     outputSchema: publishOutputSchema,
     visibility: "admin",
     sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = publishInputParserSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
-        };
-      }
+    handler: async (rawInput, toolContext): Promise<PublishOutput> =>
+      handlePublishAction({
+        context,
+        executor,
+        toolName,
+        rawInput,
+        toolContext,
+      }),
+  };
+}
 
-      const input = parsed.data;
-      const { entityType, id, slug } = input;
+export async function handlePublishAction(input: {
+  context: ServicePluginContext;
+  executor: PublishEntityExecutor;
+  toolName: string;
+  rawInput: unknown;
+  toolContext: ToolContext;
+}): Promise<PublishOutput> {
+  const parsed = publishInputParserSchema.safeParse(input.rawInput);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: `Invalid input: ${parsed.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+    };
+  }
 
-      try {
-        context.permissions.assertEntityActionAllowed(
-          entityType,
-          "publish",
-          toolContext,
-        );
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
+  const publishInput = parsed.data;
+  const { entityType, id, slug } = publishInput;
 
-      const validation = await executor.resolveCandidate({
+  try {
+    input.context.permissions.assertEntityActionAllowed(
+      entityType,
+      "publish",
+      input.toolContext,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const validation = await input.executor.resolveCandidate({
+    entityType,
+    id,
+    slug,
+  });
+  if ("error" in validation) return { success: false, error: validation.error };
+
+  const { entity } = validation;
+  if (publishInput.confirmed) {
+    const tokenValidation = validateConfirmationToken(
+      input.toolName,
+      publishInput,
+      entity,
+    );
+    if (tokenValidation !== null) return tokenValidation;
+
+    let publishResult: Awaited<ReturnType<PublishEntityExecutor["publish"]>>;
+    try {
+      publishResult = await input.executor.publish({
         entityType,
-        id,
-        slug,
+        id: entity.id,
       });
-      if ("error" in validation)
-        return { success: false, error: validation.error };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+    if ("error" in publishResult) {
+      return {
+        success: false,
+        error: publishResult.error,
+      };
+    }
 
-      const { entity } = validation;
-      if (input.confirmed) {
-        const tokenValidation = validateConfirmationToken(
-          toolName,
-          input,
-          entity,
-        );
-        if (tokenValidation !== null) return tokenValidation;
+    const { entity: publishedEntity, result } = publishResult;
+    return {
+      success: true,
+      data: {
+        entityType,
+        entityId: publishedEntity.id,
+        platformId: result.id,
+        url: result.url,
+      },
+      message: `Published ${entityType}:${publishedEntity.id}`,
+    };
+  }
 
-        let publishResult: Awaited<
-          ReturnType<PublishEntityExecutor["publish"]>
-        >;
-        try {
-          publishResult = await executor.publish({
-            entityType,
-            id: entity.id,
-          });
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
-        }
-        if ("error" in publishResult) {
-          return {
-            success: false,
-            error: publishResult.error,
-          };
-        }
-
-        const { entity: publishedEntity, result } = publishResult;
-        return {
-          success: true,
-          data: {
-            entityType,
-            entityId: publishedEntity.id,
-            platformId: result.id,
-            url: result.url,
-          },
-          message: `Published ${entityType}:${publishedEntity.id}`,
-        };
-      }
-
-      return createPublishConfirmation(toolName, input, entity);
-    },
-  } as Tool<PublishOutput>;
+  return createPublishConfirmation(input.toolName, publishInput, entity);
 }
 
 function createPublishConfirmation(
   toolName: string,
   input: PublishInput,
   entity: BaseEntity,
-): ToolResponse {
+): PublishConfirmationOutput {
   const expiresAt = new Date(Date.now() + CONFIRMATION_TTL_MS).toISOString();
   const confirmationToken = createConfirmationToken(
     toolName,
@@ -278,7 +290,7 @@ function validateConfirmationToken(
   toolName: string,
   input: PublishInput,
   entity: BaseEntity,
-): ToolResponse | null {
+): PublishErrorOutput | null {
   const { confirmationToken, contentHash, expiresAt } = input;
   if (!confirmationToken || !expiresAt) {
     return {

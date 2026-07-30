@@ -1,6 +1,6 @@
 id: social-media-queue-list-agent
 name: List social media publish queue
-description: Tests that the agent uses the content pipeline queue tool to show queued social posts
+description: Tests that the agent uses the publishing management tool to show queued social posts
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -15,8 +15,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: content-pipeline_queue
+    - toolName: publishing_manage
       shouldBeCalled: true
+      argsContain:
+        action: queue-list
   responseNotContains:
     - "I cannot"
     - "I don't have access"

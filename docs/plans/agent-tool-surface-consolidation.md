@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, and Phase 4 consolidated directory sync actions behind `directory_sync`. Preset snapshots, publishing consolidation, and optional provider cleanup remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, and Phase 5 consolidated publishing actions behind `publishing_manage`. Preset snapshots and optional provider cleanup remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Context
 
@@ -274,7 +274,7 @@ Introduce `publishing_manage` with actions for:
 1. Reuse the queue manager, publication queue service, provider registry, publish executor, and current confirmation implementation.
 2. Keep publish as an Admin external side effect with content-hash and expiry validation.
 3. Preserve per-action entity permission checks; one tool-level visibility must not replace action-level authorization.
-4. Ask before retaining or removing existing registered publishing tool names.
+4. Remove existing registered publishing tool names instead of keeping compatibility aliases.
 5. Keep publish-asset reconciliation out of the agent union.
 
 Exit gate: queue and direct-publish evals pass through `publishing_manage`, including follow-up target reuse and confirmation replay protection.

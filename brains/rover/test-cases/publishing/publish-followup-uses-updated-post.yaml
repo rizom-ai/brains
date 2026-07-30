@@ -46,9 +46,10 @@ turns:
       Can you publish it now?
     successCriteria:
       expectedTools:
-        - toolName: content-pipeline_publish
+        - toolName: publishing_manage
           shouldBeCalled: true
           argsContain:
+            action: publish
             entityType: post
             id: resilience-in-distributed-systems
         - toolName: system_create
@@ -67,9 +68,10 @@ turns:
     confirmPendingAction: true
     successCriteria:
       expectedTools:
-        - toolName: content-pipeline_publish
+        - toolName: publishing_manage
           shouldBeCalled: true
           argsContain:
+            action: publish
             entityType: post
             id: resilience-in-distributed-systems
             confirmed: true
@@ -84,9 +86,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: content-pipeline_publish
+    - toolName: publishing_manage
       shouldBeCalled: true
       argsContain:
+        action: publish
         entityType: post
         id: resilience-in-distributed-systems
     - toolName: system_create

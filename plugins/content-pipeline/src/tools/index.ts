@@ -1,20 +1,28 @@
 export {
-  createQueueTool,
-  queueInputSchema,
+  handleQueueAction,
   queueOutputSchema,
   queueItemSchema,
   type QueueInput,
   type QueueOutput,
   type QueueItem,
+  type QueueMutationService,
 } from "./queue";
 
 export {
-  createPublishTool,
-  publishInputSchema,
+  handlePublishAction,
   publishOutputSchema,
   type PublishInput,
   type PublishOutput,
 } from "./publish";
+
+export {
+  createPublishingManageTool,
+  publishingManageInputSchema,
+  publishingManageOutputSchema,
+  type PublishingManageInput,
+  type PublishingManageOutput,
+  type PublishingManageServices,
+} from "./manage";
 
 export {
   ensurePublishAssets,

@@ -15,7 +15,7 @@ import {
   getPublicationPipelineSnapshot,
   hasPublicationStatus,
 } from "../pipeline-snapshot";
-import { createPublishTool } from "../tools/publish";
+import { handlePublishAction } from "../tools/publish";
 
 const registrationResultSchema = z.object({
   workspaceUrl: z.string(),
@@ -98,12 +98,6 @@ export async function registerCmsWorkspace(
   pluginId: string,
   deps: RegisterCmsWorkspaceDeps,
 ): Promise<string | undefined> {
-  const publishTool = createPublishTool(
-    context,
-    pluginId,
-    deps.providerRegistry,
-    deps.publishExecutor,
-  );
   const registration: CmsWorkspaceRegistration = {
     id: "publishing",
     pluginId,
@@ -134,13 +128,7 @@ export async function registerCmsWorkspace(
       if (!parsed.success) {
         throw new Error("Invalid publishing workspace action");
       }
-      return handlePublishingAction(
-        context,
-        deps,
-        publishTool,
-        parsed.data,
-        actor,
-      );
+      return handlePublishingAction(context, deps, parsed.data, actor);
     },
   };
 
@@ -189,7 +177,6 @@ function getWorkspaceEntityTypes(
 async function handlePublishingAction(
   context: ServicePluginContext,
   deps: RegisterCmsWorkspaceDeps,
-  publishTool: ReturnType<typeof createPublishTool>,
   action: CmsPublishingAction,
   actor: CmsWorkspaceActor,
 ): Promise<unknown> {
@@ -211,14 +198,17 @@ async function handlePublishingAction(
   const toolContext = toToolContext(actor);
 
   if (action.type === "publish") {
-    const result = await publishTool.handler(
-      {
+    const result = await handlePublishAction({
+      context,
+      executor: deps.publishExecutor,
+      toolName: "publishing_manage",
+      rawInput: {
         entityType: action.entityType,
         id: action.entityId,
         ...(action.confirmation ?? {}),
       },
       toolContext,
-    );
+    });
     if ("success" in result && result.success === true) {
       await deps.publicationQueueService.complete(
         action.entityType,
