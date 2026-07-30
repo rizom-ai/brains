@@ -1,5 +1,6 @@
 brain: brain
 anchor: person
+kind: professional
 bundles:
   - core
   - site
@@ -41,6 +42,8 @@ suites:
         seedContentPath: eval-content/publishing
   team:
     extends: core
+    anchor: team
+    kind: team
     bundles:
       - core
       - site
@@ -58,6 +61,8 @@ suites:
         autoRebuild: false
   commerce:
     extends: core
+    anchor: organization
+    kind: organization
     bundles:
       - core
       - site
@@ -67,7 +72,7 @@ suites:
       - posture-commerce
     plugins:
       directory-sync:
-        seedContentPath: templates/recipes/commerce/seed-content
+        seedContentPath: eval-content/commerce
       site-builder:
         autoRebuild: false
 
@@ -95,5 +100,7 @@ plugins:
     enabled: true
   directory-sync:
     seedContentPath: eval-content/publishing
+    autoSync: false
+    deleteOnFileRemoval: false
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"

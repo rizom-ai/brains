@@ -1,9 +1,14 @@
 import { copyFileSync, existsSync, rmSync } from "fs";
 import { resolve as resolvePath } from "path";
 import type { AppConfig } from "@brains/app";
+import { internalFullScope, type IEntityService } from "@brains/plugins";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
-import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
+import {
+  bootEvalApp,
+  prepareEvalEnvironment,
+  resolveEvaluationContentDirectory,
+} from "./eval-environment";
 
 interface BuildEvalDatabaseOptions {
   config: AppConfig;
@@ -64,7 +69,14 @@ export async function buildEvalDatabase(
   if (shutdownFailed) throw shutdownFailure;
 
   await checkpointDatabases(evalDbBase);
-  copyBuiltDatabases(evalDbBase);
+  const evalContentDir = resolveEvaluationContentDirectory({
+    brainModelPath: options.brainModelPath,
+    config: options.config,
+  });
+  if (!evalContentDir) {
+    throw new Error("No eval-content directory found");
+  }
+  copyBuiltDatabases(evalDbBase, evalContentDir);
 }
 
 function removeStaleBuiltDatabases(evalDbBase: string): void {
@@ -120,14 +132,22 @@ async function waitForIndexReadiness(entityService: {
   }
 }
 
-async function verifyDatabaseContents(entityService: {
-  getEntityTypes(): string[];
-  listEntities(request: { entityType: string }): Promise<unknown[]>;
-}): Promise<void> {
+async function verifyDatabaseContents(
+  entityService: Pick<IEntityService, "getEntityTypes" | "listEntities">,
+): Promise<void> {
   const counts: Record<string, number> = {};
 
   for (const type of entityService.getEntityTypes()) {
-    const entities = await entityService.listEntities({ entityType: type });
+    const entities = await entityService.listEntities({
+      entityType: type,
+      options: {
+        filter: {
+          visibilityScope: internalFullScope(
+            "eval database verification counts all visibility tiers",
+          ),
+        },
+      },
+    });
     if (entities.length > 0) counts[type] = entities.length;
   }
   console.log("Database contents:", counts);
@@ -150,12 +170,10 @@ async function checkpointDatabases(evalDbBase: string): Promise<void> {
   }
 }
 
-function copyBuiltDatabases(evalDbBase: string): void {
-  const evalContentDir = resolvePath(process.cwd(), "eval-content");
-  if (!existsSync(evalContentDir)) {
-    throw new Error("No eval-content directory found");
-  }
-
+export function copyBuiltDatabases(
+  evalDbBase: string,
+  evalContentDir: string,
+): void {
   const databasePairs = [
     { source: `${evalDbBase}.db`, output: "brain.db" },
     { source: `${evalDbBase}-embeddings.db`, output: "embeddings.db" },

@@ -17,6 +17,7 @@ brain start
 ```yaml
 brain: brain
 anchor: person
+kind: professional
 bundles:
   - core
   - site

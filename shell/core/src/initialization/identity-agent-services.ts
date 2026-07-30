@@ -231,13 +231,15 @@ export function initializeIdentityAndAgentServices(
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {
-        const response = await messageBus.send({
+        const responses = await messageBus.collect({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,
           sender: "shell:agent-service",
           payload: request,
         });
-        if ("noop" in response || !response.success) return [];
-        return parseAgentContextItems(response.data);
+        return responses.flatMap((response) => {
+          if ("noop" in response || !response.success) return [];
+          return parseAgentContextItems(response.data);
+        });
       },
       ...(assistantAgentId ? { assistantAgentId } : {}),
       ...(config.agentInstructions && {

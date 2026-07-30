@@ -7,6 +7,7 @@
 ```yaml
 brain: brain
 anchor: person
+kind: professional
 domain: example.com
 
 bundles:
@@ -99,7 +100,7 @@ Override the runtime instance name.
 
 ### `kind`
 
-Select an optional semantic profile kind from the composed site/catalog.
+Select an optional semantic profile kind from the composed catalog. The standard specialized recipes select `professional`, `team`, or `organization`; omit `kind` only when the base profile fields are sufficient. `anchor` controls ownership flavor, while `kind` selects the validated profile field extension.
 
 ### `domain`, `port`, `database`
 

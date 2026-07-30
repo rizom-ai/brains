@@ -22,7 +22,7 @@ turns:
       summaries for a customer implementation.
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: false
         - toolName: system_create
           shouldBeCalled: false
@@ -44,14 +44,14 @@ turns:
             entityType: "agent"
             source.kind: "url"
             source.url: "https://field-agent.example/a2a"
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: false
       responseContains:
         - "Confirmation required"
       responseNotContains:
         - "wish"
         - "I contacted"
-        - "a2a_call failed"
+        - "agent_call failed"
   - userMessage: "Confirm the agent save."
     confirmPendingAction: true
     successCriteria:
@@ -59,7 +59,7 @@ turns:
         - "Completed"
       responseNotContains:
         - "I contacted"
-        - "a2a_call failed"
+        - "agent_call failed"
 
 successCriteria:
   expectedTools:
@@ -69,7 +69,7 @@ successCriteria:
         entityType: "agent"
         source.kind: "url"
         source.url: "https://field-agent.example/a2a"
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: false
   responseNotContains:
     - "wish"

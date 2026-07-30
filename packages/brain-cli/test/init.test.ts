@@ -132,17 +132,17 @@ describe("brain init", () => {
       expect(yaml).toContain("domain: mybrain.rizom.ai");
     });
 
-    it("should declare each recipe's Anchor profile flavor", () => {
-      for (const [recipe, anchor] of [
-        ["personal", "person"],
-        ["team", "team"],
-        ["commerce", "organization"],
+    it("should declare each recipe's anchor flavor and semantic profile kind", () => {
+      for (const [recipe, anchor, kind] of [
+        ["personal", "person", "professional"],
+        ["team", "team", "team"],
+        ["commerce", "organization", "organization"],
       ] as const) {
         const dir = join(testDir, recipe);
         scaffold(dir, { recipe });
-        expect(readFileSync(join(dir, "brain.yaml"), "utf-8")).toContain(
-          `anchor: ${anchor}`,
-        );
+        const yaml = readFileSync(join(dir, "brain.yaml"), "utf-8");
+        expect(yaml).toContain(`anchor: ${anchor}`);
+        expect(yaml).toContain(`kind: ${kind}`);
       }
 
       const customDir = join(testDir, "custom");
@@ -150,9 +150,9 @@ describe("brain init", () => {
         recipe: "minimal",
         domain: "custom.example.com",
       });
-      expect(
-        readFileSync(join(customDir, "brain.yaml"), "utf-8"),
-      ).not.toContain("anchor:");
+      const yaml = readFileSync(join(customDir, "brain.yaml"), "utf-8");
+      expect(yaml).not.toContain("anchor:");
+      expect(yaml).not.toContain("kind:");
     });
 
     it("should default domain from the target directory", () => {

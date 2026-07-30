@@ -31,6 +31,7 @@ const recipeExpectations: Record<
   },
   personal: {
     anchor: "person",
+    kind: "professional",
     bundles: ["core", "site", "publishing"],
     site: {
       package: "@brains/site-default",
@@ -42,6 +43,7 @@ const recipeExpectations: Record<
   },
   team: {
     anchor: "team",
+    kind: "team",
     bundles: ["core", "site", "team"],
     site: {
       package: "@brains/site-default",
@@ -53,6 +55,7 @@ const recipeExpectations: Record<
   },
   commerce: {
     anchor: "organization",
+    kind: "organization",
     bundles: ["core", "site"],
     add: ["products"],
     site: {
@@ -74,6 +77,7 @@ function expectMigrationSelection(
     add?: string[];
     remove?: string[];
     anchor: "person" | "team" | "organization";
+    kind: "professional" | "team" | "organization";
   },
 ): void {
   const result = previewBrainConfigMigration(
@@ -89,6 +93,7 @@ function expectMigrationSelection(
   expect(parsed.add).toEqual(expected.add);
   expect(parsed.remove).toEqual(expected.remove);
   expect(parsed.anchor).toBe(expected.anchor);
+  expect(parsed.kind).toBe(expected.kind);
   expect(parsed.plugins?.["directory-sync"]?.["seedContentPath"]).toBe(
     "./seed-content",
   );
@@ -117,6 +122,7 @@ describe("brain config migration preview", () => {
     expectMigrationSelection("rover", "core", {
       bundles: ["core"],
       anchor: "person",
+      kind: "professional",
     });
     expectMigrationSelection("rover", "default", {
       bundles: ["core", "site", "publishing"],
@@ -130,28 +136,34 @@ describe("brain config migration preview", () => {
         "stock-photo",
       ],
       anchor: "person",
+      kind: "professional",
     });
     expectMigrationSelection("rover", "full", {
       bundles: ["core", "site", "publishing"],
       add: ["obsidian-vault"],
       anchor: "person",
+      kind: "professional",
     });
     expectMigrationSelection("relay", "core", {
       bundles: ["core", "team"],
       anchor: "team",
+      kind: "team",
     });
     expectMigrationSelection("relay", "default", {
       bundles: ["core", "site", "team"],
       anchor: "team",
+      kind: "team",
     });
     expectMigrationSelection("relay", "full", {
       bundles: ["core", "site", "team"],
       anchor: "team",
+      kind: "team",
     });
     expectMigrationSelection("ranger", "default", {
       bundles: ["core", "site"],
       add: ["products"],
       anchor: "organization",
+      kind: "organization",
     });
   });
 

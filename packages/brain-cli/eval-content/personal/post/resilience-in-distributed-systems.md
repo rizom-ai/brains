@@ -1,17 +1,13 @@
 ---
-title: "Resilience Is Not Redundancy"
+title: Resilience Is Not Redundancy
 slug: resilience-in-distributed-systems
 status: published
-description: Why building resilient distributed systems requires more than just adding replicas
-excerpt: Redundancy is the easy part. True resilience means designing for graceful degradation, not just failover.
-author: Alex Chen
-topics:
-  - distributed-systems
-  - architecture
 publishedAt: "2025-08-15T00:00:00.000Z"
-checksum: seed
-created: "2025-08-15T00:00:00.000Z"
-updated: "2025-08-15T00:00:00.000Z"
+excerpt: >-
+  Redundancy is the easy part. True resilience means designing for graceful
+  degradation, not just failover.
+author: Alex Chen
+ogImageId: og-post-resilience-in-distributed-systems
 ---
 
 Every architecture review I sit through has the same slide: "we handle failures through redundancy." Three replicas. Multi-region. Auto-scaling. The implication is that more copies equals more resilience.

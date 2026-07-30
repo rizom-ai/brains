@@ -23,6 +23,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   },
   personal: {
     anchor: "person",
+    kind: "professional",
     bundles: ["core", "site", "publishing"],
     site: {
       package: "@brains/site-default",
@@ -34,6 +35,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   },
   team: {
     anchor: "team",
+    kind: "team",
     bundles: ["core", "site", "team"],
     site: {
       package: "@brains/site-default",
@@ -45,6 +47,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   },
   commerce: {
     anchor: "organization",
+    kind: "organization",
     bundles: ["core", "site"],
     add: ["products"],
     site: {

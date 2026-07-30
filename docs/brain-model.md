@@ -30,6 +30,7 @@ my-brain/
 ```yaml
 brain: brain
 anchor: person
+kind: professional
 domain: mybrain.example.com
 
 bundles:

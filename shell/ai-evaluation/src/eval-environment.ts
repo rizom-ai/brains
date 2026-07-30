@@ -105,10 +105,10 @@ function copyEvaluationContent(
   config: AppConfig | undefined,
 ): void {
   const evalDataDir = `${evalDbBase}-data`;
-  const contentDir = findEvaluationContentDirectory(
+  const contentDir = resolveEvaluationContentDirectory({
     brainModelPath,
-    getConfiguredSeedContentPath(config),
-  );
+    config,
+  });
   if (!contentDir) return;
 
   mkdirSync(evalDataDir, { recursive: true });
@@ -125,10 +125,12 @@ function copyEvaluationContent(
   }
 }
 
-function findEvaluationContentDirectory(
-  brainModelPath: string | undefined,
-  configuredSeedContentPath: string | undefined,
-): string | undefined {
+export function resolveEvaluationContentDirectory(options: {
+  brainModelPath?: string | undefined;
+  config?: AppConfig | undefined;
+}): string | undefined {
+  const { brainModelPath, config } = options;
+  const configuredSeedContentPath = getConfiguredSeedContentPath(config);
   const configuredDirs = configuredSeedContentPath
     ? [
         resolvePath(process.cwd(), configuredSeedContentPath),

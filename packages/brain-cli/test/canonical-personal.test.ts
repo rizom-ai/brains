@@ -84,6 +84,7 @@ describe("canonical personal bundles", () => {
     expect(fixtureOverrides).toMatchObject({
       brain: "brain",
       anchor: "person",
+      kind: "professional",
       bundles: ["publishing", "site", "core"],
       site: {
         package: "@brains/site-default",
@@ -98,6 +99,7 @@ describe("canonical personal bundles", () => {
   test("composes site and publishing config in definition order", () => {
     const resolved = resolve(canonicalBrain, {}, canonicalOverrides());
 
+    expect(resolved.profileKind).toBe("professional");
     expect(pluginConfig(resolved, "dashboard")).toMatchObject({
       routePath: "/dashboard",
     });

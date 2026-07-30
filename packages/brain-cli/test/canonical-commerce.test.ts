@@ -81,6 +81,7 @@ describe("canonical commerce posture", () => {
     expect(fixtureOverrides).toMatchObject({
       brain: "brain",
       anchor: "organization",
+      kind: "organization",
       bundles: ["site", "core"],
       add: ["products"],
       site: {
@@ -107,6 +108,7 @@ describe("canonical commerce posture", () => {
       commerceOverrides(),
     );
 
+    expect(resolved.profileKind).toBe("organization");
     expect(pluginConfig(resolved, "site-builder")).toMatchObject({
       routes: expect.any(Array),
       themeCSS: expect.any(String),

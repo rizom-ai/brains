@@ -1,6 +1,6 @@
 id: wishlist-add-missing-capability
 name: Log missing capability to wishlist
-description: Tests that the agent calls wishlist_add when a feature does not exist
+description: Tests that the agent records a wish when a requested capability does not exist
 type: tool_invocation
 tags:
   - posture-commerce
@@ -13,8 +13,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: wishlist_add
+    - toolName: system_create
       shouldBeCalled: true
+      arguments:
+        entityType: wish
 
   responseNotContains:
     - "I've sent"

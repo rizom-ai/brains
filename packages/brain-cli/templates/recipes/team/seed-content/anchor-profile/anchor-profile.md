@@ -1,5 +1,4 @@
 ---
-kind: team
 name: Team Brain POC Team
 description: A small team validating shared knowledge capture, synthesis, and peer-brain coordination.
 website: "https://team.example.com"

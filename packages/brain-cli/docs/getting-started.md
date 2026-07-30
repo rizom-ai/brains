@@ -69,6 +69,7 @@ A personal instance starts with YAML like:
 ```yaml
 brain: brain
 anchor: person
+kind: professional
 bundles:
   - core
   - site

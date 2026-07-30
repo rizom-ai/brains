@@ -110,6 +110,7 @@ describe("canonical team bundle", () => {
     expect(fixtureOverrides).toMatchObject({
       brain: "brain",
       anchor: "team",
+      kind: "team",
       bundles: ["team", "site", "core"],
       plugins: {
         "directory-sync": {
@@ -128,6 +129,7 @@ describe("canonical team bundle", () => {
       runtimeOverrides(effectiveFixtureOverrides),
     );
 
+    expect(resolved.profileKind).toBe("team");
     const ids = pluginIds(resolved);
     for (const id of ["conversation-memory", "docs", "site-builder", "mcp"]) {
       expect(ids).toContain(id);

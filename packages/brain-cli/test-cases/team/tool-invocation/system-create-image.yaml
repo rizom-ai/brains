@@ -16,8 +16,15 @@ tags:
 
 turns:
   - userMessage: >-
-      Save this tiny Team Brain diagram placeholder image for later homepage proof:
-      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+      Save this tiny Team Brain diagram placeholder image for later homepage proof.
+    attachments:
+      - kind: file
+        filename: team-brain-diagram.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000951
 
 successCriteria:
   expectedTools:
@@ -25,6 +32,9 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "image"
+        source.kind: upload
+        source.transform: preserve
+        source.upload.id: upload-00000000-0000-4000-8000-000000000951
   responseNotContains:
     - "blog"
     - "newsletter"

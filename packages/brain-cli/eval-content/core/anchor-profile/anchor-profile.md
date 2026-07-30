@@ -1,6 +1,5 @@
 ---
 name: Alex Chen
-kind: person
 role: professional software architect and writer
 audience: distributed systems, sustainability, and urban technology practitioners
 expertise:

@@ -1,5 +1,4 @@
 ---
-kind: person
 name: Your Name Here
 description: >-
   Professional cat herder and amateur philosopher. Replace this

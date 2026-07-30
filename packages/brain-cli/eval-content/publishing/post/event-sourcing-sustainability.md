@@ -1,18 +1,13 @@
 ---
-title: "Event Sourcing for Sustainability Metrics"
+title: Event Sourcing for Sustainability Metrics
 slug: event-sourcing-sustainability
 status: published
-description: Using event sourcing to build auditable, trustworthy sustainability reporting systems
-excerpt: If you can't trace a carbon number back to its source event, the number is fiction.
-author: Alex Chen
-topics:
-  - distributed-systems
-  - sustainability
-  - architecture
 publishedAt: "2025-11-20T00:00:00.000Z"
-checksum: seed
-created: "2025-11-20T00:00:00.000Z"
-updated: "2025-11-20T00:00:00.000Z"
+excerpt: >-
+  If you can't trace a carbon number back to its source event, the number is
+  fiction.
+author: Alex Chen
+ogImageId: og-post-event-sourcing-sustainability
 ---
 
 Every sustainability report I've reviewed has the same problem: the numbers are impossible to verify. A company claims a 30% reduction in carbon emissions. Where does that number come from? A spreadsheet, updated quarterly, maintained by one person who left six months ago.

@@ -5,6 +5,8 @@ import { resolveEvalSelection } from "../src/eval-config-loader";
 const rawYaml = {
   suites: {
     core: {
+      anchor: "person",
+      kind: "professional",
       bundles: ["core"],
       tags: ["bundle-core"],
       plugins: {
@@ -25,6 +27,8 @@ const rawYaml = {
     },
     commerce: {
       extends: "core",
+      anchor: "organization",
+      kind: "organization",
       bundles: ["core", "site"],
       add: ["products"],
       tags: ["posture-commerce"],
@@ -40,6 +44,8 @@ const rawYaml = {
 describe("resolveEvalSelection", () => {
   it("resolves inherited suite bundles, additions, and tags", () => {
     expect(resolveEvalSelection(rawYaml, { suite: "commerce" })).toEqual({
+      anchor: "organization",
+      kind: "organization",
       bundles: ["core", "site"],
       add: ["products"],
       tags: ["bundle-core", "posture-commerce"],
@@ -58,6 +64,8 @@ describe("resolveEvalSelection", () => {
         tags: ["smoke"],
       }),
     ).toEqual({
+      anchor: "person",
+      kind: "professional",
       bundles: ["core", "site", "publishing"],
       tags: ["smoke"],
       plugins: {
@@ -101,6 +109,17 @@ describe("resolveEvalSelection", () => {
         },
       },
     });
+  });
+
+  it("rejects invalid suite profile selections", () => {
+    expect(() =>
+      resolveEvalSelection(
+        { suites: { bad: { anchor: "collective" } } },
+        { suite: "bad" },
+      ),
+    ).toThrow(
+      'Eval suite "bad" has invalid anchor; expected person, team, or organization.',
+    );
   });
 
   it("rejects unknown suites", () => {

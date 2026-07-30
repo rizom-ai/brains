@@ -1,4 +1,4 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { BaseEntityAdapter, contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   summarySchema,
@@ -11,6 +11,9 @@ import {
 import { SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+const summaryFileFrontmatterSchema = summaryMetadataSchema.extend({
+  visibility: contentVisibilitySchema.optional(),
+});
 
 export class SummaryAdapter extends BaseEntityAdapter<
   SummaryEntity,
@@ -65,15 +68,22 @@ export class SummaryAdapter extends BaseEntityAdapter<
 
   public override toMarkdown(entity: SummaryEntity): string {
     const { entries } = this.parseBody(entity.content);
-    return this.composeContent(entries, entity.metadata);
+    return this.buildMarkdown(this.createContentBody(entries), {
+      ...entity.metadata,
+      visibility: entity.visibility,
+    });
   }
 
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    const metadata = this.parseFrontMatter(markdown, summaryMetadataSchema);
+    const { visibility, ...metadata } = this.parseFrontMatter(
+      markdown,
+      summaryFileFrontmatterSchema,
+    );
 
     return {
       entityType: SUMMARY_ENTITY_TYPE,
       content: markdown,
+      ...(visibility ? { visibility } : {}),
       metadata,
     };
   }

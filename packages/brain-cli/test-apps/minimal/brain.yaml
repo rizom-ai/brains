@@ -1,5 +1,6 @@
 brain: brain
 anchor: person
+kind: professional
 bundles:
   - core
 

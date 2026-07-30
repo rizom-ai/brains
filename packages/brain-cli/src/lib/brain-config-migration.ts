@@ -29,6 +29,7 @@ interface MigrationInput {
   site?: unknown;
   plugins?: unknown;
   anchor?: unknown;
+  kind?: unknown;
 }
 
 const memberAliases: Readonly<Record<string, string>> = {
@@ -77,6 +78,7 @@ function migrationTarget(
       return {
         ...expandBrainRecipe("minimal"),
         anchor: "person",
+        kind: "professional",
         bundles: ["core"],
       };
     }
@@ -103,6 +105,7 @@ function migrationTarget(
     if (preset === "core") {
       return {
         anchor: "team",
+        kind: "team",
         bundles: ["core", "team"],
         plugins: {
           "directory-sync": { seedContentPath: "./seed-content" },
@@ -356,6 +359,7 @@ export function previewBrainConfigMigration(
   setScalarPreservingComment(document, "brain", "brain");
   replacePresetWithBundles(document, target.bundles);
   if (data.anchor === undefined) document.set("anchor", target.anchor);
+  if (data.kind === undefined && target.kind) document.set("kind", target.kind);
   if (add) document.set("add", add);
   else document.delete("add");
   if (remove) document.set("remove", remove);

@@ -21,7 +21,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false

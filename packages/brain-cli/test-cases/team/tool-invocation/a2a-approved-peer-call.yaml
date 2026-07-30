@@ -2,7 +2,7 @@ id: team-tool-a2a-approved-peer-call
 name: Call approved Team Brain peer brain
 description: >-
   Verifies that Team Brain will call an already saved and approved peer brain through
-  a2a_call using the local agent id, instead of asking to save it again or
+  agent_call using the local agent id, instead of asking to save it again or
   passing a full URL. The remote network may be unavailable in eval runs; this
   case is about the agent choosing the correct approved-peer A2A tool path and
   reporting the tool result honestly.
@@ -26,7 +26,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: true
       argsContain:
         agent: "partner-brain.io"

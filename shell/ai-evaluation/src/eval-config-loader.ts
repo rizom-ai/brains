@@ -138,6 +138,8 @@ async function loadBrainEvalConfigIfPresent(
 }
 
 export interface EvalSelection {
+  anchor?: InstanceOverrides["anchor"];
+  kind?: string;
   bundles?: string[];
   add?: string[];
   remove?: string[];
@@ -156,6 +158,8 @@ export function resolveEvalSelection(
   const tags = options.tags ?? suiteSelection?.tags;
 
   return {
+    ...(suiteSelection?.anchor ? { anchor: suiteSelection.anchor } : {}),
+    ...(suiteSelection?.kind ? { kind: suiteSelection.kind } : {}),
     ...(bundles ? { bundles } : {}),
     ...(suiteSelection?.add ? { add: suiteSelection.add } : {}),
     ...(suiteSelection?.remove ? { remove: suiteSelection.remove } : {}),
@@ -195,6 +199,8 @@ function resolveEvalSuite(
     const parentSelections = parentNames.map((parentName) => visit(parentName));
     visiting.delete(name);
 
+    const ownAnchor = parseSuiteAnchor(rawSuite["anchor"], name);
+    const ownKind = parseSuiteKind(rawSuite["kind"], name);
     const ownBundles = parseSuiteBundles(rawSuite["bundles"], name);
     const ownAdd = parseSuiteMemberIds(rawSuite["add"], name, "add");
     const ownRemove = parseSuiteMemberIds(rawSuite["remove"], name, "remove");
@@ -203,6 +209,14 @@ function resolveEvalSuite(
     const parentTags = parentSelections.flatMap(
       (selection) => selection.tags ?? [],
     );
+    const inheritedAnchor = [...parentSelections]
+      .reverse()
+      .find((selection) => selection.anchor)?.anchor;
+    const anchor = ownAnchor ?? inheritedAnchor;
+    const inheritedKind = [...parentSelections]
+      .reverse()
+      .find((selection) => selection.kind)?.kind;
+    const kind = ownKind ?? inheritedKind;
     const inheritedBundles = [...parentSelections]
       .reverse()
       .find((selection) => selection.bundles)?.bundles;
@@ -231,6 +245,8 @@ function resolveEvalSuite(
     >;
 
     const selection: EvalSelection = {
+      ...(anchor ? { anchor } : {}),
+      ...(kind ? { kind } : {}),
       ...(bundles ? { bundles } : {}),
       ...(add ? { add } : {}),
       ...(remove ? { remove } : {}),
@@ -246,13 +262,25 @@ function resolveEvalSuite(
 
 function applyCliOverrides(
   overrides: InstanceOverrides,
-  options: Pick<EvalSelection, "bundles" | "add" | "remove" | "plugins">,
+  options: Pick<
+    EvalSelection,
+    "anchor" | "kind" | "bundles" | "add" | "remove" | "plugins"
+  >,
 ): InstanceOverrides {
-  if (!options.bundles && !options.add && !options.remove && !options.plugins) {
+  if (
+    !options.anchor &&
+    !options.kind &&
+    !options.bundles &&
+    !options.add &&
+    !options.remove &&
+    !options.plugins
+  ) {
     return overrides;
   }
   return {
     ...overrides,
+    ...(options.anchor ? { anchor: options.anchor } : {}),
+    ...(options.kind ? { kind: options.kind } : {}),
     ...(options.bundles ? { bundles: options.bundles } : {}),
     ...(options.add ? { add: options.add } : {}),
     ...(options.remove ? { remove: options.remove } : {}),
@@ -275,6 +303,29 @@ function parseSuiteExtends(value: unknown, suiteName: string): string[] {
   }
   throw new Error(
     `Eval suite "${suiteName}" has invalid extends; expected a string or string array.`,
+  );
+}
+
+function parseSuiteAnchor(
+  value: unknown,
+  suiteName: string,
+): InstanceOverrides["anchor"] {
+  if (value === undefined) return undefined;
+  if (value === "person" || value === "team" || value === "organization") {
+    return value;
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid anchor; expected person, team, or organization.`,
+  );
+}
+
+function parseSuiteKind(value: unknown, suiteName: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid kind; expected a non-empty string.`,
   );
 }
 

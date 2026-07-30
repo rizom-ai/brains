@@ -52,7 +52,9 @@ describe("SummaryAdapter", () => {
 
     expect(markdown).toContain("conversationId: test-conv");
     expect(markdown).toContain("sourceHash: hash-123");
+    expect(markdown).toContain(`visibility: ${entity.visibility}`);
     expect(parsed.entityType).toBe("summary");
+    expect(parsed.visibility).toBe(entity.visibility);
     expect(parsed.metadata?.conversationId).toBe("test-conv");
   });
 });

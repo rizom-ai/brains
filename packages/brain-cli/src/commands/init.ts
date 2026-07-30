@@ -250,6 +250,7 @@ function writeBrainYaml(
     {
       brain: "brain",
       ...(expansion.anchor ? { anchor: expansion.anchor } : {}),
+      ...(expansion.kind ? { kind: expansion.kind } : {}),
       domain,
       bundles: expansion.bundles,
       ...(expansion.add ? { add: expansion.add } : {}),

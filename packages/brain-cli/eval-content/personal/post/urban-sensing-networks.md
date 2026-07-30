@@ -1,18 +1,13 @@
 ---
-title: "Urban Sensing Networks and the Data Commons"
+title: Urban Sensing Networks and the Data Commons
 slug: urban-sensing-networks
 status: published
-description: How cities can build sensor networks that serve the public without becoming surveillance infrastructure
-excerpt: The difference between a smart city and a surveilled city is governance, not technology.
-author: Alex Chen
-topics:
-  - urban-tech
-  - sustainability
-  - privacy
 publishedAt: "2025-10-01T00:00:00.000Z"
-checksum: seed
-created: "2025-10-01T00:00:00.000Z"
-updated: "2025-10-01T00:00:00.000Z"
+excerpt: >-
+  The difference between a smart city and a surveilled city is governance, not
+  technology.
+author: Alex Chen
+ogImageId: og-post-urban-sensing-networks
 ---
 
 Barcelona has air quality sensors on every block. Amsterdam monitors canal water levels in real time. Taipei tracks flood risk through a mesh of IoT devices in storm drains. These cities share a belief: urban data should be a public resource.

@@ -11,6 +11,10 @@ describe("WishlistPlugin instructions", () => {
   it("tells models to list the whole wishlist without status fanout", async () => {
     const instructions = await new TestWishlistPlugin().instructions();
 
+    expect(instructions).toContain('call system_create with entityType "wish"');
+    expect(instructions).toContain(
+      "Do not invent or look for a dedicated wishlist tool",
+    );
     expect(instructions).toContain(
       "To show the whole wishlist, call system_list once with entityType wish and omit status",
     );
