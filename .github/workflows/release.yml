@@ -37,8 +37,13 @@ jobs:
       contents: write
       id-token: write
     steps:
+      # Check out the branch tip, not the trigger-time SHA. When one push has
+      # pending changesets in both lanes, the release that loses the shared
+      # concurrency lock would otherwise version a base that is one version
+      # commit behind main and fail its push as non-fast-forward.
       - uses: actions/checkout@v5
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       # Changesets' GitHub changelog lookup currently uses node-fetch@2,
