@@ -14,12 +14,12 @@ import {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type {
+  DirectMcpExposure,
   MCPProtocolMode,
   Prompt,
   Resource,
   ResourceTemplate,
   Tool,
-  ToolAudience,
 } from "./types";
 import { normalizeToolExecutionMessageResponse } from "./tool-response-validation";
 
@@ -29,7 +29,6 @@ const MCP_SERVER_INFO = {
 };
 
 const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "admin";
-const DEFAULT_TOOL_AUDIENCES: ToolAudience[] = ["agent", "protocol"];
 const RESOURCE_VISIBILITY: UserPermissionLevel = "admin";
 const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "admin";
 
@@ -67,15 +66,18 @@ export function canExposeTool(
   );
 }
 
-function hasToolAudience(tool: Tool, audience: ToolAudience): boolean {
-  return (tool.audiences ?? DEFAULT_TOOL_AUDIENCES).includes(audience);
+function getDirectMcpExposure(tool: Tool): DirectMcpExposure {
+  if (tool.directMcpExposure !== undefined) {
+    return tool.directMcpExposure;
+  }
+  return isReadOnlyTool(tool) ? "basic" : "debug";
 }
 
 export function canExposeToolToAgent(
   permissionLevel: UserPermissionLevel,
   tool: Tool,
 ): boolean {
-  return canExposeTool(permissionLevel, tool) && hasToolAudience(tool, "agent");
+  return canExposeTool(permissionLevel, tool) && tool.agentTool !== false;
 }
 
 export function canExposeToolOnProtocol(
@@ -83,20 +85,15 @@ export function canExposeToolOnProtocol(
   tool: Tool,
   mode: MCPProtocolMode,
 ): boolean {
-  if (
-    !canExposeTool(permissionLevel, tool) ||
-    !hasToolAudience(tool, "protocol")
-  ) {
+  if (!canExposeTool(permissionLevel, tool)) {
     return false;
   }
 
-  if (mode === "debug") {
-    return true;
+  const exposure = getDirectMcpExposure(tool);
+  if (exposure === "none") {
+    return false;
   }
-
-  return (
-    isReadOnlyTool(tool) || tool.name === "chat" || tool.name === "confirm"
-  );
+  return mode === "debug" || exposure === "basic";
 }
 
 export function canExposeResource(

@@ -482,12 +482,12 @@ describe("MCPService", () => {
       expect(cliTools[0]?.tool.cli?.name).toBe("list");
     });
 
-    it("should keep CLI discovery independent from tool audiences", () => {
+    it("should keep CLI discovery independent from direct MCP exposure", () => {
       const cliTool: Tool = {
         name: "agent_cli_only",
         description: "Agent and CLI command",
         inputSchema: {},
-        audiences: ["agent"],
+        directMcpExposure: "none",
         handler: async () => ({ success: true, data: {} }),
         cli: { name: "agent-command" },
       };
@@ -630,11 +630,11 @@ describe("MCPService", () => {
     });
   });
 
-  describe("tool audiences", () => {
-    it("keeps protocol-only tools out of agent-visible tool lists", () => {
+  describe("tool exposure", () => {
+    it("keeps direct-MCP-only tools out of agent-visible tool lists", () => {
       const defaultTool: Tool = {
-        name: "audience_default_search",
-        description: "Default audience search",
+        name: "exposure_default_search",
+        description: "Default exposure search",
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
@@ -642,34 +642,35 @@ describe("MCPService", () => {
       };
 
       const agentOnlyTool: Tool = {
-        name: "audience_agent_only",
+        name: "exposure_agent_only",
         description: "Agent-only workflow tool",
         inputSchema: {},
         visibility: "public",
         sideEffects: "writes",
-        audiences: ["agent"],
+        directMcpExposure: "none",
         handler: async () => ({ success: true, data: {} }),
       };
 
-      const protocolOnlyTool: Tool = {
-        name: "audience_protocol_only",
-        description: "Protocol-only query adapter",
+      const directMcpOnlyTool: Tool = {
+        name: "exposure_direct_mcp_only",
+        description: "Direct MCP-only query adapter",
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
-        audiences: ["protocol"],
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: {} }),
       };
 
       mcpService.registerTool("plugin", defaultTool);
       mcpService.registerTool("plugin", agentOnlyTool);
-      mcpService.registerTool("plugin", protocolOnlyTool);
+      mcpService.registerTool("plugin", directMcpOnlyTool);
 
       expect(
         mcpService
           .listAgentToolsForPermissionLevel("public")
           .map((t) => t.tool.name),
-      ).toEqual(["audience_default_search", "audience_agent_only"]);
+      ).toEqual(["exposure_default_search", "exposure_agent_only"]);
     });
 
     it("lists protocol tools by permission and mode without changing server state", () => {
@@ -695,7 +696,7 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
-        audiences: ["agent"],
+        directMcpExposure: "none",
         handler: async () => ({ success: true, data: {} }),
       };
 
@@ -718,10 +719,10 @@ describe("MCPService", () => {
       ]);
     });
 
-    it("keeps agent-only tools off protocol servers even in debug mode", () => {
+    it("keeps direct MCP disabled tools off protocol servers even in debug mode", () => {
       const defaultTool: Tool = {
         name: "protocol_default_search",
-        description: "Default audience search",
+        description: "Default exposure search",
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
@@ -734,28 +735,29 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
-        audiences: ["agent"],
+        directMcpExposure: "none",
         handler: async () => ({ success: true, data: {} }),
       };
 
-      const protocolOnlyTool: Tool = {
-        name: "protocol_protocol_only",
-        description: "Protocol-only query adapter",
+      const directMcpOnlyTool: Tool = {
+        name: "protocol_direct_mcp_only",
+        description: "Direct MCP-only query adapter",
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
-        audiences: ["protocol"],
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: {} }),
       };
 
       mcpService.setProtocolMode("debug");
       mcpService.registerTool("plugin", defaultTool);
       mcpService.registerTool("plugin", agentOnlyTool);
-      mcpService.registerTool("plugin", protocolOnlyTool);
+      mcpService.registerTool("plugin", directMcpOnlyTool);
 
       expect(
         listProtocolToolNames(mcpService.createMcpServer("public")),
-      ).toEqual(["protocol_default_search", "protocol_protocol_only"]);
+      ).toEqual(["protocol_default_search", "protocol_direct_mcp_only"]);
     });
   });
 
@@ -785,6 +787,8 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "writes",
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -794,6 +798,8 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "writes",
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -849,6 +855,8 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "writes",
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -858,6 +866,8 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "writes",
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 

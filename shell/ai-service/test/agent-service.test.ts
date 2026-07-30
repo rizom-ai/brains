@@ -1881,7 +1881,7 @@ describe("AgentService", () => {
       expect(tools[0]?.name).toBe("search");
     });
 
-    it("does not pass protocol-only tools to the agent factory", async () => {
+    it("does not pass direct-MCP-only tools to the agent factory", async () => {
       const unsubscribeFn = mock(() => {});
       const realMCPService = MCPService.createFresh(
         {
@@ -1904,7 +1904,8 @@ describe("AgentService", () => {
         inputSchema: { message: z.string() },
         visibility: "public",
         sideEffects: "writes",
-        audiences: ["protocol"],
+        agentTool: false,
+        directMcpExposure: "basic",
         handler: mock(async () => ({ success: true as const, data: "ok" })),
       });
 

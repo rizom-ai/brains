@@ -644,6 +644,8 @@ describe("AuthService", () => {
     expect(tool).toBeDefined();
     expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("none");
+    expect(tool?.agentTool).toBeUndefined();
+    expect(tool?.directMcpExposure).toBeUndefined();
 
     const response = await harness.executeTool(tool?.name ?? "", {});
     expectSuccess(response);
@@ -1352,6 +1354,14 @@ describe("AuthService", () => {
         issuer: "https://brain.example.com",
       }),
     );
+
+    const tool = harness
+      .getCapabilities()
+      .tools.find(
+        (candidate) => candidate.name === "auth-service_get_passkey_setup_url",
+      );
+    expect(tool?.agentTool).toBe(false);
+    expect(tool?.directMcpExposure).toBeUndefined();
 
     const response = await harness.executeTool(
       "auth-service_get_passkey_setup_url",

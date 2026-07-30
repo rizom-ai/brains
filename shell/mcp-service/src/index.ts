@@ -5,7 +5,7 @@ export type {
   ToolContext,
   ToolResponse,
   Tool,
-  ToolAudience,
+  DirectMcpExposure,
   MCPProtocolMode,
   Resource,
   ResourceTemplate,

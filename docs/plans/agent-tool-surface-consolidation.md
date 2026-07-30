@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`. Preset snapshots, analytics cleanup, contextual passkey exposure, and the legacy-name audit remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 exposure-boundary work has replaced audience metadata with explicit `agentTool` and `directMcpExposure` routing, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers` and made passkey setup agent exposure contextual. Preset snapshots, analytics cleanup, and the legacy-name audit remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Context
 
@@ -13,7 +13,7 @@ The runtime currently uses one MCP service registry for several different consum
 - CLI-backed tools;
 - API routes and internal plugin dispatch.
 
-Tool visibility filters by caller permission, but there is no separate audience boundary. As a result, interface adapter tools and operator maintenance tools can enter the model's tool set even when they are not useful conversational actions. Normal full mode also differs from eval mode because Rover disables MCP, analytics, and other side-effecting capabilities during eval.
+Tool visibility filters by caller permission, but historically lacked a separate agent/direct-MCP exposure boundary. As a result, interface adapter tools and operator maintenance tools could enter the model's tool set even when they were not useful conversational actions. Normal full mode also differs from eval mode because Rover disables MCP, analytics, and other side-effecting capabilities during eval.
 
 The full-preset inventory measured on 2026-07-28 is:
 
@@ -36,7 +36,7 @@ The latest full eval passed 186/191 cases. Tool-surface symptoms among the failu
 - an inline playbook transformation incorrectly routed through durable `system_generate` and confirmation;
 - repeated playbook status calls returning very large definitions, state, evidence, and guidance payloads.
 
-This is not a reason to collapse every tool. The core read and mutation boundaries are well exercised and encode meaningful safety and intent distinctions. The work should remove audience leakage, hide maintenance operations, and consolidate only coherent lifecycle namespaces.
+This is not a reason to collapse every tool. The core read and mutation boundaries are well exercised and encode meaningful safety and intent distinctions. The work should remove agent-surface leakage, hide maintenance operations, and consolidate only coherent lifecycle namespaces.
 
 ## Goals
 
@@ -102,25 +102,26 @@ Cloudflare traffic should add no separate model tool once it is represented thro
 
 ## Settled design decisions
 
-### Tool registration and agent exposure are separate contracts
+### Tool registration, agent tools, and direct MCP exposure are separate contracts
 
-Extend `Tool` metadata with an explicit audience contract, conceptually:
+Extend `Tool` metadata with explicit routing fields:
 
 ```ts
-type ToolAudience = "agent" | "protocol";
+type DirectMcpExposure = "none" | "basic" | "debug";
 
 interface Tool {
-  audiences?: ToolAudience[];
+  agentTool?: boolean;
+  directMcpExposure?: DirectMcpExposure;
   // Existing visibility, sideEffects, annotations, cli, schemas, handler...
 }
 ```
 
-For backward compatibility, omitted `audiences` initially means both `agent` and `protocol`. CLI exposure remains controlled by existing `tool.cli` metadata; API and internal message-bus dispatch continue to resolve registered tools independently of audience.
+Omitted `agentTool` means the registered tool is available to the LLM agent. Omitted `directMcpExposure` is derived from `sideEffects`: read-only tools (`sideEffects: "none"`) are exposed in MCP basic/debug; mutating or external tools are exposed in MCP debug only. CLI exposure remains controlled by existing `tool.cli` metadata; API and internal message-bus dispatch continue to resolve registered tools independently of direct MCP exposure.
 
 Add explicit registry views rather than filtering ad hoc:
 
-- `listAgentToolsForPermissionLevel(level)` — audience `agent` plus permission;
-- protocol registration — audience `protocol` plus current basic/debug and permission policy;
+- `listAgentToolsForPermissionLevel(level)` — `agentTool !== false` plus permission;
+- protocol registration — `directMcpExposure` plus current basic/debug and permission policy;
 - `getCliTools()` — existing CLI metadata;
 - `listTools()` — complete internal registry for diagnostics and dispatch.
 
@@ -166,11 +167,11 @@ Confirmation responses must return the canonical consolidated tool name and froz
 
 Exit gate: inventory and coverage agree on `directory_sync` history coverage, and normal full mode visibly distinguishes agent tools from protocol tools.
 
-### Phase 1 — Audience boundary
+### Phase 1 — Exposure boundary
 
-1. Add audience metadata and registry filtering in `@brains/mcp-service`.
+1. Add `agentTool` / `directMcpExposure` metadata and registry filtering in `@brains/mcp-service`.
 2. Change `AgentService` to use `listAgentToolsForPermissionLevel`.
-3. Mark MCP interface adapters as protocol-only:
+3. Mark MCP interface adapters as direct-MCP only:
    - `chat`;
    - `confirm`.
 4. Add tests proving:
@@ -299,17 +300,17 @@ Exit gate: configured optional providers add at most three model tools—newslet
 
 1. Instrument or audit debug-protocol and operator usage of old tool names without logging arguments or content.
 2. Document canonical replacements in release notes.
-3. Ask case-by-case before keeping any protocol-only legacy adapter.
+3. Ask case-by-case before keeping any direct-MCP-only legacy adapter.
 4. Delete obsolete instructions, eval assertions, and tool-name repair logic after legacy-name removal.
 
 ## Validation strategy
 
 ### Unit and integration checks
 
-- MCP-service audience and permission filtering.
-- AgentService construction from agent-only tools.
-- MCP basic/debug protocol exposure.
-- CLI discovery independence from agent audience.
+- MCP-service exposure and permission filtering.
+- AgentService construction from agent-exposed tools.
+- MCP basic/debug direct protocol exposure.
+- CLI discovery independence from direct MCP exposure.
 - Strict discriminated-union validation for each consolidated tool.
 - Confirmation token mismatch, expiry, replay, and stale-content tests.
 - Action-level permission tests at Public, Trusted, and Admin levels.
@@ -340,7 +341,7 @@ bun run eval:full
 Coverage success means:
 
 - every agent-visible tool has a positive behavioral assertion or an explicit justified exemption;
-- protocol-only tools are not reported as missing agent assertions;
+- direct-MCP-only tools are not reported as missing agent assertions;
 - no assertion references a tool absent from the tested composition;
 - normal-mode surface snapshots separately cover MCP adapter registration.
 
@@ -367,12 +368,12 @@ Final exit targets:
 
 ## Migration and release safety
 
-- Land audience filtering before any temporary legacy adapter so old names cannot re-enter the model set.
+- Land exposure filtering before any temporary legacy adapter so old names cannot re-enter the model set.
 - Migrate one lifecycle namespace per release: playbooks, directory sync, then publishing.
 - Keep business logic behind existing services; canonical tools and any explicitly approved legacy adapters are adapters only.
 - Update generated docs, feature overview tool tables, eval fixtures, and changelogs in the same release as each canonical tool.
 - Do not silently remove a CLI command or MCP basic capability.
-- A phase can roll back by restoring the prior agent audience while leaving the shared service implementation unchanged.
+- A phase can roll back by restoring the prior agent exposure while leaving the shared service implementation unchanged.
 
 ## Risks
 
@@ -389,7 +390,7 @@ This plan is complete when:
 
 1. agent, protocol, and CLI surfaces are independently enumerable and tested;
 2. normal full mode exposes the 20-tool base target to the model;
-3. MCP `chat` and `confirm` are protocol-only;
+3. MCP `chat` and `confirm` are direct-MCP-only;
 4. publish-asset reconciliation and Obsidian metadata sync are no longer tools, while `agent_scan_directories` remains agent-visible and behaviorally covered;
 5. playbooks, directory sync, and publishing each have one canonical model tool;
 6. analytics and Buttondown no longer create duplicate or fragmented model surfaces;
