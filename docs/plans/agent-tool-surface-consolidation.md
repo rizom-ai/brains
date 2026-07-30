@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, and Phase 5 consolidated publishing actions behind `publishing_manage`. Preset snapshots and optional provider cleanup remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 audience-boundary work has started, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`. Preset snapshots, analytics cleanup, contextual passkey exposure, and the legacy-name audit remain. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Context
 

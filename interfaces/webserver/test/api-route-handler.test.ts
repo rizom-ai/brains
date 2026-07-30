@@ -89,6 +89,28 @@ describe("createApiRouteHandler", () => {
   });
 
   describe("tool invocation", () => {
+    it("should allow plugin routes to target an exact canonical tool name", async () => {
+      const route = createMockRoute({ tool: "newsletter_subscribers" });
+      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
+
+      await app.request(route.fullPath, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({ email: "test@example.com" }),
+      });
+
+      expect(mockMessageBus.send).toHaveBeenCalledWith({
+        type: "plugin:newsletter:tool:execute",
+        payload: expect.objectContaining({
+          toolName: "newsletter_subscribers",
+        }),
+        sender: "webserver",
+      });
+    });
+
     it("should call tool with correct message type", async () => {
       const route = createMockRoute();
       app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
