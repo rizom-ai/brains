@@ -39,16 +39,24 @@ Additional newsletter validation errors created excessive logs during every buil
 
 ### Make SWOT a terminal derived output
 
-Change `entities/assessment/src/plugin.ts` so SWOT cannot be consumed by generic projections:
+SWOT currently declares `projectionSourceRole: "supporting"`, which gives it
+weight 0.55 in topic batch extraction (`canMint: false`, so it reinforces
+existing topics rather than creating new ones — but reinforcement is enough to
+close the feedback loop). Change `entities/assessment/src/plugin.ts` so SWOT
+cannot be consumed by generic projections:
 
 ```ts
-protected override getEntityTypeConfig(): EntityTypeConfig {
+protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
   return {
     projectionSource: false,
     projectionSourceRole: "excluded",
   };
 }
 ```
+
+`projectionSource: false` is redundant with the `"excluded"` role (consumers
+resolve the role first), but setting both matches the existing idiom in the
+image, wishlist, and topics plugins — keep both for consistency.
 
 ### Default derived outputs to excluded
 
@@ -85,7 +93,7 @@ Extend `shell/plugins/src/entity/derived-entity-projection.ts` with a registry c
 
 After plugin registration, expand wildcards against registered entity types and validate the resulting graph. Reject undeclared cycles during startup.
 
-Event-based dependencies such as `topics:batch-completed -> skill` must be represented so graph validation can detect cycles that cross entity and message channels.
+Event-based dependencies such as `topics:batch-completed -> skill` must be represented so graph validation can detect cycles that cross entity and message channels. This is load-bearing, not optional: the topic -> skill edge runs over the `topics:batch-completed` message, and SWOT regenerates by subscribing to `skill`/`agent` entity-change messages — none of which pass through projection-source scanning. Phase 1's exclusion breaks only the SWOT -> topic edge; the rest of the cycle machinery stays live until these event edges are in the registry.
 
 ### Mutation provenance
 
@@ -178,18 +186,32 @@ A JavaScript timeout cannot recover from a runtime or GC deadlock. The long-term
 
 Refactor `plugins/site-builder/src/lib/auto-rebuild.ts`.
 
+Most of the coalescing machinery already exists — do not rebuild it. The
+manager already debounces via `LeadingTrailingDebounce` and enqueues with
+`deduplication: "skip"`, and because skip-dedup matches only _pending_ jobs,
+the queue already collapses requests arriving during a build into at most one
+pending successor. The actual gaps are the three items below.
+
 ### Trailing rebuilds
 
-Use trailing debounce for automatic entity-triggered builds. Explicit user build requests may remain immediate.
+Drop the leading edge: the leading fire is what turns every mutation burst
+into an immediate build plus a trailing one. Automatic entity-triggered builds
+use trailing-only debounce. Explicit user build requests may remain immediate.
 
-### One pending successor
+### Environment-specific deduplication key
 
-Use an environment-specific deduplication key and track a dirty generation:
+Today the enqueue passes `deduplication: "skip"` with **no** deduplication
+key, and the deduplicator with no key matches all active jobs of the type —
+so a pending preview build silently swallows a production build request. This
+is a latent correctness bug, not just backpressure hygiene. Add a
+per-environment deduplication key so preview and production never dedup
+against each other.
 
-- while idle, enqueue one build;
-- while pending, update/coalesce it;
-- while building, record dirty state;
-- after completion, enqueue at most one successor if inputs changed.
+### Skip unnecessary successors
+
+The queue enqueues a successor even when nothing relevant changed. Track a
+dirty generation so that after a build completes, a successor is enqueued only
+if inputs changed since the build started.
 
 ### Site input fingerprint
 
@@ -199,19 +221,12 @@ Longer term, trigger site building when a causal projection wave becomes quiesce
 
 ## Phase 6: child-process lifecycle
 
-### Proper PID 1
-
-Update `shared/deploy-support/src/Dockerfile` to install and use `tini`:
-
-```dockerfile
-ENTRYPOINT ["/usr/bin/tini", "--"]
-```
-
-Run the packaged brain entry point directly instead of through avoidable Bun and shell wrapper layers.
-
 ### Git process ownership
 
-Audit `plugins/directory-sync/src/lib/git-*` and `simple-git` usage to ensure:
+This is the load-bearing fix. Zombies that are direct children of the
+still-running brain process are un-awaited spawns; no PID 1 change reaps
+them. Audit `plugins/directory-sync/src/lib/git-*` and `simple-git` usage to
+ensure:
 
 - every process is awaited;
 - cancellation terminates child processes;
@@ -219,6 +234,19 @@ Audit `plugins/directory-sync/src/lib/git-*` and `simple-git` usage to ensure:
 - shutdown drains or kills active Git operations.
 
 Add a container-level soak test that performs hundreds of Git sync operations and asserts the zombie count remains zero.
+
+### Proper PID 1
+
+Defense-in-depth for the orphan case: `tini` reaps only processes that get
+reparented to PID 1 (e.g. children of a crashed subprocess or shutdown races),
+not direct children of a live brain process. Update
+`shared/deploy-support/src/Dockerfile` to install and use `tini`:
+
+```dockerfile
+ENTRYPOINT ["/usr/bin/tini", "--"]
+```
+
+Run the packaged brain entry point directly instead of through avoidable Bun and shell wrapper layers.
 
 ## Phase 7: health and automatic recovery
 
@@ -276,26 +304,35 @@ Add regression fixtures for draft newsletters without `sentAt`, `scheduledFor`, 
 - Publish a new `@rizom/brain` release.
 - Upgrade `yeehaa.io` directly to that release, deploy, and verify the persisted queue reaches quiescence.
 
-### PR 2: process and recovery safety
+### PR 2: child-process lifecycle
 
+- Audit and fix Git process ownership (await, cancel, timeout, shutdown).
 - Add `tini` and direct entrypoint execution.
-- Add job deadlines, cancellation, and startup recovery.
-- Add liveness/readiness separation and watchdog integration.
+- Add the container-level Git soak test.
 
-### PR 3: convergence and amplification
+### PR 3: bounded job execution
+
+- Add job deadlines, cancellation, and startup recovery (leases/heartbeats).
+
+### PR 4: health and recovery
+
+- Add liveness/readiness separation and watchdog integration.
+- Expose resource signals.
+
+### PR 5: convergence and amplification
 
 - Add projection input fingerprints.
 - Make SWOT semantic updates idempotent.
-- Add bounded site-build scheduling and fingerprints.
+- Add trailing-only debounce, environment-specific dedup keys, dirty-generation successors, and site input fingerprints.
 - Fix JSON `undefined` normalization.
 
-### PR 4: projection architecture
+### PR 6: projection architecture
 
-- Add projection registry and graph validation.
+- Add projection registry and graph validation, including event-based edges.
 - Add causal provenance and runtime work budgets.
 - Add circuit-breaker health reporting.
 
-### PR 5: failure isolation
+### PR 7: failure isolation
 
 - Move heavy background processing into a separate worker process/container.
 - Verify the web process remains responsive during worker failure and restart.
@@ -303,7 +340,7 @@ Add regression fixtures for draft newsletters without `sentAt`, `scheduledFor`, 
 ## Acceptance criteria
 
 1. A new document produces one bounded topic/skill/SWOT wave and the queue reaches idle.
-2. The full preset contains no undeclared projection cycle.
+2. The full preset contains no undeclared projection cycle. This is only checkable once the registry includes event-based edges (PR 6); before that, graph validation cannot see the topic/skill/SWOT message channels.
 3. Reprocessing unchanged inputs produces no entity mutations.
 4. A hung job times out or is isolated without permanently blocking the queue.
 5. A dead worker's job is reclaimed after restart without duplicate completion.
@@ -312,3 +349,7 @@ Add regression fixtures for draft newsletters without `sentAt`, `scheduledFor`, 
 8. Readiness returns 503 for stale workers or open circuit breakers.
 9. Draft newsletters build without optional-field validation errors.
 10. A one-hour mutation soak test shows bounded RSS, FD count, process count, queue depth, and site-build rate.
+
+Criteria 7 and 10 are soak tests that cannot run in ordinary CI. They run as a
+manual pre-release check against a staging deploy: criterion 7 gates the PR 2
+release, criterion 10 gates the PR 7 release.
