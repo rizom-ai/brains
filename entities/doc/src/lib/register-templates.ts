@@ -13,15 +13,15 @@ const docFrontmatterSchema = z.object({
   section: z.string(),
   order: z.number().int(),
   sourcePath: z.string(),
-  description: z.string().optional(),
-  slug: z.string().optional(),
+  description: z.string().nullable().default(null),
+  slug: z.string().nullable().default(null),
 });
 
 const docMetadataSchema = z.object({
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
   slug: z.string(),
 });
 
@@ -41,7 +41,7 @@ const docWithDataSchema = z.object({
 const docListSchema = z.object({
   docs: z.array(docWithDataSchema),
   pagination: paginationInfoSchema.nullable(),
-  baseUrl: z.string().optional(),
+  baseUrl: z.string().nullable().default(null),
 });
 
 const docDetailSchema = z.object({

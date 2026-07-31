@@ -63,6 +63,7 @@ describe("createSiteContentTemplates", () => {
       }),
     ).toEqual({
       headline: "Build the agent that represents you",
+      subhead: null,
       cards: [
         { variant: "alpha", title: "First" },
         { variant: "beta", title: "Second" },

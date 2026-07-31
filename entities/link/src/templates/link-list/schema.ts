@@ -10,12 +10,12 @@ export interface LinkSummary {
   status: LinkStatus;
   title: string;
   url: string;
-  description?: string | undefined;
+  description: string | null;
   domain: string;
   capturedAt: string;
   source: LinkSummarySource;
   id: string;
-  summary?: string | undefined;
+  summary: string | null;
 }
 
 export interface LinkListData {
@@ -32,12 +32,12 @@ const linkSummarySchema: z.ZodType<LinkSummary> = z.object({
   status: z.enum(["pending", "draft", "published"]),
   title: z.string(),
   url: z.url(),
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
   domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
   id: z.string(),
-  summary: z.string().optional(),
+  summary: z.string().nullable().default(null),
 });
 
 // Schema for link list page data

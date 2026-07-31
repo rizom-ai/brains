@@ -5,6 +5,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { blogViewSchema } from "@brains/blog";
+import { deckViewSchema } from "@brains/decks";
 import { professionalProfileSchema } from "./schemas";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
@@ -29,7 +31,8 @@ import packageJson from "../package.json";
 const homepageSectionSchema = z.object({
   blurb: z
     .string()
-    .optional()
+    .nullable()
+    .default(null)
     .describe("Short italic subtitle under the section title"),
 });
 
@@ -39,62 +42,8 @@ const siteInfoCTASchema = z.object({
   buttonLink: z.string(),
 });
 
-const blogPostSchema = z.looseObject({
-  id: z.string(),
-  entityType: z.literal("post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  contentHash: z.string(),
-  metadata: z.looseObject({
-    title: z.string(),
-    publishedAt: z.string().optional(),
-  }),
-  frontmatter: z.looseObject({
-    excerpt: z.string(),
-    seriesName: z.string().optional(),
-    seriesIndex: z.number().optional(),
-  }),
-  body: z.string(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  seriesUrl: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
-  coverImageSrcset: z.string().optional(),
-  coverImageSizes: z.string().optional(),
-});
-
-const deckSchema = z.looseObject({
-  id: z.string(),
-  entityType: z.literal("deck"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  contentHash: z.string(),
-  metadata: z.looseObject({
-    title: z.string(),
-    publishedAt: z.string().optional(),
-  }),
-  frontmatter: z.looseObject({
-    title: z.string(),
-    description: z.string().optional(),
-    publishedAt: z.string().optional(),
-  }),
-  body: z.string(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
-});
+const blogPostSchema = blogViewSchema;
+const deckSchema = deckViewSchema;
 
 /**
  * Professional Site Plugin

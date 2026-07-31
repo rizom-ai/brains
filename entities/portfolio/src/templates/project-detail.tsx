@@ -1,11 +1,11 @@
 import type { JSX } from "preact";
 import { Head, MarkdownContent, Card, CoverImage } from "@brains/ui-library";
-import type { EnrichedProject } from "../schemas/project";
+import type { ProjectView } from "./project-view";
 
 export interface ProjectDetailProps {
-  project: EnrichedProject;
-  prevProject: EnrichedProject | null;
-  nextProject: EnrichedProject | null;
+  project: ProjectView;
+  prevProject: ProjectView | null;
+  nextProject: ProjectView | null;
 }
 
 /**
@@ -15,8 +15,8 @@ const ProjectNavigation = ({
   prevProject,
   nextProject,
 }: {
-  prevProject: EnrichedProject | null;
-  nextProject: EnrichedProject | null;
+  prevProject: ProjectView | null;
+  nextProject: ProjectView | null;
 }): JSX.Element | null => {
   if (!prevProject && !nextProject) return null;
 

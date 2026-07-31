@@ -1,6 +1,5 @@
 import type { JSX } from "preact";
-import type { OverviewWithData } from "../schemas/overview";
-import type { EnrichedProduct } from "../schemas/product";
+import type { OverviewView, ProductView } from "./product-view";
 import {
   Head,
   LinkButton,
@@ -11,8 +10,8 @@ import {
 } from "@brains/ui-library";
 
 export interface ProductsPageProps {
-  overview: OverviewWithData;
-  products: EnrichedProduct[];
+  overview: OverviewView;
+  products: ProductView[];
 }
 
 /**
@@ -319,7 +318,7 @@ export const ProductsPageTemplate = ({
 function FeaturedProductCard({
   product,
 }: {
-  product: EnrichedProduct;
+  product: ProductView;
 }): JSX.Element {
   const { frontmatter, body } = product;
   const featureNames = body.features.map((f) => f.title);
@@ -356,7 +355,7 @@ function FeaturedProductCard({
 /**
  * Product card — compact with gradient accent strip
  */
-function ProductCard({ product }: { product: EnrichedProduct }): JSX.Element {
+function ProductCard({ product }: { product: ProductView }): JSX.Element {
   const { frontmatter, body } = product;
   const featureNames = body.features.map((f) => f.title);
 

@@ -36,7 +36,7 @@ function createPipelineContext(
       schema: z.object({
         heading: z.string(),
         pageTitle: z.string(),
-        pageLabel: z.string().optional(),
+        pageLabel: z.string().nullable().default(null),
       }),
       renderers: { web: (): VNode => h("div", {}) },
       fullscreen: true,

@@ -1,3 +1,4 @@
+import type { JsonObject } from "@brains/contracts";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
@@ -69,7 +70,7 @@ export const ViewTemplateSchema: z.ZodType<ViewTemplateSchemaOutput> = z.object(
 /**
  * View template with support for multiple output formats
  */
-export interface ViewTemplate<T = unknown> {
+export interface ViewTemplate<T extends JsonObject = JsonObject> {
   name: string;
   schema: TemplateDataSchema<T>;
   description?: string;
@@ -100,8 +101,8 @@ export interface ViewTemplate<T = unknown> {
  * View template registry interface
  */
 export interface ViewTemplateRegistry {
-  get(name: string): ViewTemplate<unknown> | undefined;
-  list(): ViewTemplate<unknown>[];
+  get(name: string): ViewTemplate | undefined;
+  list(): ViewTemplate[];
   validate(templateName: string, content: unknown): boolean;
 }
 

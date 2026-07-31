@@ -1,17 +1,18 @@
 import type { VNode } from "preact";
+import type { JsonObject } from "@brains/contracts";
 import type { SiteRuntimeScript } from "@brains/site-engine";
 import type { ZodType } from "@brains/utils/zod";
 
-type SiteViewTemplateSchema = ZodType<unknown, unknown>;
+type SiteViewTemplateSchema = ZodType<JsonObject, unknown>;
 
 export interface SiteViewTemplate {
   name: string;
   schema: SiteViewTemplateSchema;
   pluginId: string;
   renderers: {
-    web?: ((props: Record<string, unknown>) => VNode) | string;
-    image?: ((props: Record<string, unknown>) => VNode) | string;
-    pdf?: ((props: Record<string, unknown>) => VNode) | string;
+    web?: ((props: JsonObject) => VNode) | string;
+    image?: ((props: JsonObject) => VNode) | string;
+    pdf?: ((props: JsonObject) => VNode) | string;
   };
   fullscreen?: boolean;
   runtimeScripts?: SiteRuntimeScript[];

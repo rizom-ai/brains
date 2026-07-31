@@ -12,7 +12,7 @@ import {
 export interface DocListProps {
   docs: DocWithData[];
   pagination?: PaginationInfo | null;
-  baseUrl?: string;
+  baseUrl: string | null;
 }
 
 export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {

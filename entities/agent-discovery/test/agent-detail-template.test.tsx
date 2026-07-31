@@ -4,6 +4,8 @@ import { render } from "preact-render-to-string";
 import { AgentDetailTemplate } from "../src/templates/agent-detail";
 import { createTemplateAgent } from "./fixtures/agent";
 
+const detailDefaults = { prevAgent: null, nextAgent: null } as const;
+
 const connected = createTemplateAgent({
   name: "Metis",
   url: "https://jo.rizom.ai",
@@ -31,7 +33,9 @@ const archived = createTemplateAgent({
 
 describe("AgentDetailTemplate", () => {
   test("connected agent reads as connected with no provenance", () => {
-    const html = render(<AgentDetailTemplate agent={connected} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={connected} />,
+    );
 
     expect(html).toContain("Connected");
     expect(html).toContain("https://jo.rizom.ai");
@@ -39,7 +43,9 @@ describe("AgentDetailTemplate", () => {
   });
 
   test("sighted agent shows provenance: introducer, hop distance, and first-seen date", () => {
-    const html = render(<AgentDetailTemplate agent={sighting} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={sighting} />,
+    );
 
     expect(html).toContain("sighted through");
     expect(html).toContain("yeehaa.io");
@@ -49,7 +55,9 @@ describe("AgentDetailTemplate", () => {
   });
 
   test("approve hint speaks to the human, not the tool layer", () => {
-    const html = render(<AgentDetailTemplate agent={sighting} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={sighting} />,
+    );
 
     expect(html).toContain("Ask your brain");
     expect(html).toContain("connect to mylittlephoney.com");
@@ -57,14 +65,18 @@ describe("AgentDetailTemplate", () => {
   });
 
   test("sighted agent lists its introducers with links", () => {
-    const html = render(<AgentDetailTemplate agent={sighting} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={sighting} />,
+    );
 
     expect(html).toContain("Introduced by");
     expect(html).toContain('href="https://yeehaa.io"');
   });
 
   test("discovered agent without provenance awaits approval, not a sighting", () => {
-    const html = render(<AgentDetailTemplate agent={savedForReview} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={savedForReview} />,
+    );
 
     expect(html).toContain("awaiting approval");
     expect(html).toContain("Not yet callable");
@@ -73,13 +85,17 @@ describe("AgentDetailTemplate", () => {
   });
 
   test("archived agent is labeled archived", () => {
-    const html = render(<AgentDetailTemplate agent={archived} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={archived} />,
+    );
 
     expect(html).toContain("Archived");
   });
 
   test("skills render with their tags", () => {
-    const html = render(<AgentDetailTemplate agent={connected} />);
+    const html = render(
+      <AgentDetailTemplate {...detailDefaults} agent={connected} />,
+    );
 
     expect(html).toContain("Content Creation");
     expect(html).toContain("blog");

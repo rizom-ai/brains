@@ -1,3 +1,4 @@
+import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
 import type {
   DataSource,
   DataSourceSchema,
@@ -110,6 +111,7 @@ export interface EntityDataSourceConfig {
 export abstract class BaseEntityDataSource<
   TEntity extends BaseEntity = BaseEntity,
   TTransformed = TEntity,
+  TListResult extends object = JsonObject,
 > implements DataSource {
   protected readonly logger: Logger;
   abstract readonly id: string;
@@ -156,7 +158,7 @@ export abstract class BaseEntityDataSource<
     items: TTransformed[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ): unknown;
+  ): TListResult & JsonObjectOutputGuard<TListResult>;
 
   /**
    * Parse and validate the incoming query with Zod.

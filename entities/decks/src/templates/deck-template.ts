@@ -1,17 +1,17 @@
 import { z } from "@brains/utils/zod";
 import { PresentationLayout } from "@brains/ui-library";
 import { createTemplate, type Template } from "@brains/templates";
-import { enrichedDeckSchema } from "../schemas/deck";
+import { deckViewSchema } from "./deck-view-schema";
 
 /**
  * Schema for deck template data
  */
 export const deckTemplateSchema: z.ZodObject<{
   markdown: z.ZodString;
-  deck: z.ZodOptional<typeof enrichedDeckSchema>;
+  deck: z.ZodDefault<z.ZodNullable<typeof deckViewSchema>>;
 }> = z.object({
   markdown: z.string().describe("Markdown content with slide separators (---)"),
-  deck: enrichedDeckSchema.optional(),
+  deck: deckViewSchema.nullable().default(null),
 });
 
 export type DeckTemplateData = z.output<typeof deckTemplateSchema>;

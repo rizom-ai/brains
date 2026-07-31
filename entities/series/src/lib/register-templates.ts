@@ -14,7 +14,7 @@ import {
 const seriesFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string(),
-  coverImageId: z.string().optional(),
+  coverImageId: z.string().nullable().default(null),
 });
 
 const seriesMetadataSchema = z.object({
@@ -32,23 +32,38 @@ const seriesListItemSchema = z.object({
   metadata: seriesMetadataSchema,
   contentHash: z.string(),
   frontmatter: seriesFrontmatterSchema,
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
   postCount: z.number(),
-  coverImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
+  coverImageUrl: z.string().nullable().default(null),
+  coverImageWidth: z.number().nullable().default(null),
+  coverImageHeight: z.number().nullable().default(null),
 });
 
 const seriesListSchema = z.object({
   series: z.array(seriesListItemSchema),
-  pagination: paginationInfoSchema.nullable().optional(),
+  pagination: paginationInfoSchema.nullable().default(null),
+});
+
+const seriesMemberSchema = z.object({
+  id: z.string(),
+  url: z.string().nullable().default(null),
+  frontmatter: z
+    .object({
+      title: z.string().nullable().default(null),
+      seriesIndex: z.number().nullable().default(null),
+      excerpt: z.string().nullable().default(null),
+      publishedAt: z.string().nullable().default(null),
+    })
+    .nullable()
+    .default(null),
+  metadata: z.record(z.string(), z.json()).nullable().default(null),
 });
 
 const seriesDetailSchema = z.object({
   seriesName: z.string(),
-  posts: z.array(z.record(z.string(), z.unknown())),
+  posts: z.array(seriesMemberSchema),
   series: seriesListItemSchema,
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
 });
 
 export function getTemplates(): Record<string, Template> {

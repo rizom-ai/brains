@@ -4,16 +4,25 @@ import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
 import {
-  templateBlogPostSchema,
-  type TemplateBlogPost,
-} from "./template-blog-post-schema";
+  blogViewSchema,
+  type BlogPostView,
+  type BlogSchemaData,
+} from "./blog-view-schema";
 
 export interface HomepagePostContent {
   type: "post";
-  post: TemplateBlogPost;
-  prevPost: TemplateBlogPost | null;
-  nextPost: TemplateBlogPost | null;
-  seriesPosts: TemplateBlogPost[] | null;
+  post: BlogPostView;
+  prevPost: BlogPostView | null;
+  nextPost: BlogPostView | null;
+  seriesPosts: BlogPostView[] | null;
+}
+
+interface HomepagePostSchemaContent {
+  type: "post";
+  post: BlogSchemaData;
+  prevPost: BlogSchemaData | null;
+  nextPost: BlogSchemaData | null;
+  seriesPosts: BlogSchemaData[] | null;
 }
 
 export interface HomepageMarkdownContent {
@@ -22,18 +31,20 @@ export interface HomepageMarkdownContent {
 }
 
 export type HomepageContent = HomepagePostContent | HomepageMarkdownContent;
+type HomepageSchemaContent =
+  HomepagePostSchemaContent | HomepageMarkdownContent;
 
 /**
  * Homepage can show either the latest blog post or markdown content
  */
-export const homepageSchema: z.ZodType<HomepageContent> = z.union([
+export const homepageSchema: z.ZodType<HomepageSchemaContent> = z.union([
   // Blog post variant
   z.object({
     type: z.literal("post"),
-    post: templateBlogPostSchema,
-    prevPost: templateBlogPostSchema.nullable(),
-    nextPost: templateBlogPostSchema.nullable(),
-    seriesPosts: z.array(templateBlogPostSchema).nullable(),
+    post: blogViewSchema,
+    prevPost: blogViewSchema.nullable(),
+    nextPost: blogViewSchema.nullable(),
+    seriesPosts: z.array(blogViewSchema).nullable(),
   }),
   // Markdown content variant (for HOME.md)
   z.object({
@@ -78,8 +89,8 @@ export const HomepageTemplate = (props: HomepageContent): JSX.Element => {
 };
 
 export const homepageTemplate: ReturnType<
-  typeof createTemplate<HomepageContent>
-> = createTemplate<HomepageContent>({
+  typeof createTemplate<HomepageSchemaContent, HomepageContent>
+> = createTemplate<HomepageSchemaContent, HomepageContent>({
   name: "homepage",
   description: "Homepage showing latest blog post or fallback content",
   schema: homepageSchema,

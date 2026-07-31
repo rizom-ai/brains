@@ -58,10 +58,10 @@ export interface IServiceTemplatesNamespace {
  */
 export interface IViewsNamespace {
   /** Get a view template by name */
-  get: (name: string) => ViewTemplate<unknown> | undefined;
+  get: (name: string) => ViewTemplate | undefined;
 
   /** List all registered view templates */
-  list: () => ViewTemplate<unknown>[];
+  list: () => ViewTemplate[];
 
   /** Check if a template has a renderer for the requested format (defaults to web). */
   hasRenderer: (templateName: string, format?: OutputFormat) => boolean;
@@ -208,10 +208,10 @@ export function createServicePluginContext(
     },
 
     views: {
-      get: (name: string): ViewTemplate<unknown> | undefined => {
+      get: (name: string): ViewTemplate | undefined => {
         return renderService.get(name) ?? undefined;
       },
-      list: (): ViewTemplate<unknown>[] => {
+      list: (): ViewTemplate[] => {
         return renderService.list();
       },
       hasRenderer: (

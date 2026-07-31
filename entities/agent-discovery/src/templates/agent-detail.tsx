@@ -1,6 +1,7 @@
 import type { JSX } from "preact";
 import { Head, formatDate } from "@brains/ui-library";
-import type { TemplateAgent, AgentSkill } from "../schemas/agent";
+import type { AgentSkill } from "../schemas/agent";
+import type { AgentView } from "./agent-view";
 import {
   DotPattern,
   RuledHeading,
@@ -9,9 +10,9 @@ import {
 } from "./shared";
 
 export interface AgentDetailProps {
-  agent: TemplateAgent;
-  prevAgent?: TemplateAgent | null;
-  nextAgent?: TemplateAgent | null;
+  agent: AgentView;
+  prevAgent: AgentView | null;
+  nextAgent: AgentView | null;
 }
 
 /**
@@ -83,7 +84,7 @@ export const AgentDetailTemplate = ({
   ) : isSighted ? (
     <span className="text-status-warning">
       sighted through {introducers.join(", ")} —{" "}
-      {frontmatter.hops !== undefined ? `${frontmatter.hops} hops — ` : ""}
+      {frontmatter.hops !== null ? `${frontmatter.hops} hops — ` : ""}
       {firstSeen}
     </span>
   ) : (
@@ -222,7 +223,7 @@ export const AgentDetailTemplate = ({
                 />
                 <InfoRow label="Endpoint" value={frontmatter.url} mono />
                 <InfoRow label="First seen" value={firstSeen} />
-                {frontmatter.hops !== undefined && (
+                {frontmatter.hops !== null && (
                   <InfoRow
                     label="Distance"
                     value={`${frontmatter.hops} hops`}

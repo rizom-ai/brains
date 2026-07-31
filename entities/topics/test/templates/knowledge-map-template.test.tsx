@@ -12,6 +12,13 @@ import { KnowledgeMapDataSource } from "../../src/datasources/knowledge-map-data
    proximity hero; the map payload comes from the datasource. */
 
 const data: KnowledgeMapTemplateData = {
+  cap: null,
+  headingLead: null,
+  headingAccent: null,
+  intro: null,
+  primaryCta: null,
+  secondaryCta: null,
+  proofLinks: null,
   zones: [
     {
       id: "future-of-work",

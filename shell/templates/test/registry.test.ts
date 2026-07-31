@@ -337,7 +337,7 @@ describe("TemplateRegistry", () => {
       const staticTemplate = createTemplate({
         name: "static",
         description: "Static template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         layout: {
           component: () => h("div", {}, "Static"),

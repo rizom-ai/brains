@@ -36,7 +36,7 @@ const growthStageSchema = z.object({
 
 const growthSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   stages: z.array(growthStageSchema),
 });
 
@@ -97,9 +97,9 @@ function HomeProblemSection({
    Sub and CTAs stay authorable but optional, so older content parses. */
 const missionSchema = z.object({
   quote: z.string(),
-  sub: z.string().optional(),
-  primaryCta: ctaSchema.optional(),
-  secondaryCta: ctaSchema.optional(),
+  sub: z.string().nullable().default(null),
+  primaryCta: ctaSchema.nullable().default(null),
+  secondaryCta: ctaSchema.nullable().default(null),
 });
 
 function HomeMissionSection({

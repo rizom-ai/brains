@@ -82,6 +82,13 @@ export {
   type GenerationResult,
 } from "./generation-result";
 export { JobResult } from "./job-result";
+export type {
+  JsonObject,
+  IsJsonValue,
+  JsonObjectOutputGuard,
+  JsonPrimitive,
+  JsonValue,
+} from "./json";
 export { messageRoleSchema, type MessageRole } from "./message-role";
 export {
   A2A_CHANNELS,

@@ -16,6 +16,7 @@ import { z } from "@brains/utils/zod";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
+import { agentViewSchema, type AgentSchemaData } from "../templates/agent-view";
 
 const agentAdapter: AgentAdapter = new AgentAdapter();
 
@@ -68,9 +69,9 @@ const agentInputSchema: AgentInputSchema = z.looseObject({
 type AgentQuery = z.output<typeof agentQuerySchema>;
 
 interface AgentListData {
-  agents: AgentWithData[];
+  agents: AgentSchemaData[];
   pagination: PaginationInfo | null;
-  baseUrl: string | undefined;
+  baseUrl: string | null;
   selectedStatus: "all" | AgentStatus;
 }
 
@@ -102,7 +103,8 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
  */
 export class AgentDataSource extends BaseEntityDataSource<
   AgentEntity,
-  AgentWithData
+  AgentWithData,
+  AgentListData
 > {
   readonly id: typeof AGENT_DATASOURCE_ID = AGENT_DATASOURCE_ID;
   readonly name: string = "Agent Directory DataSource";
@@ -157,9 +159,9 @@ export class AgentDataSource extends BaseEntityDataSource<
     const status = agentStatusQuerySchema.safeParse(query["status"]);
 
     return {
-      agents: items,
+      agents: items.map((item) => agentViewSchema.parse(item)),
       pagination,
-      baseUrl: query.baseUrl,
+      baseUrl: query.baseUrl ?? null,
       selectedStatus: status.success ? status.data : "all",
     };
   }

@@ -15,6 +15,12 @@ test("proximity map owns its dashboard styles", () => {
 });
 
 const data: ProximityMapData = {
+  kicker: null,
+  headingLead: null,
+  headingAccent: null,
+  lede: null,
+  ctaLabel: null,
+  ctaHref: null,
   center: { kind: "identity" },
   nodes: [
     {

@@ -160,7 +160,7 @@ function WorkHeroSection({
 
 const statementSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
 });
@@ -197,7 +197,7 @@ function WorkProblemSection(
 
 const workshopSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
   steps: z.array(

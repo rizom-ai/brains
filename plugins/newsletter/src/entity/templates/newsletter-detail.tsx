@@ -58,11 +58,11 @@ export interface NewsletterDetailData {
   content: string;
   created: string;
   updated: string;
-  sentAt?: string | undefined;
-  scheduledFor?: string | undefined;
-  sourceEntities?: SourceEntityData[] | undefined;
-  prevNewsletter?: NewsletterNavLink | null | undefined;
-  nextNewsletter?: NewsletterNavLink | null | undefined;
+  sentAt: string | null;
+  scheduledFor: string | null;
+  sourceEntities: SourceEntityData[] | null;
+  prevNewsletter: NewsletterNavLink | null;
+  nextNewsletter: NewsletterNavLink | null;
 }
 
 export const newsletterDetailSchema: z.ZodType<NewsletterDetailData> = z.object(
@@ -73,11 +73,11 @@ export const newsletterDetailSchema: z.ZodType<NewsletterDetailData> = z.object(
     content: z.string(),
     created: z.string(),
     updated: z.string(),
-    sentAt: z.string().optional(),
-    scheduledFor: z.string().optional(),
-    sourceEntities: z.array(sourceEntitySchema).optional(),
-    prevNewsletter: navLinkSchema.nullable().optional(),
-    nextNewsletter: navLinkSchema.nullable().optional(),
+    sentAt: z.string().nullable().default(null),
+    scheduledFor: z.string().nullable().default(null),
+    sourceEntities: z.array(sourceEntitySchema).nullable().default(null),
+    prevNewsletter: navLinkSchema.nullable().default(null),
+    nextNewsletter: navLinkSchema.nullable().default(null),
   },
 );
 

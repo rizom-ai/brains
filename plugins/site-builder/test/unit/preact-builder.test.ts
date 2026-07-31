@@ -465,8 +465,8 @@ describe("PreactBuilder", () => {
     });
 
     const injectedPropsSchema = z.object({
-      pageTitle: z.string().optional(),
-      pageLabel: z.string().optional(),
+      pageTitle: z.string().nullable().default(null),
+      pageLabel: z.string().nullable().default(null),
     });
 
     const viewRegistry = {

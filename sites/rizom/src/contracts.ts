@@ -112,10 +112,12 @@ export interface Template {
   schema: unknown;
   requiredPermission: UserPermissionLevel;
   formatter?: ContentFormatter<unknown>;
-  layout?: {
-    component?: ComponentType<unknown>;
-    fullscreen?: boolean;
-  };
+  layout?:
+    | {
+        component?: ComponentType<unknown>;
+        fullscreen?: boolean;
+      }
+    | undefined;
   runtimeScripts?: RuntimeScript[];
 }
 

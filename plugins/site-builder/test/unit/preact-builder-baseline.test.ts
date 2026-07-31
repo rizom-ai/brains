@@ -15,7 +15,7 @@ import { createRendererTestContext } from "../test-helpers";
 const pageSchema = z.object({
   heading: z.string(),
   pageTitle: z.string(),
-  pageLabel: z.string().optional(),
+  pageLabel: z.string().nullable().default(null),
 });
 
 const fullscreenSchema = z.object({ message: z.string() });

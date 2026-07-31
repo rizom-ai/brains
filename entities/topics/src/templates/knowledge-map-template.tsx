@@ -24,23 +24,23 @@ interface CtaLink {
 
 /** Overlay-authored copy around the map; absent fields use the defaults. */
 export interface KnowledgeMapCopy {
-  cap?: string | undefined;
-  headingLead?: string | undefined;
-  headingAccent?: string | undefined;
-  intro?: string | undefined;
-  primaryCta?: CtaLink | undefined;
-  secondaryCta?: CtaLink | undefined;
-  proofLinks?: CtaLink[] | undefined;
+  cap: string | null;
+  headingLead: string | null;
+  headingAccent: string | null;
+  intro: string | null;
+  primaryCta: CtaLink | null;
+  secondaryCta: CtaLink | null;
+  proofLinks: CtaLink[] | null;
 }
 
 const copyShape = {
-  cap: z.string().optional(),
-  headingLead: z.string().optional(),
-  headingAccent: z.string().optional(),
-  intro: z.string().optional(),
-  primaryCta: ctaSchema.optional(),
-  secondaryCta: ctaSchema.optional(),
-  proofLinks: z.array(ctaSchema).optional(),
+  cap: z.string().nullable().default(null),
+  headingLead: z.string().nullable().default(null),
+  headingAccent: z.string().nullable().default(null),
+  intro: z.string().nullable().default(null),
+  primaryCta: ctaSchema.nullable().default(null),
+  secondaryCta: ctaSchema.nullable().default(null),
+  proofLinks: z.array(ctaSchema).nullable().default(null),
 };
 
 export type KnowledgeMapTemplateData = z.infer<typeof knowledgeMapDataSchema> &

@@ -28,7 +28,6 @@ import { PROJECT_CHANNELS } from "./project-channels";
 import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {
-  enrichedProjectSchema,
   projectSchema,
   projectFrontmatterSchema,
   type Project,
@@ -47,6 +46,7 @@ import {
   ProjectDetailTemplate,
   type ProjectDetailProps,
 } from "./templates/project-detail";
+import { projectViewSchema } from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
 import {
   buildProjectGenerationPrompt,
@@ -60,11 +60,13 @@ import { createProjectOgImageProvider } from "./attachments/og-image-provider";
 import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
+const enrichedProjectViewSchema = projectViewSchema;
+
 const projectListSchema = z.object({
-  projects: z.array(enrichedProjectSchema),
-  pageTitle: z.string().optional(),
+  projects: z.array(enrichedProjectViewSchema),
+  pageTitle: z.string().nullable().default(null),
   pagination: paginationInfoSchema.nullable(),
-  baseUrl: z.string().optional(),
+  baseUrl: z.string().nullable().default(null),
 });
 
 const generateProjectEvalInputSchema = z.object({
@@ -163,18 +165,18 @@ export class PortfolioPlugin extends EntityPlugin<
       }),
       "project-detail": createTemplate<
         {
-          project: z.output<typeof enrichedProjectSchema>;
-          prevProject: z.output<typeof enrichedProjectSchema> | null;
-          nextProject: z.output<typeof enrichedProjectSchema> | null;
+          project: z.output<typeof enrichedProjectViewSchema>;
+          prevProject: z.output<typeof enrichedProjectViewSchema> | null;
+          nextProject: z.output<typeof enrichedProjectViewSchema> | null;
         },
         ProjectDetailProps
       >({
         name: "project-detail",
         description: "Individual project case study template",
         schema: z.object({
-          project: enrichedProjectSchema,
-          prevProject: enrichedProjectSchema.nullable(),
-          nextProject: enrichedProjectSchema.nullable(),
+          project: enrichedProjectViewSchema,
+          prevProject: enrichedProjectViewSchema.nullable(),
+          nextProject: enrichedProjectViewSchema.nullable(),
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",

@@ -30,7 +30,7 @@ interface DocDetailData {
 interface DocListData {
   docs: DocWithData[];
   pagination: PaginationInfo | null;
-  baseUrl: string | undefined;
+  baseUrl: string | null;
 }
 
 function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
@@ -54,7 +54,11 @@ export function parseDocData(entity: Doc): DocWithData {
   });
 }
 
-export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
+export class DocDataSource extends BaseEntityDataSource<
+  Doc,
+  DocWithData,
+  DocListData
+> {
   readonly id = "docs:entities";
   readonly name = "Docs Entity DataSource";
   readonly description = "Fetches and transforms doc entities for rendering";
@@ -136,7 +140,7 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
     return {
       docs: sortDocsForDisplay(items),
       pagination,
-      baseUrl: query.baseUrl,
+      baseUrl: query.baseUrl ?? null,
     };
   }
 }

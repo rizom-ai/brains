@@ -22,7 +22,8 @@ import type {
  */
 export class TopicsDataSource extends BaseEntityDataSource<
   BaseEntity,
-  TopicSummary
+  TopicSummary,
+  TopicListData
 > {
   readonly id: string = "topics:entities";
   readonly name: string = "Topics Entity DataSource";

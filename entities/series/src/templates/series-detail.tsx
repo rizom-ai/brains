@@ -1,3 +1,4 @@
+import type { JsonValue } from "@brains/contracts";
 import type { JSX } from "preact";
 import type { SeriesListItem } from "../schemas/series";
 import {
@@ -18,22 +19,21 @@ import {
  */
 interface SeriesMember {
   id: string;
-  url?: string;
-  frontmatter?: {
-    title?: string;
-    seriesIndex?: number;
-    excerpt?: string;
-    publishedAt?: string;
-    [key: string]: unknown;
-  };
-  metadata?: Record<string, unknown>;
+  url: string | null;
+  frontmatter: {
+    title: string | null;
+    seriesIndex: number | null;
+    excerpt: string | null;
+    publishedAt: string | null;
+  } | null;
+  metadata: Record<string, JsonValue> | null;
 }
 
 export interface SeriesDetailProps {
   seriesName: string;
   posts: SeriesMember[];
   series: SeriesListItem;
-  description?: string;
+  description: string | null;
 }
 
 export const SeriesDetailTemplate = ({

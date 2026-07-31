@@ -17,3 +17,8 @@ export {
 } from "./atproto-projection";
 export { deckTemplate } from "./templates/deck-template";
 export { deckListTemplate } from "./templates/deck-list";
+export {
+  deckViewSchema,
+  type DeckView,
+  type DeckSchemaData,
+} from "./templates/deck-view-schema";

@@ -5,8 +5,8 @@ import type {
   AgentSkill,
   AgentStatus,
   AgentWithData,
-  TemplateAgent,
 } from "../../src/schemas/agent";
+import type { AgentView } from "../../src/templates/agent-view";
 
 const adapter = new AgentAdapter();
 
@@ -91,11 +91,48 @@ export function createTestAgentWithData(
   };
 }
 
-export function createTemplateAgent(input: TestAgentInput = {}): TemplateAgent {
+export function createTemplateAgent(input: TestAgentInput = {}): AgentView {
   const agent = createTestAgentWithData(input);
+  const nullableMetadata = {
+    ...agent.metadata,
+    discoveredAt: agent.metadata.discoveredAt ?? null,
+    repoDid: agent.metadata.repoDid ?? null,
+    brainDid: agent.metadata.brainDid ?? null,
+    anchorDid: agent.metadata.anchorDid ?? null,
+    cardUri: agent.metadata.cardUri ?? null,
+    cardCid: agent.metadata.cardCid ?? null,
+    cardObservedAt: agent.metadata.cardObservedAt ?? null,
+    cardLastCheckedAt: agent.metadata.cardLastCheckedAt ?? null,
+    cardLastError: agent.metadata.cardLastError ?? null,
+    cardFailureCount: agent.metadata.cardFailureCount ?? null,
+    cardUnavailableAt: agent.metadata.cardUnavailableAt ?? null,
+    cardStaleAfter: agent.metadata.cardStaleAfter ?? null,
+    a2aEndpoint: agent.metadata.a2aEndpoint ?? null,
+  };
+  const nullableFrontmatter = {
+    ...agent.frontmatter,
+    organization: agent.frontmatter.organization ?? null,
+    did: agent.frontmatter.did ?? null,
+    repoDid: agent.frontmatter.repoDid ?? null,
+    brainDid: agent.frontmatter.brainDid ?? null,
+    anchorDid: agent.frontmatter.anchorDid ?? null,
+    cardUri: agent.frontmatter.cardUri ?? null,
+    cardCid: agent.frontmatter.cardCid ?? null,
+    cardObservedAt: agent.frontmatter.cardObservedAt ?? null,
+    cardLastCheckedAt: agent.frontmatter.cardLastCheckedAt ?? null,
+    cardLastError: agent.frontmatter.cardLastError ?? null,
+    cardFailureCount: agent.frontmatter.cardFailureCount ?? null,
+    cardUnavailableAt: agent.frontmatter.cardUnavailableAt ?? null,
+    cardStaleAfter: agent.frontmatter.cardStaleAfter ?? null,
+    a2aEndpoint: agent.frontmatter.a2aEndpoint ?? null,
+    introducedBy: agent.frontmatter.introducedBy ?? null,
+    hops: agent.frontmatter.hops ?? null,
+  };
 
   return {
     ...agent,
+    metadata: nullableMetadata,
+    frontmatter: nullableFrontmatter,
     url: `/agents/${agent.metadata.slug}`,
     typeLabel: "Agent",
   };

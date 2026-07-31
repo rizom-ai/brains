@@ -76,9 +76,9 @@ const indexRowSchema = z.object({
   kicker: z.string(),
   title: z.string(),
   text: z.string(),
-  href: z.string().optional(),
-  meta: z.string().optional(),
-  metaSub: z.string().optional(),
+  href: z.string().nullable().default(null),
+  meta: z.string().nullable().default(null),
+  metaSub: z.string().nullable().default(null),
 });
 
 const indexSchema = z.object({

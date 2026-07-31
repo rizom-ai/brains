@@ -1,14 +1,14 @@
 import type { JSX } from "preact";
-import type { EnrichedBlogPost } from "../schemas/blog-post";
+import type { BlogPostView } from "./blog-view-schema";
 import type { PaginationInfo } from "@brains/plugins";
 import { ContentArchive, type ContentItem, Head } from "@brains/ui-library";
 
 export interface BlogListProps {
-  posts: EnrichedBlogPost[];
-  pageTitle?: string;
-  pageLabel?: string;
-  pagination?: PaginationInfo | null;
-  baseUrl?: string;
+  posts: BlogPostView[];
+  pageTitle: string | null;
+  pageLabel: string | null;
+  pagination: PaginationInfo | null;
+  baseUrl: string | null;
 }
 
 const BLOG_DISPLAY_LABEL = "Essays";
@@ -21,7 +21,7 @@ export const BlogListTemplate = ({
   pageTitle,
   pageLabel,
   pagination,
-  baseUrl = "/posts",
+  baseUrl,
 }: BlogListProps): JSX.Element => {
   // Map posts to ContentItem format
   const postItems: ContentItem[] = posts.map((post) => ({
@@ -54,7 +54,7 @@ export const BlogListTemplate = ({
             label={label}
             items={postItems}
             pagination={pagination}
-            baseUrl={baseUrl}
+            baseUrl={baseUrl ?? "/posts"}
           />
         </div>
       </div>

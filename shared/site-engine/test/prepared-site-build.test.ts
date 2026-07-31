@@ -79,6 +79,15 @@ describe("PreparedSiteBuild", () => {
     expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
   });
 
+  it("rejects undefined in nested section data", () => {
+    const input = createPreparedBuild();
+    const section = input.routes[0]?.sections[0];
+    if (!section) throw new Error("Expected fixture section");
+    Object.assign(section.data, { nested: { missing: undefined } });
+
+    expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
+  });
+
   it("rejects integers beyond the JSON-safe range", () => {
     const input = createPreparedBuild();
     const section = input.routes[0]?.sections[0];

@@ -43,17 +43,17 @@ export interface ProximityMapDistanceRange {
  */
 export interface ProximityMapCopy {
   /** Eyebrow above the heading. */
-  kicker?: string | undefined;
+  kicker: string | null;
   /** Heading, plain lead-in before the accented tail. */
-  headingLead?: string | undefined;
+  headingLead: string | null;
   /** Heading tail, rendered in the accent (italic). */
-  headingAccent?: string | undefined;
+  headingAccent: string | null;
   /** Standfirst under the heading. */
-  lede?: string | undefined;
+  lede: string | null;
   /** Call-to-action label. */
-  ctaLabel?: string | undefined;
+  ctaLabel: string | null;
   /** Call-to-action href. */
-  ctaHref?: string | undefined;
+  ctaHref: string | null;
 }
 
 /**
@@ -124,12 +124,12 @@ export const proximityMapDistanceRangeSchema: z.ZodType<ProximityMapDistanceRang
  * live. Kept in sync with ProximityMapCopy.
  */
 export const proximityMapCopySchema: z.ZodType<ProximityMapCopy> = z.object({
-  kicker: z.string().optional(),
-  headingLead: z.string().optional(),
-  headingAccent: z.string().optional(),
-  lede: z.string().optional(),
-  ctaLabel: z.string().optional(),
-  ctaHref: z.string().optional(),
+  kicker: z.string().nullable().default(null),
+  headingLead: z.string().nullable().default(null),
+  headingAccent: z.string().nullable().default(null),
+  lede: z.string().nullable().default(null),
+  ctaLabel: z.string().nullable().default(null),
+  ctaHref: z.string().nullable().default(null),
 });
 
 export const proximityMapSightingSchema: z.ZodType<ProximityMapSighting> =
@@ -149,10 +149,10 @@ export const proximityMapDataSchema: z.ZodType<ProximityMapData> = z.object({
   sightings: z.array(proximityMapSightingSchema),
   distanceRange: proximityMapDistanceRangeSchema,
   pendingCount: z.number().int().min(0),
-  kicker: z.string().optional(),
-  headingLead: z.string().optional(),
-  headingAccent: z.string().optional(),
-  lede: z.string().optional(),
-  ctaLabel: z.string().optional(),
-  ctaHref: z.string().optional(),
+  kicker: z.string().nullable().default(null),
+  headingLead: z.string().nullable().default(null),
+  headingAccent: z.string().nullable().default(null),
+  lede: z.string().nullable().default(null),
+  ctaLabel: z.string().nullable().default(null),
+  ctaHref: z.string().nullable().default(null),
 });

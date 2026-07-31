@@ -25,12 +25,12 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
     [profile.description, profile.intro].find((value) => value) ?? "About page";
 
   const hasStructuredContent =
-    (profile.expertise !== undefined && profile.expertise.length > 0) ||
+    (profile.expertise?.length ?? 0) > 0 ||
     Boolean(profile.currentFocus) ||
     Boolean(profile.availability) ||
     Boolean(profile.email) ||
     Boolean(profile.website) ||
-    (profile.socialLinks !== undefined && profile.socialLinks.length > 0);
+    (profile.socialLinks?.length ?? 0) > 0;
 
   return (
     <>
@@ -111,8 +111,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
               {/* Contact */}
               {(Boolean(profile.email) ||
                 Boolean(profile.website) ||
-                (profile.socialLinks !== undefined &&
-                  profile.socialLinks.length > 0)) && (
+                (profile.socialLinks?.length ?? 0) > 0) && (
                 <section>
                   <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
                     Contact

@@ -1,14 +1,14 @@
 import type { JSX } from "preact";
 import type { PersonalProfile } from "../schemas";
-import type { EnrichedBlogPost } from "@brains/blog";
+import type { BlogPostView } from "@brains/blog";
 import type { SiteInfoCTA } from "@brains/site-info";
 import { Head } from "@brains/ui-library";
 
 export interface HomepageData {
   profile: PersonalProfile;
-  posts: EnrichedBlogPost[];
+  posts: BlogPostView[];
   postsListUrl: string;
-  cta: SiteInfoCTA & { subtitle?: string };
+  cta: SiteInfoCTA & { subtitle: string | null };
 }
 
 function formatDate(dateString: string): string {

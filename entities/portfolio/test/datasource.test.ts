@@ -103,8 +103,10 @@ Outcome for ${title}`;
         const parsed = listSchema.parse(result);
 
         expect(parsed.projects).toHaveLength(1);
-        expect(parsed.projects[0]?.url).toBeUndefined();
-        expect(parsed.projects[0]?.typeLabel).toBeUndefined();
+        expect(parsed.projects[0]?.url).toBeNull();
+        expect(parsed.projects[0]?.typeLabel).toBeNull();
+        expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+        expect(JSON.parse(JSON.stringify(result))).toEqual(result);
       } finally {
         harness.reset();
       }
@@ -472,7 +474,7 @@ Outcome for ${title}`;
       );
 
       expect(result.projects).toHaveLength(1);
-      expect(result.projects[0].frontmatter.coverImageId).toBeUndefined();
+      expect(result.projects[0].frontmatter.coverImageId).toBeNull();
     });
   });
 });
