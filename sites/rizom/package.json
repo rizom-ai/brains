@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom",
-  "version": "0.2.0-alpha.235",
+  "version": "0.2.0-alpha.236",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
   "exports": {
@@ -32,7 +32,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.231",
+    "@rizom/site": "0.2.0-alpha.232",
     "clsx": "^2.1.0",
     "tailwind-merge": "^3.6.0"
   },

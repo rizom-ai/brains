@@ -1,5 +1,18 @@
 # @rizom/site-sections
 
+## 1.0.0-alpha.232
+
+### Major Changes
+
+- [`e4bd645`](https://github.com/rizom-ai/brains/commit/e4bd6451d4d83efb43b6847c5729b1ad9ef041ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require rendered section schemas to produce JSON-native object content. Optional section fields must normalize absence to `null`; schemas that emit `undefined`, primitives, functions, or other non-JSON values now fail typechecking.
+
+  Export shared JSON document types from `@rizom/site` for site-authoring contracts.
+
+### Patch Changes
+
+- Updated dependencies [[`e4bd645`](https://github.com/rizom-ai/brains/commit/e4bd6451d4d83efb43b6847c5729b1ad9ef041ae)]:
+  - @rizom/site@0.2.0-alpha.232
+
 ## 0.2.0-alpha.231
 
 ### Patch Changes

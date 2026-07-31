@@ -1,5 +1,13 @@
 # @brains/relay
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.241
+  - @rizom/site-rizom@0.2.0-alpha.236
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

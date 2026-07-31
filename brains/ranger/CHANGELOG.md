@@ -1,5 +1,12 @@
 # @brains/ranger
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.236
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

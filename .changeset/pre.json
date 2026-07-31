@@ -418,6 +418,7 @@
     "shell-lifecycle-transitions",
     "show-account-contact-details",
     "site--first-party-preact-peer",
+    "site--json-native-section-content",
     "site--relicense-agpl-apache-split",
     "site-build-preflight-diagnostics",
     "site-build-prepared-snapshots",
