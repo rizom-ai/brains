@@ -223,6 +223,7 @@
     "core--delete-email-contracts",
     "core--drop-themes-subpath",
     "core--fix-professional-profile-view-schema",
+    "core--json-native-section-content",
     "core--media-provider-factories",
     "core--ops-explicit-theme-version",
     "core--relicense-agpl-apache-split",
