@@ -76,7 +76,7 @@ describe("AgentDataSource", () => {
       expect(parsed.agents[0]?.url).toBeNull();
       expect(parsed.agents[0]?.typeLabel).toBeNull();
       expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
-      expect(JSON.parse(JSON.stringify(result))).toEqual(result);
+      expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
     it("should return transformed agents with parsed body sections", async () => {

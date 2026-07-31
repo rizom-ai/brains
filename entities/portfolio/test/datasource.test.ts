@@ -106,7 +106,7 @@ Outcome for ${title}`;
         expect(parsed.projects[0]?.url).toBeNull();
         expect(parsed.projects[0]?.typeLabel).toBeNull();
         expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
-        expect(JSON.parse(JSON.stringify(result))).toEqual(result);
+        expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
         harness.reset();
       }

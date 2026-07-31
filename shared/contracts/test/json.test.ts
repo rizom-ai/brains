@@ -38,6 +38,6 @@ describe("JSON document types", () => {
       items: [{ label: "one" }],
     };
 
-    expect(JSON.parse(JSON.stringify(document))).toEqual(document);
+    expect(JSON.parse(JSON.stringify(document))).toStrictEqual(document);
   });
 });
