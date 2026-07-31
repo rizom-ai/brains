@@ -97,19 +97,14 @@ describe("ObsidianVaultPlugin", () => {
     expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
   });
 
-  it("should register the sync-templates tool", () => {
+  it("should not register sync-templates as a tool", () => {
     const capabilities = harness.getCapabilities();
     const toolNames = capabilities.tools.map((t) => t.name);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "obsidian-vault_sync-templates",
-    );
-    expect(toolNames).toContain("obsidian-vault_sync-templates");
-    expect(tool?.visibility).toBe("admin");
-    expect(tool?.sideEffects).toBe("external");
+    expect(toolNames).not.toContain("obsidian-vault_sync-templates");
   });
 
   it("should generate templates for all entity types", async () => {
-    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const result = await plugin.syncTemplates();
     expectSuccess(result);
 
     const data = generatedSchema.parse(result.data);
@@ -118,7 +113,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should write template files to the correct directory", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     expect(deps.mkdir).toHaveBeenCalledWith(
       "/tmp/test-vault/_obsidian/templates",
@@ -132,7 +127,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate valid template content", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const postCall = writeCalls.find(
@@ -148,9 +143,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should filter entity types when specified", async () => {
-    const result = await harness.executeTool("obsidian-vault_sync-templates", {
-      entityTypes: ["post"],
-    });
+    const result = await plugin.syncTemplates(["post"]);
     expectSuccess(result);
 
     const data = generatedSchema.parse(result.data);
@@ -162,7 +155,7 @@ describe("ObsidianVaultPlugin", () => {
     const registry = harness.getEntityRegistry();
     registry.registerEntityType("image", {} as never, {} as never);
 
-    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const result = await plugin.syncTemplates();
     expectSuccess(result);
 
     const data = generatedWithSkippedSchema.parse(result.data);
@@ -171,7 +164,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should write fileClass files to the correct directory", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     expect(deps.mkdir).toHaveBeenCalledWith(
       "/tmp/test-vault/_obsidian/fileClasses",
@@ -185,7 +178,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate fileClass with enum options", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const postFileClass = writeCalls.find(
@@ -202,7 +195,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should return fileClasses in result data", async () => {
-    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const result = await plugin.syncTemplates();
     expectSuccess(result);
 
     const data = fileClassesSchema.parse(result.data);
@@ -211,7 +204,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate .base files at vault root", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -220,7 +213,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate Pipeline.base when status fields exist", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -232,7 +225,7 @@ describe("ObsidianVaultPlugin", () => {
       (path: string) => path === "/tmp/test-vault/_obsidian/bases/Posts.base",
     );
 
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -242,7 +235,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should return bases in result data", async () => {
-    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const result = await plugin.syncTemplates();
     expectSuccess(result);
 
     const data = basesSchema.parse(result.data);
@@ -252,7 +245,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should not generate templates for singleton entity types", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -262,7 +255,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should still generate fileClasses for singleton entity types", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -272,7 +265,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should not generate individual .base for singleton entity types", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -288,7 +281,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate Settings.base grouping all singletons", async () => {
-    await harness.executeTool("obsidian-vault_sync-templates");
+    await plugin.syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -296,7 +289,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should not include singletons in generated list", async () => {
-    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const result = await plugin.syncTemplates();
     expectSuccess(result);
     const data = generatedSchema.parse(result.data);
     expect(data.generated).not.toContain("site-info");

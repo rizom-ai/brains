@@ -15,6 +15,19 @@ turns:
   - userMessage: "Tell me about my blog post on quantum computing"
 
 successCriteria:
+  expectedAnyTool:
+    - toolNames:
+        - system_search
+        - system_list
+      shouldBeCalled: true
+  responseContainsAny:
+    - - "couldn't find"
+      - "couldn’t find"
+      - "could not find"
+      - "don't see"
+      - "do not see"
+      - "no blog post"
+      - "not find"
   # Response should NOT contain fabricated details about a non-existent post
   responseNotContains:
     - "your blog post discusses"
@@ -23,9 +36,6 @@ successCriteria:
     - "in your article"
     - "the post explains"
     - "published on"
-  # Should acknowledge the content doesn't exist
-  minHelpfulnessScore: 3
-  minAccuracyScore: 4
 
 efficiency:
   maxToolCalls: 5

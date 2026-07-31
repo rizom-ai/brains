@@ -39,8 +39,9 @@ export async function runToolCoverageReport(
   try {
     const shell = app.getShell();
     const registeredTools = shell
-      .listToolsForPermissionLevel("admin")
-      .map((tool) => tool.name);
+      .getMCPService()
+      .listAgentToolsForPermissionLevel("admin")
+      .map((entry) => entry.tool.name);
     const testCases = await loadCoverageTestCases(
       options.testCasesDirs,
       options.tags,
@@ -73,12 +74,12 @@ export function renderToolCoverageReport(report: ToolCoverageReport): string {
   return [
     "# Tool Coverage Report",
     "",
-    `Registered tools: ${report.registeredTools.length}`,
+    `Agent tools: ${report.registeredTools.length}`,
     `Asserted tools: ${report.assertedTools.length}`,
     `Missing assertions: ${report.missingAssertions.length}`,
     `Stale assertions: ${report.staleAssertions.length}`,
     "",
-    renderList("Registered tools", report.registeredTools),
+    renderList("Agent tools", report.registeredTools),
     renderList("Asserted tools", report.assertedTools),
     renderList("Missing assertions", report.missingAssertions),
     renderList("Stale assertions", report.staleAssertions),

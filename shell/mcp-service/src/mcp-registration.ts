@@ -14,6 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type {
+  DirectMcpExposure,
   MCPProtocolMode,
   Prompt,
   Resource,
@@ -65,6 +66,20 @@ export function canExposeTool(
   );
 }
 
+function getDirectMcpExposure(tool: Tool): DirectMcpExposure {
+  if (tool.directMcpExposure !== undefined) {
+    return tool.directMcpExposure;
+  }
+  return isReadOnlyTool(tool) ? "basic" : "debug";
+}
+
+export function canExposeToolToAgent(
+  permissionLevel: UserPermissionLevel,
+  tool: Tool,
+): boolean {
+  return canExposeTool(permissionLevel, tool) && tool.agentTool !== false;
+}
+
 export function canExposeToolOnProtocol(
   permissionLevel: UserPermissionLevel,
   tool: Tool,
@@ -74,13 +89,11 @@ export function canExposeToolOnProtocol(
     return false;
   }
 
-  if (mode === "debug") {
-    return true;
+  const exposure = getDirectMcpExposure(tool);
+  if (exposure === "none") {
+    return false;
   }
-
-  return (
-    isReadOnlyTool(tool) || tool.name === "chat" || tool.name === "confirm"
-  );
+  return mode === "debug" || exposure === "basic";
 }
 
 export function canExposeResource(
@@ -120,6 +133,13 @@ export function filterToolsForPermission(
   userLevel: UserPermissionLevel,
 ): RegisteredTool[] {
   return tools.filter(({ tool }) => canExposeTool(userLevel, tool));
+}
+
+export function filterAgentToolsForPermission(
+  tools: RegisteredTool[],
+  userLevel: UserPermissionLevel,
+): RegisteredTool[] {
+  return tools.filter(({ tool }) => canExposeToolToAgent(userLevel, tool));
 }
 
 export function getToolAnnotations(tool: Tool): ToolAnnotations | undefined {

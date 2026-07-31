@@ -4,6 +4,26 @@ All notable changes to `brains` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows pre-1.0 versioning as documented in [STABILITY.md](STABILITY.md): minor versions can include breaking changes; patch versions are reserved for bug fixes and additive changes.
 
+## [Unreleased]
+
+### Changed
+
+- Consolidated agent-facing tool namespaces. Canonical replacements are:
+  - playbook lifecycle actions now use `playbook_manage`;
+  - directory sync/status/history actions now use `directory_sync`;
+  - publishing queue and publish actions now use `publishing_manage`;
+  - Buttondown subscriber subscribe/unsubscribe/list actions now use `newsletter_subscribers`.
+- Split internal tool registration from agent and direct-MCP exposure using `agentTool` and `directMcpExposure` metadata. MCP `chat` and `confirm` are direct-MCP tools only, and direct MCP basic/debug exposure is now evaluated independently from the agent tool set. Rover preset agent-tool snapshots are documented in [Rover agent tool surface](../rover-agent-tool-surface.md).
+- Cloudflare `analytics_query` remains available to direct MCP clients but is no longer exposed as an agent tool; aggregate traffic questions should route through the system analytics/insights surface until the typed `system_analytics` replacement lands.
+- First-passkey setup URL retrieval remains Admin-only and is exposed to the agent only while setup is incomplete.
+
+### Removed
+
+- Removed agent/MCP tool registrations for maintenance operations that run through lifecycle or direct service paths instead:
+  - `content-pipeline_ensure-assets`;
+  - `obsidian-vault_sync-templates`.
+- Removed legacy registered agent tool names for playbooks, directory sync, and publishing instead of keeping compatibility aliases. Callers must route through the canonical action-discriminated tools listed above.
+
 ## [0.1.0] — Initial public release
 
 The first public release of `brains`, after roughly a year of private development. The framework is feature-complete enough to run real personal AI agents in production, but the API surface is explicitly pre-stable. Expect breaking changes between minor versions until `1.0`.

@@ -2,7 +2,7 @@ id: relay-tool-directory-sync-status
 name: Relay directory sync and git status
 description: >-
   Verifies that Relay answers operator sync-status questions through the
-  directory-sync status tool instead of performing a sync or inventing git state.
+  directory_sync status action instead of performing a sync or inventing git state.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -20,10 +20,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory-sync_status
+    - toolName: directory_sync
       shouldBeCalled: true
-    - toolName: directory-sync_sync
+      argsContain:
+        action: status
+    - toolName: directory_sync
       shouldBeCalled: false
+      argsContain:
+        action: sync
   responseContains:
     - "sync"
   responseNotContains:

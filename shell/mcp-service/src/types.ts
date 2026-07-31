@@ -160,6 +160,7 @@ export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
 ]);
 
 export type ToolSideEffects = "none" | "writes" | "external";
+export type DirectMcpExposure = "none" | "basic" | "debug";
 export type ToolInputSchema = ZodRawShape;
 export type ToolOutputSchema = z.ZodType;
 export type MCPProtocolMode = "basic" | "debug";
@@ -177,6 +178,10 @@ export interface Tool<TOutput = ToolResponse> {
   visibility?: ToolVisibility; // Default: "admin" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */
   sideEffects?: ToolSideEffects;
+  /** Whether the LLM agent may receive this tool in its callable tool set. Defaults to true. */
+  agentTool?: boolean;
+  /** Direct external MCP protocol exposure. Defaults from sideEffects: read-only tools are basic, mutating/external tools are debug-only. */
+  directMcpExposure?: DirectMcpExposure;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
   annotations?: ToolAnnotations;
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
@@ -323,6 +328,21 @@ export interface IMCPService extends IMCPTransport {
    */
   listToolsForPermissionLevel(
     userLevel: UserPermissionLevel,
+  ): Array<{ pluginId: string; tool: Tool }>;
+
+  /**
+   * List agent-visible tools filtered by user permission level
+   */
+  listAgentToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+  ): Array<{ pluginId: string; tool: Tool }>;
+
+  /**
+   * List protocol-visible tools filtered by user permission level and protocol mode
+   */
+  listProtocolToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+    mode: MCPProtocolMode,
   ): Array<{ pluginId: string; tool: Tool }>;
 
   /**

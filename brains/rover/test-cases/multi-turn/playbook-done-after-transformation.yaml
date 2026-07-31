@@ -20,7 +20,7 @@ turns:
   - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
 
   - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
@@ -65,9 +65,10 @@ turns:
   - userMessage: "Start playbook rover-first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-first-knowledge-loop
       responseNotContains:
         - "I cannot"
@@ -130,7 +131,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_start
+    - toolName: playbook_manage
       shouldBeCalled: true
     - toolName: system_update
       shouldBeCalled: true

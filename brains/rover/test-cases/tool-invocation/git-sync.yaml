@@ -15,11 +15,11 @@ turns:
   - userMessage: "Can you backup my brain to git?"
 
 successCriteria:
-  expectedAnyTool:
-    - toolNames:
-        - directory-sync_sync
-        - directory-sync_status
+  expectedTools:
+    - toolName: directory_sync
       shouldBeCalled: true
+      argsContain:
+        action: sync
   toolCountRange:
     min: 1
   responseNotContains:

@@ -8,7 +8,8 @@ import type {
 import type { BatchResult } from "../src/lib/batch-operations";
 import type { ServicePluginContext } from "@brains/plugins";
 import { createMockServicePluginContext } from "@brains/test-utils";
-import { toolResultSchema, type Tool } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { toolResultSchema, type Tool, type ToolContext } from "@brains/plugins";
 import {
   createMockDirectorySync as createBaseMockDS,
   createMockGitSync as createBaseMockGS,
@@ -94,6 +95,8 @@ function createMockGitSync(): {
   };
 }
 
+const toolDataSchema = z.record(z.string(), z.unknown());
+
 function parseToolResult(raw: unknown): {
   success: boolean;
   data?: Record<string, unknown> | undefined;
@@ -104,7 +107,10 @@ function parseToolResult(raw: unknown): {
   if (parsed.success) {
     return {
       success: true,
-      data: parsed.data as Record<string, unknown>,
+      data:
+        parsed.data === undefined
+          ? undefined
+          : toolDataSchema.parse(parsed.data),
       message: parsed.message,
     };
   }
@@ -112,9 +118,9 @@ function parseToolResult(raw: unknown): {
 }
 
 const toolContext = {
-  interfaceType: "mcp" as const,
-  actor: { kind: "user" as const, userId: "test" },
-};
+  interfaceType: "mcp",
+  actor: { kind: "user", userId: "test" },
+} satisfies ToolContext;
 
 function findTool(tools: Tool[], name: string): Tool {
   const tool = tools.find((t) => t.name === name);
@@ -129,6 +135,64 @@ describe("sync tool", () => {
     context = createMockServicePluginContext();
   });
 
+  it("registers one canonical directory_sync tool", () => {
+    const { directorySync } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+
+    expect(tools.map((tool) => tool.name)).toEqual(["directory_sync"]);
+  });
+
+  it("routes sync and status actions through directory_sync", async () => {
+    const { directorySync, queueSyncBatchMock, getStatusMock } =
+      createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const directoryTool = findTool(tools, "directory_sync");
+
+    const syncResult = parseToolResult(
+      await directoryTool.handler({ action: "sync" }, toolContext),
+    );
+    expect(syncResult.success).toBe(true);
+    expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+
+    const statusResult = parseToolResult(
+      await directoryTool.handler({ action: "status" }, toolContext),
+    );
+    expect(statusResult.success).toBe(true);
+    expect(getStatusMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes history through directory_sync when git is configured", async () => {
+    const { directorySync } = createMockDirectorySync();
+    const { gitSync } = createMockGitSync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+      gitSync,
+    );
+    const directoryTool = findTool(tools, "directory_sync");
+
+    const result = parseToolResult(
+      await directoryTool.handler(
+        { action: "history", entityType: "note", id: "alpha" },
+        toolContext,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
   it("declares admin-only external side effects", () => {
     const { directorySync } = createMockDirectorySync();
 
@@ -137,10 +201,25 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
+    const syncTool = findTool(tools, "directory_sync");
 
     expect(syncTool.visibility).toBe("admin");
     expect(syncTool.sideEffects).toBe("external");
+  });
+
+  it("preserves no-argument CLI sync invocation", async () => {
+    const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const syncTool = findTool(tools, "directory_sync");
+
+    await syncTool.handler({}, toolContext);
+
+    expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
   });
 
   it("should call queueSyncBatch (non-blocking)", async () => {
@@ -151,9 +230,9 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
+    const syncTool = findTool(tools, "directory_sync");
 
-    await syncTool.handler({}, toolContext);
+    await syncTool.handler({ action: "sync" }, toolContext);
 
     expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
   });
@@ -166,8 +245,10 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["batchId"]).toBe("batch-123");
@@ -182,7 +263,7 @@ describe("sync tool", () => {
     context = {
       ...context,
       jobs: { ...context.jobs, enqueue: enqueueMock },
-    } as ServicePluginContext;
+    };
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -190,8 +271,10 @@ describe("sync tool", () => {
       "directory-sync",
       gitSync,
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["jobId"]).toBe("job-123");
@@ -220,8 +303,10 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["gitPulled"]).toBe(false);
@@ -236,8 +321,10 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.message).toContain("No files to sync");
@@ -250,7 +337,7 @@ describe("sync tool", () => {
     context = {
       ...context,
       jobs: { ...context.jobs, enqueue: enqueueMock },
-    } as ServicePluginContext;
+    };
     queueSyncBatchMock.mockResolvedValue(null);
 
     const tools = createDirectorySyncTools(
@@ -259,8 +346,10 @@ describe("sync tool", () => {
       "directory-sync",
       gitSync,
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["jobId"]).toBe("job-123");
@@ -279,7 +368,7 @@ describe("sync tool", () => {
           throw new Error("Queue unavailable");
         }),
       },
-    } as ServicePluginContext;
+    };
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -287,8 +376,10 @@ describe("sync tool", () => {
       "directory-sync",
       gitSync,
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Queue unavailable");
@@ -303,8 +394,10 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    const result = parseToolResult(await syncTool.handler({}, toolContext));
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync" }, toolContext),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("DB connection lost");
@@ -318,9 +411,9 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
+    const syncTool = findTool(tools, "directory_sync");
     await syncTool.handler(
-      {},
+      { action: "sync" },
       {
         interfaceType: "discord",
         actor: { kind: "user", userId: "u1" },
@@ -346,9 +439,9 @@ describe("sync tool", () => {
       context,
       "directory-sync",
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
+    const syncTool = findTool(tools, "directory_sync");
     await syncTool.handler(
-      {},
+      { action: "sync" },
       { interfaceType: "mcp", actor: { kind: "user", userId: "u1" } },
     );
 
@@ -369,8 +462,8 @@ describe("sync tool", () => {
       "directory-sync",
       gitSync,
     );
-    const syncTool = findTool(tools, "directory-sync_sync");
-    await syncTool.handler({}, toolContext);
+    const syncTool = findTool(tools, "directory_sync");
+    await syncTool.handler({ action: "sync" }, toolContext);
 
     expect(withLockCallCount.value).toBe(0);
     expect(pullMock).not.toHaveBeenCalled();
@@ -385,7 +478,7 @@ describe("status tool", () => {
     context = createMockServicePluginContext();
   });
 
-  it("declares admin-only read semantics", () => {
+  it("declares admin-only external semantics for the consolidated action tool", () => {
     const { directorySync } = createMockDirectorySync();
 
     const tools = createDirectorySyncTools(
@@ -393,10 +486,10 @@ describe("status tool", () => {
       context,
       "directory-sync",
     );
-    const statusTool = findTool(tools, "directory-sync_status");
+    const statusTool = findTool(tools, "directory_sync");
 
     expect(statusTool.visibility).toBe("admin");
-    expect(statusTool.sideEffects).toBe("none");
+    expect(statusTool.sideEffects).toBe("external");
   });
 
   it("should omit git field when not configured", async () => {
@@ -407,8 +500,10 @@ describe("status tool", () => {
       context,
       "directory-sync",
     );
-    const statusTool = findTool(tools, "directory-sync_status");
-    const result = parseToolResult(await statusTool.handler({}, toolContext));
+    const statusTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await statusTool.handler({ action: "status" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["syncPath"]).toBe("/data/brain");
@@ -425,8 +520,10 @@ describe("status tool", () => {
       "directory-sync",
       gitSync,
     );
-    const statusTool = findTool(tools, "directory-sync_status");
-    const result = parseToolResult(await statusTool.handler({}, toolContext));
+    const statusTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await statusTool.handler({ action: "status" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["git"]).toBeDefined();
@@ -443,8 +540,10 @@ describe("status tool", () => {
       context,
       "directory-sync",
     );
-    const statusTool = findTool(tools, "directory-sync_status");
-    const result = parseToolResult(await statusTool.handler({}, toolContext));
+    const statusTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await statusTool.handler({ action: "status" }, toolContext),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data?.["lastSync"]).toBeUndefined();
@@ -459,8 +558,10 @@ describe("status tool", () => {
       context,
       "directory-sync",
     );
-    const statusTool = findTool(tools, "directory-sync_status");
-    const result = parseToolResult(await statusTool.handler({}, toolContext));
+    const statusTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await statusTool.handler({ action: "status" }, toolContext),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Disk read failed");
@@ -477,8 +578,10 @@ describe("status tool", () => {
       "directory-sync",
       gitSync,
     );
-    const statusTool = findTool(tools, "directory-sync_status");
-    const result = parseToolResult(await statusTool.handler({}, toolContext));
+    const statusTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await statusTool.handler({ action: "status" }, toolContext),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("git not found");

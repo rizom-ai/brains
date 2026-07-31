@@ -132,7 +132,7 @@ export class ButtondownPlugin extends ServicePlugin<
       {
         path: "/subscribe",
         method: "POST",
-        tool: "subscribe",
+        tool: "newsletter_subscribers",
         public: true,
         successRedirect: "/subscribe/thanks",
         errorRedirect: "/subscribe/error",

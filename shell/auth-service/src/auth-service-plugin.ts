@@ -264,6 +264,9 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
+    const hasPasskeyCredentials =
+      await this.getService().hasPasskeyCredentials();
+
     return [
       {
         name: `${this.id}_get_passkey_setup_url`,
@@ -271,6 +274,7 @@ export class AuthServicePlugin extends ServicePlugin<
           "Get the first-passkey setup URL when passkey setup is required. Admin-only.",
         inputSchema: {},
         visibility: "admin",
+        ...(hasPasskeyCredentials ? { agentTool: false } : {}),
         handler: async (): Promise<PasskeySetupToolResponse> => {
           const service = this.getService();
           if (await service.hasPasskeyCredentials()) {

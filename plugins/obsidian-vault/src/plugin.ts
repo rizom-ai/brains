@@ -1,13 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  toolError,
-} from "@brains/plugins";
-import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { ServicePlugin, toolSuccess, toolError } from "@brains/plugins";
+import type { ServicePluginContext, ToolResult } from "@brains/plugins";
 import {
   type ObsidianVaultConfig,
   type ObsidianVaultConfigInput,
@@ -36,13 +30,6 @@ const defaultDeps: ObsidianVaultDeps = {
   existsFile: existsSync,
 };
 
-const syncInputSchema = z.object({
-  entityTypes: z
-    .array(z.string())
-    .optional()
-    .describe("Entity types to generate templates for (default: all)"),
-});
-
 export class ObsidianVaultPlugin extends ServicePlugin<
   ObsidianVaultConfig,
   ObsidianVaultConfigInput
@@ -64,20 +51,15 @@ export class ObsidianVaultPlugin extends ServicePlugin<
     await this.sync(context);
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    const context = this.getContext();
-    return [
-      createTool(
-        this.id,
-        "sync-templates",
-        "Generate Obsidian templates, Metadata Menu fileClass definitions, and Bases views for all registered entity types.",
-        syncInputSchema,
-        async (input) => {
-          return this.sync(context, input.entityTypes);
-        },
-        { sideEffects: "external" },
-      ),
-    ];
+  public async syncTemplates(filterTypes?: string[]): Promise<
+    ToolResult<{
+      generated: string[];
+      skipped: string[];
+      fileClasses: string[];
+      bases: string[];
+    }>
+  > {
+    return this.sync(this.getContext(), filterTypes);
   }
 
   private async sync(

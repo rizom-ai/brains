@@ -1,13 +1,12 @@
-import type {
-  Tool,
-  ToolContext,
-  ServicePluginContext,
-  ToolResult,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { Tool, ToolContext, ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 import type { PublicationQueueService } from "../publication-queue-service";
+
+export type QueueMutationService = Pick<
+  QueueManager,
+  "add" | "remove" | "reorder"
+>;
 
 /**
  * Input schema for publish-pipeline:queue tool
@@ -120,58 +119,79 @@ export function createQueueTool(
   context: ServicePluginContext,
   pluginId: string,
   queueManager: QueueManager,
-  publicationQueueService: PublicationQueueService,
+  publicationQueueService?: PublicationQueueService,
 ): Tool<QueueOutput> {
-  const tool = createTool(
-    pluginId,
-    "queue",
-    "Manage the publish queue for all entity types (list, add, remove, reorder)",
-    queueInputSchema,
-    async (input, toolContext): Promise<ToolResult> => {
-      const { action, entityType, entityId, position } = input;
-
-      switch (action) {
-        case "list":
-          return handleList(queueManager, entityType);
-        case "add":
-          return handleAdd(
-            context,
-            publicationQueueService,
-            entityType,
-            entityId,
-            toolContext,
-          );
-        case "remove":
-          return handleRemove(
-            context,
-            publicationQueueService,
-            entityType,
-            entityId,
-            toolContext,
-          );
-        case "reorder":
-          return handleReorder(
-            context,
-            publicationQueueService,
-            entityType,
-            entityId,
-            position,
-            toolContext,
-          );
-        default:
-          return {
-            success: false,
-            error: `Unknown action: ${action}`,
-          };
-      }
-    },
-    { sideEffects: "writes" },
-  );
+  const queueMutations: QueueMutationService =
+    publicationQueueService ?? queueManager;
 
   return {
-    ...tool,
+    name: `${pluginId}_queue`,
+    description:
+      "Manage the publish queue for all entity types (list, add, remove, reorder)",
+    inputSchema: queueInputSchema.shape,
     outputSchema: queueOutputSchema,
-  } as Tool<QueueOutput>;
+    visibility: "admin",
+    sideEffects: "writes",
+    handler: async (rawInput, toolContext): Promise<QueueOutput> => {
+      const parsed = queueInputSchema.safeParse(rawInput);
+      if (!parsed.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parsed.error.issues
+            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .join(", ")}`,
+        };
+      }
+
+      return handleQueueAction(
+        context,
+        queueManager,
+        queueMutations,
+        parsed.data,
+        toolContext,
+      );
+    },
+  };
+}
+
+export async function handleQueueAction(
+  context: ServicePluginContext,
+  queueManager: QueueManager,
+  queueMutations: QueueMutationService,
+  input: QueueInput,
+  toolContext: ToolContext,
+): Promise<QueueOutput> {
+  const { action, entityType, entityId, position } = input;
+
+  switch (action) {
+    case "list":
+      return handleList(queueManager, entityType);
+    case "add":
+      return handleAdd(
+        context,
+        queueMutations,
+        entityType,
+        entityId,
+        toolContext,
+      );
+    case "remove":
+      return handleRemove(
+        context,
+        queueMutations,
+        entityType,
+        entityId,
+        toolContext,
+      );
+    case "reorder":
+      return handleReorder(
+        context,
+        queueMutations,
+        entityType,
+        entityId,
+        position,
+        toolContext,
+      );
+  }
 }
 
 /**
@@ -180,7 +200,7 @@ export function createQueueTool(
 async function handleList(
   queueManager: QueueManager,
   entityType?: string,
-): Promise<ToolResult> {
+): Promise<QueueOutput> {
   let queue: QueueEntry[] = [];
 
   if (entityType) {
@@ -201,8 +221,8 @@ async function handleList(
 
   if (queue.length === 0) {
     return {
-      success: true as const,
-      data: { queue: [] as QueueItem[] },
+      success: true,
+      data: { queue: emptyQueue() },
       message: "No items in queue",
     };
   }
@@ -215,10 +235,14 @@ async function handleList(
   }));
 
   return {
-    success: true as const,
+    success: true,
     data: { queue: items },
     message: `${queue.length} items in queue`,
   };
+}
+
+function emptyQueue(): QueueItem[] {
+  return [];
 }
 
 /**
@@ -226,11 +250,11 @@ async function handleList(
  */
 async function handleAdd(
   context: ServicePluginContext,
-  publicationQueueService: PublicationQueueService,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
-): Promise<ToolResult> {
+): Promise<QueueOutput> {
   const target = requireQueueTarget("add", entityType, entityId);
   if (!target.success) return target.error;
 
@@ -240,17 +264,13 @@ async function handleAdd(
     toolContext ?? {},
   );
 
-  const result = await publicationQueueService.enqueue(
-    target.entityType,
-    target.entityId,
-    {
-      ...toolContext,
-      authorization: "user",
-    },
-  );
+  const result = await queueMutations.add(target.entityType, target.entityId, {
+    ...toolContext,
+    authorization: "user",
+  });
 
   return {
-    success: true as const,
+    success: true,
     data: {
       entityType: target.entityType,
       entityId: target.entityId,
@@ -265,11 +285,11 @@ async function handleAdd(
  */
 async function handleRemove(
   context: ServicePluginContext,
-  publicationQueueService: PublicationQueueService,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
-): Promise<ToolResult> {
+): Promise<QueueOutput> {
   const target = requireQueueTarget("remove", entityType, entityId);
   if (!target.success) return target.error;
 
@@ -279,10 +299,10 @@ async function handleRemove(
     toolContext ?? {},
   );
 
-  await publicationQueueService.remove(target.entityType, target.entityId);
+  await queueMutations.remove(target.entityType, target.entityId);
 
   return {
-    success: true as const,
+    success: true,
     data: { entityType: target.entityType, entityId: target.entityId },
     message: "Removed from queue",
   };
@@ -293,12 +313,12 @@ async function handleRemove(
  */
 async function handleReorder(
   context: ServicePluginContext,
-  publicationQueueService: PublicationQueueService,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   position?: number,
   toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
-): Promise<ToolResult> {
+): Promise<QueueOutput> {
   const target = requireQueueTarget("reorder", entityType, entityId);
   if (!target.success) return target.error;
 
@@ -311,14 +331,14 @@ async function handleReorder(
     toolContext ?? {},
   );
 
-  await publicationQueueService.reorder(
+  await queueMutations.reorder(
     target.entityType,
     target.entityId,
     nextPosition.position,
   );
 
   return {
-    success: true as const,
+    success: true,
     data: {
       entityType: target.entityType,
       entityId: target.entityId,
@@ -330,7 +350,7 @@ async function handleReorder(
 
 type QueueTargetResult =
   | { success: true; entityType: string; entityId: string }
-  | { success: false; error: ToolResult };
+  | { success: false; error: QueueOutput };
 
 function requireQueueTarget(
   action: "add" | "remove" | "reorder",
@@ -341,7 +361,7 @@ function requireQueueTarget(
     return {
       success: false,
       error: {
-        success: false as const,
+        success: false,
         error: `entityType is required for ${action} action`,
       },
     };
@@ -351,7 +371,7 @@ function requireQueueTarget(
     return {
       success: false,
       error: {
-        success: false as const,
+        success: false,
         error: `entityId is required for ${action} action`,
       },
     };
@@ -361,14 +381,14 @@ function requireQueueTarget(
 }
 
 type QueuePositionResult =
-  { success: true; position: number } | { success: false; error: ToolResult };
+  { success: true; position: number } | { success: false; error: QueueOutput };
 
 function requirePosition(position?: number): QueuePositionResult {
   if (position === undefined) {
     return {
       success: false,
       error: {
-        success: false as const,
+        success: false,
         error: "position is required for reorder action",
       },
     };
@@ -378,7 +398,7 @@ function requirePosition(position?: number): QueuePositionResult {
     return {
       success: false,
       error: {
-        success: false as const,
+        success: false,
         error: "position must be a positive number",
       },
     };

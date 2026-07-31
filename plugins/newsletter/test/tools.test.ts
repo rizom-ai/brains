@@ -19,6 +19,16 @@ afterEach(() => {
 describe("Buttondown Tools", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
+  it("registers one canonical newsletter subscriber tool", () => {
+    const tools = createButtondownTools(
+      "buttondown",
+      { apiKey: "test-key", doubleOptIn: true },
+      createSilentLogger("buttondown-tools-test"),
+    );
+
+    expect(tools.map((tool) => tool.name)).toEqual(["newsletter_subscribers"]);
+  });
+
   it("uses OpenAI-compatible email patterns in model-visible tool schemas", () => {
     const tools = createButtondownTools(
       "buttondown",
@@ -40,7 +50,7 @@ describe("Buttondown Tools", () => {
     harness.reset();
   });
 
-  describe("buttondown_subscribe", () => {
+  describe("newsletter_subscribers subscribe action", () => {
     it("should subscribe email via Buttondown API", async () => {
       mockFetch(() =>
         Promise.resolve({
@@ -58,7 +68,8 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      const result = await harness.executeTool("buttondown_subscribe", {
+      const result = await harness.executeTool("newsletter_subscribers", {
+        action: "subscribe",
         email: "test@example.com",
       });
 
@@ -84,7 +95,8 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      await harness.executeTool("buttondown_subscribe", {
+      await harness.executeTool("newsletter_subscribers", {
+        action: "subscribe",
         email: "test@example.com",
         name: "Test User",
       });
@@ -105,7 +117,8 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      const result = await harness.executeTool("buttondown_subscribe", {
+      const result = await harness.executeTool("newsletter_subscribers", {
+        action: "subscribe",
         email: "invalid",
       });
 
@@ -143,7 +156,8 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      const result = await harness.executeTool("buttondown_subscribe", {
+      const result = await harness.executeTool("newsletter_subscribers", {
+        action: "subscribe",
         email: "existing@example.com",
       });
 
@@ -153,7 +167,7 @@ describe("Buttondown Tools", () => {
     });
   });
 
-  describe("buttondown_unsubscribe", () => {
+  describe("newsletter_subscribers unsubscribe action", () => {
     it("should unsubscribe email via Buttondown API", async () => {
       mockFetch(() =>
         Promise.resolve({
@@ -166,7 +180,8 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      const result = await harness.executeTool("buttondown_unsubscribe", {
+      const result = await harness.executeTool("newsletter_subscribers", {
+        action: "unsubscribe",
         email: "test@example.com",
       });
 
@@ -174,7 +189,7 @@ describe("Buttondown Tools", () => {
     });
   });
 
-  describe("buttondown_list_subscribers", () => {
+  describe("newsletter_subscribers list action", () => {
     it("should list subscribers from Buttondown API", async () => {
       mockFetch(() =>
         Promise.resolve({
@@ -202,10 +217,9 @@ describe("Buttondown Tools", () => {
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
       );
 
-      const result = await harness.executeTool(
-        "buttondown_list_subscribers",
-        {},
-      );
+      const result = await harness.executeTool("newsletter_subscribers", {
+        action: "list",
+      });
 
       expectSuccess(result);
       expect(result.data).toHaveProperty("subscribers");
@@ -219,7 +233,8 @@ describe("Buttondown Tools", () => {
 
       // Tools should not be registered, so executing should throw
       expect(
-        harness.executeTool("buttondown_subscribe", {
+        harness.executeTool("newsletter_subscribers", {
+          action: "subscribe",
           email: "test@example.com",
         }),
       ).rejects.toThrow("Tool not found");

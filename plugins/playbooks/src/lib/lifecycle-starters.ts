@@ -7,7 +7,7 @@
  * Store/catalog access is injected so the registry is unit-testable.
  */
 
-import type { LifecycleStarterRegistration } from "../lifecycle-starter-contract";
+import type { LifecycleStarterRegistration } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 

@@ -17,9 +17,10 @@ turns:
   - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_start
+        - toolName: playbook_manage
           shouldBeCalled: true
           argsContain:
+            action: start
             playbookId: rover-onboarding
       responseContains:
         - Rover
@@ -34,8 +35,10 @@ turns:
           shouldBeCalled: false
         - toolName: system_update
           shouldBeCalled: false
-        - toolName: playbook_send_event
+        - toolName: playbook_manage
           shouldBeCalled: false
+          argsContain:
+            action: send-event
       responseNotContains:
         - "What should I call you"
         - "what should I call you"
@@ -45,7 +48,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_start
+    - toolName: playbook_manage
       shouldBeCalled: true
   toolCountRange:
     max: 5

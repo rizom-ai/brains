@@ -13,19 +13,7 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
-import type { Tool, ToolContext, ToolResponse } from "@brains/plugins";
-
-async function callToolForResult(
-  tool: Tool,
-  input: unknown,
-  context: ToolContext,
-): Promise<Exclude<ToolResponse, { needsConfirmation: true }>> {
-  const response = await tool.handler(input, context);
-  if ("needsConfirmation" in response) {
-    throw new Error("expected a tool result, got a confirmation request");
-  }
-  return response;
-}
+import type { ToolContext } from "@brains/plugins";
 
 function createMockToolContext(): ToolContext {
   return {
@@ -49,13 +37,13 @@ async function runConfirmedPublish(
   tool: ReturnType<typeof createPublishTool>,
   input: Record<string, unknown>,
   context: ToolContext = createMockToolContext(),
-): Promise<Exclude<ToolResponse, { needsConfirmation: true }>> {
+): Promise<Awaited<ReturnType<typeof tool.handler>>> {
   const confirmation = await tool.handler(input, context);
   expect(confirmation).toHaveProperty("needsConfirmation", true);
   if (!("needsConfirmation" in confirmation)) {
     throw new Error("Expected publish confirmation");
   }
-  return callToolForResult(tool, confirmation.args, context);
+  return tool.handler(confirmation.args, context);
 }
 
 describe("Publish Pipeline - Publish Tool", () => {
@@ -109,8 +97,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       context = createServicePluginContext(mockShell, pluginId);
       const tool = createPublishTool(context, pluginId, providerRegistry);
 
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", id: "post-123" },
         { ...createMockToolContext(), userPermissionLevel: "trusted" },
       );
@@ -151,8 +138,7 @@ describe("Publish Pipeline - Publish Tool", () => {
   describe("handler validation", () => {
     it("should require entityType", async () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { id: "post-123" },
         createMockToolContext(),
       );
@@ -164,8 +150,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
     it("should require id or slug", async () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post" },
         createMockToolContext(),
       );
@@ -177,8 +162,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
     it("should return error when entity not found", async () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", id: "nonexistent" },
         createMockToolContext(),
       );
@@ -267,8 +251,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       }
       expect(confirmation.summary).toBe('Publish "draft-post"?');
 
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         confirmation.args,
         createMockToolContext(),
       );
@@ -305,8 +288,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         pluginId,
         providerRegistry,
       );
-      const result = await callToolForResult(
-        recreatedTool,
+      const result = await recreatedTool.handler(
         confirmation.args,
         createMockToolContext(),
       );
@@ -330,10 +312,9 @@ describe("Publish Pipeline - Publish Tool", () => {
         throw new Error("Expected publish confirmation");
       }
 
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         {
-          ...(confirmation.args as Record<string, unknown>),
+          ...confirmation.args,
           confirmationToken: "invalid-token",
         },
         createMockToolContext(),
@@ -365,8 +346,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       const originalDateNow = Date.now;
       try {
         Date.now = (): number => originalDateNow() + 16 * 60 * 1000;
-        const result = await callToolForResult(
-          tool,
+        const result = await tool.handler(
           confirmation.args,
           createMockToolContext(),
         );
@@ -409,8 +389,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         },
       });
 
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         confirmation.args,
         createMockToolContext(),
       );
@@ -425,8 +404,7 @@ describe("Publish Pipeline - Publish Tool", () => {
     it("should return error when no provider registered", async () => {
       // No provider registered - should return error
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
@@ -439,8 +417,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
     it("should reject already published entities", async () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", id: "published-post" },
         createMockToolContext(),
       );
@@ -456,8 +433,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       providerRegistry.register("social-post", linkedinProvider);
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", id: "shared-post" },
         createMockToolContext(),
       );
@@ -474,8 +450,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       providerRegistry.register("social-post", linkedinProvider);
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await callToolForResult(
-        tool,
+      const result = await tool.handler(
         { entityType: "social-post", slug: "restricted-post" },
         createMockToolContext(),
       );

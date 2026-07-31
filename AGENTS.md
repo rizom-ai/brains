@@ -11,7 +11,7 @@ This file applies to the whole repository unless a more specific `AGENTS.md` exi
 - Keep answers concise; avoid long explanatory replies unless explicitly requested.
 - Ask a clear yes/no question when requirements are ambiguous.
 - Keep edits isolated to one file when possible.
-- Preserve backward compatibility unless explicitly told otherwise.
+- Do not assume backward compatibility is required; ask the user case-by-case before keeping compatibility shims or legacy behavior.
 - Do not assume Python is available; this machine has neither `python` nor `python3` installed.
 
 ## Validation

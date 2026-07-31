@@ -142,6 +142,7 @@ export type {
   Prompt,
   ToolContext,
   ToolResponse,
+  DirectMcpExposure,
   ToolConfirmation,
   ToolVisibility,
   RuntimeAppInfo,

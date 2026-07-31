@@ -20,10 +20,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: content-pipeline_queue
+    - toolName: publishing_manage
       shouldBeCalled: true
       argsContain:
-        action: add
+        action: queue-add
         entityType: social-post
   responseNotContains:
     - "permission denied"

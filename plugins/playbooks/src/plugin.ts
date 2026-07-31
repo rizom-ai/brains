@@ -2,27 +2,33 @@ import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
   ENTITY_CHANNELS,
+  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionRequestSchema,
   agentContextRequestSchema,
+  lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
   type AgentContextResponse,
   type AgentResponse,
-} from "@brains/contracts";
-import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  lifecycleStarterRegistrationSchema,
+  type ActionsCard,
   type LifecycleStarterRegistration,
-} from "./lifecycle-starter-contract";
+} from "@brains/contracts";
 import {
   assertValidPlaybookBody,
   playbookAdapter,
+  type PlaybookBody,
   type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
+  type PlaybookTransition,
 } from "./entity";
-import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  Tool,
+  ToolContext,
+  ToolResponse,
+} from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
-import { buildPlaybookTools } from "./lib/tools";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
 import {
@@ -37,36 +43,20 @@ import {
 } from "./lib/render";
 import {
   LifecycleStarterRegistry,
+  lifecycleConfigSchema,
+  type LifecyclePlaybookConfig,
   type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
-import {
-  lifecycleStartersRequestSchema,
-  playbookStatusEntitySchema,
-  playbooksConfigSchema,
-  type LifecycleStartersRequest,
-  type ParsedPlaybook,
-  type PlaybooksConfig,
-  type PlaybooksConfigInput,
-  type PlaybookStatusResponse,
-} from "./lib/contracts";
 
-import { RunEngine, appendUnique, type GoalCheck } from "./lib/run-engine";
-import { getErrorMessage } from "@brains/utils/error";
 import {
-  buildPlaybookActionsCard,
-  formatActionResponseText,
-  latestRun,
-  preferActiveRun,
-  sanitizeRunForModelOutput,
-  withOperatorActionGuidance,
-  zeroUsage,
-} from "./lib/run-presentation";
-import {
-  createJudgeGoalCheck,
-  defaultGoalCheck,
-  goalCheckInputSchema,
-} from "./lib/goal-check";
+  RunEngine,
+  appendUnique,
+  errorMessage,
+  type GoalCheck,
+  type GoalCheckInput,
+  type GoalCheckResult,
+} from "./lib/run-engine";
 
 export type {
   LifecyclePlaybookConfig,
@@ -79,9 +69,190 @@ export type {
   GoalCheckInput,
   GoalCheckResult,
 } from "./lib/run-engine";
-import { PlaybookRunStore, type PlaybookRun } from "./run-store";
+import {
+  PlaybookRunStore,
+  playbookRunEvidenceSchema,
+  playbookRunSchema,
+  type PlaybookRun,
+  type PlaybookRunEvidence,
+} from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
+
+export interface LifecyclePlaybookConfigInput {
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+export interface PlaybooksConfig {
+  lifecycle: Record<string, LifecyclePlaybookConfig>;
+  triggers: Record<string, boolean>;
+}
+
+export interface PlaybooksConfigInput {
+  lifecycle?: Record<string, LifecyclePlaybookConfigInput> | undefined;
+  triggers?: Record<string, boolean> | undefined;
+}
+
+interface LifecycleStartersRequest {
+  lifecycle?: string | undefined;
+  interfaceType: string;
+  userPermissionLevel: "admin" | "trusted" | "public";
+}
+
+export interface PlaybookEntityMetadata extends Record<string, unknown> {
+  title: string;
+  status: "draft" | "active" | "archived";
+  audience: "admin" | "trusted" | "public";
+  trigger?: string | undefined;
+  lifecycle?: string | undefined;
+  once?: boolean | undefined;
+  starterText?: string | undefined;
+  description?: string | undefined;
+  starterPrompt?: string | undefined;
+  completionMode: "agent-confirmed" | "manual";
+}
+
+export interface PlaybookEntity extends Record<string, unknown> {
+  id: string;
+  entityType: "playbook";
+  content: string;
+  metadata: PlaybookEntityMetadata;
+}
+
+const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
+  z
+    .object({
+      lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+      triggers: z.record(z.string(), z.boolean()).default({}),
+    })
+    .strict();
+
+const lifecycleStartersRequestSchema: z.ZodType<
+  LifecycleStartersRequest,
+  LifecycleStartersRequest
+> = z
+  .object({
+    lifecycle: z.string().min(1).optional(),
+    interfaceType: z.string().min(1),
+    userPermissionLevel: z.enum(["admin", "trusted", "public"]),
+  })
+  .strict();
+
+const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
+  .object({
+    id: z.string().min(1),
+    entityType: z.literal("playbook"),
+    content: z.string().min(1),
+    metadata: z
+      .object({
+        title: z.string().min(1),
+        status: z.enum(["draft", "active", "archived"]),
+        audience: z.enum(["admin", "trusted", "public"]),
+        trigger: z.string().min(1).optional(),
+        lifecycle: z.string().min(1).optional(),
+        once: z.boolean().optional(),
+        starterText: z.string().min(1).optional(),
+        description: z.string().min(1).optional(),
+        starterPrompt: z.string().min(1).optional(),
+        completionMode: z.enum(["agent-confirmed", "manual"]),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+const manageInputSchema = {
+  action: z.enum(["status", "start", "send-event"]),
+  runId: z.string().min(1).optional(),
+  playbookId: z.string().min(1).optional(),
+  lifecycle: z.string().min(1).optional(),
+  event: z.string().min(1).optional(),
+  fromState: z.string().min(1).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
+};
+
+const playbookManageInputSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("status"),
+    runId: z.string().min(1).optional(),
+    playbookId: z.string().min(1).optional(),
+    lifecycle: z.string().min(1).optional(),
+  }),
+  z.object({
+    action: z.literal("start"),
+    playbookId: z.string().min(1),
+    lifecycle: z.string().min(1).optional(),
+  }),
+  z.object({
+    action: z.literal("send-event"),
+    runId: z.string().min(1).optional(),
+    event: z.string().min(1),
+    fromState: z.string().min(1).optional(),
+    context: z.record(z.string(), z.unknown()).optional(),
+  }),
+]);
+
+export interface ParsedPlaybook {
+  entity: PlaybookEntity;
+  body: PlaybookBody;
+  version: string;
+}
+
+export interface PlaybookStatusResponse {
+  runs: PlaybookRun[];
+  activeRun?: PlaybookRun | undefined;
+  playbook?: PlaybookEntity | undefined;
+  body?: PlaybookBody | undefined;
+  currentState?: PlaybookState | undefined;
+  validEvents?: PlaybookTransition[] | undefined;
+  operatorActions?: PlaybookTransition[] | undefined;
+  blockedEvents?: PlaybookTransition[] | undefined;
+  guidance?: string | undefined;
+  cards?: ActionsCard[] | undefined;
+  lifecycle: Record<string, LifecyclePlaybookConfig>;
+}
+
+const goalCheckResultSchema = z
+  .object({
+    met: z.boolean(),
+    reason: z.string().min(1),
+  })
+  .strict();
+
+const goalCheckTransitionSchema = z
+  .object({
+    event: z.string().min(1),
+    target: z.string().min(1),
+    operatorAction: z.boolean().optional(),
+    label: z.string().min(1).optional(),
+    description: z.string().min(1).optional(),
+    operatorDescription: z.string().min(1).optional(),
+  })
+  .strict();
+
+const goalCheckStateSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    instructions: z.array(z.string().min(1)),
+    requiredDetails: z.array(z.string().min(1)).default([]),
+    doneWhen: z.array(z.string().min(1)).default([]),
+    transitions: z.array(goalCheckTransitionSchema).default([]),
+  })
+  .passthrough();
+
+const goalCheckInputSchema = z
+  .object({
+    run: playbookRunSchema,
+    state: goalCheckStateSchema,
+    goal: z.array(z.string().min(1)),
+    evidence: z.array(playbookRunEvidenceSchema).default([]),
+  })
+  .strict();
 
 export interface PlaybooksPluginDeps {
   goalCheck?: GoalCheck | undefined;
@@ -95,7 +266,7 @@ export class PlaybooksPlugin extends ServicePlugin<
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
-  private readonly startLocks = new Map<string, Promise<ToolResult<unknown>>>();
+  private readonly startLocks = new Map<string, Promise<ToolResponse>>();
   private readonly runLocks = new Map<string, Promise<void>>();
   private lifecycleStarters!: LifecycleStarterRegistry;
   private runs!: RunEngine;
@@ -208,22 +379,55 @@ export class PlaybooksPlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    return buildPlaybookTools(this.id, {
-      getStatus: async (input): Promise<PlaybookStatusResponse> =>
-        this.getStatus(input),
-      startRun: async (input): Promise<ToolResult<unknown>> =>
-        this.startRun(input),
-      sendEvent: async (input): Promise<ToolResult<unknown>> =>
-        this.sendEventFromTool(input),
-    });
+    return [
+      {
+        name: "playbook_manage",
+        description:
+          "Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+        inputSchema: manageInputSchema,
+        visibility: "admin",
+        sideEffects: "writes",
+        handler: async (
+          input: unknown,
+          toolContext: ToolContext,
+        ): Promise<ToolResponse> => {
+          const parsed = playbookManageInputSchema.parse(input);
+          if (parsed.action === "status") {
+            return this.handleStatus(parsed, toolContext);
+          }
+          if (parsed.action === "start") {
+            return this.handleStart(parsed, toolContext);
+          }
+          return this.handleSendEvent(parsed, toolContext);
+        },
+      },
+    ];
   }
 
-  private async startRun(input: {
-    playbookId: string;
-    lifecycle?: string | undefined;
-    conversationId?: string | undefined;
-  }): Promise<ToolResult<unknown>> {
-    const conversationId = input.conversationId;
+  private async handleStatus(
+    input: {
+      runId?: string | undefined;
+      playbookId?: string | undefined;
+      lifecycle?: string | undefined;
+    },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
+    try {
+      const data = await this.getStatus({
+        ...input,
+        conversationId: toolContext.conversationId,
+      });
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: errorMessage(error) };
+    }
+  }
+
+  private async handleStart(
+    input: { playbookId: string; lifecycle?: string | undefined },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
+    const conversationId = toolContext.conversationId;
     const lockKey = conversationId
       ? `${conversationId}:${input.playbookId}`
       : `playbook:${input.playbookId}`;
@@ -261,16 +465,18 @@ export class PlaybooksPlugin extends ServicePlugin<
     });
   }
 
-  private async sendEventFromTool(input: {
-    runId?: string | undefined;
-    event: string;
-    fromState?: string | undefined;
-    context?: Record<string, unknown> | undefined;
-    conversationId?: string | undefined;
-  }): Promise<ToolResult<unknown>> {
+  private async handleSendEvent(
+    input: {
+      runId?: string | undefined;
+      event: string;
+      fromState?: string | undefined;
+      context?: Record<string, unknown> | undefined;
+    },
+    toolContext: ToolContext,
+  ): Promise<ToolResponse> {
     const run = await this.resolveScopedRunResponse({
       runId: input.runId,
-      conversationId: input.conversationId,
+      conversationId: toolContext.conversationId,
     });
     if (!run.success) return run;
     const result = await this.sendEventForRun(run.data.id, input.event, {
@@ -284,8 +490,8 @@ export class PlaybooksPlugin extends ServicePlugin<
 
   private async withStartLock(
     key: string,
-    task: () => Promise<ToolResult<unknown>>,
-  ): Promise<ToolResult<unknown>> {
+    task: () => Promise<ToolResponse>,
+  ): Promise<ToolResponse> {
     const existing = this.startLocks.get(key);
     if (existing) return existing;
 
@@ -332,6 +538,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!scopedRun.success) return undefined;
 
     const args = {
+      action: "send-event",
       runId: scopedRun.data.id,
       event: request.action.event,
       ...(request.action.fromState
@@ -346,7 +553,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!result.success) {
       return {
         text: `I couldn't continue the playbook: ${result.error}`,
-        toolResults: [{ toolName: "playbook_send_event", args }],
+        toolResults: [{ toolName: "playbook_manage", args }],
         usage: zeroUsage(),
       };
     }
@@ -355,9 +562,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     return {
       text: formatActionResponseText(state),
       ...(result.data.cards ? { cards: result.data.cards } : {}),
-      toolResults: [
-        { toolName: "playbook_send_event", args, data: result.data },
-      ],
+      toolResults: [{ toolName: "playbook_manage", args, data: result.data }],
       usage: zeroUsage(),
     };
   }
@@ -402,7 +607,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (options.fromState && options.fromState !== run.currentState) {
       return {
         success: false,
-        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_status and act on the current state.`,
+        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_manage with action=status and act on the current state.`,
       };
     }
     const playbook = await this.requirePlaybook(run.playbookId);
@@ -461,7 +666,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       });
 
     return entities.flatMap((entity): ParsedPlaybook[] => {
-      const parsed = playbookStatusEntitySchema.safeParse(entity);
+      const parsed = playbookEntitySchema.safeParse(entity);
       if (!parsed.success) return [];
       const { body } = playbookAdapter.parsePlaybookContent(
         parsed.data.content,
@@ -636,7 +841,7 @@ export class PlaybooksPlugin extends ServicePlugin<
         id: playbookId,
         visibilityScope: permissionToVisibilityScope("admin"),
       });
-    const parsed = playbookStatusEntitySchema.safeParse(entity);
+    const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
     const { body } = playbookAdapter.parsePlaybookContent(parsed.data.content);
     return {
@@ -667,7 +872,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     try {
       return { success: true, data: await this.requireScopedRun(input) };
     } catch (error) {
-      return { success: false, error: getErrorMessage(error) };
+      return { success: false, error: errorMessage(error) };
     }
   }
 
@@ -718,6 +923,216 @@ export class PlaybooksPlugin extends ServicePlugin<
     });
   }
 }
+
+function withOperatorActionGuidance(
+  status: PlaybookStatusResponse,
+  sourceState: PlaybookState,
+  transition: PlaybookTransition,
+): PlaybookStatusResponse {
+  const sourceInstructions = sourceState.instructions
+    .map((instruction) => `- ${instruction}`)
+    .join("\n");
+  const actionGuidance = [
+    `Selected operator action: ${transition.label ?? transition.event}`,
+    `Source state: ${sourceState.title}`,
+    "Complete any domain work requested by the selected action or same user message before final answering.",
+    "Source-state instructions for the selected action:",
+    sourceInstructions || "- none",
+  ].join("\n");
+  return {
+    ...status,
+    guidance: status.guidance
+      ? `${actionGuidance}\n\n${status.guidance}`
+      : actionGuidance,
+  };
+}
+
+function sanitizeRunForModelOutput(run: PlaybookRun): PlaybookRun {
+  return {
+    ...run,
+    evidence: run.evidence.map((evidence) => ({
+      ...evidence,
+      data: sanitizeEvidenceData(evidence.data),
+    })),
+  };
+}
+
+function sanitizeEvidenceData(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    ["entityType", "entityId", "operation"].flatMap((key) =>
+      data[key] !== undefined ? [[key, data[key]]] : [],
+    ),
+  );
+}
+
+function buildPlaybookActionsCard(input: {
+  run: PlaybookRun;
+  title: string;
+  transitions: PlaybookTransition[];
+}): ActionsCard {
+  return {
+    kind: "actions",
+    id: `actions:playbook:${input.run.id}`,
+    title: input.title,
+    defaultOpen: true,
+    actions: input.transitions.map((transition) => ({
+      type: "event",
+      id: `playbook:${input.run.id}:${transition.event}`,
+      label:
+        transition.label ??
+        transition.operatorDescription ??
+        transition.description ??
+        transition.event,
+      event: transition.event,
+      fromState: input.run.currentState,
+      ...((transition.operatorDescription ?? transition.description)
+        ? {
+            description:
+              transition.operatorDescription ?? transition.description,
+          }
+        : {}),
+    })),
+  };
+}
+
+function formatActionResponseText(state: PlaybookState | undefined): string {
+  if (!state) return "Continuing.";
+  return state.prompt ?? `Continuing to ${state.title}.`;
+}
+
+function zeroUsage(): AgentResponse["usage"] {
+  return { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+}
+
+function preferActiveRun(
+  runs: PlaybookRun[],
+  predicate: (run: PlaybookRun) => boolean,
+): PlaybookRun | undefined {
+  const matching = runs.filter(predicate);
+  const active = matching.filter(
+    (run) => run.status === "active" || run.status === "offered",
+  );
+  return latestRun(active) ?? latestRun(matching);
+}
+
+function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
+  return [...runs].sort((a, b) =>
+    (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt),
+  )[0];
+}
+
+function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
+  return {
+    async evaluate(input): Promise<GoalCheckResult> {
+      const query = input.goal.join("\n");
+      const searchResults = await context.entityService.search({
+        query,
+        options: {
+          limit: 8,
+          excludeTypes: ["playbook"],
+          visibilityScope: permissionToVisibilityScope("admin"),
+        },
+      });
+      const material = buildGoalCheckMaterial(input, searchResults);
+      const { verdict } = await context.judge({
+        instruction:
+          "Decide whether the playbook goal is satisfied by the supplied current-run runtime evidence and KB excerpts. Current-run runtime evidence is authoritative for playbook completion; use KB excerpts as supporting context, not to override clear runtime evidence from this run. Return met=true only when the outcome clearly holds. If evidence is missing or ambiguous, return met=false with a short reason.",
+        material,
+        schema: goalCheckResultSchema,
+      });
+      return verdict;
+    },
+  };
+}
+
+function buildGoalCheckMaterial(
+  input: GoalCheckInput,
+  searchResults: Array<{
+    entity: {
+      id: string;
+      entityType: string;
+      content: string;
+      metadata: unknown;
+    };
+    excerpt: string;
+    score: number;
+  }>,
+): string {
+  return [
+    "## Playbook run",
+    `runId: ${input.run.id}`,
+    `playbookId: ${input.run.playbookId}`,
+    `currentState: ${input.state.id} (${input.state.title})`,
+    "",
+    "## State instructions",
+    ...input.state.instructions.map((instruction) => `- ${instruction}`),
+    "",
+    "## Done When goal",
+    ...input.goal.map((goal) => `- ${goal}`),
+    "",
+    "## Runtime evidence",
+    ...(input.evidence.length > 0
+      ? input.evidence.map((evidence, index) =>
+          formatEvidence(index + 1, evidence),
+        )
+      : ["No runtime evidence collected for this state."]),
+    "",
+    "## KB excerpts",
+    ...(searchResults.length > 0
+      ? searchResults.map((result, index) =>
+          formatSearchResult(index + 1, result),
+        )
+      : ["No relevant KB excerpts found."]),
+  ].join("\n");
+}
+
+function formatEvidence(index: number, evidence: PlaybookRunEvidence): string {
+  return `${index}. ${evidence.kind} at ${evidence.observedAt}: ${safeJson(evidence.data)}`;
+}
+
+function formatSearchResult(
+  index: number,
+  result: {
+    entity: {
+      id: string;
+      entityType: string;
+      content: string;
+      metadata: unknown;
+    };
+    excerpt: string;
+    score: number;
+  },
+): string {
+  return [
+    `${index}. ${result.entity.entityType}/${result.entity.id} (score ${result.score})`,
+    `Excerpt: ${result.excerpt}`,
+    `Content: ${truncate(result.entity.content, 1200)}`,
+    `Metadata: ${safeJson(result.entity.metadata)}`,
+  ].join("\n");
+}
+
+function safeJson(value: unknown): string {
+  try {
+    return truncate(JSON.stringify(value), 1200);
+  } catch {
+    return "[unserializable]";
+  }
+}
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
+const defaultGoalCheck: GoalCheck = {
+  async evaluate() {
+    return {
+      met: false,
+      reason: "No playbook goal check is configured.",
+    };
+  },
+};
 
 export function playbooksPlugin(
   config: PlaybooksConfigInput = {},

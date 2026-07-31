@@ -33,6 +33,7 @@ import type {
 } from "@brains/mcp-service";
 export type {
   ToolVisibility,
+  DirectMcpExposure,
   ToolContext,
   ToolResponse,
   ToolConfirmation,

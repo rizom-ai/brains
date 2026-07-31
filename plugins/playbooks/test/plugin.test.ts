@@ -1,4 +1,6 @@
-import { createTempDataDir } from "@brains/plugins/test";
+import { mkdtemp } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it, mock } from "bun:test";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
@@ -24,7 +26,7 @@ import {
 } from "../src";
 
 async function tempStorageDir(): Promise<string> {
-  return createTempDataDir("brains-playbooks-");
+  return mkdtemp(join(tmpdir(), "brains-playbooks-"));
 }
 
 const welcomeState: PlaybookBody["states"][number] = {
@@ -192,11 +194,8 @@ async function startRun(
   playbookId = "rover-onboarding",
 ): Promise<string> {
   const started = await harness.executeTool(
-    "playbook_start",
-    {
-      playbookId,
-      lifecycle: "onboarding",
-    },
+    "playbook_manage",
+    { action: "start", playbookId, lifecycle: "onboarding" },
     { conversationId },
   );
   expectSuccess(started);
@@ -297,11 +296,7 @@ describe("PlaybooksPlugin", () => {
       .filter((name) => name.startsWith("playbook_"))
       .sort();
 
-    expect(toolNames).toEqual([
-      "playbook_send_event",
-      "playbook_start",
-      "playbook_status",
-    ]);
+    expect(toolNames).toEqual(["playbook_manage"]);
   });
 
   it("declares playbook tool visibility and side effects", async () => {
@@ -318,43 +313,89 @@ describe("PlaybooksPlugin", () => {
     );
 
     expect(metadata).toEqual({
-      playbook_send_event: { visibility: "admin", sideEffects: "writes" },
-      playbook_start: { visibility: "admin", sideEffects: "writes" },
-      playbook_status: { visibility: "admin", sideEffects: "none" },
+      playbook_manage: { visibility: "admin", sideEffects: "writes" },
     });
+  });
+
+  it("routes status, start, and send-event through playbook_manage", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness);
+
+    const started = await harness.executeTool(
+      "playbook_manage",
+      { action: "start", playbookId: "rover-onboarding" },
+      { conversationId: "manage-conversation" },
+    );
+    expectSuccess(started);
+    const startedData = parsePlaybookToolData(started.data);
+    expect(startedData.activeRun.currentState).toBe("welcome");
+
+    const status = await harness.executeTool(
+      "playbook_manage",
+      { action: "status", runId: startedData.activeRun.id },
+      { conversationId: "manage-conversation" },
+    );
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.id).toBe(
+      startedData.activeRun.id,
+    );
+
+    const advanced = await harness.executeTool(
+      "playbook_manage",
+      {
+        action: "send-event",
+        runId: startedData.activeRun.id,
+        event: "NEXT",
+        fromState: "welcome",
+      },
+      { conversationId: "manage-conversation" },
+    );
+    expectSuccess(advanced);
+    expect(parsePlaybookToolData(advanced.data).activeRun.currentState).toBe(
+      "seed",
+    );
   });
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     const capabilities = await harness.installPlugin(playbooksPlugin({}));
-    const statusTool = capabilities.tools.find(
-      (tool) => tool.name === "playbook_status",
+    const manageTool = capabilities.tools.find(
+      (tool) => tool.name === "playbook_manage",
     );
-    if (!statusTool) throw new Error("playbook_status not found");
+    if (!manageTool) throw new Error("playbook_manage not found");
 
-    expect(statusTool.description).toContain(
+    expect(manageTool.description).toContain(
       "Do not send an extra NEXT after runtime evidence already advanced the run",
     );
-    expect(statusTool.description).toContain(
+    expect(manageTool.description).toContain(
       "Do not claim the playbook is finished",
     );
   });
 
-  it("preserves an active run lifecycle when playbook_start is called again", async () => {
+  it("preserves an active run lifecycle when playbook_manage start is called again", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
 
     const conversationId = "resume-preserve-lifecycle";
     const started = await harness.executeTool(
-      "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "first-admin-web-chat" },
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "first-admin-web-chat",
+      },
       { conversationId },
     );
     expectSuccess(started);
     const restarted = await harness.executeTool(
-      "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
       { conversationId },
     );
     expectSuccess(restarted);
@@ -371,8 +412,8 @@ describe("PlaybooksPlugin", () => {
     });
 
     const started = await harness.executeTool(
-      "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "default" },
+      "playbook_manage",
+      { action: "start", playbookId: "rover-onboarding", lifecycle: "default" },
       { conversationId: "metadata-lifecycle" },
     );
 
@@ -382,7 +423,7 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("deduplicates concurrent playbook_start calls for the same conversation", async () => {
+  it("deduplicates concurrent playbook_manage start calls for the same conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
@@ -391,8 +432,9 @@ describe("PlaybooksPlugin", () => {
     const results = await Promise.all(
       Array.from({ length: 4 }, () =>
         harness.executeTool(
-          "playbook_start",
+          "playbook_manage",
           {
+            action: "start",
             playbookId: "rover-onboarding",
             lifecycle: "first-admin-web-chat",
           },
@@ -406,14 +448,14 @@ describe("PlaybooksPlugin", () => {
         runIds.add(parsePlaybookToolData(result.data).activeRun.id);
       } else {
         expectSuccess(result);
-        throw new Error("playbook_start failed");
+        throw new Error("playbook_manage start failed");
       }
     }
     expect(runIds.size).toBe(1);
 
     const status = await harness.executeTool(
-      "playbook_status",
-      {},
+      "playbook_manage",
+      { action: "status" },
       { conversationId },
     );
     expectSuccess(status);
@@ -742,7 +784,8 @@ describe("PlaybooksPlugin", () => {
       operatingRules: ["Changed after run start."],
     });
 
-    const stale = await harness.executeTool("playbook_send_event", {
+    const stale = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -755,8 +798,9 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
 
     const started = await harness.executeTool(
-      "playbook_start",
+      "playbook_manage",
       {
+        action: "start",
         playbookId: "rover-onboarding",
         lifecycle: "onboarding",
       },
@@ -836,8 +880,8 @@ describe("PlaybooksPlugin", () => {
     expect(response?.cards).toBeUndefined();
     expect(response?.toolResults).toEqual([
       {
-        toolName: "playbook_send_event",
-        args: { runId, event: "NEXT" },
+        toolName: "playbook_manage",
+        args: { action: "send-event", runId, event: "NEXT" },
         data: expect.objectContaining({
           activeRun: expect.objectContaining({ currentState: "seed" }),
         }),
@@ -845,8 +889,8 @@ describe("PlaybooksPlugin", () => {
     ]);
 
     const status = await harness.executeTool(
-      "playbook_status",
-      {},
+      "playbook_manage",
+      { action: "status" },
       { conversationId: "web-action-next" },
     );
     expectSuccess(status);
@@ -861,8 +905,12 @@ describe("PlaybooksPlugin", () => {
     addPlaybookEntity(harness);
 
     const first = await harness.executeTool(
-      "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
       { conversationId: "conversation-one" },
     );
     expectSuccess(first);
@@ -870,8 +918,12 @@ describe("PlaybooksPlugin", () => {
     expect(firstRun.conversationId).toBe("conversation-one");
 
     const second = await harness.executeTool(
-      "playbook_start",
-      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
       { conversationId: "conversation-two" },
     );
     expectSuccess(second);
@@ -880,8 +932,8 @@ describe("PlaybooksPlugin", () => {
     expect(secondRun.id).not.toBe(firstRun.id);
 
     const status = await harness.executeTool(
-      "playbook_status",
-      { lifecycle: "onboarding" },
+      "playbook_manage",
+      { action: "status", lifecycle: "onboarding" },
       { conversationId: "conversation-two" },
     );
     expectSuccess(status);
@@ -896,8 +948,9 @@ describe("PlaybooksPlugin", () => {
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
-      "playbook_start",
+      "playbook_manage",
       {
+        action: "start",
         playbookId: "rover-onboarding",
         lifecycle: "onboarding",
       },
@@ -913,7 +966,8 @@ describe("PlaybooksPlugin", () => {
       "SKIP",
     ]);
 
-    const transitioned = await harness.executeTool("playbook_send_event", {
+    const transitioned = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
       context: { operatorReady: true },
@@ -924,13 +978,15 @@ describe("PlaybooksPlugin", () => {
     expect(transitionedData.activeRun.completedStates).toEqual(["welcome"]);
     expect(transitionedData.activeRun.context).toEqual({ operatorReady: true });
 
-    const invalid = await harness.executeTool("playbook_send_event", {
+    const invalid = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "SKIP",
     });
     expectError(invalid);
 
-    const finalTransition = await harness.executeTool("playbook_send_event", {
+    const finalTransition = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -946,8 +1002,9 @@ describe("PlaybooksPlugin", () => {
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
-      "playbook_start",
+      "playbook_manage",
       {
+        action: "start",
         playbookId: "rover-onboarding",
         lifecycle: "onboarding",
       },
@@ -957,21 +1014,23 @@ describe("PlaybooksPlugin", () => {
     const runId = parsePlaybookToolData(started.data).activeRun.id;
 
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
     const status = await harness.executeTool(
-      "playbook_status",
-      { playbookId: "rover-onboarding" },
+      "playbook_manage",
+      { action: "status", playbookId: "rover-onboarding" },
       { conversationId: "web-completed-status" },
     );
     expectSuccess(status);
@@ -982,8 +1041,12 @@ describe("PlaybooksPlugin", () => {
     expect(statusData.currentState?.id).toBe("complete");
 
     const staleRunStatus = await harness.executeTool(
-      "playbook_status",
-      { runId: "rover-onboarding", playbookId: "rover-onboarding" },
+      "playbook_manage",
+      {
+        action: "status",
+        runId: "rover-onboarding",
+        playbookId: "rover-onboarding",
+      },
       { conversationId: "web-completed-status" },
     );
     expectSuccess(staleRunStatus);
@@ -1030,19 +1093,24 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-status-guidance");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectError(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.validEvents.map((event) => event.event)).toEqual(["SKIP"]);
@@ -1085,12 +1153,14 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-context-judge");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
-    const advanced = await harness.executeTool("playbook_send_event", {
+    const advanced = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -1142,19 +1212,24 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-judge-error");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectError(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     expect(parsePlaybookToolData(status.data).guidance).toContain(
       "judge unavailable",
@@ -1207,7 +1282,10 @@ describe("PlaybooksPlugin", () => {
       true,
     );
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.activeRun.currentState).toBe("complete");
@@ -1259,7 +1337,8 @@ describe("PlaybooksPlugin", () => {
     const conversationId = "web-runtime-evidence-gate";
     const runId = await startRun(harness, conversationId);
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
@@ -1276,7 +1355,10 @@ describe("PlaybooksPlugin", () => {
       true,
     );
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(evaluate).toHaveBeenCalledTimes(1);
@@ -1331,20 +1413,23 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-unsatisfied-gate");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
     expectError(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "SKIP",
       }),
@@ -1388,13 +1473,15 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-met-gate");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const advanced = await harness.executeTool("playbook_send_event", {
+    const advanced = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -1422,7 +1509,8 @@ describe("PlaybooksPlugin", () => {
     if (!stored) throw new Error("Expected stored run");
     await store.set(runId, { ...stored, snapshot: { bogus: true } });
 
-    const transitioned = await harness.executeTool("playbook_send_event", {
+    const transitioned = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -1448,7 +1536,8 @@ describe("PlaybooksPlugin", () => {
       snapshot: { status: "active", value: "welcome" },
     });
 
-    const transitioned = await harness.executeTool("playbook_send_event", {
+    const transitioned = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
     });
@@ -1463,13 +1552,15 @@ describe("PlaybooksPlugin", () => {
 
     const completedRunId = await startRun(harness, "conversation-completed");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId: completedRunId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId: completedRunId,
         event: "NEXT",
       }),
@@ -1477,7 +1568,8 @@ describe("PlaybooksPlugin", () => {
 
     const activeRunId = await startRun(harness, "conversation-active");
 
-    const byPlaybook = await harness.executeTool("playbook_status", {
+    const byPlaybook = await harness.executeTool("playbook_manage", {
+      action: "status",
       playbookId: "rover-onboarding",
     });
     expectSuccess(byPlaybook);
@@ -1485,7 +1577,8 @@ describe("PlaybooksPlugin", () => {
       activeRunId,
     );
 
-    const byLifecycle = await harness.executeTool("playbook_status", {
+    const byLifecycle = await harness.executeTool("playbook_manage", {
+      action: "status",
       lifecycle: "onboarding",
     });
     expectSuccess(byLifecycle);
@@ -1499,14 +1592,16 @@ describe("PlaybooksPlugin", () => {
     const runId = await startRun(harness, "web-stale-from-state");
 
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
         fromState: "welcome",
       }),
     );
 
-    const stale = await harness.executeTool("playbook_send_event", {
+    const stale = await harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "NEXT",
       fromState: "welcome",
@@ -1516,7 +1611,10 @@ describe("PlaybooksPlugin", () => {
     expect(stale.error).toContain("Stale playbook event");
     expect(stale.error).toContain("seed");
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
       "seed",
@@ -1528,12 +1626,14 @@ describe("PlaybooksPlugin", () => {
     const runId = await startRun(harness, "web-concurrent-duplicate");
 
     const results = await Promise.all([
-      harness.executeTool("playbook_send_event", {
+      harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
         fromState: "welcome",
       }),
-      harness.executeTool("playbook_send_event", {
+      harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
         fromState: "welcome",
@@ -1545,7 +1645,10 @@ describe("PlaybooksPlugin", () => {
     );
     expect(succeeded).toHaveLength(1);
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
       "seed",
@@ -1597,7 +1700,8 @@ describe("PlaybooksPlugin", () => {
     const conversationId = "web-evidence-operator-race";
     const runId = await startRun(harness, conversationId);
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
@@ -1615,7 +1719,8 @@ describe("PlaybooksPlugin", () => {
     );
     await goalCheckStarted;
 
-    const skipPromise = harness.executeTool("playbook_send_event", {
+    const skipPromise = harness.executeTool("playbook_manage", {
+      action: "send-event",
       runId,
       event: "SKIP",
       fromState: "identity",
@@ -1627,7 +1732,10 @@ describe("PlaybooksPlugin", () => {
     expectError(skip);
     expect(skip.error).toContain("Stale playbook event");
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.activeRun.currentState).toBe("seed");
@@ -1640,7 +1748,8 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-stale-action");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
@@ -1668,7 +1777,10 @@ describe("PlaybooksPlugin", () => {
     expect(response?.text).toContain("I couldn't continue the playbook");
     expect(response?.text).toContain("Stale playbook event");
 
-    const status = await harness.executeTool("playbook_status", { runId });
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
     expectSuccess(status);
     expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
       "seed",
@@ -1680,8 +1792,8 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "web-scoped-tools");
 
     const status = await harness.executeTool(
-      "playbook_status",
-      {},
+      "playbook_manage",
+      { action: "status" },
       { conversationId: "web-scoped-tools" },
     );
     expectSuccess(status);
@@ -1690,8 +1802,8 @@ describe("PlaybooksPlugin", () => {
     );
 
     const transitioned = await harness.executeTool(
-      "playbook_send_event",
-      { event: "NEXT", context: { operatorReady: true } },
+      "playbook_manage",
+      { action: "send-event", event: "NEXT", context: { operatorReady: true } },
       { conversationId: "web-scoped-tools" },
     );
     expectSuccess(transitioned);
@@ -1705,8 +1817,8 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "real-conversation");
 
     const status = await harness.executeTool(
-      "playbook_status",
-      { conversationId: "fake-conversation" },
+      "playbook_manage",
+      { action: "status", conversationId: "fake-conversation" },
       { conversationId: "real-conversation" },
     );
 
@@ -1720,8 +1832,8 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
 
     const missing = await harness.executeTool(
-      "playbook_status",
-      {},
+      "playbook_manage",
+      { action: "status" },
       { conversationId: "web-no-run" },
     );
     expectError(missing);
@@ -1731,8 +1843,8 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "web-ambiguous-run", "rover-onboarding-alt");
 
     const ambiguous = await harness.executeTool(
-      "playbook_send_event",
-      { event: "NEXT" },
+      "playbook_manage",
+      { action: "send-event", event: "NEXT" },
       { conversationId: "web-ambiguous-run" },
     );
     expectError(ambiguous);
@@ -1783,7 +1895,8 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-agent-context-completed");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),
@@ -1848,7 +1961,8 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-actionable-context");
     expectSuccess(
-      await harness.executeTool("playbook_send_event", {
+      await harness.executeTool("playbook_manage", {
+        action: "send-event",
         runId,
         event: "NEXT",
       }),

@@ -52,9 +52,14 @@ does not rewrite Markdown or create Git noise.
 
 ## Tools
 
-- `content-pipeline_queue` - List, add, remove, or reorder queued entities
-- `content-pipeline_publish` - Publish directly with confirmation and a content-hash precondition
-- `content-pipeline_ensure-assets` - Reconcile generated assets for published content
+- `publishing_manage` - Manage publishing actions:
+  - `queue-list` - list queued entities
+  - `queue-add` - add an entity to the publish queue
+  - `queue-remove` - remove an entity from the publish queue
+  - `queue-reorder` - change an entity's queue position
+  - `publish` - publish directly with confirmation and a content-hash precondition
+
+Generated publish assets are reconciled automatically during publishing and are not exposed as an agent/MCP tool.
 
 ## Messages
 

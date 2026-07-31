@@ -1,9 +1,15 @@
+import { z } from "@brains/utils/zod";
+
 /**
  * Shared database configuration — used by all services (entity, embedding,
- * job queue, conversation), each of which re-exports it under its own alias.
- * The parser lives with its single consumer in shell/core's config.
+ * job queue, conversation).
  */
 export interface DbConfig {
   url: string;
   authToken?: string | undefined;
 }
+
+export const dbConfigSchema: z.ZodType<DbConfig, DbConfig> = z.object({
+  url: z.string(),
+  authToken: z.string().optional(),
+});

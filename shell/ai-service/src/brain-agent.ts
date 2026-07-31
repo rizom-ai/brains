@@ -31,21 +31,38 @@ export function filterToolsForCallOptions(
   return tools;
 }
 
+function isPlaybookStartInput(input: unknown): boolean {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "action" in input &&
+    input.action === "start"
+  );
+}
+
 export function shouldStopToolLoop(input: {
   steps: Array<{
+    toolCalls?: Array<{
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+    }>;
     toolResults?: Array<
       { output?: unknown; toolName?: string } & Record<string, unknown>
     >;
   }>;
 }): boolean {
   const latestStep = input.steps.at(-1);
-  return (
+  const hasConfirmation =
     latestStep?.toolResults?.some(
-      (result) =>
-        toolConfirmationSchema.safeParse(result.output).success ||
-        result.toolName === "playbook_start",
-    ) ?? false
-  );
+      (result) => toolConfirmationSchema.safeParse(result.output).success,
+    ) ?? false;
+  const hasPlaybookStart =
+    latestStep?.toolCalls?.some(
+      (call) =>
+        call.toolName === "playbook_manage" && isPlaybookStartInput(call.input),
+    ) ?? false;
+  return hasConfirmation || hasPlaybookStart;
 }
 
 /**

@@ -3,6 +3,15 @@ export const A2A_CHANNELS = {
   callAgents: "a2a:call:agents",
 } as const;
 
+export const BUTTONDOWN_CHANNELS = {
+  isConfigured: "buttondown:is-configured",
+  send: "buttondown:send",
+} as const;
+
+export const CONVERSATION_CHANNELS = {
+  digest: "conversation:digest",
+} as const;
+
 export const DASHBOARD_CHANNELS = {
   registerWidget: "dashboard:register-widget",
   unregisterWidget: "dashboard:unregister-widget",
@@ -46,6 +55,10 @@ export const NEWSLETTER_CHANNELS = {
   generation: "newsletter:generation",
 } as const;
 
+export const PROJECT_CHANNELS = {
+  generation: "project:generation",
+} as const;
+
 export const PUBLISH_CHANNELS = {
   register: "publish:register",
   execute: "publish:execute",
@@ -60,6 +73,14 @@ export const PUBLISH_CHANNELS = {
   completed: "publish:completed",
   failed: "publish:failed",
   listResponse: "publish:list:response",
+} as const;
+
+export const PUBLISH_ASSET_CHANNELS = {
+  register: "publish-assets:register",
+} as const;
+
+export const SERIES_CHANNELS = {
+  project: "series:project",
 } as const;
 
 export const SHELL_CHANNELS = {
@@ -86,4 +107,8 @@ export const SITE_BUILDER_CHANNELS = {
 export const SITE_CHANNELS = {
   buildStaging: "site:build:staging",
   buildCompleted: "site:build:completed",
+} as const;
+
+export const SOCIAL_CHANNELS = {
+  autoGenerate: "social:auto-generate",
 } as const;

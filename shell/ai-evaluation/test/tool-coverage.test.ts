@@ -92,6 +92,7 @@ describe("tool coverage report", () => {
       staleAssertions: [],
     });
 
+    expect(markdown).toContain("Agent tools: 1");
     expect(markdown).toContain("Missing assertions: 0");
     expect(markdown).toContain("## Missing assertions\n\n(none)");
   });

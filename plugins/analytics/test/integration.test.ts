@@ -112,12 +112,14 @@ describe("AnalyticsPlugin Integration", () => {
       expect(toolNames).toContain("analytics_query");
     });
 
-    it("should have correct tool description", () => {
+    it("should expose Cloudflare query as a direct-MCP tool, not an agent tool", () => {
       const queryTool = capabilities.tools.find(
         (t) => t.name === "analytics_query",
       );
       expect(queryTool?.description).toContain("Cloudflare");
       expect(queryTool?.description).toContain("Date range options");
+      expect(queryTool?.agentTool).toBe(false);
+      expect(queryTool?.directMcpExposure).toBe("basic");
     });
   });
 

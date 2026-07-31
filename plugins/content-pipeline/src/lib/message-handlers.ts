@@ -84,12 +84,12 @@ function subscribeToPublishMessages(
 
   context.messaging.subscribe<PublishRemovePayload, { success: boolean }>(
     PUBLISH_MESSAGES.REMOVE,
-    async (msg) => handleRemove(context, deps, msg.payload),
+    async (msg) => handleRemove(deps, msg.payload),
   );
 
   context.messaging.subscribe<PublishReorderPayload, { success: boolean }>(
     PUBLISH_MESSAGES.REORDER,
-    async (msg) => handleReorder(context, deps, msg.payload),
+    async (msg) => handleReorder(deps, msg.payload),
   );
 
   context.messaging.subscribe<PublishListPayload, { success: boolean }>(
@@ -377,18 +377,12 @@ async function handleDirect(
 }
 
 async function handleRemove(
-  context: ServicePluginContext,
   deps: MessageHandlerDeps,
   payload: PublishRemovePayload,
 ): Promise<{ success: boolean }> {
   const { entityType, entityId } = payload;
 
   try {
-    context.permissions.assertEntityActionAllowed(
-      entityType,
-      "update",
-      payload.authContext ?? SYSTEM_PUBLISH_AUTH_CONTEXT,
-    );
     await deps.publicationQueueService.remove(entityType, entityId);
     deps.logger.debug(`Entity removed from queue: ${entityId}`, {
       entityType,
@@ -402,18 +396,12 @@ async function handleRemove(
 }
 
 async function handleReorder(
-  context: ServicePluginContext,
   deps: MessageHandlerDeps,
   payload: PublishReorderPayload,
 ): Promise<{ success: boolean }> {
   const { entityType, entityId, position } = payload;
 
   try {
-    context.permissions.assertEntityActionAllowed(
-      entityType,
-      "update",
-      payload.authContext ?? SYSTEM_PUBLISH_AUTH_CONTEXT,
-    );
     await deps.publicationQueueService.reorder(entityType, entityId, position);
     deps.logger.debug(`Entity reordered: ${entityId}`, {
       entityType,

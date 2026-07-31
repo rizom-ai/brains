@@ -20,20 +20,26 @@ successCriteria: {}
 permissions:
   public:
     expectedTools:
-      - toolName: directory-sync_sync
+      - toolName: directory_sync
         shouldBeCalled: false
+        argsContain:
+          action: sync
     responseNotContains:
       - "done"
   trusted:
     expectedTools:
-      - toolName: directory-sync_sync
+      - toolName: directory_sync
         shouldBeCalled: false
+        argsContain:
+          action: sync
     responseNotContains:
       - "done"
   admin:
     expectedTools:
-      - toolName: directory-sync_sync
+      - toolName: directory_sync
         shouldBeCalled: true
+        argsContain:
+          action: sync
     toolCountRange:
       min: 1
     responseNotContains:

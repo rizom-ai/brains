@@ -123,11 +123,11 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     ).toMatchObject({ status: "failed", error: "Provider unavailable" });
   });
 
-  it("routes the queue tool through the same storage boundary", async () => {
+  it("routes publishing_manage queue-add through the same storage boundary", async () => {
     const result = await harness.executeTool(
-      "content-pipeline_queue",
+      "publishing_manage",
       {
-        action: "add",
+        action: "queue-add",
         entityType: "social-post",
         entityId: "post-1",
       },

@@ -31,8 +31,11 @@ export function createApiRouteHandler(
       }
     }
 
-    // Call tool via message bus
-    const toolName = `${route.pluginId}_${route.definition.tool}`;
+    // Call tool via message bus. Most plugin routes use local tool names, but
+    // consolidated tools may intentionally target an exact canonical name.
+    const toolName = route.definition.tool.includes("_")
+      ? route.definition.tool
+      : `${route.pluginId}_${route.definition.tool}`;
     const response = await messageBus.send({
       type: PLUGIN_CHANNELS.toolExecute(route.pluginId),
       payload: {

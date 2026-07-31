@@ -1,11 +1,7 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
-import {
-  createEnsureAssetsTool,
-  createQueueTool,
-  createPublishTool,
-} from "./tools";
+import { createPublishingManageTool } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { PublicationQueueService } from "./publication-queue-service";
@@ -101,7 +97,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
     });
-    await registerDashboardWidget(context, {
+    await registerDashboardWidget(context, this.id, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       retryTracker: this.retryTracker,
@@ -118,33 +114,21 @@ export class ContentPipelinePlugin extends ServicePlugin<
     }
 
     return [
-      createQueueTool(
-        this.pluginContext,
-        this.id,
-        this.queueManager,
-        this.publicationQueueService,
-      ),
-      createPublishTool(
-        this.pluginContext,
-        this.id,
-        this.providerRegistry,
-        this.publishExecutor,
-      ),
-      createEnsureAssetsTool(
-        this.pluginContext,
-        this.id,
-        this.publishAssetRegistry,
-        this.publishAssetPreflight,
-      ),
+      createPublishingManageTool(this.pluginContext, {
+        queueManager: this.queueManager,
+        publicationQueueService: this.publicationQueueService,
+        providerRegistry: this.providerRegistry,
+        publishExecutor: this.publishExecutor,
+      }),
     ];
   }
 
   protected override async getInstructions(): Promise<string | undefined> {
     return `## Publishing
-- Use \`content-pipeline_queue\` to manage the publish queue — list queued items, add entities to the queue, remove them, or reorder.
-- Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown). This tool has its own confirmation flow; call it without \`confirmed\` when the user asks to publish instead of asking for plain-text confirmation. Follow-up requests like "publish it now" should target the entity just read, generated, or updated in the conversation, including a post just changed to draft.
-- Use \`content-pipeline_ensure-assets\` to reconcile missing publish assets such as generated OG images for already-published content.
-- When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
+- Use \`publishing_manage\` to manage publishing actions.
+- Use \`publishing_manage\` with \`action=queue-list\`, \`action=queue-add\`, \`action=queue-remove\`, or \`action=queue-reorder\` for publish queue requests.
+- Use \`publishing_manage\` with \`action=publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown). This tool has its own confirmation flow; call it without \`confirmed\` when the user asks to publish instead of asking for plain-text confirmation. Follow-up requests like "publish it now" should target the entity just read, generated, or updated in the conversation, including a post just changed to draft.
+- Missing publish assets such as generated OG images are reconciled automatically during publishing; do not call a separate asset reconciliation tool.`;
   }
 
   public getQueueManager(): QueueManager {

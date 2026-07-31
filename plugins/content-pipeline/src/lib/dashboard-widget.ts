@@ -21,8 +21,10 @@ export interface RegisterDashboardWidgetDeps {
 
 export async function registerDashboardWidget(
   context: ServicePluginContext,
+  pluginId: string,
   deps: RegisterDashboardWidgetDeps,
 ): Promise<void> {
+  void pluginId;
   await context.dashboard.registerWidget({
     id: "publication-pipeline",
     title: "Publication Pipeline",

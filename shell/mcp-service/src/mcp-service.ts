@@ -8,6 +8,7 @@ import {
   canExposeResourceTemplate,
   canExposeToolOnProtocol,
   createMcpServerInstance,
+  filterAgentToolsForPermission,
   filterToolsForPermission,
   registerPromptOnServer,
   registerResourceOnServer,
@@ -244,6 +245,21 @@ export class MCPService implements IMCPService {
     userLevel: UserPermissionLevel,
   ): RegisteredTool[] {
     return filterToolsForPermission(this.listTools(), userLevel);
+  }
+
+  public listAgentToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+  ): RegisteredTool[] {
+    return filterAgentToolsForPermission(this.listTools(), userLevel);
+  }
+
+  public listProtocolToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+    mode: MCPProtocolMode,
+  ): RegisteredTool[] {
+    return this.listTools().filter(({ tool }) =>
+      canExposeToolOnProtocol(userLevel, tool, mode),
+    );
   }
 
   /**

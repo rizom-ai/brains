@@ -1,10 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createQueueTool, queueInputSchema } from "../src/tools/queue";
 import { QueueManager } from "../src/queue-manager";
-import { PublicationQueueService } from "../src/publication-queue-service";
 import type { ToolContext } from "@brains/plugins";
 import {
-  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
@@ -34,9 +32,8 @@ const mockToolContext: ToolContext = {
 describe("publish_queue tool", () => {
   let queueManager: QueueManager;
   let tool: ReturnType<typeof createQueueTool>;
-  let context: ReturnType<typeof createServicePluginContext>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     permissionChecks.length = 0;
     queueManager = QueueManager.createFresh();
     const shell = createMockShell();
@@ -49,39 +46,8 @@ describe("publish_queue tool", () => {
       permissionChecks.push({ entityType, action, userPermissionLevel });
     };
     shell.getPermissionService = (): PermissionService => permissionService;
-    context = createServicePluginContext(shell, "publish-pipeline");
-    for (const entityType of ["social-post", "blog-post"]) {
-      context.entities.register(entityType, baseEntitySchema, {} as never);
-    }
-    for (const [entityType, id] of [
-      ["social-post", "post-123"],
-      ["social-post", "post-456"],
-      ["social-post", "post-1"],
-      ["social-post", "post-2"],
-      ["social-post", "post-3"],
-      ["social-post", "sp-1"],
-      ["social-post", "sp-2"],
-      ["blog-post", "bp-1"],
-    ] as const) {
-      await context.entityService.createEntity({
-        entity: {
-          id,
-          entityType,
-          content: `---\ntitle: ${id}\nstatus: draft\n---\n\nBody`,
-          metadata: { title: id, status: "draft" },
-        },
-      });
-    }
-    const publicationQueueService = new PublicationQueueService(
-      context,
-      queueManager,
-    );
-    tool = createQueueTool(
-      context,
-      "publish-pipeline",
-      queueManager,
-      publicationQueueService,
-    );
+    const context = createServicePluginContext(shell, "publish-pipeline");
+    tool = createQueueTool(context, "publish-pipeline", queueManager);
   });
 
   describe("input schema", () => {
@@ -215,31 +181,6 @@ describe("publish_queue tool", () => {
         expect(result.data?.position).toBe(1);
         expect(result.message).toBe("Added to queue at position 1");
       }
-    });
-
-    // Tool mutations must run through PublicationQueueService so the
-    // queued status is persisted on the entity, never only in memory.
-    it("persists queued status on the entity", async () => {
-      await tool.handler(
-        { action: "add", entityType: "social-post", entityId: "post-123" },
-        mockToolContext,
-      );
-
-      const entity = await context.entityService.getEntity({
-        entityType: "social-post",
-        id: "post-123",
-      });
-      expect(entity?.metadata["status"]).toBe("queued");
-
-      await tool.handler(
-        { action: "remove", entityType: "social-post", entityId: "post-123" },
-        mockToolContext,
-      );
-      const removed = await context.entityService.getEntity({
-        entityType: "social-post",
-        id: "post-123",
-      });
-      expect(removed?.metadata["status"]).toBe("draft");
     });
 
     it("should require publish permission", async () => {

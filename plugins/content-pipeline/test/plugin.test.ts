@@ -83,6 +83,16 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getScheduler()).toBeDefined();
     });
 
+    it("registers only the canonical publishing management tool", () => {
+      const toolNames = harness
+        .getCapabilities()
+        .tools.map((tool) => tool.name);
+      expect(toolNames).toContain("publishing_manage");
+      expect(toolNames).not.toContain("content-pipeline_queue");
+      expect(toolNames).not.toContain("content-pipeline_publish");
+      expect(toolNames).not.toContain("content-pipeline_ensure-assets");
+    });
+
     it("should start scheduler during ready lifecycle", async () => {
       expect(plugin.getScheduler().isRunning()).toBe(false);
 

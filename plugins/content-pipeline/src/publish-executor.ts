@@ -1,10 +1,10 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { PublishResult } from "@brains/contracts";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ProviderRegistry } from "./provider-registry";
 import type { PublishableMetadata } from "./schemas/publishable";
 import { preparePublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
-import { getErrorMessage } from "@brains/utils/error";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;
 

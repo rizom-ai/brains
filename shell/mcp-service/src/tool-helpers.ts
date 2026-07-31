@@ -113,6 +113,8 @@ export function createTool<
   options: {
     visibility?: Tool["visibility"];
     sideEffects?: Tool["sideEffects"];
+    agentTool?: Tool["agentTool"];
+    directMcpExposure?: Tool["directMcpExposure"];
     annotations?: Tool["annotations"];
     debug?: boolean;
     cli?: Tool["cli"];
@@ -124,6 +126,8 @@ export function createTool<
   const {
     visibility = "admin",
     sideEffects,
+    agentTool,
+    directMcpExposure,
     annotations,
     debug = false,
     cli,
@@ -167,6 +171,8 @@ export function createTool<
     },
     visibility,
     ...(sideEffects ? { sideEffects } : {}),
+    ...(agentTool !== undefined ? { agentTool } : {}),
+    ...(directMcpExposure !== undefined ? { directMcpExposure } : {}),
     ...(annotations ? { annotations } : {}),
     ...(cli ? { cli } : {}),
   };

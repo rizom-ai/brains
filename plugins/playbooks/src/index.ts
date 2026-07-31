@@ -2,8 +2,7 @@ export {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   lifecycleStarterRegistrationSchema,
   type LifecycleStarterRegistration,
-  type LifecycleStarterRegistrationInput,
-} from "./lifecycle-starter-contract";
+} from "@brains/contracts";
 export {
   PlaybookPlugin,
   playbookPlugin,
@@ -45,10 +44,11 @@ export {
   type LifecyclePlaybookConfig,
   type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
+  type PlaybooksConfig,
   type PlaybooksPluginDeps,
   type PlaybookStarter,
+  type PlaybookStatusResponse,
 } from "./plugin";
-export type { PlaybooksConfig, PlaybookStatusResponse } from "./lib/contracts";
 export {
   PlaybookRunStore,
   createPlaybookRun,

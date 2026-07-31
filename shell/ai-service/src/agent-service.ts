@@ -169,14 +169,18 @@ export class AgentService implements IAgentService {
     this.agent ??= this.agentFactory({
       identity: this.identityService.getCharacter(),
       profile: this.profileService.getProfile(),
-      tools: this.mcpService.listTools().map((t) => t.tool),
+      tools: this.mcpService
+        .listAgentToolsForPermissionLevel("admin")
+        .map((t) => t.tool),
       pluginInstructions: this.mcpService.getInstructions(),
       ...(this.agentInstructions && {
         agentInstructions: this.agentInstructions,
       }),
       stepLimit: this.stepLimit,
       getToolsForPermission: (level) =>
-        this.mcpService.listToolsForPermissionLevel(level).map((t) => t.tool),
+        this.mcpService
+          .listAgentToolsForPermissionLevel(level)
+          .map((t) => t.tool),
     });
     return this.agent;
   }
