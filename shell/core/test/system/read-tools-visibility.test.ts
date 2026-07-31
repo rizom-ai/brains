@@ -142,6 +142,16 @@ describe("read tool model contracts", () => {
     );
   });
 
+  it("describes complete search results as sufficient retrieval evidence", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_search",
+    );
+    expect(tool?.description).toContain(
+      "answer from those results instead of redundantly listing or getting the same entities",
+    );
+  });
+
   it("describes system_list as known-type listing, not broad lookup", () => {
     const services = createMockSystemServices();
     const tool = createSystemTools(services).find(

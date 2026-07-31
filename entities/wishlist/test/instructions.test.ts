@@ -17,6 +17,12 @@ describe("WishlistPlugin instructions", () => {
       "do not merely decline, offer alternatives, or wait for a separate save verb",
     );
     expect(instructions).toContain(
+      "Availability is determined by the callable tool surface",
+    );
+    expect(instructions).toContain(
+      'in that same turn you MUST call system_create with entityType "wish"',
+    );
+    expect(instructions).toContain(
       "Do not invent or look for a dedicated wishlist tool",
     );
     expect(instructions).toContain(

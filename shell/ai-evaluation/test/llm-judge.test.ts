@@ -123,6 +123,67 @@ describe("LLMJudge", () => {
     );
   });
 
+  it("explains pending confirmation and exact text-source semantics to the judge", async () => {
+    const aiService = createAIServiceWithJudge();
+    const llmJudge = new LLMJudge(aiService);
+
+    await llmJudge.scoreConversation(
+      {
+        id: "direct-create",
+        name: "Direct create",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Save this exactly: final content" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: {
+                entityType: "post",
+                "source.kind": "text",
+              },
+              argsAbsent: ["prompt"],
+            },
+          ],
+        },
+      },
+      [
+        {
+          turnIndex: 0,
+          userMessage: "Save this exactly: final content",
+          assistantResponse: "Confirmation required.",
+          toolCalls: [
+            {
+              toolName: "system_create",
+              args: {
+                entityType: "post",
+                source: { kind: "text", content: "final content" },
+              },
+              result: { needsConfirmation: true },
+            },
+          ],
+          metrics: {
+            promptTokens: 1,
+            completionTokens: 1,
+            totalTokens: 2,
+            toolCallCount: 1,
+            durationMs: 1,
+          },
+        },
+      ],
+    );
+
+    const call = aiService.judgeCalls[0];
+    expect(call?.instruction).toContain(
+      "needsConfirmation true means the tool correctly opened the pending confirmation flow",
+    );
+    expect(call?.instruction).toContain(
+      "source.kind text stores the supplied content directly and exactly",
+    );
+    expect(call?.material).toContain('"kind":"text"');
+    expect(call?.material).toContain('"needsConfirmation":true');
+  });
+
   it("supplies deterministic criteria and complete ordinary tool content", async () => {
     const aiService = createAIServiceWithJudge();
     const llmJudge = new LLMJudge(aiService);

@@ -32,6 +32,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: post
+        source.kind: text
       argsAbsent:
         - prompt
   toolCountRange:

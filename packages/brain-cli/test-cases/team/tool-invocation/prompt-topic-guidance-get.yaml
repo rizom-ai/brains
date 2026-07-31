@@ -33,7 +33,9 @@ successCriteria:
     - "topics"
   responseContainsAny:
     - - "future plugin"
+      - "future or unavailable plugins"
       - "plugins that do not yet exist"
+      - "plugins or capabilities that do not yet exist"
       - "plugin entities"
   responseNotContains:
     - "updated"

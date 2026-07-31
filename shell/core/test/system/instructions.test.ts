@@ -27,6 +27,9 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_list");
     expect(instructions).toContain("system_search");
     expect(instructions).toContain("run a fresh search for that turn");
+    expect(instructions).toContain(
+      "answer from them instead of redundantly calling system_list or system_get",
+    );
     expect(instructions).toContain("How do I discuss X in my writing?");
     expect(instructions).toContain("essays/articles/blog posts => post");
     expect(instructions).toContain(

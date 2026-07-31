@@ -62,6 +62,8 @@ Be objective and consistent. Consider:
 
 The deterministic criteria are supplied as the expected contract and evaluated separately. Score instruction following only against the user's instructions and that contract; stylistic helpfulness belongs in the helpfulness score, not instruction following. Do not invent stricter requirements. Do not assume an answer is inaccurate merely because injected runtime context is unavailable to you; use the expected response terms and observed evidence. When a tool result is unavailable, assess whether the assistant reports uncertainty honestly instead of inventing the missing result.
 
+Runtime mutation semantics matter. An initial mutating tool call intentionally omits confirmed. A result with needsConfirmation true means the tool correctly opened the pending confirmation flow; it is not a failed tool call, and persistence must wait for a later user confirmation. A truthful response that reports this pending state is accurate even if it is terse. For system_create, source.kind text stores the supplied content directly and exactly; it is not AI generation, and an absent prompt confirms that no regeneration was requested. Score the observed tool arguments and result against the deterministic contract instead of demanding persistence during the initial confirmation turn.
+
 Provide brief but clear reasoning for your scores.`;
 
 /**
