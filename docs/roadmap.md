@@ -90,6 +90,7 @@ Plans:
 - [identity-profiles-and-expression.md](./plans/identity-profiles-and-expression.md) — separate shell-owned brain/anchor identity from plugin-owned person, team, and organization profiles; seed deterministic safe agent aliases with bounded context-generated characters and backfill exact legacy defaults; move durable textual and visual expression guidance out of task prompts; and make site presentation compose an explicit represented identity.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
+- [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.
 
 ### 2. The collective posture (active POC)
 
@@ -198,6 +199,7 @@ Cleanup:
 - [code-quality-cleanup.md](./plans/code-quality-cleanup.md) — **active in `work/code-quality-cleanup`**: five-phase cleanup from the 2026-07 codebase review — dead-package deletion, confirmation/queue/secret-template correctness fixes, mechanical dedup, extract-at-two abstractions, and structural consolidation (Discord interface, shell singletons, god-file splits).
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [json-section-content.md](./plans/json-section-content.md) — make section content JSON-serializable by construction: bound template/section schemas to JSON-object output at the type level, migrate `.optional()` fields to `.nullable().default(null)` across datasources and site packages, demote the runtime snapshot gate to an assertion. Fixes the live empty essays/directory sections on rizom.ai.
 
 Research probes (parked):
 

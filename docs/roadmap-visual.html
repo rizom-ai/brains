@@ -99,6 +99,14 @@
           <div class="card-desc">rename/reframe <code>system_insights</code> as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.</div>
           <div class="card-file">system-analytics-tool.md</div>
         </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Agent tool surface consolidation</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.</div>
+          <div class="card-file">agent-tool-surface-consolidation.md</div>
+        </div>
         <div class="card status-done">
           <div class="card-head">
             <span class="card-name">Brain Model Unification — One Brain, Capability Bundles</span>
@@ -296,6 +304,14 @@
           </div>
           <div class="card-desc">parallelize multi-model eval runs.</div>
           <div class="card-file">parallel-eval-workers.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">JSON-native section content contract</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">make section content JSON-serializable by construction: bound template/section schemas to JSON-object output at the type level, migrate <code>.optional()</code> fields to <code>.nullable().default(null)</code> across datasources and site packages, demote the runtime snapshot gate to an assertion. Fixes the live empty essays/directory sections on rizom.ai.</div>
+          <div class="card-file">json-section-content.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
