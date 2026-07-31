@@ -1,5 +1,6 @@
 brain: rover
 anchor: person
+kind: professional
 preset: full
 mode: eval
 
@@ -53,6 +54,8 @@ permissions:
       publish: admin
 
 plugins:
+  topics:
+    includeEntityTypes: []
   rover-onboarding:
     enabled: true
   directory-sync:

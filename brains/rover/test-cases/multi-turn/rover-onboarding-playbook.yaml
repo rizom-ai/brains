@@ -145,17 +145,28 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Do that as an outline."
+  - userMessage: "Show that saved note as a lightweight outline in chat only; do not save, create, or generate a new entity."
     successCriteria:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: false
+        - toolName: system_generate
+          shouldBeCalled: false
       responseContains:
         - "resilient software"
         - "climate"
-        - "saved a seed"
-        - "retrieved"
-        - "transformed"
+      responseContainsAny:
+        - - "saved a seed"
+          - "saved the seed"
+          - "saved as a note"
+          - "saved note"
+          - "durable knowledge"
+        - - "retrieved"
+          - "retrieval"
+          - "found the saved note"
+        - - "transformed"
+          - "outline"
+          - "useful working material"
       responseNotContains:
         - "I'll turn"
         - "I’ll turn"
