@@ -1,7 +1,7 @@
 {
   "name": "@brains/chat-repl",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.240",
+  "version": "0.2.0-alpha.241",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",

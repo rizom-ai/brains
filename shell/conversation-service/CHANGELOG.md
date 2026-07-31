@@ -1,5 +1,18 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.241
+
+### Patch Changes
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move single-owner message channel groups out of the shared contracts barrel to
+  the packages that own them, and delete the shell/plugins re-export barrel so
+  consumers import channels from their source.
+- Updated dependencies [[`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62)]:
+  - @brains/contracts@0.2.0-alpha.241
+  - @brains/messaging-service@0.2.0-alpha.241
+  - @brains/db@0.2.0-alpha.241
+  - @brains/utils@0.2.0-alpha.241
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes

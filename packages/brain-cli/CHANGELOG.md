@@ -1,5 +1,49 @@
 # @rizom/brain
 
+## 0.2.0-alpha.241
+
+### Minor Changes
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire the standalone Discord interface. `chat` is now the single chat transport for Rover, Ranger, and Relay, covering both Discord and Slack through the Chat SDK, and the Discord adapter wires itself up from `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID`.
+
+  **Breaking for instances that configured `plugins.discord`.** The interface id `discord` no longer exists; move its settings under `plugins.chat.adapters.discord` and supply the two additional credentials, which the Chat SDK adapter requires:
+
+  ```yaml
+  plugins:
+    chat:
+      adapters:
+        discord:
+          botToken: ${DISCORD_BOT_TOKEN}
+          publicKey: ${DISCORD_PUBLIC_KEY}
+          applicationId: ${DISCORD_APPLICATION_ID}
+  ```
+
+  Permission rules and space selectors are unaffected — messages still arrive under the `discord:` namespace. Relay also declares the chat env vars for the first time, so its generated `env.schema.template` and `secrets push` candidates now include the Discord and Slack credentials it was already using.
+
+### Patch Changes
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let a brain definition select its profile kind. `profileKind` could previously only be set through an instance's `kind:` override, so no shipped brain selected one and the anchor profile always fell back to the base field schema. Rover's onboarding playbook writes `role` and `expertise`, and its starter content ships `expertise`, `currentFocus`, and `availability` — all kind-owned fields — so the persist validator rejected them and directory sync quarantined the profile. Rover now selects `professional`, Relay `team`, and Ranger `organization`; an instance `kind:` still wins. Also drops the `starterIdentity.anchorKind` config the three brains passed, which the profile plugin's schema silently discarded.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring the chat interface to parity with the standalone Discord interface: a Discord speaker linked to a brain account now gets that account's permission level and anchor flag (with revoked bindings denied outright rather than falling back to permission rules), and unmentioned traffic in a configured space is captured into the space conversation without spending an agent turn.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a `dashboard` namespace to the plugin context so widgets register with `context.dashboard.registerWidget({ ... })` instead of addressing the message channel by hand. The namespace supplies `pluginId`, so a widget can no longer register under another plugin's id.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the `@rizom/brain/themes` subpath export. It existed so a standalone site repo could call `composeTheme` itself; that consumer (`apps/mylittlephoney`) is deprecated and no theme needs it — a theme is a CSS string, and the shell prepends the shared base when the brain resolves. The function is now internal to `@brains/theme-base` and named `withThemeBase`, which says which base it adds.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Converge the entity media attachment providers on shared factories. `@brains/media-page-composer` gains a `renderPrintablePdf` primitive alongside `renderOgImagePng` plus `createOgImageProvider`/`createPrintableProvider`, and the blog OG image provider moves off its hand-rolled temp-dir/server/screenshot path onto the shared pipeline it had drifted away from.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the singleton accessors from every shell-owned service. Services are constructed by the shell's layer graph and handed to their consumers, so `getInstance`, `resetInstance`, and `static instance` carried process-global state that outlived shutdown for no benefit. `EntityService` now requires the `entityRegistry` option instead of silently reaching for a global registry, and `brain operate` reports a boot that returns no brain rather than falling back to a global shell.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extract the runtime-state status engine that directory-sync and site-builder each hand-rolled into `SerializedStatusStore` in `@brains/plugins`, on top of a shared `SerialQueue`. Fixes a latent race in site-builder's startup reconciliation, which read and wrote its status document outside the write queue and so could clobber a concurrent build mutation.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Share the shell's plugin AI namespace between entity and service contexts, and give the scoped service layers (entity-service, job-queue, conversation-service, runtime-state) one `scopedServiceLayer` helper instead of four hand-built acquire/release nestings.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix status badges rendering dark in light mode on rizom-themed sites. Both rizom brand themes declared the dark status palette at `:root`, which matches in both modes, so `.bg-status-*` / `.text-status-*` resolved to dark colours even with `data-theme="light"`. The palette now lives once in `@brains/theme-base`, keyed by `[data-theme]`, and the themes keep only genuine deltas.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `buildThemePackage` to `@brains/build-tools` so theme packages share one publish-artifact builder, and drop the `@theme inline` declarations the rizom brand themes restated verbatim from `@brains/theme-base`. The composed CSS is unchanged — verified by compiling both themes through the real Tailwind pipeline before and after.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a shared `WidgetCard` shell to `@brains/ui-library` so dashboard widgets stop repeating their panel, title row, and empty state, and make `@rizom/ui` depend on `@brains/ui-library` instead of carrying byte-copies of `cn` and `renderHighlightedText`.
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes

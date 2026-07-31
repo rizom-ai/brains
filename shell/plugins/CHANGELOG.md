@@ -1,5 +1,34 @@
 # @brains/plugins
 
+## 0.2.0-alpha.241
+
+### Patch Changes
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move single-owner message channel groups out of the shared contracts barrel to
+  the packages that own them, and delete the shell/plugins re-export barrel so
+  consumers import channels from their source.
+
+- [`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Route notifications through the channel delivery registry instead of a
+  transport-specific `email:send` channel, and delete `@brains/email-contracts`.
+  `ChannelDeliveryInput` gains optional `html` and `sensitivity`, so one
+  mechanism now covers both invitation and notification delivery.
+- Updated dependencies [[`7f5c45f`](https://github.com/rizom-ai/brains/commit/7f5c45f4cac4556fdd2abcb939b48f1a76adbe62)]:
+  - @brains/contracts@0.2.0-alpha.241
+  - @brains/conversation-service@0.2.0-alpha.241
+  - @brains/content-formatters@0.2.0-alpha.241
+  - @brains/ai-service@0.2.0-alpha.241
+  - @brains/content-service@0.2.0-alpha.241
+  - @brains/entity-service@0.2.0-alpha.241
+  - @brains/job-queue@0.2.0-alpha.241
+  - @brains/mcp-service@0.2.0-alpha.241
+  - @brains/templates@0.2.0-alpha.241
+  - @brains/identity-service@0.2.0-alpha.241
+  - @brains/site-composition@0.2.0-alpha.241
+  - @brains/recurring-checks@0.2.0-alpha.241
+  - @brains/messaging-service@0.2.0-alpha.241
+  - @brains/utils@0.2.0-alpha.241
+  - @brains/runtime-state@0.2.0-alpha.241
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes
