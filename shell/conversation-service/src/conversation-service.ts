@@ -1,5 +1,8 @@
 import { CONVERSATION_CHANNELS } from "@brains/contracts";
-import { createConversationDatabase } from "./database";
+import {
+  createConversationDatabase,
+  enableWALModeForConversations,
+} from "./database";
 import type { ConversationDB } from "./database";
 import { coerceConversationMetadata } from "./metadata";
 import type { Client } from "@libsql/client";
@@ -41,6 +44,8 @@ export class ConversationService implements IConversationService {
   private readonly messageBus: MessageBus;
   private readonly config: ConversationServiceConfig;
   private dbClient: Client | null = null;
+  private dbUrl: string | null = null;
+  private pragmaInitialization: Promise<void> | null = null;
 
   constructor(
     db: ConversationDB,
@@ -69,9 +74,10 @@ export class ConversationService implements IConversationService {
   ): ConversationService {
     if (!ConversationService.instance) {
       // Create database internally
-      const { db, client } = createConversationDatabase(dbConfig);
+      const { db, client, url } = createConversationDatabase(dbConfig);
       const instance = new ConversationService(db, logger, messageBus, config);
       instance.dbClient = client;
+      instance.dbUrl = url;
       ConversationService.instance = instance;
     }
     return ConversationService.instance;
@@ -85,6 +91,40 @@ export class ConversationService implements IConversationService {
       ConversationService.instance.close();
       ConversationService.instance = null;
     }
+  }
+
+  /**
+   * Settle non-fatal database readiness work before the shell becomes ready.
+   *
+   * `busy_timeout` is per-connection, so it has to be re-applied on every
+   * runtime connection; migration-time pragmas are not enough.
+   */
+  public initialize(): Promise<void> {
+    this.pragmaInitialization ??= this.applyPragmas();
+    return this.pragmaInitialization;
+  }
+
+  private async applyPragmas(): Promise<void> {
+    const client = this.dbClient;
+    const url = this.dbUrl;
+    if (!client || url === null) return;
+
+    try {
+      await enableWALModeForConversations(client, url);
+    } catch (error) {
+      this.logger.warn(
+        "Failed to enable conversation database pragmas (non-fatal)",
+        error,
+      );
+    }
+  }
+
+  /** The owned database client, when this instance opened its own connection. */
+  public getDatabaseClient(): Client {
+    if (!this.dbClient) {
+      throw new Error("ConversationService does not own a database client");
+    }
+    return this.dbClient;
   }
 
   /**
@@ -111,9 +151,10 @@ export class ConversationService implements IConversationService {
     dbConfig: ConversationDbConfig,
     config?: ConversationServiceConfig,
   ): ConversationService {
-    const { db, client } = createConversationDatabase(dbConfig);
+    const { db, client, url } = createConversationDatabase(dbConfig);
     const instance = new ConversationService(db, logger, messageBus, config);
     instance.dbClient = client;
+    instance.dbUrl = url;
     return instance;
   }
 

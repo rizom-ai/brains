@@ -51,6 +51,42 @@ describe("conversation-service Effect layer", () => {
     return url;
   }
 
+  it("applies busy_timeout to the connection it hands out", async () => {
+    const url = await createDatabaseUrl("pragmas");
+    const scope = Effect.runSync(Scope.make());
+    const context = Effect.runSync(
+      Layer.buildWithScope(
+        createConversationServiceLayer({
+          dbConfig: { url },
+          logger,
+          messageBus,
+        }),
+        scope,
+      ),
+    );
+    const service = Context.get(context, ConversationServiceTag);
+
+    await service.initialize?.();
+
+    // busy_timeout is per-connection and is not stored in the file, so it has
+    // to be read from the service's own connection. Without it a conversation
+    // insert fails outright whenever another writer holds the lock — which is
+    // what a brain seeding content in the background does constantly.
+    if (
+      !("getDatabaseClient" in service) ||
+      typeof service.getDatabaseClient !== "function"
+    ) {
+      throw new Error("Layer service exposes no database client to probe");
+    }
+    const result = await service
+      .getDatabaseClient()
+      .execute("PRAGMA busy_timeout");
+    const timeout = Number(Object.values(result.rows[0] ?? {})[0]);
+    expect(timeout).toBeGreaterThan(0);
+
+    closeScope(scope);
+  });
+
   it("constructs independent services and closes only its own scope", async () => {
     const firstUrl = await createDatabaseUrl("first");
     const secondUrl = await createDatabaseUrl("second");

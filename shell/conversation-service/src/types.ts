@@ -217,6 +217,9 @@ export interface ListConversationsOptions {
 }
 
 export interface IConversationService {
+  /** Settle non-fatal database readiness work (connection pragmas). */
+  initialize?(): Promise<void>;
+
   // Core operations
   startConversation(request: StartConversationRequest): Promise<string>;
   addMessage(request: AddConversationMessageRequest): Promise<void>;
