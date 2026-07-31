@@ -2,14 +2,17 @@ import { StructuredContentFormatter } from "@brains/content-formatters";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
+type NullableStringSchema = z.ZodDefault<z.ZodNullable<z.ZodString>>;
+type NullableNumberSchema = z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+
 export const seriesFrontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodString;
-  coverImageId: z.ZodOptional<z.ZodString>;
+  coverImageId: NullableStringSchema;
 }> = z.object({
   title: z.string(),
   slug: z.string(),
-  coverImageId: z.string().optional(),
+  coverImageId: z.string().nullable().default(null),
 });
 
 export type SeriesFrontmatter = z.output<typeof seriesFrontmatterSchema>;
@@ -60,18 +63,18 @@ export type SeriesWithData = z.output<typeof seriesWithDataSchema>;
  */
 export const seriesListItemSchema: ReturnType<
   typeof seriesWithDataSchema.extend<{
-    description: z.ZodOptional<z.ZodString>;
+    description: NullableStringSchema;
     postCount: z.ZodNumber;
-    coverImageUrl: z.ZodOptional<z.ZodString>;
-    coverImageWidth: z.ZodOptional<z.ZodNumber>;
-    coverImageHeight: z.ZodOptional<z.ZodNumber>;
+    coverImageUrl: NullableStringSchema;
+    coverImageWidth: NullableNumberSchema;
+    coverImageHeight: NullableNumberSchema;
   }>
 > = seriesWithDataSchema.extend({
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
   postCount: z.number(),
-  coverImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
+  coverImageUrl: z.string().nullable().default(null),
+  coverImageWidth: z.number().nullable().default(null),
+  coverImageHeight: z.number().nullable().default(null),
 });
 
 export type SeriesListItem = z.output<typeof seriesListItemSchema>;

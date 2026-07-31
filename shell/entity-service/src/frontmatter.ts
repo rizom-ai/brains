@@ -104,14 +104,21 @@ export function generateMarkdownWithFrontmatter(
   content: string,
   metadata: Record<string, unknown>,
 ): string {
-  // Only add frontmatter if there's metadata
-  if (Object.keys(metadata).length === 0) {
+  // null is dropped alongside undefined. Schemas model an absent value as
+  // `.nullable().default(null)` to keep section content JSON-serializable, so
+  // parsing a file that simply omits a key yields an explicit null. Writing
+  // that back would grow `key: null` lines in hand-authored markdown on every
+  // sync, so absence has to round-trip as absence.
+  const cleaned = Object.fromEntries(
+    Object.entries(metadata).filter(([, v]) => v !== undefined && v !== null),
+  );
+
+  // Checked after cleaning: metadata consisting only of absent values must
+  // produce bare content, not an empty frontmatter block.
+  if (Object.keys(cleaned).length === 0) {
     return content;
   }
 
-  const cleaned = Object.fromEntries(
-    Object.entries(metadata).filter(([, v]) => v !== undefined),
-  );
   return matter.stringify(content, cleaned);
 }
 

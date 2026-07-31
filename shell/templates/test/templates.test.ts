@@ -1,6 +1,40 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { TemplateSchema, type Template } from "../src";
+import { createTemplate, TemplateSchema, type Template } from "../src";
+
+createTemplate({
+  name: "nullable-view",
+  description: "JSON-native rendered template",
+  schema: z.object({ label: z.string().nullable().default(null) }),
+  requiredPermission: "public",
+  layout: {},
+});
+
+// @ts-expect-error Rendered template output cannot contain `undefined`.
+createTemplate({
+  name: "optional-view",
+  description: "Invalid rendered template",
+  schema: z.object({ label: z.string().optional() }),
+  requiredPermission: "public",
+  layout: {},
+});
+
+// @ts-expect-error Rendered template output must be a JSON object.
+createTemplate({
+  name: "primitive-view",
+  description: "Invalid rendered template",
+  schema: z.string(),
+  requiredPermission: "public",
+  layout: {},
+});
+
+// Generation-only templates may still use non-object output.
+createTemplate({
+  name: "primitive-generation",
+  description: "Non-rendered template",
+  schema: z.string(),
+  requiredPermission: "public",
+});
 
 describe("Templates", () => {
   it("should validate a basic template", () => {

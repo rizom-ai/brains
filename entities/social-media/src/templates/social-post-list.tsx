@@ -8,20 +8,20 @@ import {
   Card,
   formatDate,
 } from "@brains/ui-library";
-import type { EnrichedSocialPost } from "../schemas/social-post";
+import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostListProps {
-  posts: EnrichedSocialPost[];
+  posts: SocialPostView[];
   pageTitle?: string;
   pagination?: PaginationInfo | null;
-  baseUrl?: string;
+  baseUrl: string | null;
 }
 
 export const SocialPostListTemplate = ({
   posts,
   pageTitle,
   pagination,
-  baseUrl = "/social-posts",
+  baseUrl,
 }: SocialPostListProps): JSX.Element => {
   const title = pageTitle ?? "Social Posts";
   const totalCount = pagination?.totalItems ?? posts.length;
@@ -87,7 +87,7 @@ export const SocialPostListTemplate = ({
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
-              baseUrl={baseUrl}
+              baseUrl={baseUrl ?? "/social-posts"}
             />
           )}
         </div>

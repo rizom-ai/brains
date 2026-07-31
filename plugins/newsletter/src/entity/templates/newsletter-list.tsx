@@ -32,7 +32,7 @@ export interface NewsletterListItem {
   status: NewsletterTemplateStatus;
   excerpt: string;
   created: string;
-  sentAt?: string | undefined;
+  sentAt: string | null;
   url: string;
 }
 
@@ -43,7 +43,7 @@ export const newsletterListItemSchema: z.ZodType<NewsletterListItem> = z.object(
     status: newsletterStatusSchema,
     excerpt: z.string(),
     created: z.string(),
-    sentAt: z.string().optional(),
+    sentAt: z.string().nullable().default(null),
     url: z.string(),
   },
 );

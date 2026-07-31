@@ -10,6 +10,10 @@ import type { Logger } from "@brains/utils/logger";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";
+import {
+  deckViewSchema,
+  type DeckSchemaData,
+} from "../templates/deck-view-schema";
 
 interface DeckDetailData {
   markdown: string;
@@ -17,7 +21,7 @@ interface DeckDetailData {
 }
 
 interface DeckListData {
-  decks: DeckWithData[];
+  decks: DeckSchemaData[];
 }
 
 /**
@@ -26,7 +30,8 @@ interface DeckListData {
  */
 export class DeckDataSource extends BaseEntityDataSource<
   DeckEntity,
-  DeckWithData
+  DeckWithData,
+  DeckListData
 > {
   readonly id: string = "decks:entities";
   readonly name: string = "Deck Entity DataSource";
@@ -93,6 +98,6 @@ export class DeckDataSource extends BaseEntityDataSource<
       firstDeck: items[0]?.id,
     });
 
-    return { decks: items };
+    return { decks: items.map((item) => deckViewSchema.parse(item)) };
   }
 }

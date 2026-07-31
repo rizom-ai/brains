@@ -8,10 +8,10 @@ import {
   CoverImage,
   type BreadcrumbItem,
 } from "@brains/ui-library";
-import type { EnrichedSocialPost } from "../schemas/social-post";
+import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostDetailProps {
-  post: EnrichedSocialPost;
+  post: SocialPostView;
 }
 
 export const SocialPostDetailTemplate = ({
@@ -23,8 +23,8 @@ export const SocialPostDetailTemplate = ({
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Home", href: "/" },
     {
-      label: post.listLabel ?? "Social Posts",
-      href: post.listUrl ?? "/social-posts",
+      label: post.listLabel,
+      href: post.listUrl,
     },
     { label: post.frontmatter.platform },
   ];

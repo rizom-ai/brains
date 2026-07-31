@@ -27,7 +27,7 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
   }
 
   public override toMarkdown(entity: Series): string {
-    let existingCoverImageId: string | undefined;
+    let existingCoverImageId: string | null = null;
     let existingBody: SeriesBody = {};
 
     try {
@@ -45,7 +45,7 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
     const frontmatter: SeriesFrontmatter = {
       title: entity.metadata.title,
       slug: entity.metadata.slug,
-      ...(existingCoverImageId && { coverImageId: existingCoverImageId }),
+      coverImageId: existingCoverImageId,
     };
 
     const formatter = createSeriesBodyFormatter(entity.metadata.title);

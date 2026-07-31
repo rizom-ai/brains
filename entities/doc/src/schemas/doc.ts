@@ -1,20 +1,22 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
+type NullableStringSchema = z.ZodDefault<z.ZodNullable<z.ZodString>>;
+
 export const docFrontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   section: z.ZodString;
   order: z.ZodNumber;
   sourcePath: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
-  slug: z.ZodOptional<z.ZodString>;
+  description: NullableStringSchema;
+  slug: NullableStringSchema;
 }> = z.object({
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
   sourcePath: z.string(),
-  description: z.string().optional(),
-  slug: z.string().optional(),
+  description: z.string().nullable().default(null),
+  slug: z.string().nullable().default(null),
 });
 
 export type DocFrontmatter = z.output<typeof docFrontmatterSchema>;
@@ -23,13 +25,13 @@ export const docMetadataSchema: z.ZodObject<{
   title: z.ZodString;
   section: z.ZodString;
   order: z.ZodNumber;
-  description: z.ZodOptional<z.ZodString>;
+  description: NullableStringSchema;
   slug: z.ZodString;
 }> = z.object({
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
-  description: z.string().optional(),
+  description: z.string().nullable().default(null),
   slug: z.string(),
 });
 

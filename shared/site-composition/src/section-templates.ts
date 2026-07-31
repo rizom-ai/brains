@@ -1,5 +1,6 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import type { Template } from "@brains/templates";
+import type { JsonObject } from "@brains/contracts";
+import type { Template, TemplateDataSchema } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
 
@@ -112,7 +113,9 @@ export function sectionToTemplate(
   return {
     name,
     description: section.description,
-    schema,
+    // `defineSection` proves JSON output at the public authoring boundary;
+    // SiteSectionDefinition intentionally carries the schema opaquely.
+    schema: schema as TemplateDataSchema<JsonObject>,
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
     layout: {

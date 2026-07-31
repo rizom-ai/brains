@@ -1,5 +1,6 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import type { Template } from "@brains/templates";
+import type { JsonObject } from "@brains/contracts";
+import type { Template, TemplateDataSchema } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type {
   SiteContentArrayFieldDefinition,
@@ -36,7 +37,7 @@ function applyOptional<T extends z.ZodTypeAny>(
   schema: T,
   optional?: boolean,
 ): z.ZodTypeAny {
-  return optional ? schema.optional() : schema;
+  return optional ? schema.nullable().default(null) : schema;
 }
 
 function buildFieldSchema(field: SiteContentFieldDefinition): z.ZodTypeAny {
@@ -153,7 +154,7 @@ export function createSiteContentTemplate(
   return {
     name,
     description: section.description,
-    schema,
+    schema: schema as TemplateDataSchema<JsonObject>,
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
     layout: {

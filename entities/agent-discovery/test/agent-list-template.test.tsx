@@ -4,6 +4,12 @@ import { render } from "preact-render-to-string";
 import { AgentListTemplate } from "../src/templates/agent-list";
 import { createTemplateAgent } from "./fixtures/agent";
 
+const listDefaults = {
+  pageTitle: null,
+  pagination: null,
+  baseUrl: null,
+} as const;
+
 const connected = createTemplateAgent({
   name: "Metis",
   url: "https://jo.rizom.ai",
@@ -51,7 +57,11 @@ const allAgents = [
 describe("AgentListTemplate", () => {
   test("renders a single filter row with counts inside the pills", () => {
     const html = render(
-      <AgentListTemplate agents={allAgents} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={allAgents}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain('data-count="5"');
@@ -66,7 +76,11 @@ describe("AgentListTemplate", () => {
 
   test("groups agents under Connected, Sightings, and Archived sections", () => {
     const html = render(
-      <AgentListTemplate agents={allAgents} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={allAgents}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain("Connected");
@@ -78,7 +92,11 @@ describe("AgentListTemplate", () => {
 
   test("sighting cards surface who introduced them", () => {
     const html = render(
-      <AgentListTemplate agents={allAgents} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={allAgents}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain("via yeehaa.io");
@@ -86,7 +104,11 @@ describe("AgentListTemplate", () => {
 
   test("discovered agents without provenance await approval instead of claiming a sighting", () => {
     const html = render(
-      <AgentListTemplate agents={[savedForReview]} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={[savedForReview]}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain("awaiting approval");
@@ -95,7 +117,11 @@ describe("AgentListTemplate", () => {
 
   test("discovered agents are not dimmed to look disabled", () => {
     const html = render(
-      <AgentListTemplate agents={allAgents} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={allAgents}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).not.toContain("opacity-70");
@@ -103,7 +129,11 @@ describe("AgentListTemplate", () => {
 
   test("cards show the agent's domain", () => {
     const html = render(
-      <AgentListTemplate agents={allAgents} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={allAgents}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain("jo.rizom.ai");
@@ -112,7 +142,11 @@ describe("AgentListTemplate", () => {
 
   test("skill pills are capped with an overflow indicator", () => {
     const html = render(
-      <AgentListTemplate agents={[connectedWithOrg]} selectedStatus="all" />,
+      <AgentListTemplate
+        {...listDefaults}
+        agents={[connectedWithOrg]}
+        selectedStatus="all"
+      />,
     );
 
     expect(html).toContain("Essay drafting");
@@ -123,6 +157,7 @@ describe("AgentListTemplate", () => {
   test("filtered view renders only the matching section", () => {
     const html = render(
       <AgentListTemplate
+        {...listDefaults}
         agents={[sighting, savedForReview]}
         selectedStatus="discovered"
       />,
@@ -135,7 +170,9 @@ describe("AgentListTemplate", () => {
   });
 
   test("renders empty state when there are no agents", () => {
-    const html = render(<AgentListTemplate agents={[]} selectedStatus="all" />);
+    const html = render(
+      <AgentListTemplate {...listDefaults} agents={[]} selectedStatus="all" />,
+    );
 
     expect(html).toContain("No agents in your directory yet.");
   });

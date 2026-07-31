@@ -6,22 +6,22 @@ import {
   CoverImage,
   formatDate,
 } from "@brains/ui-library";
-import type { EnrichedBlogPost } from "../schemas/blog-post";
+import type { BlogPostView } from "./blog-view-schema";
 
 export interface BlogPostProps {
-  post: EnrichedBlogPost;
-  prevPost: EnrichedBlogPost | null;
-  nextPost: EnrichedBlogPost | null;
-  seriesPosts: EnrichedBlogPost[] | null;
+  post: BlogPostView;
+  prevPost: BlogPostView | null;
+  nextPost: BlogPostView | null;
+  seriesPosts: BlogPostView[] | null;
 }
 
 const railGridClass =
   "grid grid-cols-1 gap-7 md:grid-cols-[140px_minmax(0,720px)] md:gap-14";
 
 const getSeriesPosition = (
-  post: EnrichedBlogPost,
-  seriesPosts: EnrichedBlogPost[] | null,
-): number | undefined => {
+  post: BlogPostView,
+  seriesPosts: BlogPostView[] | null,
+): number | null => {
   if (seriesPosts) {
     const index = seriesPosts.findIndex(
       (seriesPost) => seriesPost.id === post.id,
@@ -34,7 +34,7 @@ const getSeriesPosition = (
   return post.frontmatter.seriesIndex;
 };
 
-const PostBreadcrumb = ({ post }: { post: EnrichedBlogPost }): JSX.Element => {
+const PostBreadcrumb = ({ post }: { post: BlogPostView }): JSX.Element => {
   const items = [
     { label: "Home", href: "/" },
     { label: post.listLabel, href: post.listUrl },
@@ -88,9 +88,9 @@ const PostBreadcrumb = ({ post }: { post: EnrichedBlogPost }): JSX.Element => {
 };
 
 interface PostRailProps {
-  post: EnrichedBlogPost;
+  post: BlogPostView;
   readingTime: number;
-  seriesPosition?: number | undefined;
+  seriesPosition: number | null;
 }
 
 const PostRail = ({
@@ -155,9 +155,9 @@ const PostRail = ({
 );
 
 interface SeriesEndmatterProps {
-  currentPost: EnrichedBlogPost;
-  seriesPosts: EnrichedBlogPost[] | null;
-  seriesPosition?: number | undefined;
+  currentPost: BlogPostView;
+  seriesPosts: BlogPostView[] | null;
+  seriesPosition: number | null;
 }
 
 const SeriesEndmatter = ({
@@ -221,8 +221,8 @@ const SeriesEndmatter = ({
 };
 
 interface AdjacentPostsProps {
-  prevPost: EnrichedBlogPost | null;
-  nextPost: EnrichedBlogPost | null;
+  prevPost: BlogPostView | null;
+  nextPost: BlogPostView | null;
 }
 
 const AdjacentPosts = ({
@@ -318,8 +318,12 @@ export const BlogPostTemplate = ({
                 alt={post.frontmatter.title}
                 width={post.coverImageWidth}
                 height={post.coverImageHeight}
-                srcset={post.coverImageSrcset}
-                sizes={post.coverImageSizes}
+                {...(post.coverImageSrcset
+                  ? { srcset: post.coverImageSrcset }
+                  : {})}
+                {...(post.coverImageSizes
+                  ? { sizes: post.coverImageSizes }
+                  : {})}
                 className="mb-16 rounded-[14px]"
               />
             )}

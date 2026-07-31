@@ -43,9 +43,7 @@ export class DocAdapter extends BaseEntityAdapter<
         section: frontmatter.section,
         order: frontmatter.order,
         slug,
-        ...(frontmatter.description
-          ? { description: frontmatter.description }
-          : {}),
+        description: frontmatter.description,
       },
     };
   }

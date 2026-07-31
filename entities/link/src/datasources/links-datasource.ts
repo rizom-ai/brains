@@ -32,7 +32,8 @@ interface LinkListData {
  */
 export class LinksDataSource extends BaseEntityDataSource<
   BaseEntity,
-  LinkSummary
+  LinkSummary,
+  LinkListData
 > {
   readonly id = "link:entities";
   readonly name = "Links Entity DataSource";
@@ -60,6 +61,7 @@ export class LinksDataSource extends BaseEntityDataSource<
     return {
       id: entity.id,
       ...frontmatter,
+      description: frontmatter.description ?? null,
       summary,
     };
   }

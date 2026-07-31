@@ -1,7 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { ProfessionalProfile } from "../schemas";
-import type { EnrichedBlogPost } from "@brains/blog";
-import type { EnrichedDeck } from "@brains/decks";
+import type { BlogPostView } from "@brains/blog";
+import type { DeckView } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-info";
 import {
   ContentList,
@@ -18,7 +18,7 @@ import {
  * presentations, about). Comes from siteInfo.sections — users can edit
  * via the CMS.
  */
-type HomepageSections = Record<string, { blurb?: string }>;
+type HomepageSections = Record<string, { blurb: string | null }>;
 
 /**
  * Homepage data structure
@@ -26,8 +26,8 @@ type HomepageSections = Record<string, { blurb?: string }>;
  */
 export interface HomepageListData {
   profile: ProfessionalProfile;
-  posts: EnrichedBlogPost[];
-  decks: EnrichedDeck[];
+  posts: BlogPostView[];
+  decks: DeckView[];
   postsListUrl: string;
   decksListUrl: string;
   cta: SiteInfoCTA;
@@ -47,13 +47,17 @@ const EditorialRow = ({
 }: {
   number: string;
   title: string;
-  blurb?: string | undefined;
+  blurb?: string | null | undefined;
   children: ComponentChildren;
 }): JSX.Element => (
   <section className="py-20 border-b border-rule px-6 md:px-12">
     <div className="max-w-6xl mx-auto">
       <div className={GRID_CLS}>
-        <SectionHeader title={title} number={number} blurb={blurb} />
+        <SectionHeader
+          title={title}
+          number={number}
+          {...(blurb ? { blurb } : {})}
+        />
         <div className={RULE_CLS} aria-hidden="true" />
         <div className="mt-6 md:mt-0">{children}</div>
       </div>
@@ -100,7 +104,9 @@ export const HomepageListLayout = ({
     url: deck.url,
     title: deck.frontmatter.title || deck.id,
     date: deck.frontmatter.publishedAt ?? deck.created,
-    description: deck.frontmatter.description,
+    ...(deck.frontmatter.description
+      ? { description: deck.frontmatter.description }
+      : {}),
   }));
 
   const title = profile.name || "Home";
@@ -110,8 +116,11 @@ export const HomepageListLayout = ({
     "Professional site";
 
   const hasAbout =
-    Boolean(profile.description) ||
-    (profile.expertise !== undefined && profile.expertise.length > 0);
+    Boolean(profile.description) || (profile.expertise?.length ?? 0) > 0;
+  const socialLinks = profile.socialLinks?.map(({ label, ...link }) => ({
+    ...link,
+    ...(label ? { label } : {}),
+  }));
 
   return (
     <>
@@ -198,7 +207,7 @@ export const HomepageListLayout = ({
         <CTASection
           cta={cta}
           variant="editorial"
-          socialLinks={profile.socialLinks}
+          {...(socialLinks ? { socialLinks } : {})}
         />
       </div>
     </>

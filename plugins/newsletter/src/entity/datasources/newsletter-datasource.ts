@@ -72,7 +72,7 @@ interface NewsletterListItem {
   status: string;
   excerpt: string;
   created: string;
-  sentAt?: string;
+  sentAt: string | null;
   url: string;
 }
 
@@ -83,7 +83,8 @@ interface NewsletterListItem {
  */
 export class NewsletterDataSource extends BaseEntityDataSource<
   Newsletter,
-  NewsletterListItem
+  NewsletterListItem,
+  NewsletterListData
 > {
   readonly id = "newsletter:entities";
   readonly name = "Newsletter Entity DataSource";
@@ -122,11 +123,9 @@ export class NewsletterDataSource extends BaseEntityDataSource<
       status: entity.metadata.status,
       excerpt: truncateText(body, 150),
       created: entity.created,
+      sentAt: entity.metadata.sentAt ?? null,
       url: `/newsletters/${entity.id}`,
     };
-    if (entity.metadata.sentAt) {
-      item.sentAt = entity.metadata.sentAt;
-    }
     return item;
   }
 

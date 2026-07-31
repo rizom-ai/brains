@@ -19,6 +19,10 @@ import {
   socialPostWithDataSchema,
   type SocialPostWithData,
 } from "../schemas/social-post";
+import {
+  socialPostViewSchema,
+  type SocialPostSchemaData,
+} from "../templates/social-post-view";
 
 interface SocialPostQuery {
   [key: string]: unknown;
@@ -66,10 +70,10 @@ interface SocialPostDetailData {
 }
 
 interface SocialPostListData {
-  posts: SocialPostWithData[];
+  posts: SocialPostSchemaData[];
   totalCount: number;
   pagination: PaginationInfo | null;
-  baseUrl: string | undefined;
+  baseUrl: string | null;
 }
 
 function parsePostData(entity: SocialPost): SocialPostWithData {
@@ -91,7 +95,8 @@ function parsePostData(entity: SocialPost): SocialPostWithData {
  */
 export class SocialPostDataSource extends BaseEntityDataSource<
   SocialPost,
-  SocialPostWithData
+  SocialPostWithData,
+  SocialPostListData
 > {
   readonly id: string = "social-media:posts";
   readonly name: string = "Social Post DataSource";
@@ -144,10 +149,10 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     query: BaseQuery,
   ): SocialPostListData {
     return {
-      posts: items,
+      posts: items.map((item) => socialPostViewSchema.parse(item)),
       totalCount: pagination?.totalItems ?? items.length,
       pagination,
-      baseUrl: query.baseUrl,
+      baseUrl: query.baseUrl ?? null,
     };
   }
 

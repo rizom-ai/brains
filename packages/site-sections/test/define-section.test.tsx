@@ -27,6 +27,38 @@ const heroSection = defineSection(heroSchema, Hero, {
   description: "The hero section",
 });
 
+const nullableSchema = z.object({
+  eyebrow: z.string().nullable().default(null),
+});
+
+const nullableSection = defineSection(
+  nullableSchema,
+  ({ eyebrow }): JSX.Element => <p>{eyebrow ?? "Fallback"}</p>,
+  { title: "Nullable", description: "JSON-native absence" },
+);
+
+const optionalSchema = z.object({ eyebrow: z.string().optional() });
+// @ts-expect-error Section schema output cannot contain `undefined`.
+defineSection(optionalSchema, (): JSX.Element => <p />, {
+  title: "Invalid optional",
+  description: "Must fail typecheck",
+});
+
+const nestedOptionalSchema = z.object({
+  nested: z.object({ label: z.string().optional() }),
+});
+// @ts-expect-error Nested optional output is not JSON-safe either.
+defineSection(nestedOptionalSchema, (): JSX.Element => <p />, {
+  title: "Invalid nested optional",
+  description: "Must fail typecheck",
+});
+
+// @ts-expect-error A section's content document must be an object.
+defineSection(z.string(), (): JSX.Element => <p />, {
+  title: "Invalid primitive",
+  description: "Must fail typecheck",
+});
+
 /*
  * The tie is verified positively at typecheck: for any schema `S`,
  * `defineSection` binds the section's component to exactly
@@ -56,6 +88,10 @@ describe("defineSection", () => {
     expect(heroSection.component).toBe(Hero);
     expect(heroSection.title).toBe("Hero");
     expect(heroSection.description).toBe("The hero section");
+  });
+
+  test("normalizes omitted optional content to null", () => {
+    expect(nullableSection.schema.parse({})).toEqual({ eyebrow: null });
   });
 });
 

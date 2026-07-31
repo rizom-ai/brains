@@ -10,19 +10,22 @@ export interface PresentationLayoutProps {
     | {
         frontmatter?:
           | {
-              title?: string | undefined;
-              description?: string | undefined;
+              title?: string | null | undefined;
+              description?: string | null | undefined;
             }
+          | null
           | undefined;
         metadata?:
           | {
-              title?: string | undefined;
-              description?: string | undefined;
+              title?: string | null | undefined;
+              description?: string | null | undefined;
             }
+          | null
           | undefined;
-        ogImageUrl?: string | undefined;
-        coverImageUrl?: string | undefined;
+        ogImageUrl?: string | null | undefined;
+        coverImageUrl?: string | null | undefined;
       }
+    | null
     | undefined;
 }
 

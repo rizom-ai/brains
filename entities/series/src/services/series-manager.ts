@@ -182,6 +182,7 @@ export class SeriesManager {
     const frontmatter: SeriesFrontmatter = {
       title: seriesName,
       slug: slugify(seriesName),
+      coverImageId: null,
     };
     return generateMarkdownWithFrontmatter("", frontmatter);
   }

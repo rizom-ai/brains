@@ -42,7 +42,7 @@ function ChapterHead({
   intro,
 }: {
   cap: string;
-  capNote?: string | undefined;
+  capNote: string | null;
   headline: string;
   intro: string;
 }): JSX.Element {
@@ -141,7 +141,7 @@ function Checks({ items }: { items: string[] }): JSX.Element {
 
 const captureSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
   checks: z.array(z.string()),
@@ -181,7 +181,7 @@ function BrainCaptureSection({
 
 const askSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
 });
@@ -216,7 +216,7 @@ function BrainAskSection({
 
 const runSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
   note: z.string(),
@@ -251,7 +251,7 @@ function BrainRunSection({
 
 const connectSchema = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
   cta: ctaSchema,

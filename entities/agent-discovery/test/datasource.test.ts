@@ -73,8 +73,10 @@ describe("AgentDataSource", () => {
       const parsed = listSchema.parse(result);
 
       expect(parsed.agents).toHaveLength(1);
-      expect(parsed.agents[0]?.url).toBeUndefined();
-      expect(parsed.agents[0]?.typeLabel).toBeUndefined();
+      expect(parsed.agents[0]?.url).toBeNull();
+      expect(parsed.agents[0]?.typeLabel).toBeNull();
+      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
     it("should return transformed agents with parsed body sections", async () => {

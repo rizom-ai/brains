@@ -1,10 +1,10 @@
 import type { JSX } from "preact";
-import type { EnrichedBlogPost } from "../schemas/blog-post";
+import type { BlogPostView } from "./blog-view-schema";
 import { Card } from "@brains/ui-library";
 
 export interface PostNavigationProps {
-  prevPost: EnrichedBlogPost | null;
-  nextPost: EnrichedBlogPost | null;
+  prevPost: BlogPostView | null;
+  nextPost: BlogPostView | null;
 }
 
 /**

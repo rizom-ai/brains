@@ -36,7 +36,7 @@ function createPipelineContext(
       schema: z.object({
         heading: z.string(),
         pageTitle: z.string(),
-        pageLabel: z.string().optional(),
+        pageLabel: z.string().nullable().default(null),
       }),
       renderers: { web: (): VNode => h("div", {}) },
       fullscreen: true,
@@ -176,7 +176,7 @@ describe("prepareSiteBuild", () => {
       images,
       globalHeadScripts: ['<script id="global"></script>'],
     });
-    expect(JSON.parse(JSON.stringify(result.preparedBuild))).toEqual(
+    expect(JSON.parse(JSON.stringify(result.preparedBuild))).toStrictEqual(
       result.preparedBuild,
     );
     expect(Object.isFrozen(result.preparedBuild.routes[0]?.sections)).toBe(

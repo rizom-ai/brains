@@ -18,3 +18,8 @@ export {
 } from "./atproto-projection";
 export { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
 export { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";
+export {
+  blogViewSchema,
+  type BlogPostView,
+  type BlogSchemaData,
+} from "./templates/blog-view-schema";

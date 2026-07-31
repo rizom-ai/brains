@@ -141,6 +141,33 @@ describe("Frontmatter Utilities", () => {
       expect(markdown).toBe("Just content");
       expect(markdown).not.toContain("---");
     });
+
+    // Schemas model absence as `.nullable().default(null)` so section content
+    // stays JSON-serializable, which means parsing turns an omitted key into an
+    // explicit null. Writing that back would add `key: null` lines to files an
+    // author wrote by hand, so absence has to round-trip as absence.
+    it("omits null values so absence round-trips as absence", () => {
+      const markdown = generateMarkdownWithFrontmatter("Body text.", {
+        title: "Getting Started",
+        description: null,
+        slug: null,
+      });
+
+      expect(markdown).toContain("title: Getting Started");
+      expect(markdown).not.toContain("description");
+      expect(markdown).not.toContain("slug");
+      expect(markdown).not.toContain("null");
+    });
+
+    it("returns content only when every metadata value is absent", () => {
+      const markdown = generateMarkdownWithFrontmatter("Just content", {
+        description: null,
+        slug: undefined,
+      });
+
+      expect(markdown).toBe("Just content");
+      expect(markdown).not.toContain("---");
+    });
   });
 
   describe("parseMarkdownWithFrontmatter", () => {

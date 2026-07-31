@@ -6,6 +6,12 @@ import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
 
 const data: ProximityMapData = {
+  kicker: null,
+  headingLead: null,
+  headingAccent: null,
+  lede: null,
+  ctaLabel: null,
+  ctaHref: null,
   center: { kind: "identity" },
   nodes: [
     {

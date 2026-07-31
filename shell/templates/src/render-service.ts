@@ -17,7 +17,7 @@ export class RenderService implements IViewTemplateRegistry {
     this.templateRegistry = templateRegistry;
   }
 
-  get(name: string): ViewTemplate<unknown> | undefined {
+  get(name: string): ViewTemplate | undefined {
     const template = this.templateRegistry.get(name);
     if (!template?.layout?.component) {
       return undefined; // Only return templates that have rendering components
@@ -27,7 +27,7 @@ export class RenderService implements IViewTemplateRegistry {
     const parts = name.split(":");
     const pluginId = parts.length >= 2 && parts[0] ? parts[0] : "shell";
 
-    const viewTemplate: ViewTemplate<unknown> = {
+    const viewTemplate: ViewTemplate = {
       name,
       schema: template.schema,
       description: template.description,
@@ -51,13 +51,11 @@ export class RenderService implements IViewTemplateRegistry {
     return viewTemplate;
   }
 
-  list(): ViewTemplate<unknown>[] {
+  list(): ViewTemplate[] {
     return this.templateRegistry
       .getNames()
       .map((name) => this.get(name))
-      .filter(
-        (template): template is ViewTemplate<unknown> => template !== undefined,
-      );
+      .filter((template): template is ViewTemplate => template !== undefined);
   }
 
   validate(templateName: string, content: unknown): boolean {
@@ -80,7 +78,7 @@ export class RenderService implements IViewTemplateRegistry {
     name?: string;
     pluginId?: string;
     namePattern?: string;
-  }): ViewTemplate<unknown> | undefined {
+  }): ViewTemplate | undefined {
     const templates = this.list();
 
     return templates.find((template) => {

@@ -17,7 +17,7 @@ export function extractDomain(url: string): string {
  */
 export interface StatusFrontmatter {
   status: AgentStatus;
-  introducedBy?: string[] | undefined;
+  introducedBy: string[] | null;
 }
 
 /**

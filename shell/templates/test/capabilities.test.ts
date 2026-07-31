@@ -19,7 +19,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
@@ -32,7 +32,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
@@ -45,7 +45,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
       });
@@ -57,7 +57,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         requiredPermission: "public",
       });
@@ -71,7 +71,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
       });
@@ -83,7 +83,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
@@ -96,7 +96,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
       });
 
@@ -109,7 +109,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         layout: {
           component: mockComponent,
@@ -123,7 +123,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         layout: {
           component: mockComponent,
@@ -138,7 +138,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
       });
 
@@ -151,7 +151,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         layout: {
           component: mockComponent,
@@ -165,7 +165,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
       });
@@ -177,7 +177,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
@@ -192,7 +192,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
@@ -216,7 +216,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
         layout: {
@@ -237,7 +237,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         layout: {
           component: mockComponent,
@@ -259,7 +259,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
@@ -275,7 +275,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
       });
@@ -290,7 +290,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
       });
@@ -303,7 +303,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
         formatter: mockFormatter,
         layout: {
@@ -319,7 +319,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
         layout: {
@@ -336,7 +336,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
@@ -359,7 +359,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         basePrompt: "Generate content",
         dataSourceId: "shell:system-stats", // Wrong dataSource for generation
         requiredPermission: "public",
@@ -387,7 +387,7 @@ describe("TemplateCapabilities", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
-        schema: z.string(),
+        schema: z.object({ value: z.string() }),
         requiredPermission: "public",
       });
 

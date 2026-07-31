@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type {
   ComponentType,
+  JsonObjectOutputGuard,
   SiteSectionGroup,
   UserPermissionLevel,
 } from "@rizom/site";
@@ -41,7 +42,7 @@ export interface SectionDefinition<
   S extends z.ZodType = z.ZodType,
 > extends SectionMeta {
   schema: S;
-  component: ComponentType<z.infer<S>>;
+  component: ComponentType<z.output<S>>;
 }
 
 /**
@@ -49,8 +50,8 @@ export interface SectionDefinition<
  * that schema. Passing a component with mismatched props is a type error.
  */
 export function defineSection<S extends z.ZodType>(
-  schema: S,
-  component: ComponentType<z.infer<S>>,
+  schema: S & JsonObjectOutputGuard<z.output<S>>,
+  component: ComponentType<z.output<S>>,
   meta: SectionMeta,
 ): SectionDefinition<S> {
   return { schema, component, ...meta };

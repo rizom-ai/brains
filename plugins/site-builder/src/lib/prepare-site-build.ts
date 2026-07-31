@@ -7,7 +7,6 @@ import {
   collectRouteAssets,
   collectRouteScripts,
   createPreparedSiteBuildSnapshot,
-  jsonObjectSchema,
   type PreparedRoute,
   type PreparedSection,
   type PreparedSiteBuild,
@@ -256,21 +255,21 @@ async function prepareSection(
   options.signal.throwIfAborted();
   try {
     const contentObject = sectionContentSchema.parse(content);
-    const validatedContent = sectionContentSchema.parse(
-      template.schema.parse({
-        ...contentObject,
-        pageTitle: options.route.title || options.siteTitle,
-        ...(options.route.pageLabel !== undefined && {
-          pageLabel: options.route.pageLabel,
-        }),
+    const validatedContent = template.schema.parse({
+      ...contentObject,
+      pageTitle: options.route.title || options.siteTitle,
+      ...(options.route.pageLabel !== undefined && {
+        pageLabel: options.route.pageLabel,
       }),
-    );
+    });
 
     return {
       section: {
         id: section.id,
         template: section.template,
-        data: jsonObjectSchema.parse(validatedContent),
+        // The layout-template schema is JSON-bound; snapshot validation below
+        // remains the final assertion rather than the first enforcement point.
+        data: validatedContent,
       },
     };
   } catch (error) {

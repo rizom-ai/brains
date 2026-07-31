@@ -5,7 +5,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { professionalProfileSchema as personalProfileSchema } from "@brains/profile";
+import { blogViewSchema } from "@brains/blog";
+import { personalProfileSchema } from "./schemas";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { HomepageDataSource } from "./datasources/homepage-datasource";
@@ -58,38 +59,10 @@ const siteInfoCTASchema = z.object({
   heading: z.string(),
   buttonText: z.string(),
   buttonLink: z.string(),
-  subtitle: z.string().optional(),
+  subtitle: z.string().nullable().default(null),
 });
 
-const blogPostSchema = z.looseObject({
-  id: z.string(),
-  entityType: z.literal("post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  contentHash: z.string(),
-  metadata: z.looseObject({
-    title: z.string(),
-    publishedAt: z.string().optional(),
-  }),
-  frontmatter: z.looseObject({
-    excerpt: z.string(),
-    seriesName: z.string().optional(),
-    seriesIndex: z.number().optional(),
-  }),
-  body: z.string(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  seriesUrl: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
-  coverImageSrcset: z.string().optional(),
-  coverImageSizes: z.string().optional(),
-});
+const blogPostSchema = blogViewSchema;
 
 /**
  * Personal Site Plugin

@@ -1,23 +1,19 @@
 import type { JSX } from "preact";
-import type { EnrichedProject } from "../schemas/project";
+import type { ProjectView } from "./project-view";
 import type { PaginationInfo } from "@brains/plugins";
 import { Card, CardTitle, Head, Pagination } from "@brains/ui-library";
 
 export interface ProjectListProps {
-  projects: EnrichedProject[];
-  pageTitle?: string;
-  pagination?: PaginationInfo | null;
-  baseUrl?: string;
+  projects: ProjectView[];
+  pageTitle: string | null;
+  pagination: PaginationInfo | null;
+  baseUrl: string | null;
 }
 
 /**
  * Project card component for grid display
  */
-const ProjectCard = ({
-  project,
-}: {
-  project: EnrichedProject;
-}): JSX.Element => {
+const ProjectCard = ({ project }: { project: ProjectView }): JSX.Element => {
   const { frontmatter, url, coverImageUrl } = project;
 
   return (
@@ -42,7 +38,7 @@ export const ProjectListTemplate = ({
   projects,
   pageTitle,
   pagination,
-  baseUrl = "/projects",
+  baseUrl,
 }: ProjectListProps): JSX.Element => {
   const title = pageTitle ?? "Projects";
   const totalCount = pagination?.totalItems ?? projects.length;
@@ -66,7 +62,7 @@ export const ProjectListTemplate = ({
               <Pagination
                 currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
-                baseUrl={baseUrl}
+                baseUrl={baseUrl ?? "/projects"}
               />
             </div>
           )}

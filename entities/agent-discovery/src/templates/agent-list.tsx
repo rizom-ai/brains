@@ -1,7 +1,8 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@brains/ui-library";
-import type { TemplateAgent, AgentStatus } from "../schemas/agent";
+import type { AgentStatus } from "../schemas/agent";
+import type { AgentView } from "./agent-view";
 import {
   DotPattern,
   DotStatus,
@@ -12,10 +13,10 @@ import {
 } from "./shared";
 
 export interface AgentListProps {
-  agents: TemplateAgent[];
-  pageTitle?: string;
-  pagination?: PaginationInfo | null;
-  baseUrl?: string;
+  agents: AgentView[];
+  pageTitle: string | null;
+  pagination: PaginationInfo | null;
+  baseUrl: string | null;
   selectedStatus: "all" | AgentStatus;
 }
 
@@ -38,7 +39,7 @@ function getFilteredPageUrl(
  * Sightings also carry their domain here since the eyebrow shows the
  * introducer instead.
  */
-const CardMeta = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
+const CardMeta = ({ agent }: { agent: AgentView }): JSX.Element => {
   const { frontmatter, skills } = agent;
   const parts: JSX.Element[] = [
     <span key="kind" className="font-medium text-theme-muted">
@@ -72,7 +73,7 @@ const CardMeta = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
 /**
  * Single agent card in the grid
  */
-const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
+const AgentCard = ({ agent }: { agent: AgentView }): JSX.Element => {
   const { frontmatter, about, url } = agent;
   const isArchived = frontmatter.status === "archived";
   const isSighted = isSightedAgent(frontmatter);
@@ -101,7 +102,7 @@ const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
             <span className="text-status-warning font-medium">
               via {introducers[0]}
             </span>
-            {frontmatter.hops !== undefined && (
+            {frontmatter.hops !== null && (
               <span className="text-theme-muted">
                 · {frontmatter.hops} hops
               </span>
@@ -177,7 +178,7 @@ const AgentSection = ({
 }: {
   title: string;
   hint?: string;
-  agents: TemplateAgent[];
+  agents: AgentView[];
 }): JSX.Element => (
   <section className="mt-14">
     <RuledHeading title={title} count={agents.length} {...(hint && { hint })} />
@@ -209,12 +210,13 @@ export const AgentListTemplate = ({
   agents,
   pageTitle,
   pagination,
-  baseUrl = "/agents",
+  baseUrl: suppliedBaseUrl,
   selectedStatus,
 }: AgentListProps): JSX.Element => {
   const title = pageTitle ?? "Agents";
+  const baseUrl = suppliedBaseUrl ?? "/agents";
   const totalCount = pagination?.totalItems ?? agents.length;
-  const byStatus: Record<AgentStatus, TemplateAgent[]> = {
+  const byStatus: Record<AgentStatus, AgentView[]> = {
     approved: agents.filter((a) => a.frontmatter.status === "approved"),
     discovered: agents.filter((a) => a.frontmatter.status === "discovered"),
     archived: agents.filter((a) => a.frontmatter.status === "archived"),

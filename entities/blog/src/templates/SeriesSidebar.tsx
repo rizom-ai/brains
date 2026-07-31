@@ -1,10 +1,10 @@
 import type { JSX } from "preact";
-import type { EnrichedBlogPost } from "../schemas/blog-post";
+import type { BlogPostView } from "./blog-view-schema";
 import { Card } from "@brains/ui-library";
 
 export interface SeriesSidebarProps {
-  currentPost: EnrichedBlogPost;
-  seriesPosts: EnrichedBlogPost[] | null;
+  currentPost: BlogPostView;
+  seriesPosts: BlogPostView[] | null;
 }
 
 /**

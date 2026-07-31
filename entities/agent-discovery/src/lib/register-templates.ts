@@ -1,8 +1,7 @@
-import { anchorProfileKindSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
+import { paginationInfoSchema } from "@brains/plugins";
 import {
   AgentListTemplate,
   type AgentListProps,
@@ -13,6 +12,7 @@ import {
 } from "../templates/agent-detail";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { AgentProximityMapTemplate } from "../templates/proximity-map-template";
+import { agentViewSchema } from "../templates/agent-view";
 import {
   proximityMapCopySchema,
   proximityMapDataSchema,
@@ -21,79 +21,20 @@ import { proximityMapScript } from "../widgets/proximity-map-script";
 import {
   AGENT_DATASOURCE_ID,
   AGENT_DETAIL_TEMPLATE_NAME,
-  AGENT_ENTITY_TYPE,
   AGENT_LIST_TEMPLATE_NAME,
   AGENT_PROXIMITY_DATASOURCE_ID,
   AGENT_PROXIMITY_TEMPLATE_NAME,
 } from "./constants";
 
-const agentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
 const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 
-const agentKindSchema = anchorProfileKindSchema;
-
-const agentFrontmatterSchema = z.object({
-  name: z.string(),
-  kind: agentKindSchema,
-  organization: z.string().optional(),
-  brainName: z.string(),
-  url: z.url(),
-  did: z.string().optional(),
-  repoDid: z.string().optional(),
-  brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
-  cardUri: z.string().optional(),
-  cardCid: z.string().optional(),
-  a2aEndpoint: z.url().optional(),
-  status: agentStatusSchema,
-  discoveredAt: z.string(),
-});
-
-const agentMetadataSchema = z.object({
-  name: z.string(),
-  url: z.url(),
-  status: agentStatusSchema,
-  discoveredAt: z.string().optional(),
-  slug: z.string(),
-  repoDid: z.string().optional(),
-  brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
-  cardUri: z.string().optional(),
-  cardCid: z.string().optional(),
-  a2aEndpoint: z.url().optional(),
-});
-
-/**
- * Datasource-facing schema. URL/display fields are added by site-builder
- * after content resolution, before the component is rendered.
- */
-const enrichedAgentViewSchema = z.object({
-  id: z.string(),
-  entityType: z.literal(AGENT_ENTITY_TYPE),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: agentMetadataSchema,
-  contentHash: z.string(),
-  frontmatter: agentFrontmatterSchema,
-  about: z.string(),
-  skills: z.array(agentSkillSchema),
-  notes: z.string(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-});
+const enrichedAgentViewSchema = agentViewSchema;
 
 const agentListSchema = z.object({
   agents: z.array(enrichedAgentViewSchema),
-  pageTitle: z.string().optional(),
+  pageTitle: z.string().nullable().default(null),
   pagination: paginationInfoSchema.nullable(),
-  baseUrl: z.string().optional(),
+  baseUrl: z.string().nullable().default(null),
   selectedStatus: z.union([z.literal("all"), agentStatusSchema]),
 });
 

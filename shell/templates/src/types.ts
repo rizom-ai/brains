@@ -1,4 +1,5 @@
 import { z, type ZodType } from "@brains/utils/zod";
+import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 
@@ -71,19 +72,10 @@ export function createTypedComponent<TSchema, TComponent = TSchema>(
  * Unified template interface that bundles content generation and view rendering
  * This is the single source of truth for what constitutes a template
  */
-export interface Template extends Omit<
+interface TemplateBase extends Omit<
   TemplateInput,
   "schema" | "layout" | "formatter"
 > {
-  schema: TemplateDataSchema<unknown>;
-
-  // View rendering capability (optional)
-  layout?: {
-    component?: ComponentType<unknown>;
-    // When true, render without any page layout shell (no header/footer)
-    fullscreen?: boolean;
-  };
-
   // Data sourcing capability (optional)
   formatter?: ContentFormatter<unknown>; // For parsing stored content
 
@@ -119,6 +111,24 @@ export interface Template extends Omit<
   staticAssets?: Record<string, string>;
 }
 
+/** A renderer template must parse to a JSON document before it can be snapshotted. */
+export interface LayoutTemplate extends TemplateBase {
+  schema: TemplateDataSchema<JsonObject>;
+  layout: {
+    component?: ComponentType<unknown>;
+    // When true, render without any page layout shell (no header/footer)
+    fullscreen?: boolean;
+  };
+}
+
+/** Generation-only templates never enter the serializable site-build snapshot. */
+export interface NonLayoutTemplate extends TemplateBase {
+  schema: TemplateDataSchema<unknown>;
+  layout?: undefined;
+}
+
+export type Template = LayoutTemplate | NonLayoutTemplate;
+
 /**
  * Helper to create a template with automatic component wrapping
  *
@@ -127,34 +137,43 @@ export interface Template extends Omit<
  * @param TComponent - Type expected by component (after enrichment)
  */
 export function createTemplate<TSchema = unknown, TComponent = TSchema>(
-  template: Omit<Template, "layout" | "schema"> & {
-    schema: TemplateDataSchema<TSchema>;
-    layout?: {
-      component?: ComponentType<TComponent>;
-      fullscreen?: boolean;
-    };
-    runtimeScripts?: RuntimeScript[];
-    staticAssets?: Record<string, string>;
-  },
+  template: Omit<TemplateBase, "layout" | "schema"> &
+    (
+      | {
+          schema: TemplateDataSchema<TSchema> & JsonObjectOutputGuard<TSchema>;
+          layout: {
+            component?: ComponentType<TComponent>;
+            fullscreen?: boolean;
+          };
+        }
+      | {
+          schema: TemplateDataSchema<TSchema>;
+          layout?: undefined;
+        }
+    ) & {
+      runtimeScripts?: RuntimeScript[];
+      staticAssets?: Record<string, string>;
+    },
 ): Template {
   const { layout, schema, ...rest } = template;
 
-  const result: Template = {
-    ...rest,
-    schema,
-  };
+  if (!layout) {
+    return { ...rest, schema };
+  }
 
-  if (layout) {
-    result.layout = {};
-    if (layout.component) {
-      result.layout.component = createTypedComponent<TSchema, TComponent>(
-        schema,
-        layout.component,
-      );
-    }
-    if (layout.fullscreen !== undefined) {
-      result.layout.fullscreen = layout.fullscreen;
-    }
+  const result: LayoutTemplate = {
+    ...rest,
+    schema: schema as TemplateDataSchema<JsonObject>,
+    layout: {},
+  };
+  if (layout.component) {
+    result.layout.component = createTypedComponent<TSchema, TComponent>(
+      schema,
+      layout.component,
+    );
+  }
+  if (layout.fullscreen !== undefined) {
+    result.layout.fullscreen = layout.fullscreen;
   }
 
   return result;

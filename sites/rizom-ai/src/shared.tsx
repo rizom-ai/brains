@@ -39,7 +39,7 @@ export function SectCap({
   className = "",
 }: {
   lead: string;
-  trail?: string | undefined;
+  trail?: string | null | undefined;
   tone?: "accent" | "cold";
   className?: string;
 }): JSX.Element {
@@ -125,9 +125,9 @@ export interface IndexRowData {
   kicker: string;
   title: string;
   text: string;
-  href?: string | undefined;
-  meta?: string | undefined;
-  metaSub?: string | undefined;
+  href?: string | null | undefined;
+  meta?: string | null | undefined;
+  metaSub?: string | null | undefined;
 }
 
 export function IndexRow({
@@ -228,11 +228,11 @@ export const trioItemSchema: z.ZodObject<{
 
 export const trioSchema: z.ZodObject<{
   cap: z.ZodString;
-  capNote: z.ZodOptional<z.ZodString>;
+  capNote: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   items: z.ZodArray<typeof trioItemSchema>;
 }> = z.object({
   cap: z.string(),
-  capNote: z.string().optional(),
+  capNote: z.string().nullable().default(null),
   items: z.array(trioItemSchema),
 });
 

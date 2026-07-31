@@ -152,6 +152,12 @@ describe("buildProximityMapData", () => {
     });
 
     expect(result).toEqual({
+      kicker: null,
+      headingLead: null,
+      headingAccent: null,
+      lede: null,
+      ctaLabel: null,
+      ctaHref: null,
       center: { kind: "centroid" },
       nodes: [],
       clusters: [],

@@ -417,8 +417,10 @@ describe("BlogDataSource", () => {
 
       const parsed = postListSchema.parse(result);
       expect(parsed.posts).toHaveLength(1);
-      expect(parsed.posts[0]?.url).toBeUndefined();
-      expect(parsed.posts[0]?.typeLabel).toBeUndefined();
+      expect(parsed.posts[0]?.url).toBeNull();
+      expect(parsed.posts[0]?.typeLabel).toBeNull();
+      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
     it("should return posts in database-sorted order (publishedAt desc)", async () => {

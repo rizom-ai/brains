@@ -14,6 +14,10 @@ import {
   type ProjectWithData,
 } from "../schemas/project";
 import { projectAdapter } from "../adapters/project-adapter";
+import {
+  projectViewSchema,
+  type ProjectSchemaData,
+} from "../templates/project-view";
 
 // Re-export for convenience
 export type { ProjectWithData };
@@ -25,9 +29,9 @@ interface ProjectDetailData {
 }
 
 interface ProjectListData {
-  projects: ProjectWithData[];
+  projects: ProjectSchemaData[];
   pagination: PaginationInfo | null;
-  baseUrl: string | undefined;
+  baseUrl: string | null;
 }
 
 /**
@@ -60,7 +64,8 @@ function parseProjectData(entity: Project): ProjectWithData {
  */
 export class ProjectDataSource extends BaseEntityDataSource<
   Project,
-  ProjectWithData
+  ProjectWithData,
+  ProjectListData
 > {
   readonly id: string = "portfolio:entities";
   readonly name: string = "Portfolio Project DataSource";
@@ -103,9 +108,9 @@ export class ProjectDataSource extends BaseEntityDataSource<
     query: BaseQuery,
   ): ProjectListData {
     return {
-      projects: items,
+      projects: items.map((item) => projectViewSchema.parse(item)),
       pagination,
-      baseUrl: query.baseUrl,
+      baseUrl: query.baseUrl ?? null,
     };
   }
 }

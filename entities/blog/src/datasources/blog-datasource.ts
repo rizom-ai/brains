@@ -16,6 +16,10 @@ import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
+import {
+  blogViewSchema,
+  type BlogSchemaData,
+} from "../templates/blog-view-schema";
 
 // Re-export for convenience
 export type { BlogPostWithData };
@@ -61,9 +65,9 @@ interface BlogDetailData {
 }
 
 interface BlogListData {
-  posts: BlogPostTransformed[];
+  posts: BlogSchemaData[];
   pagination: PaginationInfo | null;
-  baseUrl: string | undefined;
+  baseUrl: string | null;
 }
 
 function parsePostData(entity: BlogPost): BlogPostTransformed {
@@ -79,7 +83,8 @@ function parsePostData(entity: BlogPost): BlogPostTransformed {
  */
 export class BlogDataSource extends BaseEntityDataSource<
   BlogPost,
-  BlogPostTransformed
+  BlogPostTransformed,
+  BlogListData
 > {
   readonly id = "blog:entities";
   readonly name = "Blog Entity DataSource";
@@ -134,9 +139,9 @@ export class BlogDataSource extends BaseEntityDataSource<
     query: BaseQuery,
   ): BlogListData {
     return {
-      posts: items,
+      posts: items.map((item) => blogViewSchema.parse(item)),
       pagination,
-      baseUrl: query.baseUrl,
+      baseUrl: query.baseUrl ?? null,
     };
   }
 

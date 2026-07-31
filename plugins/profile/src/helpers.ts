@@ -24,7 +24,7 @@ export async function fetchAnchorProfile(
 }
 
 /** Fetch and parse the singleton with a plugin-owned profile schema. */
-export async function fetchAnchorProfileData<T extends Record<string, unknown>>(
+export async function fetchAnchorProfileData<T extends object>(
   entityService: ICoreEntityService,
   schema: ProfileSchema<T>,
 ): Promise<T> {

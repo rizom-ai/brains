@@ -1,9 +1,9 @@
 import type { JSX } from "preact";
-import type { EnrichedProduct } from "../schemas/product";
+import type { ProductView } from "./product-view";
 import { Head, StatusBadge, TagsList, LinkButton } from "@brains/ui-library";
 
 export interface ProductDetailProps {
-  product: EnrichedProduct;
+  product: ProductView;
 }
 
 /**
@@ -20,8 +20,8 @@ export const ProductDetailTemplate = ({
 }: ProductDetailProps): JSX.Element => {
   const { frontmatter, body, labels } = product;
 
-  const productsUrl = product.listUrl ?? "/products";
-  const productsLabel = product.listLabel ?? "Products";
+  const productsUrl = product.listUrl;
+  const productsLabel = product.listLabel;
 
   // Story paragraphs — formatter joins with \n, split to render individually
   const storyParagraphs = body.story

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented on 2026-07-31.
 
 ## Background
 
@@ -57,20 +57,22 @@ defaults (fire on `undefined`, not `null`) to `?? fallback` expressions.
 2. `packages/site-sections` — `defineSection<S extends z.ZodType>` gets the
    same bound. Published Apache-2.0 contract surface: this is a breaking
    change for external site authors → site-lane major changeset.
-3. Shared datasource base — `buildListResult` return typed as a JSON object,
-   which is what catches `baseUrl: query.baseUrl` at the source.
+3. Shared datasource base — `buildListResult` carries an explicit result type
+   guarded as a JSON object, which catches `baseUrl: query.baseUrl` and nested
+   non-JSON values at the source.
 
 ## Migration surface (what the compiler will flag)
 
 - 9 datasources: blog, agent-discovery, doc, social-media, topics, link,
   portfolio, decks, newsletter.
-- ~130–150 `.optional()` fields across layout-bearing schemas:
-  agent-discovery 20, sites/professional 26, portfolio 17, sites/personal 16,
-  series 8, products 7, doc 5, blog 3, sites/rizom-ai ~14, plus shared
-  post/pagination schemas. Topics, link, decks, summary-list, and
-  rizom-ecosystem are already clean.
+- Layout-bearing schemas across agent-discovery, professional/personal/Rizom
+  sites, portfolio, series, products, doc, blog, topics, links, decks,
+  social-media, newsletter, and shared section definitions.
 - Components consuming migrated fields: props change `| undefined` → `| null`;
-  destructuring defaults become `??`.
+  destructuring defaults become `??` or optional UI props are omitted at the
+  presentation boundary.
+- URL-enriched entities use two explicit phases: pre-enrichment schemas allow
+  `null`, while render props require deterministic `url`/label fields.
 
 ## Risk to verify early
 
@@ -83,16 +85,45 @@ the blog schemas before the wide migration.
 
 Constraint lands last so every phase typechecks and ships independently.
 
-1. **Blog + agent-discovery** — migrate their schemas, datasources, and
-   components; verify site-composition CMS/formatter round-trip. This alone
-   fixes the live empty-sections bug on rizom.ai. Tests: section content for
-   `blog:post-list` / `agent-discovery:agent-list` with no `baseUrl` in the
-   query passes the JSON gate and renders with default pagination paths.
-2. **Remaining entity packages** — doc, social-media, topics, link,
-   portfolio, decks, series, products, newsletter datasource.
-3. **Site packages** — sites/professional, sites/personal, sites/rizom-ai
-   sections.
-4. **Flip the bounds** — type `Template.schema` (shell/templates) and
-   `defineSection` (site-sections), demote the runtime
-   `jsonObjectSchema.parse` to an assertion (unreachable-by-construction),
-   ship the site-lane breaking-change changeset.
+1. [x] **Blog + agent-discovery** — migrate schemas, datasource list results,
+       and components; verify CMS/formatter round-trip and nullable pre-enrichment
+       URL fields.
+2. [x] **Remaining entity packages** — doc, social-media, topics, link,
+       portfolio, decks, series, products, and newsletter.
+3. [x] **Site packages** — professional, personal, and Rizom AI sections.
+4. [x] **Flip the bounds** — constrain rendered templates, view registries,
+       datasource list results, and `defineSection`; retain snapshot validation as
+       the final assertion; add the site-lane breaking changeset.
+
+## Implementation outcome
+
+- Shared recursive JSON types and compile-time output guards now reject
+  primitives, functions, top-level optionals, and nested `undefined`.
+- Generation-only templates remain unconstrained; only templates with layouts
+  must emit JSON objects.
+- Legacy field-DSL optionals and Zod view schemas normalize omitted values to
+  `null`.
+- Site-builder no longer uses a late standalone JSON gate to discover schema
+  mistakes; typed schema output is validated again when the prepared snapshot
+  is created.
+- Blog, agent, and portfolio datasource tests cover absent `baseUrl` and
+  pre-enrichment URLs, including JSON round-tripping.
+- A running Rover Rizom AI app rebuilt preview output successfully. The
+  generated `essays/index.html` and `network/index.html` contain their list
+  layouts, and the build emitted no `invalid-section-content` diagnostics.
+
+## Validation
+
+- [x] `bun run typecheck`
+- [x] `bun run test`
+- [x] `bun run lint`
+- [x] `bun run format:check`
+- [x] `bun run docs:check`
+- [x] `bun run deps:check`
+- [x] `bun run workspace:check`
+- [x] `bun run env-schema:check`
+- [x] `bun run arch:check` (existing orphan warnings only)
+- [x] `bun run changeset:check`
+- [x] `bunx changeset status`
+- [x] Running-app preview rebuild via
+      `brain --remote http://localhost:8080 build-site preview`

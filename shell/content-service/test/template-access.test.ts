@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
-import { TemplateRegistry, type Template } from "@brains/templates";
+import {
+  TemplateRegistry,
+  type NonLayoutTemplate,
+  type Template,
+} from "@brains/templates";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -10,7 +14,7 @@ import {
   createMockDataSourceRegistry,
 } from "@brains/test-utils";
 
-function makeTemplate(overrides: Partial<Template> = {}): Template {
+function makeTemplate(overrides: Partial<NonLayoutTemplate> = {}): Template {
   return {
     name: "test-template",
     description: "Template under test",
