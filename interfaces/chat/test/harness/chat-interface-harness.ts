@@ -88,13 +88,54 @@ export interface MockSlackAdapter {
 }
 
 /**
- * The adapters the most recent mount built. Held on a shared object rather
- * than exported bindings so suites can both read and reset them.
+ * Everything the mocked modules write to during one test.
+ *
+ * bun evaluates every suite in a single process, so this module — and the
+ * mock.module() registrations below — are one shared instance across all
+ * twelve ChatInterface suites. Keeping the mutable parts in a holder that only
+ * exists between beforeEach and afterEach is what stops one suite's state from
+ * reaching another: outside a test there is nothing to read, so an ordering
+ * mistake fails loudly here instead of silently handing over a stale adapter,
+ * SDK instance, or auth resolver.
  */
-export const lastAdapter: {
+interface HarnessState {
+  discordAdapter: MockDiscordAdapter | undefined;
+  slackAdapter: MockSlackAdapter | undefined;
+  resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
+  sdkInstances: MockChatSdk[];
+}
+
+let activeState: HarnessState | undefined;
+
+function state(): HarnessState {
+  if (!activeState) {
+    throw new Error(
+      "ChatInterface harness state was touched outside a test. Suites must call setupChatInterfaceTest() at the top level, and nothing may read harness state from module scope.",
+    );
+  }
+  return activeState;
+}
+
+export interface LastAdapterAccess {
   discord: MockDiscordAdapter | undefined;
   slack: MockSlackAdapter | undefined;
-} = { discord: undefined, slack: undefined };
+}
+
+/** The adapters the most recent mount built, scoped to the running test. */
+export const lastAdapter: LastAdapterAccess = {
+  get discord(): MockDiscordAdapter | undefined {
+    return state().discordAdapter;
+  },
+  set discord(adapter: MockDiscordAdapter | undefined) {
+    state().discordAdapter = adapter;
+  },
+  get slack(): MockSlackAdapter | undefined {
+    return state().slackAdapter;
+  },
+  set slack(adapter: MockSlackAdapter | undefined) {
+    state().slackAdapter = adapter;
+  },
+};
 
 export const createDiscordAdapterMock: Mock<
   (config: DiscordAdapterFactoryConfig) => MockDiscordAdapter
@@ -195,7 +236,13 @@ interface RegisteredHandlers {
 }
 
 export class MockChatSdk {
-  static instances: MockChatSdk[] = [];
+  /** Scoped to the running test; see HarnessState. */
+  static get instances(): MockChatSdk[] {
+    return state().sdkInstances;
+  }
+  static set instances(instances: MockChatSdk[]) {
+    state().sdkInstances = instances;
+  }
   readonly config: MockChatSdkConfig;
   readonly handlers: RegisteredHandlers = {
     directMessages: [],
@@ -346,14 +393,23 @@ export type ResolveIdentityAccessMock = Mock<
   (input: { type: string; subject: string }) => Promise<MockIdentityResolution>
 >;
 
+export interface AuthStateAccess {
+  resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
+}
+
 /**
  * The auth-service lookup the mocked module hands out. Suites assign
  * `authState.resolveIdentityAccess` to bind a linked identity for one test;
- * the shared setup clears it again.
+ * it lives on the per-test state, so it cannot survive into the next one.
  */
-export const authState: {
-  resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
-} = { resolveIdentityAccess: undefined };
+export const authState: AuthStateAccess = {
+  get resolveIdentityAccess(): ResolveIdentityAccessMock | undefined {
+    return state().resolveIdentityAccess;
+  },
+  set resolveIdentityAccess(resolver: ResolveIdentityAccessMock | undefined) {
+    state().resolveIdentityAccess = resolver;
+  },
+};
 
 void mock.module("@brains/auth-service", () => ({
   getActiveAuthService: (): { resolveIdentityAccess: unknown } | undefined =>
@@ -727,13 +783,17 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    MockChatSdk.instances = [];
+    // A fresh holder per test: nothing from the previous test — or from a
+    // suite that ran earlier in this process — is reachable.
+    activeState = {
+      discordAdapter: undefined,
+      slackAdapter: undefined,
+      resolveIdentityAccess: undefined,
+      sdkInstances: [],
+    };
     createDiscordAdapterMock.mockClear();
-    lastAdapter.discord = undefined;
     createSlackAdapterMock.mockClear();
-    lastAdapter.slack = undefined;
     createMemoryStateMock.mockClear();
-    authState.resolveIdentityAccess = undefined;
     originalFetch = globalThis.fetch;
     globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
       Promise.resolve(new Response("{}")),
@@ -746,6 +806,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     context.harness.reset();
+    activeState = undefined;
   });
 
   return context;

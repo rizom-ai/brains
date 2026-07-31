@@ -36,7 +36,9 @@ jobs:
           node-version: 24.18.0
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Honors packageManager in package.json, so CI runs the toolchain
+          # the repo pins instead of whatever bun released today.
+          bun-version-file: package.json
       - run: bun install --frozen-lockfile
 
       - name: Detect release mode

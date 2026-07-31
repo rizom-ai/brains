@@ -70,7 +70,9 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Honors packageManager in package.json, so CI runs the toolchain
+          # the repo pins instead of whatever bun released today.
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install
@@ -110,7 +112,9 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Honors packageManager in package.json, so CI runs the toolchain
+          # the repo pins instead of whatever bun released today.
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install
@@ -140,7 +144,9 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Honors packageManager in package.json, so CI runs the toolchain
+          # the repo pins instead of whatever bun released today.
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install
@@ -170,7 +176,9 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Honors packageManager in package.json, so CI runs the toolchain
+          # the repo pins instead of whatever bun released today.
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install
