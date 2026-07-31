@@ -18,6 +18,7 @@ import type { ActionEvent, CardElement, StateAdapter } from "chat";
 // Type-only, so it is erased and cannot evaluate the module before the
 // mock.module() registrations below.
 import type * as ChatInterfaceModule from "../../src/chat-interface";
+import type { ChatIdentityAccess } from "../../src/chat-identity";
 
 export const discordExternalIdentity: {
   kind: "external";
@@ -411,12 +412,17 @@ export const authState: AuthStateAccess = {
   },
 };
 
-void mock.module("@brains/auth-service", () => ({
-  getActiveAuthService: (): { resolveIdentityAccess: unknown } | undefined =>
-    authState.resolveIdentityAccess
-      ? { resolveIdentityAccess: authState.resolveIdentityAccess }
-      : undefined,
-}));
+/**
+ * Handed to ChatInterface as its identity lookup. No mock.module for
+ * @brains/auth-service: replacing an internal workspace module only works
+ * while nothing has imported it yet, so it made these suites depend on file
+ * order. mock.module here is reserved for the genuinely external chat SDK and
+ * adapter packages below.
+ */
+function harnessIdentityAccess(): ChatIdentityAccess | undefined {
+  const resolver = authState.resolveIdentityAccess;
+  return resolver ? { resolveIdentityAccess: resolver } : undefined;
+}
 
 // Imported dynamically so every mock.module() call above is registered before
 // the interface module — and its adapter/SDK imports — are first evaluated.
@@ -753,15 +759,18 @@ export function expectDiscordConfirmationContext(
 export function createPlugin(
   discordConfig: Partial<DiscordChatAdapterConfig> = {},
 ): ChatInterfaceInstance {
-  return new ChatInterface({
-    adapters: {
-      discord: {
-        ...baseDiscordConfig,
-        ...discordConfig,
+  return new ChatInterface(
+    {
+      adapters: {
+        discord: {
+          ...baseDiscordConfig,
+          ...discordConfig,
+        },
       },
+      gatewayRunMs: 50,
     },
-    gatewayRunMs: 50,
-  });
+    harnessIdentityAccess,
+  );
 }
 
 export interface ChatInterfaceTestContext {

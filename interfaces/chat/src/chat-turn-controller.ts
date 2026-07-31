@@ -11,6 +11,7 @@ import type {
 } from "./config";
 import type { ChatInputBuilder } from "./chat-input-builder";
 import { resolveChatIdentity } from "./chat-identity";
+import type { ChatIdentityAccess } from "./chat-identity";
 import {
   APPROVAL_CANCEL_ACTION,
   APPROVAL_CONFIRM_ACTION,
@@ -75,6 +76,8 @@ interface ChatTurnControllerDeps {
   chatInputBuilder: ChatInputBuilder;
   uploadCoordinator: ChatUploadCoordinator;
   responseCoordinator: ChatResponseCoordinator;
+  /** Resolved per call so production reads the auth service mounted at boot. */
+  identityAccess: () => ChatIdentityAccess | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
     error: (message: string, context?: Record<string, unknown>) => void;
@@ -200,6 +203,7 @@ export class ChatTurnController {
           isBot: event.user.isBot,
         },
       }),
+      this.deps.identityAccess(),
     );
     const { permissionLevel: userPermissionLevel, isAnchor } = identity;
     const conversationId = getChatConversationId(platform, thread.id);
@@ -279,6 +283,7 @@ export class ChatTurnController {
           isBot: event.user.isBot,
         },
       }),
+      this.deps.identityAccess(),
     );
 
     await this.deps.responseCoordinator.confirmApproval({
@@ -376,6 +381,7 @@ export class ChatTurnController {
       platform,
       message.author.userId,
       permissionContext,
+      this.deps.identityAccess(),
     );
     const { permissionLevel: userPermissionLevel, isAnchor } = identity;
     const agentInput = await this.deps.chatInputBuilder.build(
@@ -509,6 +515,7 @@ export class ChatTurnController {
       platform,
       message.author.userId,
       getPermissionContext(thread, message),
+      this.deps.identityAccess(),
     );
     const channelName = getChannelName(thread);
 

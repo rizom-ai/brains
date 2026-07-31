@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { Mock } from "bun:test";
 import type { UserPermissionLevel } from "@brains/plugins";
+import {
+  resolveChatIdentity,
+  type ChatIdentityAccess,
+} from "../src/chat-identity";
 
 interface ResolveIdentityAccessInput {
   type: string;
@@ -27,12 +31,15 @@ type Resolution =
 let resolveIdentityAccess:
   Mock<(input: ResolveIdentityAccessInput) => Promise<Resolution>> | undefined;
 
-void mock.module("@brains/auth-service", () => ({
-  getActiveAuthService: (): { resolveIdentityAccess: unknown } | undefined =>
-    resolveIdentityAccess ? { resolveIdentityAccess } : undefined,
-}));
-
-const { resolveChatIdentity } = await import("../src/chat-identity");
+/**
+ * The lookup under test takes its auth dependency as a parameter, so this is a
+ * plain object rather than a replaced module: mock.module is for genuinely
+ * external packages, and using it on an internal one made the suites depend on
+ * which test file imported the module first.
+ */
+function identityAccess(): ChatIdentityAccess | undefined {
+  return resolveIdentityAccess ? { resolveIdentityAccess } : undefined;
+}
 
 function principal(
   overrides: Partial<
@@ -81,6 +88,7 @@ describe("resolveChatIdentity", () => {
       "discord",
       "user-789",
       { channelId: "channel-123" },
+      identityAccess(),
     );
 
     expect(resolveIdentityAccess).toHaveBeenCalledWith({
@@ -110,6 +118,7 @@ describe("resolveChatIdentity", () => {
       "discord",
       "anchor-user",
       { channelId: "channel-123" },
+      identityAccess(),
     );
 
     expect(resolution.permissionLevel).toBe("public");
@@ -125,6 +134,7 @@ describe("resolveChatIdentity", () => {
       "discord",
       "trusted-user",
       { channelId: "channel-123" },
+      identityAccess(),
     );
 
     expect(resolution.permissionLevel).toBe("public");
@@ -142,6 +152,7 @@ describe("resolveChatIdentity", () => {
       "discord",
       "trusted-user",
       { channelId: "channel-123" },
+      identityAccess(),
     );
 
     expect(resolution.permissionLevel).toBe("trusted");
@@ -162,6 +173,7 @@ describe("resolveChatIdentity", () => {
       "discord",
       "anchor-user",
       { channelId: "channel-123" },
+      identityAccess(),
     );
 
     expect(resolution.permissionLevel).toBe("admin");
@@ -175,9 +187,13 @@ describe("resolveChatIdentity", () => {
     }));
     const permissions = createPermissions("public");
 
-    const resolution = await resolveChatIdentity(permissions, "slack", "U123", {
-      channelId: "C123",
-    });
+    const resolution = await resolveChatIdentity(
+      permissions,
+      "slack",
+      "U123",
+      { channelId: "C123" },
+      identityAccess(),
+    );
 
     expect(resolveIdentityAccess).not.toHaveBeenCalled();
     expect(resolution.permissionLevel).toBe("public");

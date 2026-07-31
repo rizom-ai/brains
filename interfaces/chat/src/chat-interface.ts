@@ -36,6 +36,8 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder } from "./chat-input-builder";
+import { getActiveAuthService } from "@brains/auth-service";
+import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
   createSlackThreadSubscriptionStore,
@@ -125,9 +127,18 @@ export class ChatInterface extends MessageInterfacePlugin<
   private slackSubscriptions: ChatThreadSubscriptionStore | undefined;
   private chatAppRunning = false;
 
-  constructor(config: ChatConfigInput = {}) {
+  /**
+   * @param identityAccess Overridable so tests can supply a linked principal
+   * directly. Production leaves it alone and reads the auth service mounted at
+   * boot, resolved per call because mounting happens after construction.
+   */
+  constructor(
+    config: ChatConfigInput = {},
+    identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+  ) {
     super("chat", packageJson, config, chatConfigSchema);
     this.turnController = new ChatTurnController({
+      identityAccess,
       config: this.config,
       host: {
         getContext: (): InterfacePluginContext | undefined => this.context,

@@ -1,4 +1,4 @@
-import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
+import type { AuthPrincipal } from "@brains/auth-service";
 import type {
   PermissionLookupContext,
   UserPermissionLevel,
@@ -16,6 +16,24 @@ export interface ChatPermissionLookup {
     context?: PermissionLookupContext,
   ): UserPermissionLevel;
   isAnchor(interfaceType: string, userId: string): boolean;
+}
+
+/**
+ * The auth lookup this resolver needs, injected like {@link ChatPermissionLookup}
+ * rather than read from the auth-service module singleton. Reaching for the
+ * singleton left tests no way to supply a principal except by replacing an
+ * internal workspace module, which only takes effect if nothing has imported
+ * it yet — so whether it worked depended on test file order.
+ */
+export interface ChatIdentityAccess {
+  resolveIdentityAccess(input: {
+    type: string;
+    subject: string;
+  }): Promise<
+    | { state: "resolved"; principal: AuthPrincipal }
+    | { state: "denied" }
+    | { state: "unbound" }
+  >;
 }
 
 export interface ChatIdentityResolution {
@@ -44,9 +62,10 @@ export async function resolveChatIdentity(
   platform: ChatPlatform,
   userId: string,
   permissionContext: PermissionLookupContext,
+  identityAccess: ChatIdentityAccess | undefined,
 ): Promise<ChatIdentityResolution> {
   if (platform === "discord") {
-    const resolution = await getActiveAuthService()?.resolveIdentityAccess({
+    const resolution = await identityAccess?.resolveIdentityAccess({
       type: "discord",
       subject: userId,
     });
