@@ -39,7 +39,8 @@ turns:
         - "Completed"
   - userMessage: >-
       Now search Team Brain memory and give me the follow-up plan for the team. Keep
-      it grounded in what was captured, with owner/action pairs.
+      it grounded in what was captured, with owner/action pairs. If no owner was
+      captured for an action, label its owner as unassigned.
     successCriteria:
       expectedTools:
         - toolName: system_search
@@ -47,6 +48,7 @@ turns:
       responseContains:
         - "Customer Alpha"
         - "MCP"
+        - "unassigned"
         - "Daniel"
         - "Mira"
       responseNotContains:

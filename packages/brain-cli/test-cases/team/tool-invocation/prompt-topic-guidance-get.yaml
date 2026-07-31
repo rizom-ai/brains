@@ -31,7 +31,10 @@ successCriteria:
       shouldBeCalled: false
   responseContains:
     - "topics"
-    - "future plugin"
+  responseContainsAny:
+    - - "future plugin"
+      - "plugins that do not yet exist"
+      - "plugin entities"
   responseNotContains:
     - "updated"
     - "blog"

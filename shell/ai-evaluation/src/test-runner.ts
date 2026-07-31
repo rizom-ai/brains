@@ -260,7 +260,16 @@ export class TestRunner implements ITestRunner {
       ...(response.toolResults?.map((toolResult) => ({
         toolName: toolResult.toolName,
         args: sanitizeEvalToolArgs(toolResult.toolName, toolResult.args),
-        result: toolResult.data,
+        result:
+          toolResult.error !== undefined
+            ? {
+                success: false,
+                error: toolResult.error.message,
+                ...(toolResult.error.code !== undefined
+                  ? { code: toolResult.error.code }
+                  : {}),
+              }
+            : toolResult.data,
       })) ?? []),
       ...newPendingConfirmations.map((confirmation) => ({
         toolName: confirmation.toolName,

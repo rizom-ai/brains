@@ -11,7 +11,11 @@ describe("WishlistPlugin instructions", () => {
   it("tells models to list the whole wishlist without status fanout", async () => {
     const instructions = await new TestWishlistPlugin().instructions();
 
+    expect(instructions).toContain("Mandatory unmet-request routing");
     expect(instructions).toContain('call system_create with entityType "wish"');
+    expect(instructions).toContain(
+      "do not merely decline, offer alternatives, or wait for a separate save verb",
+    );
     expect(instructions).toContain(
       "Do not invent or look for a dedicated wishlist tool",
     );

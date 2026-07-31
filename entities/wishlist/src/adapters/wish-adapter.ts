@@ -17,7 +17,7 @@ export class WishAdapter extends BaseEntityAdapter<
     super({
       entityType: "wish",
       purpose:
-        "An explicitly recorded capability or outcome the assistant cannot currently fulfill, kept for future planning.",
+        "A demand record the assistant proactively creates when a user requests a capability or outcome no installed tool can fulfill, unless the user declines.",
       schema: wishSchema,
       frontmatterSchema: wishFrontmatterSchema,
     });

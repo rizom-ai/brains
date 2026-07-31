@@ -50,6 +50,12 @@ describe("system instructions", () => {
     expect(instructions).toContain("image uploads as entityType image");
     expect(instructions).toContain("approve/archive an agent");
     expect(instructions).toContain(
+      "proactively recording the user's request itself",
+    );
+    expect(instructions).toContain(
+      "even when the user did not use a separate save/create verb",
+    );
+    expect(instructions).toContain(
       "Never call system_create for a status follow-up",
     );
     expect(instructions).toContain(
@@ -109,6 +115,12 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain(
       "unless the user gives an exact entity id in quotes",
+    );
+    expect(instructions).toContain(
+      "An underspecified generation request still supplies a usable prompt",
+    );
+    expect(instructions).toContain(
+      "including after an optional search returns no source",
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",

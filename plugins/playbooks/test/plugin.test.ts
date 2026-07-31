@@ -366,6 +366,12 @@ describe("PlaybooksPlugin", () => {
     if (!manageTool) throw new Error("playbook_manage not found");
 
     expect(manageTool.description).toContain(
+      "whenever the user asks for a playbook's status",
+    );
+    expect(manageTool.description).toContain(
+      "use the tool to verify instead of answering from memory",
+    );
+    expect(manageTool.description).toContain(
       "Do not send an extra NEXT after runtime evidence already advanced the run",
     );
     expect(manageTool.description).toContain(

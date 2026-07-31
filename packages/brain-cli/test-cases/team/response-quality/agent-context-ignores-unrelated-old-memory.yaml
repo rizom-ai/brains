@@ -32,9 +32,12 @@ successCriteria:
     - toolName: system_list
       shouldBeCalled: false
   responseContains:
-    - "core"
-    - "default"
-    - "full"
+    - "Core"
+    - "private team memory"
+    - "Default"
+    - "minimal public site"
+    - "Full"
+    - "existing team-knowledge"
   responseNotContains:
     - "Neptune waiver"
     - "tangerine kiosk"

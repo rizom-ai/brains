@@ -383,7 +383,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       {
         name: "playbook_manage",
         description:
-          "Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+          "Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
         inputSchema: manageInputSchema,
         visibility: "admin",
         sideEffects: "writes",

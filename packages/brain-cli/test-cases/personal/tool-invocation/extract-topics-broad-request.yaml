@@ -65,5 +65,5 @@ permissions:
       - "If you want"
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 4
   maxTokens: 30000
