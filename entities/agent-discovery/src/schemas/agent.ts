@@ -35,10 +35,6 @@ export const agentStatusSchema: AgentStatusSchema = z
 
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
 
-const agentStatusParserSchema: AgentStatusSchema = z
-  .enum(["discovered", "approved", "archived"])
-  .describe("Discovered for review, approved for calling, or archived");
-
 type AgentKindSchema = typeof anchorProfileKindSchema;
 
 const agentKindSchema: AgentKindSchema = anchorProfileKindSchema;
@@ -190,51 +186,6 @@ export const agentMetadataSchema: AgentMetadataSchema = z.object({
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
 
-const agentFrontmatterParserSchema: AgentFrontmatterSchema = z.object({
-  name: z.string(),
-  kind: agentKindSchema,
-  organization: z.string().optional(),
-  brainName: z.string(),
-  url: z.string().url(),
-  did: z.string().optional(),
-  repoDid: z.string().optional(),
-  brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
-  cardUri: z.string().optional(),
-  cardCid: z.string().optional(),
-  cardObservedAt: z.string().datetime().optional(),
-  cardLastCheckedAt: z.string().datetime().optional(),
-  cardLastError: z.string().optional(),
-  cardFailureCount: z.number().int().nonnegative().optional(),
-  cardUnavailableAt: z.string().datetime().optional(),
-  cardStaleAfter: z.string().datetime().optional(),
-  a2aEndpoint: z.string().url().optional(),
-  status: agentStatusParserSchema,
-  discoveredAt: z.string().datetime(),
-  introducedBy: z.array(z.string()).optional(),
-  hops: z.number().int().min(2).optional(),
-});
-
-const agentMetadataParserSchema: AgentMetadataSchema = z.object({
-  name: z.string(),
-  url: z.string().url(),
-  status: agentStatusParserSchema,
-  discoveredAt: z.string().datetime().optional(),
-  slug: z.string(),
-  repoDid: z.string().optional(),
-  brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
-  cardUri: z.string().optional(),
-  cardCid: z.string().optional(),
-  cardObservedAt: z.string().datetime().optional(),
-  cardLastCheckedAt: z.string().datetime().optional(),
-  cardLastError: z.string().optional(),
-  cardFailureCount: z.number().int().nonnegative().optional(),
-  cardUnavailableAt: z.string().datetime().optional(),
-  cardStaleAfter: z.string().datetime().optional(),
-  a2aEndpoint: z.string().url().optional(),
-});
-
 /**
  * Agent entity schema
  */
@@ -261,7 +212,7 @@ const agentEntityParserSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal(AGENT_ENTITY_TYPE),
-  metadata: agentMetadataParserSchema,
+  metadata: agentMetadataSchema,
 });
 
 export const agentWithDataSchema: ReturnType<
@@ -272,7 +223,7 @@ export const agentWithDataSchema: ReturnType<
     notes: z.ZodString;
   }>
 > = agentEntityParserSchema.extend({
-  frontmatter: agentFrontmatterParserSchema,
+  frontmatter: agentFrontmatterSchema,
   about: z.string(),
   skills: z.array(agentSkillSchema),
   notes: z.string(),

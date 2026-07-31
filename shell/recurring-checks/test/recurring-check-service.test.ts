@@ -13,7 +13,7 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
-import { TestSchedulerBackend } from "@brains/scheduler";
+import { TestSchedulerBackend } from "@brains/scheduler/test";
 import type {
   ScheduledJob,
   SchedulerBackend,

@@ -33,6 +33,7 @@ export type { ExtractedImage } from "./lib/markdown-images";
 // Image utilities
 export {
   parseDataUrl,
+  tryParseDataUrl,
   createDataUrl,
   detectImageFormat,
   detectImageDimensions,

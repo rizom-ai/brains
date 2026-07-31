@@ -96,9 +96,6 @@ describe("MCPService", () => {
   let mockMessageBus: IMessageBus;
 
   beforeEach(() => {
-    // Reset singleton
-    MCPService.resetInstance();
-
     // Create mock message bus with all required methods
     const unsubscribeFn = mock(() => {});
     const sendMock = mock(() =>
@@ -110,7 +107,7 @@ describe("MCPService", () => {
       unsubscribe: mock(() => {}),
     };
 
-    mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
+    mcpService = MCPService.createFresh(mockMessageBus, createSilentLogger());
   });
 
   describe("plugin instructions", () => {
@@ -163,28 +160,17 @@ describe("MCPService", () => {
   });
 
   describe("initialization", () => {
-    it("should create singleton instance", () => {
-      const instance1 = MCPService.getInstance(
+    it("should give each instance its own MCP server", () => {
+      const first = MCPService.createFresh(
         mockMessageBus,
         createSilentLogger(),
       );
-      const instance2 = MCPService.getInstance(
+      const second = MCPService.createFresh(
         mockMessageBus,
         createSilentLogger(),
       );
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create fresh instance", () => {
-      const fresh = MCPService.createFresh(
-        mockMessageBus,
-        createSilentLogger(),
-      );
-      const singleton = MCPService.getInstance(
-        mockMessageBus,
-        createSilentLogger(),
-      );
-      expect(fresh).not.toBe(singleton);
+      expect(first).not.toBe(second);
+      expect(first.getMcpServer()).not.toBe(second.getMcpServer());
     });
 
     it("should initialize MCP server", () => {
@@ -843,8 +829,7 @@ describe("MCPService", () => {
   describe("listToolsForPermissionLevel", () => {
     beforeEach(() => {
       // Register all tools with admin permission (full access)
-      MCPService.resetInstance();
-      mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
+      mcpService = MCPService.createFresh(mockMessageBus, createSilentLogger());
       mcpService.setPermissionLevel("admin");
 
       const publicTool: Tool = {

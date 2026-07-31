@@ -10,8 +10,6 @@ import { InternalPublishProvider } from "./types/provider";
 import type { PublishConfig, PublishExecutionMode } from "./types/config";
 
 export class ProviderRegistry {
-  private static instance: ProviderRegistry | null = null;
-
   // Map of entityType -> provider
   private providers: Map<string, PublishProvider> = new Map();
   private executionModes: Map<string, PublishExecutionMode> = new Map();
@@ -21,24 +19,6 @@ export class ProviderRegistry {
   // Default provider for internal publishing (blog, decks, etc.)
   private defaultProvider: PublishProvider = new InternalPublishProvider();
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(): ProviderRegistry {
-    ProviderRegistry.instance ??= new ProviderRegistry();
-    return ProviderRegistry.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    ProviderRegistry.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(): ProviderRegistry {
     return new ProviderRegistry();
   }

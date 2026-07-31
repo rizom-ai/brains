@@ -22,7 +22,7 @@ import {
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
 
-export function prepareSearchQuery(
+function prepareSearchQuery(
   query: string,
   logger?: Logger,
   maxChars: number = MAX_SEARCH_QUERY_CHARS,

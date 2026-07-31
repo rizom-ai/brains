@@ -140,16 +140,6 @@ export const overviewMetadataSchema: OverviewMetadataSchema =
 
 export type OverviewMetadata = z.output<typeof overviewMetadataSchema>;
 
-const overviewEntityMetadataParserSchema: OverviewMetadataSchema = z.object({
-  headline: z.string(),
-  slug: z.string(),
-});
-
-const overviewFrontmatterParserSchema: OverviewFrontmatterSchema = z.object({
-  headline: z.string(),
-  tagline: z.string(),
-});
-
 /**
  * Overview entity schema (extends BaseEntity)
  */
@@ -160,7 +150,7 @@ export const overviewSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("products-overview"),
-  metadata: overviewEntityMetadataParserSchema,
+  metadata: overviewMetadataSchema,
 });
 
 export type Overview = z.output<typeof overviewSchema>;
@@ -175,7 +165,7 @@ export const overviewWithDataSchema: ReturnType<
     labels: z.ZodRecord<z.ZodString, z.ZodString>;
   }>
 > = overviewSchema.extend({
-  frontmatter: overviewFrontmatterParserSchema,
+  frontmatter: overviewFrontmatterSchema,
   body: overviewBodySchema,
   labels: z.record(z.string(), z.string()),
 });

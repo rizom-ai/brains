@@ -9,9 +9,6 @@ export type ProjectStatus = "generating" | "draft" | "published" | "failed";
 export const projectStatusSchema: z.ZodType<ProjectStatus, ProjectStatus> =
   z.enum(["generating", "draft", "published", "failed"]);
 
-const projectStatusParserSchema: z.ZodType<ProjectStatus, ProjectStatus> =
-  z.enum(["generating", "draft", "published", "failed"]);
-
 export interface ProjectFrontmatter {
   [key: string]: unknown;
   title: string;
@@ -91,27 +88,6 @@ export const projectMetadataSchema: ProjectMetadataSchema =
       error: z.string().optional(),
     });
 
-const projectEntityMetadataParserSchema: ProjectMetadataSchema = z.object({
-  title: z.string(),
-  status: projectStatusParserSchema,
-  publishedAt: z.string().datetime().optional(),
-  year: z.number(),
-  slug: z.string(),
-  error: z.string().optional(),
-});
-
-const projectFrontmatterParserSchema: ProjectFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(),
-  status: projectStatusParserSchema,
-  publishedAt: z.string().datetime().optional(),
-  description: z.string(),
-  year: z.number(),
-  coverImageId: z.string().optional(),
-  ogImageId: z.string().optional(),
-  url: z.string().url().optional(),
-});
-
 export interface Project extends z.output<typeof baseEntityParserSchema> {
   entityType: "project";
   metadata: ProjectMetadata;
@@ -129,7 +105,7 @@ export const projectSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("project"),
-  metadata: projectEntityMetadataParserSchema,
+  metadata: projectMetadataSchema,
 });
 
 export interface ProjectContent {
@@ -179,7 +155,7 @@ export const projectWithDataSchema: ReturnType<
     ogImageUrl: z.ZodOptional<z.ZodString>;
   }>
 > = projectSchema.extend({
-  frontmatter: projectFrontmatterParserSchema,
+  frontmatter: projectFrontmatterSchema,
   body: z.string(),
   structuredContent: projectContentSchema.optional(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId

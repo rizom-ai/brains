@@ -490,7 +490,7 @@ const entityRefArgsSchema = z.object({
   title: z.string().optional(),
 });
 
-const entityMemoryRefSchemaInternal: z.ZodObject<{
+export const entityMemoryRefSchema: z.ZodObject<{
   entityType: z.ZodOptional<z.ZodString>;
   entityId: z.ZodString;
   operation: z.ZodOptional<z.ZodString>;
@@ -506,12 +506,9 @@ const entityMemoryRefSchemaInternal: z.ZodObject<{
   listIndex: z.number().int().positive().optional(),
 });
 
-export const entityMemoryRefSchema: typeof entityMemoryRefSchemaInternal =
-  entityMemoryRefSchemaInternal;
-
 export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
 
-const agentContactCandidateSchemaInternal: z.ZodObject<{
+export const agentContactCandidateSchema: z.ZodObject<{
   source: z.ZodObject<{
     kind: z.ZodLiteral<"url">;
     url: z.ZodString;
@@ -522,9 +519,6 @@ const agentContactCandidateSchemaInternal: z.ZodObject<{
     url: z.string().min(1),
   }),
 });
-
-export const agentContactCandidateSchema: typeof agentContactCandidateSchemaInternal =
-  agentContactCandidateSchemaInternal;
 
 export type AgentContactCandidate = z.infer<typeof agentContactCandidateSchema>;
 

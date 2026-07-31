@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
+import { getErrorMessage } from "@brains/utils/error";
 
 export const uploadEndpoint: string = "/api/chat/uploads";
 export const defaultUploadFilename: typeof defaultWebChatUploadFilename =
@@ -86,7 +87,7 @@ export function classifySubmitError(
     phase === "upload"
       ? "Could not upload attachment."
       : "Could not send that message.";
-  const message = error instanceof Error ? error.message : fallback;
+  const message = getErrorMessage(error, fallback);
   const isUploadError = phase === "upload" || uploadErrorPattern.test(message);
   return {
     uploadNotice: isUploadError ? { tone: "error", message } : null,

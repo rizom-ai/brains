@@ -1,4 +1,4 @@
-import { ENTITY_CHANNELS } from "@brains/plugins";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";

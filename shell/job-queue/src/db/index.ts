@@ -1,50 +1,29 @@
-import { createClient, type Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import {
+  createSqliteDatabase,
+  type SqliteConnection,
+  type SqliteDatabase,
+} from "@brains/db";
 import { jobQueue } from "../schema/job-queue";
 import type { JobQueueDbConfig } from "../types";
 
-export type JobQueueDB = ReturnType<typeof drizzle>;
+export type JobQueueDB = SqliteDatabase;
 
 /**
  * Create a job queue database connection
  * Config is now required - use createShellServiceConfig() for standard paths
  */
-export function createJobQueueDatabase(config: JobQueueDbConfig): {
-  db: JobQueueDB;
-  client: Client;
-  url: string;
-} {
-  const url = config.url;
-
-  const authToken =
-    config.authToken ?? process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"];
-
-  const client = authToken
-    ? createClient({ url, authToken })
-    : createClient({ url });
-
-  const db = drizzle(client, { schema: { jobQueue } });
-
-  return { db, client, url };
-}
-
-/**
- * Enable WAL mode and set busy timeout for better concurrent access
- * This should be called during initialization
- */
-export async function enableWALMode(
-  client: Client,
-  url: string,
-): Promise<void> {
-  // Only enable WAL mode and busy timeout for local SQLite files
-  if (url.startsWith("file:")) {
-    await client.execute("PRAGMA journal_mode = WAL");
-    // Set busy timeout to 5 seconds - SQLite will wait instead of returning SQLITE_BUSY
-    await client.execute("PRAGMA busy_timeout = 5000");
-  }
+export function createJobQueueDatabase(
+  config: JobQueueDbConfig,
+): SqliteConnection {
+  return createSqliteDatabase({
+    url: config.url,
+    schema: { jobQueue },
+    authToken: config.authToken,
+    authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
+  });
 }
 
 /**
  * Type for the job queue database
  */
-export type JobQueueDatabase = ReturnType<typeof createJobQueueDatabase>;
+export type JobQueueDatabase = SqliteConnection;

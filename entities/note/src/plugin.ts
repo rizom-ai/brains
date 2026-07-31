@@ -24,6 +24,7 @@ import {
 } from "./lib/upload-markdown-import";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -153,10 +154,7 @@ export class NotePlugin extends EntityPlugin<
         kind: "handled",
         result: {
           success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to import upload as markdown",
+          error: getErrorMessage(error, "Failed to import upload as markdown"),
         },
       };
     }

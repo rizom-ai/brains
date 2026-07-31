@@ -6,11 +6,7 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import {
-  EntityPlugin,
-  SYSTEM_CHANNELS,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { wishSchema, type WishEntity } from "./schemas/wish";
 
@@ -88,48 +84,42 @@ export class WishlistPlugin extends EntityPlugin<
   ): Promise<void> {
     // Dashboard widget
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: "top-wishes",
-          pluginId: this.id,
-          title: "Top Wishes",
-          group: "knowledge",
-          section: "secondary",
-          priority: 30,
-          rendererName: "ListWidget",
-          digestProvider: (data: unknown) => {
-            const { items } = wishDigestSourceSchema.parse(data);
-            const top = items[0];
-            return {
-              digest: top
-                ? [
-                    {
-                      label: "Top wish",
-                      value: `${top.name} · ×${top.count}`,
-                    },
-                  ]
-                : [{ label: "Wishes", value: "none yet" }],
-            };
-          },
-          dataProvider: async () => {
-            const wishes = await context.entityService.listEntities<WishEntity>(
-              {
-                entityType: "wish",
-                options: { limit: 10 },
-              },
-            );
-            sortWishesByDemand(wishes);
-            return {
-              items: wishes.map((w) => ({
-                id: w.id,
-                name: w.metadata.title,
-                count: w.metadata.requested,
-                priority: w.metadata.priority,
-                status: w.metadata.status,
-              })),
-            };
-          },
+      await context.dashboard.registerWidget({
+        id: "top-wishes",
+        title: "Top Wishes",
+        group: "knowledge",
+        section: "secondary",
+        priority: 30,
+        rendererName: "ListWidget",
+        digestProvider: (data: unknown) => {
+          const { items } = wishDigestSourceSchema.parse(data);
+          const top = items[0];
+          return {
+            digest: top
+              ? [
+                  {
+                    label: "Top wish",
+                    value: `${top.name} · ×${top.count}`,
+                  },
+                ]
+              : [{ label: "Wishes", value: "none yet" }],
+          };
+        },
+        dataProvider: async () => {
+          const wishes = await context.entityService.listEntities<WishEntity>({
+            entityType: "wish",
+            options: { limit: 10 },
+          });
+          sortWishesByDemand(wishes);
+          return {
+            items: wishes.map((w) => ({
+              id: w.id,
+              name: w.metadata.title,
+              count: w.metadata.requested,
+              priority: w.metadata.priority,
+              status: w.metadata.status,
+            })),
+          };
         },
       });
       return { success: true };

@@ -13,6 +13,7 @@ import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerOverridePackages } from "./register-override-packages";
 import { internal } from "varlock";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Load and parse brain.yaml from the current working directory.
@@ -34,9 +35,7 @@ function loadBrainYaml(): InstanceOverrides {
       console.error(`❌ ${err.message}`);
     } else {
       console.error(
-        `❌ unexpected error parsing brain.yaml: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `❌ unexpected error parsing brain.yaml: ${getErrorMessage(err)}`,
       );
     }
     process.exit(1);
@@ -68,7 +67,7 @@ async function loadBrainDefinition(
     return mod.default;
   } catch (error) {
     console.error(`❌ Failed to import brain package "${packageName}":`);
-    console.error(error instanceof Error ? error.message : error);
+    console.error(getErrorMessage(error));
     process.exit(1);
   }
 }

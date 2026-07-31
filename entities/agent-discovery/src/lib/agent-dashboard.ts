@@ -1,8 +1,4 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { buildAgentNetworkWidgetData } from "./agent-network-widget";
 import { buildProximityMapData } from "./proximity-map-data";
@@ -30,61 +26,52 @@ import {
 
 export function registerAgentNetworkDashboardWidget(
   context: EntityPluginContext,
-  pluginId: string,
 ): void {
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: AGENT_NETWORK_WIDGET_ID,
-          pluginId,
-          title: "Agent Network",
-          group: "network",
-          section: "secondary",
-          priority: 15,
-          rendererName: AGENT_NETWORK_WIDGET_RENDERER,
-          component: AgentNetworkWidget,
-          clientStyles: agentNetworkWidgetStyles,
-          clientScript: agentNetworkWidgetScript,
-          dataProvider: async () => buildAgentNetworkWidgetData(context),
-          digestProvider: (data: unknown) => {
-            const { counts } = networkDigestSourceSchema.parse(data);
-            return {
-              digest: [
-                { label: "Agents", value: String(counts.agents) },
-                { label: "Skills", value: String(counts.skills) },
-              ],
-            };
-          },
+      await context.dashboard.registerWidget({
+        id: AGENT_NETWORK_WIDGET_ID,
+        title: "Agent Network",
+        group: "network",
+        section: "secondary",
+        priority: 15,
+        rendererName: AGENT_NETWORK_WIDGET_RENDERER,
+        component: AgentNetworkWidget,
+        clientStyles: agentNetworkWidgetStyles,
+        clientScript: agentNetworkWidgetScript,
+        dataProvider: async () => buildAgentNetworkWidgetData(context),
+        digestProvider: (data: unknown) => {
+          const { counts } = networkDigestSourceSchema.parse(data);
+          return {
+            digest: [
+              { label: "Agents", value: String(counts.agents) },
+              { label: "Skills", value: String(counts.skills) },
+            ],
+          };
         },
       });
 
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: AGENT_PROXIMITY_WIDGET_ID,
-          pluginId,
-          title: "Agent Proximity",
-          group: "network",
-          section: "primary",
-          priority: 35,
-          rendererName: AGENT_PROXIMITY_WIDGET_RENDERER,
-          component: AgentProximityWidget,
-          clientStyles: proximityMapWidgetStyles,
-          clientScript: proximityMapScript,
-          dataProvider: async () => buildProximityMapData(context),
-          digestProvider: (data: unknown) => {
-            const parsed = proximityMapDataSchema.parse(data);
-            return {
-              digest: [
-                { label: "Agents", value: String(parsed.nodes.length) },
-                { label: "Clusters", value: String(parsed.clusters.length) },
-                { label: "Pending", value: String(parsed.pendingCount) },
-              ],
-            };
-          },
+      await context.dashboard.registerWidget({
+        id: AGENT_PROXIMITY_WIDGET_ID,
+        title: "Agent Proximity",
+        group: "network",
+        section: "primary",
+        priority: 35,
+        rendererName: AGENT_PROXIMITY_WIDGET_RENDERER,
+        component: AgentProximityWidget,
+        clientStyles: proximityMapWidgetStyles,
+        clientScript: proximityMapScript,
+        dataProvider: async () => buildProximityMapData(context),
+        digestProvider: (data: unknown) => {
+          const parsed = proximityMapDataSchema.parse(data);
+          return {
+            digest: [
+              { label: "Agents", value: String(parsed.nodes.length) },
+              { label: "Clusters", value: String(parsed.clusters.length) },
+              { label: "Pending", value: String(parsed.pendingCount) },
+            ],
+          };
         },
       });
 

@@ -102,14 +102,18 @@ export default themeCSS;
 export { themeCSS };
 ```
 
-If you need to compose a full standalone theme CSS string, use the public theme export:
+Point a brain at it from `brain.yaml`, by package reference or inline CSS:
 
-```ts
-import { composeTheme } from "@rizom/brain/themes";
-import themeCSS from "./theme.css" with { type: "text" };
-
-export default composeTheme(themeCSS);
+```yaml
+site:
+  theme: "@rizom/theme-rizom-ai"
+  themeOverride: ".hero-title { letter-spacing: -0.04em; }"
 ```
+
+A theme is only ever a CSS string of brand overrides. The shared base —
+utility classes, token defaults, and the Tailwind layer wiring — is prepended
+for you when the brain resolves, so nothing in a theme package needs to
+import or compose it.
 
 Read next: [Theming Guide](./theming-guide.md).
 
@@ -321,7 +325,7 @@ The project is still pre-stable in the `0.x` series. Build against documented su
 - CLI commands
 - system tool names
 - entity markdown contracts
-- public exports such as `@rizom/brain/site` and `@rizom/brain/themes`
+- public exports such as `@rizom/brain/site`
 
 Avoid deep imports into shell internals or package-private implementation files. See [STABILITY.md](../STABILITY.md).
 

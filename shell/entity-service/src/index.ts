@@ -27,7 +27,6 @@ export type {
 // Embedding database
 export {
   createEmbeddingDatabase,
-  enableWALModeForEmbeddings,
   migrateEmbeddingDatabase,
   ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
@@ -111,7 +110,6 @@ export { internalFullScope } from "./internal-scope";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
   getPublishBoundaryState,
-  getStatusAfterUpdate,
   type PublishBoundaryState,
 } from "./publish-policy";
 

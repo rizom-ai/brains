@@ -1,5 +1,5 @@
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
+  registerCmsWorkspace as sendWorkspaceRegistration,
   type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
@@ -16,10 +16,6 @@ import {
   hasPublicationStatus,
 } from "../pipeline-snapshot";
 import { createPublishTool } from "../tools/publish";
-
-const registrationResultSchema = z.object({
-  workspaceUrl: z.string(),
-});
 
 export interface CmsPublishConfirmation {
   confirmed: true;
@@ -144,14 +140,7 @@ export async function registerCmsWorkspace(
     },
   };
 
-  const response = await context.messaging.send({
-    type: CMS_WORKSPACE_REGISTER_MESSAGE,
-    payload: registration,
-  });
-  if (!("success" in response) || !response.success) return undefined;
-
-  const parsed = registrationResultSchema.safeParse(response.data);
-  return parsed.success ? parsed.data.workspaceUrl : undefined;
+  return sendWorkspaceRegistration(context, registration);
 }
 
 function toToolContext(actor: CmsWorkspaceActor): ToolContext {

@@ -25,63 +25,28 @@
 /* Brand-specific Tailwind utilities — exposed via @theme inline so
    `text-accent`, `font-display`, `text-display-lg`, `py-section` etc.
    generate when this theme is loaded. */
+/* Brand deltas only. The typography scale, the section-spacing token, and
+   the secondary/bright accent slots are registered once in @brains/theme-base
+   (prepended by composeTheme) with these same values, so re-stating them here
+   would be dead weight. What remains is what this theme actually changes. */
 @theme inline {
-  --color-secondary: var(--color-secondary);
-  --color-secondary-dark: var(--color-secondary-dark);
-  --color-accent-bright: var(--color-accent-bright);
-
-  /* Brand fonts */
+  /* Brand fonts — theme-default maps these onto the base's
+     heading/sans/mono stacks; rev-5 resolves its own instead. */
   --font-display: var(--font-display);
   --font-display--font-variation-settings: "SOFT" 70;
   --font-body: var(--font-body);
   --font-label: var(--font-label);
   --font-nav: var(--font-nav);
 
-  /* Typography scale — bundles font-size + line-height + letter-spacing
-     via Tailwind v4 modifiers. */
-  --text-display-2xl: var(--text-display-2xl);
-  --text-display-2xl--line-height: 0.9;
-  --text-display-2xl--letter-spacing: -2px;
-
-  --text-display-xl: var(--text-display-xl);
-  --text-display-xl--line-height: 0.95;
-  --text-display-xl--letter-spacing: -3px;
-
-  --text-display-lg: var(--text-display-lg);
-  --text-display-lg--line-height: 1.08;
-  --text-display-lg--letter-spacing: -1px;
-
-  --text-display-md: var(--text-display-md);
-  --text-display-md--line-height: 1.1;
-  --text-display-md--letter-spacing: -1px;
-
-  --text-display-sm: var(--text-display-sm);
-  --text-display-sm--line-height: 1.2;
-  --text-display-sm--letter-spacing: -0.5px;
-
-  --text-heading-lg: var(--text-heading-lg);
+  /* Heading leading — theme-base deliberately bundles none (its headings
+     inherit body leading); the rizom family wants them tight. */
   --text-heading-lg--line-height: 1.2;
-  --text-heading-md: var(--text-heading-md);
   --text-heading-md--line-height: 1.2;
-  --text-heading-sm: var(--text-heading-sm);
   --text-heading-sm--line-height: 1.3;
 
-  --text-body-xl: var(--text-body-xl);
-  --text-body-xl--line-height: 1.7;
-  --text-body-lg: var(--text-body-lg);
-  --text-body-lg--line-height: 1.7;
-  --text-body-md: var(--text-body-md);
+  /* Rev-5 leading tweaks against the shared scale. */
+  --text-display-lg--line-height: 1.08;
   --text-body-md--line-height: 1.75;
-  --text-body-sm: var(--text-body-sm);
-  --text-body-sm--line-height: 1.7;
-  --text-body-xs: var(--text-body-xs);
-  --text-body-xs--line-height: 1.7;
-
-  --text-label-md: var(--text-label-md);
-  --text-label-sm: var(--text-label-sm);
-  --text-label-xs: var(--text-label-xs);
-
-  --spacing-section: var(--spacing-section);
 }
 
 /* Fraunces display default — the rev-5 register is medium weight with
@@ -273,17 +238,9 @@
     --color-logo: var(--palette-cream);
     --color-footer: var(--palette-night-deep);
 
-    /* Status tokens (dashboard/CMS widgets rendered on-site) */
-    --color-status-neutral-bg: #34324f;
-    --color-status-neutral-text: #e5e7eb;
-    --color-status-info-bg: #1e3a5f;
-    --color-status-info-text: #93c5fd;
-    --color-status-success-bg: #14532d;
-    --color-status-success-text: #86efac;
-    --color-status-danger-bg: #7f1d1d;
-    --color-status-danger-text: #fca5a5;
-    --color-status-warning-bg: #713f12;
-    --color-status-warning-text: #fde68a;
+    /* Status badge colours live in @brains/theme-base, keyed by [data-theme];
+       this theme's one delta is below, scoped to dark so light mode keeps
+       the shared light palette. */
 
     /* Typography — Fraunces display over IBM Plex Sans/Mono */
     --font-display: "Fraunces", Georgia, serif;
@@ -322,6 +279,13 @@
     --text-label-xs: 11px;
 
     --spacing-section: clamp(88px, 12vw, 120px);
+  }
+
+  /* Indigo-tinted neutral chip, so status badges sit on the night ground
+     rather than the base's slate grey. Dark-only; light keeps the shared
+     palette from @brains/theme-base. */
+  [data-theme="dark"] {
+    --color-status-neutral-bg: #34324f;
   }
 
   /* ============================================

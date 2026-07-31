@@ -45,16 +45,8 @@
         "site-content",
         "site-builder"
       ],
-      "interfaceIds": [
-        "mcp",
-        "discord",
-        "chat",
-        "webserver",
-        "web-chat",
-        "a2a"
-      ],
+      "interfaceIds": ["mcp", "chat", "webserver", "web-chat", "a2a"],
       "evalDisable": [
-        "discord",
         "chat",
         "webserver",
         "web-chat",
@@ -203,8 +195,8 @@
       },
       "theme": {
         "$string": {
-          "length": 12522,
-          "sha256": "a440e956edc22c06adfcd4bef2cadedba8c76aac6a57c5671f976a8c9af0cf04"
+          "length": 11769,
+          "sha256": "117a37f335307d036c493a028970b86e2d982997489d5f2148d1ff7698b93fb2"
         }
       }
     },
@@ -239,7 +231,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a"
           ],
           "add": [],
@@ -335,8 +327,8 @@
                 "routePath": "/",
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -669,7 +661,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -786,8 +778,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -1161,8 +1153,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -1312,7 +1304,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -1436,8 +1428,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -1876,8 +1868,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -2027,7 +2019,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "dashboard",
             "blog",
@@ -2151,8 +2143,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "version": "1.0.0"
@@ -2569,8 +2561,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 26309,
-                    "sha256": "9ea08e661f4353be407d112d9aa950eff4eab61fbd9bfe239d4581615877f982"
+                    "length": 28515,
+                    "sha256": "9f4332fdbfd7d284f4f59f0cdfa0068f5b57f3116116895f5f2cd838b6ade9fa"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -2722,8 +2714,8 @@
         "site-info",
         "site-builder"
       ],
-      "interfaceIds": ["mcp", "discord", "a2a", "webserver", "web-chat"],
-      "evalDisable": ["webserver", "web-chat", "mcp", "discord"],
+      "interfaceIds": ["mcp", "chat", "a2a", "webserver", "web-chat"],
+      "evalDisable": ["webserver", "web-chat", "mcp", "chat"],
       "site": {
         "entityDisplay": {},
         "headScripts": [
@@ -2880,8 +2872,8 @@
       },
       "theme": {
         "$string": {
-          "length": 45131,
-          "sha256": "47e027cf3a6eb169b435a49b46c2eb15a50d67043224d393e6136e916521af02"
+          "length": 42387,
+          "sha256": "b32e319cf2500e1d8492360ce324a84c520763cd176d9eb73a31a79e65abf2b5"
         }
       }
     },
@@ -2910,7 +2902,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a"
           ],
           "add": [],
@@ -3088,8 +3080,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -3290,7 +3282,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "image",
             "site-info",
@@ -3493,8 +3485,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -3886,8 +3878,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -4060,7 +4052,7 @@
             "mcp",
             "webserver",
             "web-chat",
-            "discord",
+            "chat",
             "a2a",
             "image",
             "site-info",
@@ -4275,8 +4267,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -4668,8 +4660,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"
@@ -4841,8 +4833,8 @@
         "site-content",
         "site-builder"
       ],
-      "interfaceIds": ["mcp", "discord", "webserver"],
-      "evalDisable": ["discord", "webserver", "analytics", "dashboard"],
+      "interfaceIds": ["mcp", "chat", "webserver"],
+      "evalDisable": ["chat", "webserver", "analytics", "dashboard"],
       "site": {
         "entityDisplay": {},
         "headScripts": ["<script src=\"/boot.js\" defer></script>"],
@@ -4941,8 +4933,8 @@
       },
       "theme": {
         "$string": {
-          "length": 45131,
-          "sha256": "47e027cf3a6eb169b435a49b46c2eb15a50d67043224d393e6136e916521af02"
+          "length": 42387,
+          "sha256": "b32e319cf2500e1d8492360ce324a84c520763cd176d9eb73a31a79e65abf2b5"
         }
       }
     },
@@ -4967,7 +4959,7 @@
             "site-content",
             "site-builder",
             "mcp",
-            "discord",
+            "chat",
             "webserver"
           ],
           "add": [],
@@ -5015,8 +5007,8 @@
                 "routePath": "/dashboard",
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "version": "1.0.0"
@@ -5213,8 +5205,8 @@
                 },
                 "themeCSS": {
                   "$string": {
-                    "length": 58918,
-                    "sha256": "4866cc9b5be6b42262d61e1807126a0b49d1c83f365e252142b68dd7af474b95"
+                    "length": 59133,
+                    "sha256": "3e5281914f9aed2b8a8d095f7767e22a1b8bdaa73ef9462185da7fe7808cb500"
                   }
                 },
                 "workingDir": "./.preact-work"

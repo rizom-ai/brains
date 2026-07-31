@@ -1,4 +1,5 @@
 import { withBrowser } from "./browser-lifecycle";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type WaitUntilState = "load" | "domcontentloaded" | "networkidle";
 
@@ -252,8 +253,4 @@ function assertPdf(buffer: Buffer): void {
       "invalid-output",
     );
   }
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

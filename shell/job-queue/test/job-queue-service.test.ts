@@ -78,7 +78,6 @@ describe("JobQueueService", () => {
   });
   afterEach(async () => {
     service.close();
-    JobQueueService.resetInstance();
     await cleanup();
   });
   describe("Database readiness", () => {

@@ -196,7 +196,6 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [code-quality-cleanup.md](./plans/code-quality-cleanup.md) — **active in `work/code-quality-cleanup`**: five-phase cleanup from the 2026-07 codebase review — dead-package deletion, confirmation/queue/secret-template correctness fixes, mechanical dedup, extract-at-two abstractions, and structural consolidation (Discord interface, shell singletons, god-file splits).
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
 - [json-section-content.md](./plans/json-section-content.md) — make section content JSON-serializable by construction: bound template/section schemas to JSON-object output at the type level, migrate `.optional()` fields to `.nullable().default(null)` across datasources and site packages, demote the runtime snapshot gate to an assertion. Fixes the live empty essays/directory sections on rizom.ai.

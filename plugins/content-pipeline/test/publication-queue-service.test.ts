@@ -231,3 +231,28 @@ describe("PublicationQueueService", () => {
     ]);
   });
 });
+
+describe("PublicationQueueService preconditions", () => {
+  it("refuses to enqueue a published entity", async () => {
+    const { context, service } = await createFixture();
+    const entity = await context.entityService.getEntity({
+      entityType: "social-post",
+      id: "first",
+    });
+    if (!entity) throw new Error("fixture entity missing");
+    await context.entityService.updateEntity({
+      entity: {
+        ...entity,
+        metadata: { ...entity.metadata, status: "published" },
+      },
+    });
+
+    let error: Error | undefined;
+    try {
+      await service.enqueue("social-post", "first");
+    } catch (caught) {
+      if (caught instanceof Error) error = caught;
+    }
+    expect(error?.message).toContain("published");
+  });
+});

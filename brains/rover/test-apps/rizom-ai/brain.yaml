@@ -1,5 +1,9 @@
 brain: rover
 anchor: organization
+# Rover's definition defaults to the professional profile kind. This instance
+# is a collective, so it selects the kind rizom-ecosystem registers — matching
+# the `kind: collective` its anchor-profile content declares.
+kind: collective
 preset: default
 
 # The consolidated production rizom.ai composition at the alpha.204

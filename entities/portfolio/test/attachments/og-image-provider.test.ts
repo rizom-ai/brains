@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { PortfolioPlugin } from "../../src/plugin";
-import { ProjectOgImageAttachmentProvider } from "../../src/attachments/og-image-provider";
+import { createProjectOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Project } from "../../src/schemas/project";
 
 const sampleProject: Project = {
@@ -37,9 +36,7 @@ City teams needed a shared view of maintenance patterns.
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 describe("Project OG image attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a project OG image attachment provider", async () => {
     const harness = createPluginHarness<PortfolioPlugin>();
@@ -62,7 +59,7 @@ describe("Project OG image attachment provider", () => {
     await harness.installPlugin(new PortfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
-    const provider = new ProjectOgImageAttachmentProvider(
+    const provider = createProjectOgImageProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

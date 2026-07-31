@@ -11,6 +11,7 @@ import {
   setCloudflareZoneSslStrict,
   type FetchLike,
 } from "../lib/origin-ca";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface CertBootstrapOptions {
   cfApiToken?: string;
@@ -43,8 +44,7 @@ export async function runCertBootstrap(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Certificate bootstrap failed",
+      message: getErrorMessage(error, "Certificate bootstrap failed"),
     };
   }
 }

@@ -4,7 +4,7 @@ import type { SchedulerConfig } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
-import { TestSchedulerBackend } from "../src/scheduler-backend";
+import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
@@ -60,7 +60,6 @@ describe("ContentScheduler - provider execution", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    await ContentScheduler.resetInstance();
   });
 
   describe("queued publishing", () => {

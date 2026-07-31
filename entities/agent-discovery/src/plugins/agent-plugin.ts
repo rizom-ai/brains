@@ -91,7 +91,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
         return {};
       },
     });
-    registerAgentNetworkDashboardWidget(context, this.id);
+    registerAgentNetworkDashboardWidget(context);
   }
 
   protected override async getInstructions(): Promise<string> {

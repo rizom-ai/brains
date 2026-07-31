@@ -95,7 +95,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
 - **MCP** — stdio + HTTP transports via `interfaces/mcp`
 - **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
-- **Discord** — bot interface via `interfaces/discord` (moving to Chat SDK long-term)
+- **Chat** — Discord and Slack bot interface via `interfaces/chat` (Chat SDK)
 - **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
 
 ### AI Tool Integration
@@ -286,7 +286,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/chat-repl` — interactive Ink-based REPL
 - `@brains/mcp` — MCP transport (stdio + HTTP)
 - `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
-- `@brains/discord` — Discord bot interface
+- `@brains/chat` — Discord and Slack bot interface (Chat SDK)
 - `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 
 ### Shared Packages (`shared/*`)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { createTempDataDirSync } from "@brains/plugins/test";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createSilentLogger } from "@brains/test-utils";
@@ -44,7 +44,7 @@ function listRemoteFiles(remotePath: string, branch = "main"): string[] {
 
 describe("bootstrapContentRemoteFromSeed", () => {
   it("creates a missing local bare remote", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const seedPath = createSeed(root);
       const remotePath = join(root, "content.git");
@@ -69,7 +69,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
   });
 
   it("seeds an empty local bare remote from seedContentPath", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const seedPath = createSeed(root, "doc/getting-started.md");
       const remotePath = join(root, "content.git");
@@ -94,7 +94,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
   });
 
   it("does nothing when the remote already has the branch", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const firstSeed = createSeed(root, "doc/original.md");
       const secondSeed = join(root, "second-seed");
@@ -123,7 +123,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
   });
 
   it("fails when seedContentPath is missing", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const remotePath = join(root, "content.git");
 
@@ -145,7 +145,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
   });
 
   it("seeds from a directory that is itself a git repo (ignores .git)", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const seedPath = createSeed(root, "doc/getting-started.md");
       // Make the seed dir a git clone with its own origin, like a local
@@ -170,7 +170,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
   });
 
   it("leaves non-file remotes alone", async () => {
-    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    const root = createTempDataDirSync("directory-sync-bootstrap-");
     try {
       const seedPath = createSeed(root);
 

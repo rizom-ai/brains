@@ -74,9 +74,6 @@ describe("EntityService", (): void => {
   let cleanup: () => Promise<void>;
 
   beforeEach(async (): Promise<void> => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
-
     const testDb = await createTestEntityDatabase();
     cleanup = testDb.cleanup;
 
@@ -97,8 +94,6 @@ describe("EntityService", (): void => {
   });
 
   afterEach(async (): Promise<void> => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
     await cleanup();
   });
 
@@ -261,9 +256,6 @@ describe("EntityService", (): void => {
 
 describe("EntityService > initialize", () => {
   test("propagates embedding database initialization failures", async () => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
-
     const testDb = await createTestEntityDatabase();
     // Read-only embedding DB file: opening succeeds, but the CREATE TABLE
     // migration must fail — and that failure must surface via initialize()
@@ -287,8 +279,6 @@ describe("EntityService > initialize", () => {
       expect(service.initialize()).rejects.toThrow();
     } finally {
       service.close();
-      EntityService.resetInstance();
-      EntityRegistry.resetInstance();
       await testDb.cleanup();
     }
   });

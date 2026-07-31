@@ -1,6 +1,7 @@
 import type { InterfacePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { JobProgressEventSchema, JOB_CHANNELS } from "@brains/plugins";
+import { JobProgressEventSchema } from "@brains/plugins";
+import { JOB_CHANNELS } from "@brains/contracts";
 
 /**
  * Set up listener for job progress events

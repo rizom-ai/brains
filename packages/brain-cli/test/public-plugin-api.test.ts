@@ -10,6 +10,10 @@ import {
   writeFileSync,
 } from "fs";
 import { join, relative } from "path";
+import {
+  findInternalDeclarationImports,
+  stripDeclarationComments,
+} from "@brains/build-tools";
 
 const pkgDir = join(import.meta.dir, "..");
 const externalPluginFixtureDir = join(
@@ -63,7 +67,9 @@ function listTypedPublicExports(): TypedPublicExport[] {
 
 function findEffectDeclarationImports(source: string): string[] {
   const importSpecifiers = [
-    ...source.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+    ...stripDeclarationComments(source).matchAll(
+      /(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g,
+    ),
   ].map((match) => match[1] ?? "");
 
   return importSpecifiers.filter(
@@ -122,7 +128,14 @@ describe("@rizom/brain public plugin API surface", () => {
   it("keeps published declarations free of internal @brains/* imports", () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
-      expect(types).not.toContain("@brains/");
+      // Import positions only. Doc comments legitimately name internal
+      // packages — @example blocks show how to import them — and that is not
+      // a leak of this file's own dependencies.
+      expect(
+        findInternalDeclarationImports(types, {
+          internalPrefixes: ["@brains/"],
+        }),
+      ).toEqual([]);
     }
   });
 

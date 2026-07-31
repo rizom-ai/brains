@@ -36,9 +36,12 @@ describe("env schema resolution", () => {
     expect(
       resolveModelEnvSchema("ranger", unavailableWorkspaceLookup),
     ).toContain("LINKEDIN_ORGANIZATION_ID=");
-    expect(
-      resolveModelEnvSchema("relay", unavailableWorkspaceLookup),
-    ).not.toContain("DISCORD_BOT_TOKEN=");
+    const relaySchema = resolveModelEnvSchema(
+      "relay",
+      unavailableWorkspaceLookup,
+    );
+    expect(relaySchema).toContain("DISCORD_BOT_TOKEN=");
+    expect(relaySchema).not.toContain("LINKEDIN_ORGANIZATION_ID=");
   });
 
   it("matches each model's composed env declarations exactly (drift guard)", () => {

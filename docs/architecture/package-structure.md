@@ -109,7 +109,7 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 | Package                | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                     |
-| `interfaces/discord`   | Discord chat bot                                                                    |
+| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                           |
 | `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                   |
 | `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                               |
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                             |

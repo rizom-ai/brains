@@ -2,11 +2,6 @@ brain: rover
 anchor: person
 preset: core
 
-add:
-  - chat
-remove:
-  - discord
-
 permissions:
   rules:
     - pattern: "slack:U0BGKJ4MA5B"

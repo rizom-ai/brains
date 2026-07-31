@@ -75,6 +75,37 @@ export interface IEntityAINamespace {
 }
 
 /**
+ * Bind the AI namespace to a shell. Entity and service plugin contexts expose
+ * the same surface, so they share this rather than each rebinding it.
+ */
+export function createAINamespace(shell: IShell): IEntityAINamespace {
+  return {
+    query: (prompt, context) => shell.query(prompt, context),
+    generate: async <T = unknown>(
+      config: ContentGenerationConfig,
+    ): Promise<T> => {
+      return shell.generateContent<T>(config);
+    },
+    generateObject: async <T>(
+      prompt: string,
+      schema: AIGenerationSchema<T>,
+      signal?: AbortSignal,
+    ): Promise<{ object: T }> => {
+      return shell.generateObject(prompt, schema, signal);
+    },
+    generateImage: async (
+      prompt: string,
+      options?: ImageGenerationOptions,
+    ): Promise<ImageGenerationResult> => {
+      return shell.generateImage(prompt, options);
+    },
+    canGenerateImages: (): boolean => {
+      return shell.canGenerateImages();
+    },
+  };
+}
+
+/**
  * Context for entity plugins.
  *
  * Includes: entity registration, AI generation, prompt resolution, messaging, jobs.
@@ -110,30 +141,7 @@ export function createEntityPluginContext(
 
     entities: createEntitiesNamespace(shell),
 
-    ai: {
-      query: (prompt, context) => shell.query(prompt, context),
-      generate: async <T = unknown>(
-        config: ContentGenerationConfig,
-      ): Promise<T> => {
-        return shell.generateContent<T>(config);
-      },
-      generateObject: async <T>(
-        prompt: string,
-        schema: AIGenerationSchema<T>,
-        signal?: AbortSignal,
-      ): Promise<{ object: T }> => {
-        return shell.generateObject(prompt, schema, signal);
-      },
-      generateImage: async (
-        prompt: string,
-        options?: ImageGenerationOptions,
-      ): Promise<ImageGenerationResult> => {
-        return shell.generateImage(prompt, options);
-      },
-      canGenerateImages: (): boolean => {
-        return shell.canGenerateImages();
-      },
-    },
+    ai: createAINamespace(shell),
 
     prompts: createPromptsNamespace(entityService),
 

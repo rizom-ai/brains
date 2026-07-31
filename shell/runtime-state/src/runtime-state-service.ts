@@ -1,10 +1,7 @@
 import type { Client } from "@libsql/client";
 import { Logger } from "@brains/utils/logger";
-import {
-  createRuntimeStateDatabase,
-  enableRuntimeStateWALMode,
-  type RuntimeStateDB,
-} from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createRuntimeStateDatabase, type RuntimeStateDB } from "./db";
 import { RuntimeStateStore } from "./runtime-state-store";
 import type {
   IRuntimeStateNamespace,
@@ -14,7 +11,6 @@ import type {
 } from "./types";
 
 export class RuntimeStateService implements IRuntimeStateNamespace {
-  private static instance: RuntimeStateService | null = null;
   private readonly db: RuntimeStateDB;
   private readonly client: Client;
   private readonly logger: Logger;
@@ -24,27 +20,11 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
   private closeRequested = false;
   private clientClosed = false;
 
-  static getInstance(
-    config: RuntimeStateServiceConfig,
-    logger?: Logger,
-  ): RuntimeStateService {
-    RuntimeStateService.instance ??= new RuntimeStateService(
-      config,
-      logger ?? Logger.getInstance(),
-    );
-    return RuntimeStateService.instance;
-  }
-
   static createFresh(
     config: RuntimeStateServiceConfig,
     logger?: Logger,
   ): RuntimeStateService {
     return new RuntimeStateService(config, logger ?? Logger.getInstance());
-  }
-
-  static resetInstance(): void {
-    RuntimeStateService.instance?.close();
-    RuntimeStateService.instance = null;
   }
 
   private constructor(config: RuntimeStateServiceConfig, logger: Logger) {
@@ -64,7 +44,7 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
 
   private async initializeWALMode(): Promise<void> {
     try {
-      await enableRuntimeStateWALMode(this.client, this.databaseUrl);
+      await applySqlitePragmas(this.client, this.databaseUrl);
     } catch (error) {
       this.logger.warn(
         "Failed to enable runtime state WAL mode (non-fatal)",

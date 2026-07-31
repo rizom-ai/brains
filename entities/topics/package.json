@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"

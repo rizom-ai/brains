@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
-import { errorMessage } from "./http-responses";
+import { getErrorMessage } from "@brains/utils/error";
 
 export type ProfileDisplayNameResolver = (
   profileEntityId: string,
@@ -22,7 +22,7 @@ export async function resolveProfileDisplayNameSafely(
   } catch (error) {
     logger?.warn("Failed to resolve CMS profile display name", {
       profileEntityId,
-      error: errorMessage(error, "Profile lookup failed"),
+      error: getErrorMessage(error, "Profile lookup failed"),
     });
     return undefined;
   }

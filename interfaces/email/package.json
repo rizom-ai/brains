@@ -4,7 +4,6 @@
   "version": "0.2.0-alpha.240",
   "description": "Outbound-first Email message interface for Brains",
   "dependencies": {
-    "@brains/email-contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

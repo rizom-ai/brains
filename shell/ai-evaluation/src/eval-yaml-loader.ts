@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 import { defineConfig, type AppConfig } from "@brains/app";
 import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
+import { getErrorMessage } from "@brains/utils/error";
 
 const evalYamlSchema: z.ZodObject<{
   plugin: z.ZodString;
@@ -83,7 +84,7 @@ async function resolvePluginExport(
       }
     } catch (error) {
       errors.push(
-        `${exportName} via constructor failed: ${error instanceof Error ? error.message : String(error)}`,
+        `${exportName} via constructor failed: ${getErrorMessage(error)}`,
       );
     }
 
@@ -96,7 +97,7 @@ async function resolvePluginExport(
       }
     } catch (error) {
       errors.push(
-        `${exportName} via factory failed: ${error instanceof Error ? error.message : String(error)}`,
+        `${exportName} via factory failed: ${getErrorMessage(error)}`,
       );
     }
   }

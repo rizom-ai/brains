@@ -36,36 +36,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private messageBus: MessageBus;
   private batchJobManager: IBatchJobManager;
   private logger: Logger;
-  private static instance: JobProgressMonitor | null = null;
-
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    jobQueueService: IJobQueueService,
-    messageBus: MessageBus,
-    batchJobManager: IBatchJobManager,
-    logger: Logger,
-  ): JobProgressMonitor {
-    JobProgressMonitor.instance ??= new JobProgressMonitor(
-      jobQueueService,
-      messageBus,
-      batchJobManager,
-      logger,
-    );
-    return JobProgressMonitor.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    JobProgressMonitor.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     jobQueueService: IJobQueueService,
     messageBus: MessageBus,
@@ -80,9 +50,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     );
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(
     jobQueueService: IJobQueueService,
     messageBus: MessageBus,

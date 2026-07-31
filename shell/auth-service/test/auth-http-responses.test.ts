@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { getErrorMessage } from "@brains/utils/error";
 import {
-  errorMessage,
   requireSameOriginJson,
   requireSameOriginRequest,
 } from "../src/http-responses";
@@ -99,11 +99,11 @@ describe("auth HTTP mutation guards", () => {
   });
 });
 
-describe("errorMessage", () => {
+describe("getErrorMessage in auth responses", () => {
   it("uses Error messages without exposing unknown thrown values", () => {
-    expect(errorMessage(new Error("Known failure"), "Fallback")).toBe(
+    expect(getErrorMessage(new Error("Known failure"), "Fallback")).toBe(
       "Known failure",
     );
-    expect(errorMessage({ secret: "value" }, "Fallback")).toBe("Fallback");
+    expect(getErrorMessage({ secret: "value" }, "Fallback")).toBe("Fallback");
   });
 });

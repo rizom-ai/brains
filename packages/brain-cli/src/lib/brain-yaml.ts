@@ -1,34 +1,16 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { parseYamlDocument } from "@brains/utils/yaml";
-import { z } from "@brains/utils/zod";
-import { pluginOverrideEntrySchema } from "@brains/app";
+import { parseInstanceOverrides, type InstanceOverrides } from "@brains/app";
+import { getErrorMessage } from "@brains/utils/error";
 import { resolveModelName } from "./model-registry";
 
-export interface BrainYamlConfig {
-  brain: string;
-  domain?: string | undefined;
-  preset?: string | undefined;
-  model?: string | undefined;
-  plugins?: Record<string, Record<string, unknown>> | undefined;
-  [key: string]: unknown;
-}
-
-export type BrainYamlConfigInput = BrainYamlConfig;
-
-const brainYamlSchema: z.ZodType<BrainYamlConfig, BrainYamlConfigInput> =
-  z.looseObject({
-    brain: z.string(),
-    domain: z.string().optional(),
-    preset: z.string().optional(),
-    model: z.string().optional(),
-    plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
-  });
+export type BrainYamlConfig = InstanceOverrides & { brain: string };
 
 /**
  * Parse brain.yaml from a directory.
  *
- * Uses proper YAML parsing with Zod validation.
+ * Validates with the same instance-overrides schema the runtime boots
+ * with, so a file the CLI accepts cannot fail at boot (and vice versa).
  * Normalizes the brain field (strips @brains/ prefix, quotes).
  * Throws if brain.yaml is missing, invalid, or brain field is absent.
  */
@@ -42,16 +24,24 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
   }
 
   const content = readFileSync(yamlPath, "utf-8");
-  const result = parseYamlDocument(content, brainYamlSchema);
-
-  if (!result.ok) {
+  let overrides: InstanceOverrides;
+  try {
+    overrides = parseInstanceOverrides(content);
+  } catch (error) {
     throw new Error(
-      `Invalid brain.yaml: ${result.error}. Expected at minimum:\n  brain: rover`,
+      `Invalid brain.yaml: ${getErrorMessage(error)}. Expected at minimum:\n  brain: rover`,
+      { cause: error },
+    );
+  }
+
+  if (!overrides.brain) {
+    throw new Error(
+      `Invalid brain.yaml: missing "brain" field. Expected at minimum:\n  brain: rover`,
     );
   }
 
   return {
-    ...result.data,
-    brain: resolveModelName(result.data.brain),
+    ...overrides,
+    brain: resolveModelName(overrides.brain),
   };
 }

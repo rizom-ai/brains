@@ -67,8 +67,6 @@ describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
 
   beforeEach((): void => {
-    PluginManager.resetInstance();
-
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
 

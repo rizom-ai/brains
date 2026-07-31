@@ -108,7 +108,6 @@ type ShellLifecycleState =
 
 export class Shell implements IShell {
   private config: ShellConfig;
-  private static instance: Shell | null = null;
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly bootloader: ShellBootloader;
@@ -123,18 +122,6 @@ export class Shell implements IShell {
   private readonly interactionRegistry = new InteractionRegistry();
 
   public readonly jobs: IJobsNamespace;
-
-  public static getInstance(config?: ShellConfigInput): Shell {
-    Shell.instance ??= new Shell(createShellConfig(config ?? {}));
-    return Shell.instance;
-  }
-
-  public static async resetInstance(): Promise<void> {
-    if (Shell.instance) {
-      await Shell.instance.shutdown();
-      Shell.instance = null;
-    }
-  }
 
   public static createFresh(
     config?: ShellConfigInput,

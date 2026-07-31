@@ -1,4 +1,11 @@
-import { Cause, Context, Effect, Exit, Layer } from "@brains/utils/effect";
+import {
+  Cause,
+  Context,
+  Effect,
+  Exit,
+  Layer,
+  scopedServiceLayer,
+} from "@brains/utils/effect";
 import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
@@ -72,20 +79,12 @@ export interface JobQueueRuntimeLayerHandle {
 export function createJobQueueServiceLayer(
   options: JobQueueServiceLayerOptions,
 ): Layer.Layer<JobQueueServiceTag> {
-  return Layer.scoped(
-    JobQueueServiceTag,
-    Effect.acquireRelease(
-      Effect.sync(
-        () =>
-          options.service ??
-          JobQueueService.createFresh(options.config, options.logger),
-      ),
-      (jobQueueService) =>
-        Effect.sync(() => {
-          jobQueueService.close();
-        }),
-    ),
-  );
+  return scopedServiceLayer(JobQueueServiceTag, () => {
+    const service =
+      options.service ??
+      JobQueueService.createFresh(options.config, options.logger);
+    return { service, close: () => service.close() };
+  });
 }
 
 /**

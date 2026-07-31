@@ -11,10 +11,8 @@ import type {
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  PUBLISH_CHANNELS,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -230,10 +228,7 @@ export class PublishExecuteHandler {
           platformPostId,
         });
       } catch (publishError) {
-        const errorMessage =
-          publishError instanceof Error
-            ? publishError.message
-            : String(publishError);
+        const errorMessage = getErrorMessage(publishError);
 
         // Update entity with error status (retry tracking is handled by RetryTracker)
         const updatedFrontmatter: SocialPostFrontmatter = {

@@ -101,7 +101,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
     });
-    await registerDashboardWidget(context, this.id, {
+    await registerDashboardWidget(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       retryTracker: this.retryTracker,
@@ -173,10 +173,6 @@ export class ContentPipelinePlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     await this.scheduler.stop();
-    QueueManager.resetInstance();
-    ProviderRegistry.resetInstance();
-    RetryTracker.resetInstance();
-    PublishAssetRegistry.resetInstance();
   }
 }
 

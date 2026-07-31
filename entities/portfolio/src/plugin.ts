@@ -18,15 +18,17 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+import { paginationInfoSchema } from "@brains/plugins";
 import {
-  PROJECT_CHANNELS,
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
+import { PROJECT_CHANNELS } from "./project-channels";
 import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
 import {
+  enrichedProjectSchema,
   projectSchema,
   projectFrontmatterSchema,
   type Project,
@@ -52,91 +54,14 @@ import {
 } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
 import { createProjectAtprotoProjection } from "./atproto-projection";
-import { ProjectPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { createProjectPrintableProvider } from "./attachments/printable-provider";
 import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
-import { ProjectOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { createProjectOgImageProvider } from "./attachments/og-image-provider";
 import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
-const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
-
-const contentVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public";
-    if (value === "private") return "restricted";
-    return value;
-  });
-
-const projectStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "published",
-  "failed",
-]);
-
-const projectFrontmatterViewSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(),
-  status: projectStatusSchema,
-  publishedAt: z.string().optional(),
-  description: z.string(),
-  year: z.number(),
-  coverImageId: z.string().optional(),
-  ogImageId: z.string().optional(),
-  url: z.url().optional(),
-});
-
-const projectMetadataViewSchema = z.object({
-  title: z.string(),
-  status: projectStatusSchema,
-  publishedAt: z.string().optional(),
-  year: z.number(),
-  slug: z.string(),
-  error: z.string().optional(),
-});
-
-const projectContentViewSchema = z.object({
-  context: z.string(),
-  problem: z.string(),
-  solution: z.string(),
-  outcome: z.string(),
-});
-
-/**
- * Datasource-facing schema. URL/display fields are added by site-builder
- * after content resolution, before the component is rendered.
- */
-const enrichedProjectViewSchema = z.object({
-  id: z.string(),
-  entityType: z.literal("project"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: projectMetadataViewSchema,
-  contentHash: z.string(),
-  frontmatter: projectFrontmatterViewSchema,
-  body: z.string(),
-  structuredContent: projectContentViewSchema.optional(),
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
-});
-
 const projectListSchema = z.object({
-  projects: z.array(enrichedProjectViewSchema),
+  projects: z.array(enrichedProjectSchema),
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
@@ -238,18 +163,18 @@ export class PortfolioPlugin extends EntityPlugin<
       }),
       "project-detail": createTemplate<
         {
-          project: z.output<typeof enrichedProjectViewSchema>;
-          prevProject: z.output<typeof enrichedProjectViewSchema> | null;
-          nextProject: z.output<typeof enrichedProjectViewSchema> | null;
+          project: z.output<typeof enrichedProjectSchema>;
+          prevProject: z.output<typeof enrichedProjectSchema> | null;
+          nextProject: z.output<typeof enrichedProjectSchema> | null;
         },
         ProjectDetailProps
       >({
         name: "project-detail",
         description: "Individual project case study template",
         schema: z.object({
-          project: enrichedProjectViewSchema,
-          prevProject: enrichedProjectViewSchema.nullable(),
-          nextProject: enrichedProjectViewSchema.nullable(),
+          project: enrichedProjectSchema,
+          prevProject: enrichedProjectSchema.nullable(),
+          nextProject: enrichedProjectSchema.nullable(),
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
@@ -270,12 +195,12 @@ export class PortfolioPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "project",
       PROJECT_PRINTABLE_ATTACHMENT_TYPE,
-      new ProjectPrintableAttachmentProvider(context),
+      createProjectPrintableProvider(context),
     );
     this.unregisterOgImageAttachmentProvider = context.attachments.register(
       "project",
       PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
-      new ProjectOgImageAttachmentProvider(context),
+      createProjectOgImageProvider(context),
     );
     this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);

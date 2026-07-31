@@ -20,9 +20,14 @@ import {
   type BitwardenPushResult,
   type BitwardenSecretsClient,
 } from "../lib/bitwarden-secrets";
-import { pushSecretsToBackend } from "../lib/push-secrets";
+import {
+  logKeyGroup,
+  logMissingSecrets,
+  pushSecretsToBackend,
+} from "../lib/push-secrets";
 import { normalizePushTarget, type PushTarget } from "../lib/push-target";
 import { type RunCommand } from "../lib/run-subprocess";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -66,7 +71,7 @@ export async function runSecretsPush(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Secret push failed",
+      message: getErrorMessage(error, "Secret push failed"),
     };
   }
 }
@@ -128,7 +133,7 @@ export async function pushSecrets(
     if (pushedSecretNames.length > 0) {
       logger(`Secrets: ${pushedSecretNames.join(", ")}`);
     }
-    logMissingSecrets(logger, skippedKeys, schemaSecretInfo);
+    logMissingSchemaSecrets(logger, skippedKeys, schemaSecretInfo);
 
     return {
       target,
@@ -152,7 +157,7 @@ export async function pushSecrets(
     );
     updateSchemaWithBitwardenMappings(schemaPath, bitwarden.mappings);
     logBitwardenPush(logger, bitwarden);
-    logMissingSecrets(logger, skippedKeys, schemaSecretInfo);
+    logMissingSchemaSecrets(logger, skippedKeys, schemaSecretInfo);
 
     return {
       target,
@@ -167,7 +172,7 @@ export async function pushSecrets(
     logger,
   });
 
-  logMissingSecrets(logger, skippedKeys, schemaSecretInfo);
+  logMissingSchemaSecrets(logger, skippedKeys, schemaSecretInfo);
 
   return {
     target,
@@ -275,23 +280,16 @@ function isPushableKey(key: string, target: PushTarget): boolean {
   return true;
 }
 
-function splitMissingSecrets(
+function logMissingSchemaSecrets(
+  logger: (message: string) => void,
   skippedKeys: string[],
   schemaSecrets: Map<string, EnvSchemaEntry>,
-): { required: string[]; optional: string[] } {
-  const required: string[] = [];
-  const optional: string[] = [];
-
-  for (const key of skippedKeys) {
-    const schemaSecret = schemaSecrets.get(key);
-    if (schemaSecret?.required) {
-      required.push(key);
-      continue;
-    }
-    optional.push(key);
-  }
-
-  return { required, optional };
+): void {
+  logMissingSecrets(
+    logger,
+    skippedKeys,
+    (key) => schemaSecrets.get(key)?.required ?? false,
+  );
 }
 
 function logBitwardenPush(
@@ -309,28 +307,6 @@ function logBitwardenPush(
     for (const mapping of result.mappings) {
       logger(`${mapping.key}=bitwarden("${mapping.id}")`);
     }
-  }
-}
-
-function logMissingSecrets(
-  logger: (message: string) => void,
-  skippedKeys: string[],
-  schemaSecrets: Map<string, EnvSchemaEntry>,
-): void {
-  const missing = splitMissingSecrets(skippedKeys, schemaSecrets);
-  logKeyGroup(logger, "Required before first deploy", missing.required);
-  logKeyGroup(logger, "Safe to ignore for now", missing.optional);
-}
-
-function logKeyGroup(
-  logger: (message: string) => void,
-  header: string,
-  keys: string[],
-): void {
-  if (keys.length === 0) return;
-  logger(`${header} (${keys.length}):`);
-  for (const key of keys) {
-    logger(`  - ${key}`);
   }
 }
 

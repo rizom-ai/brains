@@ -1,8 +1,42 @@
-/** Public brain definition contract for external authors. */
+/**
+ * Public brain definition contract for external authors.
+ *
+ * The plugin-shaped types below are deliberately narrower than the internal
+ * ones: an external author describes a plugin, and never implements the
+ * internal `register` hook that the runtime Plugin type demands. That
+ * narrowing is why this file cannot simply re-export ../brain-definition.
+ *
+ * Everything else is re-exported. The structured fields in particular used to
+ * be mirrored as `unknown`, which silently cost external authors all checking
+ * on `site`, `permissions`, and `deployment` — the fields most worth checking.
+ */
 
-export type BrainEnvironment = Record<string, string | undefined>;
-export type PluginConfig = Record<string, unknown>;
+import type { PermissionConfig } from "@brains/templates";
+import type { SitePackage } from "../site-package";
+import type { DeploymentConfigInput, ReasoningEffort } from "../types";
+import type {
+  BrainAnchorConfigKind,
+  BrainEnvironment,
+  BrainIdentity,
+  CapabilityContext,
+  PluginConfig,
+  PresetName,
+} from "../brain-definition";
 
+export type {
+  BrainAnchorConfigKind,
+  BrainEnvironment,
+  BrainIdentity,
+  BrainMode,
+  CapabilityContext,
+  PluginConfig,
+  PresetName,
+} from "../brain-definition";
+export type { DeploymentConfigInput, ReasoningEffort } from "../types";
+export type { SitePackage } from "../site-package";
+export type { PermissionConfig } from "@brains/templates";
+
+/** A plugin as an external author declares it — description, not implementation. */
 export interface Plugin {
   readonly id: string;
   readonly version: string;
@@ -13,10 +47,6 @@ export interface Plugin {
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;
-}
-
-export interface CapabilityContext {
-  preset?: PresetName;
 }
 
 export type CapabilityConfig =
@@ -40,34 +70,23 @@ export type InterfaceEntry = [
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
 
-export type PresetName = "core" | "default" | "full";
-export type BrainMode = "eval";
-
-export interface BrainIdentity {
-  characterName: string;
-  role: string;
-  purpose: string;
-  values: string[];
-}
-
-export type ReasoningEffort =
-  "none" | "low" | "medium" | "high" | "xhigh" | "max";
-
 export interface BrainDefinition {
   name: string;
   version: string;
+  anchor?: BrainAnchorConfigKind;
+  kind?: string;
   model?: string;
   reasoningEffort?: ReasoningEffort;
   identity?: BrainIdentity;
   agentInstructions?: string[];
-  site?: unknown;
+  site?: SitePackage;
   theme?: string;
   capabilities: CapabilityEntry[];
   interfaces: InterfaceEntry[];
   presets?: Partial<Record<PresetName, string[]>>;
   defaultPreset?: PresetName;
-  permissions?: unknown;
-  deployment?: unknown;
+  permissions?: PermissionConfig;
+  deployment?: DeploymentConfigInput;
   evalDisable?: string[];
   extra?: Record<string, unknown>;
 }

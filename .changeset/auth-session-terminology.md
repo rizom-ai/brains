@@ -10,7 +10,6 @@
 "@brains/core": patch
 "@brains/dashboard": patch
 "@brains/identity-service": patch
-"@brains/sveltia-cms": patch
 "@brains/templates": patch
 "@brains/web-chat": patch
 "@rizom/brain": patch

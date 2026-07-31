@@ -34,7 +34,7 @@ const searchScopeInputSchema: SearchScopeInputSchema = z.discriminatedUnion(
   ],
 );
 
-const searchInputSchemaInternal: z.ZodObject<{
+export const searchInputSchema: z.ZodObject<{
   query: z.ZodString;
   scope: typeof searchScopeInputSchema;
   limit: z.ZodOptional<z.ZodNumber>;
@@ -59,10 +59,7 @@ const searchInputSchemaInternal: z.ZodObject<{
     .describe("Include queued/failed generation stubs in results"),
 });
 
-export const searchInputSchema: typeof searchInputSchemaInternal =
-  searchInputSchemaInternal;
-
-const getInputSchemaInternal: z.ZodObject<{
+export const getInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
 }> = z.object({
@@ -70,10 +67,7 @@ const getInputSchemaInternal: z.ZodObject<{
   id: z.string().describe("Entity ID, slug, or title"),
 });
 
-export const getInputSchema: typeof getInputSchemaInternal =
-  getInputSchemaInternal;
-
-const listInputSchemaInternal: z.ZodObject<{
+export const listInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   status: z.ZodOptional<z.ZodString>;
   limit: z.ZodOptional<z.ZodNumber>;
@@ -91,9 +85,6 @@ const listInputSchemaInternal: z.ZodObject<{
     .describe("Maximum number of results (default: 20)"),
 });
 
-export const listInputSchema: typeof listInputSchemaInternal =
-  listInputSchemaInternal;
-
 const createUploadInputSchema: z.ZodObject<{
   kind: z.ZodLiteral<"upload">;
   id: z.ZodString;
@@ -102,7 +93,7 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
-const createPreferredSourceInputSchemaInternal: z.ZodDiscriminatedUnion<
+export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
   [
     StrictObjectSchema<{
       kind: z.ZodLiteral<"text">;
@@ -188,9 +179,6 @@ const createPreferredSourceInputSchemaInternal: z.ZodDiscriminatedUnion<
     .strict(),
 ]);
 
-export const createPreferredSourceInputSchema: typeof createPreferredSourceInputSchemaInternal =
-  createPreferredSourceInputSchemaInternal;
-
 type EntityRefInputSchema = StrictObjectSchema<{
   entityType: z.ZodString;
   entityId: z.ZodString;
@@ -233,7 +221,7 @@ type GenerateOperationInputSchema = z.ZodDiscriminatedUnion<
   "kind"
 >;
 
-const generateOperationInputSchemaInternal: GenerateOperationInputSchema =
+export const generateOperationInputSchema: GenerateOperationInputSchema =
   z.discriminatedUnion("kind", [
     z
       .object({
@@ -388,10 +376,7 @@ const generateOperationInputSchemaInternal: GenerateOperationInputSchema =
       .strict(),
   ]);
 
-export const generateOperationInputSchema: typeof generateOperationInputSchemaInternal =
-  generateOperationInputSchemaInternal;
-
-const createInputSchemaInternal: StrictObjectSchema<{
+export const createInputSchema: StrictObjectSchema<{
   entityType: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
   source: typeof createPreferredSourceInputSchema;
@@ -420,10 +405,7 @@ const createInputSchemaInternal: StrictObjectSchema<{
   })
   .strict();
 
-export const createInputSchema: typeof createInputSchemaInternal =
-  createInputSchemaInternal;
-
-const generateInputSchemaInternal: StrictObjectSchema<{
+export const generateInputSchema: StrictObjectSchema<{
   operation: typeof generateOperationInputSchema;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
@@ -442,15 +424,13 @@ const generateInputSchemaInternal: StrictObjectSchema<{
   })
   .strict();
 
-export const generateInputSchema: typeof generateInputSchemaInternal =
-  generateInputSchemaInternal;
-
-const updateInputSchemaInternal: z.ZodObject<{
+export const updateInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
   fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   content: z.ZodOptional<z.ZodString>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
 }> = z.object({
   entityType: z.string().describe("Entity type"),
@@ -468,16 +448,17 @@ const updateInputSchemaInternal: z.ZodObject<{
       "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
     ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
   contentHash: z
     .string()
     .optional()
     .describe("Content hash for optimistic concurrency"),
 });
 
-export const updateInputSchema: typeof updateInputSchemaInternal =
-  updateInputSchemaInternal;
-
-const deleteInputSchemaInternal: z.ZodObject<{
+export const deleteInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
@@ -492,14 +473,12 @@ const deleteInputSchemaInternal: z.ZodObject<{
     .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
-export const deleteInputSchema: typeof deleteInputSchemaInternal =
-  deleteInputSchemaInternal;
-
-const extractInputSchemaInternal: z.ZodObject<{
+export const extractInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   source: z.ZodOptional<z.ZodString>;
   mode: z.ZodOptional<z.ZodEnum<{ derive: "derive"; rebuild: "rebuild" }>>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
 }> = z.object({
   entityType: z.string().describe("Entity type to extract"),
   source: z.string().optional().describe("Source entity ID — omit for batch"),
@@ -508,12 +487,13 @@ const extractInputSchemaInternal: z.ZodObject<{
     .optional()
     .describe("Batch mode: project incrementally or rebuild from scratch"),
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
-export const extractInputSchema: typeof extractInputSchemaInternal =
-  extractInputSchemaInternal;
-
-const jobStatusInputSchemaInternal: z.ZodObject<{
+export const jobStatusInputSchema: z.ZodObject<{
   batchId: z.ZodOptional<z.ZodString>;
   jobTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }> = z.object({
@@ -521,10 +501,7 @@ const jobStatusInputSchemaInternal: z.ZodObject<{
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
 });
 
-export const jobStatusInputSchema: typeof jobStatusInputSchemaInternal =
-  jobStatusInputSchemaInternal;
-
-const insightsInputSchemaInternal: z.ZodObject<{
+export const insightsInputSchema: z.ZodObject<{
   type: z.ZodString;
 }> = z.object({
   type: z
@@ -533,9 +510,6 @@ const insightsInputSchemaInternal: z.ZodObject<{
       "Type of insight to retrieve. Built-in: overview, publishing-cadence, content-health. Plugins may register additional types.",
     ),
 });
-
-export const insightsInputSchema: typeof insightsInputSchemaInternal =
-  insightsInputSchemaInternal;
 
 // ── Output schemas ──
 
@@ -567,7 +541,7 @@ const createResultAttachmentSchema: z.ZodObject<{
   source: createResultAttachmentSourceSchema.optional(),
 });
 
-const createOutputSchemaInternal: z.ZodObject<{
+export const createOutputSchema: z.ZodObject<{
   entityId: z.ZodOptional<z.ZodString>;
   status: z.ZodEnum<{ created: "created"; generating: "generating" }>;
   jobId: z.ZodOptional<z.ZodString>;
@@ -579,10 +553,7 @@ const createOutputSchemaInternal: z.ZodObject<{
   attachment: createResultAttachmentSchema.optional(),
 });
 
-export const createOutputSchema: typeof createOutputSchemaInternal =
-  createOutputSchemaInternal;
-
-const extractOutputSchemaInternal: z.ZodObject<{
+export const extractOutputSchema: z.ZodObject<{
   status: z.ZodLiteral<"extracting">;
   jobId: z.ZodString;
   entityType: z.ZodString;
@@ -595,6 +566,3 @@ const extractOutputSchemaInternal: z.ZodObject<{
   source: z.string().optional(),
   mode: z.enum(["derive", "rebuild"]).optional(),
 });
-
-export const extractOutputSchema: typeof extractOutputSchemaInternal =
-  extractOutputSchemaInternal;

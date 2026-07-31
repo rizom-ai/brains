@@ -6,15 +6,39 @@
    - Font imports
    - :root palette variables (unique colors)
    - :root semantic variable mappings
-   - [data-theme="dark"] overrides
+   - light/dark overrides keyed by [data-theme]
    - Typography styles (heading weights, letter-spacing)
    - Nav/header/logo/toggle light-dark behavior
    - Hero/CTA background patterns
    - Prose dark mode overrides
    - Theme-specific decorative elements
 
-   Layer ordering: theme-base < theme-override
-   Base utilities come first; theme-specific styles override.
+   TWO SEPARATE COMPOSITION STEPS — do not conflate them:
+
+   1. Brand layering, done by the theme package itself. A brand theme
+      concatenates @rizom/theme-default (the default brand values) and its
+      own CSS, in src/index.ts and again in its published dist module.
+   2. Base layering, done once by the shell. brain-resolver calls
+      withThemeBase() on the fully resolved theme (theme + site override +
+      instance override) to prepend THIS file. A theme is only ever a CSS
+      string; it never adds the base itself.
+
+   LAYER ORDER — theme < theme-base < theme-override:
+
+   `theme` is Tailwind's own layer, pre-declared by `@import "tailwindcss"`
+   ahead of the two layers declared below, so it is the WEAKEST of the
+   three. It is where every theme (and this file) puts custom properties,
+   so tokens resolve by plain source order: base first, then theme-default,
+   then the brand theme. Shared token defaults therefore belong in `theme`,
+   not in `theme-base` — a default in `theme-base` would outrank every
+   theme and could not be overridden.
+
+   `theme-base` holds this file's shared utility classes; `theme-override`
+   is where brand themes override them.
+
+   [data-theme] is always present on <html>: the site head renders it into
+   the markup and an inline script re-asserts it before paint. Selectors
+   here can rely on it rather than falling back to bare :root.
    ============================================ */
 
 /* Declare layer order — guarantees cascade regardless of concat order */
@@ -144,6 +168,48 @@
    different utilities need different variables.
    e.g. bg-theme uses --color-bg, text-theme uses --color-text
    ============================================ */
+/* Status badge palette — one definition for every theme.
+ *
+ * Keyed off [data-theme] rather than :root because the site head always
+ * writes the attribute onto <html> (server-rendered into the markup and
+ * re-asserted before paint). That lets dark-first themes and light-first
+ * themes share these values instead of each restating a whole palette under
+ * whichever selector happens to be their default.
+ *
+ * Declared in `theme` — Tailwind's own layer, where every theme puts its
+ * custom properties — rather than `theme-base`. Tailwind pre-declares
+ * `theme` ahead of the layers this file introduces, so a palette in
+ * `theme-base` would outrank the themes and they could not override it.
+ * Same layer means plain source order decides, and themes come after.
+ */
+@layer theme {
+  [data-theme="light"] {
+    --color-status-neutral-bg: #f0ece6;
+    --color-status-neutral-text: #4b4652;
+    --color-status-info-bg: #e7edf7;
+    --color-status-info-text: #31527c;
+    --color-status-success-bg: #e4f3e8;
+    --color-status-success-text: #2d6a42;
+    --color-status-danger-bg: #f8e4e4;
+    --color-status-danger-text: #8f2f2f;
+    --color-status-warning-bg: #f7edcf;
+    --color-status-warning-text: #7a4a05;
+  }
+
+  [data-theme="dark"] {
+    --color-status-neutral-bg: #374151;
+    --color-status-neutral-text: #e5e7eb;
+    --color-status-info-bg: #1e3a5f;
+    --color-status-info-text: #93c5fd;
+    --color-status-success-bg: #14532d;
+    --color-status-success-text: #86efac;
+    --color-status-danger-bg: #7f1d1d;
+    --color-status-danger-text: #fca5a5;
+    --color-status-warning-bg: #713f12;
+    --color-status-warning-text: #fde68a;
+  }
+}
+
 @layer theme-base {
   /* Theme utilities - bg uses --color-bg, text uses --color-text */
   .bg-theme { background-color: var(--color-bg); }

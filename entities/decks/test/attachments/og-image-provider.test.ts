@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { DecksPlugin } from "../../src/plugin";
-import { DeckOgImageAttachmentProvider } from "../../src/attachments/og-image-provider";
+import { createDeckOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
 
 const sampleDeck: DeckEntity = {
@@ -43,9 +42,7 @@ Networks fail in surprising ways.
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 describe("Deck OG image attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a deck OG image attachment provider", async () => {
     const harness = createPluginHarness<DecksPlugin>();
@@ -69,7 +66,7 @@ describe("Deck OG image attachment provider", () => {
     await harness.installPlugin(new DecksPlugin());
     await harness.getEntityService().createEntity({ entity: sampleDeck });
 
-    const provider = new DeckOgImageAttachmentProvider(
+    const provider = createDeckOgImageProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

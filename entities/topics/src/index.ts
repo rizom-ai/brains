@@ -185,8 +185,8 @@ export class TopicsPlugin extends EntityPlugin<
     );
 
     // Dashboard widgets: the topic list and the knowledge map
-    registerTopicsDashboardWidget({ context, pluginId: this.id });
-    registerKnowledgeMapDashboardWidget({ context, pluginId: this.id });
+    registerTopicsDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({ context });
 
     // Eval handlers
     registerTopicEvalHandlers({

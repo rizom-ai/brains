@@ -6,8 +6,7 @@ import {
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
-import { DiscordInterface } from "@brains/discord";
-import { ChatInterface } from "@brains/chat";
+import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
@@ -94,7 +93,7 @@ const core = [
   "mcp",
   "webserver",
   "web-chat",
-  "discord",
+  "chat",
   "a2a",
 ];
 
@@ -133,6 +132,7 @@ const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
   anchor: "person",
+  kind: "professional",
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   site: defaultSite,
@@ -144,7 +144,6 @@ const roverBrain: BrainDefinition = defineBrain({
   },
 
   evalDisable: [
-    "discord",
     "chat",
     "webserver",
     "web-chat",
@@ -160,7 +159,7 @@ const roverBrain: BrainDefinition = defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["profile", profilePlugin, { starterIdentity: { anchorKind: "person" } }],
+    ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
@@ -243,6 +242,8 @@ const roverBrain: BrainDefinition = defineBrain({
       }),
     ],
     ["analytics", analyticsPlugin, {}],
+    // Not in any preset — the rizom.ai pilot brain opts in via brain.yaml
+    // `add:` (rover-pilot users/rizom-ai).
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
     ["site-content", siteContentPlugin, undefined],
@@ -257,8 +258,7 @@ const roverBrain: BrainDefinition = defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["discord", DiscordInterface, (): PluginConfig => ({})],
-    ["chat", ChatInterface, (): PluginConfig => ({})],
+    ["chat", ChatInterface, (env): PluginConfig => chatConfigFromEnv(env)],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],

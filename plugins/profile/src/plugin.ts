@@ -17,6 +17,7 @@ import {
   resolveStarterIdentityIdentifier,
   seedOrMigrateStarterIdentity,
 } from "./starter-identity";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface StarterIdentityConfig {
   enabled: boolean;
@@ -113,7 +114,7 @@ export class ProfilePlugin extends ServicePlugin<
         });
       } catch (error) {
         this.logger.warn("Starter character generation deferred", {
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     };

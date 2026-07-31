@@ -30,7 +30,6 @@ describe("RuntimeStateService", () => {
   });
 
   afterEach(async () => {
-    RuntimeStateService.resetInstance();
     await rm(tempDir, { recursive: true, force: true });
   });
 

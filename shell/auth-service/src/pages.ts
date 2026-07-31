@@ -1,3 +1,4 @@
+import { escapeHtml } from "@brains/utils/string-utils";
 import type { ValidAuthorizationRequest } from "./types";
 
 const AUTH_FONTS_URL =
@@ -425,12 +426,4 @@ export function unauthorizedHtmlResponse(request: Request): Response {
       "Cache-Control": "no-store",
     },
   });
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }

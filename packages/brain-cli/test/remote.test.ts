@@ -7,7 +7,7 @@ describe("parseArgs remote flags", () => {
     const result = parseArgs(["list", "post", "--remote", "rover.rizom.ai"]);
     expect(result.command).toBe("list");
     expect(result.args).toEqual(["post"]);
-    expect(result.flags.remote).toBe("rover.rizom.ai");
+    expect(result.flags["remote"]).toBe("rover.rizom.ai");
   });
 
   it("should parse --token flag", () => {
@@ -19,14 +19,14 @@ describe("parseArgs remote flags", () => {
       "secret123",
     ]);
     expect(result.command).toBe("status");
-    expect(result.flags.remote).toBe("rover.rizom.ai");
-    expect(result.flags.token).toBe("secret123");
+    expect(result.flags["remote"]).toBe("rover.rizom.ai");
+    expect(result.flags["token"]).toBe("secret123");
   });
 
   it("should not set remote when flag is absent", () => {
     const result = parseArgs(["list", "post"]);
-    expect(result.flags.remote).toBeUndefined();
-    expect(result.flags.token).toBeUndefined();
+    expect(result.flags["remote"]).toBeUndefined();
+    expect(result.flags["token"]).toBeUndefined();
   });
 
   it("should keep positional args separate from remote flag", () => {
@@ -39,7 +39,7 @@ describe("parseArgs remote flags", () => {
     ]);
     expect(result.command).toBe("get");
     expect(result.args).toEqual(["post", "my-post"]);
-    expect(result.flags.remote).toBe("rover.rizom.ai");
+    expect(result.flags["remote"]).toBe("rover.rizom.ai");
   });
 });
 

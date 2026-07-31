@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { formatDate } from "@brains/ui-library";
 import {
   Head,
   Breadcrumb,
@@ -11,16 +12,6 @@ import type { EnrichedSocialPost } from "../schemas/social-post";
 
 export interface SocialPostDetailProps {
   post: EnrichedSocialPost;
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 export const SocialPostDetailTemplate = ({
@@ -86,12 +77,15 @@ export const SocialPostDetailTemplate = ({
             <div className="space-y-4 text-sm text-theme-muted">
               <div>
                 <span className="font-medium">Created:</span>{" "}
-                {formatDate(post.created)}
+                {formatDate(post.created, { style: "long", includeTime: true })}
               </div>
               {post.frontmatter.publishedAt && (
                 <div>
                   <span className="font-medium">Published:</span>{" "}
-                  {formatDate(post.frontmatter.publishedAt)}
+                  {formatDate(post.frontmatter.publishedAt, {
+                    style: "long",
+                    includeTime: true,
+                  })}
                 </div>
               )}
               {post.frontmatter.platformPostId && (

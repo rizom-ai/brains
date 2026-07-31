@@ -61,7 +61,6 @@ Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a la
 - `@rizom/brain/interfaces`
 - `@rizom/brain/templates`
 - `@rizom/brain/site`
-- `@rizom/brain/themes`
 - `@rizom/brain/deploy`
 - optional future `@rizom/brain/ui` or equivalent template/UI subpath
 

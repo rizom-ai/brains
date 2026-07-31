@@ -73,7 +73,7 @@ describe("dashboard widget registration", () => {
   });
 
   it("registers the primary read-only publication widget", async () => {
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
 
     expect(widgetPayload).toMatchObject({
       id: "publication-pipeline",
@@ -116,7 +116,7 @@ describe("dashboard widget registration", () => {
     });
     await deps.queueManager.add("social-post", "queued-post");
 
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
     const data = await widgetPayload?.dataProvider();
 
     expect(data?.summary).toEqual({
@@ -138,7 +138,7 @@ describe("dashboard widget registration", () => {
   });
 
   it("derives live digest figures from canonical summary data", async () => {
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
 
     const derived = widgetPayload?.digestProvider({
       summary: {
@@ -164,7 +164,7 @@ describe("dashboard widget registration", () => {
   });
 
   it("renders a quiet digest when the pipeline is idle", async () => {
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
 
     const derived = widgetPayload?.digestProvider({
       summary: {
@@ -190,7 +190,7 @@ describe("dashboard widget registration", () => {
   });
 
   it("includes the CMS management URL only when registration succeeded", async () => {
-    await registerDashboardWidget(context, "content-pipeline", {
+    await registerDashboardWidget(context, {
       ...deps,
       managementUrl: "/studio/workspaces/publishing",
     });
@@ -198,7 +198,7 @@ describe("dashboard widget registration", () => {
       "/studio/workspaces/publishing",
     );
 
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
     expect(
       (await widgetPayload?.dataProvider())?.managementUrl,
     ).toBeUndefined();
@@ -247,7 +247,7 @@ describe("dashboard widget registration", () => {
       },
     ];
 
-    await registerDashboardWidget(context, "content-pipeline", deps);
+    await registerDashboardWidget(context, deps);
     const data = await widgetPayload?.dataProvider();
 
     expect(data?.generating).toEqual([

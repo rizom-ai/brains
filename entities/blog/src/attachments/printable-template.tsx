@@ -1,5 +1,8 @@
 import type { JSX } from "preact";
-import { MarkdownContent } from "@brains/ui-library";
+import {
+  MarkdownContent,
+  formatDate as formatDateStyled,
+} from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
@@ -42,11 +45,7 @@ function formatDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-  });
+  return formatDateStyled(date, { style: "long" });
 }
 
 function renderBlogPrintablePdf(props: Record<string, unknown>): JSX.Element {

@@ -1,13 +1,11 @@
-import { mkdtemp } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { createPluginHarness } from "@brains/plugins/test";
 import { roverOnboardingPlugin } from "../src";
 
 async function tempStorageDir(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "brains-rover-onboarding-"));
+  return createTempDataDir("brains-rover-onboarding-");
 }
 
 async function installHarness(): Promise<

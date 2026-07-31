@@ -57,7 +57,6 @@ function createEntitySearch(options?: {
   logger: ReturnType<typeof createMockLogger>;
 } {
   const logger = options?.logger ?? createSilentLogger();
-  EntityRegistry.resetInstance();
   const entityRegistry = EntityRegistry.createFresh(logger);
   const serializer = new EntitySerializer(entityRegistry, logger);
 

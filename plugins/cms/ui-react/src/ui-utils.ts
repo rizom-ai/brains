@@ -1,4 +1,5 @@
 import { ApiError, type EntitySummary, type FieldDescriptor } from "./api";
+import { getErrorMessage } from "@brains/utils/error";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
 export function entityTitle(entity: EntitySummary): string {
@@ -70,5 +71,5 @@ export function errorMessage(error: unknown): string {
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("; ");
   }
-  return error instanceof Error ? error.message : String(error);
+  return getErrorMessage(error);
 }

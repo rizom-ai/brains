@@ -5,6 +5,7 @@ import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface ContentGenerationJobData {
   templateName: string;
@@ -34,38 +35,12 @@ export const contentGenerationJobDataSchema: z.ZodType<ContentGenerationJobData>
 /**
  * Job handler for content generation
  * Processes content generation requests using the ContentService
- * Implements Component Interface Standardization pattern
  */
 export class ContentGenerationJobHandler implements JobHandler<"content-generation"> {
-  private static instance: ContentGenerationJobHandler | null = null;
   private logger: Logger;
   private contentService: ContentService;
   private entityService: IEntityService;
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    contentService: ContentService,
-    entityService: IEntityService,
-  ): ContentGenerationJobHandler {
-    ContentGenerationJobHandler.instance ??= new ContentGenerationJobHandler(
-      contentService,
-      entityService,
-    );
-    return ContentGenerationJobHandler.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    ContentGenerationJobHandler.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     contentService: ContentService,
     entityService: IEntityService,
@@ -73,9 +48,6 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
     return new ContentGenerationJobHandler(contentService, entityService);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(
     contentService: ContentService,
     entityService: IEntityService,
@@ -199,7 +171,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
       });
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: getErrorMessage(error, "Unknown error"),
       };
     }
   }

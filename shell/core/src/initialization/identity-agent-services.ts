@@ -31,6 +31,7 @@ import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
@@ -107,7 +108,7 @@ async function resolveRuntimeUploadAttachment(
     logger.debug("Skipped unavailable prior runtime upload", {
       uploadKind: source.kind,
       uploadId: source.id,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     });
     return null;
   }

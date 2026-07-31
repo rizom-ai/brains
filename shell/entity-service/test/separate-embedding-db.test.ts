@@ -24,9 +24,6 @@ describe("Separate embedding database", () => {
   let embeddingDbConfig: EntityDbConfig;
 
   beforeEach(async () => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
-
     tempDir = await mkdtemp(join(tmpdir(), "brain-sep-emb-test-"));
 
     entityDbConfig = { url: `file:${join(tempDir, "brain.db")}` };
@@ -63,8 +60,6 @@ describe("Separate embedding database", () => {
   });
 
   afterEach(async () => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
     await rm(tempDir, { recursive: true, force: true });
   });
 

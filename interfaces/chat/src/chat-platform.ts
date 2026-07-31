@@ -28,7 +28,7 @@ export function chunkForChannel(
 export function ownsChatPlatform(
   interfaceType: string | undefined,
   enabledPlatforms: ReadonlySet<ChatPlatform>,
-): boolean {
+): interfaceType is ChatPlatform {
   const platform = CHAT_PLATFORMS.find(
     (candidate) => candidate === interfaceType,
   );

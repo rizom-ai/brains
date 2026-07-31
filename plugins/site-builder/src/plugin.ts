@@ -4,7 +4,8 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin, SITE_BUILDER_CHANNELS } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
   SiteBuildProfile,

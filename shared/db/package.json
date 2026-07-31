@@ -1,0 +1,31 @@
+{
+  "name": "@brains/db",
+  "version": "0.2.0-alpha.229",
+  "dependencies": {
+    "@brains/utils": "workspace:*",
+    "@libsql/client": "^0.17.4",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "@types/node": "^20.19.43",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./drizzle-config": "./src/drizzle-config.ts"
+  },
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./src/index.ts"
+}

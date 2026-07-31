@@ -3,10 +3,19 @@ import type { Tool } from "@brains/mcp-service";
 import { extractInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
-import { assertEntityTypeRegistered, createSystemTool } from "./tool-helpers";
+import {
+  assertEntityTypeRegistered,
+  createConfirmationGate,
+  createSystemTool,
+} from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createEntityExtractTool(services: SystemServices): Tool {
   const { entityService, jobs } = services;
+  const confirmationGate = createConfirmationGate({
+    label: "extract",
+    requestNoun: "extraction",
+  });
 
   return createSystemTool(
     "extract",
@@ -46,11 +55,18 @@ export function createEntityExtractTool(services: SystemServices): Tool {
             "Rebuild all derived topic entities from current source content?",
           preview:
             "This will delete existing topics and regenerate them from scratch.",
-          args: {
+          args: confirmationGate.buildArgs((confirmationToken) => ({
             ...input,
             confirmed: true,
-          },
+            confirmationToken,
+          })),
         };
+      }
+      // A confirmed call claims "the user approved these exact args" — hold
+      // it to that even when tampering moved the args off the rebuild path.
+      if (input.confirmed) {
+        const gateError = confirmationGate.validateConfirmed(input);
+        if (gateError) return gateError;
       }
 
       try {
@@ -109,10 +125,7 @@ export function createEntityExtractTool(services: SystemServices): Tool {
       } catch (error) {
         return {
           success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to queue extraction job",
+          error: getErrorMessage(error, "Failed to queue extraction job"),
         };
       }
     },

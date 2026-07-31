@@ -2,6 +2,7 @@ import type { FetchLike } from "@brains/deploy-support/origin-ca";
 import { z } from "@brains/utils/zod";
 
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface VerifyPilotUserOptions {
   fetchImpl?: FetchLike;
@@ -109,7 +110,7 @@ async function runCheck(
   } catch (err) {
     failed.push({
       name,
-      message: err instanceof Error ? err.message : String(err),
+      message: getErrorMessage(err),
     });
   }
 }

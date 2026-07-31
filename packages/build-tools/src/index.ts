@@ -1,6 +1,7 @@
 export {
   findInternalDeclarationImports,
   formatDeclarationLeakError,
+  stripDeclarationComments,
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
 export {
@@ -30,3 +31,9 @@ export {
   type PublishedCompatibilityTarget,
   type PublishedPackageManifest,
 } from "./published-metadata";
+export {
+  buildThemePackage,
+  type BuildThemePackageOptions,
+  type BuildThemePackageResult,
+  type ThemePackageBase,
+} from "./theme-package";

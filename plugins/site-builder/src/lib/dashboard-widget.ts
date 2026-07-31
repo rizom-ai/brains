@@ -1,4 +1,3 @@
-import { DASHBOARD_CHANNELS } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h, type ComponentChild } from "preact";
@@ -217,25 +216,21 @@ export async function registerSiteHealthWidget(
   provider: SiteWorkspaceProvider,
   managementUrl?: string,
 ): Promise<void> {
-  await context.messaging.send({
-    type: DASHBOARD_CHANNELS.registerWidget,
-    payload: {
-      id: "site-health",
-      pluginId: "site-builder",
-      title: "Site health",
-      description: "Preview and live build status",
-      group: "publishing",
-      section: "sidebar",
-      priority: 50,
-      rendererName: "SiteHealthWidget",
-      visibility: "admin",
-      component: SiteHealthWidget,
-      clientStyles: siteHealthWidgetStyles,
-      dataProvider: async (): Promise<SiteHealthWidgetData> => ({
-        ...(await provider.getSnapshot()),
-        ...(managementUrl ? { managementUrl } : {}),
-      }),
-      digestProvider: deriveSiteDigest,
-    },
+  await context.dashboard.registerWidget({
+    id: "site-health",
+    title: "Site health",
+    description: "Preview and live build status",
+    group: "publishing",
+    section: "sidebar",
+    priority: 50,
+    rendererName: "SiteHealthWidget",
+    visibility: "admin",
+    component: SiteHealthWidget,
+    clientStyles: siteHealthWidgetStyles,
+    dataProvider: async (): Promise<SiteHealthWidgetData> => ({
+      ...(await provider.getSnapshot()),
+      ...(managementUrl ? { managementUrl } : {}),
+    }),
+    digestProvider: deriveSiteDigest,
   });
 }

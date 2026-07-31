@@ -1,9 +1,4 @@
 import {
-  EMAIL_SEND,
-  type SendEmailPayload,
-  type SendEmailResult,
-} from "@brains/email-contracts";
-import {
   NOTIFICATIONS_SEND,
   notificationRecipientSchema,
   sendNotificationSchema,
@@ -60,35 +55,34 @@ export class NotificationsPlugin extends ServicePlugin<
           return { success: false, error: "Notification recipient missing" };
         }
 
-        const emailPayload: SendEmailPayload = {
-          to: recipient.address,
+        // Resolve a transport by the recipient's channel type. This plugin
+        // never names a transport, so a new one becomes available by
+        // registering a delivery provider — no change here.
+        const provider = context.channels.getDeliveryProvider(recipient.type);
+        if (!provider || !(await provider.isAvailable())) {
+          context.logger.warn("Notification has no available transport", {
+            channelType: recipient.type,
+          });
+          return { success: false, error: "Notification transport missing" };
+        }
+
+        const result = await provider.send({
+          recipient: recipient.address,
           subject: input.title,
           text: input.body,
           ...(input.html ? { html: input.html } : {}),
           sensitivity: input.sensitivity,
-          ...(input.idempotencyKey
-            ? { idempotencyKey: input.idempotencyKey }
-            : {}),
-        };
-        const response = await context.messaging.send<
-          SendEmailPayload,
-          SendEmailResult
-        >({
-          type: EMAIL_SEND,
-          payload: emailPayload,
+          // Providers dedupe on this, so mint one when the caller has no
+          // natural key rather than leaving retries to double-send.
+          idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
         });
 
-        if (!("success" in response) || !response.success || !response.data) {
+        if (result.status !== "sent") {
           return { success: false, error: "Notification delivery failed" };
         }
 
-        const emailResult = response.data;
-        if (emailResult.status !== "sent") {
-          return { success: false, error: "Notification delivery failed" };
-        }
-
-        const data: SendNotificationResult = emailResult.id
-          ? { status: "sent", deliveryId: emailResult.id }
+        const data: SendNotificationResult = result.providerDeliveryId
+          ? { status: "sent", deliveryId: result.providerDeliveryId }
           : { status: "sent" };
         return { success: true, data };
       },

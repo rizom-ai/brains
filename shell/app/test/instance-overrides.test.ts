@@ -20,7 +20,7 @@ import {
   EntityActionPermissionError,
   PermissionService,
 } from "@brains/templates";
-import { composeTheme } from "@brains/theme-base";
+import { withThemeBase } from "@brains/theme-base";
 
 // --- Test helpers ---
 
@@ -1526,7 +1526,7 @@ describe("resolve with site package", () => {
 
     const config = resolve(def, {});
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-    const expectedThemeCSS = composeTheme("body { color: pink; }");
+    const expectedThemeCSS = withThemeBase("body { color: pink; }");
 
     expect(pluginIds).toContain("personal-site");
     expect(config.shellConfig?.themeCSS).toBe(expectedThemeCSS);
@@ -1555,7 +1555,7 @@ describe("resolve with site package", () => {
     );
 
     expect(getConfig(dashboardRoot)["themeCSS"]).toBe(
-      composeTheme("body { color: pink; }"),
+      withThemeBase("body { color: pink; }"),
     );
     expect(getConfig(dashboardRoot)["routePath"]).toBe("/");
   });
@@ -1882,7 +1882,7 @@ describe("resolve with site package", () => {
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
-      composeTheme("body { color: pink; }"),
+      withThemeBase("body { color: pink; }"),
     );
   });
 
@@ -1911,7 +1911,7 @@ describe("resolve with site package", () => {
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
-      composeTheme("body { color: purple; }"),
+      withThemeBase("body { color: purple; }"),
     );
   });
 
@@ -1940,7 +1940,7 @@ describe("resolve with site package", () => {
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
-      composeTheme("body { color: pink; }\n\n.local { color: purple; }"),
+      withThemeBase("body { color: pink; }\n\n.local { color: purple; }"),
     );
   });
 
@@ -1964,7 +1964,7 @@ describe("resolve with site package", () => {
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
-      composeTheme("body { color: lime; }"),
+      withThemeBase("body { color: lime; }"),
     );
   });
 
@@ -1991,7 +1991,7 @@ describe("resolve with site package", () => {
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
-      composeTheme(
+      withThemeBase(
         "body { color: pink; }\n\n.site { color: amber; }\n\n.instance { color: lime; }",
       ),
     );
@@ -2021,7 +2021,7 @@ describe("resolve with site package", () => {
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     const sbConfig = getConfig(siteBuilder);
 
-    expect(sbConfig["themeCSS"]).toBe(composeTheme("body { color: pink; }"));
+    expect(sbConfig["themeCSS"]).toBe(withThemeBase("body { color: pink; }"));
     expect(sbConfig["cms"]).toEqual({ enabled: true });
   });
 

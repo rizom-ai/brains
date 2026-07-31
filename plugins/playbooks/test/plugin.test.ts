@@ -1,6 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
@@ -26,7 +24,7 @@ import {
 } from "../src";
 
 async function tempStorageDir(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "brains-playbooks-"));
+  return createTempDataDir("brains-playbooks-");
 }
 
 const welcomeState: PlaybookBody["states"][number] = {

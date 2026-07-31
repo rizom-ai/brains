@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createTempDataDir } from "@brains/plugins/test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -13,7 +14,6 @@ import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
-import { tmpdir } from "os";
 import { join } from "path";
 
 const adminWorkspaceActor: CmsWorkspaceActor = {
@@ -483,7 +483,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should not generate CMS files on site:build:completed", async () => {
-    const outputDir = await mkdtemp(join(tmpdir(), "site-builder-no-cms-"));
+    const outputDir = await createTempDataDir("site-builder-no-cms-");
     const config = {
       ...createTestConfig({
         previewOutputDir: outputDir,

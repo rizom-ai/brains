@@ -25,7 +25,6 @@ interface ActiveSiteBuild {
 }
 
 export class SiteBuilder implements ISiteBuilder {
-  private static instance: SiteBuilder | null = null;
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
     createPreactBuilder;
   private pipelineContext: BuildPipelineContext;
@@ -40,28 +39,6 @@ export class SiteBuilder implements ISiteBuilder {
     factory: StaticSiteBuilderFactory,
   ): void {
     SiteBuilder.defaultStaticSiteBuilderFactory = factory;
-  }
-
-  public static getInstance(
-    logger: Logger,
-    services: SiteBuilderServices,
-    routeRegistry: RouteRegistry,
-    profileService: SiteBuildProfileService,
-    entityDisplay: EntityDisplayMap | undefined = undefined,
-  ): SiteBuilder {
-    SiteBuilder.instance ??= new SiteBuilder(
-      logger,
-      SiteBuilder.defaultStaticSiteBuilderFactory,
-      services,
-      routeRegistry,
-      profileService,
-      entityDisplay,
-    );
-    return SiteBuilder.instance;
-  }
-
-  public static resetInstance(): void {
-    SiteBuilder.instance = null;
   }
 
   public static createFresh(

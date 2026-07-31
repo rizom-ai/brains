@@ -50,7 +50,7 @@ Conversation actor registries close terminally: queued operations receive the li
 
 ### Layer adoption
 
-Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
+Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only four deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, `EntityUrlGenerator`, and `EvalHandlerRegistry` — and they are allow-listed there by name.
 
 The first layer-owned slice is the job-service stack. The private `@brains/job-queue/effect` subpath owns its `Context.Tag` contracts and scoped queue/runtime layers; core composes those layers across the package boundary instead of rebuilding job-queue lifecycle ownership locally. Separate runtime and database scopes preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public authoring boundary.
 
@@ -58,14 +58,14 @@ Core also composes package-owned scoped layers for runtime state, conversations,
 
 Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration; entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers or stopped daemons in supplied registries.
 
-The ownership boundary is integration-tested with two no-interface shells using separate persistent SQLite paths. Construction or asynchronous initialization failure in one shell must leave entity, conversation, job, and runtime-state I/O in the other usable. Repeated register-only and startup-check boots require no singleton reset, generated `@rizom/brain` declarations are checked for Effect or private `/effect` imports, and the packed CLI is smoke-tested through startup-check acquisition and teardown.
+The ownership boundary is integration-tested with two no-interface shells using separate persistent SQLite paths. Construction or asynchronous initialization failure in one shell must leave entity, conversation, job, and runtime-state I/O in the other usable. Repeated register-only and startup-check boots share no state at all, generated `@rizom/brain` declarations are checked for Effect or private `/effect` imports, and the packed CLI is smoke-tested through startup-check acquisition and teardown.
 
 Future layers must meet the same criteria:
 
-1. construct fresh service instances without static singleton state;
+1. construct fresh service instances without static shared state;
 2. use internal `Context.Tag` contracts without exposing Effect types publicly;
 3. own acquisition and release through scoped layers;
-4. replace the corresponding shell singleton resets and manual service finalizers; and
+4. replace the corresponding manual service finalizers; and
 5. support test implementations through the existing dependency boundary.
 
 ### Runtime impact
@@ -169,7 +169,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | ---------------------- | ------------------------------------------------------------------------------------------- |
 | `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                            |
 | `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
-| `interfaces/discord`   | Discord bot interface                                                                       |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                              |
 | `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                           |
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
 | `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
@@ -240,7 +240,7 @@ Service plugins provide the system's operational surface area:
 Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
-- chat users connect through `interfaces/discord` or `interfaces/chat-repl`
+- chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
 - browsers connect through `interfaces/webserver` for public pages, dashboard/CMS routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 

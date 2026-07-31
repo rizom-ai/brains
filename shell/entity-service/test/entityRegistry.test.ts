@@ -164,8 +164,6 @@ describe("EntityRegistry", (): void => {
   let adapter: NoteAdapter;
 
   beforeEach((): void => {
-    EntityRegistry.resetInstance();
-
     logger = createSilentLogger();
     registry = EntityRegistry.createFresh(logger);
     adapter = new NoteAdapter();

@@ -1,24 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import {
-  AnchorProfileService,
-  BrainCharacterService,
-  ProfileKindRegistry,
-} from "@brains/identity-service";
-import type { ShellConfigInput } from "../src/config";
-import { ShellInitializer } from "../src/initialization/shellInitializer";
+import { ProfileKindRegistry } from "@brains/identity-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
-import { PluginManager } from "@brains/plugins";
-import { EntityRegistry } from "@brains/entity-service";
-import {
-  JobQueueWorker,
-  JobQueueService,
-  BatchJobManager,
-  JobProgressMonitor,
-} from "@brains/job-queue";
-import { DataSourceRegistry } from "@brains/entity-service";
-import { MessageBus } from "@brains/messaging-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
@@ -29,43 +14,6 @@ import {
   AtprotoProjectionRegistry,
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
-
-async function resetAllSingletons(): Promise<void> {
-  await Shell.resetInstance();
-  ShellInitializer.resetInstance();
-  PluginManager.resetInstance();
-  MessageBus.resetInstance();
-  EntityRegistry.resetInstance();
-  JobQueueWorker.resetInstance();
-  JobQueueService.resetInstance();
-  BatchJobManager.resetInstance();
-  JobProgressMonitor.resetInstance();
-  DataSourceRegistry.resetInstance();
-  BrainCharacterService.resetInstance();
-  AnchorProfileService.resetInstance();
-  AtprotoProjectionRegistry.resetInstance();
-}
-
-function createTestConfig(dir: string): ShellConfigInput {
-  return {
-    plugins: [],
-    profileKind: "professional",
-    siteBaseUrl: "brain.example.com",
-    database: { url: `file:${dir}/test.db` },
-    jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
-    conversationDatabase: { url: `file:${dir}/test-conv.db` },
-    runtimeStateDatabase: { url: `file:${dir}/test-runtime-state.db` },
-    embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
-    ai: {
-      model: "claude-haiku-4-5",
-      apiKey: "test-key",
-    },
-    embedding: {
-      cacheDir: `${dir}/embeddings`,
-      model: "fast-all-MiniLM-L6-v2",
-    },
-  };
-}
 
 const mockEmbeddingService = {
   dimensions: 1536,
@@ -151,7 +99,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
-    await resetAllSingletons();
+    AtprotoProjectionRegistry.resetInstance();
     // The card publisher queries entity stats; the schema must exist before
     // boot schedules the publish task.
     await migrateEntities({ url: `file:${testDir.dir}/test.db` });
@@ -164,7 +112,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   afterEach(async (): Promise<void> => {
     await shell.shutdown();
-    await resetAllSingletons();
+    AtprotoProjectionRegistry.resetInstance();
     await testDir.cleanup();
   });
 
@@ -172,7 +120,10 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
     const { client, putRecord } = createPdsClientMocks();
     const plugin = createConfiguredAtprotoPlugin(client);
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir, {
+      profileKind: "professional",
+      siteBaseUrl: "brain.example.com",
+    });
     config.plugins = [plugin];
     shell = Shell.createFresh(config, {
       ...deps,
@@ -194,7 +145,10 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
     const { client, putRecord } = createPdsClientMocks();
     const plugin = createConfiguredAtprotoPlugin(client);
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir, {
+      profileKind: "professional",
+      siteBaseUrl: "brain.example.com",
+    });
     config.plugins = [plugin];
     shell = Shell.createFresh(config, {
       ...deps,

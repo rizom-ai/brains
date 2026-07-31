@@ -18,8 +18,6 @@ export const siteInfoMetadataSchema: z.ZodType<SiteInfoMetadata> = z.object({});
  * Site info entity schema
  * Site info data (title, description, CTA, etc.) is stored in content field as structured markdown
  */
-const siteInfoEntityMetadataSchema: z.ZodType<SiteInfoMetadata> = z.object({});
-
 export const siteInfoSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     id: z.ZodLiteral<"site-info">;
@@ -29,7 +27,7 @@ export const siteInfoSchema: ReturnType<
 > = baseEntityParserSchema.extend({
   id: z.literal("site-info"),
   entityType: z.literal("site-info"),
-  metadata: siteInfoEntityMetadataSchema,
+  metadata: siteInfoMetadataSchema,
 });
 
 /**

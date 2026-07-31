@@ -4,12 +4,8 @@ import type {
   EntityTypeConfig,
   DataSource,
 } from "@brains/plugins";
-import {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-  ENTITY_CHANNELS,
-  DIRECTORY_SYNC_CHANNELS,
-} from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,

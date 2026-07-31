@@ -13,7 +13,6 @@ describe("AgentService invalidation", () => {
   let agentFactoryCalls: number;
 
   beforeEach(async () => {
-    await AgentService.resetInstance();
     agentFactoryCalls = 0;
   });
 

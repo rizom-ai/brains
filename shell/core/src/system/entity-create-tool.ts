@@ -8,11 +8,7 @@ import {
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
 } from "@brains/entity-service";
-import {
-  ConfirmationArgsStore,
-  type Tool,
-  type ToolResponse,
-} from "@brains/mcp-service";
+import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
@@ -21,11 +17,14 @@ import type { SystemServices } from "./types";
 import {
   assertEntityTypeRegistered,
   buildEntityMutationEventContext,
+  createConfirmationGate,
   createSystemTool,
   hasStructuredFrontmatter,
   isUploadRefInConversation,
   normalizeOptionalString,
+  runCreateInterceptor,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
@@ -182,55 +181,6 @@ function freezeConfirmationSource(input: {
 type CreateToolContext = Parameters<Tool["handler"]>[1];
 type CreateEventContext = ReturnType<typeof buildEntityMutationEventContext>;
 
-type InterceptorOutcome =
-  | { kind: "handled"; result: ToolResponse }
-  | { kind: "error"; result: ToolResponse }
-  | {
-      kind: "continue";
-      createInput: CreateInput;
-    };
-
-/**
- * Run a plugin create interceptor. Returns the terminal response when the
- * interceptor handles the create itself, an error when the transformed input
- * fails policy validation, or the possibly-transformed input for direct persistence.
- */
-async function runCreateInterceptor(
-  services: SystemServices,
-  interceptor: NonNullable<
-    ReturnType<SystemServices["entityRegistry"]["getCreateInterceptor"]>
-  >,
-  createInput: CreateInput,
-  toolContext: CreateToolContext,
-): Promise<InterceptorOutcome> {
-  const executionContext: CreateExecutionContext = {
-    interfaceType: toolContext.interfaceType,
-    actor: toolContext.actor,
-    ...(toolContext.channelId && { channelId: toolContext.channelId }),
-    ...(toolContext.channelName && { channelName: toolContext.channelName }),
-  };
-  const interception = await interceptor(createInput, executionContext);
-  if (interception.kind === "handled") {
-    return { kind: "handled", result: interception.result };
-  }
-
-  const transformedInput = interception.input;
-  const transformedPolicyError = assertEntityActionAllowed(
-    services,
-    transformedInput.entityType,
-    "create",
-    toolContext,
-  );
-  if (transformedPolicyError) {
-    return { kind: "error", result: transformedPolicyError };
-  }
-
-  return {
-    kind: "continue",
-    createInput: transformedInput,
-  };
-}
-
 /**
  * Persist a content/text-source create directly, choosing markdown or raw
  * creation based on whether the entity type has structured frontmatter.
@@ -302,7 +252,7 @@ async function executeDirectCreate(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create entity",
+      error: getErrorMessage(error, "Failed to create entity"),
     };
   }
 }
@@ -552,7 +502,10 @@ async function prepareCreate(
 }
 
 export function createEntityCreateTool(services: SystemServices): Tool {
-  const confirmationArgsStore = new ConfirmationArgsStore();
+  const confirmationGate = createConfirmationGate({
+    label: "create",
+    requestNoun: "creation",
+  });
 
   return createSystemTool(
     "create",
@@ -566,22 +519,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         prep.prepared;
 
       if (input.confirmed) {
-        const token = input.confirmationToken;
-        const validation = confirmationArgsStore.validate(token, input);
-        if (validation.status === "missing") {
-          return {
-            success: false,
-            error:
-              "No pending create confirmation found. Please request creation again and confirm the new approval.",
-          };
-        }
-        if (validation.status === "mismatch") {
-          return {
-            success: false,
-            error:
-              "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
-          };
-        }
+        const gateError = confirmationGate.validateConfirmed(input);
+        if (gateError) return gateError;
       } else {
         const confirmation = uploadPreserve
           ? buildUploadPreserveConfirmation({
@@ -595,7 +534,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           source: input.source,
           ...(resolvedMessageId && { resolvedMessageId }),
         });
-        const confirmationArgs = confirmationArgsStore.create(
+        const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({
             entityType: createInput.entityType,
             ...(createInput.title && { title: createInput.title }),

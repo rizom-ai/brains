@@ -96,8 +96,6 @@ describe("JobProgressMonitor", () => {
     messageBusSendMock = spyOn(mockMessageBus, "send");
     mockLogger = createSilentLogger();
 
-    JobProgressMonitor.resetInstance();
-
     monitor = JobProgressMonitor.createFresh(
       mockJobQueueService,
       mockMessageBus,
@@ -463,46 +461,6 @@ describe("JobProgressMonitor", () => {
       } catch (error) {
         expect(error).toEqual(new Error("Message bus error"));
       }
-    });
-  });
-
-  describe("singleton behavior", () => {
-    it("should return the same instance when using getInstance", () => {
-      const instance1 = JobProgressMonitor.getInstance(
-        mockJobQueueService,
-        mockMessageBus,
-        mockBatchJobManager,
-        mockLogger,
-      );
-
-      const instance2 = JobProgressMonitor.getInstance(
-        mockJobQueueService,
-        mockMessageBus,
-        mockBatchJobManager,
-        mockLogger,
-      );
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create new instance after reset", () => {
-      const instance1 = JobProgressMonitor.getInstance(
-        mockJobQueueService,
-        mockMessageBus,
-        mockBatchJobManager,
-        mockLogger,
-      );
-
-      JobProgressMonitor.resetInstance();
-
-      const instance2 = JobProgressMonitor.getInstance(
-        mockJobQueueService,
-        mockMessageBus,
-        mockBatchJobManager,
-        mockLogger,
-      );
-
-      expect(instance1).not.toBe(instance2);
     });
   });
 });

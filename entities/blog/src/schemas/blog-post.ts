@@ -10,9 +10,6 @@ export type BlogPostStatus =
 export const blogPostStatusSchema: z.ZodType<BlogPostStatus, BlogPostStatus> =
   z.enum(["generating", "draft", "queued", "published", "failed"]);
 
-const blogPostStatusParserSchema: z.ZodType<BlogPostStatus, BlogPostStatus> =
-  z.enum(["generating", "draft", "queued", "published", "failed"]);
-
 /**
  * Blog post frontmatter schema (stored in content as YAML frontmatter)
  * Contains all blog post data for human editing
@@ -118,34 +115,6 @@ export const blogPostMetadataSchema: BlogPostMetadataSchema =
       error: z.string().optional(),
     });
 
-const blogPostEntityMetadataParserSchema: BlogPostMetadataSchema = z.object({
-  title: z.string(),
-  status: blogPostStatusParserSchema,
-  publishedAt: z.string().datetime().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
-  slug: z.string(),
-  error: z.string().optional(),
-});
-
-const blogPostFrontmatterParserSchema: BlogPostFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(),
-  status: blogPostStatusParserSchema,
-  publishedAt: z.string().datetime().optional(),
-  excerpt: z.string(),
-  author: z.string(),
-  coverImageId: z.string().optional(),
-  ogImageId: z.string().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
-  ogImage: z.string().url().optional(),
-  ogDescription: z.string().optional(),
-  twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
-  canonicalUrl: z.string().url().optional(),
-  atprotoUri: z.string().optional(),
-});
-
 /**
  * Blog post entity schema (extends BaseEntity)
  * Content field contains markdown with frontmatter + blog post body
@@ -158,7 +127,7 @@ export const blogPostSchema: ReturnType<
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("post"),
-  metadata: blogPostEntityMetadataParserSchema,
+  metadata: blogPostMetadataSchema,
 });
 
 /**
@@ -178,7 +147,7 @@ export const blogPostWithDataSchema: ReturnType<
     coverImageUrl: z.ZodOptional<z.ZodString>;
   }>
 > = blogPostSchema.extend({
-  frontmatter: blogPostFrontmatterParserSchema,
+  frontmatter: blogPostFrontmatterSchema,
   body: z.string(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
 });

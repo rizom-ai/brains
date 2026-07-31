@@ -142,8 +142,6 @@ describe("JobQueueWorker", () => {
   let mockProgressMonitor: IJobProgressMonitor;
 
   beforeEach(() => {
-    JobQueueWorker.resetInstance();
-
     mockProgressMonitor = new MockProgressMonitor();
 
     mockService = createMockJobQueueService({
@@ -162,7 +160,6 @@ describe("JobQueueWorker", () => {
     if (worker.isWorkerRunning()) {
       await worker.stop();
     }
-    JobQueueWorker.resetInstance();
   });
 
   describe("Basic lifecycle", () => {

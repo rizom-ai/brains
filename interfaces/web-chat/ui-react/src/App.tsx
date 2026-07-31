@@ -1,19 +1,11 @@
 /** @jsxImportSource react */
-import {
-  type CSSProperties,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { z } from "@brains/utils/zod";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
-  type ChatStatus,
   type FileUIPart,
   type UIMessage,
 } from "ai";
@@ -22,31 +14,22 @@ import {
   ConversationContent,
   ConversationEmptyState,
 } from "./ai-elements/conversation";
-import {
-  ActionsPart,
-  AttachmentPart,
-  ConfirmationPart,
-  GenericDataPart,
-  NativeToolPart,
-  SourcesPart,
-  ToolCallsGroup,
-  ToolResultPart,
-} from "./ai-elements/data-parts";
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "./ai-elements/message";
+import { Message, MessageContent } from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
   PromptInputHeader,
-  PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
-  usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
-import { groupMessagePartSections, type RenderedPart } from "./message-parts";
+import {
+  PromptAttachmentButton,
+  PromptAttachmentList,
+  PromptSubmitControl,
+} from "./components/prompt-controls";
+import { MessageSections } from "./components/message-sections";
+import { SessionDialog } from "./components/session-dialog";
+import { SessionRail } from "./components/session-rail";
 import {
   buildConversationJumpGroup,
   parseChatSessionHash,
@@ -54,13 +37,6 @@ import {
 } from "./jump-local";
 import type { WebChatSession } from "./api";
 import { createActiveMessageSeed } from "./history-messages";
-import {
-  archiveWebChatSession,
-  deleteWebChatSession,
-  removeWebChatSessionCaches,
-  renameWebChatSession,
-  renameWebChatSessionCache,
-} from "./mutations";
 import {
   sessionHistoryQueryOptions,
   sessionListQueryOptions,
@@ -72,255 +48,24 @@ import {
   webChatUploadAccept,
   webChatUploadMaxBytes,
 } from "../../src/upload-policy";
+import { getErrorMessage } from "@brains/utils/error";
+import {
+  getLiveStatusMessage,
+  isBusyStatus,
+  statusPhrase,
+} from "./chat-status";
+import {
+  createConversationId,
+  getBrowserConversationId,
+  rememberConversationId,
+} from "./conversation-id";
+import { focusPromptTextarea, resizePromptTextarea } from "./prompt-textarea";
+import { deriveSessionTitle } from "./session-format";
+import { useSessionMutations } from "./use-session-mutations";
 
-const conversationStorageKey = "brain:web-chat:conversation-id";
-
-type SessionDialog =
-  | { kind: "rename"; session: WebChatSession }
-  | { kind: "archive"; session: WebChatSession }
-  | { kind: "delete"; session: WebChatSession }
-  | null;
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
-function PromptAttachmentButton(): React.ReactElement {
-  const attachments = usePromptInputAttachments();
-  return (
-    <button
-      type="button"
-      className="web-chat-prompt-attach"
-      onClick={() => attachments.openFileDialog()}
-    >
-      Attach file
-    </button>
-  );
-}
-
-function PromptAttachmentList(): React.ReactElement | null {
-  const attachments = usePromptInputAttachments();
-  if (attachments.files.length === 0) return null;
-
-  return (
-    <div className="web-chat-prompt-attachments" aria-label="Attached files">
-      {attachments.files.map((file) => (
-        <span className="web-chat-prompt-attachment" key={file.id}>
-          <span>{file.filename ?? "upload.txt"}</span>
-          <button
-            type="button"
-            aria-label={`Remove ${file.filename ?? "uploaded file"}`}
-            onClick={() => attachments.remove(file.id)}
-          >
-            ×
-          </button>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function PromptSubmitControl({
-  input,
-  onStop,
-  status,
-}: {
-  input: string;
-  onStop: () => void;
-  status: ChatStatus;
-}): React.ReactElement {
-  const attachments = usePromptInputAttachments();
-  return (
-    <PromptInputSubmit
-      status={status}
-      onStop={onStop}
-      disabled={!input.trim() && attachments.files.length === 0}
-    />
-  );
-}
-
-const dayMs = 24 * 60 * 60 * 1000;
-const sessionTitleMaxLength = 48;
-
 const emptySessions: WebChatSession[] = [];
-
-function createConversationId(): string {
-  return `web-${crypto.randomUUID()}`;
-}
-
-function getBrowserConversationId(): string {
-  try {
-    const stored = localStorage.getItem(conversationStorageKey);
-    if (stored) return stored;
-    const next = createConversationId();
-    localStorage.setItem(conversationStorageKey, next);
-    return next;
-  } catch {
-    return createConversationId();
-  }
-}
-
-function isBusyStatus(status: string): boolean {
-  return status === "submitted" || status === "streaming";
-}
-
-function resizePromptTextarea(textarea: HTMLTextAreaElement): void {
-  textarea.style.height = "auto";
-  textarea.style.height = `${textarea.scrollHeight}px`;
-}
-
-function focusPromptTextarea(textarea: HTMLTextAreaElement | null): void {
-  requestAnimationFrame(() => textarea?.focus());
-}
-
-function deriveSessionTitle(text: string): string {
-  const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
-  if (!firstLine) return "New conversation";
-  if (firstLine.length <= sessionTitleMaxLength) return firstLine;
-  return `${firstLine.slice(0, sessionTitleMaxLength - 1).trimEnd()}…`;
-}
-
-function formatSessionTime(iso: string, now: Date = new Date()): string {
-  const then = new Date(iso);
-  if (Number.isNaN(then.getTime())) return "—";
-  const diff = now.getTime() - then.getTime();
-  if (diff < dayMs && then.getDate() === now.getDate()) {
-    return then.toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  const yesterday = new Date(now.getTime() - dayMs);
-  if (then.getDate() === yesterday.getDate()) return "Yest";
-  if (diff < 7 * dayMs) {
-    return then.toLocaleDateString(undefined, { weekday: "short" });
-  }
-  return then.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-}
-
-function statusPhrase(status: string): string {
-  if (status === "submitted") return "the rhizome is listening";
-  if (status === "streaming") return "the rhizome is listening";
-  if (status === "error") return "a thread broke mid-growth";
-  return "";
-}
-
-function getLiveStatusMessage(part: unknown): string | null {
-  if (typeof part !== "object" || part === null) return null;
-  if (!("type" in part) || part.type !== "data-status") return null;
-  if (!("data" in part)) return null;
-  const data = part.data;
-  if (typeof data !== "object" || data === null) return null;
-  if (!("message" in data) || typeof data.message !== "string") return null;
-  return data.message;
-}
-
-function UploadedFilePart({
-  filename,
-  mediaType,
-  url,
-}: {
-  filename: string;
-  mediaType: string;
-  url?: string | undefined;
-}): React.ReactElement {
-  const content = (
-    <>
-      <span className="web-chat-attached-file-kicker">attached</span>
-      <span className="web-chat-attached-file-name">{filename}</span>
-    </>
-  );
-
-  if (url) {
-    return (
-      <a
-        className="web-chat-attached-file"
-        data-media-type={mediaType}
-        href={url}
-      >
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <span className="web-chat-attached-file" data-media-type={mediaType}>
-      {content}
-    </span>
-  );
-}
-
-interface ProgressData {
-  status: "pending" | "processing" | "completed" | "failed";
-  operationType: string;
-  operationTarget?: string;
-  message?: string;
-  progress?: { current: number; total: number; percentage: number };
-}
-
-const progressDataSchema = z.looseObject({
-  status: z.enum(["pending", "processing", "completed", "failed"]),
-  operationType: z.string(),
-});
-
-export function isProgressData(data: unknown): data is ProgressData {
-  return progressDataSchema.safeParse(data).success;
-}
-
-function formatOperationType(operationType: string): string {
-  return operationType
-    .split("_")
-    .filter((part) => part.length > 0)
-    .join(" ");
-}
-
-export function progressLabel(status: ProgressData["status"]): string {
-  switch (status) {
-    case "completed":
-      return "completed";
-    case "failed":
-      return "failed";
-    case "pending":
-      return "queued";
-    case "processing":
-      return "processing";
-  }
-}
-
-export function ProgressPart({
-  data,
-}: {
-  data: unknown;
-}): React.ReactElement | null {
-  if (!isProgressData(data)) return null;
-  const operation = formatOperationType(data.operationType);
-  const title = data.operationTarget
-    ? `${operation}: ${data.operationTarget}`
-    : operation;
-  const progress = data.progress;
-  return (
-    <section className="web-chat-progress-part" data-status={data.status}>
-      <div className="web-chat-progress-kicker">
-        {progressLabel(data.status)}
-      </div>
-      <div className="web-chat-progress-title">{title}</div>
-      {data.message ? (
-        <div className="web-chat-progress-message">{data.message}</div>
-      ) : null}
-      {progress ? (
-        <div
-          className="web-chat-progress-meter"
-          aria-label={`${progress.percentage}% complete`}
-        >
-          <span
-            style={
-              {
-                "--web-chat-progress-value": `${Math.max(0, Math.min(100, progress.percentage))}%`,
-              } as CSSProperties
-            }
-          />
-        </div>
-      ) : null}
-    </section>
-  );
-}
 
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
@@ -329,21 +74,7 @@ export function App(): React.ReactElement {
   );
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(sessionListQueryOptions());
-  const renameSessionMutation = useMutation({
-    mutationFn: renameWebChatSession,
-  });
-  const archiveSessionMutation = useMutation({
-    mutationFn: archiveWebChatSession,
-  });
-  const deleteSessionMutation = useMutation({
-    mutationFn: deleteWebChatSession,
-  });
   const sessions = sessionsQuery.data ?? emptySessions;
-  const sessionsStatus = sessionsQuery.isPending
-    ? "loading"
-    : sessionsQuery.isError
-      ? "error"
-      : "ready";
   const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
   const startupRestoreAttemptedRef = useRef(false);
@@ -351,17 +82,6 @@ export function App(): React.ReactElement {
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
   >(null);
-  const deletingConversationId = deleteSessionMutation.isPending
-    ? deleteSessionMutation.variables.conversationId
-    : null;
-  const archivingConversationId = archiveSessionMutation.isPending
-    ? archiveSessionMutation.variables.conversationId
-    : null;
-  const renamingConversationId = renameSessionMutation.isPending
-    ? renameSessionMutation.variables.conversationId
-    : null;
-  const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
-  const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
@@ -416,84 +136,24 @@ export function App(): React.ReactElement {
     chat,
   });
 
-  function renderMessagePart(
-    group: RenderedPart,
-    key: string,
-  ): React.ReactElement | null {
-    if (group.kind === "text") {
-      return <MessageResponse key={key}>{group.text}</MessageResponse>;
-    }
-    if (group.kind === "tools") {
-      if (group.tools.length === 1) {
-        return <ToolResultPart key={key} data={group.tools[0]} />;
-      }
-      return <ToolCallsGroup key={key} tools={group.tools} />;
-    }
-    if (group.kind === "confirmation") {
-      return (
-        <ConfirmationPart
-          key={key}
-          data={group.data}
-          addToolApprovalResponse={addToolApprovalResponse}
-        />
-      );
-    }
-    if (group.kind === "native-tool") {
-      return <NativeToolPart key={key} data={group.data} />;
-    }
-    if (group.kind === "attachment") {
-      return <AttachmentPart key={key} data={group.data} />;
-    }
-    if (group.kind === "progress") {
-      return <ProgressPart key={key} data={group.data} />;
-    }
-    if (group.kind === "sources") {
-      return <SourcesPart key={key} data={group.data} />;
-    }
-    if (group.kind === "actions") {
-      return (
-        <ActionsPart
-          key={key}
-          data={group.data}
-          onPromptAction={(prompt) => void submitMessage(prompt)}
-          onEventAction={(action) => void submitRuntimeEvent(action)}
-        />
-      );
-    }
-    if (group.kind === "file") {
-      return (
-        <UploadedFilePart
-          key={key}
-          filename={group.filename}
-          mediaType={group.mediaType}
-          url={group.url}
-        />
-      );
-    }
-    return <GenericDataPart key={key} type={group.type} data={group.data} />;
+  function resetToNewConversation(): void {
+    switchRequestIdRef.current += 1;
+    setLoadingConversationId(null);
+    const next = createConversationId();
+    rememberConversationId(next);
+    setMessages([]);
+    setInitialMessages([]);
+    setConversationId(next);
+    setInput("");
   }
 
-  function renderMessageSections(
-    parts: UIMessage["parts"],
-  ): React.ReactElement {
-    const sections = groupMessagePartSections(parts);
-    return (
-      <>
-        {sections.body.map((group, index) =>
-          renderMessagePart(group, `body-${index}`),
-        )}
-        {sections.sources.map((group, index) =>
-          renderMessagePart(group, `sources-${index}`),
-        )}
-        {sections.actions.map((group, index) =>
-          renderMessagePart(group, `actions-${index}`),
-        )}
-        {sections.details.map((group, index) =>
-          renderMessagePart(group, `details-${index}`),
-        )}
-      </>
-    );
-  }
+  const sessionMutations = useSessionMutations({
+    chatIsBusy: isBusyStatus(status),
+    activeConversationId: conversationId,
+    onActiveSessionRemoved: resetToNewConversation,
+    setError: setHistoryError,
+    onSettled: () => focusPromptTextarea(promptInputRef.current),
+  });
 
   useEffect(() => {
     if (promptInputRef.current) {
@@ -505,19 +165,8 @@ export function App(): React.ReactElement {
     focusPromptTextarea(promptInputRef.current);
   }, []);
 
-  async function loadSessions(
-    _options: { quiet?: boolean } = {},
-  ): Promise<void> {
+  async function loadSessions(): Promise<void> {
     await sessionsQuery.refetch();
-  }
-
-  function updateCachedSessions(
-    update: (current: WebChatSession[]) => WebChatSession[],
-  ): void {
-    queryClient.setQueryData<WebChatSession[]>(
-      webChatKeys.sessions(),
-      (current) => update(current ?? emptySessions),
-    );
   }
 
   function upsertPendingSession(text: string): void {
@@ -527,19 +176,25 @@ export function App(): React.ReactElement {
       title: deriveSessionTitle(text),
       lastActiveAt: now,
     };
-    updateCachedSessions((current) => {
-      const existingSession = current.find(
-        (session) => session.id === conversationId,
-      );
-      const nextSession =
-        existingSession && existingSession.title !== "New conversation"
-          ? { ...existingSession, lastActiveAt: now }
-          : pendingSession;
-      const withoutCurrent = current.filter(
-        (session) => session.id !== conversationId,
-      );
-      return [nextSession, ...withoutCurrent];
-    });
+    queryClient.setQueryData<WebChatSession[]>(
+      webChatKeys.sessions(),
+      (cached) => {
+        const current = cached ?? emptySessions;
+        const existingSession = current.find(
+          (session) => session.id === conversationId,
+        );
+        // A title the operator has already seen wins over a freshly derived
+        // one — only the placeholder gets overwritten.
+        const nextSession =
+          existingSession && existingSession.title !== "New conversation"
+            ? { ...existingSession, lastActiveAt: now }
+            : pendingSession;
+        const withoutCurrent = current.filter(
+          (session) => session.id !== conversationId,
+        );
+        return [nextSession, ...withoutCurrent];
+      },
+    );
   }
 
   async function switchConversation(nextConversationId: string): Promise<void> {
@@ -558,11 +213,7 @@ export function App(): React.ReactElement {
       },
       isCurrent: () => switchRequestId === switchRequestIdRef.current,
       onSuccess: (nextMessages) => {
-        try {
-          localStorage.setItem(conversationStorageKey, nextConversationId);
-        } catch {
-          /* localStorage unavailable — switching still works in memory */
-        }
+        rememberConversationId(nextConversationId);
         setMessages(nextMessages);
         setInitialMessages(nextMessages);
         setConversationId(nextConversationId);
@@ -572,9 +223,7 @@ export function App(): React.ReactElement {
       },
       onError: (error) => {
         setHistoryError(
-          error instanceof Error
-            ? error.message
-            : "Could not reopen that session.",
+          getErrorMessage(error, "Could not reopen that session."),
         );
       },
       onSettled: () => setLoadingConversationId(null),
@@ -637,7 +286,7 @@ export function App(): React.ReactElement {
         void queryClient.invalidateQueries({
           queryKey: webChatKeys.history(conversationId),
         });
-        void loadSessions({ quiet: true });
+        void loadSessions();
         focusPromptTextarea(promptInputRef.current);
       });
   }
@@ -699,27 +348,12 @@ export function App(): React.ReactElement {
       void queryClient.invalidateQueries({
         queryKey: webChatKeys.history(conversationId),
       });
-      void loadSessions({ quiet: true });
+      void loadSessions();
     } catch (error) {
       const effect = classifySubmitError(error, "send");
       if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
       setHistoryError(effect.historyError);
     }
-  }
-
-  function resetToNewConversation(): void {
-    switchRequestIdRef.current += 1;
-    setLoadingConversationId(null);
-    const next = createConversationId();
-    try {
-      localStorage.setItem(conversationStorageKey, next);
-    } catch {
-      /* localStorage unavailable — the new session still works in memory */
-    }
-    setMessages([]);
-    setInitialMessages([]);
-    setConversationId(next);
-    setInput("");
   }
 
   function startNewConversation(): void {
@@ -757,269 +391,11 @@ export function App(): React.ReactElement {
     // Mount-only by design: doors normally arrive via full navigation.
   }, []);
 
-  function openRenameDialog(session: WebChatSession): void {
-    closeDrawer();
-    setRenameDraft(session.title);
-    setSessionDialog({ kind: "rename", session });
-  }
-
-  function openArchiveDialog(session: WebChatSession): void {
-    closeDrawer();
-    setSessionDialog({ kind: "archive", session });
-  }
-
-  function openDeleteDialog(session: WebChatSession): void {
-    closeDrawer();
-    setSessionDialog({ kind: "delete", session });
-  }
-
-  function closeSessionDialog(): void {
-    setSessionDialog(null);
-    setRenameDraft("");
-  }
-
-  function renameConversation(
-    session: WebChatSession,
-    nextTitle: string,
-  ): void {
-    const trimmedTitle = nextTitle.trim();
-    if (
-      isBusyStatus(status) ||
-      renameSessionMutation.isPending ||
-      !trimmedTitle ||
-      trimmedTitle === session.title
-    ) {
-      closeSessionDialog();
-      return;
-    }
-
-    setHistoryError(null);
-    renameSessionMutation.mutate(
-      { conversationId: session.id, title: trimmedTitle },
-      {
-        onSuccess: () => {
-          renameWebChatSessionCache(queryClient, {
-            conversationId: session.id,
-            title: trimmedTitle,
-          });
-          closeSessionDialog();
-          focusPromptTextarea(promptInputRef.current);
-        },
-        onError: (error) => {
-          setHistoryError(error.message);
-        },
-      },
-    );
-  }
-
-  function archiveConversation(session: WebChatSession): void {
-    if (isBusyStatus(status) || archiveSessionMutation.isPending) return;
-
-    setHistoryError(null);
-    archiveSessionMutation.mutate(
-      { conversationId: session.id },
-      {
-        onSuccess: () => {
-          removeWebChatSessionCaches(queryClient, session.id);
-          if (session.id === conversationId) resetToNewConversation();
-          closeSessionDialog();
-          focusPromptTextarea(promptInputRef.current);
-        },
-        onError: (error) => {
-          setHistoryError(error.message);
-        },
-      },
-    );
-  }
-
-  function deleteConversation(session: WebChatSession): void {
-    if (isBusyStatus(status) || deleteSessionMutation.isPending) return;
-
-    setHistoryError(null);
-    deleteSessionMutation.mutate(
-      { conversationId: session.id },
-      {
-        onSuccess: () => {
-          removeWebChatSessionCaches(queryClient, session.id);
-          if (session.id === conversationId) resetToNewConversation();
-          closeSessionDialog();
-          focusPromptTextarea(promptInputRef.current);
-        },
-        onError: (error) => {
-          setHistoryError(error.message);
-        },
-      },
-    );
-  }
-
-  function renderSessions(): React.ReactNode {
-    if (sessionsStatus === "loading" && sessions.length === 0) {
-      return (
-        <ul
-          className="web-chat-sessions-list"
-          aria-busy="true"
-          aria-label="Loading sessions"
-        >
-          {Array.from({ length: 4 }, (_, index) => (
-            <li key={index} className="web-chat-session-skeleton">
-              <span />
-              <div>
-                <span />
-                <span />
-              </div>
-            </li>
-          ))}
-        </ul>
-      );
-    }
-
-    if (sessionError && sessions.length === 0) {
-      return (
-        <div className="web-chat-sessions-state" data-tone="error" role="alert">
-          <span className="web-chat-sessions-state-tag">Signal lost</span>
-          <p>{sessionError}</p>
-          <button type="button" onClick={() => void loadSessions()}>
-            Retry
-          </button>
-        </div>
-      );
-    }
-
-    if (sessions.length === 0) {
-      return (
-        <div className="web-chat-sessions-state" aria-live="polite">
-          <span className="web-chat-sessions-state-tag">No traces yet</span>
-          <p>Your first thread will root here after you plant a question.</p>
-        </div>
-      );
-    }
-
-    return (
-      <>
-        {sessionError ? (
-          <div className="web-chat-sessions-inline-error" role="status">
-            <span>Sync paused</span>
-            <button type="button" onClick={() => void loadSessions()}>
-              Retry
-            </button>
-          </div>
-        ) : null}
-        <ul className="web-chat-sessions-list" role="listbox">
-          {sessions.map((session) => {
-            const isLoading = session.id === loadingConversationId;
-            const isDeleting = session.id === deletingConversationId;
-            const isArchiving = session.id === archivingConversationId;
-            const isRenaming = session.id === renamingConversationId;
-            const actionsDisabled =
-              isBusyStatus(status) ||
-              loadingConversationId !== null ||
-              deletingConversationId !== null ||
-              archivingConversationId !== null ||
-              renamingConversationId !== null;
-            return (
-              <li key={session.id} className="web-chat-session-item">
-                <button
-                  className="web-chat-session"
-                  type="button"
-                  role="option"
-                  aria-selected={session.id === conversationId}
-                  aria-busy={
-                    isLoading || isDeleting || isArchiving || isRenaming
-                  }
-                  disabled={actionsDisabled}
-                  data-active={session.id === conversationId ? "true" : "false"}
-                  data-loading={isLoading ? "true" : "false"}
-                  onClick={() => void switchConversation(session.id)}
-                >
-                  <span className="web-chat-session-time">
-                    {formatSessionTime(session.lastActiveAt)}
-                  </span>
-                  <div className="web-chat-session-body">
-                    <h3 className="web-chat-session-title">{session.title}</h3>
-                    {isLoading || isDeleting || isArchiving || isRenaming ? (
-                      <span className="web-chat-session-subtitle">
-                        {isRenaming
-                          ? "renaming…"
-                          : isArchiving
-                            ? "archiving…"
-                            : isDeleting
-                              ? "deleting…"
-                              : "reopening…"}
-                      </span>
-                    ) : null}
-                  </div>
-                </button>
-                <button
-                  className="web-chat-session-rename"
-                  type="button"
-                  aria-label={`Rename ${session.title}`}
-                  disabled={actionsDisabled}
-                  onClick={() => openRenameDialog(session)}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <path d="M9.8 3.2 12.8 6.2" strokeLinecap="round" />
-                    <path
-                      d="M3.5 12.5 4.2 9.4 10.9 2.7a1.4 1.4 0 0 1 2 2L6.2 11.4l-2.7 1.1Z"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  className="web-chat-session-archive"
-                  type="button"
-                  aria-label={`Archive ${session.title}`}
-                  disabled={actionsDisabled}
-                  onClick={() => openArchiveDialog(session)}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <path d="M3 5.2h10M4 5.2v7h8v-7" strokeLinejoin="round" />
-                    <path d="M6.5 8h3" strokeLinecap="round" />
-                    <path
-                      d="M4.2 3.2h7.6L13 5.2H3l1.2-2Z"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  className="web-chat-session-delete"
-                  type="button"
-                  aria-label={`Delete ${session.title}`}
-                  disabled={actionsDisabled}
-                  onClick={() => openDeleteDialog(session)}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <path d="M3.5 4.5h9" strokeLinecap="round" />
-                    <path d="M6 4.5V3.2h4v1.3" strokeLinejoin="round" />
-                    <path
-                      d="M5 6.5v5.2M8 6.5v5.2M11 6.5v5.2M4.7 4.5l.45 8.3h5.7l.45-8.3"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </>
-    );
+  function openDialogFromRail(open: (session: WebChatSession) => void) {
+    return (session: WebChatSession): void => {
+      closeDrawer();
+      open(session);
+    };
   }
 
   const activeSessionTitle = sessions.find(
@@ -1056,136 +432,38 @@ export function App(): React.ReactElement {
         </svg>
       </button>
 
-      {sessionDialog ? (
-        <div className="web-chat-session-dialog-backdrop" role="presentation">
-          <section
-            className="web-chat-session-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="web-chat-session-dialog-title"
-          >
-            <span className="web-chat-session-dialog-kicker">
-              {sessionDialog.kind === "rename"
-                ? "Retitle trace"
-                : sessionDialog.kind === "archive"
-                  ? "Store trace"
-                  : "Prune trace"}
-            </span>
-            <h2 id="web-chat-session-dialog-title">
-              {sessionDialog.kind === "rename"
-                ? "Rename this thread"
-                : sessionDialog.kind === "archive"
-                  ? "Archive this thread?"
-                  : "Delete this thread?"}
-            </h2>
-            {sessionDialog.kind === "rename" ? (
-              <form
-                className="web-chat-session-dialog-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void renameConversation(sessionDialog.session, renameDraft);
-                }}
-              >
-                <label htmlFor="web-chat-session-rename-input">
-                  Trace title
-                </label>
-                <input
-                  id="web-chat-session-rename-input"
-                  value={renameDraft}
-                  maxLength={sessionTitleMaxLength}
-                  onInput={(event) => setRenameDraft(event.currentTarget.value)}
-                />
-                <div className="web-chat-session-dialog-actions">
-                  <button type="button" onClick={closeSessionDialog}>
-                    Keep old title
-                  </button>
-                  <button
-                    type="submit"
-                    data-primary="true"
-                    disabled={
-                      renamingConversationId !== null || !renameDraft.trim()
-                    }
-                  >
-                    Rename
-                  </button>
-                </div>
-              </form>
-            ) : sessionDialog.kind === "archive" ? (
-              <>
-                <p>
-                  This stores <strong>{sessionDialog.session.title}</strong> out
-                  of the active rail without deleting its saved messages.
-                </p>
-                <div className="web-chat-session-dialog-actions">
-                  <button type="button" onClick={closeSessionDialog}>
-                    Keep active
-                  </button>
-                  <button
-                    type="button"
-                    data-primary="true"
-                    disabled={archivingConversationId !== null}
-                    onClick={() =>
-                      void archiveConversation(sessionDialog.session)
-                    }
-                  >
-                    Archive
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p>
-                  This removes <strong>{sessionDialog.session.title}</strong>{" "}
-                  and its saved messages from the session rail.
-                </p>
-                <div className="web-chat-session-dialog-actions">
-                  <button type="button" onClick={closeSessionDialog}>
-                    Keep trace
-                  </button>
-                  <button
-                    type="button"
-                    data-danger="true"
-                    disabled={deletingConversationId !== null}
-                    onClick={() =>
-                      void deleteConversation(sessionDialog.session)
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        </div>
+      {sessionMutations.dialog ? (
+        <SessionDialog
+          dialog={sessionMutations.dialog}
+          renameDraft={sessionMutations.renameDraft}
+          renamePending={sessionMutations.renamingConversationId !== null}
+          archivePending={sessionMutations.archivingConversationId !== null}
+          deletePending={sessionMutations.deletingConversationId !== null}
+          onRenameDraftChange={sessionMutations.setRenameDraft}
+          onClose={sessionMutations.closeDialog}
+          onRename={sessionMutations.renameConversation}
+          onArchive={sessionMutations.archiveConversation}
+          onDelete={sessionMutations.deleteConversation}
+        />
       ) : null}
 
-      <aside className="web-chat-sessions" aria-label="Sessions">
-        <header className="web-chat-sessions-header">
-          <h2>Conversations</h2>
-          <button
-            className="web-chat-sessions-new"
-            type="button"
-            aria-label="New conversation"
-            onClick={startNewConversation}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              aria-hidden="true"
-            >
-              <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-            </svg>
-          </button>
-        </header>
-
-        {renderSessions()}
-
-        <footer className="web-chat-sessions-footer">
-          <span className="web-chat-sessions-footer-id">brain · anchor</span>
-        </footer>
-      </aside>
+      <SessionRail
+        sessions={sessions}
+        isLoading={sessionsQuery.isPending}
+        sessionError={sessionError}
+        activeConversationId={conversationId}
+        loadingConversationId={loadingConversationId}
+        deletingConversationId={sessionMutations.deletingConversationId}
+        archivingConversationId={sessionMutations.archivingConversationId}
+        renamingConversationId={sessionMutations.renamingConversationId}
+        chatIsBusy={isBusyStatus(status)}
+        onRetry={() => void loadSessions()}
+        onSelect={(sessionId) => void switchConversation(sessionId)}
+        onNewConversation={startNewConversation}
+        onRename={openDialogFromRail(sessionMutations.openRenameDialog)}
+        onArchive={openDialogFromRail(sessionMutations.openArchiveDialog)}
+        onDelete={openDialogFromRail(sessionMutations.openDeleteDialog)}
+      />
 
       <main className="web-chat-app" aria-label="Brain chat">
         <header className="web-chat-header">
@@ -1284,7 +562,15 @@ export function App(): React.ReactElement {
                     {message.role === "user" ? "you" : "brain"}
                   </div>
                   <MessageContent className="web-chat-message-bubble">
-                    {renderMessageSections(message.parts)}
+                    <MessageSections
+                      parts={message.parts}
+                      handlers={{
+                        addToolApprovalResponse,
+                        onPromptAction: (prompt) => void submitMessage(prompt),
+                        onEventAction: (action) =>
+                          void submitRuntimeEvent(action),
+                      }}
+                    />
                   </MessageContent>
                 </Message>
               ))

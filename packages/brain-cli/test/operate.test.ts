@@ -53,7 +53,7 @@ describe("command routing", () => {
     it("should route 'build' with --preview flag", () => {
       const result = parseArgs(["build", "--preview"]);
       expect(result.command).toBe("build");
-      expect(result.flags.preview).toBe(true);
+      expect(result.flags["preview"]).toBe(true);
     });
 
     it("should route unknown commands to registry", () => {

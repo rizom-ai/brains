@@ -2,11 +2,6 @@ import { EntityPlugin as RuntimeEntityPlugin } from "../entity/entity-plugin";
 import type { EntityPluginContext as RuntimeEntityPluginContext } from "../entity/context";
 import type { PluginConfigSchema } from "../config";
 import type {
-  IShell,
-  PluginCapabilities,
-  PluginRegistrationContext,
-} from "../interfaces";
-import type {
   BaseEntity,
   CreateExecutionContext,
   CreateInput,
@@ -15,7 +10,12 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { EntityPluginContext, Plugin } from "./types";
+import type { EntityPluginContext } from "./types";
+import {
+  PublicPlugin,
+  type PluginPackageJson,
+  type RuntimePluginDelegate,
+} from "./public-plugin";
 
 type EntitySchema<TEntity extends BaseEntity> =
   EntityAdapter<TEntity>["schema"];
@@ -43,9 +43,10 @@ class EntityPluginDelegate<
   TConfigInput,
 > extends RuntimeEntityPlugin<TEntity, TConfig, TConfigInput> {
   private readonly hooks: EntityPluginHooks<TEntity>;
+
   constructor(
     id: string,
-    packageJson: { name: string; version: string; description?: string },
+    packageJson: PluginPackageJson,
     config: TConfigInput,
     configSchema: PluginConfigSchema<TConfig>,
     hooks: EntityPluginHooks<TEntity>,
@@ -107,38 +108,19 @@ export abstract class EntityPlugin<
   TEntity extends BaseEntity,
   TConfig,
   TConfigInput,
-> implements Plugin {
+> extends PublicPlugin<TConfig, TConfigInput> {
   public readonly type = "entity" as const;
-  public readonly id: string;
-  public readonly version: string;
-  public readonly packageName: string;
-  public readonly description?: string;
   public abstract readonly entityType: string;
   public abstract readonly schema: EntitySchema<TEntity>;
   public abstract readonly adapter: EntityAdapter<TEntity>;
-  private readonly delegate: EntityPluginDelegate<
-    TEntity,
-    TConfig,
-    TConfigInput
-  >;
 
-  protected constructor(
-    id: string,
-    packageJson: { name: string; version: string; description?: string },
-    config: TConfigInput,
-    configSchema: PluginConfigSchema<TConfig>,
-  ) {
-    this.id = id;
-    this.version = packageJson.version;
-    this.packageName = packageJson.name;
-    if (packageJson.description !== undefined) {
-      this.description = packageJson.description;
-    }
-    this.delegate = new EntityPluginDelegate(
-      id,
-      packageJson,
-      config,
-      configSchema,
+  /** @internal */
+  protected override createDelegate(): RuntimePluginDelegate {
+    return new EntityPluginDelegate<TEntity, TConfig, TConfigInput>(
+      this.id,
+      this.packageJson,
+      this.pluginConfig,
+      this.configSchema,
       {
         getEntityType: (): string => this.entityType,
         getSchema: (): EntitySchema<TEntity> => this.schema,
@@ -161,14 +143,6 @@ export abstract class EntityPlugin<
     );
   }
 
-  /** @internal */
-  register(
-    shell: IShell,
-    context?: PluginRegistrationContext,
-  ): Promise<PluginCapabilities> {
-    return this.delegate.register(shell, context);
-  }
-
   protected async onRegister(_context: EntityPluginContext): Promise<void> {}
   protected async onReady(_context: EntityPluginContext): Promise<void> {}
   protected async onShutdown(): Promise<void> {}
@@ -187,13 +161,5 @@ export abstract class EntityPlugin<
     _context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     return { kind: "continue", input };
-  }
-
-  ready(): Promise<void> {
-    return this.delegate.ready();
-  }
-
-  shutdown(): Promise<void> {
-    return this.delegate.shutdown?.() ?? Promise.resolve();
   }
 }

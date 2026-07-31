@@ -69,6 +69,8 @@ export class ShellBootloader {
       (): Promise<void> =>
         this.services.jobQueueService.initialize?.() ?? Promise.resolve(),
       (): Promise<void> => this.services.runtimeStateService.initialize(),
+      (): Promise<void> =>
+        this.services.conversationService.initialize?.() ?? Promise.resolve(),
     ]);
 
     await shellInitializer.initializeAll(

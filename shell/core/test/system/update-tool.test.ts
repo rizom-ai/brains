@@ -7,6 +7,8 @@ import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
+const confirmationArgsSchema = z.record(z.string(), z.unknown());
+
 const updateEntityRequestSchema = z.looseObject({
   options: z
     .object({
@@ -152,6 +154,26 @@ describe("system_update tool", () => {
     });
   }
 
+  function expectConfirmationArgs(
+    result: ToolResponse,
+  ): Record<string, unknown> {
+    if (!("needsConfirmation" in result)) {
+      throw new Error(
+        `Expected a confirmation response, got: ${JSON.stringify(result)}`,
+      );
+    }
+    return confirmationArgsSchema.parse(result.args);
+  }
+
+  /** Propose, then replay the approval args — the flow interfaces drive. */
+  async function execConfirmed(
+    input: Record<string, unknown>,
+    userPermissionLevel: "admin" | "trusted" | "public" = "admin",
+  ): Promise<ToolResponse> {
+    const confirmation = await exec(input, userPermissionLevel);
+    return exec(expectConfirmationArgs(confirmation), userPermissionLevel);
+  }
+
   async function execDelete(
     input: Record<string, unknown>,
     userPermissionLevel: "admin" | "trusted" | "public" = "admin",
@@ -169,24 +191,22 @@ describe("system_update tool", () => {
     const tool = tools.find((candidate) => candidate.name === "system_update");
     if (!tool) throw new Error("system_update not found");
 
-    const result = await tool.handler(
-      {
-        entityType: "agent",
-        id: "old-agent.io",
-        fields: { status: "approved" },
-        confirmed: true,
-        contentHash: "hash-1",
-      },
-      {
-        interfaceType: "test",
-        actor: { kind: "user", userId: "test" },
-        conversationId: "conversation-1",
-        channelId: "channel-1",
-        runId: "run-1",
-        toolCallId: "call-1",
-        userPermissionLevel: "admin",
-      },
-    );
+    const confirmation = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { status: "approved" },
+    });
+    const args = expectConfirmationArgs(confirmation);
+
+    const result = await tool.handler(args, {
+      interfaceType: "test",
+      actor: { kind: "user", userId: "test" },
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+      runId: "run-1",
+      toolCallId: "call-1",
+      userPermissionLevel: "admin",
+    });
 
     expect("success" in result && result.success).toBe(true);
     const request = updateEntityRequestSchema.parse(
@@ -198,6 +218,37 @@ describe("system_update tool", () => {
       runId: "run-1",
       toolCallId: "call-1",
     });
+  });
+
+  it("rejects a confirmed update with no pending approval", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { status: "approved" },
+      confirmed: true,
+      contentHash: "hash-1",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    expect("error" in result ? result.error : "").toContain(
+      "No pending update confirmation",
+    );
+  });
+
+  it("rejects update confirmation args tampered after approval", async () => {
+    const confirmation = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { status: "approved" },
+    });
+    const args = expectConfirmationArgs(confirmation);
+
+    const result = await exec({ ...args, fields: { status: "retired" } });
+
+    expect(result).toMatchObject({ success: false });
+    expect("error" in result ? result.error : "").toContain(
+      "do not match the pending approval",
+    );
   });
 
   it("uses non-title metadata as the display label in update confirmations", async () => {
@@ -281,13 +332,8 @@ describe("system_update tool", () => {
       entityType: "newsletter",
       id: "newsletter-1",
     });
-    if (!(typeof confirmation === "object" && "args" in confirmation)) {
-      throw new Error("Expected delete confirmation args");
-    }
 
-    const result = await execDelete(
-      confirmation.args as Record<string, unknown>,
-    );
+    const result = await execDelete(expectConfirmationArgs(confirmation));
 
     expect(result).toMatchObject({
       success: true,
@@ -312,11 +358,10 @@ describe("system_update tool", () => {
   });
 
   it("normalizes JSON-wrapped field updates passed via content", async () => {
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
       content: JSON.stringify({ fields: { status: "archived" } }),
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -333,11 +378,10 @@ describe("system_update tool", () => {
   });
 
   it("updates visibility as a top-level field and normalizes private", async () => {
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
       fields: { visibility: "private" },
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -391,11 +435,10 @@ describe("system_update tool", () => {
       return originalUpdateEntity(request);
     };
 
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "post",
       id: "resilience-in-distributed-systems",
       fields: { status: "draft", publishedAt: null },
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -421,7 +464,6 @@ describe("system_update tool", () => {
       entityType: "agent",
       id: "old-agent.io",
       fields: { coverImageId: "hero-banner" },
-      confirmed: true,
     });
 
     expect(result).toMatchObject({
@@ -459,11 +501,10 @@ describe("system_update tool", () => {
   });
 
   it("writes coverImageId field updates to frontmatter for entity types with cover support", async () => {
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "social-post",
       id: "linkedin-update",
       fields: { coverImageId: "hero-banner" },
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -476,11 +517,10 @@ describe("system_update tool", () => {
   });
 
   it("writes ogImageId field updates to frontmatter", async () => {
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "social-post",
       id: "linkedin-update",
       fields: { ogImageId: "social-card" },
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -507,11 +547,10 @@ describe("system_update tool", () => {
       },
     ]);
 
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "social-post",
       id: "covered-post",
       fields: { coverImageId: null },
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -527,11 +566,10 @@ describe("system_update tool", () => {
     const newMarkdown =
       "---\nname: Old Agent\nkind: person\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";
 
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
       content: newMarkdown,
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -556,11 +594,10 @@ describe("system_update tool", () => {
     const newMarkdown =
       "---\nname: Old Agent\nkind: person\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n";
 
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
       content: newMarkdown,
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -573,11 +610,10 @@ describe("system_update tool", () => {
   });
 
   it("normalizes plain JSON objects passed via content into field updates", async () => {
-    const result = await exec({
+    const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
       content: JSON.stringify({ status: "archived" }),
-      confirmed: true,
     });
 
     expect(result).toEqual({
@@ -590,11 +626,26 @@ describe("system_update tool", () => {
     expect(updated?.content).toContain("name: Old Agent");
   });
 
+  /**
+   * Propose an approval update for an agent and return the minted token —
+   * the setup for the mangled-replay accommodation tests below.
+   */
+  async function proposeAgentApproval(id: string): Promise<unknown> {
+    const confirmation = await exec({
+      entityType: "agent",
+      id,
+      fields: { status: "approved" },
+    });
+    return expectConfirmationArgs(confirmation)["confirmationToken"];
+  }
+
   it("auto-approves discovered agents when the model omits fields on a confirmed agent update", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
     const result = await exec({
       entityType: "agent",
       id: "pending-agent.io",
       confirmed: true,
+      confirmationToken,
     });
 
     expect(result).toEqual({
@@ -607,11 +658,13 @@ describe("system_update tool", () => {
   });
 
   it("auto-approves discovered agents when the model sends blank content on a confirmed update", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
     const result = await exec({
       entityType: "agent",
       id: "pending-agent.io",
       content: " ",
       confirmed: true,
+      confirmationToken,
     });
 
     expect(result).toEqual({
@@ -624,10 +677,12 @@ describe("system_update tool", () => {
   });
 
   it("treats approval without fields as idempotent when the agent is already approved", async () => {
+    const confirmationToken = await proposeAgentApproval("approved-agent.io");
     const result = await exec({
       entityType: "agent",
       id: "approved-agent.io",
       confirmed: true,
+      confirmationToken,
     });
 
     expect(result).toEqual({
@@ -637,6 +692,35 @@ describe("system_update tool", () => {
 
     const updated = services.getEntities().get("approved-agent.io");
     expect(updated?.metadata["status"]).toBe("approved");
+  });
+
+  it("rejects a fabricated agent approval with no pending proposal", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "pending-agent.io",
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({ success: false });
+    expect("error" in result ? result.error : "").toContain(
+      "No pending update confirmation found for this agent",
+    );
+    const unchanged = services.getEntities().get("pending-agent.io");
+    expect(unchanged?.metadata["status"]).toBe("discovered");
+  });
+
+  it("rejects an agent approval replayed with another entity's token", async () => {
+    const confirmationToken = await proposeAgentApproval("approved-agent.io");
+    const result = await exec({
+      entityType: "agent",
+      id: "pending-agent.io",
+      confirmed: true,
+      confirmationToken,
+    });
+
+    expect(result).toMatchObject({ success: false });
+    const unchanged = services.getEntities().get("pending-agent.io");
+    expect(unchanged?.metadata["status"]).toBe("discovered");
   });
 
   it("rejects trusted updates when entity action policy requires Admin", async () => {

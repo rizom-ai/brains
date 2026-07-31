@@ -264,20 +264,19 @@ export class ExampleExternalPlugin extends ServicePlugin<
 
   protected override async getTools(): Promise<Tool[]> {
     return [
-      createTool({
-        name: "example_external_greet",
-        description: "Return a greeting from the external plugin fixture.",
-        inputSchema: {
+      createTool(
+        this.id,
+        "greet",
+        "Return a greeting from the external plugin fixture.",
+        z.object({
           name: z.optional(z.string()),
-        },
-        handler: (args: unknown) => {
-          const name =
-            typeof args === "object" && args && "name" in args
-              ? String(args.name)
-              : "world";
-          return toolSuccess({ message: `${this.greeting}, ${name}` });
-        },
-      }),
+        }),
+        async (input) =>
+          toolSuccess({
+            message: `${this.greeting}, ${input.name ?? "world"}`,
+          }),
+        { nameOverride: "example_external_greet" },
+      ),
     ];
   }
 }

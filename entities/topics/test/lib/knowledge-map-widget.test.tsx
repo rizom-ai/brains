@@ -5,8 +5,8 @@ import {
   knowledgeMapWidgetRegistration,
   registerKnowledgeMapDashboardWidget,
   type KnowledgeMapWidgetContext,
-  type KnowledgeMapWidgetRegistration,
 } from "../../src/lib/knowledge-map-widget";
+import type { DashboardWidgetRegistration } from "@brains/plugins";
 import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
 import { KnowledgeMapWidget } from "../../src/widgets/knowledge-map";
 
@@ -59,13 +59,9 @@ function makeDataContext(): KnowledgeMapDataContext {
 
 describe("knowledgeMapWidgetRegistration", () => {
   it("builds the payload with the live data provider and honest digest", async () => {
-    const registration = knowledgeMapWidgetRegistration(
-      makeDataContext(),
-      "topics",
-    );
+    const registration = knowledgeMapWidgetRegistration(makeDataContext());
 
     expect(registration.id).toBe("topics-knowledge-map");
-    expect(registration.pluginId).toBe("topics");
     expect(registration.title).toBe("Knowledge Map");
     expect(registration.group).toBe("knowledge");
     expect(registration.section).toBe("primary");
@@ -87,8 +83,7 @@ describe("knowledgeMapWidgetRegistration", () => {
 describe("registerKnowledgeMapDashboardWidget", () => {
   it("registers the payload once plugins are ready", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    const sent: { type: string; payload: KnowledgeMapWidgetRegistration }[] =
-      [];
+    const registered: DashboardWidgetRegistration[] = [];
 
     const context: KnowledgeMapWidgetContext = {
       ...makeDataContext(),
@@ -97,21 +92,22 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           readyHandler = handler;
           return () => undefined;
         },
-        send: (request) => {
-          sent.push(request);
-          return Promise.resolve(undefined);
+      },
+      dashboard: {
+        registerWidget: (widget) => {
+          registered.push(widget);
+          return Promise.resolve();
         },
       },
     };
 
-    registerKnowledgeMapDashboardWidget({ context, pluginId: "topics" });
+    registerKnowledgeMapDashboardWidget({ context });
     expect(readyHandler).toBeDefined();
 
     const result = await readyHandler?.();
     expect(result).toEqual({ success: true });
-    expect(sent).toHaveLength(1);
-    expect(sent[0]?.type).toBe("dashboard:register-widget");
-    expect(sent[0]?.payload.id).toBe("topics-knowledge-map");
+    expect(registered).toHaveLength(1);
+    expect(registered[0]?.id).toBe("topics-knowledge-map");
   });
 });
 

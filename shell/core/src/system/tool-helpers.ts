@@ -1,9 +1,16 @@
 import { parseConversationMessageMetadata } from "@brains/conversation-service";
 import type {
   BaseEntity,
+  CreateExecutionContext,
+  CreateInput,
   EntityMutationEventContext,
 } from "@brains/entity-service";
-import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
+import {
+  ConfirmationArgsStore,
+  type Tool,
+  type ToolContext,
+  type ToolResponse,
+} from "@brains/mcp-service";
 import type {
   EntityAction,
   PermissionService,
@@ -11,6 +18,7 @@ import type {
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";
@@ -96,6 +104,109 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     visibility,
     ...(sideEffects ? { sideEffects } : {}),
   };
+}
+
+export interface ConfirmationGate {
+  /**
+   * Validate a confirmed call against its pending approval. Returns the
+   * error response when the token is absent, expired, or the args were
+   * changed after approval; undefined when the replay is intact.
+   */
+  validateConfirmed(input: {
+    confirmationToken?: string | undefined;
+  }): ToolResponse | undefined;
+  /** Mint a token and build the args the interface replays on approval. */
+  buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs;
+  /**
+   * Consume the pending approval behind a token and return its stored
+   * args, tolerating a mangled replay. Callers must verify the stored
+   * args target the same operation before honoring the confirmation.
+   */
+  takePending(confirmationToken: string | undefined): unknown;
+}
+
+/**
+ * Shared integrity gate for the propose → confirm → execute tool contract.
+ * Every confirmable system tool goes through this so a fabricated
+ * `confirmed: true` (or args edited after approval) is always rejected —
+ * no tool gets to opt out of replay/tamper protection.
+ */
+export function createConfirmationGate(options: {
+  /** Word used in error prose for the tool's action, e.g. "delete". */
+  label: string;
+  /** Noun for the re-request instruction, e.g. "deletion". */
+  requestNoun: string;
+}): ConfirmationGate {
+  const store = new ConfirmationArgsStore();
+  const retry = `Please request ${options.requestNoun} again and confirm the new approval.`;
+  return {
+    validateConfirmed(input): ToolResponse | undefined {
+      const validation = store.validate(input.confirmationToken, input);
+      if (validation.status === "missing") {
+        return {
+          success: false,
+          error: `No pending ${options.label} confirmation found. ${retry}`,
+        };
+      }
+      if (validation.status === "mismatch") {
+        return {
+          success: false,
+          error: `Confirmed ${options.label} arguments do not match the pending approval. ${retry}`,
+        };
+      }
+      return undefined;
+    },
+    buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs {
+      return store.create(build);
+    },
+    takePending(confirmationToken): unknown {
+      return store.take(confirmationToken);
+    },
+  };
+}
+
+export type CreateInterceptorOutcome =
+  | { kind: "handled"; result: ToolResponse }
+  | { kind: "error"; result: ToolResponse }
+  | { kind: "continue"; createInput: CreateInput };
+
+/**
+ * Run a plugin create interceptor (shared by system_create and
+ * system_generate). Returns the terminal response when the interceptor
+ * handles the create itself, an error when the transformed input fails
+ * policy validation, or the possibly-transformed input for persistence.
+ */
+export async function runCreateInterceptor(
+  services: SystemServices,
+  interceptor: NonNullable<
+    ReturnType<SystemServices["entityRegistry"]["getCreateInterceptor"]>
+  >,
+  createInput: CreateInput,
+  toolContext: ToolContext,
+): Promise<CreateInterceptorOutcome> {
+  const executionContext: CreateExecutionContext = {
+    interfaceType: toolContext.interfaceType,
+    actor: toolContext.actor,
+    ...(toolContext.channelId && { channelId: toolContext.channelId }),
+    ...(toolContext.channelName && { channelName: toolContext.channelName }),
+  };
+  const interception = await interceptor(createInput, executionContext);
+  if (interception.kind === "handled") {
+    return { kind: "handled", result: interception.result };
+  }
+
+  const transformedInput = interception.input;
+  const transformedPolicyError = assertEntityActionAllowed(
+    services,
+    transformedInput.entityType,
+    "create",
+    toolContext,
+  );
+  if (transformedPolicyError) {
+    return { kind: "error", result: transformedPolicyError };
+  }
+
+  return { kind: "continue", createInput: transformedInput };
 }
 
 /**

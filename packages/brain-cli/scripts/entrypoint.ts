@@ -63,9 +63,7 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
       console.error(`❌ ${err.message}`);
     } else {
       console.error(
-        `❌ unexpected error parsing brain.yaml: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `❌ unexpected error parsing brain.yaml: ${getErrorMessage(err)}`,
       );
     }
     process.exit(1);
@@ -107,6 +105,7 @@ import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import { findLocalBrain } from "../src/lib/local-reexec";
 import { getInvocationCwd } from "../src/lib/invocation-cwd";
+import { getErrorMessage } from "@brains/utils/error";
 
 // Resolve the directory the user invoked us from. Mirrors src/index.ts —
 // must be passed explicitly into runCommand because the minifier may inline

@@ -1,8 +1,4 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
@@ -15,53 +11,47 @@ const topicsDigestSourceSchema = z.object({
 
 export function registerTopicsDashboardWidget(params: {
   context: EntityPluginContext;
-  pluginId: string;
 }): void {
-  const { context, pluginId } = params;
+  const { context } = params;
 
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: TOPICS_PLUGIN_ID,
-          pluginId,
-          title: "Topics",
-          group: "knowledge",
-          section: "secondary",
-          priority: 20,
-          rendererName: "ListWidget",
-          digestProvider: (data: unknown) => {
-            const { items } = topicsDigestSourceSchema.parse(data);
-            const latest = items[0]?.name;
-            return {
-              digest: latest
-                ? [{ label: "Latest topic", value: latest }]
-                : [{ label: "Topics", value: "none yet" }],
-            };
-          },
-          dataProvider: async () => {
-            const topics =
-              await context.entityService.listEntities<TopicEntity>({
-                entityType: TOPIC_ENTITY_TYPE,
-                options: {
-                  limit: 10,
-                  sortFields: [{ field: "updated", direction: "desc" }],
-                },
-              });
-            return {
-              items: topics.map((topic) => {
-                const projected = toTopicContentProjection(topic);
-                const description = firstSentence(projected.content);
-                return {
-                  id: topic.id,
-                  name: projected.title || topic.id,
-                  ...(description && { description }),
-                };
-              }),
-            };
-          },
+      await context.dashboard.registerWidget({
+        id: TOPICS_PLUGIN_ID,
+        title: "Topics",
+        group: "knowledge",
+        section: "secondary",
+        priority: 20,
+        rendererName: "ListWidget",
+        digestProvider: (data: unknown) => {
+          const { items } = topicsDigestSourceSchema.parse(data);
+          const latest = items[0]?.name;
+          return {
+            digest: latest
+              ? [{ label: "Latest topic", value: latest }]
+              : [{ label: "Topics", value: "none yet" }],
+          };
+        },
+        dataProvider: async () => {
+          const topics = await context.entityService.listEntities<TopicEntity>({
+            entityType: TOPIC_ENTITY_TYPE,
+            options: {
+              limit: 10,
+              sortFields: [{ field: "updated", direction: "desc" }],
+            },
+          });
+          return {
+            items: topics.map((topic) => {
+              const projected = toTopicContentProjection(topic);
+              const description = firstSentence(projected.content);
+              return {
+                id: topic.id,
+                name: projected.title || topic.id,
+                ...(description && { description }),
+              };
+            }),
+          };
         },
       });
       return { success: true };

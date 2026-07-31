@@ -1,145 +1,45 @@
-import {
-  PluginConfigValidationError,
-  SYSTEM_CHANNELS,
-  type IShell,
-  type Plugin,
-  type PluginCapabilities,
-  SITE_BUILDER_CHANNELS,
-} from "@brains/plugins";
-import {
-  entityActionPolicyConfigSchema,
-  type EntityActionPolicyConfig,
-  type EntityActionRequiredLevel,
-} from "@brains/templates";
-import { composeTheme } from "@brains/theme-base";
+import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
 import type {
   BrainDefinition,
   BrainEnvironment,
-  PluginFactory,
   PresetName,
 } from "./brain-definition";
 import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
-  CONVENTIONAL_SITE_PACKAGE_REF,
   getExternalPluginDeclarations,
   getPluginConfigOverrides,
-  stripSiteConfig,
   type ExternalPluginDeclaration,
   type InstanceOverrides,
 } from "./instance-overrides";
-import {
-  createSiteContentTemplates,
-  extendSite,
-  sectionGroupToTemplates,
-  sitePackageSchema,
-  themeCssSchema,
-  type ConventionalSiteOverrides,
-  type SiteContentDefinition,
-  type SitePackage,
-  type SiteSectionGroup,
-} from "./site-package";
+import type { SitePackage } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
-import { getPackage, hasPackage } from "./package-registry";
+import {
+  hasActiveCapability,
+  hasActiveInterface,
+  isActive,
+  resolveActiveIds,
+  resolveActivePresetName,
+  type ActiveIds,
+  type PluginOverrides,
+} from "./resolver/active-ids";
+import { deepMerge } from "./resolver/merge";
+import {
+  isScopedPackageRef,
+  resolveAllPackageRefs,
+  resolveExternalPluginFactory,
+} from "./resolver/package-refs";
+import { buildPermissions } from "./resolver/permissions";
+import {
+  instantiateSitePlugins,
+  resolveSitePackage,
+  resolveTheme,
+} from "./resolver/site";
 
-const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
-  "*": {
-    create: "admin",
-    update: "admin",
-    delete: "admin",
-    extract: "admin",
-    publish: "admin",
-  },
-  "anchor-profile": {
-    create: "never",
-    update: "admin",
-    delete: "never",
-  },
-  "brain-character": {
-    create: "never",
-    update: "admin",
-    delete: "never",
-  },
-};
-
-const recordSchema = z.record(z.string(), z.unknown());
-const pluginFactorySchema = z.custom<PluginFactory>(
-  (value) => typeof value === "function",
-);
-const externalPluginPackageSchema = z.looseObject({
-  plugin: pluginFactorySchema.optional(),
-});
-
-/**
- * Determine which plugin/interface IDs are active.
- *
- * Priority:
- * 1. If presets are defined: use preset (from overrides or defaultPreset),
- *    then apply add/remove
- * 2. If no presets: all IDs are active
- */
-function resolveActivePresetName(
-  definition: BrainDefinition,
-  overrides?: Omit<InstanceOverrides, "brain">,
-): PresetName | undefined {
-  if (!definition.presets) return undefined;
-
-  const presetName: PresetName =
-    overrides?.preset ?? definition.defaultPreset ?? "default";
-  const preset = definition.presets[presetName];
-
-  if (!preset) {
-    throw new Error(
-      `Unknown preset "${presetName}". Available: ${Object.keys(definition.presets).join(", ")}`,
-    );
-  }
-
-  return presetName;
-}
-
-function resolveActiveIds(
-  definition: BrainDefinition,
-  overrides?: Omit<InstanceOverrides, "brain">,
-): Set<string> | null {
-  const allIds = new Set([
-    ...definition.capabilities.map(([id]) => id),
-    ...definition.interfaces.map(([id]) => id),
-  ]);
-
-  const presetName = resolveActivePresetName(definition, overrides);
-  if (!definition.presets || !presetName) return null;
-
-  const activeIds = new Set(definition.presets[presetName]);
-
-  // Eval mode: remove plugins with external side effects
-  if (overrides?.mode === "eval" && definition.evalDisable) {
-    for (const id of definition.evalDisable) {
-      activeIds.delete(id);
-    }
-  }
-
-  // Add: union with preset (only IDs that exist in brain definition)
-  if (overrides?.add) {
-    for (const id of overrides.add) {
-      if (allIds.has(id)) {
-        activeIds.add(id);
-      }
-    }
-  }
-
-  // Remove: difference from preset
-  if (overrides?.remove) {
-    for (const id of overrides.remove) {
-      activeIds.delete(id);
-    }
-  }
-
-  return activeIds;
-}
+export { isScopedPackageRef };
 
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.
@@ -154,55 +54,6 @@ function resolveActiveIds(
  * @param overrides - Instance overrides from brain.yaml (optional)
  * @returns A fully resolved AppConfig ready for handleCLI() or App.create()
  */
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return recordSchema.safeParse(value).success;
-}
-
-function deepMerge(
-  base: Record<string, unknown>,
-  override: Record<string, unknown>,
-): Record<string, unknown> {
-  const result = { ...base };
-  for (const key of Object.keys(override)) {
-    const overrideVal = override[key];
-    if (overrideVal === null) {
-      delete result[key];
-    } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
-      result[key] = deepMerge(result[key], overrideVal);
-    } else {
-      result[key] = overrideVal;
-    }
-  }
-  return result;
-}
-
-type ActiveIds = Set<string> | null;
-type PluginOverrides = Record<string, Record<string, unknown>>;
-
-function isActive(activeIds: ActiveIds, id: string): boolean {
-  return !activeIds || activeIds.has(id);
-}
-
-function hasActiveInterface(
-  definition: BrainDefinition,
-  activeIds: ActiveIds,
-  id: string,
-): boolean {
-  return activeIds
-    ? activeIds.has(id)
-    : definition.interfaces.some(([interfaceId]) => interfaceId === id);
-}
-
-function hasActiveCapability(
-  definition: BrainDefinition,
-  activeIds: ActiveIds,
-  id: string,
-): boolean {
-  return activeIds
-    ? activeIds.has(id)
-    : definition.capabilities.some(([capabilityId]) => capabilityId === id);
-}
 
 function applyPluginDefaults(
   pluginOverrides: PluginOverrides,
@@ -266,96 +117,6 @@ function applyPluginDefaults(
       dashboardRootExplicit,
     );
   }
-}
-
-function normalizeSiteContent(
-  content: SitePackage["content"],
-): SiteContentDefinition[] {
-  if (!content) return [];
-  return Array.isArray(content) ? content : [content];
-}
-
-function normalizeSiteSections(
-  sections: SitePackage["sections"],
-): SiteSectionGroup[] {
-  if (!sections) return [];
-  return Array.isArray(sections) ? sections : [sections];
-}
-
-class DeclarativeSitePlugin implements Plugin {
-  readonly id = "site-package";
-  readonly version = "0.1.0";
-  readonly type = "service" as const;
-  readonly description = "Declarative site package adapter";
-
-  readonly packageName: string;
-  private readonly site: SitePackage;
-
-  constructor(packageName: string, site: SitePackage) {
-    this.packageName = packageName;
-    this.site = site;
-  }
-
-  async register(shell: IShell): Promise<PluginCapabilities> {
-    for (const definition of normalizeSiteContent(this.site.content)) {
-      shell.registerTemplates(
-        createSiteContentTemplates(definition),
-        definition.namespace,
-      );
-    }
-
-    for (const group of normalizeSiteSections(this.site.sections)) {
-      shell.registerTemplates(sectionGroupToTemplates(group), group.namespace);
-    }
-
-    if (this.site.headScripts?.length) {
-      const messaging = shell.getMessageBus();
-      messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-        for (const [index, script] of this.site.headScripts?.entries() ?? []) {
-          await messaging.send({
-            type: SITE_BUILDER_CHANNELS.headScriptRegister,
-            sender: this.id,
-            payload: {
-              pluginId: `${this.id}:${index}`,
-              script,
-            },
-          });
-        }
-        return { success: true };
-      });
-    }
-
-    return { tools: [], resources: [] };
-  }
-}
-
-function instantiateSitePlugins(
-  site: SitePackage | undefined,
-  overrides: Omit<InstanceOverrides, "brain"> | undefined,
-  activeIds: ActiveIds,
-): Plugin[] {
-  if (!site || !isActive(activeIds, "site-builder")) return [];
-
-  const plugins: Plugin[] = [];
-  if (site.plugin) {
-    plugins.push(
-      site.plugin({
-        entityDisplay: site.entityDisplay,
-        ...stripSiteConfig(overrides?.site),
-      }),
-    );
-  }
-
-  if (site.content || site.headScripts?.length) {
-    plugins.push(
-      new DeclarativeSitePlugin(
-        overrides?.site?.package ?? "@rizom/site-package",
-        site,
-      ),
-    );
-  }
-
-  return plugins;
 }
 
 function instantiateCapabilities(
@@ -558,6 +319,7 @@ export function resolve(
   const effectiveReasoningEffort =
     overrides?.reasoningEffort ?? definition.reasoningEffort;
   const effectiveAnchor = overrides?.anchor ?? definition.anchor ?? "person";
+  const effectiveProfileKind = overrides?.kind ?? definition.kind;
   const webserverEnabled = hasActiveInterface(
     definition,
     activeIds,
@@ -625,7 +387,7 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
-    ...(overrides?.kind && { profileKind: overrides.kind }),
+    ...(effectiveProfileKind && { profileKind: effectiveProfileKind }),
     ...(definition.agentInstructions && {
       agentInstructions: definition.agentInstructions,
     }),
@@ -641,348 +403,4 @@ export function resolve(
   applySiteEntityDisplay(appConfig, site);
 
   return defineConfig(appConfig);
-}
-
-/**
- * Build the permissions config by merging definition defaults with yaml overrides.
- *
- * Priority: yaml `permissions` section > yaml top-level `admins`/`anchors`/`trusted` > definition defaults
- */
-function buildPermissions(
-  definitionPerms: BrainDefinition["permissions"],
-  overrides?: Omit<InstanceOverrides, "brain">,
-  plugins: Plugin[] = [],
-): { permissions: Record<string, unknown> } | Record<string, never> {
-  const yamlPerms = overrides?.permissions;
-  const pluginEntityActions = mergePluginEntityActions(plugins);
-
-  const entityActions = mergeEntityActions(
-    PLATFORM_ENTITY_ACTION_DEFAULTS,
-    pluginEntityActions,
-    definitionPerms?.entityActions,
-    yamlPerms?.entityActions,
-  );
-  validatePublishPolicy(entityActions);
-
-  return {
-    permissions: {
-      ...(definitionPerms ?? {}),
-      // Top-level values remain a compatibility input path.
-      ...(overrides?.admins && { admins: overrides.admins }),
-      ...(overrides?.anchors && { anchors: overrides.anchors }),
-      ...(overrides?.trusted && { trusted: overrides.trusted }),
-      // The nested permissions section takes priority.
-      ...(yamlPerms?.admins && { admins: yamlPerms.admins }),
-      ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
-      ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
-      ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
-      ...(entityActions && { entityActions }),
-    },
-  };
-}
-
-function mergePluginEntityActions(
-  plugins: Plugin[],
-): EntityActionPolicyConfig | undefined {
-  const validated: EntityActionPolicyConfig[] = [];
-  for (const plugin of plugins) {
-    if (!plugin.entityActionPolicy) continue;
-    const parsed = entityActionPolicyConfigSchema.safeParse(
-      plugin.entityActionPolicy,
-    );
-    if (!parsed.success) {
-      throw new Error(
-        `Plugin "${plugin.id}" declared an invalid entityActionPolicy: ${parsed.error.message}`,
-      );
-    }
-    validated.push(parsed.data);
-  }
-  return mergeEntityActions(...validated);
-}
-
-function mergeEntityActions(
-  ...sources: Array<EntityActionPolicyConfig | undefined>
-): EntityActionPolicyConfig | undefined {
-  if (!sources.some(Boolean)) return undefined;
-
-  const merged: EntityActionPolicyConfig = {};
-  for (const source of sources) {
-    if (!source) continue;
-    for (const [entityType, actions] of Object.entries(source)) {
-      merged[entityType] = {
-        ...(merged[entityType] ?? {}),
-        ...actions,
-      };
-    }
-  }
-
-  return merged;
-}
-
-const ENTITY_ACTION_RESTRICTIVENESS: Record<EntityActionRequiredLevel, number> =
-  {
-    public: 0,
-    trusted: 1,
-    admin: 2,
-    never: 3,
-  };
-
-function validatePublishPolicy(
-  policy: EntityActionPolicyConfig | undefined,
-): void {
-  if (!policy) return;
-
-  for (const entityType of Object.keys(policy)) {
-    const resolved = {
-      ...(policy["*"] ?? {}),
-      ...(policy[entityType] ?? {}),
-    };
-    if (!resolved.update || !resolved.publish) continue;
-
-    if (
-      ENTITY_ACTION_RESTRICTIVENESS[resolved.publish] <
-      ENTITY_ACTION_RESTRICTIVENESS[resolved.update]
-    ) {
-      throw new Error(
-        `Invalid entity action policy for "${entityType}": publish must be at least as restrictive as update`,
-      );
-    }
-  }
-}
-
-/** Matches scoped npm package names like @rizom/theme-default (no colons, no dots) */
-const SCOPED_PACKAGE_PATTERN = /^@[\w-]+\/[\w-]+$/;
-
-/**
- * Check if a string looks like a scoped npm package reference.
- * Excludes Matrix userIds (@user:server), email addresses, CSS selectors, etc.
- */
-export function isScopedPackageRef(value: string): boolean {
-  return SCOPED_PACKAGE_PATTERN.test(value);
-}
-
-/**
- * Resolve scoped package references in a config object.
- * Looks up values in the package registry (populated before resolve() is called).
- */
-function isRegisteredScopedPackageRef(value: unknown): value is string {
-  return (
-    typeof value === "string" && isScopedPackageRef(value) && hasPackage(value)
-  );
-}
-
-function resolvePackageRefValue(value: unknown): unknown {
-  return isRegisteredScopedPackageRef(value) ? getPackage(value) : value;
-}
-
-function resolvePackageRefs(
-  config: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [
-      key,
-      resolvePackageRefValue(value),
-    ]),
-  );
-}
-
-/**
- * Resolve package references across all plugin override configs.
- */
-function resolveAllPackageRefs(
-  pluginOverrides: Record<string, Record<string, unknown>>,
-): Record<string, Record<string, unknown>> {
-  return Object.fromEntries(
-    Object.entries(pluginOverrides).map(([pluginId, config]) => [
-      pluginId,
-      resolvePackageRefs(config),
-    ]),
-  );
-}
-
-function getRegisteredExternalPluginPackage(
-  pluginId: string,
-  packageName: string,
-): unknown {
-  if (!hasPackage(packageName)) {
-    throw new Error(
-      `External plugin package "${packageName}" for plugins.${pluginId} is not registered. Install it and ensure it is imported before resolve().`,
-    );
-  }
-
-  return getPackage(packageName);
-}
-
-// External plugin packages may export the factory as either the default export
-// or a named `plugin` export — the public authoring contract documented in
-// docs/external-plugin-authoring.md accepts both.
-function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
-  const directFactory = pluginFactorySchema.safeParse(pkg);
-  if (directFactory.success) return directFactory.data;
-
-  const packageShape = externalPluginPackageSchema.safeParse(pkg);
-  return packageShape.success ? packageShape.data.plugin : undefined;
-}
-
-function resolveExternalPluginFactory(
-  pluginId: string,
-  declaration: ExternalPluginDeclaration,
-): PluginFactory {
-  const packageName = declaration.package;
-  const pkg = getRegisteredExternalPluginPackage(pluginId, packageName);
-  const factory = pluginFactoryFromPackage(pkg);
-
-  if (factory) {
-    return factory;
-  }
-
-  throw new Error(
-    `External plugin package "${packageName}" for plugins.${pluginId} must export a plugin factory as the package default or as a named "plugin" export.`,
-  );
-}
-
-/**
- * Resolve the site package from brain.yaml override or brain definition default.
- * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
- */
-const routeDefinitionOverrideSchema = z.looseObject({
-  id: z.string().min(1),
-});
-
-const entityDisplayEntryOverrideSchema = z.looseObject({
-  label: z.string().min(1),
-});
-
-const sitePackagePluginOverrideSchema = z.custom<(...args: never[]) => unknown>(
-  (value) => typeof value === "function",
-);
-
-const sitePackageOverridesShapeSchema = z.looseObject({
-  layouts: z.record(z.string(), z.unknown()).optional(),
-  plugin: sitePackagePluginOverrideSchema.optional(),
-  pluginConfig: z.record(z.string(), z.unknown()).optional(),
-  routes: z.array(routeDefinitionOverrideSchema).optional(),
-  entityDisplay: z
-    .record(z.string(), entityDisplayEntryOverrideSchema)
-    .optional(),
-  content: z.unknown().optional(),
-  themeOverride: z.string().optional(),
-  headScripts: z.array(z.string()).optional(),
-  staticAssets: z.record(z.string(), z.string()).optional(),
-});
-
-// Validate the shape loosely (plugin as a bare function, layouts/routes as
-// records) but declare the trusted output type once here at the parse
-// boundary — same idiom as sitePackageSchema in site-package.ts.
-const conventionalSiteOverridesSchema = z.custom<ConventionalSiteOverrides>(
-  (value) => sitePackageOverridesShapeSchema.safeParse(value).success,
-);
-
-function applySitePluginConfig(
-  site: SitePackage,
-  pluginConfig: Record<string, unknown> | undefined,
-): SitePackage {
-  if (!pluginConfig || !site.plugin) return site;
-
-  const plugin = site.plugin;
-  return {
-    ...site,
-    plugin: (config?: Record<string, unknown>) =>
-      plugin({
-        ...pluginConfig,
-        ...(config ?? {}),
-      }),
-  };
-}
-
-function resolveConventionalSitePackage(
-  pkg: unknown,
-  definition: BrainDefinition,
-): SitePackage | undefined {
-  if (!definition.site) return undefined;
-
-  const parsedOverrides = conventionalSiteOverridesSchema.safeParse(pkg);
-  if (!parsedOverrides.success) return undefined;
-
-  const { pluginConfig, ...siteOverrides } = parsedOverrides.data;
-  const siteWithStructure = extendSite(definition.site, siteOverrides);
-
-  return applySitePluginConfig(siteWithStructure, pluginConfig);
-}
-
-function resolveRegisteredSitePackage(
-  pkgRef: string,
-  pkg: unknown,
-  definition: BrainDefinition,
-): SitePackage | undefined {
-  if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF) {
-    const conventionalSite = resolveConventionalSitePackage(pkg, definition);
-    if (conventionalSite) return conventionalSite;
-  }
-
-  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
-  return parsedSitePackage.success ? parsedSitePackage.data : undefined;
-}
-
-function resolveSitePackage(
-  definition: BrainDefinition,
-  overrides?: Omit<InstanceOverrides, "brain">,
-): SitePackage | undefined {
-  const pkgRef = overrides?.site?.package;
-  if (!pkgRef) {
-    return definition.site;
-  }
-
-  if (!hasPackage(pkgRef)) {
-    throw new Error(
-      `brain.yaml site.package "${pkgRef}" could not be resolved — the package is not installed or failed to import. Refusing to fall back to the default site.`,
-    );
-  }
-
-  const sitePackage = resolveRegisteredSitePackage(
-    pkgRef,
-    getPackage(pkgRef),
-    definition,
-  );
-  if (sitePackage) {
-    return sitePackage;
-  }
-
-  throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
-}
-
-function resolveThemeCssRef(refOrCss: string): string {
-  if (hasPackage(refOrCss)) {
-    const pkg = getPackage(refOrCss);
-    const parsed = themeCssSchema.safeParse(pkg);
-    if (!parsed.success) {
-      throw new Error(`Package "${refOrCss}" does not export theme CSS`);
-    }
-    return parsed.data;
-  }
-
-  return refOrCss;
-}
-
-function resolveTheme(
-  definition: BrainDefinition,
-  overrides?: Omit<InstanceOverrides, "brain">,
-  site?: SitePackage,
-): string | undefined {
-  const baseTheme = overrides?.site?.theme
-    ? resolveThemeCssRef(overrides.site.theme)
-    : definition.theme;
-  const siteThemeOverride = site?.themeOverride;
-  const instanceThemeOverride = overrides?.site?.themeOverride
-    ? resolveThemeCssRef(overrides.site.themeOverride)
-    : undefined;
-  const theme = [baseTheme, siteThemeOverride, instanceThemeOverride]
-    .filter(Boolean)
-    .join("\n\n");
-
-  if (!theme) {
-    return undefined;
-  }
-
-  return composeTheme(theme);
 }

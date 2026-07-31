@@ -41,9 +41,6 @@ export async function setupEntityService(
   registrations: EntityTypeRegistration[],
   options?: { messageBus?: EntityEventBus },
 ): Promise<EntityServiceTestContext> {
-  EntityService.resetInstance();
-  EntityRegistry.resetInstance();
-
   const testDb = await createTestEntityDatabase();
   const logger = createSilentLogger();
   const entityRegistry = EntityRegistry.createFresh(logger);
@@ -71,8 +68,6 @@ export async function setupEntityService(
   });
 
   const cleanup = async (): Promise<void> => {
-    EntityService.resetInstance();
-    EntityRegistry.resetInstance();
     await testDb.cleanup();
   };
 

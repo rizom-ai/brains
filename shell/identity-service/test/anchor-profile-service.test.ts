@@ -22,9 +22,6 @@ describe("AnchorProfileService", () => {
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
-    // Reset singleton
-    AnchorProfileService.resetInstance();
-
     // Default implementations
     mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
     mockCreateEntityImpl = async (): Promise<EntityMutationResult> => ({

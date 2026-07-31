@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { ProductsPlugin } from "../../src/plugin";
-import { ProductOgImageAttachmentProvider } from "../../src/attachments/og-image-provider";
+import { createProductOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Product } from "../../src/schemas/product";
 
 const sampleProduct: Product = {
@@ -36,9 +35,7 @@ Rover turns scattered work into durable knowledge.
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 describe("Product OG image attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a product OG image attachment provider", async () => {
     const harness = createPluginHarness<ProductsPlugin>();
@@ -61,7 +58,7 @@ describe("Product OG image attachment provider", () => {
     await harness.installPlugin(new ProductsPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProduct });
 
-    const provider = new ProductOgImageAttachmentProvider(
+    const provider = createProductOgImageProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

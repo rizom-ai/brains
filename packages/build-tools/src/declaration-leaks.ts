@@ -17,6 +17,18 @@ const SPECIFIER_PATTERNS = [
 ];
 
 /**
+ * Blank out block and line comments, keeping newlines so the remaining text
+ * stays line-aligned. JSDoc `@example` blocks routinely contain import
+ * statements that document usage rather than describing this file's own
+ * dependencies, and those must not read as leaks.
+ */
+export function stripDeclarationComments(declaration: string): string {
+  return declaration
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
+    .replace(/\/\/[^\n]*/g, (comment) => " ".repeat(comment.length));
+}
+
+/**
  * Find internal package specifiers actually imported by a declaration
  * file. Matches import/export specifier positions only, so package
  * names in comments or string literal types do not count.
@@ -27,9 +39,10 @@ export function findInternalDeclarationImports(
 ): string[] {
   const allow = options.allow ?? [];
   const found = new Set<string>();
+  const code = stripDeclarationComments(declaration);
 
   for (const pattern of SPECIFIER_PATTERNS) {
-    for (const match of declaration.matchAll(pattern)) {
+    for (const match of code.matchAll(pattern)) {
       const specifier = match[1];
       if (specifier === undefined) {
         continue;

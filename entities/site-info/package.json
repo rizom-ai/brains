@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.240",
   "description": "Site info entity — site metadata, title, description, CTA",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",

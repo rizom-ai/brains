@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { isProgressData, ProgressPart, progressLabel } from "./App";
+import {
+  isProgressData,
+  ProgressPart,
+  progressLabel,
+} from "./components/progress-part";
 
 describe("ProgressPart", () => {
   it("renders completed and failed progress with semantic status labels", () => {

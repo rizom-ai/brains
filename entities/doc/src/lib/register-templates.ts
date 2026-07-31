@@ -1,29 +1,12 @@
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
 import { DocListTemplate, type DocListProps } from "../templates/doc-list";
 import {
   DocDetailTemplate,
   type DocDetailProps,
 } from "../templates/doc-detail";
-
-const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
-
-const contentVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public";
-    if (value === "private") return "restricted";
-    return value;
-  });
 
 const docFrontmatterSchema = z.object({
   title: z.string(),

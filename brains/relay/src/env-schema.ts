@@ -1,5 +1,6 @@
 import { shellEnvVars } from "@brains/core/env-schema";
 import { directorySyncEnvSchema } from "@brains/directory-sync/env-schema";
+import { chatEnvSchema } from "@brains/chat/env-schema";
 import type { EnvVarDecl } from "@brains/utils/env-schema";
 
 /**
@@ -9,4 +10,5 @@ import type { EnvVarDecl } from "@brains/utils/env-schema";
 export const relayEnvSchema: EnvVarDecl[] = [
   ...shellEnvVars(),
   ...directorySyncEnvSchema,
+  ...chatEnvSchema,
 ];

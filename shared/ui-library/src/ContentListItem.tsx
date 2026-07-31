@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { formatDate } from "./utils/formatDate";
 import { cn } from "./lib/utils";
 
 export interface SeriesInfo {
@@ -46,11 +47,7 @@ export const ContentListItem = ({
           {title}
         </h3>
         <time className="block font-mono text-[0.7rem] uppercase tracking-[0.14em] text-theme-light mb-4">
-          {new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {formatDate(date, { style: "long" })}
         </time>
         {description && (
           <p className="text-[0.95rem] leading-[1.6] text-theme-muted max-w-[60ch]">

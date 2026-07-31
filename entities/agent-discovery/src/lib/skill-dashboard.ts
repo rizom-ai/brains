@@ -1,14 +1,9 @@
-import {
-  SYSTEM_CHANNELS,
-  type EntityPluginContext,
-  DASHBOARD_CHANNELS,
-} from "@brains/plugins";
+import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
 import type { SkillEntity } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
 export function registerSkillsDashboardWidget(
   context: EntityPluginContext,
-  pluginId: string,
 ): void {
   // Skills are the brain's A2A-advertised capabilities, so they sit
   // alongside Character (persona) in the sidebar rather than in the
@@ -16,30 +11,25 @@ export function registerSkillsDashboardWidget(
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: SKILLS_WIDGET_ID,
-          pluginId,
-          title: "Skills",
-          group: "network",
-          section: "sidebar",
-          priority: 20,
-          rendererName: "ListWidget",
-          dataProvider: async () => {
-            const skills =
-              await context.entityService.listEntities<SkillEntity>({
-                entityType: SKILL_ENTITY_TYPE,
-                options: { limit: 10 },
-              });
+      await context.dashboard.registerWidget({
+        id: SKILLS_WIDGET_ID,
+        title: "Skills",
+        group: "network",
+        section: "sidebar",
+        priority: 20,
+        rendererName: "ListWidget",
+        dataProvider: async () => {
+          const skills = await context.entityService.listEntities<SkillEntity>({
+            entityType: SKILL_ENTITY_TYPE,
+            options: { limit: 10 },
+          });
 
-            return {
-              items: skills.map((s) => ({
-                id: s.id,
-                name: s.metadata.name,
-              })),
-            };
-          },
+          return {
+            items: skills.map((s) => ({
+              id: s.id,
+              name: s.metadata.name,
+            })),
+          };
         },
       });
       return { success: true };

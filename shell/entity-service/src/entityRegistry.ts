@@ -14,11 +14,8 @@ import type {
 
 /**
  * Registry for entity types
- * Implements Component Interface Standardization pattern
  */
 export class EntityRegistry implements IEntityRegistry {
-  private static instance: EntityRegistry | null = null;
-
   private entitySchemas = new Map<string, UnknownEntitySchema>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
@@ -28,31 +25,10 @@ export class EntityRegistry implements IEntityRegistry {
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
 
-  /**
-   * Get the singleton instance of EntityRegistry
-   */
-  public static getInstance(logger: Logger): EntityRegistry {
-    EntityRegistry.instance ??= new EntityRegistry(logger);
-    return EntityRegistry.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    EntityRegistry.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(logger: Logger): EntityRegistry {
     return new EntityRegistry(logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger) {
     this.logger = logger;
   }

@@ -5,6 +5,7 @@
   "description": "Site content entity and generation orchestration",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"

@@ -56,7 +56,6 @@ export {
 } from "./channel-registry";
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
-export * from "./message-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 
 // Plugin contexts (needed for plugin initialization)
@@ -530,9 +529,14 @@ export {
   toolError,
   toolResultSchema,
   type ToolResult,
+  type ToolErrorResult,
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+
+export { SerialQueue } from "./service/serial-queue";
+export { SerializedStatusStore } from "./service/serialized-status-store";
+export type { SerializedStatusStoreOptions } from "./service/serialized-status-store";
 
 export { createId } from "@brains/utils/id";
 
@@ -554,7 +558,9 @@ export type {
   WebRouteMethod,
   WebRouteHandler,
   WebRouteMatch,
+  JsonResponseInit,
 } from "./types/web-routes";
+export { jsonResponse, jsonError } from "./types/web-routes";
 export {
   CMS_WORKSPACE_REGISTER_MESSAGE,
   type CmsWorkspaceActor,
@@ -563,6 +569,11 @@ export {
   type CmsWorkspaceRegistrationResult,
   type CmsWorkspaceRendererName,
 } from "./types/cms-workspace";
+export { registerCmsWorkspace } from "./service/cms-workspace-registration";
+export type {
+  DashboardWidgetRegistration,
+  IDashboardNamespace,
+} from "./base/dashboard-namespace";
 export {
   RouteDefinitionSchema,
   NavigationSlots,

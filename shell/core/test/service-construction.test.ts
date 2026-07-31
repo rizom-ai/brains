@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
-import { resetServiceSingletons } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 
@@ -21,11 +20,6 @@ function createTestConfig(dir: string): ShellConfigInput {
 }
 
 describe("Shell service construction", () => {
-  afterEach(async () => {
-    await Shell.resetInstance();
-    await resetServiceSingletons();
-  });
-
   it("closes acquired services when later construction fails", async () => {
     const testDir = await createTestDirectory();
     const constructionError = new Error("shell wiring failed");

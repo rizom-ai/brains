@@ -77,7 +77,6 @@ describe("AIService", () => {
   let generateImageSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
-    AIService.resetInstance();
     logger = createSilentLogger();
 
     // Set up spies
@@ -104,38 +103,7 @@ describe("AIService", () => {
     mockGoogleImage.mockClear();
   });
 
-  afterEach(() => {
-    AIService.resetInstance();
-  });
-
-  describe("Component Interface Standardization", () => {
-    it("should implement singleton pattern", () => {
-      const config = { apiKey: "test-key" };
-      const instance1 = AIService.getInstance(config, logger);
-      const instance2 = AIService.getInstance(config, logger);
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should reset instance", () => {
-      const config = { apiKey: "test-key" };
-      const instance1 = AIService.getInstance(config, logger);
-
-      AIService.resetInstance();
-
-      const instance2 = AIService.getInstance(config, logger);
-      expect(instance1).not.toBe(instance2);
-    });
-
-    it("should create fresh instance without affecting singleton", () => {
-      const config = { apiKey: "test-key" };
-      const singleton = AIService.getInstance(config, logger);
-      const fresh = AIService.createFresh(config, logger);
-
-      expect(fresh).not.toBe(singleton);
-      expect(AIService.getInstance(config, logger)).toBe(singleton);
-    });
-  });
+  afterEach(() => {});
 
   describe("Configuration", () => {
     it("should not invent a default text model", () => {

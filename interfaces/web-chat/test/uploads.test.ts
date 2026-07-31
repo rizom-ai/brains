@@ -14,6 +14,7 @@ import {
   type UploadFetch,
   type WebChatUploadResponse,
 } from "../ui-react/src/uploads";
+import { getErrorMessage } from "@brains/utils/error";
 
 function makeUploadResponse(
   overrides: Partial<WebChatUploadResponse> = {},
@@ -238,9 +239,7 @@ describe("web chat upload protocol", () => {
     }
 
     expect(thrown).toBeInstanceOf(Error);
-    expect(thrown instanceof Error ? thrown.message : "").toBe(
-      "Invalid upload response",
-    );
+    expect(getErrorMessage(thrown, "")).toBe("Invalid upload response");
   });
 });
 

@@ -6,13 +6,14 @@ import type {
 import { parseAgentResponse as parseSharedAgentResponse } from "@brains/contracts";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
+import { getErrorMessage } from "@brains/utils/error";
 
 function parseAgentResponse(json: unknown): AgentResponse {
   try {
     return parseSharedAgentResponse(json);
   } catch (error) {
     throw new Error(
-      `Invalid response from remote agent: ${error instanceof Error ? error.message : String(error)}`,
+      `Invalid response from remote agent: ${getErrorMessage(error)}`,
       { cause: error },
     );
   }

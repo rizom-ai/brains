@@ -5,6 +5,7 @@ import { generateIdentity, identityToRecipient } from "age-encryption";
 
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface AgeKeyBootstrapOptions {
   logger?: (message: string) => void;
@@ -33,8 +34,7 @@ export async function runPilotAgeKeyBootstrap(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Age key bootstrap failed",
+      message: getErrorMessage(error, "Age key bootstrap failed"),
     };
   }
 }

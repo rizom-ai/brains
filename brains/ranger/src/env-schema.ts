@@ -1,6 +1,6 @@
 import { shellEnvVars } from "@brains/core/env-schema";
 import { directorySyncEnvSchema } from "@brains/directory-sync/env-schema";
-import { discordEnvSchema } from "@brains/discord/env-schema";
+import { chatEnvSchema } from "@brains/chat/env-schema";
 import { socialMediaEnvSchema } from "@brains/social-media/env-schema";
 import { analyticsEnvSchema } from "@brains/analytics/env-schema";
 import type { EnvVarDecl } from "@brains/utils/env-schema";
@@ -12,7 +12,7 @@ import type { EnvVarDecl } from "@brains/utils/env-schema";
 export const rangerEnvSchema: EnvVarDecl[] = [
   ...shellEnvVars(),
   ...directorySyncEnvSchema,
-  ...discordEnvSchema,
+  ...chatEnvSchema,
   ...socialMediaEnvSchema,
   ...analyticsEnvSchema,
 ];

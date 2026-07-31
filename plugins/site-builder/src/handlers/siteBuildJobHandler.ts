@@ -1,4 +1,5 @@
-import { BaseJobHandler, SITE_CHANNELS } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/plugins";
+import { SITE_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -13,6 +14,7 @@ import {
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type { SiteBuildStatusService } from "../lib/site-build-status";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
@@ -212,7 +214,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           this.cfg.statusService?.markFailure(
             environment,
             jobId,
-            error instanceof Error ? error.message : "Site build failed",
+            getErrorMessage(error, "Site build failed"),
           ),
         "failure",
       );

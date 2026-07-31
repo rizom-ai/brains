@@ -5,8 +5,8 @@ import {
   type AuthAccountSnapshot,
 } from "./account-contracts";
 import type { AuthAccountContext, AuthAccountService } from "./account-service";
+import { getErrorMessage } from "@brains/utils/error";
 import {
-  errorMessage,
   privateJsonResponse,
   readJsonRequest,
   requireSameOriginJson,
@@ -97,7 +97,7 @@ export async function handleAuthAccountRequest(
     );
   } catch (error) {
     return privateJsonResponse(
-      { error: errorMessage(error, "Account request failed") },
+      { error: getErrorMessage(error, "Account request failed") },
       400,
     );
   }

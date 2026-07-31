@@ -1,6 +1,6 @@
+import { SerializedStatusStore } from "@brains/plugins";
 import type {
   IRuntimeStateNamespace,
-  IRuntimeStateStore,
   ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -134,26 +134,30 @@ const STATUS_NAMESPACE = "site-builder.build-status";
  * The job queue remains the execution authority; this service adds site-domain meaning.
  */
 export class SiteBuildStatusService {
-  private readonly store: IRuntimeStateStore<StoredSiteBuildStatus>;
+  private readonly store: SerializedStatusStore<StoredSiteBuildStatus>;
   private readonly jobs: Pick<ServicePluginContext["jobs"], "getStatus">;
-  private statePromise: Promise<StoredSiteBuildStatus> | undefined;
-  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
     jobs: ServicePluginContext["jobs"],
   ) {
-    this.store = runtimeState.scoped({
+    this.store = new SerializedStatusStore({
+      runtimeState,
       namespace: STATUS_NAMESPACE,
+      key: STATUS_KEY,
       schema: storedSiteBuildStatusSchema,
+      createEmpty: (): StoredSiteBuildStatus => structuredClone(EMPTY_STATUS),
     });
     this.jobs = jobs;
   }
 
   async initialize(): Promise<void> {
-    const state = await this.load();
-    let changed = false;
+    // Reconciling against the job queue is a read-modify-write like any other,
+    // so it runs inside the queue rather than racing mutations alongside it.
+    await this.store.mutate((state) => this.reconcile(state));
+  }
 
+  private async reconcile(state: StoredSiteBuildStatus): Promise<void> {
     const environments: SiteBuildEnvironment[] = ["preview", "production"];
     for (const environment of environments) {
       const current = state[environment];
@@ -161,20 +165,17 @@ export class SiteBuildStatusService {
       if (!active) continue;
       if (!active.jobId) {
         delete current.active;
-        changed = true;
         continue;
       }
 
       const job = await this.jobs.getStatus(active.jobId);
       if (!job) {
         delete current.active;
-        changed = true;
         continue;
       }
 
       if (job.status === "pending") {
         current.active = { ...active, state: "queued" };
-        changed = true;
         continue;
       }
       if (job.status === "processing") {
@@ -185,7 +186,6 @@ export class SiteBuildStatusService {
             ? { startedAt: new Date(job.startedAt).toISOString() }
             : {}),
         };
-        changed = true;
         continue;
       }
 
@@ -200,7 +200,6 @@ export class SiteBuildStatusService {
           completedAt,
           job.lastError ?? "Site build failed",
         );
-        changed = true;
         continue;
       }
 
@@ -234,10 +233,7 @@ export class SiteBuildStatusService {
           message,
         );
       }
-      changed = true;
     }
-
-    if (changed) await this.persist(state);
   }
 
   markRequested(
@@ -329,39 +325,20 @@ export class SiteBuildStatusService {
   }
 
   async getSnapshot(): Promise<SiteBuildStatusSnapshot> {
-    await this.writeQueue;
-    const state = await this.load();
+    const state = await this.store.snapshot();
     return {
       environments: [
         { environment: "preview", ...state.preview },
         { environment: "production", ...state.production },
       ],
-      recentBuilds: [...state.recentBuilds],
+      recentBuilds: state.recentBuilds,
     };
-  }
-
-  private load(): Promise<StoredSiteBuildStatus> {
-    this.statePromise ??= this.store
-      .get(STATUS_KEY)
-      .then((stored) => stored ?? structuredClone(EMPTY_STATUS));
-    return this.statePromise;
   }
 
   private mutate(
     mutation: (state: StoredSiteBuildStatus) => void,
   ): Promise<void> {
-    const operation = this.writeQueue.then(async () => {
-      const state = await this.load();
-      mutation(state);
-      await this.persist(state);
-    });
-    this.writeQueue = operation.catch(() => undefined);
-    return operation;
-  }
-
-  private async persist(state: StoredSiteBuildStatus): Promise<void> {
-    const validated = storedSiteBuildStatusSchema.parse(state);
-    await this.store.set(STATUS_KEY, validated);
+    return this.store.mutate(mutation);
   }
 
   private applySuccess(

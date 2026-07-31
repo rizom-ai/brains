@@ -23,7 +23,6 @@ export class BrainCharacterService
   extends SingletonEntityService<BrainCharacter>
   implements IBrainCharacterService
 {
-  private static instance: BrainCharacterService | null = null;
   private adapter = new BrainCharacterAdapter();
 
   /**
@@ -37,29 +36,6 @@ export class BrainCharacterService
         "Help organize, understand, and retrieve information from your knowledge base",
       values: ["clarity", "accuracy", "helpfulness"],
     };
-  }
-
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    entityService: IEntityService,
-    logger: Logger,
-    defaultCharacter?: BrainCharacter,
-  ): BrainCharacterService {
-    BrainCharacterService.instance ??= new BrainCharacterService(
-      entityService,
-      logger,
-      defaultCharacter,
-    );
-    return BrainCharacterService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (for testing)
-   */
-  public static resetInstance(): void {
-    BrainCharacterService.instance = null;
   }
 
   /**

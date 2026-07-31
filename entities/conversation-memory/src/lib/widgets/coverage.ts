@@ -2,7 +2,6 @@ import {
   SYSTEM_CHANNELS,
   type Conversation,
   type EntityPluginContext,
-  DASHBOARD_CHANNELS,
 } from "@brains/plugins";
 import type { SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
@@ -164,26 +163,21 @@ export async function buildSummaryCoverageData(params: {
 
 export function registerSummaryCoverageWidget(params: {
   context: EntityPluginContext;
-  pluginId: string;
   config: SummaryConfig;
 }): void {
-  const { context, pluginId, config } = params;
+  const { context, config } = params;
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send({
-        type: DASHBOARD_CHANNELS.registerWidget,
-        payload: {
-          id: COVERAGE_WIDGET_ID,
-          pluginId,
-          title: "Conversation memory coverage",
-          group: "system",
-          section: "secondary",
-          priority: 80,
-          rendererName: "ListWidget",
-          visibility: "admin",
-          dataProvider: () => buildSummaryCoverageData({ context, config }),
-        },
+      await context.dashboard.registerWidget({
+        id: COVERAGE_WIDGET_ID,
+        title: "Conversation memory coverage",
+        group: "system",
+        section: "secondary",
+        priority: 80,
+        rendererName: "ListWidget",
+        visibility: "admin",
+        dataProvider: () => buildSummaryCoverageData({ context, config }),
       });
       return { success: true };
     },

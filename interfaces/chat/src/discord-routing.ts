@@ -52,6 +52,21 @@ export function getThreadIdParts(threadId: string): ThreadIdParts {
   };
 }
 
+/**
+ * The channel-level thread id a space conversation is keyed by. Messages in a
+ * Discord thread or a Slack thread belong to the parent channel's space, so a
+ * space accumulates the whole channel rather than one thread of it.
+ */
+export function getSpaceThreadId(thread: RoutedThread): string {
+  return thread.channelId;
+}
+
+/** The `<platform>:<channelId>` id that space selectors are matched against. */
+export function getSpaceId(platform: string, thread: RoutedThread): string {
+  const ids = getThreadIdParts(thread.id);
+  return ids.channelId ? `${platform}:${ids.channelId}` : thread.channelId;
+}
+
 export function getRawDiscordChannelId(
   message: Pick<RoutedMessage, "raw">,
 ): string | undefined {

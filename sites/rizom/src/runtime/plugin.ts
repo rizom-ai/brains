@@ -1,4 +1,4 @@
-import { SITE_BUILDER_CHANNELS } from "@brains/plugins/message-channels";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins/system-channels";
 import type {

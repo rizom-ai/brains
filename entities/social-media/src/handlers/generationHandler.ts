@@ -1,9 +1,5 @@
-import {
-  BaseGenerationJobHandler,
-  ensureUniqueTitle,
-  GENERATE_CHANNELS,
-  IMAGE_CHANNELS,
-} from "@brains/plugins";
+import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import { GENERATE_CHANNELS, IMAGE_CHANNELS } from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";

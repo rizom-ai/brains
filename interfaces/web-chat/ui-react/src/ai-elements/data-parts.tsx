@@ -22,6 +22,7 @@ import {
   ToolOutput,
   type ToolPart,
 } from "./tool";
+import { getErrorMessage } from "@brains/utils/error";
 
 export {
   attachmentStatusLabel,
@@ -354,9 +355,7 @@ export function ConfirmationPart({
       await addToolApprovalResponse({ id: approvalId, approved: confirmed });
       setDecision(confirmed ? "approved" : "declined");
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Confirmation failed",
-      );
+      setError(getErrorMessage(caught, "Confirmation failed"));
     } finally {
       setIsSubmitting(false);
     }

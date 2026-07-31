@@ -14,6 +14,19 @@ import { preparePublishManifest } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
 const sdkPackageDir = join(packageDir, "../../packages/site");
+const repoRoot = join(packageDir, "../..");
+
+/**
+ * Resolve a third-party package from the workspace's own install.
+ *
+ * This test packs and installs real tarballs, which is the point — but
+ * fetching their third-party dependencies from the registry made it depend on
+ * network latency, and it timed out under load. The @rizom/* entries stay on
+ * tarballs: resolving those is what is under test.
+ */
+function workspaceCopy(name: string): string {
+  return `file:${join(repoRoot, "node_modules", name)}`;
+}
 
 async function run(command: string[], cwd: string): Promise<string> {
   const process = Bun.spawn(command, {
@@ -116,10 +129,11 @@ describe("@rizom/site-docs package boundary", () => {
             dependencies: {
               "@rizom/brain": `file:${brainPeerDir}`,
               "@rizom/site-docs": `file:${docsTarball}`,
-              preact: "^10.27.2",
+              preact: workspaceCopy("preact"),
             },
             overrides: {
               "@rizom/site": `file:${sdkTarball}`,
+              preact: workspaceCopy("preact"),
             },
           },
           null,

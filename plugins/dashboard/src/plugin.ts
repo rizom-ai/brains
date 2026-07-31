@@ -3,14 +3,13 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
+import { PermissionService, ServicePlugin } from "@brains/plugins";
 import {
-  PermissionService,
-  ServicePlugin,
   DASHBOARD_CHANNELS,
   ENTITY_CHANNELS,
   JOB_CHANNELS,
   DIRECTORY_SYNC_CHANNELS,
-} from "@brains/plugins";
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {

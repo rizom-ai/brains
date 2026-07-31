@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import { calculateReadingTime } from "@brains/utils/string-utils";
-import { MarkdownContent, Head, CoverImage } from "@brains/ui-library";
+import {
+  MarkdownContent,
+  Head,
+  CoverImage,
+  formatDate,
+} from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
 
 export interface BlogPostProps {
@@ -12,13 +17,6 @@ export interface BlogPostProps {
 
 const railGridClass =
   "grid grid-cols-1 gap-7 md:grid-cols-[140px_minmax(0,720px)] md:gap-14";
-
-const formatPostDate = (date: string): string =>
-  new Date(date).toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
 
 const getSeriesPosition = (
   post: EnrichedBlogPost,
@@ -113,7 +111,7 @@ const PostRail = ({
           dateTime={post.frontmatter.publishedAt}
           className="text-sm text-theme [font-variant-numeric:tabular-nums]"
         >
-          {formatPostDate(post.frontmatter.publishedAt)}
+          {formatDate(post.frontmatter.publishedAt, { style: "medium" })}
         </time>
       </div>
     )}

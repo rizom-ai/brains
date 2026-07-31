@@ -9,16 +9,24 @@ import {
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { setCoverImageId, setOgImageId } from "@brains/image";
+import { z } from "@brains/utils/zod";
 import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
   buildEntityMutationEventContext,
+  createConfirmationGate,
   createSystemTool,
   getEntityDisplayLabel,
   humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
+
+const pendingApprovalForEntitySchema = z.looseObject({
+  entityType: z.literal("agent"),
+  id: z.string(),
+});
 
 function currentFieldValue(entity: BaseEntity, key: string): unknown {
   return key === "visibility" ? entity.visibility : entity.metadata[key];
@@ -222,6 +230,10 @@ function buildUpdateDiff(
 
 export function createEntityUpdateTool(services: SystemServices): Tool {
   const { entityService, logger, entityRegistry } = services;
+  const confirmationGate = createConfirmationGate({
+    label: "update",
+    requestNoun: "the update",
+  });
 
   return createSystemTool(
     "update",
@@ -252,6 +264,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         normalizedInput.fields === undefined;
 
       const agentStatus = entity.metadata["status"];
+      let mangledApprovalReplay = false;
       if (
         input.confirmed &&
         entity.entityType === "agent" &&
@@ -259,9 +272,24 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         ((!normalizedInput.content && !normalizedInput.fields) ||
           isBlankContentApprovalAttempt)
       ) {
+        // Models are known to mangle the approval replay (dropping fields or
+        // sending blank content — bc512ef59). Tolerate the mangling, but only
+        // when the token proves a real pending proposal for this same agent;
+        // a confirmed call fabricated from nothing must not grant trust.
+        const stored = pendingApprovalForEntitySchema.safeParse(
+          confirmationGate.takePending(input.confirmationToken),
+        );
+        if (!stored.success || stored.data.id !== entity.id) {
+          return {
+            success: false,
+            error:
+              "No pending update confirmation found for this agent. Please request the update again and confirm the new approval.",
+          };
+        }
         normalizedInput = {
           fields: { status: "approved" },
         };
+        mangledApprovalReplay = true;
       }
 
       if (normalizedInput.content && normalizedInput.fields)
@@ -319,6 +347,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (policyError) return policyError;
 
       if (input.confirmed) {
+        if (!mangledApprovalReplay) {
+          const gateError = confirmationGate.validateConfirmed(input);
+          if (gateError) return gateError;
+        }
         if (input.contentHash && entity.contentHash !== input.contentHash) {
           return {
             success: false,
@@ -357,10 +389,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         } catch (error) {
           return {
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to update entity",
+            error: getErrorMessage(error, "Failed to update entity"),
           };
         }
         return { success: true, data: { updated: entity.id } };
@@ -374,13 +403,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         summary: `Update "${label}"?`,
         completionSummary: `Updated ${humanizeEntityType(entity.entityType)}.`,
         preview: diff,
-        args: {
+        args: confirmationGate.buildArgs((confirmationToken) => ({
           ...input,
           ...normalizedInput,
           id: entity.id,
           confirmed: true,
+          confirmationToken,
           contentHash: entity.contentHash,
-        },
+        })),
       };
     },
     { visibility: "trusted", sideEffects: "writes" },

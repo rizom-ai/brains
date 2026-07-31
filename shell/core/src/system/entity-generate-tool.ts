@@ -1,17 +1,10 @@
-import type {
-  CreateExecutionContext,
-  CreateInput,
-} from "@brains/entity-service";
+import type { CreateInput } from "@brains/entity-service";
 import {
   buildGenerationStubEntity,
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
-import {
-  ConfirmationArgsStore,
-  type Tool,
-  type ToolResponse,
-} from "@brains/mcp-service";
+import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { generateInputSchema } from "./schemas";
@@ -20,9 +13,12 @@ import type { SystemServices } from "./types";
 import {
   assertEntityTypeRegistered,
   buildEntityMutationEventContext,
+  createConfirmationGate,
   createSystemTool,
   normalizeOptionalString,
+  runCreateInterceptor,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 function buildGenerateConfirmation(input: CreateInput): {
   summary: string;
@@ -191,44 +187,6 @@ type GenerateToolInput = z.infer<typeof generateInputSchema>;
 type GenerateToolContext = Parameters<Tool["handler"]>[1];
 type GenerateEventContext = ReturnType<typeof buildEntityMutationEventContext>;
 
-type InterceptorOutcome =
-  | { kind: "handled"; result: ToolResponse }
-  | { kind: "error"; result: ToolResponse }
-  | { kind: "continue"; createInput: CreateInput };
-
-async function runGenerateInterceptor(
-  services: SystemServices,
-  interceptor: NonNullable<
-    ReturnType<SystemServices["entityRegistry"]["getCreateInterceptor"]>
-  >,
-  createInput: CreateInput,
-  toolContext: GenerateToolContext,
-): Promise<InterceptorOutcome> {
-  const executionContext: CreateExecutionContext = {
-    interfaceType: toolContext.interfaceType,
-    actor: toolContext.actor,
-    ...(toolContext.channelId && { channelId: toolContext.channelId }),
-    ...(toolContext.channelName && { channelName: toolContext.channelName }),
-  };
-  const interception = await interceptor(createInput, executionContext);
-  if (interception.kind === "handled") {
-    return { kind: "handled", result: interception.result };
-  }
-
-  const transformedInput = interception.input;
-  const transformedPolicyError = assertEntityActionAllowed(
-    services,
-    transformedInput.entityType,
-    "create",
-    toolContext,
-  );
-  if (transformedPolicyError) {
-    return { kind: "error", result: transformedPolicyError };
-  }
-
-  return { kind: "continue", createInput: transformedInput };
-}
-
 async function executePromptGenerate(
   services: SystemServices,
   createInput: CreateInput,
@@ -271,10 +229,7 @@ async function executePromptGenerate(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to persist generation stub",
+      error: getErrorMessage(error, "Failed to persist generation stub"),
     };
   }
 
@@ -310,10 +265,7 @@ async function executePromptGenerate(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to queue generation job",
+      error: getErrorMessage(error, "Failed to queue generation job"),
     };
   }
 }
@@ -592,7 +544,10 @@ function freezeGenerationOperation(
 }
 
 export function createEntityGenerateTool(services: SystemServices): Tool {
-  const confirmationArgsStore = new ConfirmationArgsStore();
+  const confirmationGate = createConfirmationGate({
+    label: "generate",
+    requestNoun: "generation",
+  });
 
   return createSystemTool(
     "generate",
@@ -605,27 +560,11 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
       const { operation, interceptor, eventContext } = prep.prepared;
 
       if (input.confirmed) {
-        const validation = confirmationArgsStore.validate(
-          input.confirmationToken,
-          input,
-        );
-        if (validation.status === "missing") {
-          return {
-            success: false,
-            error:
-              "No pending generate confirmation found. Please request generation again and confirm the new approval.",
-          };
-        }
-        if (validation.status === "mismatch") {
-          return {
-            success: false,
-            error:
-              "Confirmed generate arguments do not match the pending approval. Please request generation again and confirm the new approval.",
-          };
-        }
+        const gateError = confirmationGate.validateConfirmed(input);
+        if (gateError) return gateError;
       } else {
         const confirmation = buildGenerateConfirmation(createInput);
-        const confirmationArgs = confirmationArgsStore.create(
+        const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({
             operation,
             confirmed: true,
@@ -642,7 +581,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
       }
 
       if (interceptor) {
-        const outcome = await runGenerateInterceptor(
+        const outcome = await runCreateInterceptor(
           services,
           interceptor,
           createInput,

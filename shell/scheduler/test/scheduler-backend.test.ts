@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import { CronerBackend, TestSchedulerBackend } from "../src";
+import { CronerBackend } from "../src";
+import { TestSchedulerBackend } from "../src/test";
 
 function yieldToFibers(): Effect.Effect<void> {
   return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));

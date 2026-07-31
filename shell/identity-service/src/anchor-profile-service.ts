@@ -23,7 +23,6 @@ export class AnchorProfileService
   extends SingletonEntityService<AnchorProfile>
   implements IAnchorProfileService
 {
-  private static instance: AnchorProfileService | null = null;
   private adapter = new AnchorProfileAdapter();
 
   /**
@@ -31,29 +30,6 @@ export class AnchorProfileService
    */
   public static getDefaultProfile(): AnchorProfile {
     return { name: "Unknown" };
-  }
-
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(
-    entityService: IEntityService,
-    logger: Logger,
-    defaultProfile?: AnchorProfile,
-  ): AnchorProfileService {
-    AnchorProfileService.instance ??= new AnchorProfileService(
-      entityService,
-      logger,
-      defaultProfile,
-    );
-    return AnchorProfileService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (for testing)
-   */
-  public static resetInstance(): void {
-    AnchorProfileService.instance = null;
   }
 
   /**

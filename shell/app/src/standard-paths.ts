@@ -13,6 +13,7 @@ import {
   type StandardConfig,
   type StandardPaths,
 } from "@brains/core";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function resolveStandardPaths(
   env: NodeJS.ProcessEnv = process.env,
@@ -42,7 +43,7 @@ export async function resolveStandardConfigWithDirectories(
     const msg =
       error instanceof Error && error.message.includes("EACCES")
         ? `Cannot create data directories — permission denied. Run from a writable directory or check permissions on ${paths.dataDir}`
-        : `Cannot create data directories: ${error instanceof Error ? error.message : String(error)}`;
+        : `Cannot create data directories: ${getErrorMessage(error)}`;
     throw new Error(msg, { cause: error });
   }
 

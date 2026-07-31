@@ -3,6 +3,7 @@ import type { AppConfig } from "./types";
 import type { App as AppClass } from "./app";
 import type { ActorRef } from "@brains/contracts";
 import type { ToolResponse } from "@brains/mcp-service";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface AppFactory {
   create: typeof AppClass.create;
@@ -111,10 +112,7 @@ async function invokeCliTool(
     });
     printToolResult(result);
   } catch (error) {
-    console.error(
-      `❌ ${failureLabel} failed:`,
-      error instanceof Error ? error.message : error,
-    );
+    console.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
     process.exit(1);
   }
 }

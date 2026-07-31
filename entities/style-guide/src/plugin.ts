@@ -3,11 +3,8 @@ import type {
   EntityTypeConfig,
   Plugin,
 } from "@brains/plugins";
-import {
-  DIRECTORY_SYNC_CHANNELS,
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-} from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import packageJson from "../package.json";
 import { styleGuideAdapter, type StyleGuideAdapter } from "./adapter";
 import { styleGuideEntitySchema, type StyleGuideEntity } from "./schema";

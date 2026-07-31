@@ -33,8 +33,6 @@ import { wrapToolWithResponseValidation } from "./tool-response-validation";
  * Provides the core MCP server instance that interfaces can use
  */
 export class MCPService implements IMCPService {
-  private static instance: MCPService | null = null;
-
   private readonly logger: Logger;
   private readonly messageBus: IMessageBus;
   private mcpServer: McpServer;
@@ -53,27 +51,6 @@ export class MCPService implements IMCPService {
   private isAnchor = false;
   private protocolMode: MCPProtocolMode = "basic";
 
-  /**
-   * Get the singleton instance of MCPService
-   */
-  public static getInstance(
-    messageBus: IMessageBus,
-    logger: Logger,
-  ): MCPService {
-    MCPService.instance ??= new MCPService(messageBus, logger);
-    return MCPService.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    MCPService.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     messageBus: IMessageBus,
     logger: Logger,
@@ -81,9 +58,6 @@ export class MCPService implements IMCPService {
     return new MCPService(messageBus, logger);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(messageBus: IMessageBus, logger: Logger) {
     this.messageBus = messageBus;
     this.logger = logger.child("MCPService");

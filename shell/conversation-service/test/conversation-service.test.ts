@@ -69,6 +69,26 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("database readiness", () => {
+    it("applies the busy timeout so concurrent writers wait instead of failing", async () => {
+      const owned = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+
+      try {
+        await owned.initialize();
+
+        const ownedClient = owned.getDatabaseClient();
+        const busyTimeout = await ownedClient.execute("PRAGMA busy_timeout");
+        expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
+      } finally {
+        owned.close();
+      }
+    });
+  });
+
   describe("fresh owned instances", () => {
     it("opens and closes its database from config independently", async () => {
       const owned = ConversationService.createFreshFromConfig(

@@ -219,12 +219,11 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       actionItemAdapter,
     );
 
-    registerActionItemsWidget({ context, pluginId: this.id });
-    registerDecisionsWidget({ context, pluginId: this.id });
-    registerRecentConversationMemoryWidget({ context, pluginId: this.id });
+    registerActionItemsWidget({ context });
+    registerDecisionsWidget({ context });
+    registerRecentConversationMemoryWidget({ context });
     registerSummaryCoverageWidget({
       context,
-      pluginId: this.id,
       config: this.config,
     });
 

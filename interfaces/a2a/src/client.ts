@@ -7,6 +7,7 @@ import type {
 } from "@brains/plugins";
 import { internalFullScope, parseAgentCard } from "@brains/plugins";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
+import { getErrorMessage } from "@brains/utils/error";
 
 interface A2ASuccess {
   success: true;
@@ -536,8 +537,7 @@ function formatNetworkFailure(error: unknown, attempts: number): string {
     return `${error.message}${suffix}`;
   }
 
-  const cause =
-    error instanceof Error ? error.message : "Unknown network error";
+  const cause = getErrorMessage(error, "Unknown network error");
   return `Failed to reach remote agent${suffix}: ${cause}`;
 }
 

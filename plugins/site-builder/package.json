@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.240",
   "description": "Static site generation plugin for Brain system",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",

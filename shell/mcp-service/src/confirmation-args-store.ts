@@ -73,6 +73,21 @@ export class ConfirmationArgsStore {
   }
 
   /**
+   * Consume a pending confirmation and return its stored args without
+   * requiring an exact replay match. For callers that deliberately
+   * tolerate arg-mangling between proposal and replay (e.g. a model
+   * dropping fields), but still need proof a real proposal existed.
+   */
+  take(confirmationToken: string | undefined): unknown {
+    this.prune();
+    if (!confirmationToken) return undefined;
+    const entry = this.pendingArgs.get(confirmationToken);
+    if (!entry) return undefined;
+    this.pendingArgs.delete(confirmationToken);
+    return JSON.parse(entry.serialized);
+  }
+
+  /**
    * Evict expired entries. Runs lazily on every create/validate so
    * never-resolved confirmations can't accumulate.
    */

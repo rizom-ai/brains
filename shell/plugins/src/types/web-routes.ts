@@ -26,6 +26,38 @@ export interface WebRouteDefinition {
   handler: WebRouteHandler;
 }
 
+export interface JsonResponseInit {
+  status?: number;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Build a JSON Response for a web route handler.
+ */
+export function jsonResponse(
+  payload: unknown,
+  init: JsonResponseInit = {},
+): Response {
+  return new Response(JSON.stringify(payload), {
+    status: init.status ?? 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...init.headers,
+    },
+  });
+}
+
+/**
+ * Build a `{ error }` JSON Response with the given status.
+ */
+export function jsonError(
+  message: string,
+  status: number,
+  init: Omit<JsonResponseInit, "status"> = {},
+): Response {
+  return jsonResponse({ error: message }, { status, ...init });
+}
+
 export interface RegisteredWebRoute {
   /** The plugin that registered this route */
   pluginId: string;

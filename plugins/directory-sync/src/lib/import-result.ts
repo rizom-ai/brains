@@ -1,5 +1,6 @@
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult } from "../types";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createImportResult(): ImportResult {
   return {
@@ -35,7 +36,7 @@ export function recordImportReadError(
   result.failed++;
   result.errors.push({
     path: filePath,
-    error: error instanceof Error ? error.message : "Failed to import entity",
+    error: getErrorMessage(error, "Failed to import entity"),
   });
   logger.error("Failed to import entity", {
     path: filePath,

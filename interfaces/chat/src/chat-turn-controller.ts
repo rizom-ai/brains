@@ -1,3 +1,4 @@
+import { matchSpaceSelector } from "@brains/plugins";
 import type {
   InterfacePluginContext,
   PermissionLookupContext,
@@ -9,6 +10,7 @@ import type {
   SlackChatAdapterConfig,
 } from "./config";
 import type { ChatInputBuilder } from "./chat-input-builder";
+import { resolveChatIdentity } from "./chat-identity";
 import {
   APPROVAL_CANCEL_ACTION,
   APPROVAL_CONFIRM_ACTION,
@@ -17,6 +19,7 @@ import {
 import {
   buildChatActionEventMetadata,
   buildChatCoalescedAgentInput,
+  buildChatSpaceMessageMetadata,
   buildChatUserMessageMetadata,
   getChatConversationId,
 } from "./chat-metadata";
@@ -32,6 +35,8 @@ import type { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import {
   getChannelName,
   getPermissionContext,
+  getSpaceId,
+  getSpaceThreadId,
   isAllowedChannel,
   shouldHandleChatAction,
   shouldRouteChatMessage,
@@ -129,24 +134,22 @@ export class ChatTurnController {
       await this.handleRoutedMessage(thread, message, context);
     });
 
-    if (
-      (this.deps.config.adapters.discord &&
-        !this.deps.config.adapters.discord.requireMention) ||
-      (this.deps.config.adapters.slack &&
-        !this.deps.config.adapters.slack.requireMention)
-    ) {
-      app.onNewMessage(
-        ANY_MESSAGE_PATTERN,
-        async (thread, message, context) => {
-          const platformConfig = this.getPlatformConfig(thread);
-          if (!platformConfig || platformConfig.requireMention) return;
-          await this.handleRoutedMessage(thread, message, context);
-        },
-      );
-    }
-
     app.onNewMessage(URL_PATTERN, async (thread, message) => {
       await this.handlePassiveUrlCapture(thread, message);
+    });
+
+    app.onNewMessage(ANY_MESSAGE_PATTERN, async (thread, message, context) => {
+      const platformConfig = this.getPlatformConfig(thread);
+      if (platformConfig && !platformConfig.requireMention) {
+        await this.handleRoutedMessage(thread, message, context);
+      }
+      await this.capturePassiveSpaceMessage(thread, message).catch(
+        (error: unknown) =>
+          this.deps.logger.error("Passive space capture failed", {
+            error,
+            channelId: thread.channelId,
+          }),
+      );
     });
 
     app.onAction(
@@ -171,7 +174,6 @@ export class ChatTurnController {
     if (!context || !event.thread || !event.value) return;
     const platform = event.adapter.name;
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
-    if (platform !== "discord" && platform !== "slack") return;
 
     const thread = event.thread;
     if (!shouldHandleChatAction(thread, this.getPlatformConfig(thread))) return;
@@ -188,7 +190,8 @@ export class ChatTurnController {
     }
     this.deps.promptActions.consume(event.value);
 
-    const userPermissionLevel = context.permissions.getUserLevel(
+    const identity = await resolveChatIdentity(
+      context.permissions,
       platform,
       event.user.userId,
       getPermissionContext(thread, {
@@ -198,7 +201,7 @@ export class ChatTurnController {
         },
       }),
     );
-    const isAnchor = context.permissions.isAnchor(platform, event.user.userId);
+    const { permissionLevel: userPermissionLevel, isAnchor } = identity;
     const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
 
@@ -227,7 +230,12 @@ export class ChatTurnController {
             interfaceType: platform,
             channelId,
             channelName: getChannelName(thread),
-            ...buildChatActionEventMetadata(platform, thread, event),
+            ...buildChatActionEventMetadata(
+              platform,
+              thread,
+              event,
+              identity.principal,
+            ),
             ...(attachments.length > 0 ? { attachments } : {}),
           },
         );
@@ -247,7 +255,6 @@ export class ChatTurnController {
     if (!context || !event.thread || !event.value) return;
     const platform = event.adapter.name;
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
-    if (platform !== "discord" && platform !== "slack") return;
 
     const thread = event.thread;
     if (!shouldHandleChatAction(thread, this.getPlatformConfig(thread))) return;
@@ -262,7 +269,8 @@ export class ChatTurnController {
       return;
     }
 
-    const userPermissionLevel = context.permissions.getUserLevel(
+    const identity = await resolveChatIdentity(
+      context.permissions,
       platform,
       event.user.userId,
       getPermissionContext(thread, {
@@ -278,9 +286,14 @@ export class ChatTurnController {
       conversationId,
       approvalId: event.value,
       confirmed: event.actionId === APPROVAL_CONFIRM_ACTION,
-      userPermissionLevel,
-      isAnchor: context.permissions.isAnchor(platform, event.user.userId),
-      metadata: buildChatActionEventMetadata(platform, thread, event),
+      userPermissionLevel: identity.permissionLevel,
+      isAnchor: identity.isAnchor,
+      metadata: buildChatActionEventMetadata(
+        platform,
+        thread,
+        event,
+        identity.principal,
+      ),
     });
   }
 
@@ -292,7 +305,6 @@ export class ChatTurnController {
     if (!this.deps.host.getContext()) return;
     const platform = this.getPlatform(thread);
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
-    if (platform !== "discord" && platform !== "slack") return;
 
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig) return;
@@ -359,15 +371,13 @@ export class ChatTurnController {
     const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
     const permissionContext = getPermissionContext(thread, message);
-    const userPermissionLevel = pluginContext.permissions.getUserLevel(
+    const identity = await resolveChatIdentity(
+      pluginContext.permissions,
       platform,
       message.author.userId,
       permissionContext,
     );
-    const isAnchor = pluginContext.permissions.isAnchor(
-      platform,
-      message.author.userId,
-    );
+    const { permissionLevel: userPermissionLevel, isAnchor } = identity;
     const agentInput = await this.deps.chatInputBuilder.build(
       platform,
       thread,
@@ -410,7 +420,13 @@ export class ChatTurnController {
               approvalIds: pendingApprovalIds,
               userPermissionLevel,
               isAnchor,
-              metadata: buildChatUserMessageMetadata(platform, thread, message),
+              metadata: buildChatUserMessageMetadata(
+                platform,
+                thread,
+                message,
+                undefined,
+                identity.principal,
+              ),
             });
           if (handledConfirmation) return;
         }
@@ -433,6 +449,7 @@ export class ChatTurnController {
               thread,
               message,
               coalescedInput.metadata,
+              identity.principal,
             ),
             ...(agentInput.attachments.length > 0
               ? { attachments: agentInput.attachments }
@@ -448,6 +465,74 @@ export class ChatTurnController {
           userPermissionLevel,
         });
       },
+    });
+  }
+
+  /**
+   * Record a channel's traffic into its space conversation without spending an
+   * agent turn on it. Only messages the agent turn will not already write are
+   * captured: a reply that stays in the channel uses the space conversation
+   * itself, so capturing there would duplicate every message.
+   */
+  private async capturePassiveSpaceMessage(
+    thread: ChatThread,
+    message: Message,
+  ): Promise<void> {
+    const context = this.deps.host.getContext();
+    if (!context) return;
+    const platform = this.getPlatform(thread);
+    if (!isEnabledChatPlatform(this.deps.config, platform)) return;
+    const platformConfig = this.getPlatformConfig(thread);
+    if (!platformConfig) return;
+    if (thread.isDM) return;
+    if (message.author.isMe || message.author.isBot) return;
+    if (!isAllowedChannel(thread, platformConfig)) return;
+
+    const spaceId = getSpaceId(platform, thread);
+    if (
+      !context.spaces.some((selector) => matchSpaceSelector(selector, spaceId))
+    )
+      return;
+
+    const spaceThreadId = getSpaceThreadId(thread);
+    const routesToAgent =
+      shouldRouteChatMessage(thread, message, platformConfig) &&
+      (!platformConfig.requireMention || message.isMention);
+    if (spaceThreadId === thread.id && routesToAgent) return;
+
+    const content = message.text.trim();
+    if (!content) return;
+
+    const conversationId = getChatConversationId(platform, spaceThreadId);
+    const identity = await resolveChatIdentity(
+      context.permissions,
+      platform,
+      message.author.userId,
+      getPermissionContext(thread, message),
+    );
+    const channelName = getChannelName(thread);
+
+    await context.conversations.start({
+      sessionId: conversationId,
+      interfaceType: platform,
+      channelId: spaceThreadId,
+      metadata: {
+        channelName,
+        interfaceType: platform,
+        channelId: spaceThreadId,
+      },
+    });
+    await context.conversations.addMessage({
+      conversationId,
+      role: "user",
+      content,
+      metadata: buildChatSpaceMessageMetadata(
+        platform,
+        thread,
+        spaceThreadId,
+        message,
+        identity.principal,
+      ),
     });
   }
 
@@ -519,7 +604,7 @@ export class ChatTurnController {
 export function isEnabledChatPlatform(
   config: ChatConfig,
   interfaceType: string,
-): boolean {
+): interfaceType is ChatPlatform {
   const enabledPlatforms = new Set<ChatPlatform>();
   if (config.adapters.discord) enabledPlatforms.add("discord");
   if (config.adapters.slack) enabledPlatforms.add("slack");

@@ -15,11 +15,20 @@ export interface ChannelDescriptor {
   manualDelivery?: boolean | undefined;
 }
 
+export type ChannelDeliverySensitivity = "normal" | "secret";
+
 export interface ChannelDeliveryInput {
   recipient: string;
   subject: string;
   text: string;
   idempotencyKey: string;
+  /** Optional rich body for transports that render it. */
+  html?: string | undefined;
+  /**
+   * "secret" keeps recipient and subject out of provider logs. Providers that
+   * cannot honour it should treat every delivery as secret.
+   */
+  sensitivity?: ChannelDeliverySensitivity | undefined;
 }
 
 export type ChannelDeliveryResult =

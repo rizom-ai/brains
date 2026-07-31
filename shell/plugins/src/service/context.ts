@@ -1,17 +1,11 @@
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type {
-  ContentGenerationConfig,
-  IShell,
-  PluginRegistrationContext,
-} from "../interfaces";
+import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
+import { createAINamespace } from "../entity/context";
 import type {
-  AIGenerationSchema,
   IEntitiesNamespace,
   IEntityAINamespace,
-  ImageGenerationOptions,
-  ImageGenerationResult,
   IPromptsNamespace,
 } from "../entity/context";
 import {
@@ -239,30 +233,7 @@ export function createServicePluginContext(
 
     prompts: createPromptsNamespace(entityService),
 
-    ai: {
-      query: (prompt, context) => shell.query(prompt, context),
-      generate: async <T = unknown>(
-        config: ContentGenerationConfig,
-      ): Promise<T> => {
-        return shell.generateContent<T>(config);
-      },
-      generateObject: async <T>(
-        prompt: string,
-        schema: AIGenerationSchema<T>,
-        signal?: AbortSignal,
-      ): Promise<{ object: T }> => {
-        return shell.generateObject(prompt, schema, signal);
-      },
-      generateImage: async (
-        prompt: string,
-        options?: ImageGenerationOptions,
-      ): Promise<ImageGenerationResult> => {
-        return shell.generateImage(prompt, options);
-      },
-      canGenerateImages: (): boolean => {
-        return shell.canGenerateImages();
-      },
-    },
+    ai: createAINamespace(shell),
 
     registerInstructions: (instructions: string): void => {
       shell.registerInstructions(pluginId, instructions);

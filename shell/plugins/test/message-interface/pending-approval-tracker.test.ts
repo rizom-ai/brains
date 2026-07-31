@@ -174,3 +174,32 @@ describe("PendingApprovalTracker", () => {
     expect(restoreErrors).toEqual([error]);
   });
 });
+
+describe("PendingApprovalTracker.replaceApprovals", () => {
+  it("replaces the pending set for a conversation in order", async () => {
+    const tracker = new PendingApprovalTracker({
+      loadMessages: async (): Promise<readonly unknown[]> => [],
+    });
+
+    tracker.replaceApprovals("conv-1", ["approval:a", "approval:b"]);
+    expect([...(await tracker.getApprovalIds("conv-1"))]).toEqual([
+      "approval:a",
+      "approval:b",
+    ]);
+
+    tracker.replaceApprovals("conv-1", ["approval:c"]);
+    expect([...(await tracker.getApprovalIds("conv-1"))]).toEqual([
+      "approval:c",
+    ]);
+  });
+
+  it("clears the conversation when given no ids", async () => {
+    const tracker = new PendingApprovalTracker({
+      loadMessages: async (): Promise<readonly unknown[]> => [],
+    });
+
+    tracker.replaceApprovals("conv-1", ["approval:a"]);
+    tracker.replaceApprovals("conv-1", []);
+    expect([...(await tracker.getApprovalIds("conv-1"))]).toEqual([]);
+  });
+});

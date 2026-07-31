@@ -77,21 +77,10 @@ export function createAttachmentsNamespace(
 }
 
 export class AttachmentRegistry {
-  private static instance: AttachmentRegistry | null = null;
-
   private readonly providers = new Map<
     string,
     Map<string, AttachmentProvider>
   >();
-
-  public static getInstance(): AttachmentRegistry {
-    AttachmentRegistry.instance ??= new AttachmentRegistry();
-    return AttachmentRegistry.instance;
-  }
-
-  public static resetInstance(): void {
-    AttachmentRegistry.instance = null;
-  }
 
   public static createFresh(): AttachmentRegistry {
     return new AttachmentRegistry();

@@ -37,25 +37,31 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 
 ## Plugins
 
-| Plugin       | Entity Type   | Projection | Description                                              |
-| ------------ | ------------- | ---------- | -------------------------------------------------------- |
-| blog         | `post`        |            | Blog posts with frontmatter, publish pipeline, RSS       |
-| decks        | `deck`        |            | Slide decks with markdown directives                     |
-| note         | `note`        |            | Personal notes with markdown-first workflow              |
-| link         | `link`        |            | Web links with AI-powered content extraction             |
-| portfolio    | `project`     |            | Portfolio projects with structured case studies          |
-| newsletter   | `newsletter`  |            | Email newsletters with publish pipeline                  |
-| wishlist     | `wish`        |            | Unfulfilled user requests with semantic dedup            |
-| products     | `product`     |            | Product entities with marketing overview                 |
-| image        | `image`       |            | AI image generation                                      |
-| site-info    | `site-info`   |            | Website channel metadata and represented identity        |
-| style-guide  | `style-guide` |            | Singleton messaging, voice, and visual guidance          |
-| series       | `series`      | yes        | Cross-content series, projected from seriesName field    |
-| topics       | `topic`       | yes        | AI-extracted topics from posts, links, and other content |
-| skill        | `skill`       | yes        | A2A capabilities projected from topics and tools         |
-| summary      | `summary`     |            | Conversation summaries generated from digest events      |
-| social-media | `social-post` |            | Social media posts generated from published content      |
+| Plugin              | Entity Type                          | Projection | Description                                              |
+| ------------------- | ------------------------------------ | ---------- | -------------------------------------------------------- |
+| agent-discovery     | `agent`, `skill`                     | yes        | Discovered peer brains and their projected capabilities  |
+| assessment          | `swot`                               | yes        | SWOT assessments derived from other content              |
+| blog                | `post`                               |            | Blog posts with frontmatter, publish pipeline, RSS       |
+| conversation-memory | `summary`, `decision`, `action-item` |            | Conversation summaries generated from digest events      |
+| decks               | `deck`                               |            | Slide decks with markdown directives                     |
+| doc                 | `doc`                                |            | Documentation pages rendered on the site                 |
+| document            | `document`                           |            | Uploaded binary artifacts (PDFs and similar files)       |
+| image               | `image`                              |            | AI image generation                                      |
+| link                | `link`                               |            | Web links with AI-powered content extraction             |
+| note                | `note`                               |            | Personal notes with markdown-first workflow              |
+| portfolio           | `project`                            |            | Portfolio projects with structured case studies          |
+| products            | `product`                            |            | Product entities with marketing overview                 |
+| prompt              | `prompt`                             |            | Reusable prompt entities                                 |
+| rizom-ecosystem     | `ecosystem-section`                  |            | Rizom ecosystem page sections (opt-in via brain.yaml)    |
+| series              | `series`                             | yes        | Cross-content series, projected from seriesName field    |
+| site-info           | `site-info`                          |            | Site metadata — title, description, CTA, theme           |
+| social-media        | `social-post`                        |            | Social media posts generated from published content      |
+| style-guide         | `style-guide`                        |            | Singleton messaging, voice, and visual guidance          |
+| topics              | `topic`                              | yes        | AI-extracted topics from posts, links, and other content |
+| wishlist            | `wish`                               |            | Unfulfilled user requests with semantic dedup            |
+
+Note the one-character trap: `doc` is documentation _pages_ (site content), while `document` is uploaded binary _files_. They are distinct entity types; both ship in rover.
 
 ## vs plugins/
 
-`plugins/` contains `ServicePlugin` packages — plugins that provide tools, orchestrate workflows, or integrate with external services (system, content-pipeline, directory-sync, site-builder, analytics, dashboard, buttondown, notion, hackmd, etc.).
+`plugins/` contains `ServicePlugin` packages — plugins that provide tools, orchestrate workflows, or integrate with external services (content-pipeline, directory-sync, site-builder, analytics, dashboard, newsletter, cms, playbooks, etc.).

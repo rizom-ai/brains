@@ -1,5 +1,5 @@
-import type { Tool, ToolResponse, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import type { Tool, WebRouteDefinition } from "@brains/plugins";
+import { ServicePlugin, createTool, jsonResponse } from "@brains/plugins";
 import {
   getCanonicalAtprotoLexicon,
   listCanonicalAtprotoLexiconMetadata,
@@ -12,6 +12,7 @@ import type {
 } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface AtprotoRegistryConfig {
   enabled: boolean;
@@ -37,25 +38,6 @@ export interface AtprotoLexiconRegistryIndex {
 }
 
 const BASE_PATH = "/atproto/lexicons";
-
-interface ValidateLexiconInput {
-  nsid: string;
-  record: Record<string, unknown>;
-}
-
-const validateLexiconInputSchema: z.ZodType<
-  ValidateLexiconInput,
-  ValidateLexiconInput
-> = z.strictObject({
-  nsid: z.string(),
-  record: z.record(z.string(), z.unknown()),
-});
-
-function jsonResponse(value: unknown): Response {
-  return new Response(`${JSON.stringify(value, null, 2)}\n`, {
-    headers: { "Content-Type": "application/json" },
-  });
-}
 
 export class AtprotoRegistryPlugin extends ServicePlugin<
   AtprotoRegistryConfig,
@@ -106,68 +88,57 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
   }
 
   private createListLexiconsTool(): Tool {
-    return {
-      name: `${this.id}_list_lexicons`,
-      description: "List canonical Rizom AT Protocol lexicons.",
-      inputSchema: {},
-      handler: async (): Promise<ToolResponse> => ({
-        success: true,
-        data: this.getIndex(),
-      }),
-    };
+    return createTool(
+      this.id,
+      "list_lexicons",
+      "List canonical Rizom AT Protocol lexicons.",
+      z.object({}),
+      async () => ({ success: true, data: this.getIndex() }),
+    );
   }
 
   private createValidateLexiconTool(): Tool {
-    return {
-      name: `${this.id}_validate_lexicon`,
-      description:
-        "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
-      inputSchema: {
+    return createTool(
+      this.id,
+      "validate_lexicon",
+      "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
+      z.strictObject({
         nsid: z.string().describe("Canonical lexicon NSID"),
         record: z
           .record(z.string(), z.unknown())
           .describe("Record payload to validate"),
-      },
-      handler: async (input): Promise<ToolResponse> => {
-        const parsed = validateLexiconInputSchema.safeParse(input);
-        if (!parsed.success) {
-          return {
-            success: false,
-            error: `Invalid input: ${parsed.error.message}`,
-          };
-        }
-
-        const lexicon = this.getLexicon(parsed.data.nsid);
+      }),
+      async (input) => {
+        const lexicon = this.getLexicon(input.nsid);
         if (!lexicon) {
           return {
             success: false,
-            error: `Unknown AT Protocol lexicon: ${parsed.data.nsid}`,
+            error: `Unknown AT Protocol lexicon: ${input.nsid}`,
           };
         }
 
+        let data: { valid: boolean; error?: string };
         try {
-          validateAtprotoRecord(lexicon, parsed.data.record);
-          return { success: true, data: { valid: true } };
+          validateAtprotoRecord(lexicon, input.record);
+          data = { valid: true };
         } catch (error) {
-          return {
-            success: true,
-            data: {
-              valid: false,
-              error: error instanceof Error ? error.message : "Invalid record",
-            },
+          data = {
+            valid: false,
+            error: getErrorMessage(error, "Invalid record"),
           };
         }
+        return { success: true, data };
       },
-    };
+    );
   }
 
   private createCheckContractsTool(): Tool {
-    return {
-      name: `${this.id}_check_contracts`,
-      description:
-        "Check that canonical Rizom AT Protocol lexicon contracts are available.",
-      inputSchema: {},
-      handler: async (): Promise<ToolResponse> => ({
+    return createTool(
+      this.id,
+      "check_contracts",
+      "Check that canonical Rizom AT Protocol lexicon contracts are available.",
+      z.object({}),
+      async () => ({
         success: true,
         data: {
           lexiconCount: listCanonicalAtprotoLexicons().length,
@@ -175,7 +146,7 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
           metadata: listCanonicalAtprotoLexiconMetadata(),
         },
       }),
-    };
+    );
   }
 }
 

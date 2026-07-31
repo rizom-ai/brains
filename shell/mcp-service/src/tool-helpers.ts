@@ -1,4 +1,10 @@
-import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
+import type {
+  Tool,
+  Resource,
+  ToolConfirmation,
+  ToolResponse,
+  ToolContext,
+} from "./types";
 import { getErrorMessage } from "@brains/utils/error";
 import { Logger } from "@brains/utils/logger";
 import { z, type ZodRawShape } from "@brains/utils/zod";
@@ -103,13 +109,16 @@ export function createTool<
   handler: (
     input: z.output<TSchema>,
     context: ToolContext,
-  ) => Promise<ToolResult<TOutput>>,
+  ) => Promise<ToolResult<TOutput> | ToolConfirmation>,
   options: {
     visibility?: Tool["visibility"];
     sideEffects?: Tool["sideEffects"];
     annotations?: Tool["annotations"];
     debug?: boolean;
     cli?: Tool["cli"];
+    /** Exact tool name to use instead of `${pluginId}_${name}`. */
+    nameOverride?: string;
+    outputSchema?: Tool["outputSchema"];
   } = {},
 ): Tool {
   const {
@@ -118,14 +127,17 @@ export function createTool<
     annotations,
     debug = false,
     cli,
+    nameOverride,
+    outputSchema,
   } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
   const inputShape = inputSchema.shape;
 
   return {
-    name: `${pluginId}_${name}`,
+    name: nameOverride ?? `${pluginId}_${name}`,
     description,
     inputSchema: inputShape,
+    ...(outputSchema ? { outputSchema } : {}),
     handler: async (input, context): Promise<ToolResponse> => {
       logger?.debug(`Tool ${name} started`);
       try {

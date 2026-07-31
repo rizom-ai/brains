@@ -1,4 +1,6 @@
 export {
+  logKeyGroup,
+  logMissingSecrets,
   pushSecretsToBackend,
   type PushSecretsOptions,
   type SecretPair,

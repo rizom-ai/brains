@@ -10,6 +10,7 @@ import type {
   List,
   ListItem,
 } from "mdast";
+import { getErrorMessage } from "@brains/utils/error";
 
 const recordSchema = z.record(z.string(), z.unknown());
 
@@ -138,7 +139,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
         .join("; ");
     }
-    return error instanceof Error ? error.message : String(error);
+    return getErrorMessage(error);
   }
 
   /**

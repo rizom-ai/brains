@@ -1,5 +1,6 @@
 import type { ReasoningEffort } from "@brains/ai-service";
-import { dbConfigSchema, type DbConfig } from "@brains/contracts";
+import type { DbConfig } from "@brains/contracts";
+import { dbConfigSchema } from "./db-config-schema";
 import { z } from "@brains/utils/zod";
 import type {
   Plugin,
@@ -85,7 +86,7 @@ export interface ShellConfigSchemaOutput {
   profileKind?: string | undefined;
 }
 
-const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
+export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
   z.object({
     name: z.string().default("brain-app"),
     version: z.string().default("1.0.0"),
@@ -133,9 +134,6 @@ const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
     entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
     profileKind: z.string().trim().min(1).optional(),
   });
-
-export const shellConfigSchema: typeof shellConfigSchemaInternal =
-  shellConfigSchemaInternal;
 
 export type ShellConfig = Omit<
   ShellConfigSchemaOutput,

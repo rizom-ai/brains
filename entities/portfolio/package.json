@@ -8,7 +8,6 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
-    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/style-guide": "workspace:*",
     "@brains/templates": "workspace:*",

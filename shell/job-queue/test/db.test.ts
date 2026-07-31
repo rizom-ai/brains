@@ -1,5 +1,6 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { createJobQueueDatabase, enableWALMode } from "../src/db";
+import { applySqlitePragmas } from "@brains/db";
+import { createJobQueueDatabase } from "../src/db";
 
 describe("JobQueueService Database", () => {
   let cleanup: (() => Promise<void>)[] = [];
@@ -48,29 +49,6 @@ describe("JobQueueService Database", () => {
     });
   });
 
-  describe("enableWALMode", () => {
-    test("handles WAL mode for in-memory database", async () => {
-      const { client } = createJobQueueDatabase({ url: "file::memory:" });
-
-      await enableWALMode(client, "file::memory:");
-
-      const result = await client.execute("PRAGMA journal_mode");
-      expect(result.rows[0]?.["journal_mode"]).toBe("memory");
-
-      trackClient(client);
-    });
-
-    test("skips WAL mode for remote database", async () => {
-      const { client } = createJobQueueDatabase({
-        url: "libsql://test.turso.io",
-      });
-
-      await enableWALMode(client, "libsql://test.turso.io");
-
-      trackClient(client);
-    });
-  });
-
   describe("integration", () => {
     test("full database initialization flow", async () => {
       const config = { url: "file::memory:" };
@@ -80,7 +58,7 @@ describe("JobQueueService Database", () => {
       expect(client).toBeDefined();
       expect(url).toBe(config.url);
 
-      await enableWALMode(client, url);
+      await applySqlitePragmas(client, url);
 
       await client.execute(`
         CREATE TABLE IF NOT EXISTS job_queue (

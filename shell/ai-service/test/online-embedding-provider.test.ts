@@ -3,9 +3,7 @@ import { OnlineEmbeddingProvider } from "../src/online-embedding-provider";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("OnlineEmbeddingProvider", () => {
-  afterEach(() => {
-    OnlineEmbeddingProvider.resetInstance();
-  });
+  afterEach(() => {});
 
   describe("construction", () => {
     test("requires an API key", () => {
@@ -57,33 +55,6 @@ describe("OnlineEmbeddingProvider", () => {
         logger: createSilentLogger(),
       });
       expect(provider.dimensions).toBe(1536);
-    });
-  });
-
-  describe("singleton", () => {
-    test("getInstance returns same instance", () => {
-      const a = OnlineEmbeddingProvider.getInstance({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      const b = OnlineEmbeddingProvider.getInstance({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(a).toBe(b);
-    });
-
-    test("resetInstance clears singleton", () => {
-      const a = OnlineEmbeddingProvider.getInstance({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      OnlineEmbeddingProvider.resetInstance();
-      const b = OnlineEmbeddingProvider.getInstance({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(a).not.toBe(b);
     });
   });
 

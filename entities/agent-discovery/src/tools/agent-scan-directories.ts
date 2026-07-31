@@ -13,6 +13,7 @@ import {
   type FetchFn,
 } from "../lib/fetch-agent-card";
 import type { AgentEntity } from "../schemas/agent";
+import { getErrorMessage } from "@brains/utils/error";
 
 const agentScanDirectoriesInputSchema = z.object({});
 
@@ -206,7 +207,7 @@ export function createAgentScanDirectoriesTool(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
 

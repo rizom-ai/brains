@@ -27,8 +27,6 @@ describe("RenderService", () => {
   let templateRegistry: TemplateRegistry;
 
   beforeEach(() => {
-    RenderService.resetInstance();
-    TemplateRegistry.resetInstance();
     templateRegistry = TemplateRegistry.createFresh();
     renderService = RenderService.createFresh(templateRegistry);
   });

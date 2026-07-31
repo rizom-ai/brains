@@ -5,11 +5,11 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import {
-  TestSchedulerBackend,
   type ScheduledJob,
   type SchedulerBackend,
   type SchedulerCallback,
 } from "../src/scheduler-backend";
+import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
@@ -134,7 +134,6 @@ describe("ContentScheduler", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    await ContentScheduler.resetInstance();
   });
 
   describe("start/stop", () => {
@@ -266,29 +265,6 @@ describe("ContentScheduler", () => {
 
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
-    });
-  });
-
-  describe("singleton pattern", () => {
-    it("should return same instance from getInstance", () => {
-      const instance1 = ContentScheduler.getInstance(baseConfig());
-      const instance2 = ContentScheduler.getInstance(baseConfig());
-
-      expect(instance1).toBe(instance2);
-    });
-
-    it("returns an awaitable reset that drains the singleton", async () => {
-      const drainingBackend = new DrainingSchedulerBackend();
-      const singleton = ContentScheduler.getInstance(
-        baseConfig({ backend: drainingBackend }),
-      );
-      await singleton.start();
-
-      const resetting = ContentScheduler.resetInstance();
-      drainingBackend.resolveStops();
-
-      expect(resetting).toBeInstanceOf(Promise);
-      await resetting;
     });
   });
 

@@ -1,57 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import type { ShellConfigInput } from "../src/config";
-import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Plugin, Daemon } from "@brains/plugins";
-import {
-  InterfacePlugin,
-  PluginManager,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
-import { EntityRegistry } from "@brains/entity-service";
-import {
-  JobQueueWorker,
-  JobQueueService,
-  BatchJobManager,
-  JobProgressMonitor,
-} from "@brains/job-queue";
-import { DataSourceRegistry } from "@brains/entity-service";
-import { MessageBus } from "@brains/messaging-service";
+import { InterfacePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-
-async function resetAllSingletons(): Promise<void> {
-  await Shell.resetInstance();
-  ShellInitializer.resetInstance();
-  PluginManager.resetInstance();
-  EntityRegistry.resetInstance();
-  DataSourceRegistry.resetInstance();
-  JobQueueService.resetInstance();
-  BatchJobManager.resetInstance();
-  JobQueueWorker.resetInstance();
-  JobProgressMonitor.resetInstance();
-  MessageBus.resetInstance();
-}
 
 interface TestDir {
   dir: string;
   cleanup: () => Promise<void>;
-}
-
-function createTestConfig(dir: string): ShellConfigInput {
-  return {
-    plugins: [],
-    database: { url: `file:${dir}/test.db` },
-    jobQueueDatabase: { url: `file:${dir}/jobs.db` },
-    conversationDatabase: { url: `file:${dir}/conv.db` },
-    runtimeStateDatabase: { url: `file:${dir}/runtime-state.db` },
-    embeddingDatabase: { url: `file:${dir}/embeddings.db` },
-    ai: {
-      model: "claude-haiku-4-5",
-      apiKey: "test-key",
-    },
-  };
 }
 
 describe("Shell register-only mode", () => {
@@ -75,12 +33,10 @@ describe("Shell register-only mode", () => {
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
-    await resetAllSingletons();
   });
 
   afterEach(async () => {
     await shell.shutdown();
-    await resetAllSingletons();
     await testDir.cleanup();
   });
 
@@ -115,7 +71,7 @@ describe("Shell register-only mode", () => {
       },
     };
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [testPlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
@@ -147,7 +103,7 @@ describe("Shell register-only mode", () => {
         resources: [],
       }),
     };
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [testPlugin];
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
@@ -169,7 +125,7 @@ describe("Shell register-only mode", () => {
   });
 
   it("should not start background job worker in register-only mode", async () => {
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
 
@@ -214,7 +170,7 @@ describe("Shell register-only mode", () => {
       }
     }
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [new RequiredDaemonInterface()];
     shell = Shell.createFresh(config, deps);
 
@@ -280,7 +236,7 @@ describe("Shell register-only mode", () => {
       }
     }
 
-    const config = createTestConfig(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
     config.plugins = [new TestDaemonInterface()];
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });

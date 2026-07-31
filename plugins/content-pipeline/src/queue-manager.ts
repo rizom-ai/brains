@@ -19,31 +19,11 @@ export interface QueueEntry {
 }
 
 export class QueueManager {
-  private static instance: QueueManager | null = null;
-
   // Map of entityType -> the in-memory execution projection. Durable queue
   // intent lives on entities and recoverable ordering lives in runtimeState;
   // PublicationQueueService reconciles both into this map at startup.
   private queues: Map<string, QueueEntry[]> = new Map();
 
-  /**
-   * Get the singleton instance
-   */
-  public static getInstance(): QueueManager {
-    QueueManager.instance ??= new QueueManager();
-    return QueueManager.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    QueueManager.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(): QueueManager {
     return new QueueManager();
   }

@@ -2,8 +2,6 @@
 "@rizom/site-docs": patch
 "@rizom/site-rizom": patch
 "@rizom/site-rizom-ai": patch
-"@rizom/site-rizom-foundation": patch
-"@rizom/site-rizom-work": patch
 ---
 
 Declare preact as a peer dependency instead of a hard dependency. The external

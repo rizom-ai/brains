@@ -10,10 +10,6 @@ export const platformSchema: z.ZodType<Platform, Platform> = z.enum([
   "linkedin",
 ]);
 
-const platformParserSchema: z.ZodType<Platform, Platform> = z.enum([
-  "linkedin",
-]);
-
 /**
  * Social post status
  * - draft: Created but not ready for publishing
@@ -29,22 +25,12 @@ export const socialPostStatusSchema: z.ZodType<
   SocialPostStatus
 > = z.enum(["generating", "draft", "queued", "published", "failed"]);
 
-const socialPostStatusParserSchema: z.ZodType<
-  SocialPostStatus,
-  SocialPostStatus
-> = z.enum(["generating", "draft", "queued", "published", "failed"]);
-
 /**
  * Source entity types that can generate social posts
  */
 export type SourceEntityType = "post" | "deck";
 
 export const sourceEntityTypeSchema: z.ZodType<
-  SourceEntityType,
-  SourceEntityType
-> = z.enum(["post", "deck"]);
-
-const sourceEntityTypeParserSchema: z.ZodType<
   SourceEntityType,
   SourceEntityType
 > = z.enum(["post", "deck"]);
@@ -66,11 +52,6 @@ export const socialPostDocumentAttachmentSchema: SocialPostDocumentAttachmentSch
 export type SocialPostDocumentAttachment = z.output<
   typeof socialPostDocumentAttachmentSchema
 >;
-
-const socialPostDocumentAttachmentParserSchema: SocialPostDocumentAttachmentSchema =
-  z.object({
-    id: z.string().min(1),
-  });
 
 /**
  * Social post frontmatter schema (stored in content as YAML frontmatter)
@@ -171,32 +152,6 @@ export const socialPostMetadataSchema: SocialPostMetadataSchema =
 
 export type SocialPostMetadata = z.output<typeof socialPostMetadataSchema>;
 
-const socialPostEntityMetadataParserSchema: SocialPostMetadataSchema = z.object(
-  {
-    title: z.string(),
-    platform: platformParserSchema,
-    status: socialPostStatusParserSchema,
-    publishedAt: z.string().datetime().optional(),
-    platformPostId: z.string().optional(),
-    slug: z.string(),
-    error: z.string().optional(),
-  },
-);
-
-const socialPostFrontmatterParserSchema: SocialPostFrontmatterSchema = z.object(
-  {
-    title: z.string(),
-    platform: platformParserSchema,
-    status: socialPostStatusParserSchema,
-    coverImageId: z.string().optional(),
-    documents: z.array(socialPostDocumentAttachmentParserSchema).optional(),
-    publishedAt: z.string().datetime().optional(),
-    platformPostId: z.string().optional(),
-    sourceEntityId: z.string().optional(),
-    sourceEntityType: sourceEntityTypeParserSchema.optional(),
-  },
-);
-
 /**
  * Social post entity schema (extends BaseEntity)
  * Content field contains markdown with frontmatter + post body
@@ -205,11 +160,11 @@ const socialPostFrontmatterParserSchema: SocialPostFrontmatterSchema = z.object(
 export const socialPostSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"social-post">;
-    metadata: typeof socialPostEntityMetadataParserSchema;
+    metadata: SocialPostMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("social-post"),
-  metadata: socialPostEntityMetadataParserSchema,
+  metadata: socialPostMetadataSchema,
 });
 
 export type SocialPost = z.output<typeof socialPostSchema>;
@@ -224,7 +179,7 @@ export const socialPostWithDataSchema: ReturnType<
     body: z.ZodString;
   }>
 > = socialPostSchema.extend({
-  frontmatter: socialPostFrontmatterParserSchema,
+  frontmatter: socialPostFrontmatterSchema,
   body: z.string(),
 });
 

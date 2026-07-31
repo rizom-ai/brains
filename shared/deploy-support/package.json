@@ -16,6 +16,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./cli-kit": {
+      "types": "./src/cli-kit.ts",
+      "default": "./src/cli-kit.ts"
+    },
     "./deploy-scripts/*": {
       "types": "./src/deploy-scripts/*",
       "default": "./src/deploy-scripts/*"

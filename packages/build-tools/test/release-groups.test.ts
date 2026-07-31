@@ -82,11 +82,8 @@ test("deployable site and theme inventory declares brain compatibility", async (
       "@rizom/site-docs",
       "@rizom/site-rizom",
       "@rizom/site-rizom-ai",
-      "@rizom/site-rizom-foundation",
-      "@rizom/site-rizom-work",
       "@rizom/theme-default",
       "@rizom/theme-rizom-ai",
-      "@rizom/theme-signal",
     ],
   );
   for (const { packageJson } of deployablePackages) {
@@ -154,9 +151,9 @@ test("public site and theme packages release independently", async () => {
   ).not.toThrow();
   expect(siteRelease.has("@rizom/brain")).toBe(false);
 
-  const themeRelease = await publishedPackagesFor("@rizom/theme-signal");
+  const themeRelease = await publishedPackagesFor("@rizom/theme-rizom-ai");
   expect([...themeRelease].filter(isPublicSiteOrTheme)).toEqual([
-    "@rizom/theme-signal",
+    "@rizom/theme-rizom-ai",
   ]);
   expect(() =>
     assertReleasePlanMatchesLane(
@@ -178,12 +175,7 @@ test("a site release with private dependents stays out of the fixed core group",
     .filter((release) => !release.private)
     .map((release) => release.name)
     .sort();
-  expect(published).toEqual([
-    "@rizom/site-rizom",
-    "@rizom/site-rizom-ai",
-    "@rizom/site-rizom-foundation",
-    "@rizom/site-rizom-work",
-  ]);
+  expect(published).toEqual(["@rizom/site-rizom", "@rizom/site-rizom-ai"]);
   expect(() => assertReleasePlanMatchesLane("site", plan)).not.toThrow();
 
   const packages = await getPackages(repositoryRoot);
@@ -239,7 +231,7 @@ test("release lane is inferred from a changeset's own packages", () => {
   expect(
     inferReleaseLane([
       { name: "@rizom/site-rizom" },
-      { name: "@rizom/theme-signal" },
+      { name: "@rizom/theme-rizom-ai" },
     ]),
   ).toBe("site");
   expect(
@@ -262,7 +254,7 @@ test("release lane guard rejects core/site plan crossover", () => {
   ).toThrow("@rizom/site-rizom");
   expect(() =>
     assertReleasePlanMatchesLane("site", [
-      { name: "@rizom/theme-signal" },
+      { name: "@rizom/theme-rizom-ai" },
       { name: "@brains/core" },
       { name: "@rizom/brain" },
     ]),
@@ -371,5 +363,4 @@ test("normal dependency propagation still applies across release groups", async 
 
   expect(releases.has("@rizom/theme-default")).toBe(true);
   expect(releases.has("@rizom/theme-rizom-ai")).toBe(true);
-  expect(releases.has("@rizom/theme-signal")).toBe(true);
 });

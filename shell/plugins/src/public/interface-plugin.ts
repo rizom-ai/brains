@@ -1,27 +1,23 @@
 import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
 import type { PluginConfigSchema } from "../config";
-import type {
-  IShell,
-  PluginCapabilities,
-  PluginRegistrationContext,
-} from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type {
   BaseJobTrackingInfo,
   InterfacePluginContext,
-  Plugin,
   Resource,
   Tool,
 } from "./types";
+import {
+  HookedPublicPlugin,
+  type CommonPluginHooks,
+  type PluginPackageJson,
+  type RuntimePluginDelegate,
+} from "./public-plugin";
 
-interface InterfacePluginHooks {
-  onRegister(context: InterfacePluginContext): Promise<void>;
-  onReady(context: InterfacePluginContext): Promise<void>;
-  onShutdown(): Promise<void>;
-  getTools(): Promise<Tool[]>;
-  getResources(): Promise<Resource[]>;
-  getInstructions(): Promise<string | undefined>;
+export interface InterfacePluginHooks<
+  TContext,
+> extends CommonPluginHooks<TContext> {
   getWebRoutes(): WebRouteDefinition[];
   requiresDaemonStartup(): boolean;
 }
@@ -31,13 +27,14 @@ class InterfacePluginDelegate<
   TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo,
 > extends RuntimeInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
-  private readonly hooks: InterfacePluginHooks;
+  private readonly hooks: InterfacePluginHooks<InterfacePluginContext>;
+
   constructor(
     id: string,
-    packageJson: { name: string; version: string; description?: string },
+    packageJson: PluginPackageJson,
     config: TConfigInput,
     configSchema: PluginConfigSchema<TConfig>,
-    hooks: InterfacePluginHooks,
+    hooks: InterfacePluginHooks<InterfacePluginContext>,
   ) {
     super(id, packageJson, config, configSchema);
     this.hooks = hooks;
@@ -59,12 +56,12 @@ class InterfacePluginDelegate<
     return this.hooks.onShutdown();
   }
 
-  protected override getTools(): Promise<never[]> {
-    return this.hooks.getTools() as Promise<never[]>;
+  protected override getTools(): Promise<Tool[]> {
+    return this.hooks.getTools();
   }
 
-  protected override getResources(): Promise<never[]> {
-    return this.hooks.getResources() as Promise<never[]>;
+  protected override getResources(): Promise<Resource[]> {
+    return this.hooks.getResources();
   }
 
   protected override getInstructions(): Promise<string | undefined> {
@@ -84,68 +81,27 @@ export abstract class InterfacePlugin<
   TConfig,
   TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo = BaseJobTrackingInfo,
-> implements Plugin {
+> extends HookedPublicPlugin<TConfig, TConfigInput, InterfacePluginContext> {
   public readonly type = "interface" as const;
-  public readonly id: string;
-  public readonly version: string;
-  public readonly packageName: string;
-  public readonly description?: string;
-  private readonly delegate: InterfacePluginDelegate<
-    TConfig,
-    TConfigInput,
-    TTrackingInfo
-  >;
 
-  protected constructor(
-    id: string,
-    packageJson: { name: string; version: string; description?: string },
-    config: TConfigInput,
-    configSchema: PluginConfigSchema<TConfig>,
-  ) {
-    this.id = id;
-    this.version = packageJson.version;
-    this.packageName = packageJson.name;
-    if (packageJson.description !== undefined) {
-      this.description = packageJson.description;
-    }
-    this.delegate = new InterfacePluginDelegate(
-      id,
-      packageJson,
-      config,
-      configSchema,
-      {
-        onRegister: (context): Promise<void> => this.onRegister(context),
-        onReady: (context): Promise<void> => this.onReady(context),
-        onShutdown: (): Promise<void> => this.onShutdown(),
-        getTools: (): Promise<Tool[]> => this.getTools(),
-        getResources: (): Promise<Resource[]> => this.getResources(),
-        getInstructions: (): Promise<string | undefined> =>
-          this.getInstructions(),
-        getWebRoutes: (): WebRouteDefinition[] => this.getWebRoutes(),
-        requiresDaemonStartup: (): boolean => this.requiresDaemonStartup(),
-      },
+  /** @internal */
+  protected override createDelegate(): RuntimePluginDelegate {
+    return new InterfacePluginDelegate<TConfig, TConfigInput, TTrackingInfo>(
+      this.id,
+      this.packageJson,
+      this.pluginConfig,
+      this.configSchema,
+      this.interfaceHooks(),
     );
   }
 
   /** @internal */
-  register(
-    shell: IShell,
-    context?: PluginRegistrationContext,
-  ): Promise<PluginCapabilities> {
-    return this.delegate.register(shell, context);
-  }
-
-  protected async onRegister(_context: InterfacePluginContext): Promise<void> {}
-  protected async onReady(_context: InterfacePluginContext): Promise<void> {}
-  protected async onShutdown(): Promise<void> {}
-  protected async getTools(): Promise<Tool[]> {
-    return [];
-  }
-  protected async getResources(): Promise<Resource[]> {
-    return [];
-  }
-  protected async getInstructions(): Promise<string | undefined> {
-    return undefined;
+  protected interfaceHooks(): InterfacePluginHooks<InterfacePluginContext> {
+    return {
+      ...this.commonHooks(),
+      getWebRoutes: (): WebRouteDefinition[] => this.getWebRoutes(),
+      requiresDaemonStartup: (): boolean => this.requiresDaemonStartup(),
+    };
   }
 
   getWebRoutes(): WebRouteDefinition[] {
@@ -154,13 +110,5 @@ export abstract class InterfacePlugin<
 
   requiresDaemonStartup(): boolean {
     return false;
-  }
-
-  ready(): Promise<void> {
-    return this.delegate.ready();
-  }
-
-  shutdown(): Promise<void> {
-    return this.delegate.shutdown?.() ?? Promise.resolve();
   }
 }

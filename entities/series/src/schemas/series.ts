@@ -27,25 +27,17 @@ export const seriesMetadataSchema: z.ZodObject<{
 
 export type SeriesMetadata = z.output<typeof seriesMetadataSchema>;
 
-const seriesEntityMetadataParserSchema: z.ZodObject<{
-  title: z.ZodString;
-  slug: z.ZodString;
-}> = z.object({
-  title: z.string(),
-  slug: z.string(),
-});
-
 /**
  * Series entity schema
  */
 export const seriesSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"series">;
-    metadata: typeof seriesEntityMetadataParserSchema;
+    metadata: typeof seriesMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("series"),
-  metadata: seriesEntityMetadataParserSchema,
+  metadata: seriesMetadataSchema,
 });
 
 export type Series = z.output<typeof seriesSchema>;

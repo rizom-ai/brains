@@ -1,5 +1,5 @@
 import type { ImageRenderer } from "@brains/ui-library";
-import { escapeHtmlAttr } from "./image-utils";
+import { escapeHtml } from "@brains/utils/string-utils";
 import type { SiteImageMap } from "./site-image-contracts";
 
 /** Create a markdown image renderer from a prepared, serializable image map. */
@@ -16,18 +16,18 @@ export function createSiteImageRenderer(imageMap: SiteImageMap): ImageRenderer {
     if (!resolved) return undefined;
 
     const attrs: string[] = [
-      `src="${escapeHtmlAttr(resolved.src)}"`,
-      `alt="${escapeHtmlAttr(text)}"`,
+      `src="${escapeHtml(resolved.src)}"`,
+      `alt="${escapeHtml(text)}"`,
     ];
     if (resolved.srcset) {
-      attrs.push(`srcset="${escapeHtmlAttr(resolved.srcset)}"`);
+      attrs.push(`srcset="${escapeHtml(resolved.srcset)}"`);
     }
     if (resolved.sizes) {
-      attrs.push(`sizes="${escapeHtmlAttr(resolved.sizes)}"`);
+      attrs.push(`sizes="${escapeHtml(resolved.sizes)}"`);
     }
     if (resolved.width) attrs.push(`width="${resolved.width}"`);
     if (resolved.height) attrs.push(`height="${resolved.height}"`);
-    if (title) attrs.push(`title="${escapeHtmlAttr(title)}"`);
+    if (title) attrs.push(`title="${escapeHtml(title)}"`);
     attrs.push('loading="lazy"');
     attrs.push('decoding="async"');
 

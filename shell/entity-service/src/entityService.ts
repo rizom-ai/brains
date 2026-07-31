@@ -1,14 +1,9 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import {
-  createEntityDatabase,
-  enableWALModeForEntities,
-  ensureFtsTable,
-  type EntityDB,
-} from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
-  enableWALModeForEmbeddings,
   migrateEmbeddingDatabase,
   ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
@@ -44,7 +39,6 @@ import type {
   EntityTypeConfig,
   EntityRegistry as IEntityRegistry,
 } from "./types";
-import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
 import { sql } from "drizzle-orm";
 import { Logger } from "@brains/utils/logger";
@@ -64,7 +58,7 @@ import { makeIndexReadinessPollingEffect } from "./index-readiness";
  */
 export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
-  entityRegistry?: IEntityRegistry;
+  entityRegistry: IEntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
@@ -83,8 +77,6 @@ export interface EntityServiceOptions {
  * - ContentResolver: entity reference resolution
  */
 export class EntityService implements IEntityService {
-  private static instance: EntityService | null = null;
-
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
@@ -102,18 +94,6 @@ export class EntityService implements IEntityService {
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
-
-  public static getInstance(options: EntityServiceOptions): EntityService {
-    EntityService.instance ??= new EntityService(options);
-    return EntityService.instance;
-  }
-
-  public static resetInstance(): void {
-    if (EntityService.instance) {
-      EntityService.instance.close();
-      EntityService.instance = null;
-    }
-  }
 
   /**
    * Close the underlying database connections.
@@ -163,9 +143,7 @@ export class EntityService implements IEntityService {
       this.embeddingDb = emb.db;
       this.embeddingDbClient = emb.client;
 
-      this.entityRegistry =
-        options.entityRegistry ??
-        EntityRegistry.getInstance(Logger.getInstance());
+      this.entityRegistry = options.entityRegistry;
       this.logger = (options.logger ?? Logger.getInstance()).child(
         "EntityService",
       );
@@ -260,7 +238,7 @@ export class EntityService implements IEntityService {
   ): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
-      await enableWALModeForEntities(this.dbClient, this.dbUrl);
+      await applySqlitePragmas(this.dbClient, this.dbUrl);
     } catch (error) {
       this.logger.warn(
         "Failed to enable WAL mode for entity database (non-fatal)",
@@ -268,10 +246,7 @@ export class EntityService implements IEntityService {
       );
     }
     try {
-      await enableWALModeForEmbeddings(
-        this.embeddingDbClient,
-        embeddingDbConfig.url,
-      );
+      await applySqlitePragmas(this.embeddingDbClient, embeddingDbConfig.url);
     } catch (error) {
       this.logger.warn(
         "Failed to enable WAL mode for embedding database (non-fatal)",

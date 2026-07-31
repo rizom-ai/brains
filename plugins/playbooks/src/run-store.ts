@@ -1,3 +1,4 @@
+import { SerialQueue } from "@brains/plugins";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -116,7 +117,7 @@ const playbookRunsNamespace = "playbooks.runs";
 
 export class PlaybookRunStore {
   private readonly store: IRuntimeStateStore<PlaybookRun>;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly writes = new SerialQueue();
 
   constructor(runtimeState: IRuntimeStateNamespace) {
     this.store = runtimeState.scoped<PlaybookRun>({
@@ -211,23 +212,12 @@ export class PlaybookRunStore {
     });
   }
 
-  private async enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
-    const previous = this.writeQueue;
-    let release: () => void = () => {};
-    this.writeQueue = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-    }
+  private enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
+    return this.writes.run(operation);
   }
 
-  private async waitForWrites(): Promise<void> {
-    await this.writeQueue;
+  private waitForWrites(): Promise<void> {
+    return this.writes.settle();
   }
 }
 

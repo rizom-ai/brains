@@ -7,6 +7,7 @@ import {
   loadPilotRegistry,
   type ObservedUserStatus,
 } from "../src/load-registry";
+import { getErrorMessage } from "@brains/utils/error";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-"));
@@ -18,10 +19,6 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
   }
 
   return root;
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 describe("loadPilotRegistry", () => {

@@ -2,19 +2,24 @@ import {
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
-import { ConfirmationArgsStore, type Tool } from "@brains/mcp-service";
+import type { Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
   assertEntityTypeRegistered,
+  createConfirmationGate,
   createSystemTool,
   getEntityDisplayLabel,
 } from "./tool-helpers";
+import { getErrorMessage } from "@brains/utils/error";
 
 export function createEntityDeleteTool(services: SystemServices): Tool {
   const { entityService, entityRegistry, logger } = services;
-  const confirmationArgsStore = new ConfirmationArgsStore();
+  const confirmationGate = createConfirmationGate({
+    label: "delete",
+    requestNoun: "deletion",
+  });
 
   return createSystemTool(
     "delete",
@@ -67,24 +72,8 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       const { entity } = resolved;
 
       if (input.confirmed) {
-        const validation = confirmationArgsStore.validate(
-          input.confirmationToken,
-          input,
-        );
-        if (validation.status === "missing") {
-          return {
-            success: false,
-            error:
-              "No pending delete confirmation found. Please request deletion again and confirm the new approval.",
-          };
-        }
-        if (validation.status === "mismatch") {
-          return {
-            success: false,
-            error:
-              "Confirmed delete arguments do not match the pending approval. Please request deletion again and confirm the new approval.",
-          };
-        }
+        const gateError = confirmationGate.validateConfirmed(input);
+        if (gateError) return gateError;
         try {
           await entityService.deleteEntity({
             entityType: input.entityType,
@@ -93,17 +82,14 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         } catch (error) {
           return {
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to delete entity",
+            error: getErrorMessage(error, "Failed to delete entity"),
           };
         }
         return { success: true, data: { deleted: entity.id } };
       }
 
       const label = getEntityDisplayLabel(entity);
-      const args = confirmationArgsStore.create((confirmationToken) => ({
+      const args = confirmationGate.buildArgs((confirmationToken) => ({
         ...input,
         id: entity.id,
         confirmed: true,

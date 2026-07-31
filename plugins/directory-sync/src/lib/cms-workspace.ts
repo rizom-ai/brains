@@ -1,6 +1,6 @@
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
   PermissionService,
+  registerCmsWorkspace as sendWorkspaceRegistration,
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
   type ToolContext,
@@ -20,8 +20,7 @@ import type {
   RecentDirectorySyncRun,
 } from "./directory-sync-operation-status";
 import { requestDirectorySync } from "./request-directory-sync";
-
-const registrationResultSchema = z.object({ workspaceUrl: z.string() });
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface DirectorySyncWorkspaceAction {
   type: "sync-now";
@@ -173,8 +172,7 @@ export class DirectorySyncWorkspaceProvider {
       } catch (error) {
         await this.options.operationStatus.recordIssue({
           kind: "git",
-          message:
-            error instanceof Error ? error.message : "Git status unavailable",
+          message: getErrorMessage(error, "Git status unavailable"),
         });
       }
     }
@@ -280,14 +278,7 @@ export class DirectorySyncWorkspaceProvider {
       },
     };
 
-    const response = await this.options.context.messaging.send({
-      type: CMS_WORKSPACE_REGISTER_MESSAGE,
-      payload: registration,
-    });
-    if (!("success" in response) || !response.success) return undefined;
-
-    const parsed = registrationResultSchema.safeParse(response.data);
-    return parsed.success ? parsed.data.workspaceUrl : undefined;
+    return sendWorkspaceRegistration(this.options.context, registration);
   }
 
   private toSafeGitStatus(

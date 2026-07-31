@@ -1,4 +1,5 @@
-import { Context, Effect, Layer } from "@brains/utils/effect";
+import { Context, scopedServiceLayer } from "@brains/utils/effect";
+import type { Layer } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import { RuntimeStateService } from "./runtime-state-service";
 import type { RuntimeStateServiceConfig } from "./types";
@@ -22,18 +23,10 @@ export interface RuntimeStateServiceLayerOptions {
 export function createRuntimeStateServiceLayer(
   options: RuntimeStateServiceLayerOptions,
 ): Layer.Layer<RuntimeStateServiceTag> {
-  return Layer.scoped(
-    RuntimeStateServiceTag,
-    Effect.acquireRelease(
-      Effect.sync(
-        () =>
-          options.service ??
-          RuntimeStateService.createFresh(options.config, options.logger),
-      ),
-      (service) =>
-        Effect.sync(() => {
-          service.close();
-        }),
-    ),
-  );
+  return scopedServiceLayer(RuntimeStateServiceTag, () => {
+    const service =
+      options.service ??
+      RuntimeStateService.createFresh(options.config, options.logger);
+    return { service, close: () => service.close() };
+  });
 }

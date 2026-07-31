@@ -1,5 +1,7 @@
 export { ChatInterface } from "./chat-interface";
 export { chatConfigSchema } from "./config";
+export { chatConfigFromEnv } from "./config-from-env";
+export type { DiscordChatAdapterDefaults } from "./config-from-env";
 export type {
   ChatConfig,
   ChatConfigInput,

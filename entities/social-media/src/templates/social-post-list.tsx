@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
+import { truncateText } from "@brains/utils/string-utils";
 import type { PaginationInfo } from "@brains/plugins";
-import { Head, Pagination, StatusBadge, Card } from "@brains/ui-library";
+import {
+  Head,
+  Pagination,
+  StatusBadge,
+  Card,
+  formatDate,
+} from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
 
 export interface SocialPostListProps {
@@ -8,19 +15,6 @@ export interface SocialPostListProps {
   pageTitle?: string;
   pagination?: PaginationInfo | null;
   baseUrl?: string;
-}
-
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trim() + "...";
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 export const SocialPostListTemplate = ({
@@ -65,6 +59,7 @@ export const SocialPostListTemplate = ({
                           <time className="text-sm text-theme-muted shrink-0">
                             {formatDate(
                               post.frontmatter.publishedAt ?? post.created,
+                              { style: "medium" },
                             )}
                           </time>
                         </div>

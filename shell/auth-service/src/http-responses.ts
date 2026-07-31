@@ -67,10 +67,6 @@ export function requireSameOriginJson(request: Request): Response | undefined {
   return undefined;
 }
 
-export function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
 export function htmlResponse(body: string, status = 200): Response {
   return new Response(body, {
     status,

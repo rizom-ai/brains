@@ -1,5 +1,8 @@
 export type { BaseWidgetProps } from "./types";
 
+export { WidgetCard } from "./WidgetCard";
+export type { WidgetCardProps } from "./WidgetCard";
+
 export { StatsWidget } from "./StatsWidget";
 export type { StatsWidgetProps } from "./StatsWidget";
 

@@ -4,7 +4,7 @@ Multi-platform Chat SDK interface for Brains.
 
 ## Status
 
-Active Discord implementation with initial single-workspace Slack support. Discord and Slack can be configured independently or enabled together in one interface instance. Rover, Ranger, and Relay still use `@brains/discord` until live validation confirms this package is safe to adopt.
+The chat transport for every brain, replacing the standalone `@brains/discord` interface. Discord is fully supported; Slack support covers a single workspace. Discord and Slack can be configured independently or enabled together in one interface instance.
 
 ## Discord configuration
 
@@ -200,9 +200,8 @@ Discord and Slack thread subscriptions are persisted independently through `chat
 
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
-## Known gaps before replacing `@brains/discord`
+## Known gaps
 
-- Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, and generated artifact delivery.
-- HTTP Discord webhook/interactions endpoint validation is conditional, not a replacement blocker for gateway-mode deployments. Test it only when a deployment explicitly configures Discord Interactions Endpoint URL or a shared gateway forwarder.
+- HTTP Discord webhook/interactions endpoint validation is conditional. Test it only when a deployment explicitly configures a Discord Interactions Endpoint URL or a shared gateway forwarder; gateway-mode deployments do not need it.
 - Public/external access to protected generated artifacts is intentionally not implemented; fallback links are only rendered when they do not point at an out-of-scope stored artifact.
 - Shared gateway mode is not implemented here yet.

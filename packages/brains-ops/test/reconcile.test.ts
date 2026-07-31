@@ -7,6 +7,7 @@ import type { ResolvedUser } from "../src/load-registry";
 import { onboardUser } from "../src/onboard-user";
 import { reconcileAll } from "../src/reconcile-all";
 import { reconcileCohort } from "../src/reconcile-cohort";
+import { getErrorMessage } from "@brains/utils/error";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-reconcile-"));
@@ -18,10 +19,6 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
   }
 
   return root;
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {

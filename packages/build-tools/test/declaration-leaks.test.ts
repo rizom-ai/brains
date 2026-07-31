@@ -35,6 +35,35 @@ describe("findInternalDeclarationImports", () => {
     expect(findInternalDeclarationImports(declaration, OPTS)).toEqual([]);
   });
 
+  test("ignores import statements written inside JSDoc examples", () => {
+    const declaration = [
+      "/**",
+      " * Build a brain definition.",
+      " *",
+      " * @example",
+      " * ```ts",
+      ' * import { defineBrain } from "@brains/app";',
+      ' * import { notePlugin } from "@brains/note";',
+      " * ```",
+      " */",
+      "export declare function defineBrain(definition: unknown): unknown;",
+      '// import { Sneaky } from "@brains/line-comment";',
+    ].join("\n");
+
+    expect(findInternalDeclarationImports(declaration, OPTS)).toEqual([]);
+  });
+
+  test("still finds real imports next to commented ones", () => {
+    const declaration = [
+      '/** @example import { A } from "@brains/doc-only"; */',
+      'import { B } from "@brains/real";',
+    ].join("\n");
+
+    expect(findInternalDeclarationImports(declaration, OPTS)).toEqual([
+      "@brains/real",
+    ]);
+  });
+
   test("respects the allow list", () => {
     const declaration = 'import { A } from "@rizom/ui";';
     expect(

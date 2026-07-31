@@ -4,6 +4,7 @@ import type SharpModule from "sharp";
 import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { join } from "path";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Lazy sharp loader.
@@ -166,7 +167,7 @@ export class ImageOptimizer {
     } catch (error) {
       this.logger.warn("Image optimization failed, using original", {
         originalUrl,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return null;
     }
@@ -216,7 +217,7 @@ export class ImageOptimizer {
       } catch (error) {
         this.logger.warn("Failed to optimize image", {
           file: file.name,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }

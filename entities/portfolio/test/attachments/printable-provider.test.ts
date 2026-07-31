@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AttachmentRegistry } from "@brains/plugins";
 import { PortfolioPlugin } from "../../src/plugin";
-import { ProjectPrintableAttachmentProvider } from "../../src/attachments/printable-provider";
+import { createProjectPrintableProvider } from "../../src/attachments/printable-provider";
 import type { Project } from "../../src/schemas/project";
 
 const sampleProject: Project = {
@@ -47,9 +46,7 @@ Teams spotted patterns earlier.
 };
 
 describe("Project printable attachment provider", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
+  beforeEach(() => {});
 
   it("registers a project printable attachment provider", async () => {
     const harness = createPluginHarness<PortfolioPlugin>();
@@ -72,7 +69,7 @@ describe("Project printable attachment provider", () => {
     await harness.installPlugin(new PortfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
-    const provider = new ProjectPrintableAttachmentProvider(
+    const provider = createProjectPrintableProvider(
       {
         entityService: harness.getEntityService(),
         themeCSS: "",

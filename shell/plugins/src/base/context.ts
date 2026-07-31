@@ -29,6 +29,8 @@ import {
   createPluginsNamespace,
   createProfileKindsNamespace,
 } from "./namespaces";
+import { createDashboardNamespace } from "./dashboard-namespace";
+import type { IDashboardNamespace } from "./dashboard-namespace";
 import type {
   IChannelsNamespace,
   IConversationsNamespace,
@@ -164,6 +166,9 @@ export interface BasePluginContext {
    */
   readonly messaging: IMessagingNamespace;
 
+  /** Dashboard widget contribution */
+  readonly dashboard: IDashboardNamespace;
+
   // ============================================================================
   // Job Queue (monitoring + scoped write)
   // ============================================================================
@@ -267,6 +272,7 @@ export function createBasePluginContext(
   const attachments = shell.getAttachmentRegistry();
   const uploads = shell.getRuntimeUploadRegistry();
   const runtimeState = shell.getRuntimeState();
+  const messaging = createMessagingNamespace(shell, pluginId, logger);
 
   return {
     pluginId,
@@ -295,7 +301,9 @@ export function createBasePluginContext(
 
     permissions: createPermissionsNamespace(shell),
 
-    messaging: createMessagingNamespace(shell, pluginId, logger),
+    messaging,
+
+    dashboard: createDashboardNamespace(messaging, pluginId),
 
     jobs: createJobsNamespace(shell, pluginId),
 

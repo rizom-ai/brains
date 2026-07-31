@@ -1,44 +1,28 @@
-import { createClient, type Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import type { Client } from "@libsql/client";
+import {
+  createSqliteDatabase,
+  type SqliteConnection,
+  type SqliteDatabase,
+} from "@brains/db";
 import { embeddings } from "../schema/embeddings";
 import type { EntityDbConfig } from "../types";
 
-export type EmbeddingDB = LibSQLDatabase<Record<string, unknown>>;
+export type EmbeddingDB = SqliteDatabase;
 
 /**
  * Create an embedding database connection.
  * This is a separate database from the entity database,
  * containing only the embeddings table.
  */
-export function createEmbeddingDatabase(config: EntityDbConfig): {
-  db: EmbeddingDB;
-  client: Client;
-  url: string;
-} {
-  const url = config.url;
-  const authToken = config.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
-
-  const client = authToken
-    ? createClient({ url, authToken })
-    : createClient({ url });
-
-  const db = drizzle(client, { schema: { embeddings } });
-
-  return { db, client, url };
-}
-
-/**
- * Enable WAL mode for the embedding database
- */
-export async function enableWALModeForEmbeddings(
-  client: Client,
-  url: string,
-): Promise<void> {
-  if (url.startsWith("file:")) {
-    await client.execute("PRAGMA journal_mode = WAL");
-    await client.execute("PRAGMA busy_timeout = 5000");
-  }
+export function createEmbeddingDatabase(
+  config: EntityDbConfig,
+): SqliteConnection {
+  return createSqliteDatabase({
+    url: config.url,
+    schema: { embeddings },
+    authToken: config.authToken,
+    authTokenEnv: "DATABASE_AUTH_TOKEN",
+  });
 }
 
 /**

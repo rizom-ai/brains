@@ -50,7 +50,6 @@ class TestAdapter extends BaseEntityAdapter<TestEntity, TestMetadata> {
 
 function createSerializer(): EntitySerializer {
   const logger = createSilentLogger();
-  EntityRegistry.resetInstance();
   const registry = EntityRegistry.createFresh(logger);
   registry.registerEntityType("test", testEntitySchema, new TestAdapter());
   return new EntitySerializer(registry, logger);

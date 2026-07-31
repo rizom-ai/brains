@@ -24,6 +24,7 @@ import {
   hasSatisfiedGateVerdicts,
   transitionRequiresGateVerdict,
 } from "./run-machine";
+import { getErrorMessage } from "@brains/utils/error";
 
 export interface GoalCheckInput {
   run: PlaybookRun;
@@ -58,10 +59,6 @@ export type TransitionRunResult =
       gateVerdicts: PlaybookGateVerdict[];
     }
   | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] };
-
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function appendUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
@@ -285,7 +282,7 @@ export class RunEngine {
     } catch (error) {
       result = {
         met: false,
-        reason: `Playbook goal check failed: ${errorMessage(error)}`,
+        reason: `Playbook goal check failed: ${getErrorMessage(error)}`,
       };
     }
 

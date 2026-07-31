@@ -15,7 +15,9 @@ async function jsonFromRoute(
     new Request(`https://rizom.ai${route.path}`),
   );
   expect(response.status).toBe(200);
-  expect(response.headers.get("content-type")).toBe("application/json");
+  expect(response.headers.get("content-type")).toBe(
+    "application/json; charset=utf-8",
+  );
   return response.json();
 }
 

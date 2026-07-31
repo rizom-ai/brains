@@ -81,12 +81,12 @@ describe("context.endpoints.register", () => {
     const shell = createMockShell({ logger });
     const context = createBasePluginContext(shell, "admin");
 
-    expect(context.plugins.has("discord")).toBe(false);
+    expect(context.plugins.has("chat")).toBe(false);
     shell.addPlugin({
-      id: "discord",
-      packageName: "@brains/discord",
+      id: "chat",
+      packageName: "@brains/chat",
     } as never);
-    expect(context.plugins.has("discord")).toBe(true);
+    expect(context.plugins.has("chat")).toBe(true);
   });
 
   it("preserves endpoint visibility", () => {

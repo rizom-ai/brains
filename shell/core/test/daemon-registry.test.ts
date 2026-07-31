@@ -16,7 +16,6 @@ describe("DaemonRegistry", () => {
   let logger: Logger;
 
   beforeEach(() => {
-    DaemonRegistry.resetInstance();
     logger = Logger.createFresh();
     registry = DaemonRegistry.createFresh(logger);
   });

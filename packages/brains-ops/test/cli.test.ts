@@ -45,8 +45,8 @@ describe("brains-ops parseArgs", () => {
     ]);
     expect(result.command).toBe("user:add");
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
-    expect(result.flags.cohort).toBe("cohort-1");
-    expect(result.flags.anchorId).toBe("1234567890");
+    expect(result.flags["cohort"]).toBe("cohort-1");
+    expect(result.flags["anchor-id"]).toBe("1234567890");
   });
 
   it("parses init command with repo path", () => {
@@ -59,7 +59,7 @@ describe("brains-ops parseArgs", () => {
     const result = parseArgs(["secrets:push", "/tmp/rover-pilot", "--dry-run"]);
     expect(result.command).toBe("secrets:push");
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
-    expect(result.flags.dryRun).toBe(true);
+    expect(result.flags["dry-run"]).toBe(true);
   });
 
   it("parses secrets:encrypt with repo path, handle, and dry-run", () => {
@@ -71,7 +71,7 @@ describe("brains-ops parseArgs", () => {
     ]);
     expect(result.command).toBe("secrets:encrypt");
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
-    expect(result.flags.dryRun).toBe(true);
+    expect(result.flags["dry-run"]).toBe(true);
   });
 
   it("parses age-key:bootstrap with repo path and push target", () => {
@@ -83,7 +83,7 @@ describe("brains-ops parseArgs", () => {
     ]);
     expect(result.command).toBe("age-key:bootstrap");
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
-    expect(result.flags.pushTo).toBe("gh");
+    expect(result.flags["push-to"]).toBe("gh");
   });
 
   it("parses ssh-key:bootstrap with repo path and push target", () => {
@@ -95,7 +95,7 @@ describe("brains-ops parseArgs", () => {
     ]);
     expect(result.command).toBe("ssh-key:bootstrap");
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
-    expect(result.flags.pushTo).toBe("gh");
+    expect(result.flags["push-to"]).toBe("gh");
   });
 
   it("parses cert:bootstrap with repo path, handle, and push target", () => {
@@ -109,8 +109,8 @@ describe("brains-ops parseArgs", () => {
     ]);
     expect(result.command).toBe("cert:bootstrap");
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
-    expect(result.flags.handle).toBe("rizom-ai");
-    expect(result.flags.pushTo).toBe("gh");
+    expect(result.flags["handle"]).toBe("rizom-ai");
+    expect(result.flags["push-to"]).toBe("gh");
   });
 
   it("parses verify-user with repo path and handle", () => {
@@ -286,7 +286,7 @@ discord:
     const result = await runCommand({
       command: "user:add",
       args: [root, "bob"],
-      flags: { cohort: "cohort-1", anchorId: "1234567890" },
+      flags: { cohort: "cohort-1", "anchor-id": "1234567890" },
     });
 
     expect(result.success).toBe(true);

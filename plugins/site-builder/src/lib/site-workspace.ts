@@ -1,6 +1,6 @@
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
   PermissionService,
+  registerCmsWorkspace as sendWorkspaceRegistration,
   type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
@@ -14,10 +14,6 @@ import type {
   SiteBuildStatusService,
 } from "./site-build-status";
 import { resolveSiteMetadata } from "./site-metadata";
-
-const registrationResultSchema = z.object({
-  workspaceUrl: z.string(),
-});
 
 export type SiteWorkspaceAction =
   { type: "build-preview" } | { type: "build-production"; confirmed: true };
@@ -164,13 +160,6 @@ export class SiteWorkspaceProvider {
       },
     };
 
-    const response = await this.options.context.messaging.send({
-      type: CMS_WORKSPACE_REGISTER_MESSAGE,
-      payload: registration,
-    });
-    if (!("success" in response) || !response.success) return undefined;
-
-    const parsed = registrationResultSchema.safeParse(response.data);
-    return parsed.success ? parsed.data.workspaceUrl : undefined;
+    return sendWorkspaceRegistration(this.options.context, registration);
   }
 }
