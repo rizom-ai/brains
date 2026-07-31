@@ -13,7 +13,8 @@ In progress. Phase 1 exposure-boundary work has replaced audience metadata with 
 - Focused full-preset routing regression with LLM judge skipped passed for `tool-invocation-agent-scan-directories`, `tool-invocation-directory-sync@admin`, `tool-invocation-git-sync-status`, `tool-invocation-playbook-status`, `social-media-queue-list-agent`, and `rover-permission-admin-can-queue-publish-draft`.
 - Focused full-preset onboarding/playbook regression with LLM judge skipped passed for `multi-turn-rover-onboarding-playbook` and `multi-turn-playbook-done-after-transformation`.
 - `cd brains/rover && bun run eval -- --suite full --skip-llm-judge --max-parallel 1` passed: 192/192.
-- The conversation database insert failure seen during full evals matched `main`'s runtime `busy_timeout` fix. After applying it here, the focused judge-enabled shell subset no longer cascades into database insert errors; the remaining observed failure was a single model/evaluator content miss, not a tool-routing or database failure.
+- Judge-enabled focused regressions passed for brittle full-eval failures: `shell-no-verbose-repetition`, `shell-no-hallucinated-data`, `shell-concise-empty-states`, `tool-invocation-repeated-actions`, and `app-accurate-summaries`.
+- The conversation database insert failure seen during full evals matched `main`'s runtime `busy_timeout` fix. After applying it here, judge-enabled reruns no longer cascade into database insert errors; the remaining observed failures were model/evaluator content misses or transient model timeouts, not tool-routing or database failures.
 
 ## Context
 

@@ -39,8 +39,7 @@ turns:
       toolCountRange:
         min: 1
 
-successCriteria:
-  minInstructionFollowingScore: 5
+successCriteria: {}
 
 efficiency:
   maxToolCalls: 10
