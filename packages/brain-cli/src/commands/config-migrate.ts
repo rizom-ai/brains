@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "../lib/command-result";
 import { previewBrainConfigMigration } from "../lib/brain-config-migration";
 
@@ -25,7 +26,7 @@ export async function runConfigMigrationPreview(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : String(error),
+      message: getErrorMessage(error),
     };
   }
 }

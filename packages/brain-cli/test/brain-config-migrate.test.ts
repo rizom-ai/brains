@@ -64,7 +64,6 @@ const recipeExpectations: Record<
     },
     plugins: {
       "directory-sync": { seedContentPath: "./seed-content" },
-      discord: { captureUrls: true },
     },
   },
 };
@@ -180,6 +179,9 @@ remove:
 site:
   theme: "@custom/theme"
 plugins:
+  discord:
+    botToken: \${DISCORD_BOT_TOKEN}
+    captureUrls: true
   email-resend:
     transport: resend
     apiKey: \${SETUP_EMAIL_API_KEY}
@@ -208,6 +210,7 @@ permissions:
     expect(result.output).toContain("# Keep this external plugin note");
     expect(result.output).toContain("# Keep this package note");
     expect(result.output).toContain("${GIT_SYNC_TOKEN}");
+    expect(result.output).toContain("${DISCORD_BOT_TOKEN}");
     expect(result.output).toContain("${SETUP_EMAIL_API_KEY}");
     expect(result.output).toContain("${SETUP_EMAIL_FROM}");
     expect(result.output).toContain("${CALENDAR_API_KEY}");
@@ -226,6 +229,14 @@ permissions:
       package: "@brains/site-default",
       theme: "@custom/theme",
     });
+    expect(parsed.plugins?.["chat"]).toEqual({
+      adapters: {
+        discord: {
+          captureUrls: true,
+        },
+      },
+    });
+    expect(parsed.plugins?.["discord"]).toBeUndefined();
     expect(parsed.plugins?.["email"]).toEqual({ transport: "resend" });
     expect(parsed.plugins?.["email-resend"]).toBeUndefined();
     expect(parsed.plugins?.["onboarding"]).toEqual({ enabled: true });

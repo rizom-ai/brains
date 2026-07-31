@@ -31,9 +31,10 @@ describe("deploy templates", () => {
     expect(renderDockerfile()).toContain(
       "bunx playwright-core install --with-deps chromium-headless-shell",
     );
-    expect(renderKamalDeploy({ serviceName: "brain" })).toContain(
-      "service: brain",
-    );
+    const deploy = renderKamalDeploy({ serviceName: "brain" });
+    expect(deploy).toContain("service: brain");
+    expect(deploy).toContain("- DISCORD_PUBLIC_KEY");
+    expect(deploy).toContain("- DISCORD_APPLICATION_ID");
   });
 
   it("exports deploy env schema fragments", () => {

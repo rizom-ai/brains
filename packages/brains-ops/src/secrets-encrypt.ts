@@ -18,6 +18,8 @@ import { getErrorMessage } from "@brains/utils/error";
 const encryptedUserSecretsSchema: z.ZodObject<{
   gitSyncToken: z.ZodOptional<z.ZodString>;
   discordBotToken: z.ZodOptional<z.ZodString>;
+  discordPublicKey: z.ZodOptional<z.ZodString>;
+  discordApplicationId: z.ZodOptional<z.ZodString>;
   aiApiKey: z.ZodOptional<z.ZodString>;
   atprotoAppPassword: z.ZodOptional<z.ZodString>;
   certificatePem: z.ZodOptional<z.ZodString>;
@@ -25,6 +27,8 @@ const encryptedUserSecretsSchema: z.ZodObject<{
 }> = z.strictObject({
   gitSyncToken: z.string().min(1).optional(),
   discordBotToken: z.string().min(1).optional(),
+  discordPublicKey: z.string().min(1).optional(),
+  discordApplicationId: z.string().min(1).optional(),
   aiApiKey: z.string().min(1).optional(),
   atprotoAppPassword: z.string().min(1).optional(),
   certificatePem: z.string().min(1).optional(),
@@ -199,6 +203,28 @@ function buildEncryptedUserSecrets(
         "DISCORD_BOT_TOKEN",
       )
     : undefined;
+  const discordPublicKey = options.discordEnabled
+    ? resolveRequiredSecretValue(
+        rootDir,
+        env,
+        localEnvValues,
+        plaintextSecrets,
+        existingSecrets,
+        "discordPublicKey",
+        "DISCORD_PUBLIC_KEY",
+      )
+    : undefined;
+  const discordApplicationId = options.discordEnabled
+    ? resolveRequiredSecretValue(
+        rootDir,
+        env,
+        localEnvValues,
+        plaintextSecrets,
+        existingSecrets,
+        "discordApplicationId",
+        "DISCORD_APPLICATION_ID",
+      )
+    : undefined;
   const atprotoAppPassword = resolveOptionalSecretValue(
     rootDir,
     env,
@@ -235,6 +261,8 @@ function buildEncryptedUserSecrets(
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
+    ...(discordPublicKey ? { discordPublicKey } : {}),
+    ...(discordApplicationId ? { discordApplicationId } : {}),
     ...(atprotoAppPassword ? { atprotoAppPassword } : {}),
     ...(certificatePem ? { certificatePem } : {}),
     ...(privateKeyPem ? { privateKeyPem } : {}),
@@ -493,7 +521,13 @@ function listExpectedSecretKeys(options: {
     options.sharedGitSyncTokenSelector
       ? ["gitSyncToken" as const]
       : []),
-    ...(options.discordEnabled ? ["discordBotToken" as const] : []),
+    ...(options.discordEnabled
+      ? ([
+          "discordBotToken",
+          "discordPublicKey",
+          "discordApplicationId",
+        ] as const)
+      : []),
   ];
 }
 

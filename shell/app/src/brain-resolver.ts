@@ -18,7 +18,6 @@ import {
   hasActiveInterface,
   isActive,
   resolveBrainSelection,
-  type ActiveIds,
   type PluginOverrides,
   type ResolvedBrainSelection,
 } from "./resolver/active-ids";
@@ -356,7 +355,12 @@ export function resolve(
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [
-    ...instantiateSitePlugins(site, overrides, activeIds),
+    ...instantiateSitePlugins(
+      site,
+      overrides,
+      activeIds,
+      selection.bundleDefinitions.length === 0,
+    ),
     ...instantiateCapabilities(
       definition,
       env,

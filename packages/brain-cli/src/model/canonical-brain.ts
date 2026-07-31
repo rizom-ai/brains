@@ -347,6 +347,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   ],
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
+    ["email", EmailInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     [

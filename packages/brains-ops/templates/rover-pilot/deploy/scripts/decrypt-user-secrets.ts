@@ -25,6 +25,8 @@ writeSecretGitHubEnv(
   secrets["cmsContentRepoPat"] ?? secrets["gitSyncToken"],
 );
 writeSecretGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"]);
+writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);
+writeSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);
 // Per-user AT Protocol publishing credential (optional; from the user's
 // encrypted secrets file). The scaffold wires this so a pilot can publish its
 // brain's agent card to its PDS; a deployment that doesn't publish simply

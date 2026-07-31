@@ -85,9 +85,15 @@ export async function pushPilotSecrets(
   };
 }
 
+const perUserDiscordEnvKeys = new Set([
+  "DISCORD_BOT_TOKEN",
+  "DISCORD_PUBLIC_KEY",
+  "DISCORD_APPLICATION_ID",
+]);
+
 function buildSecretTargets(schemaEntries: EnvSchemaEntry[]): SecretTarget[] {
   return schemaEntries
-    .filter((entry) => entry.key !== "DISCORD_BOT_TOKEN")
+    .filter((entry) => !perUserDiscordEnvKeys.has(entry.key))
     .map((entry) => ({
       key: entry.key,
       required: entry.required,

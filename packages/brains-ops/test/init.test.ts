@@ -203,6 +203,8 @@ describe("initPilotRepo", () => {
     expect(envSchema).toContain("# Rover pilot instance env schema");
     expect(envSchema).toContain("single source of truth");
     expect(envSchema).toContain("AI_API_KEY=");
+    expect(envSchema).toContain("DISCORD_PUBLIC_KEY=");
+    expect(envSchema).toContain("DISCORD_APPLICATION_ID=");
     expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
     expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
     expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");

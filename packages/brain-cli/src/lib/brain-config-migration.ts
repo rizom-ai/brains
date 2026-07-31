@@ -34,9 +34,15 @@ interface MigrationInput {
 
 const memberAliases: Readonly<Record<string, string>> = {
   "dashboard-root": "dashboard",
+  discord: "chat",
   "email-resend": "email",
   "rover-onboarding": "onboarding",
 };
+
+const unsupportedDiscordConfigFields = [
+  "statusMessage",
+  "threadAutoArchive",
+] as const;
 
 const roverDefaultRemovals = [
   "series",
@@ -201,7 +207,7 @@ function applyRecordDiff(
 function mergePluginAliases(
   plugins: Record<string, unknown>,
 ): Record<string, unknown> {
-  const next = { ...plugins };
+  const next = migrateDiscordPlugin(plugins);
   for (const [legacyId, canonicalId] of Object.entries(memberAliases)) {
     if (!(legacyId in next)) continue;
     if (
@@ -215,6 +221,45 @@ function mergePluginAliases(
     next[canonicalId] = next[canonicalId] ?? next[legacyId];
     delete next[legacyId];
   }
+  return next;
+}
+
+function migrateDiscordPlugin(
+  plugins: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!("discord" in plugins)) return { ...plugins };
+
+  const next = { ...plugins };
+  const discord = asRecord(next["discord"], "plugins.discord");
+  const unsupported = unsupportedDiscordConfigFields.filter(
+    (field) => field in discord,
+  );
+  if (unsupported.length > 0) {
+    throw new Error(
+      `Cannot migrate plugins.discord fields unsupported by plugins.chat.adapters.discord: ${unsupported.join(", ")}`,
+    );
+  }
+
+  const chat = asRecord(next["chat"], "plugins.chat");
+  const adapters = asRecord(chat["adapters"], "plugins.chat.adapters");
+  const existingDiscord = adapters["discord"];
+  if (
+    existingDiscord !== undefined &&
+    !isDeepStrictEqual(existingDiscord, discord)
+  ) {
+    throw new Error(
+      "Cannot migrate plugins.discord: plugins.chat.adapters.discord already has different config",
+    );
+  }
+
+  next["chat"] = {
+    ...chat,
+    adapters: {
+      ...adapters,
+      discord: existingDiscord ?? discord,
+    },
+  };
+  delete next["discord"];
   return next;
 }
 

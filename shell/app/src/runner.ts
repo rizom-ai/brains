@@ -77,9 +77,7 @@ async function main(): Promise<void> {
   try {
     brainPackage = resolveBrainPackageName(overrides.brain);
   } catch (error) {
-    console.error(
-      `❌ ${error instanceof Error ? error.message : String(error)}`,
-    );
+    console.error(`❌ ${getErrorMessage(error)}`);
     process.exit(1);
   }
 

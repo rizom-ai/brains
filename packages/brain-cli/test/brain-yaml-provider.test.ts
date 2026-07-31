@@ -63,19 +63,21 @@ describe("parseBrainYaml AI model field", () => {
       join(testDir, "brain.yaml"),
       "brain: rover\npreset: everything\n",
     );
-    expect(() => parseBrainYaml(testDir)).toThrow(/Invalid brain\.yaml/);
+    expect(() => parseBrainYaml(testDir)).toThrow(/config migrate/);
   });
 
   it("accepts the full runtime override surface", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       [
-        "brain: rover",
+        "brain: brain",
+        "bundles:",
+        "  - core",
         "domain: example.com",
         "add:",
-        "  - chat",
+        "  - docs",
         "remove:",
-        "  - discord",
+        "  - chat",
         "permissions:",
         "  rules:",
         '    - pattern: "slack:*"',
@@ -88,7 +90,7 @@ describe("parseBrainYaml AI model field", () => {
     );
     const config = parseBrainYaml(testDir);
     expect(config.domain).toBe("example.com");
-    expect(config.add).toEqual(["chat"]);
+    expect(config.add).toEqual(["docs"]);
     expect(config.permissions?.rules?.[0]?.level).toBe("public");
   });
 

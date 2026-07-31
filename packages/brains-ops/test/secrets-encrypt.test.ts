@@ -67,14 +67,21 @@ members:
         "CANARY_GIT_SYNC_TOKEN=git-token",
         "",
       ].join("\n"),
-      "users/alice.secrets.yaml": "discordBotToken: discord-token\n",
+      "users/alice.secrets.yaml": [
+        "discordBotToken: discord-token",
+        "discordPublicKey: discord-public-key",
+        "discordApplicationId: discord-application-id",
+        "",
+      ].join("\n"),
     });
 
     const result = await encryptPilotSecrets(root, "alice");
 
     expect([...result.encryptedKeys].sort()).toEqual([
       "aiApiKey",
+      "discordApplicationId",
       "discordBotToken",
+      "discordPublicKey",
       "gitSyncToken",
     ]);
     expect(result.deletedPlaintext).toBe(true);
@@ -86,6 +93,8 @@ members:
     expect(decrypted).toContain("aiApiKey: alice-ai-key");
     expect(decrypted).toContain("gitSyncToken: git-token");
     expect(decrypted).toContain("discordBotToken: discord-token");
+    expect(decrypted).toContain("discordPublicKey: discord-public-key");
+    expect(decrypted).toContain("discordApplicationId: discord-application-id");
     expect(decrypted).not.toContain("mcpAuthToken:");
   });
 
@@ -198,7 +207,12 @@ discord:
       "cohorts/smoke.yaml": `members:
   - smoke
 `,
-      "users/smoke.secrets.yaml": "discordBotToken: discord-token\n",
+      "users/smoke.secrets.yaml": [
+        "discordBotToken: discord-token",
+        "discordPublicKey: discord-public-key",
+        "discordApplicationId: discord-application-id",
+        "",
+      ].join("\n"),
     });
 
     await encryptPilotSecrets(root, "smoke");
@@ -213,7 +227,9 @@ discord:
 
     expect([...result.encryptedKeys].sort()).toEqual([
       "atprotoAppPassword",
+      "discordApplicationId",
       "discordBotToken",
+      "discordPublicKey",
     ]);
 
     const decrypted = await decryptYamlFile(
@@ -448,6 +464,8 @@ aiApiKeyOverride: ALICE_AI_KEY
     expect(plaintextTemplate).toContain("# local per-user secret staging file");
     expect(plaintextTemplate).toContain("aiApiKey: ");
     expect(plaintextTemplate).toContain("discordBotToken: ");
+    expect(plaintextTemplate).toContain("discordPublicKey: ");
+    expect(plaintextTemplate).toContain("discordApplicationId: ");
     expect(plaintextTemplate).not.toContain("gitSyncToken: ");
   });
 
@@ -474,16 +492,27 @@ discord:
       "cohorts/canary.yaml": `members:
   - alice
 `,
-      ".env.local": "DISCORD_BOT_TOKEN=discord-token\n",
+      ".env.local": [
+        "DISCORD_BOT_TOKEN=discord-token",
+        "DISCORD_PUBLIC_KEY=discord-public-key",
+        "DISCORD_APPLICATION_ID=discord-application-id",
+        "",
+      ].join("\n"),
     });
 
     const result = await encryptPilotSecrets(root, "alice");
-    expect(result.encryptedKeys).toEqual(["discordBotToken"]);
+    expect(result.encryptedKeys).toEqual([
+      "discordBotToken",
+      "discordPublicKey",
+      "discordApplicationId",
+    ]);
 
     const decrypted = await decryptYamlFile(
       join(root, "users/alice.secrets.yaml.age"),
       identity,
     );
     expect(decrypted).toContain("discordBotToken: discord-token");
+    expect(decrypted).toContain("discordPublicKey: discord-public-key");
+    expect(decrypted).toContain("discordApplicationId: discord-application-id");
   });
 });

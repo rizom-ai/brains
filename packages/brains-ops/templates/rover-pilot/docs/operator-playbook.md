@@ -264,7 +264,7 @@ Notes:
 - The ATProto app password is secret and belongs only in the encrypted per-user secret payload.
 - For smoke deployments, pin only the smoke cohort/user to the released brain version that contains ATProto support.
 
-## Discord bot token checklist
+## Discord application credential checklist
 
 Use this when enabling Discord for a pilot user.
 
@@ -272,23 +272,24 @@ Use this when enabling Discord for a pilot user.
 2. Open the Discord Developer Portal.
 3. Create a **new application** for that user's brain.
 4. Add a **Bot** to the application.
-5. Copy the bot token.
-6. Put that value in `.env` or `.env.local` in this repo as `DISCORD_BOT_TOKEN=...` while onboarding that user.
+5. Copy the bot token, application public key, and application ID.
+6. Put those values in `.env` or `.env.local` while onboarding that user:
+   - `DISCORD_BOT_TOKEN=...`
+   - `DISCORD_PUBLIC_KEY=...`
+   - `DISCORD_APPLICATION_ID=...`
 7. Keep `discord.enabled: true` in `users/<handle>.yaml` unless you explicitly want to disable the primary pilot interface.
-8. Encrypt the current per-user secret payload:
+8. Encrypt the current per-user credential payload:
    - `bunx brains-ops secrets:encrypt . <handle>`
 9. Reconcile/deploy the user or cohort:
-
-- `bunx brains-ops onboard . <handle>`
-- or `bunx brains-ops reconcile-cohort . <cohort>`
-
-11. In the Discord Developer Portal, generate an install URL and invite the bot to the right server.
-12. Send a test message in Discord and confirm the brain responds.
+   - `bunx brains-ops onboard . <handle>`
+   - or `bunx brains-ops reconcile-cohort . <cohort>`
+10. In the Discord Developer Portal, generate an install URL and invite the bot to the right server.
+11. Send a test message in Discord and confirm the brain responds.
 
 Notes:
 
-- Use **one bot token per user/brain**.
-- Do not reuse the same Discord bot token across multiple pilot users.
+- Use **one Discord application credential set per user/brain**.
+- Do not reuse the same Discord application across multiple pilot users.
 - Discord is the default pilot interface moving forward.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.
 - Direct MCP client access should use OAuth/passkey-capable clients where possible.

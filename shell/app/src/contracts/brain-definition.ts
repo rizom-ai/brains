@@ -31,7 +31,11 @@ export type {
   CapabilityContext,
   PluginConfig,
 } from "../brain-definition";
-export type { CapabilityBundleDefinition } from "../bundle-definition";
+export type {
+  BundleConfigContribution,
+  BundlePermissionContribution,
+  CapabilityBundleDefinition,
+} from "../bundle-definition";
 export type { DeploymentConfigInput, ReasoningEffort } from "../types";
 export type { SitePackage } from "../site-package";
 export type { PermissionConfig } from "@brains/templates";

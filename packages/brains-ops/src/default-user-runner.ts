@@ -63,11 +63,6 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
       : []),
   ];
 
-  if (user.discordEnabled) {
-    lines.push("  discord:");
-    lines.push("    botToken: ${DISCORD_BOT_TOKEN}");
-  }
-
   if (user.setup?.delivery === "email") {
     lines.push("  email:");
     lines.push("    transport: resend");
