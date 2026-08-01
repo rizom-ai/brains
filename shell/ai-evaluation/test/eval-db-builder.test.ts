@@ -33,7 +33,9 @@ describe("eval DB builder", () => {
     expect(jobsDrainIndex).toBeGreaterThan(-1);
     expect(readinessIndex).toBeGreaterThan(-1);
     expect(checkpointIndex).toBeGreaterThan(-1);
-    expect(source).toContain("entityService.awaitIndexReady");
+    expect(source).toContain(
+      'import { waitForIndexReadiness, waitForJobsToDrain } from "./eval-settle"',
+    );
     expect(source).toContain("await app.stop()");
     expect(source).toContain("throw buildFailure");
     expect(source).not.toContain("process.exit");

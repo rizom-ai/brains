@@ -9,6 +9,7 @@ import {
   prepareEvalEnvironment,
   resolveEvaluationContentDirectory,
 } from "./eval-environment";
+import { waitForIndexReadiness, waitForJobsToDrain } from "./eval-settle";
 
 interface BuildEvalDatabaseOptions {
   config: AppConfig;
@@ -85,50 +86,6 @@ function removeStaleBuiltDatabases(evalDbBase: string): void {
     `${evalDbBase}-data/embeddings.db`,
   ]) {
     if (existsSync(staleDb)) rmSync(staleDb);
-  }
-}
-
-async function waitForJobsToDrain(jobQueue: {
-  getActiveJobs(): Promise<Array<{ type: string }>>;
-}): Promise<void> {
-  console.log("Waiting for jobs to drain...");
-
-  for (;;) {
-    const active = await jobQueue.getActiveJobs();
-    if (active.length === 0) break;
-
-    const byType: Record<string, number> = {};
-    for (const job of active) {
-      byType[job.type] = (byType[job.type] ?? 0) + 1;
-    }
-    console.log(
-      `  ${active.length} jobs: ${Object.entries(byType)
-        .map(([type, count]) => `${type}(${count})`)
-        .join(" ")}`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-}
-
-async function waitForIndexReadiness(entityService: {
-  awaitIndexReady(options: { timeoutMs: number }): Promise<{
-    ready: boolean;
-    degraded: boolean;
-    activeEmbeddingJobs: number;
-    missingEmbeddings: number;
-    staleEmbeddings: number;
-    failedEmbeddings: number;
-  }>;
-}): Promise<void> {
-  console.log("Waiting for semantic index readiness...");
-  const status = await entityService.awaitIndexReady({ timeoutMs: 120_000 });
-
-  if (!status.ready) {
-    throw new Error(`Semantic index was not ready: ${JSON.stringify(status)}`);
-  }
-
-  if (status.degraded) {
-    console.warn("Semantic index ready with degraded embeddings:", status);
   }
 }
 

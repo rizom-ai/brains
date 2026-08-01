@@ -9,6 +9,7 @@ import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
 import { resolveProviderKey } from "./multi-model";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
+import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
 import {
   renderModelComparison,
   writeModelComparisonReport,
@@ -102,6 +103,7 @@ async function runSingleModelIteration(
   const modelConfig = options.resolveConfig
     ? options.resolveConfig()
     : options.config;
+  const hasPrebuiltDatabase = hasPrebuiltEvalDatabase(evalDbBase);
   const app = await bootEvalApp({
     evalDbBase,
     config: modelConfig,
@@ -110,6 +112,11 @@ async function runSingleModelIteration(
   });
 
   const shell = app.getShell();
+  if (!hasPrebuiltDatabase && !options.remoteUrl) {
+    // Without a prebuilt database the boot's initial sync is still ingesting
+    // seed content; settle the brain instead of racing the ingestion jobs.
+    await waitForJobsToDrain(shell.getJobQueueService());
+  }
   const agentService = options.remoteUrl
     ? RemoteAgentService.createFresh({
         baseUrl: options.remoteUrl,

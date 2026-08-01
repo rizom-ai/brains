@@ -4,6 +4,7 @@ import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
+import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
 
 export interface SingleModelRunOptions {
   config: AppConfig;
@@ -35,6 +36,7 @@ export async function runSingleModelEvaluation(
   });
   if (options.cloneData) console.log("Cloned data for eval");
 
+  const hasPrebuiltDatabase = hasPrebuiltEvalDatabase(evalDbBase);
   const app = await bootEvalApp({
     evalDbBase,
     config: options.config,
@@ -42,6 +44,11 @@ export async function runSingleModelEvaluation(
   });
 
   const shell = app.getShell();
+  if (!hasPrebuiltDatabase && !options.remoteUrl) {
+    // Without a prebuilt database the boot's initial sync is still ingesting
+    // seed content; settle the brain instead of racing the ingestion jobs.
+    await waitForJobsToDrain(shell.getJobQueueService());
+  }
   const aiService = shell.getAIService();
   const agentService = options.remoteUrl
     ? RemoteAgentService.createFresh({
