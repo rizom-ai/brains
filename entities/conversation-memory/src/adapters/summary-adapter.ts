@@ -22,7 +22,8 @@ export class SummaryAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: SUMMARY_ENTITY_TYPE,
-      purpose: "A saved summary of a conversation or piece of content.",
+      purpose:
+        "A read-only, system-maintained summary derived from stored conversation messages.",
       schema: summarySchema,
       frontmatterSchema: summaryMetadataSchema,
     });

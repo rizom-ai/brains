@@ -155,7 +155,13 @@ function evaluateExpectedTools(
     const matchingCalls = toolCalls.filter(
       (toolCall) => toolCall.toolName === expected.toolName,
     );
-    const wasCalled = matchingCalls.length > 0;
+    const presenceMatchingCalls =
+      !expected.shouldBeCalled && expected.argsContain
+        ? matchingCalls.filter((toolCall) =>
+            argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+          )
+        : matchingCalls;
+    const wasCalled = presenceMatchingCalls.length > 0;
 
     results.push(
       evaluateExpectedToolPresence(

@@ -21,6 +21,12 @@ describe("SummaryAdapter", () => {
     adapter = new SummaryAdapter();
   });
 
+  it("describes projected summaries as read-only system memory", () => {
+    expect(adapter.purpose).toBe(
+      "A read-only, system-maintained summary derived from stored conversation messages.",
+    );
+  });
+
   it("creates markdown content for time-based entries", () => {
     const content = adapter.createContentBody([entry]);
 

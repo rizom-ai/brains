@@ -83,6 +83,13 @@ function expectTrustedTeamPolicy(resolved: AppConfig): void {
       publish: "admin",
     });
   }
+  expect(entityActions?.["summary"]).toEqual({
+    create: "never",
+    update: "never",
+    delete: "never",
+    extract: "never",
+    publish: "never",
+  });
 }
 
 describe("canonical team bundle", () => {

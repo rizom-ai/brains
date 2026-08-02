@@ -49,6 +49,10 @@ describe("system instructions", () => {
     expect(instructions).toContain(
       "do not call system_status or system_search to check permission",
     );
+    expect(instructions).toContain(
+      "projection-owned or system-maintained types read-only",
+    );
+    expect(instructions).toContain("without calling read or write tools");
     expect(instructions).toContain("bare upload receipt");
     expect(instructions).toContain("image uploads as entityType image");
     expect(instructions).toContain("approve/archive an agent");

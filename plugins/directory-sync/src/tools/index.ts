@@ -13,15 +13,35 @@ import { requestDirectorySync } from "../lib/request-directory-sync";
 import { handleHistory } from "./history";
 
 const directorySyncInputSchema = z.object({
-  action: z.enum(["sync", "status"]).default("sync"),
+  action: z
+    .enum(["sync", "status"])
+    .default("sync")
+    .describe("Use sync for a refresh request and status for a status check"),
 });
 
 const gitDirectorySyncInputSchema = z.object({
-  action: z.enum(["sync", "status", "history"]).default("sync"),
-  entityType: z.string().optional(),
-  id: z.string().optional(),
-  sha: z.string().optional(),
-  limit: z.number().int().positive().optional().default(10),
+  action: z
+    .enum(["sync", "status", "history"])
+    .default("sync")
+    .describe(
+      "Use sync for git/filesystem sync, status for a status check, and history only for entity history",
+    ),
+  entityType: z
+    .string()
+    .optional()
+    .describe("History only; omit for sync and status"),
+  id: z.string().optional().describe("History only; omit for sync and status"),
+  sha: z
+    .string()
+    .optional()
+    .describe("Optional history revision; omit for sync and status"),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(10)
+    .describe("History only; omit for sync and status"),
 });
 
 const directorySyncActionSchema = z.discriminatedUnion("action", [
@@ -52,8 +72,8 @@ export function createDirectorySyncTools(
     "directory",
     "sync",
     gitSync
-      ? "Manage directory and git sync with an action discriminator. Use action=sync for refresh, pull, sync-with-git, backup-to-git, or filesystem import requests; it queues a git pull plus filesystem scan when git is configured. Use action=status for every sync or git status follow-up after action=sync, even when action=sync returned a jobId; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for an entity."
-      : "Manage directory sync with an action discriminator. Use action=sync for refresh, filesystem import, or content sync requests. Use action=status for directory sync status follow-ups.",
+      ? "Manage directory and git sync with an action discriminator. For requests such as 'sync with git', immediately call action=sync with no entityType, id, or sha; never ask for those fields because they apply only to action=history. Action=sync queues a git pull plus filesystem scan when git is configured and also handles refresh, pull, backup-to-git, and filesystem import requests. For every sync or git status follow-up after action=sync, including a bare 'what is the status', immediately call action=status with no entity fields; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for a specific entity."
+      : "Manage directory sync with an action discriminator. Immediately call action=sync for refresh, filesystem import, or content sync requests. Immediately call action=status for directory sync status follow-ups, including a bare 'what is the status'.",
     gitSync ? gitDirectorySyncInputSchema : directorySyncInputSchema,
     async (input, context) => {
       const parsed = gitSync
