@@ -1,0 +1,11 @@
+From: Platform <updates@example.net>
+To: work@example.com
+Date: Tue, 14 Apr 2026 11:00:00 +0000
+Message-ID: <html-2@example.net>
+Subject: HTML update
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+List-Unsubscribe: <mailto:unsubscribe@example.net>
+Precedence: bulk
+
+<html><body><p>Hello from <strong>HTML</strong>.</p></body></html>

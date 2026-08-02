@@ -894,8 +894,10 @@ describe("AuthService", () => {
       data: {
         principal: {
           userId: user.userId,
+          personId: user.personId,
           canonicalId: user.canonicalId,
           displayName: "Mira",
+          permissionLevel: "trusted",
         },
       },
     });

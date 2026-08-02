@@ -1,33 +1,86 @@
 import {
+  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveResponseSchema,
+  createExternalActorId,
+} from "@brains/contracts";
+import {
   MessageInterfacePlugin,
   type ChannelDeliveryInput,
+  type Daemon,
+  type IRuntimeStateStore,
   type MessageInterfacePluginContext,
 } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { getErrorMessage } from "@brains/utils/error";
+import {
+  createInboundEmailClient,
+  intakeInboundEmail,
+  type EmailImapConfig,
+  type EmailImapConfigInput,
+  type InboundEmailClientFactory,
+  type InboundEmailSender,
+} from "./inbound-email";
+import {
+  InboundEmailSupervisor,
+  type InboundEmailSleep,
+} from "./inbound-supervisor";
+
+export {
+  EMAIL_INBOUND,
+  inboundEmailSchema,
+  type InboundEmail,
+  type InboundEmailAddress,
+  type InboundEmailSender,
+} from "./inbound-email";
+export type {
+  EmailImapConfig,
+  EmailImapConfigInput,
+  InboundEmailClient,
+  InboundEmailClientFactory,
+  InboundEmailSourceMessage,
+} from "./inbound-email";
+export type { InboundEmailSleep } from "./inbound-supervisor";
 
 export interface EmailConfig {
   transport: "resend";
   apiKey?: string | undefined;
   from?: string | undefined;
+  imap?: EmailImapConfig | undefined;
 }
 
 export interface EmailConfigInput {
   transport?: "resend" | undefined;
   apiKey?: string | undefined;
   from?: string | undefined;
+  imap?: EmailImapConfigInput | undefined;
 }
 
 interface ResendEmailResponse {
   id?: string | undefined;
 }
 
+const emailImapConfigSchema: z.ZodType<EmailImapConfig, EmailImapConfigInput> =
+  z.object({
+    host: z.string().min(1),
+    port: z.coerce.number<number | string>().int().min(1).max(65_535),
+    user: z.string().min(1),
+    password: z.string().min(1),
+    mailbox: z.string().min(1).default("INBOX"),
+    pollMode: z.enum(["idle", "interval"]).default("idle"),
+    pollIntervalMs: z.coerce
+      .number<number | string>()
+      .int()
+      .positive()
+      .default(60_000),
+  });
+
 const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
   transport: z.literal("resend").default("resend"),
   apiKey: z.string().min(1).optional(),
   from: z.string().min(1).optional(),
+  imap: emailImapConfigSchema.optional(),
 });
 
 const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
@@ -52,14 +105,19 @@ export function shouldRedactDelivery(
 
 export interface EmailInterfaceDependencies {
   fetchImpl?: FetchLike;
+  imapClientFactory?: InboundEmailClientFactory;
+  inboundSleep?: InboundEmailSleep;
 }
 
-/** Outbound-first Email message interface with Resend as its initial transport. */
+/** Email message interface with Resend delivery and optional IMAP intake. */
 export class EmailInterface extends MessageInterfacePlugin<
   EmailConfig,
   EmailConfigInput
 > {
   private readonly fetchImpl: FetchLike;
+  private readonly imapClientFactory: InboundEmailClientFactory;
+  private readonly inboundSleep: InboundEmailSleep | undefined;
+  private inboundCursor?: IRuntimeStateStore<number>;
 
   constructor(
     config: EmailConfigInput = {},
@@ -67,12 +125,69 @@ export class EmailInterface extends MessageInterfacePlugin<
   ) {
     super("email", packageJson, config, emailConfigSchema);
     this.fetchImpl = dependencies.fetchImpl ?? fetch;
+    this.imapClientFactory =
+      dependencies.imapClientFactory ?? createInboundEmailClient;
+    this.inboundSleep = dependencies.inboundSleep;
+  }
+
+  protected override createDaemon(): Daemon | undefined {
+    const config = this.config.imap;
+    if (!config) return undefined;
+
+    const supervisor = new InboundEmailSupervisor({
+      config,
+      createClient: this.imapClientFactory,
+      intake: async (client): Promise<number> =>
+        intakeInboundEmail(client, {
+          cursor: this.getInboundCursor(),
+          publish: this.getContext().messaging.send,
+          resolveSender: async (
+            address,
+          ): Promise<InboundEmailSender | undefined> =>
+            this.resolveInboundSender(address),
+          logger: this.logger,
+        }),
+      logger: this.logger,
+      ...(this.inboundSleep ? { sleep: this.inboundSleep } : {}),
+    });
+
+    return {
+      start: async (): Promise<void> => {
+        try {
+          await supervisor.start();
+          this.logger.info("Inbound email listener connected");
+        } catch {
+          throw new Error("Inbound email listener failed to start");
+        }
+      },
+      stop: async (): Promise<void> => {
+        try {
+          await supervisor.stop();
+          this.logger.info("Inbound email listener disconnected");
+        } catch {
+          throw new Error("Inbound email listener failed to disconnect");
+        }
+      },
+      healthCheck: async () => ({
+        status: supervisor.isRunning() ? "healthy" : "error",
+        message: supervisor.isRunning()
+          ? "Inbound email listener connected"
+          : "Inbound email listener disconnected",
+        lastCheck: new Date(),
+      }),
+    };
   }
 
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    if (this.config.imap) {
+      this.inboundCursor = context.runtimeState.scoped({
+        namespace: "email.inbound.uid-cursor",
+        schema: z.number().int().nonnegative(),
+      });
+    }
     context.channels.registerDescriptor({
       type: "email",
       displayName: "Email",
@@ -99,6 +214,41 @@ export class EmailInterface extends MessageInterfacePlugin<
       isAvailable: async () => true,
       send: async (input) => this.deliver(input),
     });
+  }
+
+  private async resolveInboundSender(
+    address: string,
+  ): Promise<InboundEmailSender | undefined> {
+    const response = await this.getContext().messaging.send({
+      type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+      payload: {
+        actor: {
+          kind: "external",
+          externalActorId: createExternalActorId("email", address),
+        },
+      },
+    });
+    if ("noop" in response || !response.success) return undefined;
+
+    const resolution = authPrincipalResolveResponseSchema.safeParse(
+      response.data,
+    );
+    const principal = resolution.success
+      ? resolution.data.principal
+      : undefined;
+    return principal
+      ? {
+          personId: principal.personId,
+          permissionLevel: principal.permissionLevel,
+        }
+      : undefined;
+  }
+
+  private getInboundCursor(): IRuntimeStateStore<number> {
+    if (!this.inboundCursor) {
+      throw new Error("Inbound email cursor is unavailable");
+    }
+    return this.inboundCursor;
   }
 
   private async deliver(input: ChannelDeliveryInput): Promise<

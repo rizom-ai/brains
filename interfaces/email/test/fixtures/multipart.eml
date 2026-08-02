@@ -1,0 +1,17 @@
+From: Bob Example <bob@example.org>
+To: Work Inbox <work@example.com>, Archive <archive@example.com>
+Date: Tue, 14 Apr 2026 12:00:00 +0000
+Message-ID: <multipart-3@example.org>
+Subject: Multipart inquiry
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="brains-boundary"
+
+--brains-boundary
+Content-Type: text/plain; charset=utf-8
+
+Multipart plain body.
+--brains-boundary
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Multipart <strong>HTML</strong> body.</p></body></html>
+--brains-boundary--

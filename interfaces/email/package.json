@@ -2,16 +2,20 @@
   "name": "@brains/email",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.244",
-  "description": "Outbound-first Email message interface for Brains",
+  "description": "Email message interface with Resend delivery and IMAP intake",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "imapflow": "^1.6.5",
+    "mailparser": "^3.9.14"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
+    "@types/mailparser": "^3.4.6",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
     "typescript": "^7.0.2"

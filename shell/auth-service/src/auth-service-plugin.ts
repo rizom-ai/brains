@@ -231,10 +231,12 @@ export class AuthServicePlugin extends ServicePlugin<
             principal: principal
               ? {
                   userId: principal.userId,
+                  personId: principal.personId,
                   ...(principal.canonicalId
                     ? { canonicalId: principal.canonicalId }
                     : {}),
                   displayName: principal.displayName,
+                  permissionLevel: principal.permissionLevel,
                 }
               : null,
           },

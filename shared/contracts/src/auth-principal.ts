@@ -9,8 +9,10 @@ export interface AuthPrincipalResolveRequest {
 
 export interface AuthPrincipalAttribution {
   userId: string;
+  personId: string;
   canonicalId?: string | undefined;
   displayName: string;
+  permissionLevel: "admin" | "trusted" | "public";
 }
 
 export interface AuthPrincipalResolveResponse {
@@ -29,8 +31,10 @@ export const authPrincipalAttributionSchema: z.ZodType<
   AuthPrincipalAttribution
 > = z.object({
   userId: z.string().min(1),
+  personId: z.string().min(1),
   canonicalId: z.string().min(1).optional(),
   displayName: z.string().min(1),
+  permissionLevel: z.enum(["admin", "trusted", "public"]),
 });
 
 export const authPrincipalResolveResponseSchema: z.ZodType<

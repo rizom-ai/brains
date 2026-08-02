@@ -1,0 +1,6 @@
+From: No Id <no-id@example.dev>
+To: work@example.com
+Date: Tue, 14 Apr 2026 13:00:00 +0000
+Subject: Missing message id
+
+This message has no Message-ID header.
