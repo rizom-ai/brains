@@ -10,7 +10,6 @@
 "@brains/contracts": minor
 "@brains/a2a": patch
 "@brains/playbooks": patch
-"@brains/rover-onboarding": patch
 "@brains/mcp-service": patch
 "@brains/mcp": patch
 "@brains/chat": patch
@@ -18,9 +17,6 @@
 "@brains/web-chat": patch
 "@brains/dashboard": patch
 "@brains/cms": patch
-"@brains/rover": patch
-"@brains/relay": patch
-"@brains/ranger": patch
 "@rizom/brain": patch
 ---
 

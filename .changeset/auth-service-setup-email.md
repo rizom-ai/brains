@@ -1,6 +1,5 @@
 ---
 "@brains/auth-service": minor
-"@brains/rover": minor
 "@rizom/ops": minor
 ---
 

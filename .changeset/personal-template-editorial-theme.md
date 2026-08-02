@@ -3,7 +3,6 @@
 "@brains/theme-base": patch
 "@rizom/theme-default": patch
 "@brains/theme-rizom": patch
-"@brains/rover": patch
 "@rizom/brain": patch
 ---
 

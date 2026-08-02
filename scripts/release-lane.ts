@@ -147,6 +147,7 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
 
 async function validateRepository(): Promise<PendingChangeset[]> {
   await assertNoUnscopedPendingChangesets();
+  await assertConsumedChangesetsReferenceWorkspacePackages();
   const pending = await pendingChangesets();
   for (const lane of ["core", "site"] as const) {
     assertChangesetsMatchLane(lane, pending);
@@ -302,6 +303,40 @@ async function assertNoUnscopedPendingChangesets(): Promise<void> {
   if (unscoped.length > 0) {
     throw new Error(
       `Pending changesets must use a core-- or site-- queue prefix. Recreate them with \`bun changeset\` (the lane is inferred from the packages): ${unscoped.join(", ")}`,
+    );
+  }
+}
+
+async function assertConsumedChangesetsReferenceWorkspacePackages(): Promise<void> {
+  const consumed = new Set((await readPreState())?.changesets ?? []);
+  if (consumed.size === 0) {
+    return;
+  }
+
+  const { packages } = await getPackages(repositoryRoot);
+  const workspacePackages = new Set(
+    packages.map(({ packageJson }) => packageJson.name),
+  );
+  const missing: string[] = [];
+
+  for (const fileName of await rootChangesetFiles()) {
+    const id = fileName.slice(0, -3);
+    if (!consumed.has(id)) {
+      continue;
+    }
+    const parsed = parseChangesetFile(
+      await readFile(join(changesetDir, fileName), "utf8"),
+    );
+    for (const release of parsed.releases) {
+      if (!workspacePackages.has(release.name)) {
+        missing.push(`${fileName}: ${release.name}`);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Consumed prerelease changesets reference packages that are no longer in the workspace:\n${missing.join("\n")}`,
     );
   }
 }

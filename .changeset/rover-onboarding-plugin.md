@@ -1,7 +1,5 @@
 ---
 "@brains/playbooks": minor
-"@brains/rover-onboarding": minor
-"@brains/rover": minor
 "@rizom/ops": patch
 "@brains/test-utils": patch
 ---

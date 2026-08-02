@@ -5,8 +5,6 @@
 "@brains/dashboard": patch
 "@brains/console-theme": patch
 "@brains/agent-discovery": patch
-"@brains/rover": patch
-"@brains/relay": patch
 "@brains/web-chat": patch
 "@rizom/brain": patch
 ---

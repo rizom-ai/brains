@@ -2,8 +2,6 @@
 "@brains/email": minor
 "@brains/plugins": patch
 "@brains/notifications": patch
-"@brains/rover": patch
-"@brains/relay": patch
 "@rizom/brain": patch
 "@rizom/ops": patch
 ---

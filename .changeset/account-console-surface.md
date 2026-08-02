@@ -2,8 +2,6 @@
 "@brains/admin": patch
 "@brains/auth-service": patch
 "@brains/console-theme": patch
-"@brains/relay": patch
-"@brains/rover": patch
 "@rizom/brain": patch
 ---
 

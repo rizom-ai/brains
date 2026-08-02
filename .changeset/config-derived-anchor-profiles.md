@@ -2,9 +2,6 @@
 "@brains/app": minor
 "@brains/auth-service": minor
 "@brains/admin": minor
-"@brains/rover": patch
-"@brains/relay": patch
-"@brains/ranger": patch
 "@rizom/brain": patch
 "@rizom/ops": patch
 ---

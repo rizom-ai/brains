@@ -1,7 +1,5 @@
 ---
 "@brains/admin": patch
-"@brains/rover": patch
-"@brains/relay": patch
 "@rizom/brain": patch
 ---
 

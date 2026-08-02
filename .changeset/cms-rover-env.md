@@ -1,5 +1,4 @@
 ---
-"@brains/rover": patch
 "@brains/cms": patch
 "@rizom/brain": patch
 ---

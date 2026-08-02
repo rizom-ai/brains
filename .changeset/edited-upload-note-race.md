@@ -3,7 +3,6 @@
 "@brains/entity-service": patch
 "@brains/note": patch
 "@brains/plugins": patch
-"@brains/rover": patch
 "@brains/test-utils": patch
 ---
 
