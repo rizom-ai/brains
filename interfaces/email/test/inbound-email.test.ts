@@ -62,10 +62,11 @@ async function waitForAbort(signal: AbortSignal): Promise<void> {
 function createFakeClient(
   messages: InboundEmailSourceMessage[],
   requestedUids: number[],
+  uidValidity = "1",
 ): InboundEmailClient {
   return {
     connect: async (): Promise<void> => {},
-    selectMailbox: async (_mailbox: string): Promise<void> => {},
+    selectMailbox: async (_mailbox: string): Promise<string> => uidValidity,
     fetchMessages: async function* (
       afterUid: number,
     ): AsyncGenerator<InboundEmailSourceMessage, void, unknown> {
@@ -186,6 +187,94 @@ describe("inbound email intake", () => {
     }
   });
 
+  it("advances past an unparseable message so later mail can flow", async () => {
+    const poisonMessage: InboundEmailSourceMessage = {
+      uid: 1,
+      source: new TextEncoder().encode(
+        "Subject: Missing sender\r\n\r\nThis message cannot be parsed.",
+      ),
+      receivedAt: mailboxReceivedAt,
+    };
+    const plainMessage = await fixtureMessage(2, "plain.eml");
+    const requestedUids: number[] = [];
+    const logger = createMockLogger();
+    let connection = 0;
+    const harness = createPluginHarness<EmailInterface>({ logger });
+    await harness.installPlugin(
+      new EmailInterface(
+        { imap: imapConfig },
+        {
+          imapClientFactory: (): InboundEmailClient => {
+            connection += 1;
+            return createFakeClient(
+              connection === 1
+                ? [poisonMessage]
+                : [poisonMessage, plainMessage],
+              requestedUids,
+            );
+          },
+        },
+      ),
+    );
+    const received: InboundEmail[] = [];
+    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
+      received.push(inboundEmailSchema.parse(message.payload));
+      return { success: true };
+    });
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("email");
+    await registry.stopPlugin("email");
+    await registry.startPlugin("email");
+    await registry.stopPlugin("email");
+
+    expect(requestedUids).toEqual([1, 2]);
+    expect(received.map((email) => email.messageId)).toEqual([
+      "<plain-1@example.com>",
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Inbound email message could not be parsed",
+      { uid: 1 },
+    );
+  });
+
+  it("resets the cursor when UIDVALIDITY changes and replays stable message IDs", async () => {
+    const messages = [await fixtureMessage(1, "plain.eml")];
+    const requestedUids: number[] = [];
+    let connection = 0;
+    const harness = createPluginHarness<EmailInterface>();
+    await harness.installPlugin(
+      new EmailInterface(
+        { imap: imapConfig },
+        {
+          imapClientFactory: (): InboundEmailClient => {
+            connection += 1;
+            return createFakeClient(
+              messages,
+              requestedUids,
+              String(connection),
+            );
+          },
+        },
+      ),
+    );
+    const received: InboundEmail[] = [];
+    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
+      received.push(inboundEmailSchema.parse(message.payload));
+      return { success: true };
+    });
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("email");
+    await registry.stopPlugin("email");
+    await registry.startPlugin("email");
+    await registry.stopPlugin("email");
+
+    expect(requestedUids).toEqual([1, 1]);
+    expect(received).toHaveLength(2);
+    expect(received[1]?.messageId).toBe(received[0]?.messageId);
+  });
+
   it("enriches known senders without logging their raw address", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
@@ -245,6 +334,50 @@ describe("inbound email intake", () => {
     }
   });
 
+  it("warns with only the message ID when sender resolution fails", async () => {
+    const messages = [await fixtureMessage(1, "plain.eml")];
+    const requestedUids: number[] = [];
+    const logger = createMockLogger();
+    const harness = createPluginHarness<EmailInterface>({ logger });
+    harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async () => {
+      throw new Error("alice@example.com must not leak");
+    });
+    await harness.installPlugin(
+      new EmailInterface(
+        { imap: imapConfig },
+        {
+          imapClientFactory: (): InboundEmailClient =>
+            createFakeClient(messages, requestedUids),
+        },
+      ),
+    );
+    const received: InboundEmail[] = [];
+    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
+      received.push(inboundEmailSchema.parse(message.payload));
+      return { success: true };
+    });
+
+    const registry = harness.getMockShell().getDaemonRegistry();
+    await registry.startPlugin("email");
+    await registry.stopPlugin("email");
+
+    expect(received[0]?.sender).toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Inbound email sender resolution failed",
+      { messageId: "<plain-1@example.com>" },
+    );
+    for (const logMethod of [
+      logger.debug,
+      logger.info,
+      logger.warn,
+      logger.error,
+    ]) {
+      expect(logMethod).not.toHaveBeenCalledWith(
+        expect.stringContaining("alice@example.com"),
+      );
+    }
+  });
+
   it("leaves unknown senders unenriched", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
@@ -280,11 +413,14 @@ describe("inbound email intake", () => {
       .getRuntimeState()
       .scoped({
         namespace: "email.inbound.no-subscriber-test",
-        schema: z.number().int().nonnegative(),
+        schema: z.strictObject({
+          uidValidity: z.string(),
+          lastUid: z.number().int().nonnegative(),
+        }),
       });
     const logger = createMockLogger();
 
-    await intakeInboundEmail(client, {
+    await intakeInboundEmail(client, "1", {
       cursor,
       publish: async () => ({
         success: false,
@@ -294,7 +430,7 @@ describe("inbound email intake", () => {
     });
 
     const received: InboundEmail[] = [];
-    await intakeInboundEmail(client, {
+    await intakeInboundEmail(client, "1", {
       cursor,
       publish: async (request) => {
         received.push(inboundEmailSchema.parse(request.payload));

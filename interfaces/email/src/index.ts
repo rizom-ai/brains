@@ -20,6 +20,7 @@ import {
   type EmailImapConfig,
   type EmailImapConfigInput,
   type InboundEmailClientFactory,
+  type InboundEmailCursor,
   type InboundEmailSender,
 } from "./inbound-email";
 import {
@@ -39,6 +40,7 @@ export type {
   EmailImapConfigInput,
   InboundEmailClient,
   InboundEmailClientFactory,
+  InboundEmailCursor,
   InboundEmailSourceMessage,
 } from "./inbound-email";
 export type { InboundEmailSleep } from "./inbound-supervisor";
@@ -117,7 +119,7 @@ export class EmailInterface extends MessageInterfacePlugin<
   private readonly fetchImpl: FetchLike;
   private readonly imapClientFactory: InboundEmailClientFactory;
   private readonly inboundSleep: InboundEmailSleep | undefined;
-  private inboundCursor?: IRuntimeStateStore<number>;
+  private inboundCursor?: IRuntimeStateStore<InboundEmailCursor>;
 
   constructor(
     config: EmailConfigInput = {},
@@ -137,8 +139,8 @@ export class EmailInterface extends MessageInterfacePlugin<
     const supervisor = new InboundEmailSupervisor({
       config,
       createClient: this.imapClientFactory,
-      intake: async (client): Promise<number> =>
-        intakeInboundEmail(client, {
+      intake: async (client, uidValidity): Promise<number> =>
+        intakeInboundEmail(client, uidValidity, {
           cursor: this.getInboundCursor(),
           publish: this.getContext().messaging.send,
           resolveSender: async (
@@ -155,7 +157,11 @@ export class EmailInterface extends MessageInterfacePlugin<
       start: async (): Promise<void> => {
         try {
           await supervisor.start();
-          this.logger.info("Inbound email listener connected");
+          this.logger.info(
+            supervisor.isConnected()
+              ? "Inbound email listener connected"
+              : "Inbound email listener started; awaiting connection",
+          );
         } catch {
           throw new Error("Inbound email listener failed to start");
         }
@@ -169,10 +175,12 @@ export class EmailInterface extends MessageInterfacePlugin<
         }
       },
       healthCheck: async () => ({
-        status: supervisor.isRunning() ? "healthy" : "error",
-        message: supervisor.isRunning()
+        status: supervisor.isConnected() ? "healthy" : "error",
+        message: supervisor.isConnected()
           ? "Inbound email listener connected"
-          : "Inbound email listener disconnected",
+          : supervisor.isRunning()
+            ? "Inbound email listener awaiting connection"
+            : "Inbound email listener disconnected",
         lastCheck: new Date(),
       }),
     };
@@ -185,7 +193,10 @@ export class EmailInterface extends MessageInterfacePlugin<
     if (this.config.imap) {
       this.inboundCursor = context.runtimeState.scoped({
         namespace: "email.inbound.uid-cursor",
-        schema: z.number().int().nonnegative(),
+        schema: z.strictObject({
+          uidValidity: z.string().regex(/^[1-9]\d*$/),
+          lastUid: z.number().int().nonnegative(),
+        }),
       });
     }
     context.channels.registerDescriptor({
@@ -244,7 +255,7 @@ export class EmailInterface extends MessageInterfacePlugin<
       : undefined;
   }
 
-  private getInboundCursor(): IRuntimeStateStore<number> {
+  private getInboundCursor(): IRuntimeStateStore<InboundEmailCursor> {
     if (!this.inboundCursor) {
       throw new Error("Inbound email cursor is unavailable");
     }

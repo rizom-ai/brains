@@ -94,7 +94,8 @@ export interface InboundEmailSourceMessage {
 
 export interface InboundEmailClient {
   connect: () => Promise<void>;
-  selectMailbox: (mailbox: string) => Promise<void>;
+  /** Select a mailbox and return its IMAP UIDVALIDITY as a decimal string. */
+  selectMailbox: (mailbox: string) => Promise<string>;
   fetchMessages: (afterUid: number) => AsyncIterable<InboundEmailSourceMessage>;
   waitForChanges: (signal: AbortSignal) => Promise<void>;
   disconnect: () => Promise<void>;
@@ -121,8 +122,9 @@ export function createInboundEmailClient(
     connect: async (): Promise<void> => {
       await client.connect();
     },
-    selectMailbox: async (mailbox: string): Promise<void> => {
-      await client.mailboxOpen(mailbox, { readOnly: true });
+    selectMailbox: async (mailbox: string): Promise<string> => {
+      const selected = await client.mailboxOpen(mailbox, { readOnly: true });
+      return selected.uidValidity.toString();
     },
     fetchMessages: async function* (
       afterUid: number,
@@ -197,8 +199,13 @@ export function createInboundEmailClient(
   };
 }
 
+export interface InboundEmailCursor {
+  uidValidity: string;
+  lastUid: number;
+}
+
 export interface InboundEmailIntakeDependencies {
-  cursor: IRuntimeStateStore<number>;
+  cursor: IRuntimeStateStore<InboundEmailCursor>;
   publish: MessageSender;
   resolveSender?:
     ((address: string) => Promise<InboundEmailSender | undefined>) | undefined;
@@ -207,10 +214,16 @@ export interface InboundEmailIntakeDependencies {
 
 export async function intakeInboundEmail(
   client: InboundEmailClient,
+  uidValidity: string,
   dependencies: InboundEmailIntakeDependencies,
 ): Promise<number> {
   const { cursor, publish, resolveSender, logger } = dependencies;
-  const lastUid = (await cursor.get("last-uid")) ?? 0;
+  const storedCursor = await cursor.get("cursor");
+  const lastUid =
+    storedCursor?.uidValidity === uidValidity ? storedCursor.lastUid : 0;
+  if (storedCursor?.uidValidity !== uidValidity) {
+    await cursor.set("cursor", { uidValidity, lastUid: 0 });
+  }
   let cursorUid = lastUid;
   let processed = 0;
 
@@ -223,7 +236,12 @@ export async function intakeInboundEmail(
       logger.warn("Inbound email message could not be parsed", {
         uid: sourceMessage.uid,
       });
-      break;
+      await cursor.set("cursor", {
+        uidValidity,
+        lastUid: sourceMessage.uid,
+      });
+      cursorUid = sourceMessage.uid;
+      continue;
     }
 
     if (resolveSender) {
@@ -231,7 +249,9 @@ export async function intakeInboundEmail(
         const sender = await resolveSender(email.from.address);
         if (sender) email = { ...email, sender };
       } catch {
-        // Identity enrichment is optional; unknown senders remain external.
+        logger.warn("Inbound email sender resolution failed", {
+          messageId: email.messageId,
+        });
       }
     }
 
@@ -253,7 +273,10 @@ export async function intakeInboundEmail(
       break;
     }
 
-    await cursor.set("last-uid", sourceMessage.uid);
+    await cursor.set("cursor", {
+      uidValidity,
+      lastUid: sourceMessage.uid,
+    });
     cursorUid = sourceMessage.uid;
     processed += 1;
     logger.debug("Inbound email event published", {

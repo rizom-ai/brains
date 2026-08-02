@@ -25,14 +25,21 @@ const config: EmailImapConfig = {
 function livenessClient(options: {
   name: string;
   events: string[];
+  connectFailure?: boolean | undefined;
   idleFailure?: boolean | undefined;
+  fetchFailureAfter?: number | undefined;
 }): InboundEmailClient {
+  let fetchCount = 0;
   return {
     connect: async (): Promise<void> => {
       options.events.push(`${options.name}:connect`);
+      if (options.connectFailure) {
+        throw new Error("Connection unavailable");
+      }
     },
-    selectMailbox: async (): Promise<void> => {
+    selectMailbox: async (): Promise<string> => {
       options.events.push(`${options.name}:select`);
+      return "1";
     },
     fetchMessages: async function* (): AsyncGenerator<
       InboundEmailSourceMessage,
@@ -40,6 +47,13 @@ function livenessClient(options: {
       unknown
     > {
       options.events.push(`${options.name}:fetch`);
+      fetchCount += 1;
+      if (
+        options.fetchFailureAfter !== undefined &&
+        fetchCount > options.fetchFailureAfter
+      ) {
+        throw new Error("Connection closed");
+      }
       const messages: InboundEmailSourceMessage[] = [];
       for (const message of messages) yield message;
     },
@@ -71,20 +85,12 @@ async function waitUntil(predicate: () => boolean): Promise<void> {
 }
 
 describe("inbound email liveness", () => {
-  it("degrades from failed IDLE to interval polling with reconnect backoff", async () => {
+  it("degrades to polling for one connection and restores IDLE after reconnect", async () => {
     const events: string[] = [];
     const sleeps: number[] = [];
     let clientCount = 0;
-    const sleep: InboundEmailSleep = async (milliseconds, signal) => {
+    const sleep: InboundEmailSleep = async (milliseconds) => {
       sleeps.push(milliseconds);
-      if (sleeps.length <= 2) return;
-      await new Promise<void>((resolve) => {
-        if (signal.aborted) {
-          resolve();
-          return;
-        }
-        signal.addEventListener("abort", () => resolve(), { once: true });
-      });
     };
     const harness = createPluginHarness<EmailInterface>();
     await harness.installPlugin(
@@ -97,6 +103,7 @@ describe("inbound email liveness", () => {
               name: `client-${clientCount}`,
               events,
               idleFailure: clientCount === 1,
+              ...(clientCount === 1 ? { fetchFailureAfter: 1 } : {}),
             });
           },
           inboundSleep: sleep,
@@ -106,25 +113,65 @@ describe("inbound email liveness", () => {
     const registry = harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin("email");
-    await waitUntil(() => clientCount === 2 && sleeps.length === 3);
+    await waitUntil(() => events.includes("client-2:idle"));
     await registry.stopPlugin("email");
 
-    expect(sleeps).toEqual([
-      1_000,
-      config.pollIntervalMs,
-      config.pollIntervalMs,
-    ]);
+    expect(sleeps).toEqual([config.pollIntervalMs, 1_000]);
     expect(events).toEqual([
       "client-1:connect",
       "client-1:select",
       "client-1:fetch",
       "client-1:idle",
+      "client-1:fetch",
       "client-1:disconnect",
       "client-2:connect",
       "client-2:select",
       "client-2:fetch",
-      "client-2:fetch",
+      "client-2:idle",
       "client-2:disconnect",
+    ]);
+  });
+
+  it("retries failed initial connections inside the supervision loop", async () => {
+    const events: string[] = [];
+    const sleeps: number[] = [];
+    let clientCount = 0;
+    const harness = createPluginHarness<EmailInterface>();
+    await harness.installPlugin(
+      new EmailInterface(
+        { imap: config },
+        {
+          imapClientFactory: (): InboundEmailClient => {
+            clientCount += 1;
+            return livenessClient({
+              name: `client-${clientCount}`,
+              events,
+              connectFailure: clientCount < 3,
+            });
+          },
+          inboundSleep: async (milliseconds): Promise<void> => {
+            sleeps.push(milliseconds);
+          },
+        },
+      ),
+    );
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("email");
+    await waitUntil(() => events.includes("client-3:idle"));
+    await registry.stopPlugin("email");
+
+    expect(sleeps).toEqual([1_000, 2_000]);
+    expect(events).toEqual([
+      "client-1:connect",
+      "client-1:disconnect",
+      "client-2:connect",
+      "client-2:disconnect",
+      "client-3:connect",
+      "client-3:select",
+      "client-3:fetch",
+      "client-3:idle",
+      "client-3:disconnect",
     ]);
   });
 

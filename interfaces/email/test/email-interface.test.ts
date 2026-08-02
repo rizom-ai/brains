@@ -98,7 +98,7 @@ describe("EmailInterface", () => {
 
     const client: InboundEmailClient = {
       connect: mock(async () => {}),
-      selectMailbox: mock(async () => {}),
+      selectMailbox: mock(async () => "1"),
       fetchMessages: async function* (): AsyncGenerator<
         InboundEmailSourceMessage,
         void,
@@ -144,6 +144,7 @@ describe("EmailInterface", () => {
       }),
       selectMailbox: mock(async () => {
         lifecycle.push("select");
+        return "1";
       }),
       fetchMessages: async function* (): AsyncGenerator<
         InboundEmailSourceMessage,
@@ -182,14 +183,14 @@ describe("EmailInterface", () => {
     expect(logger.info).toHaveBeenCalledTimes(2);
   });
 
-  it("redacts IMAP startup errors and cleans up the client", async () => {
+  it("retries IMAP startup errors without exposing the transport cause", async () => {
     const leakedError = Object.values(imapConfig).join("|");
     const disconnect = mock(async () => {});
     const client: InboundEmailClient = {
       connect: mock(async () => {
         throw new Error(leakedError);
       }),
-      selectMailbox: mock(async () => {}),
+      selectMailbox: mock(async () => "1"),
       fetchMessages: async function* (): AsyncGenerator<
         InboundEmailSourceMessage,
         void,
@@ -203,25 +204,28 @@ describe("EmailInterface", () => {
     await harness.installPlugin(
       new EmailInterface(
         { imap: imapConfig },
-        { imapClientFactory: (): InboundEmailClient => client },
+        {
+          imapClientFactory: (): InboundEmailClient => client,
+          inboundSleep: async (_milliseconds, signal): Promise<void> =>
+            waitForAbort(signal),
+        },
       ),
     );
+    const registry = harness.getMockShell().getDaemonRegistry();
 
-    const startupError = await harness
-      .getMockShell()
-      .getDaemonRegistry()
-      .startPlugin("email")
-      .then(
-        (): undefined => undefined,
-        (error: unknown): unknown => error,
-      );
-
-    expect(startupError).toBeInstanceOf(Error);
-    expect(startupError).toHaveProperty(
-      "message",
-      "Inbound email listener failed to start",
-    );
+    await registry.startPlugin("email");
     expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Inbound email initial connection failed; reconnecting",
+    );
+    const daemonName = registry.getByPlugin("email")[0]?.name;
+    expect(daemonName).toBeDefined();
+    expect(await registry.checkHealth(daemonName ?? "")).toMatchObject({
+      status: "error",
+      message: "Inbound email listener awaiting connection",
+    });
+    await registry.stopPlugin("email");
+
     for (const value of [
       imapConfig.host,
       imapConfig.user,
@@ -234,35 +238,65 @@ describe("EmailInterface", () => {
     }
   });
 
-  it("declares optional inbound IMAP environment variables", () => {
-    const inboundNames = [
-      "IMAP_HOST",
-      "IMAP_PORT",
-      "IMAP_USER",
-      "IMAP_PASSWORD",
-      "IMAP_MAILBOX",
-      "POLL_MODE",
-      "POLL_INTERVAL_MS",
-    ];
-    const inboundDeclarations = emailEnvSchema.filter((declaration) =>
-      inboundNames.includes(declaration.name),
+  it("surfaces a fixed error when IMAP disconnect fails", async () => {
+    const leakedError = Object.values(imapConfig).join("|");
+    const client: InboundEmailClient = {
+      connect: mock(async () => {}),
+      selectMailbox: mock(async () => "1"),
+      fetchMessages: async function* (): AsyncGenerator<
+        InboundEmailSourceMessage,
+        void,
+        unknown
+      > {},
+      waitForChanges: waitForAbort,
+      disconnect: mock(async () => {
+        throw new TypeError(leakedError);
+      }),
+    };
+    const harness = createPluginHarness<EmailInterface>();
+    await harness.installPlugin(
+      new EmailInterface(
+        { imap: imapConfig },
+        { imapClientFactory: (): InboundEmailClient => client },
+      ),
+    );
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("email");
+    const stopError = await registry.stopPlugin("email").then(
+      (): undefined => undefined,
+      (error: unknown): unknown => error,
     );
 
-    expect(inboundDeclarations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "IMAP_HOST" }),
-        expect.objectContaining({ name: "IMAP_PORT" }),
-        expect.objectContaining({ name: "IMAP_USER", sensitive: true }),
-        expect.objectContaining({ name: "IMAP_PASSWORD", sensitive: true }),
-        expect.objectContaining({ name: "IMAP_MAILBOX" }),
-        expect.objectContaining({ name: "POLL_MODE" }),
-        expect.objectContaining({ name: "POLL_INTERVAL_MS" }),
-      ]),
+    expect(stopError).toBeInstanceOf(Error);
+    expect(stopError).toHaveProperty(
+      "message",
+      "Inbound email listener failed to disconnect",
     );
-    expect(inboundDeclarations).toHaveLength(inboundNames.length);
+    expect(String(stopError)).not.toContain(leakedError);
+  });
+
+  it("declares only inbound IMAP credentials as environment variables", () => {
+    const inboundDeclarations = emailEnvSchema.filter((declaration) =>
+      declaration.name.startsWith("IMAP_"),
+    );
+
+    expect(inboundDeclarations).toEqual([
+      expect.objectContaining({ name: "IMAP_USER", sensitive: true }),
+      expect.objectContaining({ name: "IMAP_PASSWORD", sensitive: true }),
+    ]);
     expect(
       inboundDeclarations.every((declaration) => declaration.required !== true),
     ).toBe(true);
+    expect(emailEnvSchema.map((declaration) => declaration.name)).not.toEqual(
+      expect.arrayContaining([
+        "IMAP_HOST",
+        "IMAP_PORT",
+        "IMAP_MAILBOX",
+        "IMAP_POLL_MODE",
+        "IMAP_POLL_INTERVAL_MS",
+      ]),
+    );
   });
 
   it("sends through the registered delivery provider", async () => {

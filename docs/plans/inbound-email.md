@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress on `work/inbound-email`.** Phases 0–2 landed in `c5d7fd98a`. Grows the
+**In progress on `work/inbound-email`.** Phases 0–2 are implemented. Grows the
 inbound half of the existing `interfaces/email` message interface: IMAP intake, parsing,
 and a published inbound-mail event. No triage, no drafting, no LLM — those are
 [email-triage.md](./email-triage.md) and
@@ -16,9 +16,18 @@ and a published inbound-mail event. No triage, no drafting, no LLM — those are
    (decision 3).
 3. An IDLE failure must degrade to interval polling only for the current connection; a
    successful reconnect restores the configured mode (decision 5).
-4. Daemon start/stop failures should surface a sanitized error name (never credentials
-   or content) instead of discarding the cause entirely (decision 6).
+4. Daemon lifecycle and retry failures should surface fixed, operation-specific
+   messages without propagating transport error content (decision 6).
 5. The env-schema additions must not touch `brains/rover` (decision 8).
+6. A failed connect at daemon start must enter the backoff reconnect loop instead of
+   disabling intake until the next process restart (decision 5).
+7. A sender-resolution failure must log a warn (message-id only) so it is
+   distinguishable from an unknown sender (decision 6).
+8. Non-secret IMAP settings must remain explicit `brain.yaml` configuration, not
+   process-global environment variables (decision 9).
+9. Only IMAP credentials qualify for the env schema. Inbound configuration is an
+   explicit operator opt-in and must not be emitted into every generated instance
+   (decision 9).
 
 ## Goal
 
@@ -76,33 +85,60 @@ integration."_
 receivedAt, text, html?, headers: { listUnsubscribe?, autoSubmitted?, precedence? },
 sender?: { personId, permissionLevel } }`. Consumers depend on the workspace package,
    never on IMAP details.
-5. **IDLE with interval fallback.** `POLL_MODE=idle|interval` (default `idle`); IDLE
-   failure degrades to interval polling with backoff instead of crashing the daemon.
-   The downgrade is **per connection**: after a successful reconnect the supervisor
-   returns to the configured mode, so one transient IDLE hiccup does not leave a
-   long-lived daemon polling forever.
+5. **IDLE with interval fallback.** `pollMode: idle | interval` defaults to `idle`;
+   IDLE failure degrades to interval polling with backoff instead of crashing the
+   daemon. The downgrade is **per connection**: after a successful reconnect the
+   supervisor returns to the configured mode, so one transient IDLE hiccup does not
+   leave a long-lived daemon polling forever. **Startup is part of the same loop:** a
+   failed initial connect must not fail `start()` and strand intake until a process
+   restart (daemon startup is non-fatal by design, and the reconnect loop currently
+   only exists after a successful start). `start()` returns once supervision is
+   running; the first connect retries with the same capped backoff, and the health
+   check reports the not-yet-connected state.
 6. **Never log bodies or subjects.** Same posture as `shouldRedactDelivery` on the
    outbound side: logs carry message-ids and counts, not content. IMAP credentials come
-   from the env schema and are never echoed. Daemon start/stop failures surface a
-   sanitized error name (e.g. the error class) so operators can diagnose without any
-   risk of credential or content leakage — swallowing the cause entirely trades too
-   much diagnosability for redaction that a sanitizer already guarantees.
+   from the env schema and are never echoed. Daemon lifecycle and retry failures use
+   fixed, operation-specific messages (connect, IDLE, poll, reconnect, or disconnect)
+   without propagating the transport exception; the operation is useful diagnostics,
+   while an exception class is usually just `Error` and its message may contain secrets.
+   The same rule covers sender enrichment: a `resolveSender` failure logs a warning
+   carrying only the message-id, so a failed lookup is distinguishable from a genuinely
+   unknown sender.
 7. **Dependencies: `imapflow` + `mailparser`,** added to `@brains/email` only.
 8. **No edits under `brains/rover`.**
    [brain-model-unification.md](./brain-model-unification.md) deletes the model
    packages, so an IMAP block added to `brains/rover/env.schema.template` is a
    guaranteed modify/delete conflict. The interface's own `emailEnvSchema` is the
    source of truth; the canonical brain's generated env schema
-   (`packages/brain-cli/env.schema.template` + `canonical-env-schema.ts`) picks the
-   block up on the unification branch. Land unification first, rebase this branch,
-   drop the rover template edit, and regenerate.
+   (`packages/brain-cli/env.schema.template` + `canonical-env-schema.ts`) picks up only
+   the credential declarations. Brain-model unification has landed, so this branch
+   rebases onto the canonical schema and carries no model-package edits.
+9. **Configuration follows the repository's secret split.** `IMAP_USER` and
+   `IMAP_PASSWORD` are environment-backed credentials. Host, port, mailbox, poll mode,
+   and interval are non-secret plugin settings and belong in `brain.yaml`. The IMAP
+   block is explicit operator configuration; `brain init` and ops must not enable it in
+   every generated instance. A configured block references only its credentials through
+   `${IMAP_USER}` and `${IMAP_PASSWORD}` interpolation.
 
-## Config (`env-schema.ts` extension)
+## Config
 
-`IMAP_HOST`, `IMAP_PORT`, `IMAP_USER`, `IMAP_PASSWORD`, `IMAP_MAILBOX` (default
-`INBOX`), `POLL_MODE` (default `idle`), `POLL_INTERVAL_MS` (default 60s). Inbound is
-enabled only when the IMAP block is complete; outbound-only remains a first-class
-configuration and an unconfigured inbound half registers no daemon.
+```yaml
+plugins:
+  email:
+    imap:
+      host: imap.example.com
+      port: 993
+      user: ${IMAP_USER}
+      password: ${IMAP_PASSWORD}
+      mailbox: INBOX
+      pollMode: idle
+      pollIntervalMs: 60000
+```
+
+Only `IMAP_USER` and `IMAP_PASSWORD` are added to `emailEnvSchema`, both optional and
+sensitive. Inbound is enabled only when the explicit IMAP block is complete;
+outbound-only remains a first-class configuration and an unconfigured inbound half
+registers no daemon.
 
 ## Phased delivery (thin vertical slices, TDD)
 
@@ -124,8 +160,10 @@ Tests are written first inside each phase.
   interval fallback; resolve the sender address through the identity service (hashed
   `email` channel lookup) and enrich the event with `sender: { personId,
 permissionLevel }` when known. _Tests:_ IDLE failure degrades to polling; a successful
-  reconnect restores the configured IDLE mode; backoff caps; known sender resolves,
-  unknown sender yields no `sender` field; raw address never appears in logs.
+  reconnect restores the configured IDLE mode; backoff caps; a client whose first
+  connects fail still starts intake after backoff (`start()` does not throw); known
+  sender resolves, unknown sender yields no `sender` field; a resolution failure warns
+  with the message-id only; raw address never appears in logs.
 
 ## Out of scope
 

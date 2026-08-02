@@ -293,6 +293,10 @@ describe("brain init", () => {
       expect(envSchema).toContain("SETUP_EMAIL_TO=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
       expect(envSchema).toContain("SETUP_EMAIL_FROM=");
+      expect(envSchema).toContain("IMAP_USER=");
+      expect(envSchema).toContain("IMAP_PASSWORD=");
+      expect(envSchema).not.toContain("IMAP_HOST=");
+      expect(envSchema).not.toContain("IMAP_POLL_MODE=");
       expect(envSchema).toContain("HCLOUD_SERVER_TYPE=");
       expect(envSchema).toContain("HCLOUD_LOCATION=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
@@ -309,6 +313,9 @@ describe("brain init", () => {
       expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
       expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
+      expect(envSchema).toContain("IMAP_USER=");
+      expect(envSchema).toContain("IMAP_PASSWORD=");
+      expect(envSchema).not.toContain("IMAP_HOST=");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
     });
 
