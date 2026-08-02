@@ -2,10 +2,23 @@
 
 ## Status
 
-**Proposed.** Grows the inbound half of the existing `interfaces/email` message interface:
-IMAP intake, parsing, and a published inbound-mail event. No triage, no drafting, no LLM —
-those are [email-triage.md](./email-triage.md) and
+**In progress on `work/inbound-email`.** Phases 0–2 landed in `c5d7fd98a`. Grows the
+inbound half of the existing `interfaces/email` message interface: IMAP intake, parsing,
+and a published inbound-mail event. No triage, no drafting, no LLM — those are
+[email-triage.md](./email-triage.md) and
 [email-reply-drafting.md](./email-reply-drafting.md).
+
+**Review findings to fix before merge** (each is specified in the decision it amends):
+
+1. A deterministic parse failure must advance the cursor, not wedge intake behind a
+   poison message (decision 3).
+2. The cursor must be scoped to the mailbox's `UIDVALIDITY` and reset when it changes
+   (decision 3).
+3. An IDLE failure must degrade to interval polling only for the current connection; a
+   successful reconnect restores the configured mode (decision 5).
+4. Daemon start/stop failures should surface a sanitized error name (never credentials
+   or content) instead of discarding the cause entirely (decision 6).
+5. The env-schema additions must not touch `brains/rover` (decision 8).
 
 ## Goal
 
@@ -44,10 +57,19 @@ integration."_
    consumers decide what deserves a model. If two-way email conversation is ever wanted,
    that is a separate plan with its own trust design.
 3. **The mailbox is the durable store; the event is at-least-once.** The interface never
-   deletes or moves mail. It tracks a UID cursor in `runtimeState`, advances it only
-   after the published event's subscribers complete, and stamps every event with the
-   RFC 5322 `Message-ID` so consumers dedupe idempotently. No subscriber installed means
-   the cursor does not advance — nothing is lost, nothing is buffered.
+   deletes or moves mail. It tracks a cursor in `runtimeState`, advances it only after
+   the published event's subscribers complete, and stamps every event with the RFC 5322
+   `Message-ID` so consumers dedupe idempotently. No subscriber installed means the
+   cursor does not advance — nothing is lost, nothing is buffered. Two hardening rules:
+   - **Only transient failures hold the cursor.** An unacknowledged publish stops the
+     run (retry next cycle). A deterministic parse failure logs the UID and **advances
+     past the message** — the mail stays in the mailbox for manual inspection, and a
+     poison message must not wedge every message behind it forever.
+   - **The cursor is `{ uidValidity, lastUid }`,** because IMAP UIDs are only meaningful
+     per mailbox `UIDVALIDITY` (imapflow reports it on `mailboxOpen`). On mismatch,
+     reset `lastUid` to 0 and re-intake: replayed messages carry the same `Message-ID`,
+     so at-least-once consumers absorb the re-flood; a stale bare UID would instead
+     silently skip or duplicate mail after a mailbox rebuild.
 4. **The inbound contract is exported from `@brains/email`.** A Zod schema + message
    channel constant (`EMAIL_INBOUND`), mirroring the `@brains/notification-contracts`
    pattern. Payload: `{ messageId, threadId?, from: { name?, address }, to, subject,
@@ -56,10 +78,24 @@ sender?: { personId, permissionLevel } }`. Consumers depend on the workspace pac
    never on IMAP details.
 5. **IDLE with interval fallback.** `POLL_MODE=idle|interval` (default `idle`); IDLE
    failure degrades to interval polling with backoff instead of crashing the daemon.
+   The downgrade is **per connection**: after a successful reconnect the supervisor
+   returns to the configured mode, so one transient IDLE hiccup does not leave a
+   long-lived daemon polling forever.
 6. **Never log bodies or subjects.** Same posture as `shouldRedactDelivery` on the
    outbound side: logs carry message-ids and counts, not content. IMAP credentials come
-   from the env schema and are never echoed.
+   from the env schema and are never echoed. Daemon start/stop failures surface a
+   sanitized error name (e.g. the error class) so operators can diagnose without any
+   risk of credential or content leakage — swallowing the cause entirely trades too
+   much diagnosability for redaction that a sanitizer already guarantees.
 7. **Dependencies: `imapflow` + `mailparser`,** added to `@brains/email` only.
+8. **No edits under `brains/rover`.**
+   [brain-model-unification.md](./brain-model-unification.md) deletes the model
+   packages, so an IMAP block added to `brains/rover/env.schema.template` is a
+   guaranteed modify/delete conflict. The interface's own `emailEnvSchema` is the
+   source of truth; the canonical brain's generated env schema
+   (`packages/brain-cli/env.schema.template` + `canonical-env-schema.ts`) picks the
+   block up on the unification branch. Land unification first, rebase this branch,
+   drop the rover template edit, and regenerate.
 
 ## Config (`env-schema.ts` extension)
 
@@ -80,14 +116,16 @@ Tests are written first inside each phase.
 - **Phase 1 — Intake: fetch → parse → publish.** UID-cursor fetch, `mailparser` parse,
   publish `EMAIL_INBOUND` per message, advance cursor after handler completion. _Tests:_
   `.eml` fixtures (plain, HTML, multipart, missing Message-ID → synthesized key); cursor
-  advances only on success; replayed UIDs re-publish with the same `messageId`
-  (at-least-once proven); redaction of logs.
+  holds only on unacknowledged publish; an unparseable message logs its UID, advances
+  the cursor, and mail behind it still flows; a `UIDVALIDITY` change resets the cursor
+  and replays with identical `messageId`s; replayed UIDs re-publish with the same
+  `messageId` (at-least-once proven); redaction of logs.
 - **Phase 2 — Liveness + sender identity.** IMAP IDLE with reconnect/backoff and
   interval fallback; resolve the sender address through the identity service (hashed
   `email` channel lookup) and enrich the event with `sender: { personId,
-permissionLevel }` when known. _Tests:_ IDLE failure degrades to polling; backoff caps;
-  known sender resolves, unknown sender yields no `sender` field; raw address never
-  appears in logs.
+permissionLevel }` when known. _Tests:_ IDLE failure degrades to polling; a successful
+  reconnect restores the configured IDLE mode; backoff caps; known sender resolves,
+  unknown sender yields no `sender` field; raw address never appears in logs.
 
 ## Out of scope
 
