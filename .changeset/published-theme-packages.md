@@ -2,7 +2,6 @@
 "@rizom/theme-default": patch
 "@rizom/theme-rizom-ai": patch
 "@rizom/brain": patch
-"@brains/rover": patch
 ---
 
 Themes become independently published npm packages, completing the

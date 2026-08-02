@@ -1,6 +1,5 @@
 ---
 "@brains/deploy-support": patch
-"@brains/rover": patch
 "@rizom/brain": patch
 "@rizom/ops": patch
 ---

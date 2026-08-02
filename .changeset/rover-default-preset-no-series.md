@@ -1,5 +1,4 @@
 ---
-"@brains/rover": patch
 ---
 
 Move series out of the default preset (full keeps it). The consolidated

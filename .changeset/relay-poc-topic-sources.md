@@ -1,5 +1,4 @@
 ---
-"@brains/relay": patch
 "@brains/topics": patch
 ---
 

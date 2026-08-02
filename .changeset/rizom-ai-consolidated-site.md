@@ -1,6 +1,5 @@
 ---
 "@rizom/site-rizom-ai": patch
-"@brains/rover": patch
 ---
 
 The consolidated rizom.ai site (rev-5): one site serving the platform home plus
