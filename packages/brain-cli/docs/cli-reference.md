@@ -16,7 +16,7 @@ Scaffold a new brain instance.
 
 ```bash
 brain init mybrain
-brain init mybrain --model relay
+brain init mybrain --recipe team
 brain init mybrain --domain mybrain.example.com
 brain init mybrain --content-repo github:user/brain-data
 brain init mybrain --backend none         # default: env vars only, no secret store
@@ -27,16 +27,16 @@ brain init mybrain --no-interactive
 
 **Options**
 
-| Flag                    | Default            | Description                                                                                                                                                                                                                                                                                              |
-| ----------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                                                                                                                                                                                                                                                                  |
-| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
-| `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                |
-| `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
-| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
-| `--regen`               | `false`            | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
-| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                  |
-| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
+| Flag                    | Default                | Description                                                                                                                                                                                                                                                                                              |
+| ----------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--recipe <name>`       | `personal`             | Scaffold recipe: `minimal`, `personal`, `team`, or `commerce`                                                                                                                                                                                                                                            |
+| `--domain <domain>`     | `{directory}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
+| `--content-repo <repo>` | —                      | Git repo for content sync                                                                                                                                                                                                                                                                                |
+| `--backend <name>`      | `none`                 | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
+| `--deploy`              | `false`                | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
+| `--regen`               | `false`                | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
+| `--ai-api-key <key>`    | —                      | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                  |
+| `--no-interactive`      | `false`                | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
 
 **Generated files**
 
@@ -214,6 +214,23 @@ Currently documented subcommands:
 - `search` — inspect search distance distribution for threshold tuning
 - `usage` — aggregate `ai:usage` events from the configured log file
 
+### `brain config migrate`
+
+Preview the deterministic migration from a legacy built-in model/preset configuration to
+the canonical explicit-bundle format.
+
+```bash
+cd mybrain
+brain config migrate
+```
+
+The command reads `brain.yaml`, prints the proposed canonical YAML, and never writes the
+file. It preserves instance-owned site/theme choices, seed paths, capability additions
+and removals, external plugin declarations, permission overrides, secret references, and
+comments where the YAML syntax permits. Review and apply the output only during the
+coordinated crossover; the canonical runtime path remains inactive during migration
+preparation.
+
 ### `brain pin`
 
 Create a local `package.json` that pins `@rizom/brain` to the current version and then run `bun install`.
@@ -252,7 +269,7 @@ brain sync
 brain status
 ```
 
-These are resolved from the running brain's tool registry. Available commands depend on the selected brain model, preset, and enabled plugins.
+These are resolved from the running brain's tool registry. Available commands depend on selected bundles, additions/removals, and enabled plugins.
 
 ## Remote mode
 

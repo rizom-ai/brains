@@ -92,8 +92,11 @@ export function instantiateSitePlugins(
   site: SitePackage | undefined,
   overrides: Omit<InstanceOverrides, "brain"> | undefined,
   activeIds: ActiveIds,
+  allowImplicitSite = false,
 ): Plugin[] {
-  if (!site || !isActive(activeIds, "site-builder")) return [];
+  if (!site || (!allowImplicitSite && !isActive(activeIds, "site-builder"))) {
+    return [];
+  }
 
   const plugins: Plugin[] = [];
   if (site.plugin) {

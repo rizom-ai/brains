@@ -1,119 +1,90 @@
-# Welcome to Rover
+# Welcome to your brain
 
 ---
 
 Most of us have more thinking happening than we can hold onto. Ideas show up in the wrong moment, notes land in five different places, and half of what you've figured out is effectively invisible by the time you need it again.
 
-Rover is built for that problem. It's a private space where your thinking accumulates — notes, links, fragments, half-formed ideas — and an AI that can work with all of it. Find things you saved months ago. Connect dots across topics. Turn a rough note into a draft. The more you put in, the more useful it gets. And if another Rover user is in your network, your Rovers can talk to each other — share knowledge, work on something together — just by asking.
+Your brain is a private space where that thinking accumulates — notes, links, fragments, and half-formed ideas — plus an AI that can work with all of it. It can find things you saved months ago, connect topics, or help turn a rough note into a draft. The more useful material you add, the more useful it becomes.
 
 ---
 
-## What Rover is
+## What it is
 
-Rover is your private knowledge companion. It holds your notes, links, and ideas — and helps you think with them, not just store them.
+Your brain is a private knowledge companion. It holds your notes, links, and ideas and helps you think with them, not just store them.
 
-Ask it a question and it searches what you've saved. Give it a fragment of thinking and it can help you turn it into something.
-
----
+Ask a question and it searches what you've saved. Give it a fragment of thinking and it can help develop it.
 
 ## Getting in
 
-We'll send you a personal URL — something like `https://<handle>.rizom.ai/`.
+We'll send you a personal URL such as `https://<handle>.rizom.ai/`.
 
-When you open it for the first time, you'll be asked to set a passkey. Do that once and you're in. No passwords to remember.
+The first time you open it, you will be asked to set a passkey. No password is required after that.
 
-From there, your three main interfaces are:
+Your main interfaces are:
 
-- **Chat** (`/chat`) — where you talk to Rover
-- **Dashboard** (`/`) — an overview of your Rover
-- **CMS** (`/cms`) — a browser editor for your content
+- **Chat** (`/chat`) — talk to your brain;
+- **Dashboard/site** (`/`) — the configured browser surface;
+- **CMS** (`/cms`) — edit durable content in a browser.
 
-Start with Chat. Everything else follows from there.
-
----
+Start with Chat.
 
 ## Your first five minutes
 
-1. Open your Chat URL. A good first message:
-   > Help me save my first note.
-2. Save something — a thought, a link, an idea. Doesn't need to be polished.
-3. Ask Rover about it. See what comes back.
+1. Open Chat and say: _Help me save my first note._
+2. Save a thought, link, or idea. It does not need to be polished.
+3. Ask about it and inspect what comes back.
 
-That loop — save, ask, get something useful back — is the core of how Rover works.
+That save–ask–use loop is the core workflow.
 
----
+## Chat or CMS?
 
-## The Chat and the CMS: when to use which
+**Chat** is for thinking aloud, asking questions, saving things quickly, and day-to-day work.
 
-**Chat** is for thinking out loud, asking questions, saving things quickly, and using Rover as a day-to-day thinking partner.
+**CMS** is for deliberate browsing and editing. It becomes more useful as your content grows.
 
-**CMS** is for when you want to deliberately create or edit content — browsing your notes, making clean edits, working more like an editor than a conversationalist.
+## Other interfaces and peer brains
 
-Most people spend most of their time in Chat. The CMS becomes useful once you have something worth editing.
+Chat is primary. Your configured posture may also enable Discord, Slack, MCP clients, or agent-to-agent calls. We will send setup steps for integrations enabled for your instance.
 
----
+With permission, you can save another participant's brain as a contact and call it by its shared address:
 
-## Other ways to chat with Rover
+- _Add jane.rizom.ai to my contacts._
+- _Call jane.rizom.ai and ask [your question]._
 
-`/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
+## Connecting other tools
 
-**Talking to another Rover**
+MCP is a standard protocol that lets compatible AI clients use your brain's tools and lets configured integrations connect to external services. If MCP is part of your setup, we will send specific instructions alongside your URL.
 
-If you know another Rover user, you can add them to your contacts and call their Rover directly from your chat.
-
-- To add: _Add jane.rizom.ai to my contacts._
-- To call: _Call jane.rizom.ai and ask [your question]._
-  You'll need their address — in the format `name.rizom.ai` — which they can share with you directly.
-
----
-
-## Connecting Rover to other tools
-
-Rover can connect to external tools via MCP — a standard protocol that works in two directions: agentic AI clients (like Claude Desktop) can use it to talk to Rover, and Rover can use it to talk to productivity tools like Notion or Linear.
-
-Plugins exist for a number of tools already, and new ones can be built quickly in response to what you actually need. If there's a tool you'd want Rover to connect to, tell us.
-
-If MCP is part of your setup, we'll send specific instructions alongside your URL.
-
----
-
-## A few common questions
+## Common questions
 
 **How do I access my data?**
-Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
 
-**Does Rover connect to the internet?**
-No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
+Use the CMS. If your cohort includes GitHub access, the same durable markdown also lives in a private repository.
+
+**Does it search the public internet?**
+
+Not by default. Answers are grounded in your own knowledge unless an explicitly configured integration provides another source.
 
 **What does this cost?**
-Nothing during the pilot. We cover hosting costs while you're part of the programme.
 
----
+Nothing during the pilot; hosting is covered by the programme.
 
 ## This is a pilot
 
-Rover works. But it's not finished.
+The product works, but it is not finished. You will encounter rough edges and missing behavior. If something breaks or falls short, tell us what you tried, what you expected, and what happened.
 
-You'll hit rough edges. Some things you try won't work. Some things you expect to be there won't be yet. That's normal — and it's actually why you're here.
-
-There's a ceiling on how much Rover can improve without real people using it on real problems. We've reached that ceiling on our own. Your usage is what lets the product become what it's capable of becoming. A single Rover in isolation can only do so much — the network only becomes real when there are enough active, populated Rovers in it.
-
-Rover has a built-in wishlist. If you ask it to do something it can't do yet, it should tell you clearly and log the request — that goes back to us as a signal for where the product needs to go next.
-
-When something breaks or falls short, tell us: what you were trying to do, what you expected, and what happened instead.
-
----
+A built-in wishlist can record unsupported requests as product feedback.
 
 ## Your access details
 
-When we onboard you, we'll send something like:
+We will send details in this shape:
 
-```
+```text
 Chat URL: https://<handle>.rizom.ai/chat
 Dashboard URL: https://<handle>.rizom.ai/
 CMS URL: https://<handle>.rizom.ai/cms
-Discord: yes/no — setup steps below if yes
-MCP: enabled/not enabled — details below if enabled
+Discord: yes/no — setup steps if enabled
+MCP: enabled/not enabled — setup details if enabled
 ```
 
-If anything is unclear, reply with what you're seeing and we'll help.
+If anything is unclear, reply with what you see and we will help.

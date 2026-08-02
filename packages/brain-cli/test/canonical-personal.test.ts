@@ -1,0 +1,149 @@
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import defaultSite from "@brains/site-default";
+import {
+  parseInstanceOverrides,
+  registerPackage,
+  resolve,
+  type AppConfig,
+  type InstanceOverrides,
+} from "@brains/app";
+import defaultTheme from "@rizom/theme-default";
+import {
+  canonicalBrain,
+  coreBundle,
+  publishingBundle,
+  siteBundle,
+  teamBundle,
+} from "../src/model/canonical-brain";
+
+registerPackage("@brains/site-default", defaultSite);
+registerPackage("@rizom/theme-default", defaultTheme);
+
+const fixtureOverrides = parseInstanceOverrides(
+  readFileSync(
+    join(import.meta.dir, "fixtures", "canonical-personal", "brain.yaml"),
+    "utf8",
+  ),
+);
+
+function canonicalOverrides(
+  extra: Partial<InstanceOverrides> = {},
+): Omit<InstanceOverrides, "brain"> {
+  const { brain: _brain, ...runtimeFixture } = fixtureOverrides;
+  return { ...runtimeFixture, ...extra };
+}
+
+function pluginIds(resolved: AppConfig): string[] {
+  return resolved.plugins?.map((plugin) => plugin.id) ?? [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function pluginConfig(
+  resolved: AppConfig,
+  id: string,
+): Record<string, unknown> | undefined {
+  const plugin = resolved.plugins?.find((candidate) => candidate.id === id);
+  if (!plugin || !("config" in plugin)) return undefined;
+  const config = plugin.config;
+  return isRecord(config) ? config : undefined;
+}
+
+describe("canonical personal bundles", () => {
+  test("defines fixed site and publishing membership in canonical order", () => {
+    expect(canonicalBrain.bundles).toEqual([
+      coreBundle,
+      siteBundle,
+      publishingBundle,
+      teamBundle,
+    ]);
+    expect(siteBundle.members).toEqual([
+      "dashboard",
+      "site-info",
+      "site-content",
+      "site-builder",
+      "analytics",
+    ]);
+    expect(publishingBundle.members).toEqual([
+      "blog",
+      "series",
+      "portfolio",
+      "content-pipeline",
+      "social-media",
+      "newsletter",
+      "stock-photo",
+      "atproto",
+    ]);
+  });
+
+  test("parses explicit instance-owned personal choices", () => {
+    expect(fixtureOverrides).toMatchObject({
+      brain: "brain",
+      anchor: "person",
+      kind: "professional",
+      bundles: ["publishing", "site", "core"],
+      site: {
+        package: "@brains/site-default",
+        theme: "@rizom/theme-default",
+      },
+      plugins: {
+        "directory-sync": { seedContentPath: "./seed-content" },
+      },
+    });
+  });
+
+  test("composes site and publishing config in definition order", () => {
+    const resolved = resolve(canonicalBrain, {}, canonicalOverrides());
+
+    expect(resolved.profileKind).toBe("professional");
+    expect(pluginConfig(resolved, "dashboard")).toMatchObject({
+      routePath: "/dashboard",
+    });
+    expect(pluginConfig(resolved, "site-builder")).toMatchObject({
+      routes: expect.any(Array),
+      themeCSS: expect.any(String),
+    });
+    expect(pluginConfig(resolved, "content-pipeline")).toMatchObject({
+      generationSchedules: {
+        newsletter: "0 9 * * 1",
+        "social-post": "0 10 * * *",
+      },
+    });
+    expect(pluginConfig(resolved, "social-media")).toMatchObject({
+      autoGenerateOnBlogPublish: true,
+    });
+    expect(pluginConfig(resolved, "buttondown")).toMatchObject({
+      doubleOptIn: true,
+    });
+  });
+
+  test("keeps site and publishing independently selectable", () => {
+    const siteOnly = resolve(
+      canonicalBrain,
+      {},
+      canonicalOverrides({ bundles: ["core", "site"] }),
+    );
+    expect(pluginIds(siteOnly)).toContain("site-builder");
+    expect(pluginIds(siteOnly)).not.toContain("blog");
+
+    const publishingOnly = resolve(
+      canonicalBrain,
+      {},
+      canonicalOverrides({ bundles: ["core", "publishing"] }),
+    );
+    expect(pluginIds(publishingOnly)).toContain("blog");
+    expect(pluginIds(publishingOnly)).toContain("atproto");
+    expect(pluginIds(publishingOnly)).not.toContain("site-builder");
+  });
+
+  test("keeps publishing instructions definition-owned and neutral", () => {
+    const instructions =
+      resolve(canonicalBrain, {}, canonicalOverrides()).agentInstructions ?? [];
+    expect(instructions).toEqual(publishingBundle.agentInstructions ?? []);
+    expect(instructions.join("\n")).toContain("publishing capabilities");
+  });
+});

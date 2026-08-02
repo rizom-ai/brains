@@ -30,13 +30,41 @@ When `pilot.yaml.brainVersion` changes and you push:
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
 
-An omitted `siteOverride.version` follows the user's effective brain version, so a
-cohort or pilot version bump advances its site and theme packages automatically.
-Set an exact `siteOverride.version` only when that user needs a deliberate pin.
+Every external site and theme package has its own exact version pin. A cohort or
+pilot brain-version bump never changes those package versions implicitly; update each
+pin deliberately from reviewed package and image evidence.
 
 When a push changes only deploy contract files and no generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files, the deploy workflow exits through its explicit no-op path and prints `No affected user configs; skipping deploy.`
 
 They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
+
+## Canonical contract crossover maintenance window
+
+Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together. Complete `docs/canonical-crossover-record.md` as the approval evidence without adding secret values.
+
+Before the window, record and review:
+
+- the prior pilot commit and exact `@rizom/ops` version;
+- every prior runtime image tag and immutable digest;
+- the reviewed canonical pilot commit;
+- the exact unified `@rizom/brain` and `@rizom/ops` versions;
+- every unified image tag and immutable digest;
+- canary-first rollout order, followed by the remaining cohorts;
+- expected `/health` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
+
+Run `bunx brains-ops reconcile-all <canonical-review-copy> --dry-run` against the isolated review copy. The command blocks external content-repository access, leaves the review copy untouched, and must report second-pass zero drift.
+
+During the approved window:
+
+1. Freeze unrelated merges and releases. Wait for active Build, Reconcile, and Deploy runs to finish, then disable all three pilot workflows with `gh workflow disable build.yml`, `gh workflow disable reconcile.yml`, and `gh workflow disable deploy.yml`.
+2. Publish and verify the reviewed unified runtime and matching ops artifacts. Do not update pilot desired state until the exact versions are installable and the expected images can be built.
+3. Apply the reviewed canonical pilot revision while automation remains disabled. Confirm repository names, server/domain identity, content repositories, secret selectors, image names, and tag identity against the review diff.
+4. Enable only Build, run it for the canonical desired-state revision, and record every resulting image digest. Stop if the observed digest set differs from the cutover record.
+5. Enable only Reconcile, run it once, and review its generated config commit. No generated file may combine canonical config with a retired image version.
+6. Enable Deploy and deploy one handle at a time in the approved order. After each deploy, run `bunx brains-ops verify-user . <handle>` and complete the manual identity, content-sync, and app-managed site checks.
+7. Run Reconcile a second time. Require no generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze.
+
+If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
 
 ## Stale deploy lock recovery
 
@@ -77,7 +105,7 @@ When `@rizom/ops` changes the scaffolded deploy contract:
 3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
 4. commit the updated deploy artifacts together
 
-## Rover verification notes
+## Canonical verification notes
 
 Use the verification script after deploy:
 
@@ -85,35 +113,31 @@ Use the verification script after deploy:
 bunx brains-ops verify-user . <handle>
 ```
 
-It checks every Rover preset:
+For every bundle posture it checks:
 
-- `https://<handle>.rizom.ai/health` should return `200`
-- unauthenticated `POST https://<handle>.rizom.ai/mcp` should return the expected auth failure
-- background jobs should not be repeatedly failing, except for expected missing optional integrations
+- `https://<handle>.rizom.ai/health` returns `200`;
+- unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure;
+- background jobs are not repeatedly failing, except for missing optional integrations.
 
-Additional `rover:core` note:
-
-- Rover core is MCP-only; a bare `GET /` may return `401`, which does not indicate a bad deploy.
-
-For `preset: default`, the script also checks:
-
-- `https://<handle>.rizom.ai/` loads the browser/site surface
-- `https://<handle>.rizom.ai/cms` loads the CMS/login surface
+A `core`-only instance is MCP-only; a bare `GET /` may return `401` without indicating a bad deploy. When `site` is selected, verification also checks the browser and CMS/login surfaces.
 
 Manual checks that remain:
 
-- initial site build is correct for the expected content/theme
-- content repo exists and runtime sync is healthy beyond the basic `/health` response
-- passkey setup/handoff is completed from the setup email
+- initial app-managed site output is correct for the expected content/theme;
+- content repository identity and runtime sync are healthy;
+- passkey setup/handoff is completed from the setup email.
 
-## One-user `rover:default` baseline canary
+## One-user canonical site canary
 
 Run this before adding custom site/theme packages or rolling a larger browser/CMS-first cohort.
 
-1. Create or choose a canary cohort with the default preset:
+1. Create or choose a canary cohort with explicit bundles:
 
    ```yaml
-   presetOverride: default
+   bundles:
+     - core
+     - site
+     - publishing
    ```
 
 2. Add exactly one canary user to that cohort.
@@ -131,11 +155,7 @@ Run this before adding custom site/theme packages or rolling a larger browser/CM
 7. Ask the user to complete passkey setup from the setup email.
 8. Continue to visual customization only after the canary is healthy.
 
-Rollback:
-
-- move the canary back to a core cohort, or remove `presetOverride: default` from the cohort
-- reconcile generated outputs
-- rebuild/redeploy the affected user
+Rollback must restore the prior desired-state revision and prior runtime image together. Never pair canonical config with the retired image, or retired config with the canonical image.
 
 ## Hosted site and theme package contract
 
@@ -144,7 +164,7 @@ Start with the public [site mockup migration guide](https://github.com/rizom-ai/
 - A site package must default-export a valid `SitePackage` and use documented public APIs such as `@rizom/brain/site`.
 - A theme package must default-export its CSS as a string. Hosted custom themes currently use the `@rizom/*` scope so the fleet image installs them with the site package; `@brains/*` themes are bundled with `@rizom/brain`.
 - Site and custom theme packages must be public npm packages that install without registry credentials.
-- Site and theme packages publish on their own release cadences, independent of `@rizom/brain` and of each other. Hosted configuration resolves package names plus pinned versions into exact npm refs.
+- Site, theme, and brain packages publish independently. Hosted configuration requires exact site and external-theme version pins and never derives one package version from another.
 - Keep site structure and theme CSS in separate packages. Do not put private content or secrets in either package.
 
 Configure a user in `users/<handle>.yaml`:
@@ -152,22 +172,20 @@ Configure a user in `users/<handle>.yaml`:
 ```yaml
 siteOverride:
   package: "@rizom/site-example"
+  version: <exact-site-version>
   theme: "@rizom/theme-example"
-  themeVersion: <exact-theme-version> # required for @rizom/* themes
-  # version: <exact-site-version> # optional deliberate pin
+  themeVersion: <exact-theme-version>
 ```
 
-When `version` is omitted, it defaults to the user's effective brain version
-(cohort override first, then `pilot.yaml.brainVersion`). A `@rizom/*` theme
-always requires an explicit `themeVersion` — themes and sites version
-independently, so the theme's version is never inferred. A site override
-produces an isolated per-instance image; it never changes the fleet's shared
-default image.
+Missing external package versions fail desired-state validation. A site override
+produces an isolated per-instance image; it never changes the fleet's shared default
+image. Bundled `@brains/*` themes omit `themeVersion` because they are not installed as
+separate packages.
 
 ### Custom-package canary and rollback
 
 1. Confirm the exact site/theme versions are public-installable without npm credentials.
-2. Apply the package names to one healthy `rover:default` canary.
+2. Apply the exact package names and versions to one healthy canonical site canary.
 3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, CMS, content sync, and passkey sign-in before adding more users.
@@ -246,31 +264,32 @@ Notes:
 - The ATProto app password is secret and belongs only in the encrypted per-user secret payload.
 - For smoke deployments, pin only the smoke cohort/user to the released brain version that contains ATProto support.
 
-## Discord bot token checklist
+## Discord application credential checklist
 
 Use this when enabling Discord for a pilot user.
 
 1. Pick the user handle (for example `smoke`).
 2. Open the Discord Developer Portal.
-3. Create a **new application** for that user's rover.
+3. Create a **new application** for that user's brain.
 4. Add a **Bot** to the application.
-5. Copy the bot token.
-6. Put that value in `.env` or `.env.local` in this repo as `DISCORD_BOT_TOKEN=...` while onboarding that user.
+5. Copy the bot token, application public key, and application ID.
+6. Put those values in `.env` or `.env.local` while onboarding that user:
+   - `DISCORD_BOT_TOKEN=...`
+   - `DISCORD_PUBLIC_KEY=...`
+   - `DISCORD_APPLICATION_ID=...`
 7. Keep `discord.enabled: true` in `users/<handle>.yaml` unless you explicitly want to disable the primary pilot interface.
-8. Encrypt the current per-user secret payload:
+8. Encrypt the current per-user credential payload:
    - `bunx brains-ops secrets:encrypt . <handle>`
 9. Reconcile/deploy the user or cohort:
-
-- `bunx brains-ops onboard . <handle>`
-- or `bunx brains-ops reconcile-cohort . <cohort>`
-
-11. In the Discord Developer Portal, generate an install URL and invite the bot to the right server.
-12. Send a test message in Discord and confirm the rover responds.
+   - `bunx brains-ops onboard . <handle>`
+   - or `bunx brains-ops reconcile-cohort . <cohort>`
+10. In the Discord Developer Portal, generate an install URL and invite the bot to the right server.
+11. Send a test message in Discord and confirm the brain responds.
 
 Notes:
 
-- Use **one bot token per user/rover**.
-- Do not reuse the same Discord bot token across multiple pilot users.
+- Use **one Discord application credential set per user/brain**.
+- Do not reuse the same Discord application across multiple pilot users.
 - Discord is the default pilot interface moving forward.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.
 - Direct MCP client access should use OAuth/passkey-capable clients where possible.

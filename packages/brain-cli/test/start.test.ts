@@ -5,8 +5,18 @@ import { tmpdir } from "os";
 import { EventEmitter } from "events";
 import type { BootMode } from "@brains/core";
 import { resolveRunnerType, start } from "../src/commands/start";
-import { registerModel, resetModels } from "../src/lib/model-registry";
+import {
+  resetCanonicalDefinition,
+  setCanonicalDefinition,
+} from "../src/lib/definition-registry";
 import { resetBootFn, setBootFn, type BootedBrain } from "../src/lib/boot";
+
+const definition = {
+  name: "brain",
+  version: "1.0.0",
+  capabilities: [],
+  interfaces: [],
+};
 
 function createTestBrainDir(): string {
   const dir = join(
@@ -15,7 +25,7 @@ function createTestBrainDir(): string {
     `brain-start-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "brain.yaml"), "brain: rover\n");
+  writeFileSync(join(dir, "brain.yaml"), "brain: brain\nbundles: [core]\n");
   return dir;
 }
 
@@ -112,7 +122,7 @@ describe("resolveRunnerType", () => {
   beforeEach(() => {
     testDir = join(tmpdir(), `brain-start-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
-    resetModels();
+    resetCanonicalDefinition();
   });
 
   afterEach(() => {
@@ -120,25 +130,12 @@ describe("resolveRunnerType", () => {
       rmSync(testDir, { recursive: true, force: true });
     }
     resetBootFn();
-    resetModels();
+    resetCanonicalDefinition();
   });
 
-  it("should return 'builtin' when models are registered", () => {
-    registerModel("rover", { name: "rover" });
+  it("should return 'builtin' when the definition is registered", () => {
+    setCanonicalDefinition(definition);
     expect(resolveRunnerType(testDir)).toBe("builtin");
-  });
-
-  it("should return 'docker' when dist/.model-entrypoint.js exists", () => {
-    mkdirSync(join(testDir, "dist"), { recursive: true });
-    writeFileSync(join(testDir, "dist", ".model-entrypoint.js"), "");
-    expect(resolveRunnerType(testDir)).toBe("docker");
-  });
-
-  it("should prefer docker over builtin when both exist", () => {
-    registerModel("rover", { name: "rover" });
-    mkdirSync(join(testDir, "dist"), { recursive: true });
-    writeFileSync(join(testDir, "dist", ".model-entrypoint.js"), "");
-    expect(resolveRunnerType(testDir)).toBe("docker");
   });
 
   it("should return undefined when nothing matches", () => {
@@ -158,7 +155,10 @@ describe("resolveRunnerType", () => {
       `brain-start-startup-check-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(brainDir, { recursive: true });
-    writeFileSync(join(brainDir, "brain.yaml"), "brain: rover\n");
+    writeFileSync(
+      join(brainDir, "brain.yaml"),
+      "brain: brain\nbundles: [core]\n",
+    );
 
     const seenFlags: Array<{
       chat: boolean;
@@ -171,8 +171,8 @@ describe("resolveRunnerType", () => {
       }),
       stop,
     };
-    registerModel("rover", { name: "rover" });
-    setBootFn(async (_cwd, _modelName, _definition, flags) => {
+    setCanonicalDefinition(definition);
+    setBootFn(async (_cwd, _definition, flags) => {
       seenFlags.push(flags);
       return bootedBrain;
     });

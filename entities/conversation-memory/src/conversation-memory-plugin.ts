@@ -72,7 +72,15 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   declare protected config: SummaryConfig;
 
   constructor(config: SummaryConfigInput = {}) {
-    super(SUMMARY_PLUGIN_ID, packageJson, config, summaryConfigSchema);
+    super(SUMMARY_PLUGIN_ID, packageJson, config, summaryConfigSchema, {
+      [SUMMARY_ENTITY_TYPE]: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
+    });
   }
 
   public getConfig(): SummaryConfig {

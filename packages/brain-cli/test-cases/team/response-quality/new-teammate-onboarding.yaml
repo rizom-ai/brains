@@ -1,0 +1,72 @@
+id: team-scenario-new-teammate-onboarding
+name: New teammate onboarding from saved Team Brain memory
+description: >-
+  Real user scenario: a new teammate asks what Team Brain is, what to read first, and
+  what is deliberately out of scope. Judge against the saved Team Brain fixture facts:
+  Team Brain is a team knowledge coordinator for shared team memory, synthesis, and
+  peer-brain coordination; read-first saved titles include Team Brain operating model,
+  Capture and synthesis, Peer-brain directory, Team Brain POC walkthrough, and Team Brain
+  POC team notes; supported workflows include notes/links capture, conversation
+  summaries, topics, a peer-brain directory with approved A2A coordination, and
+  docs/decks only as the current full-preset surfaces; out-of-scope assumptions
+  include Rover-style publishing, blog/portfolio/marketing automation flows,
+  future plugin/entity types, and contacting unsaved or unapproved agents. Do not
+  penalize grounded wording such as routing shared knowledge across humans and
+  peer brains, approved local agents for A2A, minimal public knowledge surface
+  when enabled, or docs/decks as current full-preset surfaces. The saved title
+  order is not important as long as the titles are saved items.
+type: response_quality
+setup:
+  permissionLevel: admin
+tags:
+  - posture-team
+  - team
+  - scenario
+  - real-user
+  - onboarding
+  - search
+  - full
+
+turns:
+  - userMessage: >-
+      I'm joining the Team Brain POC team today. Search the saved Team Brain memory and
+      onboard me: what is Team Brain for, what should I read first, what workflows are
+      already supported, and what should I avoid assuming exists? Begin by
+      saying you searched saved Team Brain memory. In the read-first section,
+      prioritize saved handbook/team-knowledge titles if present: Team Brain operating
+      model, Capture and synthesis, Peer-brain directory, Team Brain POC walkthrough,
+      and Team Brain POC team notes. Do not put README/eval-content/capture-rules
+      internals in the read-first list unless no handbook, deck, or team-note
+      title is available. Separate supported workflows from out-of-scope
+      assumptions.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseContains:
+    - "searched saved Team Brain memory"
+    - "Team Brain"
+    - "team"
+    - "peer"
+    - "operating"
+    - "synthesis"
+    - "notes"
+    - "links"
+    - "summar"
+    - "topics"
+    - "agent"
+    - "docs"
+    - "decks"
+  responseNotContains:
+    - "blog platform"
+    - "newsletter pipeline"
+    - "meeting-notes plugin"
+    - "decision-record plugin"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 40000

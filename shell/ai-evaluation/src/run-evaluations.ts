@@ -7,7 +7,6 @@
  *   bun run eval --test tool-invocation-list  # Run specific test(s)
  *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
- *   bun run eval --preset core                # Boot a specific brain preset
  *   bun run eval --suite core                 # Run an eval suite from brain.eval.yaml
  *   bun run eval --tool-coverage              # Show agent vs asserted tool coverage
  *   bun run eval --tool-surface               # Show internal/agent/protocol/CLI tool surfaces
@@ -56,7 +55,6 @@ export async function main(): Promise<void> {
     tags,
     testCaseIds,
     testType,
-    preset,
     toolCoverage,
     toolSurface,
     remoteUrl,
@@ -66,7 +64,7 @@ export async function main(): Promise<void> {
   } = parseCliOptions(args);
 
   try {
-    const evalConfigResult = await loadEvalConfig({ preset, suite, tags });
+    const evalConfigResult = await loadEvalConfig({ suite, tags });
     const {
       config,
       testCasesDirs,

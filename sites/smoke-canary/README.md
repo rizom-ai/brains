@@ -1,6 +1,6 @@
 # Site smoke canary (extracted)
 
-The package source and release pipeline now live in the standalone
+The canonical package source and release pipeline now live in the standalone
 [`rizom-ai/site-smoke-canary`](https://github.com/rizom-ai/site-smoke-canary)
 repository.
 

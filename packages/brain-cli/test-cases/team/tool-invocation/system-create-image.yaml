@@ -1,0 +1,49 @@
+id: team-tool-create-image
+name: Team Brain image upload via system_create
+description: >-
+  Verifies that Team Brain can save a small image entity for the public-site/image
+  preset path without falling back to unsupported publishing or attachment tools.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - posture-team
+  - team
+  - image
+  - default
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: >-
+      Save this tiny Team Brain diagram placeholder image for later homepage proof.
+    attachments:
+      - kind: file
+        filename: team-brain-diagram.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000951
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "image"
+        source.kind: upload
+        source.transform: preserve
+        source.upload.id: upload-00000000-0000-4000-8000-000000000951
+  responseNotContains:
+    - "blog"
+    - "newsletter"
+    - "attachment_upload"
+    - "I cannot"
+    - "I don't have access"
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

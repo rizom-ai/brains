@@ -1,0 +1,32 @@
+id: tool-invocation-git-sync
+name: Git Sync Backup Request
+description: Tests that agent treats backing up the brain to git as a sync action
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - directory-sync
+  - tool-invocation
+  - anti-hallucination
+  - bundle-core
+
+turns:
+  - userMessage: "Can you backup my brain to git?"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: sync
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

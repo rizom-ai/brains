@@ -26,6 +26,10 @@ AI_API_KEY=
 GIT_SYNC_TOKEN=
 # @sensitive
 DISCORD_BOT_TOKEN=
+# @sensitive
+DISCORD_PUBLIC_KEY=
+# @sensitive
+DISCORD_APPLICATION_ID=
 # @required @sensitive
 HCLOUD_TOKEN=
 # @required @sensitive
@@ -48,6 +52,8 @@ CERTIFICATE_PEM=
         "AI_API_KEY=shared-ai-key",
         "GIT_SYNC_TOKEN=git-token",
         "DISCORD_BOT_TOKEN=should-not-push",
+        "DISCORD_PUBLIC_KEY=should-not-push",
+        "DISCORD_APPLICATION_ID=should-not-push",
         "HCLOUD_TOKEN=hcloud-token",
         "KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/pilot_ed25519",
         "CERTIFICATE_PEM_FILE=./origin.pem",
@@ -91,9 +97,13 @@ CERTIFICATE_PEM=
         stdin:
           "-----BEGIN OPENSSH PRIVATE KEY-----\nline-one\n-----END OPENSSH PRIVATE KEY-----\n",
       });
-      expect(calls.some((call) => call.args[2] === "DISCORD_BOT_TOKEN")).toBe(
-        false,
-      );
+      for (const key of [
+        "DISCORD_BOT_TOKEN",
+        "DISCORD_PUBLIC_KEY",
+        "DISCORD_APPLICATION_ID",
+      ]) {
+        expect(calls.some((call) => call.args[2] === key)).toBe(false);
+      }
     } finally {
       if (originalHome === undefined) {
         delete process.env["HOME"];

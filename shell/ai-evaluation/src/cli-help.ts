@@ -10,7 +10,6 @@ Options:
   --tags <tags>       Filter tests by tag(s), comma-separated
   --type <type>       Filter by type: "agent" or "plugin"
   --suite <name>      Run an eval suite from brain.eval.yaml
-  --preset <name>     Boot a specific brain preset (core, default, full)
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
   --compare [name]    Compare with previous run or named baseline

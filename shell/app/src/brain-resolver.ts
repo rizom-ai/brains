@@ -1,11 +1,7 @@
 import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
-import type {
-  BrainDefinition,
-  BrainEnvironment,
-  PresetName,
-} from "./brain-definition";
+import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
 import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
   getExternalPluginDeclarations,
@@ -21,10 +17,9 @@ import {
   hasActiveCapability,
   hasActiveInterface,
   isActive,
-  resolveActiveIds,
-  resolveActivePresetName,
-  type ActiveIds,
+  resolveBrainSelection,
   type PluginOverrides,
+  type ResolvedBrainSelection,
 } from "./resolver/active-ids";
 import { deepMerge } from "./resolver/merge";
 import {
@@ -32,6 +27,7 @@ import {
   resolveAllPackageRefs,
   resolveExternalPluginFactory,
 } from "./resolver/package-refs";
+import { resolveBundlePermissionConfig } from "./bundle-permissions";
 import { buildPermissions } from "./resolver/permissions";
 import {
   instantiateSitePlugins,
@@ -122,22 +118,25 @@ function applyPluginDefaults(
 function instantiateCapabilities(
   definition: BrainDefinition,
   env: BrainEnvironment,
-  activeIds: ActiveIds,
-  activePreset: PresetName | undefined,
+  selection: ResolvedBrainSelection,
   pluginOverrides: PluginOverrides,
   logger?: Logger,
 ): Plugin[] {
   const capabilities: Plugin[] = [];
 
   for (const [id, factory, config] of definition.capabilities) {
-    if (!isActive(activeIds, id)) continue;
+    if (!isActive(selection.activeIds, id)) continue;
 
     const baseConfig =
       typeof config === "function"
-        ? config(env, { ...(activePreset ? { preset: activePreset } : {}) })
+        ? config(env, { bundles: selection.activeBundles })
         : (config ?? {});
+    const bundleConfig = selection.resolution.configByMember[id];
+    const withBundle = bundleConfig
+      ? deepMerge(baseConfig, bundleConfig)
+      : baseConfig;
     const override = pluginOverrides[id];
-    const merged = override ? deepMerge(baseConfig, override) : baseConfig;
+    const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
@@ -173,20 +172,24 @@ function instantiateExternalPlugins(
 function instantiateInterfaces(
   definition: BrainDefinition,
   env: BrainEnvironment,
-  activeIds: ActiveIds,
+  selection: ResolvedBrainSelection,
   pluginOverrides: PluginOverrides,
   logger?: Logger,
 ): Plugin[] {
   const interfaces: Plugin[] = [];
 
   for (const [id, ctor, envMapper] of definition.interfaces) {
-    if (!isActive(activeIds, id)) continue;
+    if (!isActive(selection.activeIds, id)) continue;
 
     const baseConfig = envMapper(env);
     if (!baseConfig) continue;
 
+    const bundleConfig = selection.resolution.configByMember[id];
+    const withBundle = bundleConfig
+      ? deepMerge(baseConfig, bundleConfig)
+      : baseConfig;
     const override = pluginOverrides[id];
-    const merged = override ? deepMerge(baseConfig, override) : baseConfig;
+    const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
       interfaces.push(new ctor(merged));
     } catch (error) {
@@ -307,8 +310,12 @@ export function resolve(
   overrides?: Omit<InstanceOverrides, "brain">,
   logger?: Logger,
 ): AppConfig {
-  const activePreset = resolveActivePresetName(definition, overrides);
-  const activeIds = resolveActiveIds(definition, overrides);
+  const selection = resolveBrainSelection(definition, overrides);
+  const activeIds = selection.activeIds;
+  const bundlePermissions = resolveBundlePermissionConfig(
+    selection.bundleDefinitions,
+    selection.resolution.permissionContributions,
+  );
   const pluginOverrides = resolveAllPackageRefs(
     getPluginConfigOverrides(overrides?.plugins),
   );
@@ -348,12 +355,16 @@ export function resolve(
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [
-    ...instantiateSitePlugins(site, overrides, activeIds),
+    ...instantiateSitePlugins(
+      site,
+      overrides,
+      activeIds,
+      selection.bundleDefinitions.length === 0,
+    ),
     ...instantiateCapabilities(
       definition,
       env,
-      activeIds,
-      activePreset,
+      selection,
       pluginOverrides,
       logger,
     ),
@@ -363,13 +374,17 @@ export function resolve(
   const interfaces = instantiateInterfaces(
     definition,
     env,
-    activeIds,
+    selection,
     pluginOverrides,
     logger,
   );
 
   const identity = buildIdentity(definition);
   const deployment = buildDeployment(definition, overrides);
+  const agentInstructions = [
+    ...(definition.agentInstructions ?? []),
+    ...selection.resolution.agentInstructions,
+  ];
 
   // Build the app config
   const appConfig: AppConfigInput = {
@@ -388,10 +403,13 @@ export function resolve(
     // Optional fields
     ...(identity && { identity }),
     ...(effectiveProfileKind && { profileKind: effectiveProfileKind }),
-    ...(definition.agentInstructions && {
-      agentInstructions: definition.agentInstructions,
-    }),
-    ...buildPermissions(definition.permissions, overrides, capabilities),
+    ...(agentInstructions.length > 0 ? { agentInstructions } : {}),
+    ...buildPermissions(
+      definition.permissions,
+      bundlePermissions,
+      overrides,
+      capabilities,
+    ),
     ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
     ...buildRuntimeOverrides(env, overrides),

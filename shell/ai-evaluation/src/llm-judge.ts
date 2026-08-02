@@ -40,6 +40,9 @@ const qualityEvaluationSchema = z.object({
   reasoning: z.string().describe("Brief explanation of the scores given"),
 });
 
+const MAX_TOOL_RESULT_STRING_LENGTH = 2000;
+const MAX_TOOL_RESULT_LENGTH = 6000;
+
 const JUDGE_SYSTEM_PROMPT = `You are an expert evaluator assessing AI agent performance.
 Your task is to score the agent's responses on multiple dimensions.
 
@@ -56,6 +59,10 @@ Be objective and consistent. Consider:
 - Accuracy of any facts or information provided
 - How well instructions were followed
 - Whether tools were used appropriately (not too many, not too few)
+
+The deterministic criteria are supplied as the expected contract and evaluated separately. Score instruction following only against the user's instructions and that contract; stylistic helpfulness belongs in the helpfulness score, not instruction following. Do not invent stricter requirements. Do not assume an answer is inaccurate merely because injected runtime context is unavailable to you; use the expected response terms and observed evidence. When a tool result is unavailable, assess whether the assistant reports uncertainty honestly instead of inventing the missing result.
+
+Runtime mutation semantics matter. An initial mutating tool call intentionally omits confirmed. A result with needsConfirmation true means the tool correctly opened the pending confirmation flow; it is not a failed tool call, and persistence must wait for a later user confirmation. A truthful response that reports this pending state is accurate even if it is terse. For system_create, source.kind text stores the supplied content directly and exactly; it is not AI generation, and an absent prompt confirms that no regeneration was requested. Score the observed tool arguments and result against the deterministic contract instead of demanding persistence during the initial confirmation turn.
 
 Provide brief but clear reasoning for your scores.`;
 
@@ -92,6 +99,10 @@ export class LLMJudge implements ILLMJudge {
 Name: ${testCase.name}
 Description: ${testCase.description ?? "No description"}
 Type: ${testCase.type}
+Setup: ${JSON.stringify(testCase.setup ?? {})}
+
+## Deterministic Criteria
+${this.formatDeterministicCriteria(testCase)}
 
 ## Conversation
 ${conversationText}
@@ -137,6 +148,20 @@ ${this.formatToolCalls(turnResults)}`;
     return parts.join("\n");
   }
 
+  private formatDeterministicCriteria(testCase: AgentTestCase): string {
+    return JSON.stringify(
+      {
+        overall: testCase.successCriteria,
+        turns: testCase.turns.map((turn, turnIndex) => ({
+          turnIndex,
+          criteria: turn.successCriteria ?? {},
+        })),
+      },
+      null,
+      2,
+    );
+  }
+
   /**
    * Format tool calls for evaluation
    */
@@ -160,15 +185,24 @@ ${this.formatToolCalls(turnResults)}`;
   }
 
   private summarizeToolResult(result: unknown): string {
-    const serialized = JSON.stringify(result, (_key, value: unknown) =>
-      typeof value === "string" && value.length > 500
-        ? `${value.slice(0, 500)}…`
-        : value,
-    );
+    const serialized = JSON.stringify(result, (_key, value: unknown) => {
+      if (
+        typeof value !== "string" ||
+        value.length <= MAX_TOOL_RESULT_STRING_LENGTH
+      ) {
+        return value;
+      }
 
-    return serialized.length > 4000
-      ? `${serialized.slice(0, 4000)}…[truncated]`
-      : serialized;
+      const edgeLength = MAX_TOOL_RESULT_STRING_LENGTH / 2;
+      const omittedLength = value.length - MAX_TOOL_RESULT_STRING_LENGTH;
+      return `${value.slice(0, edgeLength)}…[${omittedLength} chars omitted]…${value.slice(-edgeLength)}`;
+    });
+
+    if (serialized.length <= MAX_TOOL_RESULT_LENGTH) return serialized;
+
+    const edgeLength = MAX_TOOL_RESULT_LENGTH / 2;
+    const omittedLength = serialized.length - MAX_TOOL_RESULT_LENGTH;
+    return `${serialized.slice(0, edgeLength)}…[${omittedLength} chars omitted]…${serialized.slice(-edgeLength)}`;
   }
 
   /**

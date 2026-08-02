@@ -1,0 +1,61 @@
+id: tool-invocation-agent-approve
+name: Approve Discovered Agent
+description: Tests permission-aware approval of a discovered contact using system_update fields and standard confirmation flow.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - permissions
+  - regression
+  - bundle-core
+
+turns:
+  - userMessage: "Approve approval-candidate.io"
+
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: false
+    responseNotContains:
+      - "status set to approved"
+  trusted:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+        argsContain:
+          entityType: "agent"
+          id: "approval-candidate.io"
+          fields.status: "approved"
+      - toolName: agent_connect
+        shouldBeCalled: false
+    responseContains:
+      - "permission"
+    responseNotContains:
+      - "status set to approved"
+  admin:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+        argsContain:
+          entityType: "agent"
+          id: "approval-candidate.io"
+          fields.status: "approved"
+        argsAbsent:
+          - confirmed
+    responseContains:
+      - "Confirmation required"
+    responseNotContains:
+      - "Approved"
+      - "field-based update rather than content replacement"
+      - "It’s still not approved yet"
+      - "It's still not approved yet"
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 25000

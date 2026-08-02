@@ -8,5 +8,10 @@
     "isolatedDeclarations": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["test/fixtures/**"]
+  "exclude": [
+    "src/model/canonical-brain.ts",
+    "src/entries/model.ts",
+    "test/canonical-*.test.ts",
+    "test/fixtures/**"
+  ]
 }

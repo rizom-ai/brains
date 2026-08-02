@@ -46,6 +46,18 @@ describe("ConversationMemoryPlugin", () => {
     );
   });
 
+  it("keeps projection-owned summaries immutable through entity CRUD", () => {
+    expect(plugin.entityActionPolicy).toEqual({
+      summary: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
+    });
+  });
+
   it("initializes with projection config", async () => {
     await harness.installPlugin(plugin);
     const config = plugin.getConfig();

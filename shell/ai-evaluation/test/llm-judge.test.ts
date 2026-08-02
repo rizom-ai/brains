@@ -115,9 +115,155 @@ describe("LLMJudge", () => {
     expect(scores?.accuracy).toBe(5);
     expect(aiService.judgeCalls[0]).toEqual(
       expect.objectContaining({
-        instruction: expect.stringContaining("expert evaluator"),
+        instruction: expect.stringContaining(
+          "Score instruction following only against the user's instructions",
+        ),
         material: expect.stringContaining("## Conversation"),
       }),
     );
+  });
+
+  it("explains pending confirmation and exact text-source semantics to the judge", async () => {
+    const aiService = createAIServiceWithJudge();
+    const llmJudge = new LLMJudge(aiService);
+
+    await llmJudge.scoreConversation(
+      {
+        id: "direct-create",
+        name: "Direct create",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Save this exactly: final content" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: {
+                entityType: "post",
+                "source.kind": "text",
+              },
+              argsAbsent: ["prompt"],
+            },
+          ],
+        },
+      },
+      [
+        {
+          turnIndex: 0,
+          userMessage: "Save this exactly: final content",
+          assistantResponse: "Confirmation required.",
+          toolCalls: [
+            {
+              toolName: "system_create",
+              args: {
+                entityType: "post",
+                source: { kind: "text", content: "final content" },
+              },
+              result: { needsConfirmation: true },
+            },
+          ],
+          metrics: {
+            promptTokens: 1,
+            completionTokens: 1,
+            totalTokens: 2,
+            toolCallCount: 1,
+            durationMs: 1,
+          },
+        },
+      ],
+    );
+
+    const call = aiService.judgeCalls[0];
+    expect(call?.instruction).toContain(
+      "needsConfirmation true means the tool correctly opened the pending confirmation flow",
+    );
+    expect(call?.instruction).toContain(
+      "source.kind text stores the supplied content directly and exactly",
+    );
+    expect(call?.material).toContain('"kind":"text"');
+    expect(call?.material).toContain('"needsConfirmation":true');
+  });
+
+  it("supplies deterministic criteria and complete ordinary tool content", async () => {
+    const aiService = createAIServiceWithJudge();
+    const llmJudge = new LLMJudge(aiService);
+    const content = `${"front matter\n".repeat(50)}Core stays private, default adds a site, and full adds knowledge surfaces.`;
+
+    await llmJudge.scoreConversation(
+      {
+        id: "grounded-summary",
+        name: "Grounded summary",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Summarize it" }],
+        successCriteria: {
+          responseContains: ["Core", "default", "full"],
+        },
+      },
+      [
+        {
+          turnIndex: 0,
+          userMessage: "Summarize it",
+          assistantResponse:
+            "Core stays private, default adds a site, and full adds knowledge surfaces.",
+          toolCalls: [
+            {
+              toolName: "system_get",
+              args: { entityType: "summary", id: "sync" },
+              result: { entity: { content } },
+            },
+          ],
+          metrics: {
+            promptTokens: 1,
+            completionTokens: 1,
+            totalTokens: 2,
+            toolCallCount: 1,
+            durationMs: 1,
+          },
+        },
+      ],
+    );
+
+    const material = aiService.judgeCalls[0]?.material ?? "";
+    expect(material).toContain("## Deterministic Criteria");
+    expect(material).toContain('"responseContains"');
+    expect(material).toContain(
+      "Core stays private, default adds a site, and full adds knowledge surfaces.",
+    );
+  });
+
+  it("retains both ends of unusually long tool-result strings", async () => {
+    const aiService = createAIServiceWithJudge();
+    const llmJudge = new LLMJudge(aiService);
+    const content = `START-${"x".repeat(2500)}-DECISIVE-END`;
+
+    await llmJudge.scoreConversation(
+      {
+        id: "long-result",
+        name: "Long result",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Read it" }],
+        successCriteria: {},
+      },
+      [
+        {
+          turnIndex: 0,
+          userMessage: "Read it",
+          assistantResponse: "DECISIVE-END",
+          toolCalls: [{ toolName: "system_get", result: { content } }],
+          metrics: {
+            promptTokens: 1,
+            completionTokens: 1,
+            totalTokens: 2,
+            toolCallCount: 1,
+            durationMs: 1,
+          },
+        },
+      ],
+    );
+
+    const material = aiService.judgeCalls[0]?.material ?? "";
+    expect(material).toContain("START-");
+    expect(material).toContain("chars omitted");
+    expect(material).toContain("-DECISIVE-END");
   });
 });

@@ -1,0 +1,33 @@
+id: tool-invocation-list
+name: System List Entities
+description: Verifies that the agent correctly uses system_list to list blog posts
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - core
+  - list
+  - posture-personal
+
+turns:
+  - userMessage: "List all my blog posts"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+  responseContains:
+    - "post"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+    - "error"
+    - "failed"
+  minHelpfulnessScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

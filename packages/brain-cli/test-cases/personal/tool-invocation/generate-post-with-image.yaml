@@ -1,0 +1,42 @@
+id: social-media-generate-post-with-image
+name: Generate social post with cover image
+description: Tests that the agent starts social post generation without guessing a future cover-image target ID
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - social-media
+  - image
+  - cover
+  - core
+  - posture-publishing
+
+turns:
+  - userMessage: "Generate a LinkedIn post with a cover image about continuous learning in tech"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+      argsContain:
+        operation.entityType: "social-post"
+        operation.kind: "prompt"
+      argsAbsent:
+        - upload
+        - sourceAttachment
+        - from
+        - operation.source
+        - operation.target
+        - operation.attachmentType
+        - coverImage
+        - sourceEntityType
+        - sourceEntityId
+        - targetEntityType
+        - targetEntityId
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 30000

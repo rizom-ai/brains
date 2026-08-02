@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "conversation-memory-actor-fallback",
+      "paths": [
+        "entities/conversation-memory/src/lib/eval-handlers.ts",
+        "entities/conversation-memory/src/schemas/conversation-memory.ts",
+        "entities/conversation-memory/src/schemas/summary.ts"
+      ],
+      "symbol": "actor reference fallback",
+      "owner": "@brains/conversation-memory",
+      "class": "durable-data-compatibility",
+      "behavior": "Reads actor identifiers written before interface provenance was stored.",
+      "currentConsumers": "Persisted conversation summaries and evaluation fixtures with unqualified actor IDs.",
+      "removalPrerequisite": "Backfill persisted actor references and observe zero unqualified actor IDs across supported upgrade sources.",
+      "rollbackDependency": "Older summary records remain readable throughout the backfill rollback window.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "image-handler-alias",
+      "paths": [
+        "entities/image/src/image-plugin.ts"
+      ],
+      "symbol": "image-generate handler alias",
+      "owner": "@brains/image-plugin",
+      "class": "runtime-compatibility",
+      "behavior": "Registers the retired image generation handler name alongside the canonical handler.",
+      "currentConsumers": "Older queued jobs or callers that persisted the retired handler name.",
+      "removalPrerequisite": "Observe zero queued or invoked jobs using the retired handler name across the minimum supported upgrade source.",
+      "rollbackDependency": "Old queued jobs must drain or be migrated before removing the alias.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "topic-entity-shape",
+      "paths": [
+        "entities/topics/src/lib/topic-adapter.ts",
+        "entities/topics/src/schemas/topic.ts"
+      ],
+      "symbol": "topic stored-shape compatibility",
+      "owner": "@brains/topics",
+      "class": "durable-data-compatibility",
+      "behavior": "Reads old topic fields and strips the retired Sources body section.",
+      "currentConsumers": "Topic markdown created before the canonical topic schema.",
+      "removalPrerequisite": "Rewrite supported topic stores to the canonical schema and observe zero old fields or Sources sections.",
+      "rollbackDependency": "Prior topic entities remain readable until the rewrite has passed its rollback window.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "a2a-removed-token-config-errors",
+      "paths": [
+        "interfaces/a2a/src/a2a-interface.ts"
+      ],
+      "symbol": "trustedTokens/outboundTokens rejection",
+      "owner": "@brains/a2a",
+      "class": "rejection-only-compatibility",
+      "behavior": "Rejects removed token configuration with an actionable error.",
+      "currentConsumers": "Operators upgrading configurations that predate signed A2A trust.",
+      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts either removed field.",
+      "rollbackDependency": "None; the fields are already rejected.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "public-brain-config-migration",
+      "paths": [
+        "packages/brain-cli/src/lib/brain-config-migration.ts"
+      ],
+      "symbol": "brain config migrate",
+      "owner": "@rizom/brain",
+      "class": "offline-migration",
+      "behavior": "Converts retired model and preset configuration into explicit canonical bundles without booting a brain.",
+      "currentConsumers": "Users upgrading pre-unification brain.yaml files.",
+      "removalPrerequisite": "Stable 0.2.0 is published and the declared public migration-support window closes.",
+      "rollbackDependency": "No runtime rollback dependency; retained only for offline upgrades.",
+      "targetRelease": "0.2.0"
+    },
+    {
+      "id": "www-dns-alias-replacement",
+      "paths": [
+        "packages/brain-cli/templates/deploy/scripts/update-dns.ts",
+        "packages/brains-ops/templates/rover-pilot/deploy/scripts/update-dns.ts",
+        "shared/deploy-support/src/deploy-scripts/update-dns.ts"
+      ],
+      "symbol": "replace conflicting www CNAME",
+      "owner": "@brains/deploy-support",
+      "class": "runtime-compatibility",
+      "behavior": "Replaces a previously managed www CNAME when claiming the canonical alias.",
+      "currentConsumers": "Deployments whose DNS was provisioned by older deploy scripts.",
+      "removalPrerequisite": "Audit supported domains and confirm no managed www CNAME requires in-place replacement.",
+      "rollbackDependency": "The DNS record remains recoverable from provider history and prior deploy configuration.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "private-pilot-crossover",
+      "paths": [
+        "packages/brains-ops/src/legacy-pilot-migration.ts",
+        "packages/brains-ops/src/run-command.ts",
+        "packages/brains-ops/src/stage-legacy-crossover.ts"
+      ],
+      "symbol": "crossover:stage",
+      "owner": "@rizom/ops",
+      "class": "offline-migration",
+      "behavior": "Stages the retired model/preset pilot desired state as an isolated canonical review copy with explicit hosted package pins.",
+      "currentConsumers": "The one reviewed private-pilot crossover and its offline rollback preparation.",
+      "removalPrerequisite": "Phase 8 reaches zero-drift second reconcile and hosted canaries plus yeehaa.io soak one week on the unified alpha.",
+      "rollbackDependency": "Retained through the defined crossover rollback horizon; active ops loading never imports it.",
+      "targetRelease": "post-unified-alpha-soak"
+    },
+    {
+      "id": "playbook-snapshot-reader",
+      "paths": [
+        "plugins/playbooks/src/lib/run-machine.ts",
+        "plugins/playbooks/src/run-store.ts"
+      ],
+      "symbol": "persisted XState snapshot compatibility",
+      "owner": "@brains/playbooks",
+      "class": "durable-data-compatibility",
+      "behavior": "Parses persisted playbook runs that still carry the retired XState snapshot field.",
+      "currentConsumers": "Playbook runs written before event-sourced rehydration became canonical.",
+      "removalPrerequisite": "Migrate or expire all supported persisted snapshots and observe zero reads of the retired field.",
+      "rollbackDependency": "Old playbook runs remain readable during migration rollback.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "starter-identity-fingerprints",
+      "paths": [
+        "plugins/profile/src/starter-identity.ts"
+      ],
+      "symbol": "LEGACY_BRAIN_CHARACTER_FINGERPRINTS",
+      "owner": "@brains/profile",
+      "class": "durable-data-compatibility",
+      "behavior": "Recognizes generated starter identities from older releases before replacing placeholders.",
+      "currentConsumers": "Profiles initialized from supported pre-canonical starter content.",
+      "removalPrerequisite": "Backfill or preserve all supported starter profiles and observe zero matching old fingerprints.",
+      "rollbackDependency": "Older placeholder identities must remain distinguishable during rollback.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "standalone-deploy-shape-normalization",
+      "paths": [
+        "shared/deploy-support/src/index.ts"
+      ],
+      "symbol": "normalizeStandaloneDeployYmlForComparison",
+      "owner": "@brains/deploy-support",
+      "class": "runtime-compatibility",
+      "behavior": "Normalizes old generated deploy YAML before deciding whether a scaffold can be safely replaced.",
+      "currentConsumers": "Repositories upgrading standalone deploy artifacts generated by older brain releases.",
+      "removalPrerequisite": "All supported repositories have canonical deploy scaffolds and the old scaffold rollback window is closed.",
+      "rollbackDependency": "Older generated deploy files must remain recognizable during scaffold rollback.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "site-package-plugin-factory",
+      "paths": [
+        "shared/site-composition/src/package.ts"
+      ],
+      "symbol": "SitePackage.plugin",
+      "owner": "@brains/site-composition",
+      "class": "runtime-compatibility",
+      "behavior": "Accepts package-owned runtime plugin factories used by older internal site integrations.",
+      "currentConsumers": "Supported site packages that have not moved entirely to declarative composition.",
+      "removalPrerequisite": "Migrate all supported site packages and public declarations away from SitePackage.plugin.",
+      "rollbackDependency": "Prior site package versions require the factory while they remain supported rollback targets.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "site-analytics-script-field",
+      "paths": [
+        "shared/site-engine/src/html-generator.ts"
+      ],
+      "symbol": "analytics script fallback",
+      "owner": "@brains/site-engine",
+      "class": "runtime-compatibility",
+      "behavior": "Renders the older analytics script field when no registered head script replaces it.",
+      "currentConsumers": "Site configurations created before headScripts registration.",
+      "removalPrerequisite": "Migrate supported site configurations and observe zero use of the analytics script field.",
+      "rollbackDependency": "Old site configurations continue rendering during their support window.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "typescript-eval-config-loader",
+      "paths": [
+        "shell/ai-evaluation/src/eval-config-loader.ts"
+      ],
+      "symbol": "brain.eval.config.ts loader",
+      "owner": "@brains/ai-evaluation",
+      "class": "runtime-compatibility",
+      "behavior": "Loads the TypeScript eval configuration format when canonical brain.eval.yaml is absent.",
+      "currentConsumers": "External evaluation projects that still use defineConfig in brain.eval.config.ts.",
+      "removalPrerequisite": "Publish migration guidance and require brain.eval.yaml in the minimum supported evaluation project version.",
+      "rollbackDependency": "Old evaluation projects remain runnable during the migration window.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "message-provenance-fallback",
+      "paths": [
+        "shell/ai-service/src/conversation-messages.ts",
+        "shell/ai-service/src/message-metadata.ts"
+      ],
+      "symbol": "message provenance compatibility",
+      "owner": "@brains/ai-service",
+      "class": "durable-data-compatibility",
+      "behavior": "Reads older message metadata and restricts messages that lack provenance.",
+      "currentConsumers": "Persisted conversations written before provenance metadata became mandatory.",
+      "removalPrerequisite": "Backfill supported conversations and observe zero messages without canonical provenance.",
+      "rollbackDependency": "Older conversations remain safely readable during rollback.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "brain-config-rejection-guidance",
+      "paths": [
+        "shell/app/src/brain-package.ts",
+        "shell/app/src/resolver/active-ids.ts"
+      ],
+      "symbol": "brain config migrate errors",
+      "owner": "@brains/app",
+      "class": "rejection-only-compatibility",
+      "behavior": "Rejects retired model, preset, or implicit bundle configuration with migration guidance.",
+      "currentConsumers": "Users attempting to boot pre-unification configuration.",
+      "removalPrerequisite": "Stable 0.2.0 ships and public brain config migration support is removed.",
+      "rollbackDependency": "None; retired configuration is not accepted by the canonical runtime.",
+      "targetRelease": "0.2.0"
+    },
+    {
+      "id": "conversation-metadata-null-reader",
+      "paths": [
+        "shell/conversation-service/src/metadata.ts"
+      ],
+      "symbol": "parseMessageMetadata",
+      "owner": "@brains/conversation-service",
+      "class": "durable-data-compatibility",
+      "behavior": "Normalizes null or malformed metadata from older stored messages.",
+      "currentConsumers": "Persisted conversation rows created before metadata was always an object.",
+      "removalPrerequisite": "Backfill supported conversation databases and observe zero null or malformed metadata rows.",
+      "rollbackDependency": "Older rows remain readable during database rollback.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "entity-vector-drizzle-schema",
+      "paths": [
+        "shell/entity-service/src/schema/vector.ts"
+      ],
+      "symbol": "entity DB vector migration schema",
+      "owner": "@brains/entity-service",
+      "class": "durable-data-compatibility",
+      "behavior": "Retains the Drizzle schema needed to migrate databases created by the former vector layout.",
+      "currentConsumers": "Entity database migrations from supported older releases.",
+      "removalPrerequisite": "Squash the entity migration baseline after the minimum supported upgrade source contains the replacement schema.",
+      "rollbackDependency": "Old entity databases require this migration schema during rollback and re-upgrade.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "derived-projection-visibility-option",
+      "paths": [
+        "shell/plugins/src/entity/derived-entity-projection.ts"
+      ],
+      "symbol": "visibility option compatibility",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Honors the retired visibility option when deriving projection partition behavior.",
+      "currentConsumers": "External or internal derived projections configured before partition-first options.",
+      "removalPrerequisite": "Migrate all supported projection declarations and observe zero explicit use of the retired visibility option.",
+      "rollbackDependency": "Prior projection declarations remain runnable during their support window.",
+      "targetRelease": "0.3.0"
+    }
+  ],
+  "exemptions": [
+    {
+      "id": "typescript-compat-package-alias",
+      "paths": [
+        "scripts/eslint-typescript-compat.cjs"
+      ],
+      "class": "third-party-naming",
+      "reason": "typescript-legacy is an npm alias used to isolate the compatibility compiler; it is not a persisted or runtime legacy contract."
+    },
+    {
+      "id": "pdfjs-legacy-build-subpath",
+      "paths": [
+        "shared/document/src/lib/pdf-markdown.ts"
+      ],
+      "class": "third-party-naming",
+      "reason": "pdfjs-dist/legacy is an upstream package export path and cannot be renamed locally."
+    }
+  ]
+}

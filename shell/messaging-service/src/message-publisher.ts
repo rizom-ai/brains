@@ -1,7 +1,11 @@
 import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
-import type { HandlerRegistry } from "./handler-registry";
-import { publishBroadcast, publishRequest } from "./message-dispatcher";
+import type { HandlerEntry, HandlerRegistry } from "./handler-registry";
+import {
+  collectHandlerResponses,
+  publishBroadcast,
+  publishRequest,
+} from "./message-dispatcher";
 
 /**
  * Resolves matching subscriptions and dispatches messages through the selected
@@ -19,16 +23,33 @@ export class MessagePublisher {
     message: MessageWithPayload<T>,
     broadcast?: boolean,
   ): Promise<InternalMessageResponse | null> {
-    // Validate message structure
+    const entries = this.resolveMatchingHandlers(message);
+    if (!entries) return null;
+
+    return broadcast === true
+      ? publishBroadcast(message, entries, this.logger)
+      : publishRequest(message, entries, this.logger);
+  }
+
+  async collect<T = unknown>(
+    message: MessageWithPayload<T>,
+  ): Promise<InternalMessageResponse[]> {
+    const entries = this.resolveMatchingHandlers(message);
+    if (!entries) return [];
+    return collectHandlerResponses(message, entries, this.logger);
+  }
+
+  private resolveMatchingHandlers<T>(
+    message: MessageWithPayload<T>,
+  ): HandlerEntry[] | undefined {
     if (typeof message !== "object" || !message.type || !message.id) {
       this.logger.error(
         "Invalid message structure - missing required fields 'id' or 'type'",
       );
-      return null;
+      return undefined;
     }
 
     const { type } = message;
-
     this.logger.debug(`Publishing message of type: ${type}`, {
       source: message.source,
       target: message.target,
@@ -36,11 +57,9 @@ export class MessagePublisher {
     });
 
     const matchingHandlers = this.registry.getMatchingHandlers(type, message);
-
-    // If no handlers, log warning and return null
     if (!matchingHandlers) {
       this.logger.debug(`No handlers found for message type: ${type}`);
-      return null;
+      return undefined;
     }
 
     if (matchingHandlers.entries.length === 0) {
@@ -48,11 +67,9 @@ export class MessagePublisher {
         totalHandlers: matchingHandlers.totalHandlers,
         target: message.target,
       });
-      return null;
+      return undefined;
     }
 
-    return broadcast === true
-      ? publishBroadcast(message, matchingHandlers.entries, this.logger)
-      : publishRequest(message, matchingHandlers.entries, this.logger);
+    return matchingHandlers.entries;
   }
 }

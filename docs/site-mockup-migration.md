@@ -54,7 +54,7 @@ This becomes the visual acceptance reference while the implementation changes un
 
 ### 2. Start a Brain instance
 
-Scaffold the appropriate Brain model, install its pinned dependencies, and get its built-in site running before replacing anything. A typical personal publishing site starts with Rover; team and network use cases may start with Relay or Ranger. Select a preset that includes `site-builder` and the entity capabilities the site needs.
+Scaffold the appropriate recipe, install its pinned dependencies, and get the generated canonical site posture running before replacing anything. Use `personal` for publishing, `team` for collaborative knowledge, or `commerce` for product content. Confirm that explicit bundles include `site` and any content members the site needs.
 
 Keep the first checkpoint boring: the Brain starts, content syncs, and an unchanged preview build succeeds.
 

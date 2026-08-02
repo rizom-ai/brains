@@ -100,7 +100,7 @@ High-level structure:
 - `entities/` — `EntityPlugin` packages
 - `plugins/` — `ServicePlugin` packages
 - `interfaces/` — `InterfacePlugin` packages
-- `brains/` — brain model packages
+- `packages/brain-cli/src/model/` — canonical definition and bundle catalog
 - `sites/` — site composition packages
 - `packages/brain-cli/` — published `@rizom/brain` package
 - `apps/` — lightweight instance packages, not workspace members

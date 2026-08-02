@@ -27,39 +27,25 @@ const brainYamlFlagIdx = process.argv.indexOf("--brain-yaml");
 const brainYamlArg =
   brainYamlFlagIdx !== -1 ? process.argv[brainYamlFlagIdx + 1] : undefined;
 const brainYamlPath = join(cwd, brainYamlArg ?? "brain.yaml");
-const brainConfigPath = join(cwd, "brain.config.ts");
-let entrypoint: string;
-let generatedEntrypoint = false;
-let brainPackage: string | undefined;
-
-if (existsSync(brainYamlPath)) {
-  // New brain.yaml flow — generate a static entrypoint
-  const yamlContent = readFileSync(brainYamlPath, "utf-8");
-  const generatedCode = generateEntrypoint(yamlContent, { cwd });
-  if (!generatedCode) {
-    console.error('❌ brain.yaml must contain a valid "brain" field');
-    process.exit(1);
-  }
-
-  // Extract brain package name for logging
-  const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
-  brainPackage = brainMatch?.[1]?.trim();
-  entrypoint = join(cwd, ".brain-entrypoint.ts");
-  writeFileSync(entrypoint, generatedCode);
-  generatedEntrypoint = true;
-  console.log(
-    `Building ${appName} (brain.yaml → ${brainPackage ?? "unknown"})...`,
-  );
-} else if (existsSync(brainConfigPath)) {
-  // Legacy brain.config.ts flow
-  entrypoint = brainConfigPath;
-  console.log(`Building ${appName} (legacy brain.config.ts)...`);
-} else {
-  console.error(
-    "❌ No brain.yaml or brain.config.ts found in current directory",
-  );
+if (!existsSync(brainYamlPath)) {
+  console.error("❌ No brain.yaml found in current directory");
   process.exit(1);
 }
+
+const yamlContent = readFileSync(brainYamlPath, "utf-8");
+const generatedCode = generateEntrypoint(yamlContent, { cwd });
+if (!generatedCode) {
+  console.error('❌ brain.yaml must contain a valid "brain" field');
+  process.exit(1);
+}
+
+const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
+const brainPackage = brainMatch?.[1]?.trim();
+const entrypoint = join(cwd, ".brain-entrypoint.ts");
+writeFileSync(entrypoint, generatedCode);
+console.log(
+  `Building ${appName} (brain.yaml → ${brainPackage ?? "unknown"})...`,
+);
 
 // Find monorepo root (directory containing bun.lock)
 let monorepoRoot = cwd;
@@ -95,8 +81,7 @@ try {
     process.exit(1);
   }
 } finally {
-  // Clean up generated entrypoint
-  if (generatedEntrypoint && existsSync(entrypoint)) {
+  if (existsSync(entrypoint)) {
     const { unlinkSync } = await import("fs");
     unlinkSync(entrypoint);
   }
@@ -131,10 +116,8 @@ for (const { name, path } of migrationSources) {
 }
 
 // Copy brain.yaml to dist (needed at runtime)
-if (existsSync(brainYamlPath)) {
-  cpSync(brainYamlPath, join(distDir, "brain.yaml"));
-  console.log("Copied brain.yaml");
-}
+cpSync(brainYamlPath, join(distDir, "brain.yaml"));
+console.log("Copied brain.yaml");
 
 // Copy seed-content*: prefer app-level, fall back to brain model package
 let seedContentRoot = cwd;
@@ -165,7 +148,4 @@ for (const entry of seedContentDirs) {
   }
 }
 
-const outputName = existsSync(brainYamlPath)
-  ? ".brain-entrypoint.js"
-  : "brain.config.js";
-console.log(`Build complete: dist/${outputName}`);
+console.log("Build complete: dist/.brain-entrypoint.js");

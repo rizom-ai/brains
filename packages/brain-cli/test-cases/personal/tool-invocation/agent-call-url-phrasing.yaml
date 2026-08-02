@@ -1,0 +1,46 @@
+id: tool-invocation-agent-call-url-phrasing
+name: Call Agent from HTTPS URL Phrasing
+description: Tests that URL-style HTTPS agent contact requests are canonicalized to the hostname for agent_call without auto-saving.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - bundle-core
+
+turns:
+  - userMessage: "Can you message this agent URL for me: https://unknown-agent.io/a2a? Ask about ecosystem architecture."
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_call
+      shouldBeCalled: true
+      argsContain:
+        agent: unknown-agent.io
+      argsAbsent:
+        - confirmed
+        - confirmationToken
+    - toolName: agent_connect
+      shouldBeCalled: false
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContainsAny:
+    - [
+        "could not verify",
+        "couldn’t verify",
+        "could not contact",
+        "couldn’t contact",
+      ]
+    - ["unknown-agent.io"]
+  responseNotContains:
+    - "I called"
+    - "wishlist"
+    - "wish"
+    - "saved"
+    - "connected"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

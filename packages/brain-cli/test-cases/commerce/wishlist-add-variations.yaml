@@ -1,0 +1,27 @@
+id: wishlist-add-missing-capability
+name: Log missing capability to wishlist
+description: Tests that the agent records a wish when a requested capability does not exist
+type: tool_invocation
+tags:
+  - posture-commerce
+  - wishlist
+  - tool-invocation
+  - proactive-behavior
+
+turns:
+  - userMessage: "Can you send an email to my girlfriend?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      arguments:
+        entityType: wish
+
+  responseNotContains:
+    - "I've sent"
+    - "email sent"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

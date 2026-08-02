@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { parseBrainYaml } from "../src/lib/brain-yaml";
 import { resolveProvider, getRequiredEnvVar } from "../src/lib/provider";
 
-describe("parseBrainYaml model field", () => {
+describe("parseBrainYaml AI model field", () => {
   let testDir: string;
 
   beforeEach(() => {
@@ -22,14 +22,17 @@ describe("parseBrainYaml model field", () => {
   it("should parse model field from brain.yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover\nmodel: gpt-4o-mini\n",
+      "brain: brain\nbundles: [core]\nmodel: gpt-4o-mini\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBe("gpt-4o-mini");
   });
 
   it("should have no model when not specified", () => {
-    writeFileSync(join(testDir, "brain.yaml"), "brain: rover\n");
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: brain\nbundles: [core]\n",
+    );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBeUndefined();
   });
@@ -37,7 +40,7 @@ describe("parseBrainYaml model field", () => {
   it("should parse model with explicit prefix", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover\nmodel: anthropic:claude-haiku-4-5-20251001\n",
+      "brain: brain\nbundles: [core]\nmodel: anthropic:claude-haiku-4-5-20251001\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBe("anthropic:claude-haiku-4-5-20251001");
@@ -46,11 +49,11 @@ describe("parseBrainYaml model field", () => {
   it("should parse quoted brain name", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      'brain: "rover"\npreset: core\n',
+      'brain: "brain"\nbundles: [core]\n',
     );
     const config = parseBrainYaml(testDir);
-    expect(config.brain).toBe("rover");
-    expect(config.preset).toBe("core");
+    expect(config.brain).toBe("brain");
+    expect(config.bundles).toEqual(["core"]);
   });
 
   // The CLI validates with the same schema the runtime boots with, so a
@@ -60,19 +63,21 @@ describe("parseBrainYaml model field", () => {
       join(testDir, "brain.yaml"),
       "brain: rover\npreset: everything\n",
     );
-    expect(() => parseBrainYaml(testDir)).toThrow(/Invalid brain\.yaml/);
+    expect(() => parseBrainYaml(testDir)).toThrow(/config migrate/);
   });
 
   it("accepts the full runtime override surface", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       [
-        "brain: rover",
+        "brain: brain",
+        "bundles:",
+        "  - core",
         "domain: example.com",
         "add:",
-        "  - chat",
+        "  - docs",
         "remove:",
-        "  - discord",
+        "  - chat",
         "permissions:",
         "  rules:",
         '    - pattern: "slack:*"',
@@ -85,25 +90,26 @@ describe("parseBrainYaml model field", () => {
     );
     const config = parseBrainYaml(testDir);
     expect(config.domain).toBe("example.com");
-    expect(config.add).toEqual(["chat"]);
+    expect(config.add).toEqual(["docs"]);
     expect(config.permissions?.rules?.[0]?.level).toBe("public");
   });
 
   it("should handle comments in yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover # my brain\n# model: gpt-4o-mini\npreset: full\n",
+      "brain: brain # canonical definition\nbundles: [core]\n# model: gpt-4o-mini\n",
     );
     const config = parseBrainYaml(testDir);
-    expect(config.brain).toBe("rover");
-    expect(config.preset).toBe("full");
+    expect(config.brain).toBe("brain");
+    expect(config.bundles).toEqual(["core"]);
     expect(config.model).toBeUndefined();
   });
 
   it("should parse external plugin declarations", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      `brain: rover
+      `brain: brain
+bundles: [core]
 plugins:
   calendar:
     package: "@rizom/brain-plugin-calendar"
@@ -123,7 +129,8 @@ plugins:
   it("should reject list-form plugins", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      `brain: rover
+      `brain: brain
+bundles: [core]
 plugins:
   - package: "@rizom/brain-plugin-calendar"
 `,
@@ -131,14 +138,21 @@ plugins:
     expect(() => parseBrainYaml(testDir)).toThrow("Invalid brain.yaml");
   });
 
-  it("should throw for empty yaml", () => {
+  it("should require explicit bundles for an empty canonical config", () => {
     writeFileSync(join(testDir, "brain.yaml"), "");
-    expect(() => parseBrainYaml(testDir)).toThrow("brain");
+    expect(() => parseBrainYaml(testDir)).toThrow("Invalid brain.yaml");
   });
 
-  it("should throw for yaml without brain field", () => {
-    writeFileSync(join(testDir, "brain.yaml"), "model: gpt-4o-mini\n");
-    expect(() => parseBrainYaml(testDir)).toThrow("brain");
+  it("should default an omitted brain field when bundles are explicit", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "bundles: [core]\nmodel: gpt-4o-mini\n",
+    );
+    expect(parseBrainYaml(testDir)).toMatchObject({
+      brain: "brain",
+      bundles: ["core"],
+      model: "gpt-4o-mini",
+    });
   });
 });
 

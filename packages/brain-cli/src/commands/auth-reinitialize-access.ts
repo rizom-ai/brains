@@ -1,10 +1,9 @@
 import { resolve } from "node:path";
 import { reinitializeAuthAccessStorage } from "@brains/auth-service";
-import type { BrainDefinition } from "@brains/app";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import type { CommandResult } from "../lib/command-result";
-import { getModel } from "../lib/model-registry";
 import { getErrorMessage } from "@brains/utils/error";
+import { loadDefinition } from "../lib/definition-registry";
 
 export interface AuthReinitializeAccessOptions {
   storageDir?: string | undefined;
@@ -34,7 +33,7 @@ export async function reinitializeAuthAccess(
   }
 
   try {
-    const config = readConfiguredPrincipals(cwd);
+    const config = await readConfiguredPrincipals(cwd);
     const result = await reinitializeAuthAccessStorage(storageDir, config);
     return {
       success: true,
@@ -48,14 +47,16 @@ export async function reinitializeAuthAccess(
   }
 }
 
-function readConfiguredPrincipals(cwd: string): {
+async function readConfiguredPrincipals(cwd: string): Promise<{
   admins: string[];
   trusted: string[];
   anchors: string[];
-} {
+}> {
   const yaml = parseBrainYaml(cwd);
-  const definition = getModel(yaml.brain) as BrainDefinition | undefined;
-  const defaults = definition?.permissions;
+  const defaults =
+    yaml.brain === "brain"
+      ? undefined
+      : (await loadDefinition(yaml.brain)).permissions;
   const nested = isRecord(yaml["permissions"])
     ? yaml["permissions"]
     : undefined;

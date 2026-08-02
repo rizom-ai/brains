@@ -24,7 +24,7 @@ Install Bun first, then:
 
 ```bash
 bun add -g @rizom/brain
-brain init mybrain --model rover
+brain init mybrain --recipe personal
 cd mybrain
 cp .env.example .env
 # edit .env and set AI_API_KEY
@@ -39,7 +39,7 @@ This creates a new brain instance with:
 - `tsconfig.json`, `.gitignore`, and a local `README.md`
 - `brain-data/` — created/seeded on first run when file sync is active
 
-On first start, models with browser login print a one-time `/setup` URL. Open it locally, register a passkey, and use that passkey for browser and OAuth-based MCP access. Auth state is stored in `./data/auth`; keep it when deploying or backing up.
+On first start, site-enabled instances print a one-time `/setup` URL. Open it locally, register a passkey, and use that passkey for browser and OAuth-based MCP access. Auth state is stored in `./data/auth`; keep it when deploying or backing up.
 
 For the full walkthrough, see [Getting Started](packages/brain-cli/docs/getting-started.md).
 
@@ -80,8 +80,8 @@ OAuth-capable clients can use the built-in browser/passkey login. `MCP_AUTH_TOKE
 A brain has three main pieces:
 
 1. **Content** — markdown files in `brain-data/`
-2. **Model** — a bundled set of plugins and defaults, such as `rover`
-3. **Runtime** — the `brain` process that loads the model, indexes content, serves tools, and optionally builds a site
+2. **Definition + bundles** — one ordered catalog with explicit `core`, `site`, `publishing`, and `team` selection
+3. **Runtime** — the `brain` process that resolves selection, indexes content, serves tools, and optionally builds a site
 
 ```text
 brain.yaml + brain-data/
@@ -93,13 +93,14 @@ brain.yaml + brain-data/
      └─ optional integrations like Discord
 ```
 
-## Models
+## Recipes and postures
 
-- `rover` — the public reference model for personal knowledge, publishing, and local-first use
-- `ranger` — experimental community and organization model
-- `relay` — experimental team-memory model
+- `minimal` — `core`
+- `personal` — `core + site + publishing`
+- `team` — `core + site + team`
+- `commerce` — `core + site`, plus `products`
 
-If you are trying `brains` for the first time, use `rover`.
+If you are trying `brains` for the first time, use `brain init --recipe personal`. Recipes expand to explicit YAML and have no runtime meaning.
 
 ## Documentation
 
@@ -114,7 +115,7 @@ Start here:
 Deeper topics:
 
 - [Architecture Overview](docs/architecture-overview.md)
-- [Brain Models](docs/brain-model.md)
+- [Brain Definition & Instances](docs/brain-model.md)
 - [Content Management](docs/content-management.md)
 - [Entity Types Reference](docs/entity-types-reference.md)
 - [Interface Setup](docs/interface-setup.md)
@@ -129,9 +130,8 @@ Deeper topics:
 This is mainly useful if you are developing the framework itself:
 
 ```text
-packages/brain-cli/    published CLI/runtime package: @rizom/brain
+packages/brain-cli/    canonical definition, recipes, assets, and @rizom/brain CLI/runtime
 packages/brains-ops/   operator CLI for fleets: @rizom/ops
-brains/                bundled brain models: rover, ranger, relay
 shell/                 core runtime and services
 plugins/               built-in service plugins
 entities/              built-in content/entity plugins

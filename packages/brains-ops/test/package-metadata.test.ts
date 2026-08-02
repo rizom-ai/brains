@@ -166,6 +166,11 @@ describe("@rizom/ops package metadata", () => {
       );
       expect(init.status).toBe(0);
       expect(existsSync(join(projectDir, "demo", "pilot.yaml"))).toBeTrue();
+      expect(
+        existsSync(
+          join(projectDir, "demo", "docs", "canonical-crossover-record.md"),
+        ),
+      ).toBeTrue();
 
       writeFileSync(
         join(projectDir, "smoke.ts"),

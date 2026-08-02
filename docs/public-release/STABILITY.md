@@ -14,14 +14,14 @@ These are the things you can build on with reasonable confidence. Breaking chang
 
 The top-level fields documented in [brain.yaml reference](../../packages/brain-cli/docs/brain-yaml-reference.md) are stable:
 
-- `brain` — brain model package reference
+- `brain` — canonical alias or explicitly scoped external definition package
 - `site` — site package override
 - `name` — instance name
 - `logLevel` — `debug | info | warn | error`
 - `port` — server port
 - `domain` — production domain
 - `database` — connection string
-- `preset` — `core | default | full`
+- `bundles` — explicit fixed bundle selection
 - `mode` — e.g. `eval`
 - `add` / `remove` — plugin list deltas
 - `admins` / `trusted` — permission-bearing user identifiers
@@ -106,9 +106,9 @@ plugins:
 
 `plugins:` remains a keyed map, package versions live in the instance `package.json`, and external plugin packages declare compatible `@rizom/brain` versions through `peerDependencies`.
 
-### `defineBrain()` API
+### Definition and bundle API
 
-The `defineBrain()` function from `@rizom/brain` is the stable public way to declare a brain model. Its top-level fields (`name`, `model`, `site`, `preset`, `plugins`, etc.) are stable.
+`defineBrain()` and `defineBundle()` from `@rizom/brain` are the public authoring surface for ordered definitions and custom catalogs. Canonical instances select only the fixed built-in bundle IDs; external definitions may declare their own ordered bundles.
 
 ### License and provenance
 
@@ -182,7 +182,7 @@ Each plugin in this repository owns its own stability story:
 - **Built-in entity plugins** (`entities/*`) — frontmatter shape stable, internal generation logic unstable
 - **Built-in service plugins** (`plugins/*`) — config schema stable per-plugin (documented in each plugin's README); internal behavior unstable
 - **Built-in interface plugins** (`interfaces/*`) — protocol-level surface (MCP, A2A) stable; internal request handling unstable
-- **`brains/rover`** — its plugin selection and entity types are stable enough to be the reference brain model; specific seed content is illustrative and may change
+- **`@rizom/brain/model`** — the canonical bundle contract is the built-in definition surface; recipe seed content remains illustrative and may change
 
 For third-party plugins, follow the same convention: document what's stable in your plugin's README.
 

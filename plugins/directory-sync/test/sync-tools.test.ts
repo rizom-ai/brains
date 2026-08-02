@@ -147,6 +147,24 @@ describe("sync tool", () => {
     expect(tools.map((tool) => tool.name)).toEqual(["directory_sync"]);
   });
 
+  it("documents direct git sync and bare status routing", () => {
+    const { directorySync } = createMockDirectorySync();
+    const { gitSync } = createMockGitSync();
+    const directoryTool = findTool(
+      createDirectorySyncTools(
+        directorySync,
+        context,
+        "directory-sync",
+        gitSync,
+      ),
+      "directory_sync",
+    );
+
+    expect(directoryTool.description).toContain("'sync with git'");
+    expect(directoryTool.description).toContain("never ask for those fields");
+    expect(directoryTool.description).toContain("bare 'what is the status'");
+  });
+
   it("routes sync and status actions through directory_sync", async () => {
     const { directorySync, queueSyncBatchMock, getStatusMock } =
       createMockDirectorySync();

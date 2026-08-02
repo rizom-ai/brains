@@ -14,6 +14,17 @@ for (const key of requiredKeys) {
   }
 }
 
+const discordKeys = [
+  "DISCORD_BOT_TOKEN",
+  "DISCORD_PUBLIC_KEY",
+  "DISCORD_APPLICATION_ID",
+];
+if (discordKeys.some((key) => process.env[key])) {
+  for (const key of discordKeys) {
+    if (!process.env[key]) missing.push(key);
+  }
+}
+
 if (missing.length > 0) {
   throw new Error(`Missing required secrets: ${missing.join(", ")}`);
 }

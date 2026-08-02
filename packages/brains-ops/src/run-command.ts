@@ -24,6 +24,7 @@ import {
 } from "./observed-status";
 import { onboardUser } from "./onboard-user";
 import { reconcileAll } from "./reconcile-all";
+import { dryRunReconcileAll } from "./reconcile-dry-run";
 import { reconcileCohort } from "./reconcile-cohort";
 import { writeUsersTable } from "./render-users-table";
 import { encryptPilotSecrets } from "./secrets-encrypt";
@@ -82,6 +83,31 @@ const init: OpsCommand = defineCommand({
     return {
       success: true,
       message: `Initialized ${repo}`,
+    };
+  },
+});
+
+const crossoverStage: OpsCommand = defineCommand({
+  name: "crossover:stage",
+  usage: "<source-repo> <output-dir> [site-pins.yaml]",
+  description: "Stage a reviewed canonical crossover copy",
+  run: async ({ args }): Promise<CommandResult> => {
+    const source = args[0];
+    const output = args[1];
+    const sitePinsPath = args[2];
+    if (!source || !output) {
+      return usageFailure(crossoverStage);
+    }
+
+    const { loadReviewedSitePins, stageLegacyCrossover } =
+      await import("./stage-legacy-crossover");
+    const sitePins = sitePinsPath
+      ? await loadReviewedSitePins(sitePinsPath)
+      : undefined;
+    const staged = await stageLegacyCrossover(source, output, { sitePins });
+    return {
+      success: true,
+      message: `Staged ${staged.changedFiles.length} reviewed crossover files in ${staged.outputDir}`,
     };
   },
 });
@@ -326,12 +352,12 @@ const verifyUser: OpsCommand = defineCommand({
         .join("\n");
       return {
         success: false,
-        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: passed ${passedSummary}; failed:\n${failedDetail}`,
+        message: `Verified ${result.handle} (${result.bundles.join(",")}) at https://${result.domain}: passed ${passedSummary}; failed:\n${failedDetail}`,
       };
     }
     return {
       success: true,
-      message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${passedSummary}`,
+      message: `Verified ${result.handle} (${result.bundles.join(",")}) at https://${result.domain}: ${passedSummary}`,
     };
   },
 });
@@ -359,12 +385,23 @@ const reconcileCohortCommand: OpsCommand = defineCommand({
 
 const reconcileAllCommand: OpsCommand = defineCommand({
   name: "reconcile-all",
-  usage: "<repo>",
+  usage: "<repo> [--dry-run]",
   description: "Reconcile every cohort",
-  run: async ({ args }, dependencies): Promise<CommandResult> => {
+  flags: { "dry-run": dryRunFlag },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
     const repo = args[0];
     if (!repo) {
       return usageFailure(reconcileAllCommand);
+    }
+
+    if (getBooleanFlag(flags, "dry-run")) {
+      const result = await dryRunReconcileAll(repo);
+      const firstPass = result.firstPassChangedFiles.length;
+      const secondPass = result.secondPassChangedFiles.length;
+      return {
+        success: secondPass === 0,
+        message: `Dry-run reconcile found ${firstPass} first-pass changed file(s); second pass ${secondPass === 0 ? "converged with zero drift" : `still changed ${secondPass} file(s)`}`,
+      };
     }
 
     await reconcileAll(repo, dependencies.runner, {
@@ -410,6 +447,7 @@ export const commands: readonly CommandDefinition<
   CommandResult
 >[] = [
   init,
+  crossoverStage,
   render,
   userAdd,
   onboard,

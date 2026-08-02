@@ -1,0 +1,48 @@
+id: tool-invocation-agent-call-unknown-url
+name: Call Unknown Agent by HTTPS URL
+description: Tests that an HTTPS agent URL can be canonicalized to its hostname for agent_call, with runtime verification/contact over HTTPS and no auto-save.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - bundle-core
+
+turns:
+  - userMessage: "Ask https://unknown-agent.io about ecosystem architecture"
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_call
+      shouldBeCalled: true
+      argsContain:
+        agent: unknown-agent.io
+      argsAbsent:
+        - confirmed
+        - confirmationToken
+    - toolName: agent_connect
+      shouldBeCalled: false
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContainsAny:
+    - [
+        "could not verify",
+        "couldn’t verify",
+        "could not contact",
+        "couldn’t contact",
+      ]
+    - ["unknown-agent.io"]
+  responseNotContains:
+    - "I called"
+    - "I reached out"
+    - "I've saved"
+    - "I saved"
+    - "saved it"
+    - "successfully saved"
+    - "connected"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

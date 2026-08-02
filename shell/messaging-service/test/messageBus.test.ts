@@ -647,6 +647,40 @@ describe("MessageBus", () => {
     });
   });
 
+  describe("response collection", () => {
+    it("collects every matching handler response in registration order", async () => {
+      messageBus.subscribe("test.collect", async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return { success: true, data: "first" };
+      });
+      messageBus.subscribe("test.collect", () => ({
+        success: true,
+        data: "second",
+      }));
+
+      const responses = await messageBus.collect({
+        type: "test.collect",
+        payload: {},
+        sender: "sender",
+      });
+
+      expect(responses).toEqual([
+        { success: true, data: "first" },
+        { success: true, data: "second" },
+      ]);
+    });
+
+    it("returns an empty list when no handlers match", async () => {
+      expect(
+        await messageBus.collect({
+          type: "test.collect.missing",
+          payload: {},
+          sender: "sender",
+        }),
+      ).toEqual([]);
+    });
+  });
+
   describe("broadcast functionality", () => {
     it("should call ALL handlers for broadcast messages", async () => {
       const handler1 = mock(() => ({ success: true, data: "first" }));

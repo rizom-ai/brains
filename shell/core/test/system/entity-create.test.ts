@@ -1851,6 +1851,10 @@ A saved research link.`;
     expect(tool.inputSchema).not.toHaveProperty("targetEntityType");
     expect(tool.inputSchema).not.toHaveProperty("targetEntityId");
     expect(tool.inputSchema).not.toHaveProperty("options");
+    expect(tool.description).toContain(
+      "proactive capture of the user's request itself",
+    );
+    expect(tool.description).toContain("no separate save verb is required");
 
     expect(
       createInputSchema.safeParse({
@@ -1882,6 +1886,12 @@ A saved research link.`;
     expect(tool.inputSchema).not.toHaveProperty("targetEntityType");
     expect(tool.inputSchema).not.toHaveProperty("targetEntityId");
     expect(tool.inputSchema).not.toHaveProperty("coverImage");
+    expect(tool.description).toContain(
+      "do not stop to ask what details to highlight",
+    );
+    expect(tool.description).toContain(
+      "after an optional search finds no source",
+    );
     expect(tool.visibility).toBe("trusted");
     expect(tool.sideEffects).toBe("writes");
 

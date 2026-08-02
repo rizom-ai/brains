@@ -33,7 +33,7 @@
 
 ```bash
 bun add -g @rizom/brain
-brain init mybrain --model rover
+brain init mybrain --recipe personal
 cd mybrain && brain start
 ```
 
@@ -67,7 +67,7 @@ Now Claude can read, search, create, and update entities in your brain.
 
 ```
 brain.yaml (instance config)
-  + brain model (e.g. rover)
+  + canonical definition and explicit bundles
   = a running brain
     ├── Entities       typed content: blog post, link, deck, project, note, ...
     ├── Plugins        services and integrations: site builder, git sync, analytics, ...
@@ -75,9 +75,9 @@ brain.yaml (instance config)
     └── Shell          core orchestration: storage, AI, jobs, messaging
 ```
 
-A **brain model** is a curated bundle of entity types, plugins, and interfaces — declared in code via `defineBrain()`. The shipped reference model is `rover`, a personal-knowledge brain with blog, links, decks, projects, and notes.
+The **canonical brain definition** is an ordered catalog of entities, plugins, and interfaces declared via `defineBrain()`. Fixed bundles compose that catalog deterministically.
 
-A **brain instance** is a deployment of a brain model on your infrastructure, configured via `brain.yaml`. The same model can be deployed many times with different domains, themes, plugin configs, and content.
+A **brain instance** selects explicit bundles in `brain.yaml` and supplies its own identity, domain, theme, plugin config, permissions, and content.
 
 **Entities** are typed content with a Zod schema, a markdown adapter, and an AI generation handler. Every entity is a markdown file with frontmatter, stored on disk and indexed in SQLite for search.
 
@@ -98,14 +98,17 @@ For the deeper picture: [Architecture Overview](../architecture-overview.md), [P
 
 ## Configuration
 
-Everything beyond the brain model is configured per-instance via `brain.yaml`:
+The canonical brain is configured per instance via `brain.yaml`:
 
 ```yaml
-brain: rover
+brain: brain
+bundles:
+  - core
+  - site
+  - publishing
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
-preset: full
+  theme: "@rizom/theme-default"
 domain: mybrain.example.com
 
 anchors:
@@ -153,7 +156,7 @@ shared/               Utilities and primitives: themes, UI components, types, te
 entities/             Built-in entity types: blog, link, deck, project, note, topic, ...
 plugins/              Built-in service plugins: site-builder, git sync, analytics, ...
 interfaces/           Built-in interfaces: MCP, A2A, Discord, webserver, CLI
-brains/rover          Reference brain model
+packages/brain-cli    Canonical definition, recipes, runtime assets, and CLI
 sites/                Site packages: default, personal, professional, rizom
 packages/brain-cli    The `brain` command-line tool
 docs/                 Architecture, plugin development, deployment, theming

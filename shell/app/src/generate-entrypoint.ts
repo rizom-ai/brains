@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import { relative, sep } from "path";
+import { resolveBrainPackageName } from "./brain-package";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import {
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
@@ -16,10 +17,6 @@ export interface GenerateEntrypointOptions {
 function toImportPath(fromDir: string, filePath: string): string {
   const normalized = relative(fromDir, filePath).split(sep).join("/");
   return normalized.startsWith(".") ? normalized : `./${normalized}`;
-}
-
-function normalizeBrainPackage(rawBrain: string): string {
-  return rawBrain.startsWith("@") ? rawBrain : `@brains/${rawBrain}`;
 }
 
 function packageImportLine(pkg: string, index: number): string {
@@ -179,11 +176,18 @@ export function generateEntrypoint(
     return null;
   }
 
-  const rawBrain = overrides.brain;
-  if (typeof rawBrain !== "string") return null;
-
-  // Normalize short names: "rover" → "@brains/rover"
-  const brainPackage = normalizeBrainPackage(rawBrain);
+  let brainPackage: string;
+  try {
+    brainPackage = resolveBrainPackageName(overrides.brain);
+  } catch {
+    return null;
+  }
+  if (
+    brainPackage === "@rizom/brain/model" &&
+    overrides.bundles === undefined
+  ) {
+    return null;
+  }
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );

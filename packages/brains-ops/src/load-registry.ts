@@ -11,7 +11,7 @@ import {
   cohortSchema,
   type PilotConfig,
   pilotSchema,
-  type PilotPreset,
+  type CanonicalBundleId,
   type UserConfig,
   userSchema,
 } from "./schema";
@@ -30,7 +30,9 @@ export interface ResolvedCohort {
   id: string;
   members: string[];
   brainVersionOverride?: string;
-  presetOverride?: PilotPreset;
+  bundlesOverride?: CanonicalBundleId[];
+  addOverride?: string[];
+  removeOverride?: string[];
   aiApiKeyOverride?: string;
   gitSyncTokenOverride?: string;
 }
@@ -101,13 +103,13 @@ export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
   brainVersion: string;
-  model: "rover";
-  preset: PilotPreset;
+  bundles: CanonicalBundleId[];
+  add: string[];
+  remove: string[];
   domain: string;
   cloudflareZoneId?: string | undefined;
   contentRepo: string;
   profileKind?: string | undefined;
-  addOverride?: string[];
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
@@ -169,8 +171,14 @@ export async function loadPilotRegistry(
       ...(cohortFile.data.brainVersionOverride
         ? { brainVersionOverride: cohortFile.data.brainVersionOverride }
         : {}),
-      ...(cohortFile.data.presetOverride
-        ? { presetOverride: cohortFile.data.presetOverride }
+      ...(cohortFile.data.bundlesOverride
+        ? { bundlesOverride: cohortFile.data.bundlesOverride }
+        : {}),
+      ...(cohortFile.data.addOverride
+        ? { addOverride: cohortFile.data.addOverride }
+        : {}),
+      ...(cohortFile.data.removeOverride
+        ? { removeOverride: cohortFile.data.removeOverride }
         : {}),
       ...(cohortFile.data.aiApiKeyOverride
         ? { aiApiKeyOverride: cohortFile.data.aiApiKeyOverride }
@@ -196,8 +204,17 @@ export async function loadPilotRegistry(
         handle: userFile.data.handle,
         cohort: cohort.id,
         brainVersion,
-        model: pilot.model,
-        preset: cohort.data.presetOverride ?? pilot.preset,
+        bundles: [...(cohort.data.bundlesOverride ?? pilot.bundles)],
+        add: uniqueStrings([
+          ...(cohort.data.addOverride ??
+            (cohort.data.bundlesOverride ? [] : (pilot.add ?? []))),
+          ...(userFile.data.addOverride ?? []),
+        ]),
+        remove: uniqueStrings([
+          ...(cohort.data.removeOverride ??
+            (cohort.data.bundlesOverride ? [] : (pilot.remove ?? []))),
+          ...(userFile.data.removeOverride ?? []),
+        ]),
         domain:
           userFile.data.domainOverride ??
           `${userFile.data.handle}${pilot.domainSuffix}`,
@@ -210,17 +227,8 @@ export async function loadPilotRegistry(
         ...(userFile.data.profileKind
           ? { profileKind: userFile.data.profileKind }
           : {}),
-        ...(userFile.data.addOverride
-          ? { addOverride: userFile.data.addOverride }
-          : {}),
         ...(userFile.data.siteOverride
-          ? {
-              siteOverride: resolveSiteOverride(
-                userFile.data.handle,
-                userFile.data.siteOverride,
-                brainVersion,
-              ),
-            }
+          ? { siteOverride: { ...userFile.data.siteOverride } }
           : {}),
         discordEnabled: userFile.data.discord.enabled,
         ...(userFile.data.discord.anchorUserId
@@ -370,38 +378,6 @@ function resolveAnchorProfile(
   };
 }
 
-/**
- * Sites and themes publish on independent release cadences, so a @rizom-scoped
- * theme's version can never be inferred from the site's — it must be pinned
- * explicitly. @brains/* themes ship inside @rizom/brain and take no pin.
- */
-function resolveSiteOverride(
-  handle: string,
-  siteOverride: {
-    package: string;
-    version?: string | undefined;
-    theme?: string | undefined;
-    themeVersion?: string | undefined;
-  },
-  brainVersion: string,
-): ResolvedSiteOverride {
-  const external = siteOverride.theme?.startsWith("@rizom/") === true;
-  if (external && siteOverride.themeVersion === undefined) {
-    throw new PilotRegistryError(
-      `User ${handle} pins theme ${siteOverride.theme} without a themeVersion; independently published themes require an explicit version pin`,
-    );
-  }
-  if (!external && siteOverride.themeVersion !== undefined) {
-    throw new PilotRegistryError(
-      `User ${handle} sets themeVersion, but ${siteOverride.theme ?? "no theme"} is not an independently published @rizom theme`,
-    );
-  }
-  return {
-    ...siteOverride,
-    version: siteOverride.version ?? brainVersion,
-  };
-}
-
 function handleToDisplayName(handle: string): string {
   return handle
     .split("-")
@@ -445,6 +421,10 @@ async function readYamlFile<T>(
   }
 
   return result.data;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values)];
 }
 
 function stripYamlExtension(name: string): string {

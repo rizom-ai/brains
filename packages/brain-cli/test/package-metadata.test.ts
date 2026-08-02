@@ -97,6 +97,24 @@ describe("@rizom/brain package metadata", () => {
     );
   });
 
+  it("bundles package-owned onboarding markdown in dist", () => {
+    const sourceDir = join(
+      packageDir,
+      "..",
+      "..",
+      "plugins",
+      "onboarding",
+      "content",
+      "playbook",
+    );
+
+    for (const fileName of ["onboarding.md", "first-knowledge-loop.md"]) {
+      expect(readPackageFile(join("dist", "onboarding", fileName))).toBe(
+        readFileSync(join(sourceDir, fileName), "utf8"),
+      );
+    }
+  });
+
   it("declares deploy helper scripts in the package files contract", () => {
     expect(packageJson.files).toContain("templates");
     expect(packageJson.files).toContain("tsconfig.instance.json");

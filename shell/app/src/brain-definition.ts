@@ -2,20 +2,9 @@ import type { Plugin } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput, ReasoningEffort } from "./types";
 import type { SitePackage } from "./site-package";
+import type { CapabilityBundleDefinition } from "./bundle-definition";
 
 import { z } from "@brains/utils/zod";
-
-/**
- * Standard preset names.
- */
-export const presetNameSchema: z.ZodEnum<{
-  core: "core";
-  default: "default";
-  full: "full";
-}> = z.enum(["core", "default", "full"]);
-export const PresetNames: typeof presetNameSchema.options =
-  presetNameSchema.options;
-export type PresetName = z.output<typeof presetNameSchema>;
 
 export const modeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
 export type BrainMode = z.output<typeof modeSchema>;
@@ -46,12 +35,12 @@ export type PluginConfig = Record<string, unknown>;
  * Config can be:
  * - A static value (passed directly to the factory)
  * - A function `(env, context) => config` that receives the deployment environment
- *   and active preset context (use this when the plugin needs credentials,
- *   preset-specific paths, or other env-specific settings)
+ *   and active bundle context (use this when the plugin needs credentials,
+ *   bundle-specific values, or other env-specific settings)
  * - undefined (plugin uses its own defaults)
  */
 export interface CapabilityContext {
-  preset?: PresetName;
+  bundles: readonly string[];
 }
 
 export type CapabilityConfig =
@@ -63,7 +52,7 @@ export type CapabilityConfig =
  * A plugin factory builds one plugin or — for composite features that bundle
  * an entity + service pair behind one shared config (e.g. newsletter +
  * buttondown) — an array of plugins. Composite sub-plugins are gated as a
- * unit by the capability id; add or remove the entry from a preset to
+ * unit by the capability id; add or remove the entry from a bundle to
  * enable/disable all of them.
  */
 export type PluginFactory = (config: PluginConfig) => Plugin | Plugin[];
@@ -176,15 +165,10 @@ export interface BrainDefinition {
   interfaces: InterfaceEntry[];
 
   /**
-   * Named presets — curated subsets of capabilities + interfaces.
-   * Each key maps to an array of plugin/interface IDs to enable.
-   * Standard names: "core", "default", "full", "eval".
-   * Custom names are allowed.
+   * Ordered capability bundles. Definition order controls deterministic
+   * config, instruction, eval, and permission composition.
    */
-  presets?: Partial<Record<PresetName, string[]>>;
-
-  /** Default preset name when brain.yaml doesn't specify one. */
-  defaultPreset?: PresetName;
+  bundles?: CapabilityBundleDefinition[];
 
   /** Structural permission rules (no credentials) */
   permissions?: PermissionConfig;

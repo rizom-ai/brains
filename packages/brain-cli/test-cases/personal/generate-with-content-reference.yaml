@@ -1,0 +1,34 @@
+id: social-media-url-reference
+name: Generate LinkedIn post with URL references
+description: Tests that AI includes URLs when referencing content from knowledge base
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - url-reference
+  - core
+  - posture-publishing
+plugin: social-media
+handler: generation
+
+input:
+  prompt: "Write a LinkedIn post about the Green Software Foundation as an ecosystem for greener software, and include its URL from my knowledge base"
+  platform: linkedin
+
+expectedOutput:
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 100
+      maxLength: 3000
+  contentContains:
+    - field: content
+      patterns:
+        - "[Ee]cosystem|[Gg]reen [Ss]oftware"
+        - "https?://"
+        - 'greensoftware\.foundation'
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 4
+    minQualityScore: 4

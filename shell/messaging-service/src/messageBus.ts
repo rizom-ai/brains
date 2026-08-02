@@ -65,6 +65,16 @@ export class MessageBus implements IMessageBus {
     return toMessageResponse<R>(type, response);
   }
 
+  /** Collect one response from every matching handler in registration order. */
+  async collect<T = unknown, R = unknown>(
+    request: MessageBusSendRequest<T>,
+  ): Promise<MessageResponse<R>[]> {
+    const { type, payload, sender, target, metadata } = request;
+    const message = createMessage(type, payload, sender, target, metadata);
+    const responses = await this.publisher.collect(message);
+    return responses.map((response) => toMessageResponse<R>(type, response));
+  }
+
   /**
    * Validate a message against a schema
    */

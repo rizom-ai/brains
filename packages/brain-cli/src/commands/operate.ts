@@ -4,14 +4,14 @@ import { spawn } from "child_process";
 import type { CommandResult } from "../lib/command-result";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
-import { getModel, getAvailableModels } from "../lib/model-registry";
 import { getErrorMessage } from "@brains/utils/error";
+import { loadDefinition } from "../lib/definition-registry";
 
 /**
  * Run a CLI command via the brain's tool registry.
  *
  * Two paths:
- * 1. Monorepo/Docker: spawns runner with --cli-command
+ * 1. Monorepo: spawns runner with --cli-command
  * 2. Builtin: boots in-process, invokes tool, prints result, exits
  */
 export async function operate(
@@ -34,8 +34,8 @@ export async function operate(
     return operateBuiltin(cwd, commandName, args, flags);
   }
 
-  // Monorepo/Docker: subprocess
-  if (runnerType === "monorepo" || runnerType === "docker") {
+  // Monorepo: subprocess
+  if (runnerType === "monorepo") {
     return operateSubprocess(cwd, commandName, args, flags);
   }
 
@@ -56,20 +56,13 @@ async function operateBuiltin(
   flags: Record<string, unknown>,
 ): Promise<CommandResult> {
   const config = parseBrainYaml(cwd);
-  const definition = getModel(config.brain);
-
-  if (!definition) {
-    return {
-      success: false,
-      message: `Unknown model: ${config.brain}. Available: ${getAvailableModels().join(", ")}`,
-    };
-  }
 
   try {
+    const definition = await loadDefinition(config.brain);
     const { bootBrain } = await import("../lib/boot");
 
     // Boot in register-only mode — no daemons, no events
-    const bootedBrain = await bootBrain(cwd, config.brain, definition, {
+    const bootedBrain = await bootBrain(cwd, definition, {
       chat: false,
       mode: "register-only",
     });

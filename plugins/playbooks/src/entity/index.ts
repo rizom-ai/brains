@@ -32,7 +32,7 @@ export class PlaybookPlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks.";
+    return "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks. To inspect a playbook's lifecycle, run status, current state, or valid events, call playbook_status directly; do not use system_search as a substitute.";
   }
 }
 

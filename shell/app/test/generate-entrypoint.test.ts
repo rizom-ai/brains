@@ -3,11 +3,12 @@ import { generateEntrypoint } from "../src/generate-entrypoint";
 
 describe("generateEntrypoint", () => {
   test("should generate basic entrypoint from brain.yaml", () => {
-    const yaml = 'brain: "@brains/rover"';
+    const yaml = `brain: brain
+bundles: [core]`;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import definition from "@brains/rover"');
+    expect(code).toContain('import definition from "@rizom/brain/model"');
     expect(code).toContain("parseInstanceOverrides");
     expect(code).toContain("resolve(definition");
     expect(code).toContain("handleCLI(config)");
@@ -15,23 +16,25 @@ describe("generateEntrypoint", () => {
 
   test("should include static imports for @-prefixed plugin values", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   site-builder:
-    themeCSS: "@brains/theme-default"
+    themeCSS: "@rizom/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import * as __pkg0 from "@brains/theme-default"');
+    expect(code).toContain('import * as __pkg0 from "@rizom/theme-default"');
     expect(code).toContain(
-      'registerPackage("@brains/theme-default", __pkg0.default ?? __pkg0)',
+      'registerPackage("@rizom/theme-default", __pkg0.default ?? __pkg0)',
     );
   });
 
   test("should handle multiple package refs across plugins", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   site-builder:
     themeCSS: "@brains/theme-pink"
@@ -52,7 +55,8 @@ plugins:
 
   test("should include static imports for external plugin declarations", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   calendar:
     package: "@rizom/brain-plugin-calendar"
@@ -72,24 +76,26 @@ plugins:
 
   test("should not duplicate brain package in imports", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   a2a:
-    someRef: "@brains/rover"
+    someRef: "@rizom/brain/model"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
     // Brain package imported once as definition, not again as __pkg
     const definitionImports =
-      code?.match(/import definition from "@brains\/rover"/g) ?? [];
+      code?.match(/import definition from "@rizom\/brain\/model"/g) ?? [];
     expect(definitionImports).toHaveLength(1);
     expect(code).not.toContain("__pkg0");
   });
 
   test("should not generate package imports when no refs exist", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   webserver:
     port: 9090
@@ -111,7 +117,8 @@ plugins:
 
   test("should include static import for top-level site package ref", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 site:
   package: "@brains/site-default"
 `;
@@ -126,7 +133,8 @@ site:
 
   test("should include both site and plugin package refs", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 site:
   package: "@brains/site-default"
 plugins:
@@ -142,23 +150,25 @@ plugins:
 
   test("should include a static import for site.theme package refs", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import * as __pkg1 from "@brains/theme-default"');
+    expect(code).toContain('import * as __pkg1 from "@rizom/theme-default"');
     expect(code).toContain(
-      'registerPackage("@brains/theme-default", __pkg1.default ?? __pkg1)',
+      'registerPackage("@rizom/theme-default", __pkg1.default ?? __pkg1)',
     );
   });
 
   test("should import registerPackage from @brains/app", () => {
     const yaml = `
-brain: "@brains/rover"
+brain: brain
+bundles: [core]
 plugins:
   site-builder:
     themeCSS: "@brains/theme-test"

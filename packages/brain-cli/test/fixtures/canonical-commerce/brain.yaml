@@ -1,0 +1,17 @@
+brain: brain
+anchor: organization
+kind: organization
+bundles:
+  - site
+  - core
+add:
+  - products
+
+site:
+  package: "@rizom/site-rizom"
+  theme: "@brains/theme-rizom"
+
+plugins:
+  directory-sync:
+    seedContentPath: ./seed-content
+    initialSync: true

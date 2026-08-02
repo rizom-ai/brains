@@ -303,7 +303,10 @@ Themes are resolved by brain instances, not embedded in site packages. A `SitePa
 **4. Pick the site package and theme in `brain.yaml`**:
 
 ```yaml
-brain: rover
+brain: brain
+bundles:
+  - core
+  - site
 site:
   package: "@brains/site-mytheme"
   theme: "@brains/theme-mytheme"
@@ -384,15 +387,21 @@ Each brain instance picks a structural site package and a theme in `brain.yaml`:
 
 ```yaml
 # brain.yaml
-brain: rover
+brain: brain
+bundles:
+  - core
+  - site
 site:
   package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  theme: "@rizom/theme-default"
 ```
 
 ```yaml
 # brain.yaml in a standalone Rizom app repo
-brain: ranger
+brain: brain
+bundles:
+  - core
+  - site
 site:
   theme: "@brains/theme-rizom"
 ```

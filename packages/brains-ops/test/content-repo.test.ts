@@ -89,13 +89,12 @@ description: Replace this with something that actually describes you.
 `;
 
 const baseFiles = {
-  "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.2.0-alpha.11
-model: rover
+  "pilot.yaml": `brainVersion: 0.2.0-alpha.11
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
-preset: core
+bundles:
+  - core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN

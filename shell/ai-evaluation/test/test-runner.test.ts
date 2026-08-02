@@ -784,6 +784,51 @@ describe("TestRunner", () => {
       expect(result.totalMetrics.toolCallCount).toBe(1);
     });
 
+    it("should retain tool errors as judge evidence", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "The peer call failed because its Agent Card was unavailable.",
+            toolResults: [
+              {
+                toolName: "agent_call",
+                args: { agent: "partner-brain.io" },
+                error: {
+                  message: "Agent Card was unavailable",
+                  code: "agent_unreachable",
+                },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-tool-error-evidence",
+        name: "Tool Error Evidence Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Call the saved peer" }],
+        successCriteria: {
+          expectedTools: [{ toolName: "agent_call", shouldBeCalled: true }],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(result.turnResults[0]?.toolCalls).toEqual([
+        {
+          toolName: "agent_call",
+          args: { agent: "partner-brain.io" },
+          result: {
+            success: false,
+            error: "Agent Card was unavailable",
+            code: "agent_unreachable",
+          },
+        },
+      ]);
+    });
+
     it("should count pending confirmations as expected tool calls", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(

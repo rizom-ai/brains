@@ -1,0 +1,14 @@
+---
+"@rizom/brain": minor
+"@rizom/ops": minor
+"@brains/app": minor
+"@brains/ai-evaluation": minor
+"@brains/messaging-service": minor
+"@brains/core": patch
+"@brains/conversation-memory": patch
+"@brains/wishlist": patch
+"@brains/playbooks": patch
+"@brains/onboarding": minor
+---
+
+Activate the single canonical brain contract: require explicit fixed bundles, scaffold recipes into visible instance configuration with composition-owned profile kinds, consolidate eval and runtime assets with suite-specific fixture directories, compose every registered agent-context provider, remove built-in model/preset selection, and replace versioned fleet formats with one strict canonical desired-state contract. Require exact hosted site and external-theme package pins, add temporary secret-free offline crossover staging, and move onboarding to its model-neutral package. Harden canonical model validation by preserving judge evidence, recording failed tool results, aligning migrated fixtures with canonical tools, and clarifying unmet-request, generation, and playbook-status routing. Eval runs without a locally built database drain seed-content ingestion before running turns; `--build-db` remains the fast path and its databases stay out of version control.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Brains repository is a monorepo with 8 workspace directories (`shell/`, `shared/`, `entities/`, `plugins/`, `interfaces/`, `sites/`, `brains/`, `packages/`). Each directory has a clear role in the architecture.
+The Brains repository is a monorepo with seven workspace directories (`shell/`, `shared/`, `entities/`, `plugins/`, `interfaces/`, `sites/`, and `packages/`). Each directory has a clear role.
 
 ```
 brains/
@@ -12,11 +12,10 @@ brains/
 ├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
 ├── sites/              # Structural site packages (composition + routes + plugins)
-├── brains/             # Brain model definitions
-└── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
+└── packages/           # Published packages; brain-cli owns the canonical definition
 ```
 
-A running brain is driven by a lightweight _instance directory_ centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references. Such instance directories are not a workspace category and the monorepo does not currently ship them; they are scaffolded outside the repo with `brain init`.
+A running brain is driven by a lightweight _instance directory_ centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts. The CLI resolves its explicit bundles against the canonical definition. Standalone instances are scaffolded with `brain init`; package-owned posture fixtures live under `packages/brain-cli/test-apps`.
 
 ## Shell (Core Infrastructure)
 
@@ -120,22 +119,16 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package              | Purpose                                                                          |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default` |
-| `sites/personal`     | Personal site composition, blog-focused                                          |
-| `sites/professional` | Professional site composition, editorial + portfolio + decks                     |
-| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances                       |
+| Package              | Purpose                                                               |
+| -------------------- | --------------------------------------------------------------------- |
+| `sites/default`      | Default structural site, typically paired with `@rizom/theme-default` |
+| `sites/personal`     | Personal site composition, blog-focused                               |
+| `sites/professional` | Professional site composition, editorial + portfolio + decks          |
+| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances            |
 
-## Brains
+## Canonical brain
 
-Brain models define what a brain IS — capabilities, interfaces, presets, identity.
-
-| Package         | Purpose                                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `brains/rover`  | Reference brain model. Personal knowledge + professional content. Bundled into the published `@rizom/brain` CLI.                              |
-| `brains/ranger` | A community-facing brain for collectives and organizations (e.g. the `rizom.ai` deployment). Bundled into the published `@rizom/brain` CLI.   |
-| `brains/relay`  | A collaborative knowledge management brain for teams (e.g. the `rizom.foundation` deployment). Bundled into the published `@rizom/brain` CLI. |
+`packages/brain-cli` owns the one built-in definition, ordered catalog, fixed `core`, `site`, `publishing`, and `team` bundles, recipe assets, test apps, and eval suites. Identity and deployment choices remain instance-owned.
 
 ## Packages
 
@@ -144,7 +137,7 @@ Standalone published packages.
 | Package               | Purpose                                                                                                                                                                                                          |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/brain-cli`  | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds the instance-local support files an app needs. |
-| `packages/brains-ops` | `@rizom/ops` — operator CLI for managing rover-pilot fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.                                     |
+| `packages/brains-ops` | `@rizom/ops` — operator CLI for private fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, and multi-user deploy management.                                              |
 
 ## App instances (lightweight instance directories, NOT a workspace category)
 

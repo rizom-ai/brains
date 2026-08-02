@@ -5,11 +5,11 @@ import { parseYamlDocument } from "../src/yaml";
 describe("parseYamlDocument", () => {
   describe("without schema", () => {
     it("should parse valid YAML document", () => {
-      const result = parseYamlDocument("brain: rover\npreset: pro");
+      const result = parseYamlDocument("name: example\nenabled: true");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.data["brain"]).toBe("rover");
-        expect(result.data["preset"]).toBe("pro");
+        expect(result.data["name"]).toBe("example");
+        expect(result.data["enabled"]).toBe(true);
       }
     });
 

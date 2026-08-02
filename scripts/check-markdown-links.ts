@@ -38,7 +38,7 @@ function listMarkdownFilesFromGit(): string[] {
       .map((line) => line.trim())
       .filter(Boolean)
       .map((file) => path.resolve(root, file))
-      .filter((file) => !shouldSkipDirectory(file));
+      .filter((file) => existsSync(file) && !shouldSkipDirectory(file));
   } catch {
     return [];
   }

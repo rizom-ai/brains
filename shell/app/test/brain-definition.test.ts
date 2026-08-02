@@ -363,16 +363,16 @@ describe("resolve", () => {
     expect(capturedConfig?.["token"]).toBe("tok");
   });
 
-  test("should exclude interfaces not in preset", () => {
+  test("should exclude interfaces not in selected bundles", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: { core: [] },
+      bundles: [{ id: "core", members: [] }],
       capabilities: [],
       interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
     });
 
-    const config = resolve(def, {}, { preset: "core" });
+    const config = resolve(def, {}, { bundles: ["core"] });
 
     expect(
       config.plugins?.find((p) => p.id === "mock-interface"),

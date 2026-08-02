@@ -1,0 +1,25 @@
+id: app-accurate-summaries
+name: Accurate Content Summaries
+description: Tests that agent accurately summarizes what content exists
+type: response_quality
+setup:
+  permissionLevel: admin
+tags:
+  - app
+  - quality
+  - accuracy
+  - summaries
+  - posture-publishing
+
+turns:
+  - userMessage: "Give me an overview of all my content"
+
+successCriteria:
+  toolCountRange:
+    min: 1
+  minAccuracyScore: 3
+  minHelpfulnessScore: 3
+
+efficiency:
+  maxToolCalls: 12
+  maxTokens: 50000

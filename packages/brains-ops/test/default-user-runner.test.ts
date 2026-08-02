@@ -18,10 +18,10 @@ const baseUser: ResolvedUser = {
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
   handle: "rizom-work",
   mcpStatus: "unknown",
-  model: "rover",
-  preset: "default",
+  bundles: ["core", "site", "publishing"],
+  add: ["docs"],
+  remove: [],
   serverStatus: "unknown",
-  addOverride: ["docs"],
   siteOverride: {
     package: "@rizom/site-rizom-work",
     version: "0.2.0-alpha.136",
@@ -36,7 +36,11 @@ describe("createDefaultUserRunner", () => {
 
     const result = await runner(baseUser);
 
+    expect(result.brainYaml).toContain("brain: brain");
     expect(result.brainYaml).toContain("kind: professional");
+    expect(result.brainYaml).toContain(
+      "bundles:\n  - core\n  - site\n  - publishing",
+    );
     expect(result.brainYaml).toContain(`add:\n  - docs`);
     expect(result.brainYaml).toContain(
       `site:\n  package: "@rizom/site-rizom-work"\n  theme: "@brains/theme-rizom"`,

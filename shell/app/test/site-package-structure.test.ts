@@ -14,10 +14,8 @@ const sitePackages = [
   "sites/rizom-ai/package.json",
 ];
 
-const brainSources = [
-  "brains/ranger/src/index.ts",
-  "brains/relay/src/index.ts",
-];
+const canonicalDefinitionSource =
+  "packages/brain-cli/src/model/canonical-brain.ts";
 
 function readProjectFile(relativePath: string): string {
   return readFileSync(
@@ -41,11 +39,9 @@ describe("site package structure", () => {
     }
   });
 
-  test("ranger-family brain models do not depend on deleted ranger site packages", () => {
-    for (const path of brainSources) {
-      const source = readProjectFile(path);
-      expect(source).not.toContain("@brains/site-ranger");
-      expect(source).not.toContain("@brains/theme-ranger");
-    }
+  test("the canonical definition does not depend on deleted archetype site packages", () => {
+    const source = readProjectFile(canonicalDefinitionSource);
+    expect(source).not.toContain("@brains/site-ranger");
+    expect(source).not.toContain("@brains/theme-ranger");
   });
 });

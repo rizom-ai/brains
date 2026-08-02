@@ -40,7 +40,12 @@ describe("origin CA bootstrap", () => {
     mkdirSync(testDir, { recursive: true });
     writeFileSync(
       join(testDir, "brain.yaml"),
-      ["brain: rover", "domain: mybrain.example.com", ""].join("\n"),
+      [
+        "brain: brain",
+        "bundles: [core, site, publishing]",
+        "domain: mybrain.example.com",
+        "",
+      ].join("\n"),
     );
   });
 

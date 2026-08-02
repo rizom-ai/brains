@@ -37,6 +37,7 @@ const starterFilePaths = [
   "deploy/scripts/sync-content-repo.ts",
   ".kamal/hooks/pre-deploy",
   "docs/onboarding-checklist.md",
+  "docs/canonical-crossover-record.md",
   "docs/operator-playbook.md",
   "docs/user-onboarding.md",
   "README.md",
@@ -108,7 +109,12 @@ function isStalePilotDeployYml(current: string): boolean {
 }
 
 function isStalePilotDeploySecrets(current: string): boolean {
-  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
+  if (
+    current.includes("DISCORD_APPLICATION_ID") &&
+    current.includes("ATPROTO_APP_PASSWORD")
+  ) {
+    return false;
+  }
 
   const normalizedCurrent = stripDeployVolumes(
     normalizePilotDeploySecretList(current),
@@ -121,28 +127,48 @@ function isStalePilotDeploySecrets(current: string): boolean {
 }
 
 function isStalePilotEnvSchema(current: string, template: string): boolean {
-  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
-
-  const legacyTemplate = template.replace(
+  const withoutDiscordChatCredentials = template.replace(
+    /\n# Stored with the per-user Discord credentials and injected at deploy time\.\n# @sensitive\nDISCORD_PUBLIC_KEY=\n\n# @sensitive\nDISCORD_APPLICATION_ID=\n/,
+    "\n",
+  );
+  const withoutAtproto = template.replace(
     /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
     "\n",
   );
+  const withoutAtprotoOrDiscordChatCredentials = withoutAtproto.replace(
+    /\n# Stored with the per-user Discord credentials and injected at deploy time\.\n# @sensitive\nDISCORD_PUBLIC_KEY=\n\n# @sensitive\nDISCORD_APPLICATION_ID=\n/,
+    "\n",
+  );
 
-  return current === legacyTemplate;
+  return [
+    withoutDiscordChatCredentials,
+    withoutAtproto,
+    withoutAtprotoOrDiscordChatCredentials,
+  ].includes(current);
 }
 
 function isStaleDecryptUserSecretsScript(
   current: string,
   template: string,
 ): boolean {
-  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
-
-  const legacyTemplate = template.replace(
+  const withoutDiscordChatCredentials = template.replace(
+    'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
+    "",
+  );
+  const withoutAtproto = template.replace(
     'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
     "",
   );
+  const withoutAtprotoOrDiscordChatCredentials = withoutAtproto.replace(
+    'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
+    "",
+  );
 
-  return current === legacyTemplate;
+  return [
+    withoutDiscordChatCredentials,
+    withoutAtproto,
+    withoutAtprotoOrDiscordChatCredentials,
+  ].includes(current);
 }
 
 function isStaleResolveDeployHandlesScript(current: string): boolean {

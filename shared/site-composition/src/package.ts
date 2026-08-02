@@ -21,12 +21,12 @@ import type { SiteCompositionPlugin } from "./plugin";
  *
  * @example
  * ```ts
- * import { personalSitePlugin, PersonalLayout, routes } from "@brains/site-personal";
+ * import { sitePlugin, SiteLayout, routes } from "./site-components";
  *
  * const site: SitePackage = {
- *   layouts: { default: PersonalLayout },
+ *   layouts: { default: SiteLayout },
  *   routes,
- *   plugin: personalSitePlugin,
+ *   plugin: sitePlugin,
  *   entityDisplay: {
  *     post: { label: "Post" },
  *   },

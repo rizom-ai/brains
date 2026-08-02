@@ -1,0 +1,42 @@
+id: tool-invocation-update-title
+name: Update Entity Title
+description: Tests permission-aware system_update behavior for changing a title
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - core
+  - system
+  - entity-crud
+  - permissions
+  - bundle-core
+
+turns:
+  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Pattern Notes'"
+
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: false
+    responseNotContains:
+      - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    responseNotContains:
+      - "done"
+  admin:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

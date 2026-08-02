@@ -23,11 +23,6 @@ const rawRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
   z.unknown(),
 );
 
-const overridePresetNameSchema: z.ZodEnum<{
-  core: "core";
-  default: "default";
-  full: "full";
-}> = z.enum(["core", "default", "full"]);
 const overrideModeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
 const overrideLogLevelSchema: z.ZodEnum<{
   debug: "debug";
@@ -108,7 +103,7 @@ export interface InstanceOverrides {
   database?: string | undefined;
   model?: string | undefined;
   reasoningEffort?: ReasoningEffort | undefined;
-  preset?: "core" | "default" | "full" | undefined;
+  bundles?: string[] | undefined;
   mode?: "eval" | undefined;
   add?: string[] | undefined;
   remove?: string[] | undefined;
@@ -144,119 +139,124 @@ export interface InstanceOverrides {
     | undefined;
 }
 
-const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
-  /** Brain package name (required) */
-  brain: z.string().optional(),
+const rawInstanceOverridesSchema: z.ZodType<InstanceOverrides> = z.strictObject(
+  {
+    /** Brain package name (required) */
+    brain: z.string().optional(),
 
-  /** Anchor profile flavor. Team and organization both use collective ownership. */
-  anchor: brainAnchorConfigKindSchema.optional(),
+    /** Anchor profile flavor. Team and organization both use collective ownership. */
+    anchor: brainAnchorConfigKindSchema.optional(),
 
-  /**
-   * Site and theme overrides.
-   *
-   * - `package` names the site package to load (e.g. `@brains/site-default`).
-   *   Overrides any `site` set by the brain definition.
-   * - `variant` is forwarded to the site plugin's config schema, so a
-   *   single site package can ship multiple structural flavors
-   *   (for example a wrapper or multi-flavor site package).
-   * - `theme` selects the base theme package or inline CSS string to use
-   *   for styling. It is resolved separately from the site plugin.
-   * - `themeOverride` appends extra CSS after the base theme. This is used
-   *   by the local `src/theme.css` convention so apps can layer local theme
-   *   overrides on top of a shared base theme without forking it.
-   *
-   * The whole block is optional; any subfield is optional.
-   */
-  site: z
-    .object({
-      package: z.string().optional(),
-      variant: z.string().optional(),
-      theme: z.string().optional(),
-      themeOverride: z.string().optional(),
-    })
-    .optional(),
+    /**
+     * Site and theme overrides.
+     *
+     * - `package` names the site package to load (e.g. `@brains/site-default`).
+     *   Overrides any `site` set by the brain definition.
+     * - `variant` is forwarded to the site plugin's config schema, so a
+     *   single site package can ship multiple structural flavors
+     *   (for example a wrapper or multi-flavor site package).
+     * - `theme` selects the base theme package or inline CSS string to use
+     *   for styling. It is resolved separately from the site plugin.
+     * - `themeOverride` appends extra CSS after the base theme. This is used
+     *   by the local `src/theme.css` convention so apps can layer local theme
+     *   overrides on top of a shared base theme without forking it.
+     *
+     * The whole block is optional; any subfield is optional.
+     */
+    site: z
+      .object({
+        package: z.string().optional(),
+        variant: z.string().optional(),
+        theme: z.string().optional(),
+        themeOverride: z.string().optional(),
+      })
+      .optional(),
 
-  /** Override instance name */
-  name: z.string().optional(),
+    /** Override instance name */
+    name: z.string().optional(),
 
-  /** Optional semantic profile kind selected from the composed catalog */
-  kind: z.string().trim().min(1).optional(),
+    /** Optional semantic profile kind selected from the composed catalog */
+    kind: z.string().trim().min(1).optional(),
 
-  /** Log level */
-  logLevel: overrideLogLevelSchema.optional(),
+    /** Log level */
+    logLevel: overrideLogLevelSchema.optional(),
 
-  /** Log file path (enables usage tracking) */
-  logFile: z.string().optional(),
+    /** Log file path (enables usage tracking) */
+    logFile: z.string().optional(),
 
-  /** Production server port */
-  port: z.number().optional(),
+    /** Production server port */
+    port: z.number().optional(),
 
-  /** Production domain */
-  domain: z.string().optional(),
+    /** Production domain */
+    domain: z.string().optional(),
 
-  /** Database URL */
-  database: z.string().optional(),
+    /** Database URL */
+    database: z.string().optional(),
 
-  /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
-  model: z.string().optional(),
+    /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
+    model: z.string().optional(),
 
-  /** OpenAI reasoning effort. Ignored by providers that do not support it. */
-  reasoningEffort: reasoningEffortSchema.optional(),
+    /** OpenAI reasoning effort. Ignored by providers that do not support it. */
+    reasoningEffort: reasoningEffortSchema.optional(),
 
-  /** Preset name — selects a curated subset of capabilities + interfaces */
-  preset: overridePresetNameSchema.optional(),
+    /** Capability bundles selected from the canonical definition. */
+    bundles: z.array(z.string().min(1)).optional(),
 
-  /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
-  mode: overrideModeSchema.optional(),
+    /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
+    mode: overrideModeSchema.optional(),
 
-  /** Plugin/interface IDs to add on top of the preset */
-  add: z.array(z.string()).optional(),
+    /** Plugin/interface IDs to add on top of the selected bundles */
+    add: z.array(z.string()).optional(),
 
-  /** Plugin/interface IDs to remove from the preset */
-  remove: z.array(z.string()).optional(),
+    /** Plugin/interface IDs to remove from the selected bundles */
+    remove: z.array(z.string()).optional(),
 
-  /** Admin users (full access) */
-  admins: z.array(z.string()).optional(),
+    /** Admin users (full access) */
+    admins: z.array(z.string()).optional(),
 
-  /** Identities that represent this personal brain's anchor in chat. */
-  anchors: z.array(z.string()).optional(),
+    /** Identities that represent this personal brain's anchor in chat. */
+    anchors: z.array(z.string()).optional(),
 
-  /** Trusted users (elevated access) */
-  trusted: z.array(z.string()).optional(),
+    /** Trusted users (elevated access) */
+    trusted: z.array(z.string()).optional(),
 
-  /** Shared conversation spaces for this brain/team */
-  spaces: z.array(z.string()).optional(),
+    /** Shared conversation spaces for this brain/team */
+    spaces: z.array(z.string()).optional(),
 
-  /**
-   * Per-plugin config overrides and external plugin declarations, keyed by plugin ID.
-   *
-   * Existing built-in override shape remains:
-   *   plugins.directory-sync.git.repo: ...
-   *
-   * External packages reserve `package` and optional nested `config`:
-   *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
-   *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
-   */
-  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
+    /**
+     * Per-plugin config overrides and external plugin declarations, keyed by plugin ID.
+     *
+     * Existing built-in override shape remains:
+     *   plugins.directory-sync.git.repo: ...
+     *
+     * External packages reserve `package` and optional nested `config`:
+     *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
+     *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
+     */
+    plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
 
-  /** Permission rules */
-  permissions: z
-    .object({
-      admins: z.array(z.string()).optional(),
-      anchors: z.array(z.string()).optional(),
-      trusted: z.array(z.string()).optional(),
-      rules: z
-        .array(
-          z.object({
-            pattern: z.string(),
-            level: overridePermissionLevelSchema,
-          }),
-        )
-        .optional(),
-      entityActions: overrideEntityActionPolicyConfigSchema.optional(),
-    })
-    .optional(),
-});
+    /** Permission rules */
+    permissions: z
+      .object({
+        admins: z.array(z.string()).optional(),
+        anchors: z.array(z.string()).optional(),
+        trusted: z.array(z.string()).optional(),
+        rules: z
+          .array(
+            z.object({
+              pattern: z.string(),
+              level: overridePermissionLevelSchema,
+            }),
+          )
+          .optional(),
+        entityActions: overrideEntityActionPolicyConfigSchema.optional(),
+      })
+      .optional(),
+  },
+);
+
+const instanceOverridesSchema: z.ZodType<InstanceOverrides> =
+  rawInstanceOverridesSchema;
 
 /**
  * Instance overrides — parsed from brain.yaml.

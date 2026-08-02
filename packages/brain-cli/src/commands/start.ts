@@ -4,10 +4,9 @@ import type { BootMode } from "@brains/core";
 import type { CommandResult } from "../lib/command-result";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
-  getAvailableModels,
-  getModel,
-  hasRegisteredModels,
-} from "../lib/model-registry";
+  hasCanonicalDefinition,
+  loadDefinition,
+} from "../lib/definition-registry";
 import { checkApiKey } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
 import {
@@ -36,22 +35,14 @@ export function findMonorepoRoot(from: string): string | undefined {
 /**
  * Find the monorepo runner script.
  */
-export function findRunner(
-  cwd: string,
-): { path: string; type: "monorepo" | "standalone" } | undefined {
+export function findRunner(cwd: string): { path: string } | undefined {
   const monorepoRoot = findMonorepoRoot(cwd);
 
   if (monorepoRoot) {
     const runner = join(monorepoRoot, "shell", "app", "src", "runner.ts");
     if (existsSync(runner)) {
-      return { path: runner, type: "monorepo" };
+      return { path: runner };
     }
-  }
-
-  // Legacy Docker path — fallback during transition
-  const entrypoint = join(cwd, "dist", ".model-entrypoint.js");
-  if (existsSync(entrypoint)) {
-    return { path: entrypoint, type: "standalone" };
   }
 
   return undefined;
@@ -62,12 +53,12 @@ export function findRunner(
  */
 export function resolveRunnerType(
   cwd: string,
-): "monorepo" | "docker" | "builtin" | undefined {
+): "monorepo" | "builtin" | undefined {
   const runner = findRunner(cwd);
-  if (runner) return runner.type === "monorepo" ? "monorepo" : "docker";
+  if (runner) return "monorepo";
 
-  // Bundled mode — models registered in-process
-  if (hasRegisteredModels()) return "builtin";
+  // Bundled mode — canonical definition registered in-process
+  if (hasCanonicalDefinition()) return "builtin";
 
   return undefined;
 }
@@ -99,7 +90,7 @@ export async function start(
     });
   }
 
-  if (hasRegisteredModels()) {
+  if (hasCanonicalDefinition()) {
     const keyCheck = checkApiKey(process.env);
     if (flags.mode !== "startup-check" && !keyCheck.ok) {
       return {
@@ -110,19 +101,12 @@ export async function start(
 
     const config = parseBrainYaml(cwd);
 
-    const definition = getModel(config.brain);
-    if (!definition) {
-      return {
-        success: false,
-        message: `Unknown model: ${config.brain}. Available: ${getAvailableModels().join(", ")}`,
-      };
-    }
-
-    // In-process boot — the build entrypoint registers a boot function
-    // alongside the model definitions. This import is resolved at bundle time.
+    // In-process boot — the package bundles the canonical definition. Explicitly
+    // scoped external definitions remain dynamically authorable.
     try {
+      const definition = await loadDefinition(config.brain);
       const { bootBrain } = await import("../lib/boot");
-      const bootedBrain = await bootBrain(cwd, config.brain, definition, flags);
+      const bootedBrain = await bootBrain(cwd, definition, flags);
       if (flags.mode === "startup-check") {
         await bootedBrain?.stop?.();
       }

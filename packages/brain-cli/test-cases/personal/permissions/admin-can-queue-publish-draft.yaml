@@ -1,0 +1,37 @@
+id: brain-permission-admin-can-queue-publish-draft
+name: Admin user can queue a Brain publishing draft
+description: >-
+  Verifies the Admin side of the publish-action split: Admin callers may
+  make publish commitments such as adding a social post draft to the publish
+  queue.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - brain
+  - permissions
+  - publish-action-policy
+  - admin
+  - posture-publishing
+
+turns:
+  - userMessage: >-
+      Queue the draft LinkedIn post titled "Publish Policy Draft" for publishing.
+
+successCriteria:
+  expectedTools:
+    - toolName: publishing_manage
+      shouldBeCalled: true
+      argsContain:
+        action: queue-add
+        entityType: social-post
+  responseNotContains:
+    - "permission denied"
+    - "cannot queue"
+    - "not allowed"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 20000

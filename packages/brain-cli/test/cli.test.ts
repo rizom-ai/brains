@@ -11,10 +11,10 @@ describe("parseArgs", () => {
     expect(result.args[0]).toBe("mybrain");
   });
 
-  it("should parse 'init' with --model flag", () => {
-    const result = parseArgs(["init", "--model", "rover"]);
+  it("should parse 'init' with --recipe flag", () => {
+    const result = parseArgs(["init", "--recipe", "personal"]);
     expect(result.command).toBe("init");
-    expect(result.flags["model"]).toBe("rover");
+    expect(result.flags["recipe"]).toBe("personal");
   });
 
   it("should parse 'init' with --domain flag", () => {
@@ -116,6 +116,12 @@ describe("parseArgs", () => {
     expect(result.flags["storage-dir"]).toBe("./runtime/auth");
   });
 
+  it("should parse 'config migrate'", () => {
+    const result = parseArgs(["config", "migrate"]);
+    expect(result.command).toBe("config");
+    expect(result.args).toEqual(["migrate"]);
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");
@@ -180,7 +186,7 @@ describe("brain auth recovery", () => {
     const { runCommand } = await import("../src/run-command");
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover\npermissions:\n  admins:\n    - discord:admin\n",
+      "brain: brain\nbundles: [core]\npermissions:\n  admins:\n    - discord:admin\n",
     );
 
     const result = await runCommand(
@@ -203,7 +209,8 @@ describe("brain auth recovery", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       [
-        "brain: rover",
+        "brain: brain",
+        "bundles: [core]",
         "permissions:",
         "  admins:",
         "    - discord:admin-1",
@@ -245,7 +252,7 @@ describe("brain auth recovery", () => {
     const { runCommand } = await import("../src/run-command");
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover\nadmins:\n  - discord:admin-1\nanchors:\n",
+      "brain: brain\nbundles: [core]\nadmins:\n  - discord:admin-1\nanchors:\n",
     );
 
     const result = await runCommand(
@@ -415,7 +422,7 @@ describe("brain init (end-to-end)", () => {
     const result = await runCommand(
       {
         command: "init",
-        flags: { model: "rover" },
+        flags: { recipe: "personal" },
         args: [],
       },
       testDir,
@@ -431,7 +438,7 @@ describe("brain init (end-to-end)", () => {
     const result = await runCommand(
       {
         command: "init",
-        flags: { model: "rover" },
+        flags: { recipe: "personal" },
         args: ["mybrain"],
       },
       testDir,
@@ -451,7 +458,7 @@ describe("brain init (end-to-end)", () => {
       {
         command: "init",
         flags: {
-          model: "rover",
+          recipe: "personal",
           "ai-api-key": "sk-test-12345",
           "no-interactive": true,
         },
@@ -471,7 +478,7 @@ describe("brain init (end-to-end)", () => {
     const result = await runCommand(
       {
         command: "init",
-        flags: { model: "rover", "no-interactive": true },
+        flags: { recipe: "personal", "no-interactive": true },
         args: ["mybrain"],
       },
       testDir,
@@ -488,7 +495,7 @@ describe("brain init (end-to-end)", () => {
       {
         command: "init",
         flags: {
-          model: "rover",
+          recipe: "personal",
           "content-repo": "user/brain-data",
           "ai-api-key": "sk-test-12345",
           "no-interactive": true,
@@ -513,7 +520,7 @@ describe("brain init (end-to-end)", () => {
       {
         command: "init",
         flags: {
-          model: "rover",
+          recipe: "personal",
           backend: "env",
           "ai-api-key": "sk-test-12345",
           "no-interactive": true,

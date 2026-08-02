@@ -22,7 +22,7 @@ It also keeps a few local UI commands for terminal control:
 
 ## Usage
 
-This package is currently a private workspace package and is typically consumed through brain models or workspace imports.
+This package is currently a private workspace package and is typically consumed through the canonical definition or workspace imports.
 
 ```typescript
 import { CLIInterface } from "@brains/chat-repl";

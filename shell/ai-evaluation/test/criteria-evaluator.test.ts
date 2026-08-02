@@ -38,6 +38,44 @@ describe("evaluateCriteria", () => {
     ]);
   });
 
+  it("scopes negative expected tools to matching arguments", () => {
+    const criteria = {
+      expectedTools: [
+        {
+          toolName: "directory_sync",
+          argsContain: { action: "sync" },
+          shouldBeCalled: false,
+        },
+      ],
+    };
+
+    const statusOnly = evaluateCriteria(criteria, { text: "status" }, [
+      {
+        toolName: "directory_sync",
+        args: { action: "status" },
+        result: {},
+      },
+    ]);
+    const sync = evaluateCriteria(criteria, { text: "sync" }, [
+      {
+        toolName: "directory_sync",
+        args: { action: "sync" },
+        result: {},
+      },
+    ]);
+
+    expect(statusOnly).toEqual([
+      expect.objectContaining({ criterion: "expectedTool", passed: true }),
+    ]);
+    expect(sync).toEqual([
+      expect.objectContaining({
+        criterion: "expectedTool",
+        passed: false,
+        message: 'Tool "directory_sync" should not have been called',
+      }),
+    ]);
+  });
+
   it("passes expectedAnyTool when any listed tool was called", () => {
     const results = evaluateCriteria(
       {

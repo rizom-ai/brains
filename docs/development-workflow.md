@@ -230,14 +230,14 @@ bun install  # Installs all workspace dependencies
 - Tests should mirror the directory structure of the source code when practical
 - Test files should be named with `.test.ts` suffix
 - Use descriptive test names that explain the expected behavior
-- For Rover-specific agent behavior, run Rover evals from `brains/rover`, not from `shell/ai-evaluation`
+- For canonical agent behavior, run suites from `packages/brain-cli`, not directly from `shell/ai-evaluation`
 
-### Rover eval workflow
+### Canonical eval workflow
 
-For Rover behavior work, prefer the repo-standard eval entrypoint:
+Model-backed evals require explicit authorization. When authorized, use the package entrypoint:
 
 ```bash
-cd brains/rover
+cd packages/brain-cli
 bun run eval
 ```
 

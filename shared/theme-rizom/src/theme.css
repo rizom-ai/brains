@@ -18,7 +18,7 @@
  * brand guide A2.
  */
 
-/* Font imports come from @brains/theme-default, which this package layers
+/* Font imports come from @rizom/theme-default, which this package layers
    underneath the full Rizom brand overrides. */
 
 /* Brand-specific Tailwind utilities — exposed via @theme inline so

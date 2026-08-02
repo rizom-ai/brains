@@ -1,0 +1,106 @@
+brain: brain
+anchor: person
+kind: professional
+bundles:
+  - core
+  - site
+  - publishing
+mode: eval
+
+suites:
+  core:
+    bundles:
+      - core
+    tags:
+      - bundle-core
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/core
+  personal:
+    extends: core
+    bundles:
+      - core
+      - site
+      - publishing
+    tags:
+      - posture-personal
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/personal
+      site-builder:
+        autoRebuild: false
+  publishing:
+    extends: personal
+    bundles:
+      - core
+      - site
+      - publishing
+    tags:
+      - posture-publishing
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/publishing
+  team:
+    extends: core
+    anchor: team
+    kind: team
+    bundles:
+      - core
+      - site
+      - team
+    tags:
+      - posture-team
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/team
+      a2a:
+        requestTimeoutMs: 1000
+        streamIdleTimeoutMs: 1000
+        maxNetworkAttempts: 1
+      site-builder:
+        autoRebuild: false
+  commerce:
+    extends: core
+    anchor: organization
+    kind: organization
+    bundles:
+      - core
+      - site
+    add:
+      - products
+    tags:
+      - posture-commerce
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/commerce
+      site-builder:
+        autoRebuild: false
+
+models:
+  - gpt-5.6-luna
+judge: gpt-5.4-mini
+
+keys:
+  openai: ${OPENAI_API_KEY}
+
+permissions:
+  entityActions:
+    post:
+      update: trusted
+      publish: admin
+    social-post:
+      update: trusted
+      publish: admin
+    newsletter:
+      update: trusted
+      publish: admin
+
+plugins:
+  onboarding:
+    enabled: true
+  directory-sync:
+    seedContentPath: eval-content/publishing
+    autoSync: false
+    deleteOnFileRemoval: false
+    git:
+      gitUrl: "file://${EVAL_GIT_REMOTE}"

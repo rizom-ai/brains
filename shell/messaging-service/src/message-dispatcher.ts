@@ -31,6 +31,20 @@ export async function publishRequest(
   return null;
 }
 
+/** Invoke every matching request handler and preserve registration order. */
+export async function collectHandlerResponses(
+  message: MessageWithPayload<unknown>,
+  handlers: HandlerEntry[],
+  logger: Logger,
+): Promise<InternalMessageResponse[]> {
+  const responses = await Promise.all(
+    handlers.map((entry) => invokeHandler(entry, message, logger)),
+  );
+  return responses.filter(
+    (response): response is InternalMessageResponse => response !== null,
+  );
+}
+
 async function invokeHandler(
   entry: HandlerEntry,
   message: MessageWithPayload<unknown>,

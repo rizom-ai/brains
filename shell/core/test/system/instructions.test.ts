@@ -27,6 +27,9 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_list");
     expect(instructions).toContain("system_search");
     expect(instructions).toContain("run a fresh search for that turn");
+    expect(instructions).toContain(
+      "answer from them instead of redundantly calling system_list or system_get",
+    );
     expect(instructions).toContain("How do I discuss X in my writing?");
     expect(instructions).toContain("essays/articles/blog posts => post");
     expect(instructions).toContain(
@@ -46,9 +49,19 @@ describe("system instructions", () => {
     expect(instructions).toContain(
       "do not call system_status or system_search to check permission",
     );
+    expect(instructions).toContain(
+      "projection-owned or system-maintained types read-only",
+    );
+    expect(instructions).toContain("without calling read or write tools");
     expect(instructions).toContain("bare upload receipt");
     expect(instructions).toContain("image uploads as entityType image");
     expect(instructions).toContain("approve/archive an agent");
+    expect(instructions).toContain(
+      "proactively recording the user's request itself",
+    );
+    expect(instructions).toContain(
+      "even when the user did not use a separate save/create verb",
+    );
     expect(instructions).toContain(
       "Never call system_create for a status follow-up",
     );
@@ -109,6 +122,12 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain(
       "unless the user gives an exact entity id in quotes",
+    );
+    expect(instructions).toContain(
+      "An underspecified generation request still supplies a usable prompt",
+    );
+    expect(instructions).toContain(
+      "including after an optional search returns no source",
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",

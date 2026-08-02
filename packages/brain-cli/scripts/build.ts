@@ -4,7 +4,7 @@
  *
  * Produces dist/brain.js (~7MB, Bun target) containing:
  * - CLI commands (init, start, list, eval, --remote)
- * - All brain model definitions (rover, ranger, relay)
+ * - The canonical brain definition
  * - Full runtime (shell, plugins, entities, sites, themes)
  *
  * The entrypoint (src/entrypoint.ts) registers models and the boot function,
@@ -16,7 +16,6 @@ import {
   mkdirSync,
   cpSync,
   existsSync,
-  readdirSync,
   mkdtempSync,
   rmSync,
 } from "fs";
@@ -69,6 +68,14 @@ const accountUiAssetPath = join(
   "ui",
   "account-app.js",
 );
+const onboardingContentSourceDir = join(
+  monorepoRoot,
+  "plugins",
+  "onboarding",
+  "content",
+  "playbook",
+);
+const bundledOnboardingContentDir = join(outdir, "onboarding");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -128,10 +135,10 @@ if (!existsSync(accountUiAssetPath)) {
   process.exit(1);
 }
 
-console.log("Generating bundled model env schemas...");
+console.log("Generating canonical env schema...");
 const envSchemaScript = join(
   import.meta.dir,
-  "generate-bundled-model-env-schemas.ts",
+  "generate-canonical-env-schema.ts",
 );
 const envSchemaResult = Bun.spawnSync(["bun", envSchemaScript], {
   cwd: monorepoRoot,
@@ -213,6 +220,10 @@ const libraryEntries = [
   {
     name: "index",
     source: join(import.meta.dir, "..", "src", "entries", "index.ts"),
+  },
+  {
+    name: "model",
+    source: join(import.meta.dir, "..", "src", "entries", "model.ts"),
   },
   {
     name: "plugins",
@@ -352,6 +363,13 @@ const libraryBuild = bundleLibraries();
 // Declarations only need source files; run them concurrently with bundling.
 await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
 
+// ─── Copy package-owned onboarding assets ────────────────────────────────
+
+rmSync(bundledOnboardingContentDir, { recursive: true, force: true });
+cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
+  recursive: true,
+});
+
 // ─── Copy bundled web chat UI asset ───────────────────────────────────────
 
 mkdirSync(bundledWebChatUiDir, { recursive: true });
@@ -404,24 +422,6 @@ const migrationSources = [
 for (const { name, path } of migrationSources) {
   if (existsSync(path)) {
     cpSync(path, join(migrationsDir, name), { recursive: true });
-  }
-}
-
-// ─── Copy seed content from all brain models ──────────────────────────────
-
-const brainsDir = join(monorepoRoot, "brains");
-const seedDir = join(outdir, "seed-content");
-mkdirSync(seedDir, { recursive: true });
-
-for (const model of readdirSync(brainsDir)) {
-  const modelDir = join(brainsDir, model);
-  for (const entry of readdirSync(modelDir)) {
-    if (!entry.startsWith("seed-content")) continue;
-    const seedPath = join(modelDir, entry);
-    if (existsSync(seedPath)) {
-      const targetName = entry === "seed-content" ? model : `${model}-${entry}`;
-      cpSync(seedPath, join(seedDir, targetName), { recursive: true });
-    }
   }
 }
 

@@ -23,18 +23,14 @@
 10. Run `bunx brains-ops secrets:encrypt <repo> <handle>`.
 11. Commit and push `users/<handle>.secrets.yaml.age`.
 12. Run `bunx brains-ops onboard <repo> <handle>`.
-13. Verify the deployed Rover contract:
-    - all presets:
-      - `https://<handle>.rizom.ai/health` returns `200`
-      - `https://<handle>.rizom.ai/chat` loads the web chat and accepts passkey sign-in
-      - `https://<handle>.rizom.ai/` loads the dashboard (or site surface on `default` preset)
-      - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
-      - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
-      - content repo exists and runtime sync is healthy
-      - background jobs are not repeatedly failing, except for expected missing optional integrations
-    - for `presetOverride: default` users:
-      - initial site build completes
-14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the required default/site image tags, refreshes generated user env files, and redeploys affected users. Site overrides follow the user's effective brain version unless they declare an explicit exact `version` pin.
+13. Verify the deployed canonical contract:
+    - `https://<handle>.rizom.ai/health` returns `200`
+    - `https://<handle>.rizom.ai/chat` loads the web chat and accepts passkey sign-in
+    - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
+    - content repo exists and runtime sync is healthy
+    - background jobs are not repeatedly failing, except for expected missing optional integrations
+    - when `site` is selected, the browser/CMS surfaces load and the initial app-managed site build completes
+14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the required default/site image tags, refreshes generated user env files, and redeploys affected users. Every external site and theme package keeps its own required exact version pin and never follows the brain version implicitly.
 15. Confirm the user received the setup email, registered their passkey, and can sign in to web chat at `https://<handle>.rizom.ai/chat`. That completes the default onboarding; everything below is per-cohort extras.
 16. Hand over the browser surfaces:
     - Chat (primary): `https://<handle>.rizom.ai/chat`

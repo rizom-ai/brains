@@ -44,14 +44,14 @@ Most brains generate 0–5 images/day (cover images for posts, social media).
 
 ## Eval Costs
 
-The Rover core suite expands to 119 evaluated cases. In July 2026 controlled
+The alpha.204 core characterization expanded to 119 evaluated cases. In July 2026 controlled
 runs, the Luna agent averaged about **$1.70 per run** before prompt-cache
 discounts. The fixed `gpt-5.4-mini` judge is billed separately; judge usage is
 not currently included in the eval reporter's agent token totals.
 
 ## Model Comparison
 
-Observed Rover core agent usage from controlled July 2026 runs. Costs use
+Observed alpha.204 core agent usage from controlled July 2026 runs. Costs use
 uncached standard rates and exclude the fixed judge:
 
 | Model / configuration | Avg input tokens/run | Avg output tokens/run | Input price | Output price | Cost/run | Relative |

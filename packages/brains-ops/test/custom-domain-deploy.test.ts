@@ -127,7 +127,7 @@ describe("rover-pilot custom-domain deploy scripts", () => {
       );
       await writeFile(
         join(repo, "users", "alice", "brain.yaml"),
-        `brain: rover\ndomain: ${testCase.domain}\npreset: core\n`,
+        `brain: brain\ndomain: ${testCase.domain}\nbundles:\n  - core\n`,
       );
       await writeFile(outputPath, "");
 

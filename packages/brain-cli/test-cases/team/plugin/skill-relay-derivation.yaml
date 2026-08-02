@@ -1,0 +1,36 @@
+id: team-plugin-skill-derivation
+name: Derive Team Brain skills from collaboration topics
+description: Verifies skill derivation consolidates Team Brain team-memory topics into higher-level capabilities.
+type: plugin
+tags:
+  - posture-team
+  - team
+  - skills
+  - agent-discovery
+  - core
+plugin: skill
+handler: deriveSkills
+
+input:
+  topicTitles:
+    - Team Memory
+    - Capture and Synthesis
+    - Peer Brain Coordination
+    - Agent Directory
+    - Federated Coordination
+    - Team Brain Operating Model
+
+expectedOutput:
+  validateEach:
+    - path: skills[0].name
+      exists: true
+    - path: skills[0].description
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 3
+    minQualityScore: 3
+    evaluationPrompt: |
+      Evaluate whether the derived skills consolidate the Team Brain topics into action-oriented capabilities.
+      Good skills should cover team memory, capture/synthesis, peer-brain coordination, and operating-model guidance.
+      Penalize a one-to-one copy of every topic title, vague knowledge-only wording, or references to future plugins.

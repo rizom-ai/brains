@@ -1,9 +1,15 @@
 import { copyFileSync, existsSync, rmSync } from "fs";
 import { resolve as resolvePath } from "path";
 import type { AppConfig } from "@brains/app";
+import { internalFullScope, type IEntityService } from "@brains/plugins";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
-import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
+import {
+  bootEvalApp,
+  prepareEvalEnvironment,
+  resolveEvaluationContentDirectory,
+} from "./eval-environment";
+import { waitForIndexReadiness, waitForJobsToDrain } from "./eval-settle";
 
 interface BuildEvalDatabaseOptions {
   config: AppConfig;
@@ -64,7 +70,14 @@ export async function buildEvalDatabase(
   if (shutdownFailed) throw shutdownFailure;
 
   await checkpointDatabases(evalDbBase);
-  copyBuiltDatabases(evalDbBase);
+  const evalContentDir = resolveEvaluationContentDirectory({
+    brainModelPath: options.brainModelPath,
+    config: options.config,
+  });
+  if (!evalContentDir) {
+    throw new Error("No eval-content directory found");
+  }
+  copyBuiltDatabases(evalDbBase, evalContentDir);
 }
 
 function removeStaleBuiltDatabases(evalDbBase: string): void {
@@ -76,58 +89,22 @@ function removeStaleBuiltDatabases(evalDbBase: string): void {
   }
 }
 
-async function waitForJobsToDrain(jobQueue: {
-  getActiveJobs(): Promise<Array<{ type: string }>>;
-}): Promise<void> {
-  console.log("Waiting for jobs to drain...");
-
-  for (;;) {
-    const active = await jobQueue.getActiveJobs();
-    if (active.length === 0) break;
-
-    const byType: Record<string, number> = {};
-    for (const job of active) {
-      byType[job.type] = (byType[job.type] ?? 0) + 1;
-    }
-    console.log(
-      `  ${active.length} jobs: ${Object.entries(byType)
-        .map(([type, count]) => `${type}(${count})`)
-        .join(" ")}`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-}
-
-async function waitForIndexReadiness(entityService: {
-  awaitIndexReady(options: { timeoutMs: number }): Promise<{
-    ready: boolean;
-    degraded: boolean;
-    activeEmbeddingJobs: number;
-    missingEmbeddings: number;
-    staleEmbeddings: number;
-    failedEmbeddings: number;
-  }>;
-}): Promise<void> {
-  console.log("Waiting for semantic index readiness...");
-  const status = await entityService.awaitIndexReady({ timeoutMs: 120_000 });
-
-  if (!status.ready) {
-    throw new Error(`Semantic index was not ready: ${JSON.stringify(status)}`);
-  }
-
-  if (status.degraded) {
-    console.warn("Semantic index ready with degraded embeddings:", status);
-  }
-}
-
-async function verifyDatabaseContents(entityService: {
-  getEntityTypes(): string[];
-  listEntities(request: { entityType: string }): Promise<unknown[]>;
-}): Promise<void> {
+async function verifyDatabaseContents(
+  entityService: Pick<IEntityService, "getEntityTypes" | "listEntities">,
+): Promise<void> {
   const counts: Record<string, number> = {};
 
   for (const type of entityService.getEntityTypes()) {
-    const entities = await entityService.listEntities({ entityType: type });
+    const entities = await entityService.listEntities({
+      entityType: type,
+      options: {
+        filter: {
+          visibilityScope: internalFullScope(
+            "eval database verification counts all visibility tiers",
+          ),
+        },
+      },
+    });
     if (entities.length > 0) counts[type] = entities.length;
   }
   console.log("Database contents:", counts);
@@ -150,12 +127,10 @@ async function checkpointDatabases(evalDbBase: string): Promise<void> {
   }
 }
 
-function copyBuiltDatabases(evalDbBase: string): void {
-  const evalContentDir = resolvePath(process.cwd(), "eval-content");
-  if (!existsSync(evalContentDir)) {
-    throw new Error("No eval-content directory found");
-  }
-
+export function copyBuiltDatabases(
+  evalDbBase: string,
+  evalContentDir: string,
+): void {
   const databasePairs = [
     { source: `${evalDbBase}.db`, output: "brain.db" },
     { source: `${evalDbBase}-embeddings.db`, output: "embeddings.db" },
