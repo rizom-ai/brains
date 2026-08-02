@@ -36,10 +36,14 @@ function fieldLabel(key: string): string {
 // `.unwrap()`/`.element` return the core `$ZodType` (a supertype of `ZodType`),
 // so `unknown` + `instanceof` keeps this cast-free.
 
-/** Peel optional/nullable wrappers to reach the value type. */
+/** Peel optional/nullable/default wrappers to reach the value type. */
 function unwrap(schema: unknown): unknown {
   let current = schema;
-  while (current instanceof z.ZodOptional || current instanceof z.ZodNullable) {
+  while (
+    current instanceof z.ZodOptional ||
+    current instanceof z.ZodNullable ||
+    current instanceof z.ZodDefault
+  ) {
     current = current.unwrap();
   }
   return current;

@@ -65,6 +65,27 @@ describe("sectionToTemplate", () => {
     expect("note" in (parsed as Record<string, unknown>)).toBe(false);
   });
 
+  test("accepts fields wrapped in a default, as site packages author them", () => {
+    // rizom-ai authors caption notes as z.string().nullable().default(null);
+    // template derivation must see through the default wrapper.
+    const { formatter } = sectionToTemplate(
+      "capped",
+      defineSection(
+        z.object({
+          cap: z.string(),
+          capNote: z.string().nullable().default(null),
+          order: z.number().default(0),
+        }),
+        noop,
+        { title: "Capped", description: "d" },
+      ),
+    );
+    if (!formatter) throw new Error("expected a formatter");
+
+    const value = { cap: "Proof", capNote: "01 — Live", order: 2 };
+    expect(formatter.parse(formatter.format(value))).toEqual(value);
+  });
+
   test("uses the section title as H1 and title-cases derived field labels", () => {
     const { formatter } = sectionToTemplate(
       "cta",
