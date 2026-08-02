@@ -1,0 +1,288 @@
+import { readdir, readFile } from "node:fs/promises";
+import { internalFullScope } from "@brains/entity-service";
+import type {
+  JobQueueDiagnostics,
+  JobQueueWorkerStats,
+} from "@brains/job-queue";
+import type {
+  DaemonStatusInfo,
+  RuntimeHealthCheck,
+  RuntimeReadiness,
+} from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
+import type { ShellServices } from "./types/shell-types";
+import type { ProjectionRuntimeDiagnostics } from "./projection-runtime-supervisor";
+
+interface ProcessSignals {
+  fileDescriptors: number | null;
+  processCount: number | null;
+  zombieCount: number | null;
+}
+
+interface RuntimeMemoryUsage {
+  rss: number;
+  heapUsed: number;
+  heapTotal: number;
+}
+
+export interface RuntimeReadinessOptions {
+  entityService: Pick<ShellServices["entityService"], "getEntityCounts">;
+  jobQueueService: Pick<ShellServices["jobQueueService"], "getDiagnostics">;
+  jobQueueWorker: Pick<ShellServices["jobQueueWorker"], "getStats">;
+  daemonRegistry: Pick<ShellServices["daemonRegistry"], "getStatuses">;
+  projectionRuntimeSupervisor: Pick<
+    ShellServices["projectionRuntimeSupervisor"],
+    "getDiagnostics"
+  >;
+  now?: () => number;
+  memoryUsage?: () => RuntimeMemoryUsage;
+  readProcessSignals?: () => Promise<ProcessSignals>;
+}
+
+async function readLinuxProcessSignals(
+  procRoot = "/proc",
+): Promise<ProcessSignals> {
+  let fileDescriptors: number | null = null;
+  try {
+    fileDescriptors = (await readdir(`${procRoot}/self/fd`)).length;
+  } catch {
+    // /proc is Linux-specific; unavailable metrics remain explicit nulls.
+  }
+
+  try {
+    const entries = await readdir(procRoot, { withFileTypes: true });
+    const processIds = entries
+      .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+      .map((entry) => entry.name);
+    let zombies = 0;
+    let readableProcesses = 0;
+    await Promise.all(
+      processIds.map(async (processId) => {
+        try {
+          const status = await readFile(
+            `${procRoot}/${processId}/status`,
+            "utf8",
+          );
+          readableProcesses++;
+          if (/^State:\s+Z\b/m.test(status)) zombies++;
+        } catch {
+          // A process may exit between directory enumeration and status read.
+        }
+      }),
+    );
+    return {
+      fileDescriptors,
+      processCount: readableProcesses,
+      zombieCount: zombies,
+    };
+  } catch {
+    return { fileDescriptors, processCount: null, zombieCount: null };
+  }
+}
+
+function dependencyCheck(
+  name: string,
+  result: PromiseSettledResult<unknown>,
+  healthyMessage: string,
+): RuntimeHealthCheck {
+  return result.status === "fulfilled"
+    ? { name, status: "healthy", message: healthyMessage }
+    : {
+        name,
+        status: "unhealthy",
+        message: getErrorMessage(result.reason),
+      };
+}
+
+function workerCheck(stats: JobQueueWorkerStats): RuntimeHealthCheck {
+  const healthy = stats.isRunning && stats.isHealthy;
+  return {
+    name: "job-worker",
+    status: healthy ? "healthy" : "unhealthy",
+    message: healthy
+      ? "Worker is accepting claims"
+      : (stats.unhealthyReason ??
+        (stats.isRunning ? "Worker is unhealthy" : "Worker is not running")),
+  };
+}
+
+function leaseCheck(
+  diagnostics: JobQueueDiagnostics | null,
+): RuntimeHealthCheck {
+  if (!diagnostics) {
+    return {
+      name: "attempt-leases",
+      status: "unhealthy",
+      message: "Lease state is unavailable",
+    };
+  }
+  return diagnostics.staleLeaseCount === 0
+    ? {
+        name: "attempt-leases",
+        status: "healthy",
+        message: "No stale processing leases",
+      }
+    : {
+        name: "attempt-leases",
+        status: "unhealthy",
+        message: `${diagnostics.staleLeaseCount} processing lease(s) are stale`,
+        details: { staleLeaseCount: diagnostics.staleLeaseCount },
+      };
+}
+
+function projectionCheck(
+  diagnostics: ProjectionRuntimeDiagnostics,
+): RuntimeHealthCheck {
+  if (!diagnostics.initialized) {
+    return {
+      name: "projection-circuits",
+      status: "unhealthy",
+      message: "Projection runtime supervisor is not initialized",
+    };
+  }
+  if (diagnostics.openCircuits.length === 0) {
+    return {
+      name: "projection-circuits",
+      status: "healthy",
+      message: "No projection circuits are open",
+    };
+  }
+  return {
+    name: "projection-circuits",
+    status: "unhealthy",
+    message: `${diagnostics.openCircuits.length} projection circuit(s) open`,
+    details: { circuits: diagnostics.openCircuits },
+  };
+}
+
+function daemonCheck(statuses: DaemonStatusInfo[]): RuntimeHealthCheck {
+  const unhealthy = statuses.filter(
+    (daemon) =>
+      daemon.status !== "running" || daemon.health?.status === "error",
+  );
+  return unhealthy.length === 0
+    ? {
+        name: "daemons",
+        status: "healthy",
+        message: `${statuses.length} daemon(s) healthy`,
+      }
+    : {
+        name: "daemons",
+        status: "unhealthy",
+        message: `${unhealthy.length} daemon(s) unhealthy`,
+        details: {
+          daemons: unhealthy.map((daemon) => ({
+            name: daemon.name,
+            status: daemon.status,
+            health: daemon.health?.status,
+            message: daemon.health?.message,
+          })),
+        },
+      };
+}
+
+export async function getRuntimeReadiness(
+  options: RuntimeReadinessOptions,
+): Promise<RuntimeReadiness> {
+  const now = options.now?.() ?? Date.now();
+  const memory = (options.memoryUsage ?? process.memoryUsage)();
+  const workerStats = options.jobQueueWorker.getStats();
+  const [
+    entityResult,
+    queueResult,
+    daemonResult,
+    processResult,
+    projectionResult,
+  ] = await Promise.allSettled([
+    options.entityService.getEntityCounts(
+      internalFullScope("runtime readiness database probe"),
+    ),
+    options.jobQueueService.getDiagnostics(now),
+    options.daemonRegistry.getStatuses(),
+    (options.readProcessSignals ?? readLinuxProcessSignals)(),
+    options.projectionRuntimeSupervisor.getDiagnostics(),
+  ]);
+
+  const diagnostics =
+    queueResult.status === "fulfilled" ? queueResult.value : null;
+  const daemonStatuses =
+    daemonResult.status === "fulfilled" ? daemonResult.value : [];
+  const processSignals =
+    processResult.status === "fulfilled"
+      ? processResult.value
+      : {
+          fileDescriptors: null,
+          processCount: null,
+          zombieCount: null,
+        };
+  const projectionDiagnostics: ProjectionRuntimeDiagnostics =
+    projectionResult.status === "fulfilled"
+      ? projectionResult.value
+      : {
+          status: "unhealthy",
+          initialized: false,
+          trackedRoots: 0,
+          openCircuits: [],
+        };
+  const checks: RuntimeHealthCheck[] = [
+    dependencyCheck(
+      "entity-database",
+      entityResult,
+      "Entity database is accessible",
+    ),
+    dependencyCheck(
+      "job-queue-database",
+      queueResult,
+      "Job queue database is accessible",
+    ),
+    workerCheck(workerStats),
+    leaseCheck(diagnostics),
+    projectionResult.status === "fulfilled"
+      ? projectionCheck(projectionDiagnostics)
+      : dependencyCheck(
+          "projection-circuits",
+          projectionResult,
+          "No projection circuits are open",
+        ),
+    daemonResult.status === "fulfilled"
+      ? daemonCheck(daemonStatuses)
+      : dependencyCheck("daemons", daemonResult, "Daemons are healthy"),
+  ];
+
+  return {
+    status: checks.some((check) => check.status === "unhealthy")
+      ? "not_ready"
+      : "ready",
+    checkedAt: new Date(now).toISOString(),
+    checks,
+    resources: {
+      memory: {
+        rssBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        heapTotalBytes: memory.heapTotal,
+      },
+      fileDescriptors: processSignals.fileDescriptors,
+      processes: {
+        total: processSignals.processCount,
+        zombies: processSignals.zombieCount,
+      },
+      queue: diagnostics,
+      projection: {
+        initialized: projectionDiagnostics.initialized,
+        trackedRoots: projectionDiagnostics.trackedRoots,
+        openCircuits: projectionDiagnostics.openCircuits,
+      },
+      worker: {
+        isRunning: workerStats.isRunning,
+        isHealthy: workerStats.isHealthy,
+        activeJobs: workerStats.activeJobs,
+        processedJobs: workerStats.processedJobs,
+        failedJobs: workerStats.failedJobs,
+        uptimeMs: workerStats.uptime,
+        ...(workerStats.unhealthyReason && {
+          unhealthyReason: workerStats.unhealthyReason,
+        }),
+      },
+    },
+  };
+}

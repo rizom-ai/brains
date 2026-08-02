@@ -536,6 +536,192 @@ describe("SwotDerivationHandler", () => {
     expect(receivedPrompts[1]).toContain('"editorial writing"');
   });
 
+  it("skips unchanged projection inputs after a successful derivation", async () => {
+    const plugin = new SwotAssessmentPlugin();
+    await harness.installPlugin(plugin);
+
+    const shell = harness.getMockShell();
+    let callCount = 0;
+    shell.generateObject = async <T>(
+      prompt: string,
+      schema: unknown,
+    ): Promise<{ object: T }> => {
+      callCount += 1;
+      return {
+        object: parseGenerated(
+          schema,
+          prompt.includes("Draft SWOT:")
+            ? {
+                strengths: [
+                  {
+                    sourceTheme: "research",
+                    title: "Research",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    theme: "research",
+                    evidence: "clear owner skill",
+                    action: "keep using it",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              },
+        ),
+      };
+    };
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
+      },
+    });
+
+    const handler = new SwotDerivationHandler(
+      shell.getLogger(),
+      harness.getEntityContext("swot"),
+    );
+    const reporter = { report: async (): Promise<void> => {} };
+
+    await handler.process({ reason: "first" }, "job-1", reporter as never);
+    const first = await harness.getEntityService().getEntity({
+      entityType: "swot",
+      id: "swot",
+    });
+    await handler.process({ reason: "unchanged" }, "job-2", reporter as never);
+    const second = await harness.getEntityService().getEntity({
+      entityType: "swot",
+      id: "swot",
+    });
+
+    expect(callCount).toBe(2);
+    expect(second).toEqual(first);
+  });
+
+  it("does not update SWOT when changed inputs produce the same semantic quadrants", async () => {
+    const plugin = new SwotAssessmentPlugin();
+    await harness.installPlugin(plugin);
+
+    const shell = harness.getMockShell();
+    let callCount = 0;
+    shell.generateObject = async <T>(
+      prompt: string,
+      schema: unknown,
+    ): Promise<{ object: T }> => {
+      callCount += 1;
+      return {
+        object: parseGenerated(
+          schema,
+          prompt.includes("Draft SWOT:")
+            ? {
+                strengths: [
+                  {
+                    sourceTheme: "research",
+                    title: "Research",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    theme: "research",
+                    evidence: "clear owner skill",
+                    action: "keep using it",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              },
+        ),
+      };
+    };
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
+      },
+    });
+
+    const handler = new SwotDerivationHandler(
+      shell.getLogger(),
+      harness.getEntityContext("swot"),
+    );
+    const reporter = { report: async (): Promise<void> => {} };
+    await handler.process({ reason: "first" }, "job-1", reporter as never);
+    const first = await harness.getEntityService().getEntity({
+      entityType: "swot",
+      id: "swot",
+    });
+    const skill = await harness.getEntityService().getEntity({
+      entityType: "skill",
+      id: "skill-1",
+    });
+    if (!skill) throw new Error("Expected skill fixture");
+
+    await harness.getEntityService().updateEntity({
+      entity: {
+        ...skill,
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Updated research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          ...skill.metadata,
+          description: "Updated research skill",
+        },
+      },
+    });
+    await handler.process({ reason: "changed" }, "job-2", reporter as never);
+    const second = await harness.getEntityService().getEntity({
+      entityType: "swot",
+      id: "swot",
+    });
+
+    expect(callCount).toBe(4);
+    expect(second).toEqual(first);
+  });
+
   it("updates the existing swot entity instead of creating a duplicate", async () => {
     const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
@@ -606,6 +792,26 @@ describe("SwotDerivationHandler", () => {
 
     const reporter = { report: async (): Promise<void> => {} };
     await handler.process({ reason: "first" }, "job-1", reporter as never);
+    const sourceSkill = await harness.getEntityService().getEntity({
+      entityType: "skill",
+      id: "skill-1",
+    });
+    if (!sourceSkill) throw new Error("Expected skill fixture");
+    await harness.getEntityService().updateEntity({
+      entity: {
+        ...sourceSkill,
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Changed research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          ...sourceSkill.metadata,
+          description: "Changed research skill",
+        },
+      },
+    });
     await handler.process({ reason: "second" }, "job-2", reporter as never);
 
     const entities = await harness.getEntityService().listEntities({

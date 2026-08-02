@@ -8,6 +8,7 @@ import type {
 } from "@brains/entity-service";
 import type { JudgeInput, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
+import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
@@ -119,6 +120,9 @@ export interface BasePluginContext {
 
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
+
+  /** Runtime dependency readiness and bounded resource signals. */
+  readonly readiness: () => Promise<RuntimeReadiness>;
 
   /** Bounded model-as-judge capability; schema-constrained verdicts only. */
   readonly judge: <T>(input: JudgeInput<T>) => Promise<{
@@ -295,6 +299,7 @@ export function createBasePluginContext(
     inbox: createInboxNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
+    readiness: () => shell.getRuntimeReadiness(),
     judge: (input) => shell.judge(input),
 
     domain,

@@ -9,6 +9,8 @@ export interface GitInitializeOptions {
   remoteUrl: string;
   authenticatedUrl: string;
   branch: string;
+  timeoutMs: number;
+  signal?: AbortSignal | undefined;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
 }
@@ -23,6 +25,8 @@ export async function initializeGitRepository(
     remoteUrl,
     authenticatedUrl,
     branch,
+    timeoutMs,
+    signal,
     authorName,
     authorEmail,
   } = options;
@@ -35,6 +39,8 @@ export async function initializeGitRepository(
     remoteUrl,
     authenticatedUrl,
     branch,
+    timeoutMs,
+    signal,
   });
 
   await configureIdentity(git, authorName, authorEmail);

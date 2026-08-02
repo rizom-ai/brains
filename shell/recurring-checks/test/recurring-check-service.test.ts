@@ -119,7 +119,12 @@ class TestJobQueue {
     if (!handler) throw new Error(`No handler for ${request.type}`);
     const data = handler.validateAndParse(request.data);
     if (data === null) throw new Error("Invalid test job");
-    await handler.process(data, "job", {} as never);
+    await handler.process(
+      data,
+      "job",
+      {} as never,
+      new AbortController().signal,
+    );
   }
 }
 

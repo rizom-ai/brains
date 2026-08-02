@@ -17,6 +17,7 @@ import type {
   UpdateEntityRequest,
   UpsertEntityRequest,
   EntityRegistry,
+  EntityMutationAdmission,
 } from "./types";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
@@ -116,6 +117,7 @@ export interface EntityMutationDeps {
   jobQueueService: IJobQueueService;
   logger: Logger;
   messageBus?: EntityEventBus;
+  mutationAdmission?: EntityMutationAdmission;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
 }
@@ -132,6 +134,7 @@ export class EntityMutations {
   private entityQueries: EntityQueries;
   private jobQueueService: IJobQueueService;
   private messageBus?: EntityEventBus;
+  private mutationAdmission?: EntityMutationAdmission;
   private logger: Logger;
 
   constructor(deps: EntityMutationDeps) {
@@ -144,6 +147,9 @@ export class EntityMutations {
     this.logger = deps.logger.child("EntityMutations");
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
+    }
+    if (deps.mutationAdmission) {
+      this.mutationAdmission = deps.mutationAdmission;
     }
   }
 
@@ -199,6 +205,12 @@ export class EntityMutations {
         validatedEntity.entityType,
       );
     }
+
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "create",
+      entityType: validatedEntity.entityType,
+      entityId: finalId,
+    });
 
     // Write entity to database immediately (without embedding)
     await this.db.insert(entities).values({
@@ -345,6 +357,12 @@ export class EntityMutations {
       return { entityId: validatedEntity.id, jobId: "", skipped: true };
     }
 
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "update",
+      entityType: validatedEntity.entityType,
+      entityId: validatedEntity.id,
+    });
+
     const updateResult = await this.db
       .update(entities)
       .set({
@@ -429,6 +447,14 @@ export class EntityMutations {
     const prior = priorData
       ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
       : undefined;
+
+    if (priorData) {
+      await this.mutationAdmission?.assertMutationAdmission({
+        operation: "delete",
+        entityType,
+        entityId: id,
+      });
+    }
 
     const deleted = await this.entityQueries.deleteEntity(entityType, id);
 

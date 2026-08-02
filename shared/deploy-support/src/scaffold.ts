@@ -381,6 +381,13 @@ ${workflowSecretsEnv}
           PREVIEW_DOMAIN: \${{ env.PREVIEW_DOMAIN }}
         run: kamal setup --skip-push
 
+      - name: Install container health watchdog
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')" \\
+            bun deploy/scripts/install-health-watchdog.ts
+
       - name: Verify origin TLS
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}

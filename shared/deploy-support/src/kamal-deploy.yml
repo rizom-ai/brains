@@ -18,7 +18,7 @@ proxy:
     - <%= ENV['PREVIEW_DOMAIN'] %>
   app_port: 8080
   healthcheck:
-    path: /health
+    path: /health/ready
 
 registry:
   server: ghcr.io

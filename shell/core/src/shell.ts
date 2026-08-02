@@ -1,6 +1,7 @@
 // Plugin framework types
 import type {
   RuntimeAppInfo,
+  RuntimeReadiness,
   ContentGenerationConfig,
   EndpointInfo,
   EndpointInfoInput,
@@ -77,6 +78,7 @@ import { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
+import { getRuntimeReadiness } from "./runtime-health";
 import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
@@ -677,5 +679,9 @@ export class Shell implements IShell {
       endpoints: () => this.listEndpoints(),
       interactions: () => this.listInteractions(),
     });
+  }
+
+  public getRuntimeReadiness(): Promise<RuntimeReadiness> {
+    return getRuntimeReadiness(this.services);
   }
 }

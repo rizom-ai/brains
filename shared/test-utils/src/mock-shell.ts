@@ -21,6 +21,7 @@ import type {
   ToolInfo,
   IMCPTransport,
   RuntimeAppInfo,
+  RuntimeReadiness,
   Daemon,
   EndpointInfo,
   EndpointInfoInput,
@@ -125,7 +126,7 @@ function createDefaultMockAgentService(): IAgentService {
   };
 }
 
-function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
+export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   const namespaces = new Map<
     string,
     Map<string, { value: unknown; createdAt: Date; updatedAt: Date }>
@@ -824,6 +825,36 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       interactions: [...interactions].sort(
         (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
       ),
+    }),
+    getRuntimeReadiness: async (): Promise<RuntimeReadiness> => ({
+      status: "ready",
+      checkedAt: new Date().toISOString(),
+      checks: [],
+      resources: {
+        memory: { rssBytes: 0, heapUsedBytes: 0, heapTotalBytes: 0 },
+        fileDescriptors: null,
+        processes: { total: null, zombies: null },
+        queue: {
+          totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
+          byType: [],
+          oldestPendingAgeMs: null,
+          oldestProcessingAgeMs: null,
+          staleLeaseCount: 0,
+        },
+        projection: {
+          initialized: true,
+          trackedRoots: 0,
+          openCircuits: [],
+        },
+        worker: {
+          isRunning: true,
+          isHealthy: true,
+          activeJobs: 0,
+          processedJobs: 0,
+          failedJobs: 0,
+          uptimeMs: 0,
+        },
+      },
     }),
 
     // High-level operations

@@ -9,14 +9,53 @@ export {
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
 export {
+  computeProjectionInputFingerprint,
+  getProjectionDeclaration,
   hasPersistedTargets,
   reconcileDerivedEntities,
   registerDerivedEntityProjection,
   type DerivedEntityProjection,
   type DerivedEntityProjectionController,
   type EntityChangePayload,
+  type ProjectionSourceChangeConfig,
   type ReconcileDerivedEntitiesResult,
 } from "./entity/derived-entity-projection";
+export {
+  ProjectionJsonObjectSchema,
+  ProjectionJsonValueSchema,
+  ProjectionWriteIntentSchema,
+  defineProjectionRule,
+  getProjectionRuleDeclaration,
+  type ProjectionEntityReader,
+  type ProjectionEntityWrite,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  type ProjectionJsonObject,
+  type ProjectionJsonValue,
+  type ProjectionRule,
+  type ProjectionRuleDefinition,
+  type ProjectionRuleEntitySource,
+  type ProjectionWaveInput,
+  type ProjectionWaveTrigger,
+  type ProjectionWriteIntent,
+} from "./entity/projection-rule";
+export {
+  ProjectionDeclarationSchema,
+  ProjectionEntitySourceSchema,
+  ProjectionEventSourceSchema,
+  ProjectionFeedbackPolicySchema,
+  ProjectionSourceSchema,
+  type ProjectionDeclaration,
+  type ProjectionDeclarationInput,
+  type ProjectionEntityType,
+  type ProjectionExecutionOwner,
+  type ProjectionFeedbackPolicy,
+  type ProjectionGraph,
+  type ProjectionGraphEdge,
+  type ProjectionUnknownSourceTypes,
+  type ProjectionSource,
+  type RegisteredProjection,
+} from "./entity/projection-registry";
 export type {
   EntityPluginContext,
   IEntitiesNamespace,
@@ -360,6 +399,18 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export {
+  RuntimeHealthCheckSchema,
+  RuntimeQueueSignalsSchema,
+  RuntimeReadinessSchema,
+  RuntimeResourceSignalsSchema,
+  type RuntimeHealthCheck,
+  type RuntimeProjectionCircuitSignal,
+  type RuntimeProjectionSignals,
+  type RuntimeQueueSignals,
+  type RuntimeReadiness,
+  type RuntimeResourceSignals,
+} from "./contracts/runtime-health";
 export {
   ConversationSchema,
   MessageSchema,

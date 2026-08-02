@@ -65,6 +65,9 @@ import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
+import type { RuntimeReadiness } from "./contracts/runtime-health";
+import type { ProjectionDeclaration } from "./entity/projection-registry";
+import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -329,8 +332,9 @@ export interface IShell {
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;
 
-  // App metadata
+  // App metadata and runtime health
   getAppInfo(): Promise<RuntimeAppInfo>;
+  getRuntimeReadiness(): Promise<RuntimeReadiness>;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
@@ -468,6 +472,10 @@ export interface PluginCapabilities {
   tools: Tool[];
   resources: Resource[];
   instructions?: string;
+  /** Immutable event-owned projection graph declarations. */
+  projections?: ProjectionDeclaration[];
+  /** Immutable scheduler-owned executable projection capabilities. */
+  projectionRules?: ProjectionRule[];
 }
 
 /**

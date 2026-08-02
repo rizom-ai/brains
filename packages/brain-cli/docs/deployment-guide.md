@@ -298,6 +298,17 @@ docker run -d \
   ghcr.io/<owner>/<repo>:latest
 ```
 
-## Health Check
+## Health checks and recovery
 
-The brain exposes `/health` on the webserver port. Kamal uses this for zero-downtime deploys — the new container must pass the health check before traffic switches over.
+The webserver exposes three health surfaces:
+
+- `/health/live` is a dependency-free event-loop liveness probe;
+- `/health/ready` checks databases, queue worker and lease state, and daemons;
+- `/health` is the readiness-aware compatibility response.
+
+Kamal uses `/health/ready` for zero-downtime rollout, so a new container must be
+ready before traffic switches. The image's Docker `HEALTHCHECK` uses
+`/health/live`. Generated deploy workflows install a host systemd watchdog that
+restarts containers only after Docker's consecutive liveness failures, saves
+inspect output and recent logs under `/var/log/brains-health-watchdog`, and
+limits automatic recovery to three restarts per hour for each container.

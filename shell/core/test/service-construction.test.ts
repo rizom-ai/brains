@@ -1,4 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import type {
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+} from "@brains/runtime-state";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { createSilentLogger } from "@brains/test-utils";
@@ -40,10 +44,20 @@ describe("Shell service construction", () => {
         }),
       },
       runtimeStateService: {
+        initialize: async (): Promise<void> => {},
+        scoped: <T>(): IRuntimeStateStore<T> => ({
+          get: async (): Promise<T | null> => null,
+          has: async (): Promise<boolean> => false,
+          set: async (): Promise<void> => {},
+          setIfNotExists: async (): Promise<boolean> => true,
+          delete: async (): Promise<boolean> => false,
+          list: async (): Promise<RuntimeStateRecordValue<T>[]> => [],
+          clear: async (): Promise<number> => 0,
+        }),
         close: (): void => {
           runtimeStateCloseCalls++;
         },
-      } as NonNullable<ShellDependencies["runtimeStateService"]>,
+      },
       recurringCheckService: {
         start: async (): Promise<void> => {},
         stop: async (): Promise<void> => {},

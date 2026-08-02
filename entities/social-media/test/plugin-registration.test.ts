@@ -33,6 +33,23 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
         publish: { publishStatuses: ["queued", "published", "failed"] },
       });
     });
+
+    it("declares scheduled and post-triggered generation dependencies", async () => {
+      const capabilities = await harness.installPlugin(
+        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
+      );
+
+      expect(capabilities.projections).toEqual([
+        {
+          id: "social-post-generation",
+          targetType: "social-post",
+          sources: [
+            { kind: "entity", types: ["post"] },
+            { kind: "event", events: ["generate:execute"] },
+          ],
+        },
+      ]);
+    });
   });
 
   describe("provider registration", () => {

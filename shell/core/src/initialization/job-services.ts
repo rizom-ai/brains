@@ -26,6 +26,8 @@ import {
 } from "@brains/utils/effect";
 import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
+import { OperationContext } from "@brains/operation-context";
+import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 
 export interface JobServices {
   batchJobManager: IBatchJobManager;
@@ -44,7 +46,22 @@ export interface JobServiceOptions {
   dependencies: ShellDependencies | undefined;
   jobQueueConfig: JobQueueServiceConfig;
   messageBus: MessageBus;
+  operationContext?: OperationContext;
+  projectionAdmission?: ProjectionRuntimeSupervisor;
   logger: Logger;
+}
+
+export function createFatalJobWorkerHandler(
+  logger: Logger,
+  exitProcess: (code: number) => void = (code) => process.exit(code),
+): (reason: string) => void {
+  return (reason): void => {
+    logger.error("Job queue worker requires process restart", {
+      reason,
+      exitCode: 1,
+    });
+    exitProcess(1);
+  };
 }
 
 function closeScopeSync(scope: Scope.CloseableScope): void {
@@ -58,6 +75,8 @@ function closeScopeSync(scope: Scope.CloseableScope): void {
  * database remains available until dependent shell resources are released.
  */
 export function initializeJobServices(options: JobServiceOptions): JobServices {
+  const operationContext =
+    options.operationContext ?? OperationContext.createFresh();
   const databaseScope = Effect.runSync(Scope.make());
   let runtimeScope: Scope.CloseableScope | undefined;
   let runtimeLayerHandle: JobQueueRuntimeLayerHandle | undefined;
@@ -68,6 +87,10 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
         createJobQueueServiceLayer({
           config: options.jobQueueConfig,
           logger: options.logger,
+          operationContext,
+          ...(options.projectionAdmission && {
+            projectionAdmission: options.projectionAdmission,
+          }),
           ...(options.dependencies?.jobQueueService && {
             service: options.dependencies.jobQueueService,
           }),
@@ -82,6 +105,8 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
     const acquiredRuntimeLayerHandle = createJobQueueRuntimeLayer({
       messageBus: options.messageBus,
       logger: options.logger,
+      operationContext,
+      onWorkerUnhealthy: createFatalJobWorkerHandler(options.logger),
       ...(options.dependencies?.batchJobManager && {
         batchJobManager: options.dependencies.batchJobManager,
       }),

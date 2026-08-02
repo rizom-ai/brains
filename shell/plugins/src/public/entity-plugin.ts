@@ -10,7 +10,11 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { EntityPluginContext } from "./types";
+import type {
+  EntityPluginContext,
+  ProjectionDeclaration,
+  ProjectionRule,
+} from "./types";
 import {
   PublicPlugin,
   type PluginPackageJson,
@@ -29,6 +33,10 @@ interface EntityPluginHooks<TEntity extends BaseEntity> {
   onShutdown(): Promise<void>;
   getEntityTypeConfig(): EntityTypeConfig | undefined;
   getDataSources(): DataSource[];
+  getProjectionRules(context: EntityPluginContext): ProjectionRule[];
+  getProjectionDeclarations(
+    context: EntityPluginContext,
+  ): ProjectionDeclaration[];
   getInstructions(): Promise<string | undefined>;
   interceptCreate(
     input: CreateInput,
@@ -91,6 +99,18 @@ class EntityPluginDelegate<
     return this.hooks.getDataSources();
   }
 
+  protected override getProjectionRules(
+    context: RuntimeEntityPluginContext,
+  ): ProjectionRule[] {
+    return this.hooks.getProjectionRules(context);
+  }
+
+  protected override getProjectionDeclarations(
+    context: RuntimeEntityPluginContext,
+  ): ProjectionDeclaration[] {
+    return this.hooks.getProjectionDeclarations(context);
+  }
+
   protected override getInstructions(): Promise<string | undefined> {
     return this.hooks.getInstructions();
   }
@@ -131,6 +151,10 @@ export abstract class EntityPlugin<
         getEntityTypeConfig: (): EntityTypeConfig | undefined =>
           this.getEntityTypeConfig(),
         getDataSources: (): DataSource[] => this.getDataSources(),
+        getProjectionRules: (context): ProjectionRule[] =>
+          this.getProjectionRules(context),
+        getProjectionDeclarations: (context): ProjectionDeclaration[] =>
+          this.getProjectionDeclarations(context),
         getInstructions: (): Promise<string | undefined> =>
           this.getInstructions(),
         interceptCreate: (
@@ -153,6 +177,16 @@ export abstract class EntityPlugin<
     return undefined;
   }
   protected getDataSources(): DataSource[] {
+    return [];
+  }
+  protected getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return [];
+  }
+  protected getProjectionDeclarations(
+    _context: EntityPluginContext,
+  ): ProjectionDeclaration[] {
     return [];
   }
   protected async interceptCreate(

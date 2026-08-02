@@ -1,4 +1,5 @@
 import {
+  computeProjectionInputFingerprint,
   reconcileDerivedEntities,
   scopedDerivedId,
   type ContentVisibility,
@@ -20,6 +21,8 @@ import { SKILL_DERIVATION_TEMPLATE_REF, SKILL_ENTITY_TYPE } from "./constants";
 const topicMetadataSchema = z.looseObject({
   name: z.string().optional(),
 });
+const SKILL_INPUT_FINGERPRINT_VERSION = "skill-input-v1";
+const SKILL_INPUT_FINGERPRINT_KEY = "last-successful";
 
 export interface SkillDeriverInput {
   topicTitles: string[];
@@ -86,23 +89,28 @@ export async function deriveSkills(
   const targetVisibility: ContentVisibility =
     options?.targetVisibility ?? "public";
 
-  const topics = await context.entityService.listEntities({
-    entityType: "topic",
-    options: { filter: { visibilityScope: targetVisibility } },
-  });
+  const topics = (
+    await context.entityService.listEntities({
+      entityType: "topic",
+      options: { filter: { visibilityScope: targetVisibility } },
+    })
+  ).sort((left, right) => left.id.localeCompare(right.id));
   const topicTitles = topics
-    .map((t) => {
-      const parsed = topicMetadataSchema.safeParse(t.metadata);
+    .map((topic) => {
+      const parsed = topicMetadataSchema.safeParse(topic.metadata);
       if (parsed.success && parsed.data.name) return parsed.data.name;
-      const titleMatch = t.content.match(/^title:\s*(.+)$/m);
-      return titleMatch?.[1]?.trim() ?? t.id;
+      const titleMatch = topic.content.match(/^title:\s*(.+)$/m);
+      return titleMatch?.[1]?.trim() ?? topic.id;
     })
     .filter(Boolean);
-
-  if (topicTitles.length === 0) {
-    logger.info("No topics found — skipping skill derivation");
-    return { created: 0, updated: 0, deleted: 0, skipped: 0 };
-  }
+  const [tagVocabulary, appInfo] = await Promise.all([
+    collectTagVocabulary(context, {
+      visibilityScope: targetVisibility,
+      // Derived skill outputs must not feed their own next fingerprint.
+      includeSkills: false,
+    }),
+    context.appInfo(),
+  ]);
 
   // Tool descriptions could be added here when EntityPluginContext
   // exposes MCP service access. For now, topics alone are enough —
@@ -110,10 +118,39 @@ export async function deriveSkills(
   const prompt = buildSkillPrompt({
     topicTitles,
     toolDescriptions: [],
-    tagVocabulary: await collectTagVocabulary(context, {
-      visibilityScope: targetVisibility,
-    }),
+    tagVocabulary,
   });
+  const inputFingerprint = computeProjectionInputFingerprint({
+    version: SKILL_INPUT_FINGERPRINT_VERSION,
+    sources: topics.map((topic) => ({
+      id: topic.id,
+      contentHash: topic.contentHash,
+      visibility: topic.visibility,
+    })),
+    targetVisibility,
+    prompt,
+    template: SKILL_DERIVATION_TEMPLATE_REF,
+    model: appInfo.ai.model,
+  });
+  const fingerprintStore = context.runtimeState.scoped<string>({
+    namespace: "agent-discovery.skill-input-fingerprint",
+    schema: z.string(),
+  });
+  if (
+    (await fingerprintStore.get(SKILL_INPUT_FINGERPRINT_KEY)) ===
+    inputFingerprint
+  ) {
+    logger.info("Skipping unchanged skill derivation inputs", {
+      inputFingerprint,
+    });
+    return { created: 0, updated: 0, deleted: 0, skipped: 1 };
+  }
+
+  if (topicTitles.length === 0) {
+    await fingerprintStore.set(SKILL_INPUT_FINGERPRINT_KEY, inputFingerprint);
+    logger.info("No topics found — skipping skill derivation");
+    return { created: 0, updated: 0, deleted: 0, skipped: 0 };
+  }
 
   let skills: SkillFrontmatter[];
   try {
@@ -173,6 +210,7 @@ export async function deriveSkills(
     logger,
   });
 
+  await fingerprintStore.set(SKILL_INPUT_FINGERPRINT_KEY, inputFingerprint);
   logger.info("Skill derivation complete", {
     created,
     updated,

@@ -38,7 +38,12 @@ describe("SeriesPlugin", () => {
   ): Promise<unknown> {
     const progress = ProgressReporter.from(async (): Promise<void> => {});
     if (!progress) throw new Error("Failed to create progress reporter");
-    return handler.process(data, "test-job", progress);
+    return handler.process(
+      data,
+      "test-job",
+      progress,
+      new AbortController().signal,
+    );
   }
 
   describe("registration", () => {
@@ -67,9 +72,12 @@ describe("SeriesPlugin", () => {
     it("should register explicit projection job", async () => {
       const { handlers } = useMockJobQueue();
       const plugin = new SeriesPlugin();
-      await harness.installPlugin(plugin);
+      const capabilities = await harness.installPlugin(plugin);
 
       expect(handlers.has("series:project")).toBe(true);
+      expect(capabilities.projections?.[0]?.sources).toEqual([
+        { kind: "entity", types: ["*"], excludeTypes: ["series"] },
+      ]);
     });
 
     it("should register templates including description", async () => {

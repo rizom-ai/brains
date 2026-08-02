@@ -5,6 +5,7 @@ import { MessageBus } from "@/messageBus";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import { OperationContext } from "@brains/operation-context";
 
 describe("MessageBus", () => {
   let messageBus: MessageBus;
@@ -110,6 +111,44 @@ describe("MessageBus", () => {
   });
 
   describe("message sending", () => {
+    it("carries and restores causal provenance around message handlers", async () => {
+      const operationContext = OperationContext.createFresh();
+      messageBus = MessageBus.createFresh(logger, operationContext);
+      const provenance = {
+        rootJobId: "root-job",
+        causationId: "source-message",
+        projectionId: "topics-projection",
+        projectionLineage: ["topics-projection"],
+        derivationDepth: 1,
+      };
+      let receivedMetadata: Record<string, unknown> | undefined;
+      let handlerScope: ReturnType<OperationContext["current"]>;
+      messageBus.subscribe("test.message", (message) => {
+        receivedMetadata = message.metadata;
+        handlerScope = operationContext.current();
+        return { success: true };
+      });
+
+      await operationContext.run(provenance, "topic-job", () =>
+        messageBus.send({
+          type: "test.message",
+          payload: { value: "test" },
+          sender: "test-source",
+        }),
+      );
+
+      expect(receivedMetadata?.["provenance"]).toEqual({
+        ...provenance,
+        causationId: "topic-job",
+      });
+      expect(handlerScope?.provenance).toEqual({
+        ...provenance,
+        causationId: "topic-job",
+      });
+      expect(handlerScope?.operationId).toStartWith("msg-");
+      expect(operationContext.current()).toBeUndefined();
+    });
+
     it("should send message to handler", async () => {
       const handler = mock(() => ({ success: true, data: { result: "test" } }));
 

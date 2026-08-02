@@ -9,7 +9,7 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       dataDir: "/tmp/test-newsletter-policy",
     });
 
-    await harness.installPlugin(new NewsletterPlugin({}));
+    const capabilities = await harness.installPlugin(new NewsletterPlugin({}));
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("newsletter"),
@@ -17,6 +17,16 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     });
+    expect(capabilities.projections).toEqual([
+      {
+        id: "newsletter-generation",
+        targetType: "newsletter",
+        sources: [
+          { kind: "entity", types: ["post"] },
+          { kind: "event", events: ["generate:execute"] },
+        ],
+      },
+    ]);
   });
 
   it("registers provider-mode publishing config", async () => {

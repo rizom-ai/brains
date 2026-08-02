@@ -30,8 +30,8 @@ Examples in the repo:
 
 ## Projection pattern
 
-Derived entities are maintained by explicit projection jobs, declared with `getDerivedEntityProjections()`.
-Projection jobs own their sync/source lifecycle and are queued by the projection runner after initial sync or source changes.
+Derived entities are maintained by explicit projection jobs, normally declared with `getDerivedEntityProjections()`. Custom projection execution must return an equivalent immutable declaration from `getProjectionDeclarations()`.
+Projection declarations are registered as plugin capabilities and validated as one entity/event graph before initial sync. Projection jobs own their sync/source lifecycle and are queued with causal provenance after initial sync or source changes. AI-backed projections persist fingerprints of their effective source revisions and generation configuration in runtime state, then skip unchanged inputs. Reconcilers and handlers must also compare semantic output so operational timestamps do not create entity mutations.
 
 `system_extract` queues `{entityType}:project` jobs for manual derive/rebuild requests.
 
@@ -42,7 +42,7 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 | agent-discovery     | `agent`, `skill`                     | yes        | Discovered peer brains and their projected capabilities  |
 | assessment          | `swot`                               | yes        | SWOT assessments derived from other content              |
 | blog                | `post`                               |            | Blog posts with frontmatter, publish pipeline, RSS       |
-| conversation-memory | `summary`, `decision`, `action-item` |            | Conversation summaries generated from digest events      |
+| conversation-memory | `summary`, `decision`, `action-item` | yes        | Conversation summaries generated from message events     |
 | decks               | `deck`                               |            | Slide decks with markdown directives                     |
 | doc                 | `doc`                                |            | Documentation pages rendered on the site                 |
 | document            | `document`                           |            | Uploaded binary artifacts (PDFs and similar files)       |
@@ -54,7 +54,7 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 | prompt              | `prompt`                             |            | Reusable prompt entities                                 |
 | series              | `series`                             | yes        | Cross-content series, projected from seriesName field    |
 | site-info           | `site-info`                          |            | Site metadata — title, description, CTA, theme           |
-| social-media        | `social-post`                        |            | Social media posts generated from published content      |
+| social-media        | `social-post`                        | yes        | Social media posts generated from published content      |
 | style-guide         | `style-guide`                        |            | Singleton messaging, voice, and visual guidance          |
 | topics              | `topic`                              | yes        | AI-extracted topics from posts, links, and other content |
 | wishlist            | `wish`                               |            | Unfulfilled user requests with semantic dedup            |

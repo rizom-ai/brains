@@ -239,8 +239,12 @@ export class NewsletterDataSource extends BaseEntityDataSource<
       content: body,
       created: newsletter.created,
       updated: newsletter.updated,
-      sentAt: newsletter.metadata.sentAt,
-      scheduledFor: newsletter.metadata.scheduledFor,
+      ...(newsletter.metadata.sentAt !== undefined && {
+        sentAt: newsletter.metadata.sentAt,
+      }),
+      ...(newsletter.metadata.scheduledFor !== undefined && {
+        scheduledFor: newsletter.metadata.scheduledFor,
+      }),
       newsletter,
       prevNewsletter: navigation.prev
         ? {
@@ -256,7 +260,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
             url: navigation.next.url,
           }
         : null,
-      sourceEntities: sourceEntities.length > 0 ? sourceEntities : undefined,
+      ...(sourceEntities.length > 0 && { sourceEntities }),
     };
 
     return outputSchema.parse(detailData);

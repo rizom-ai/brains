@@ -78,7 +78,12 @@ describe("NotePlugin", () => {
     if (!job) throw new Error("upload import job not queued");
     const reporter = ProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
-    return handler.process(job.data, "queued-note-job", reporter);
+    return handler.process(
+      job.data,
+      "queued-note-job",
+      reporter,
+      new AbortController().signal,
+    );
   }
 
   describe("upload markdown imports", () => {
@@ -478,6 +483,7 @@ describe("NotePlugin", () => {
         { uploadId: "missing-upload", entityId: "doomed-import" },
         "queued-note-job",
         reporter,
+        new AbortController().signal,
       );
       expect(jobResult).toMatchObject({ success: false });
 

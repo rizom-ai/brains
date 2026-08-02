@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import packageJson from "../package.json";
 import {
+  isStaleDeployDockerfile,
   isStaleDeployMounts,
   renderDockerfile,
   stripDeployVolumes,
@@ -27,6 +28,7 @@ const starterFilePaths = [
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",
   "deploy/scripts/helpers.ts",
+  "deploy/scripts/install-health-watchdog.ts",
   "deploy/scripts/provision-server.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
@@ -233,6 +235,8 @@ async function writeStarterFileIfMissing(
   const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
   const matchesLegacyContent = legacyContents.includes(current);
   const matchesLegacyPredicate =
+    (relativePath === "deploy/Dockerfile" &&
+      isStaleDeployDockerfile(current)) ||
     (relativePath === ".env.schema" &&
       isStalePilotEnvSchema(current, content)) ||
     (relativePath === "deploy/kamal/deploy.yml" &&

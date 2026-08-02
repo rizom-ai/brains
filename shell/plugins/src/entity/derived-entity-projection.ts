@@ -8,6 +8,11 @@ import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { EntityPluginContext } from "./context";
+import type {
+  ProjectionDeclarationInput,
+  ProjectionFeedbackPolicy,
+  ProjectionSource,
+} from "./projection-registry";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 
 export interface EntityChangePayload<TEntity extends BaseEntity = BaseEntity> {
@@ -39,6 +44,8 @@ export type ProjectionSourceKind = "entity" | "conversation";
 
 export interface ProjectionSourceChangeConfig {
   sourceTypes: readonly string[];
+  /** Entity types excluded when sourceTypes contains a wildcard. */
+  excludeSourceTypes?: readonly string[];
   /** Explicit source kind for non-entity projections. Defaults to "entity". */
   sourceKind?: ProjectionSourceKind;
   /** Custom source type override. Defaults to payload.entityType for entity sources or sourceKind for non-entity sources. */
@@ -58,12 +65,68 @@ export interface DerivedEntityProjection {
   job: ProjectionJobConfig;
   initialSync?: ProjectionInitialSyncConfig;
   sourceChange?: ProjectionSourceChangeConfig;
+  /** Semantic message events emitted after this projection changes output. */
+  emittedEvents?: readonly string[];
+  /** Required convergence and depth declaration for an intentional cycle. */
+  feedback?: ProjectionFeedbackPolicy;
 }
 
 export interface DerivedEntityProjectionController {
   hasObservedInitialSync: () => boolean;
   hasQueuedInitialSync: () => boolean;
 }
+
+/** Convert the executable declaration into its static dependency graph entry. */
+export function getProjectionDeclaration(
+  projection: DerivedEntityProjection,
+): ProjectionDeclarationInput {
+  const sourceChange = projection.sourceChange;
+  const sources: ProjectionSource[] = [];
+  if (sourceChange) {
+    const events = sourceChange.events ?? [
+      ENTITY_CHANNELS.created,
+      ENTITY_CHANNELS.updated,
+    ];
+    const consumesEntityTypes =
+      sourceChange.sourceKind === "entity" ||
+      (sourceChange.sourceKind === undefined &&
+        sourceChange.sourceType === undefined);
+
+    if (consumesEntityTypes) {
+      sources.push({
+        kind: "entity",
+        types: [...sourceChange.sourceTypes],
+        ...(sourceChange.excludeSourceTypes
+          ? { excludeTypes: [...sourceChange.excludeSourceTypes] }
+          : {}),
+      });
+    }
+
+    const entityEvents = new Set<string>([
+      ENTITY_CHANNELS.created,
+      ENTITY_CHANNELS.updated,
+      ENTITY_CHANNELS.deleted,
+    ]);
+    const semanticEvents = consumesEntityTypes
+      ? events.filter((event) => !entityEvents.has(event))
+      : events;
+    if (semanticEvents.length > 0) {
+      sources.push({ kind: "event", events: [...semanticEvents] });
+    }
+  }
+
+  return {
+    id: projection.id,
+    targetType: projection.targetType,
+    sources,
+    ...(projection.emittedEvents
+      ? { emittedEvents: [...projection.emittedEvents] }
+      : {}),
+    ...(projection.feedback ? { feedback: projection.feedback } : {}),
+  };
+}
+
+export { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
 
 export function registerDerivedEntityProjection(
   context: EntityPluginContext,
@@ -109,6 +172,9 @@ export function registerDerivedEntityProjection(
   if (projection.sourceChange) {
     const sourceChangeConfig = projection.sourceChange;
     const sourceTypes = new Set(sourceChangeConfig.sourceTypes);
+    const excludedSourceTypes = new Set(
+      sourceChangeConfig.excludeSourceTypes ?? [],
+    );
     const events = sourceChangeConfig.events ?? [
       ENTITY_CHANNELS.created,
       ENTITY_CHANNELS.updated,
@@ -128,6 +194,7 @@ export function registerDerivedEntityProjection(
       );
       if (
         !payloadSourceType ||
+        excludedSourceTypes.has(payloadSourceType) ||
         (!sourceTypes.has("*") && !sourceTypes.has(payloadSourceType))
       ) {
         return { success: true };
@@ -147,6 +214,7 @@ export function registerDerivedEntityProjection(
         jobData,
         sourceChangeConfig.jobOptions?.(payload),
         "source-change",
+        payload,
       );
       return { success: true };
     };
@@ -339,11 +407,26 @@ async function enqueueProjectionJob(
   jobData: unknown,
   options: JobOptions | undefined,
   reason: string,
+  source?: EntityChangePayload,
 ): Promise<boolean> {
   try {
+    const sourceEntity =
+      source?.entityType && source.entityId
+        ? {
+            entityType: source.entityType,
+            entityId: source.entityId,
+            ...(source.entity?.contentHash
+              ? { contentHash: source.entity.contentHash }
+              : {}),
+          }
+        : undefined;
     await context.jobs.enqueue({
       type: projection.job.type,
       data: jobData,
+      projection: {
+        id: projection.id,
+        ...(sourceEntity ? { sourceEntity } : {}),
+      },
       ...(options ? { options } : {}),
     });
     logger.info("Queued derived entity projection", {

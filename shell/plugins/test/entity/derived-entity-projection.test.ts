@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { isVisibleWithinScope } from "../../src";
 import type { BaseEntity, EntityPluginContext } from "../../src";
 import {
+  computeProjectionInputFingerprint,
   hasPersistedTargets,
   reconcileDerivedEntities,
   registerDerivedEntityProjection,
@@ -160,6 +161,25 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
 }
 
 describe("derived entity projections", () => {
+  it("computes stable fingerprints for effective projection inputs", () => {
+    const left = computeProjectionInputFingerprint({
+      sourceIds: ["a", "b"],
+      config: { model: "model-1", prompt: "v1" },
+    });
+    const reorderedKeys = computeProjectionInputFingerprint({
+      config: { prompt: "v1", model: "model-1" },
+      sourceIds: ["a", "b"],
+    });
+    const changedOrder = computeProjectionInputFingerprint({
+      sourceIds: ["b", "a"],
+      config: { model: "model-1", prompt: "v1" },
+    });
+
+    expect(left).toMatch(/^[a-f0-9]{64}$/);
+    expect(reorderedKeys).toBe(left);
+    expect(changedOrder).not.toBe(left);
+  });
+
   it("registers a job handler and queues initial sync once instead of running inline", async () => {
     const context = createProjectionContext();
     const process = mock(() => Promise.resolve({ ok: true }));
@@ -206,6 +226,7 @@ describe("derived entity projections", () => {
     expect(context.jobs.enqueue).toHaveBeenCalledWith({
       type: "derive",
       data: { reason: "initial-sync" },
+      projection: { id: "test-projection" },
       options: {
         source: "projection-test",
         deduplication: "coalesce",
@@ -308,6 +329,10 @@ describe("derived entity projections", () => {
     expect(context.jobs.enqueue).toHaveBeenCalledWith({
       type: "derive",
       data: { reason: "source-change", sourceId: "a" },
+      projection: {
+        id: "test-projection",
+        sourceEntity: { entityType: "source", entityId: "a" },
+      },
       options: {
         source: "projection-test",
         deduplication: "coalesce",
@@ -352,6 +377,7 @@ describe("derived entity projections", () => {
     expect(context.jobs.enqueue).toHaveBeenCalledWith({
       type: "summary:project",
       data: { reason: "message-added", conversationId: "conv-1" },
+      projection: { id: "conversation-projection" },
     });
   });
 

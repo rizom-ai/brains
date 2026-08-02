@@ -89,12 +89,15 @@ describe("TopicsPlugin", () => {
 
     it("should register topic entity type with projectionSource: false", async () => {
       const harness = createPluginHarness<TopicsPlugin>({});
-      await harness.installPlugin(new TopicsPlugin());
+      const capabilities = await harness.installPlugin(new TopicsPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("topic")
           .projectionSource,
       ).toBe(false);
+      expect(capabilities.projections?.[0]?.emittedEvents).toEqual([
+        "topics:batch-completed",
+      ]);
     });
 
     it("should process registered projection sources by default", () => {

@@ -34,6 +34,7 @@ mkdirSync(outdir, { recursive: true });
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
 copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
+  "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
   "write-ssh-key.ts",

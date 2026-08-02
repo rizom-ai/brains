@@ -152,7 +152,12 @@ describe("TransactionalSiteBuildOutput", () => {
       buildId: preparedBuild.buildId,
     });
     await writeCompleteGeneration(target, "new output");
-    await lifecycle.commit({ target, preparedBuild, warnings: [] });
+    await lifecycle.commit({
+      target,
+      preparedBuild,
+      inputFingerprint: "a".repeat(64),
+      warnings: [],
+    });
 
     expect((await fs.lstat(outputDir)).isSymbolicLink()).toBe(true);
     expect(
@@ -371,7 +376,12 @@ describe("TransactionalSiteBuildOutput", () => {
 
     try {
       expect(
-        lifecycle.commit({ target, preparedBuild, warnings: [] }),
+        lifecycle.commit({
+          target,
+          preparedBuild,
+          inputFingerprint: "a".repeat(64),
+          warnings: [],
+        }),
       ).rejects.toThrow("injected pointer switch failure");
       expect((await fs.lstat(outputDir)).isDirectory()).toBe(true);
       expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(

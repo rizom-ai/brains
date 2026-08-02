@@ -9,6 +9,7 @@ export interface SuccessfulBuildResultOptions {
   routesBuilt: number;
   warnings: string[];
   diagnostics?: SiteBuildDiagnostic[] | undefined;
+  skipped?: boolean | undefined;
 }
 
 export function createSuccessfulBuildResult(
@@ -19,6 +20,7 @@ export function createSuccessfulBuildResult(
     outputDir: options.outputDir,
     filesGenerated: options.filesGenerated,
     routesBuilt: options.routesBuilt,
+    ...(options.skipped && { skipped: true }),
     ...(options.warnings.length > 0 && { warnings: options.warnings }),
     ...(options.diagnostics &&
       options.diagnostics.length > 0 && {

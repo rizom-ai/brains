@@ -68,6 +68,12 @@ describe("ConversationMemoryPlugin", () => {
     expect(config.projectionDelayMs).toBe(90_000);
     expect(config.maxEntries).toBe(50);
     expect(config.projectionVersion).toBe(1);
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("summary"),
+    ).toMatchObject({
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    });
   });
 
   it("accepts custom config", async () => {

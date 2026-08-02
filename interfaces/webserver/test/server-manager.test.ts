@@ -3,10 +3,11 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import type { RegisteredWebRoute } from "@brains/plugins";
+import type { RegisteredWebRoute, RuntimeReadiness } from "@brains/plugins";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
+  type ServerManagerOptions,
   WEBSERVER_IDLE_TIMEOUT_SECONDS,
   isPathContained,
 } from "../src/server-manager";
@@ -25,7 +26,39 @@ describe("ServerManager (in-process)", () => {
     }
   });
 
-  function setup(options?: { preview?: boolean }): ServerManager {
+  function testResourceSignals(): RuntimeReadiness["resources"] {
+    return {
+      memory: { rssBytes: 1, heapUsedBytes: 1, heapTotalBytes: 1 },
+      fileDescriptors: 1,
+      processes: { total: 1, zombies: 0 },
+      queue: {
+        totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
+        byType: [],
+        oldestPendingAgeMs: null,
+        oldestProcessingAgeMs: null,
+        staleLeaseCount: 0,
+      },
+      projection: {
+        initialized: true,
+        trackedRoots: 0,
+        openCircuits: [],
+      },
+      worker: {
+        isRunning: true,
+        isHealthy: true,
+        activeJobs: 0,
+        processedJobs: 0,
+        failedJobs: 0,
+        uptimeMs: 1,
+      },
+    };
+  }
+
+  function setup(options?: {
+    preview?: boolean;
+    getHealthData?: ServerManagerOptions["getHealthData"];
+    getReadinessData?: () => Promise<RuntimeReadiness>;
+  }): ServerManager {
     testDir = join(tmpdir(), `webserver-test-${Date.now()}`);
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
@@ -38,6 +71,12 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0, // random port
+      ...(options?.getHealthData && {
+        getHealthData: options.getHealthData,
+      }),
+      ...(options?.getReadinessData && {
+        getReadinessData: options.getReadinessData,
+      }),
     };
 
     if (options?.preview) {
@@ -180,6 +219,20 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Preview");
   });
 
+  it("serves health endpoints on the production control plane for preview hosts", async () => {
+    const m = setup({ preview: true });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/live`, {
+      headers: { Host: "preview.localhost" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: "alive" });
+  });
+
   it("should serve preview content on the shared host when the request host matches preview", async () => {
     const m = setup({ preview: true });
     await m.start();
@@ -195,17 +248,107 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Preview");
   });
 
-  it("should handle /health endpoint", async () => {
-    const m = setup();
+  it("serves dependency-free liveness without invoking readiness", async () => {
+    let readinessCalls = 0;
+    const m = setup({
+      getReadinessData: async () => {
+        readinessCalls++;
+        throw new Error("readiness must not run for liveness");
+      },
+    });
     await m.start();
 
-    const status = m.getStatus();
-    const url = status.productionUrl;
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/live`);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: "alive" });
+    expect(readinessCalls).toBe(0);
+  });
+
+  it("returns 503 readiness details when runtime dependencies are unhealthy", async () => {
+    const report = {
+      status: "not_ready" as const,
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "job-worker",
+          status: "unhealthy" as const,
+          message: "handler ignored cancellation",
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/ready`);
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual(report);
+  });
+
+  it("returns structured legacy health when app metadata collection fails", async () => {
+    const m = setup({
+      getReadinessData: async () => ({
+        status: "ready",
+        checkedAt: "2026-07-30T12:00:00.000Z",
+        checks: [],
+        resources: testResourceSignals(),
+      }),
+      getHealthData: async () => {
+        throw new Error("entity summary failed");
+      },
+    });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
     if (!url) return;
     const res = await fetch(`${url}/health`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.status).toBe("healthy");
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      status: "unhealthy",
+      readiness: {
+        status: "not_ready",
+        checks: [
+          {
+            name: "app-info",
+            status: "unhealthy",
+            message: "entity summary failed",
+          },
+        ],
+      },
+    });
+  });
+
+  it("keeps /health as a readiness-aware compatibility endpoint", async () => {
+    const report = {
+      status: "not_ready" as const,
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "job-worker",
+          status: "unhealthy" as const,
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health`);
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      status: "unhealthy",
+      readiness: report,
+    });
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {

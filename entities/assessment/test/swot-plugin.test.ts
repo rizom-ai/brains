@@ -19,12 +19,25 @@ describe("SwotAssessmentPlugin", () => {
     expect(swotWidgetStyles).toContain("@container dashboard-card");
   });
 
-  it("registers the swot entity type", async () => {
+  it("registers SWOT as a terminal projection output", async () => {
     const plugin = new SwotAssessmentPlugin();
-    await harness.installPlugin(plugin);
+    const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
     expect(harness.getEntityService().getEntityTypes()).toContain("swot");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("swot"),
+    ).toMatchObject({
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    });
+    expect(capabilities.projections).toEqual([
+      {
+        id: "swot-derivation",
+        targetType: "swot",
+        sources: [{ kind: "entity", types: ["agent", "skill"] }],
+      },
+    ]);
   });
 
   it("registers deriveSwot eval handler", async () => {

@@ -1,6 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
 import { type EntityPluginContext } from "@brains/plugins";
-import { SOCIAL_CHANNELS } from "../social-channels";
+import {
+  SOCIAL_CHANNELS,
+  SOCIAL_POST_GENERATION_PROJECTION_ID,
+} from "../social-channels";
 import { ENTITY_CHANNELS, GENERATE_CHANNELS } from "@brains/contracts";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils/logger";
@@ -102,6 +105,13 @@ export function subscribeToAutoGenerate(
           sourceEntityId,
           platform,
           addToQueue: false,
+        },
+        projection: {
+          id: SOCIAL_POST_GENERATION_PROJECTION_ID,
+          sourceEntity: {
+            entityType: sourceEntityType,
+            entityId: sourceEntityId,
+          },
         },
         toolContext: {
           interfaceType: "job",
@@ -207,6 +217,16 @@ export function subscribeToGenerateExecute(
             sourceEntityId: sourcePost.id,
             platform: "linkedin",
             addToQueue: false,
+          },
+          projection: {
+            id: SOCIAL_POST_GENERATION_PROJECTION_ID,
+            sourceEntity: {
+              entityType: sourcePost.entityType,
+              entityId: sourcePost.id,
+              ...(sourcePost.contentHash
+                ? { contentHash: sourcePost.contentHash }
+                : {}),
+            },
           },
           toolContext: {
             interfaceType: "job",

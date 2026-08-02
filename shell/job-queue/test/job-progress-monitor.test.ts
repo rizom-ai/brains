@@ -46,6 +46,11 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
       operationType: "data_processing",
     },
     source: "test-source",
+    attemptId: "attempt-123",
+    workerSlotId: "worker-a",
+    workerSessionId: "session-a",
+    leaseExpiresAt: Date.now() + 10_000,
+    attemptHeartbeatAt: Date.now(),
     ...overrides,
   };
 }
@@ -58,17 +63,26 @@ describe("JobProgressMonitor", () => {
   let mockLogger: Logger;
 
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
+  let recordAttemptProgressMock: Mock<
+    (jobId: string, attemptId: string) => Promise<boolean>
+  >;
   let messageBusSendMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
     getStatusMock = mock(() => Promise.resolve(null));
+    recordAttemptProgressMock = mock(() => Promise.resolve(true));
 
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
       dequeue: mock(() => Promise.resolve(null)),
+      startWorkerSession: mock(() => Promise.resolve()),
+      heartbeatWorkerSession: mock(() => Promise.resolve(true)),
+      endWorkerSession: mock(() => Promise.resolve(true)),
+      renewAttemptLease: mock(() => Promise.resolve(true)),
+      recordAttemptProgress: recordAttemptProgressMock,
       getStatus: getStatusMock,
-      complete: mock(() => Promise.resolve()),
-      fail: mock(() => Promise.resolve()),
+      complete: mock(() => Promise.resolve(true)),
+      fail: mock(() => Promise.resolve(true)),
       getActiveJobs: mock(() => Promise.resolve([])),
       getFailedJobs: mock(() => Promise.resolve([])),
       registerHandler: mock(() => {}),
@@ -76,7 +90,7 @@ describe("JobProgressMonitor", () => {
       unregisterPluginHandlers: mock(() => {}),
       getRegisteredTypes: mock(() => []),
       getHandler: mock(() => undefined),
-      update: mock(() => Promise.resolve()),
+      update: mock(() => Promise.resolve(true)),
       getStatusByEntityId: mock(() => Promise.resolve(null)),
       getStats: mock(() =>
         Promise.resolve({
@@ -85,6 +99,15 @@ describe("JobProgressMonitor", () => {
           failed: 0,
           completed: 0,
           total: 0,
+        }),
+      ),
+      getDiagnostics: mock(() =>
+        Promise.resolve({
+          totals: { pending: 0, processing: 0, failed: 0, completed: 0 },
+          byType: [],
+          oldestPendingAgeMs: null,
+          oldestProcessingAgeMs: null,
+          staleLeaseCount: 0,
         }),
       ),
       cleanup: mock(() => Promise.resolve(0)),
@@ -190,6 +213,28 @@ describe("JobProgressMonitor", () => {
         message: "Processing...",
       });
 
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("drops progress from an obsolete fenced attempt", async () => {
+      recordAttemptProgressMock.mockResolvedValue(false);
+      getStatusMock.mockResolvedValue(createMockJob());
+
+      const progressReporter = monitor.createProgressReporter(
+        "job-123",
+        "obsolete-attempt",
+      );
+      await progressReporter.report({
+        progress: 5,
+        total: 10,
+        message: "Stale progress",
+      });
+
+      expect(recordAttemptProgressMock).toHaveBeenCalledWith(
+        "job-123",
+        "obsolete-attempt",
+      );
+      expect(getStatusMock).not.toHaveBeenCalled();
       expect(messageBusSendMock).not.toHaveBeenCalled();
     });
   });

@@ -31,8 +31,8 @@ describe("GitSync history", () => {
     });
   });
 
-  afterEach(() => {
-    gitSync.cleanup();
+  afterEach(async () => {
+    await gitSync.cleanup();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

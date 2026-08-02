@@ -194,9 +194,11 @@ Brains uses three primary plugin categories:
 
 ### Static site build boundary
 
-`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. Renderers consume that snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
+`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. At that boundary, undefined object properties are recursively omitted while unsupported JSON values remain errors with route, section, template, and field-path diagnostics. Renderers consume the validated snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
 
-Each build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
+Automatic entity-triggered builds use trailing-only debounce, environment-scoped queue deduplication, and dirty generations. Changes during an active build produce at most one necessary successor; preview and production never suppress each other. The prepared route/content/template/layout/theme/asset input is fingerprinted, and a fingerprint matching the active successful manifest skips rendering.
+
+Each non-skipped build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
 
 Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, Preact bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
 
@@ -210,7 +212,7 @@ They can automatically register:
 - generation handlers (`{entityType}:generation`)
 - templates
 - site datasources
-- explicit projection jobs declared by entity plugins
+- executable derived projections and immutable projection graph declarations
 
 Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
 
@@ -225,6 +227,26 @@ For creation, the standard pattern is:
 5. otherwise shared flow performs a direct entity create
 
 This is the canonical place for entity-specific create behavior such as URL capture, target resolution, deduplicating wishes, or enriching required metadata.
+
+### Projection graph and causal runtime
+
+Projection declarations are plugin capabilities registered centrally by the
+plugin manager; plugins do not receive a mutable graph registry through the
+shell API. After all entity types and capabilities register, composition
+finalization expands wildcard entity sources, resolves entity and semantic-event
+edges, rejects undeclared cycles, and freezes the graph before initial sync or
+workers start. Custom projection execution declares the same static source,
+target, event, and bounded-feedback contract as the standard derived projection
+runner.
+
+A shared app-scoped operation context carries schema-validated provenance across
+message handlers and job attempts. Projection enqueue appends its projection ID,
+source reference, and derivation depth; job workers restore the persisted
+lineage only for the claimed attempt. Entity events inherit the same lineage.
+A separate core projection supervisor consumes the frozen graph and enforces
+per-root job and mutation budgets, depth limits, repeated-lineage rules, and
+repeated-target circuits. The static registry never owns runtime counters, and
+plugins cannot mutate or reset circuit state.
 
 ### ServicePlugin behavior
 
@@ -265,9 +287,10 @@ A typical boot sequence looks like this:
 2. `shell/app` loads the canonical definition (or an explicitly scoped external definition) and resolves explicit bundles
 3. The shell constructs core services (entities, jobs, MCP, identity, messaging, AI)
 4. Plugins are instantiated and registered in dependency order
-5. Entity types, tools, resources, prompts, datasources, and daemons are registered
-6. Interfaces start their long-lived processes
-7. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
+5. Entity types, tools, resources, prompts, datasources, daemons, and projection declarations are registered
+6. Profile/channel composition and the complete projection graph are finalized
+7. Interfaces start their long-lived processes
+8. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
 
 ## Entity model
 
@@ -328,6 +351,15 @@ Current deployment paths:
 - **Kamal-based self-hosted deployments** as the default deploy path, including app-local deploy artifacts, env-schema generation, Cloudflare Origin CA bootstrap, and (optionally) `@rizom/ops`-managed multi-user fleets
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
+
+The shared webserver separates dependency-free liveness (`/health/live`) from
+runtime readiness (`/health/ready`). Readiness covers database access, queue
+worker state, stale attempt leases, daemon health, and projection circuit state
+and includes bounded process, queue, and causal-work resource signals. `/health`
+remains a readiness-aware legacy
+surface. Generated containers probe liveness, while generated host deployment
+artifacts install a restart-budgeted systemd watchdog that preserves container
+diagnostics before restarting a persistently unhealthy Brain container.
 
 ## Where to read next
 

@@ -1,0 +1,28 @@
+{
+  "name": "@brains/operation-context",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.240",
+  "description": "Attempt-scoped causal provenance propagation",
+  "dependencies": {
+    "@brains/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/node": "^20.19.43",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./src/index.ts"
+}

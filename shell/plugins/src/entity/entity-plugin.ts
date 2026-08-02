@@ -19,7 +19,10 @@ import { z } from "@brains/utils/zod";
 import type { PluginConfigSchema } from "../config";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
+import type { ProjectionDeclaration } from "./projection-registry";
+import type { ProjectionRule } from "./projection-rule";
 import {
+  getProjectionDeclaration,
   registerDerivedEntityProjection,
   type DerivedEntityProjection,
   type DerivedEntityProjectionController,
@@ -89,12 +92,39 @@ export abstract class EntityPlugin<
     // Set up message handlers (tool/resource execution via message bus)
     this.setupMessageHandlers(context);
 
+    // Resolve projections before entity registration so projection outputs fail
+    // closed as source material unless their plugin explicitly opts them in.
+    const projections = this.getDerivedEntityProjections(context);
+    const projectionRules = this.getProjectionRules(context);
+    const projectionDeclarations = [
+      ...projections.map(getProjectionDeclaration),
+      ...this.getProjectionDeclarations(context),
+    ];
+    const entityTypeConfig = this.getEntityTypeConfig();
+    const producesOwnEntityType =
+      projectionDeclarations.some(
+        (projection) => projection.targetType === this.entityType,
+      ) || projectionRules.some((rule) => rule.targetType === this.entityType);
+    const hasExplicitProjectionSourceOptIn =
+      entityTypeConfig?.projectionSource !== false &&
+      entityTypeConfig?.projectionSourceRole !== "excluded" &&
+      (entityTypeConfig?.projectionSource === true ||
+        entityTypeConfig?.projectionSourceRole !== undefined);
+    const effectiveEntityTypeConfig =
+      producesOwnEntityType && !hasExplicitProjectionSourceOptIn
+        ? {
+            ...entityTypeConfig,
+            projectionSource: false,
+            projectionSourceRole: "excluded" as const,
+          }
+        : entityTypeConfig;
+
     // Auto-register entity type
     context.entities.register(
       this.entityType,
       this.schema,
       this.adapter,
-      this.getEntityTypeConfig(),
+      effectiveEntityTypeConfig,
     );
 
     if (this.interceptCreate !== EntityPlugin.prototype.interceptCreate) {
@@ -123,8 +153,7 @@ export abstract class EntityPlugin<
       context.entities.registerDataSource(ds);
     }
 
-    // Auto-register derived entity projections if provided
-    const projections = this.getDerivedEntityProjections(context);
+    // Auto-register executable derived entity projections.
     for (const projection of projections) {
       const controller = registerDerivedEntityProjection(
         context,
@@ -142,6 +171,10 @@ export abstract class EntityPlugin<
       tools: [],
       resources: [],
       ...(instructions && { instructions }),
+      ...(projectionDeclarations.length > 0 && {
+        projections: projectionDeclarations,
+      }),
+      ...(projectionRules.length > 0 && { projectionRules }),
     };
   }
 
@@ -186,6 +219,23 @@ export abstract class EntityPlugin<
    */
   protected getEntityTypeConfig(): EntityTypeConfig | undefined {
     return undefined;
+  }
+
+  /** Scheduler-owned executable projection rules. */
+  protected getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return [];
+  }
+
+  /**
+   * Override for static declarations backed by custom event-owned execution.
+   * Prefer getDerivedEntityProjections when the standard event runner fits.
+   */
+  protected getProjectionDeclarations(
+    _context: EntityPluginContext,
+  ): ProjectionDeclaration[] {
+    return [];
   }
 
   /**

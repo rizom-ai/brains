@@ -33,6 +33,7 @@ export {
   freezePreparedSiteBuild,
   jsonObjectSchema,
   jsonValueSchema,
+  normalizeJsonValue,
   preparedRouteSchema,
   preparedSectionSchema,
   preparedSiteBuildSchema,

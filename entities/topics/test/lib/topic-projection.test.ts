@@ -24,6 +24,7 @@ const progressReporter = ProgressReporter.from(
 if (!progressReporter) {
   throw new Error("Failed to create progress reporter");
 }
+const signal = new AbortController().signal;
 
 const config: TopicsPluginConfig = {
   includeEntityTypes: ["post"],
@@ -157,16 +158,19 @@ describe("topic projection helpers", () => {
       { mode: "derive" },
       "derive-job",
       progressReporter,
+      signal,
     );
     const rebuildResult = await handler.process(
       { mode: "rebuild" },
       "rebuild-job",
       progressReporter,
+      signal,
     );
     const reconcileResult = await handler.process(
       { mode: "reconcile" },
       "reconcile-job",
       progressReporter,
+      signal,
     );
 
     expect(deriveResult).toEqual({ success: true });
@@ -275,6 +279,7 @@ describe("topic projection helpers", () => {
       { mode: "source-batch", minRelevanceScore: 0.5 },
       "source-batch-job",
       progressReporter,
+      signal,
     );
 
     expect(result).toMatchObject({
@@ -290,6 +295,29 @@ describe("topic projection helpers", () => {
     expect(context.ai.generate).toHaveBeenCalledTimes(1);
     expect(reconcileTopics).toHaveBeenCalledTimes(1);
     expect(sourceBatch.drain()).toEqual([]);
+
+    sourceBatch.add({
+      entityId: "fresh-post",
+      entityType: "post",
+      contentHash: "fresh-hash",
+    });
+    const unchanged = await handler.process(
+      { mode: "source-batch", minRelevanceScore: 0.5 },
+      "source-batch-job-unchanged",
+      progressReporter,
+      signal,
+    );
+
+    expect(unchanged).toMatchObject({
+      success: true,
+      sources: 1,
+      unchanged: 1,
+      created: 0,
+      merged: 0,
+      batches: 0,
+    });
+    expect(context.ai.generate).toHaveBeenCalledTimes(1);
+    expect(reconcileTopics).toHaveBeenCalledTimes(1);
   });
 
   it("filters source-change extraction by configured visibility scope", async () => {
@@ -374,6 +402,7 @@ describe("topic projection helpers", () => {
       { mode: "source-batch", minRelevanceScore: 0.5 },
       "source-batch-visibility-job",
       progressReporter,
+      signal,
     );
 
     expect(result).toMatchObject({

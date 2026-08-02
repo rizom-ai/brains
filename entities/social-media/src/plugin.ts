@@ -4,6 +4,7 @@ import type {
   DataSource,
   Template,
   EntityTypeConfig,
+  ProjectionDeclaration,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
@@ -13,7 +14,7 @@ import { SocialPostDataSource } from "./datasources/social-post-datasource";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { GenerationJobHandler } from "./handlers/generationHandler";
-import type { PublishProvider } from "@brains/contracts";
+import { GENERATE_CHANNELS, type PublishProvider } from "@brains/contracts";
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
@@ -27,6 +28,7 @@ import {
   subscribeToGenerateExecute,
 } from "./lib/auto-generate";
 import { createSocialPostAtprotoProjection } from "./atproto-projection";
+import { SOCIAL_POST_GENERATION_PROJECTION_ID } from "./social-channels";
 import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
@@ -69,6 +71,19 @@ export class SocialMediaPlugin extends EntityPlugin<
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     };
+  }
+
+  protected override getProjectionDeclarations(): ProjectionDeclaration[] {
+    return [
+      {
+        id: SOCIAL_POST_GENERATION_PROJECTION_ID,
+        targetType: this.entityType,
+        sources: [
+          { kind: "entity", types: ["post"] },
+          { kind: "event", events: [GENERATE_CHANNELS.execute] },
+        ],
+      },
+    ];
   }
 
   protected override async onRegister(

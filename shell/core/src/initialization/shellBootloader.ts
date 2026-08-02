@@ -90,6 +90,9 @@ export class ShellBootloader {
     this.services.channelRegistry.finalize();
     this.services.inboxRegistry.finalize();
     await this.services.pluginManager.finalizePluginRegistrations();
+    await this.services.projectionRuntimeSupervisor.initialize(
+      this.services.pluginManager.getProjectionGraphSnapshot(),
+    );
 
     // Register job handlers for content operations before any ready signals.
     shellInitializer.registerJobHandlers(

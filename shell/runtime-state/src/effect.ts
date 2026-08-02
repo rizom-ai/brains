@@ -2,21 +2,21 @@ import { Context, scopedServiceLayer } from "@brains/utils/effect";
 import type { Layer } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import { RuntimeStateService } from "./runtime-state-service";
-import type { RuntimeStateServiceConfig } from "./types";
+import type { IRuntimeStateService, RuntimeStateServiceConfig } from "./types";
 
 export type RuntimeStateServiceTag =
   "@brains/runtime-state/RuntimeStateService";
 export const RuntimeStateServiceTag: Context.Tag<
   RuntimeStateServiceTag,
-  RuntimeStateService
-> = Context.GenericTag<RuntimeStateServiceTag, RuntimeStateService>(
+  IRuntimeStateService
+> = Context.GenericTag<RuntimeStateServiceTag, IRuntimeStateService>(
   "@brains/runtime-state/RuntimeStateService",
 );
 
 export interface RuntimeStateServiceLayerOptions {
   config: RuntimeStateServiceConfig;
   logger: Logger;
-  service?: RuntimeStateService;
+  service?: IRuntimeStateService;
 }
 
 /** Own one runtime-state database service for the lifetime of the layer scope. */

@@ -1,4 +1,5 @@
 import {
+  computeProjectionInputFingerprint,
   isVisibleWithinScope,
   type BaseEntity,
   type EntityPluginContext,
@@ -60,6 +61,7 @@ export interface TopicSourceBatchResult {
   missing: number;
   unpublished: number;
   hidden: number;
+  unchanged: number;
 }
 
 export interface TopicSourceBatchStore {
@@ -173,36 +175,90 @@ async function processSourceBatch(params: {
     })),
   );
 
-  let stale = 0;
-  let missing = 0;
-  let unpublished = 0;
-  let hidden = 0;
-  const toExtract: BaseEntity[] = [];
+  const classified = fetched.reduce<{
+    stale: number;
+    missing: number;
+    unpublished: number;
+    hidden: number;
+    candidates: BaseEntity[];
+  }>(
+    (result, { ref, entity }) => {
+      if (!entity) return { ...result, missing: result.missing + 1 };
+      if (entity.contentHash !== ref.contentHash) {
+        return { ...result, stale: result.stale + 1 };
+      }
+      if (!params.isEntityPublished(entity)) {
+        return { ...result, unpublished: result.unpublished + 1 };
+      }
+      if (
+        !isVisibleWithinScope(
+          entity.visibility,
+          params.config.extractionVisibility,
+        )
+      ) {
+        return { ...result, hidden: result.hidden + 1 };
+      }
+      return { ...result, candidates: [...result.candidates, entity] };
+    },
+    {
+      stale: 0,
+      missing: 0,
+      unpublished: 0,
+      hidden: 0,
+      candidates: [],
+    },
+  );
 
-  for (const { ref, entity } of fetched) {
-    if (!entity) {
-      missing++;
-      continue;
-    }
-    if (entity.contentHash !== ref.contentHash) {
-      stale++;
-      continue;
-    }
-    if (!params.isEntityPublished(entity)) {
-      unpublished++;
-      continue;
-    }
-    if (
-      !isVisibleWithinScope(
-        entity.visibility,
-        params.config.extractionVisibility,
-      )
-    ) {
-      hidden++;
-      continue;
-    }
-    toExtract.push(entity);
-  }
+  const inputState = params.context.runtimeState.scoped<string>({
+    namespace: "topics.source-input-fingerprints",
+    schema: z.string(),
+  });
+  const appInfo =
+    classified.candidates.length > 0 ? await params.context.appInfo() : null;
+  const fingerprinted = await Promise.all(
+    classified.candidates.map(async (entity) => {
+      const stateKey = computeProjectionInputFingerprint({
+        entityType: entity.entityType,
+        entityId: entity.id,
+      });
+      const fingerprint = computeProjectionInputFingerprint({
+        version: "topic-source-input-v1",
+        source: {
+          id: entity.id,
+          entityType: entity.entityType,
+          contentHash: entity.contentHash,
+          visibility: entity.visibility,
+        },
+        model: appInfo?.ai.model,
+        template: "topics:extraction",
+        config: {
+          minRelevanceScore: params.minRelevanceScore,
+          createRelevanceThreshold: params.config.createRelevanceThreshold,
+          reinforceRelevanceThreshold:
+            params.config.reinforceRelevanceThreshold,
+          sourceWeights: params.config.sourceWeights,
+          mintableEntityTypes: params.config.mintableEntityTypes,
+          sourceRolePolicies: params.config.sourceRolePolicies,
+          sourceRoleOverrides: params.config.sourceRoleOverrides,
+          maxEntitiesPerBatch: params.config.maxEntitiesPerBatch,
+          topicSoftCeilingSourceRatio:
+            params.config.topicSoftCeilingSourceRatio,
+          autoMerge: params.config.autoMerge,
+          semanticMergeDistance: params.config.semanticMergeDistance,
+          targetVisibility: params.config.extractionVisibility,
+        },
+      });
+      return {
+        entity,
+        stateKey,
+        fingerprint,
+        unchanged: (await inputState.get(stateKey)) === fingerprint,
+      };
+    }),
+  );
+  const changed = fingerprinted.filter((candidate) => !candidate.unchanged);
+  const unchanged = fingerprinted.length - changed.length;
+  const toExtract = changed.map((candidate) => candidate.entity);
 
   if (toExtract.length === 0) {
     return {
@@ -212,10 +268,11 @@ async function processSourceBatch(params: {
       merged: 0,
       skipped: 0,
       batches: 0,
-      stale,
-      missing,
-      unpublished,
-      hidden,
+      stale: classified.stale,
+      missing: classified.missing,
+      unpublished: classified.unpublished,
+      hidden: classified.hidden,
+      unchanged,
     };
   }
 
@@ -244,14 +301,23 @@ async function processSourceBatch(params: {
     },
   );
 
+  if ((result.failedBatches ?? 0) === 0 && (result.failedItems ?? 0) === 0) {
+    await Promise.all(
+      changed.map((candidate) =>
+        inputState.set(candidate.stateKey, candidate.fingerprint),
+      ),
+    );
+  }
+
   return {
     success: true,
     sources: refs.length,
     ...result,
-    stale,
-    missing,
-    unpublished,
-    hidden,
+    stale: classified.stale,
+    missing: classified.missing,
+    unpublished: classified.unpublished,
+    hidden: classified.hidden,
+    unchanged,
   };
 }
 

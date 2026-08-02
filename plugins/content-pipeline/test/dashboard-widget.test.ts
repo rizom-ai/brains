@@ -227,6 +227,11 @@ describe("dashboard widget registration", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
+        attemptId: "attempt-8412",
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseExpiresAt: 30_000,
+        attemptHeartbeatAt: 0,
         metadata: {} as never,
       },
       {
@@ -243,6 +248,11 @@ describe("dashboard widget registration", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
+        attemptId: "attempt-other",
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseExpiresAt: 30_000,
+        attemptHeartbeatAt: 0,
         metadata: {} as never,
       },
     ];

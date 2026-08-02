@@ -1,355 +1,702 @@
-# Projection and Runtime Resilience Plan
+# Projection Scheduling and Runtime Resilience Plan
 
 ## Status
 
-Proposed
+Implementation is in progress on `work/projection-runtime-resilience`.
 
-## Incident summary
+The incident-hardening work is largely implemented. The remaining structural
+problem is projection fan-out: N source mutations can independently trigger N
+jobs at each derivation level and repeated site builds. This plan solves that
+problem with scheduler-owned derivation waves.
 
-On 2026-07-30, `yeehaa.io` stopped responding even though its deployment, proxy, host, and container were running. Direct requests to the application and `/health` timed out.
+This plan keeps the existing packaging and deployment shape:
 
-The incident exposed five related defects:
+- one published Bun package;
+- one bundled Brain entrypoint;
+- one configured Brain runtime;
+- the existing job queue, entity service, and plugin system.
 
-1. A derived-entity feedback loop repeatedly executed:
-   `document -> topic -> skill -> SWOT -> topic`.
-2. The job worker allowed one hung derivation to occupy its only execution slot indefinitely.
-3. Site rebuilding amplified intermediate entity mutations into repeated full builds.
-4. Git subprocesses were not reaped by the container's PID 1, leaving hundreds of zombies.
-5. Health checks detected the outage but did not make the container recover.
+Worker-only packages, runtime profiles, schema marker files, liveness marker
+files, and new process-coordination environment variables are rejected
+outright. Process splitting is in scope but sequenced last: the "Process
+supervisor" part at the end of this plan isolates queue execution into a child
+process of the same bundle, and starts only after the scheduler work above is
+complete.
 
-Additional newsletter validation errors created excessive logs during every build because optional `undefined` values crossed a JSON-only site snapshot boundary.
+## Problem
 
-## Goals
+The current derivation system is event choreography. Every projection reacts to
+source changes independently:
 
-- Projection pipelines always converge or are stopped by a circuit breaker.
-- Derived outputs cannot become projection inputs accidentally.
-- One stuck background job cannot take down the web interface indefinitely.
-- Mutation bursts produce bounded background work and site builds.
-- Containers reap child processes and recover automatically from deadlocks.
-- Health endpoints distinguish liveness from readiness.
-- Site-build inputs are valid JSON and validation failures are concise.
+```text
+N source changes
+└── N topic triggers
+    └── topic mutations trigger skill work
+        └── skill mutations trigger SWOT work
+            └── intermediate mutations trigger site builds
+```
 
-## Non-goals
+Deduplication and debounce reduce some bursts, but they do not define a batch
+boundary or guarantee one execution per rule. The system discovers a wave by
+reacting to events instead of scheduling one explicitly.
 
-- Replacing the current job queue database.
-- Rewriting all projections as deterministic, non-AI transforms.
-- Moving to a different deployment platform.
+N is arbitrary. It may be 2, 100, or 100,000. The architecture must make job
+cardinality depend on the number of reachable rules, not the number of source
+entities:
 
-## Phase 1: remove the concrete cycle
+```text
+projection jobs per wave = O(reachable rules)
+not O(changed entities × reachable rules)
+```
 
-### Make SWOT a terminal derived output
+Model calls may still scale with total input tokens when deterministic chunks
+are required by a model context limit. They must not scale because one event
+created one job per entity.
 
-SWOT currently declares `projectionSourceRole: "supporting"`, which gives it
-weight 0.55 in topic batch extraction (`canMint: false`, so it reinforces
-existing topics rather than creating new ones — but reinforcement is enough to
-close the feedback loop). Change `entities/assessment/src/plugin.ts` so SWOT
-cannot be consumed by generic projections:
+## Decision
+
+Derivations become scheduler-owned batch rules executed in topological waves.
+Entity and semantic events no longer connect derivation rules to each other.
+Events remain valid for external ingress and observer notification.
+
+```text
+ingress mutations
+└── append dirty entity revisions
+    └── scheduler atomically claims and coalesces one dirty generation
+        └── find reachable rules from the validated projection graph
+            └── level 0: enqueue one job per reachable rule
+                └── changed write results feed level 1
+                    └── continue through the acyclic graph
+                        └── successful wave end
+                            └── make one site-build decision
+```
+
+For any settled dirty set, each reachable rule executes at most once in the
+wave. Independent rules at the same level may execute concurrently.
+
+## Invariants
+
+1. A rule is scheduled by the wave scheduler, never by another rule's event.
+2. Each reachable rule has at most one job per wave.
+3. The projection graph is acyclic. Startup rejects every cycle.
+4. A rule fingerprints the exact immutable input object passed to its derive
+   function.
+5. An unchanged fingerprint performs no model call.
+6. The framework applies rule writes idempotently and reports which targets
+   actually changed.
+7. Only changed targets make downstream rules reachable.
+8. New ingress during an active wave remains pending for a successor wave.
+9. A successful wave makes one site-build decision; an unchanged site
+   fingerprint performs no render.
+10. Job attempts, leases, retries, sessions, and deadlines remain owned only by
+    the existing job queue.
+
+## Rule contract
+
+Projection declarations remain private plugin capabilities collected by
+`PluginManager`. They are not exposed through broad `IShell` or plugin-context
+mutation APIs.
+
+An executable rule declares:
 
 ```ts
-protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-  return {
-    projectionSource: false,
-    projectionSourceRole: "excluded",
-  };
+interface ProjectionRule<TInput> {
+  id: string;
+  version: string;
+  sources: readonly ProjectionSource[];
+  targetType: string;
+  inputSchema: z.ZodType<TInput>;
+
+  selectInput(
+    trigger: ProjectionWaveTrigger,
+    context: ProjectionInputContext,
+    signal: AbortSignal,
+  ): Promise<TInput>;
+
+  fingerprint(input: TInput): string;
+
+  derive(
+    input: TInput,
+    context: ProjectionExecutionContext,
+    signal: AbortSignal,
+  ): Promise<ProjectionWriteIntent[]>;
 }
 ```
 
-`projectionSource: false` is redundant with the `"excluded"` role (consumers
-resolve the role first), but setting both matches the existing idiom in the
-image, wishlist, and topics plugins — keep both for consistency.
+### Input selection
 
-### Default derived outputs to excluded
+The dirty set determines reachability; it is not necessarily the complete rule
+input. Global rules select their full effective current input:
 
-Update the entity projection framework so an entity type produced by a `DerivedEntityProjection` is excluded as a projection source unless the plugin explicitly opts in.
+- skill selects the complete visible topic set;
+- SWOT selects the complete relevant skill, agent, identity, prompt, and model
+  configuration;
+- series selects the complete current membership set;
+- topic reconciliation selects the complete relevant topic set.
 
-Explicit opt-in must document:
+`selectInput` returns one plain, immutable JSON-compatible object containing all
+effective inputs: sorted source IDs and content hashes, visibility, prompt
+content/version, plugin configuration, identity inputs, model configuration,
+and any explicit operator invalidation revision.
 
-- the consuming projection;
-- the convergence rule;
-- the deduplication key;
-- the maximum derivation depth.
+The framework supplies the canonical fingerprint implementation; rule
+definitions cannot override it. It computes and stores the fingerprint from
+that object, then passes the same frozen object to `derive`. `derive` may not
+perform additional live entity reads that change its semantic input.
 
-### Regression test
+### Execution context
 
-Add a full-preset integration test that:
+`ProjectionExecutionContext` is narrow. It contains cancellation, logging,
+metered AI access, and deterministic helpers. It does not expose entity
+mutation APIs. Rules return canonical upsert and delete intents; the framework
+resolves each upsert to create, semantic update, or no-op and owns persistence.
 
-1. Creates a public document.
-2. Drains the queue.
-3. Observes topic, skill, and SWOT generation.
-4. Proves that no second topic projection is caused by SWOT.
-5. Proves the queue reaches quiescence within a bounded number of jobs.
+### Batching large model inputs
 
-## Phase 2: projection graph and causal protection
+One wave still creates one job per rule. If a rule's selected input exceeds a
+model context limit, the rule uses a deterministic token-budget partition of
+that input inside the job. The partition count is a function of input size and
+model limits, never the number of emitted entity events.
 
-### Central projection registry
+## Minimal durable state
 
-Extend `shell/plugins/src/entity/derived-entity-projection.ts` with a registry containing:
+The scheduler adds only state required to avoid losing work across a restart.
+It does not duplicate job-queue ownership.
 
-- projection ID;
-- declared source types or source events;
-- target entity type;
-- emitted semantic events;
-- whether feedback is allowed.
+Dirty inputs, wave coordination, and rule memos live in the entity database.
+That placement is required: an entity mutation and its dirty revision must
+commit in the same database transaction or a crash between two databases could
+silently lose projection work. The entity-service package owns these tables and
+exposes a narrow internal projection-store contract; `shell/core` does not
+reach into its database directly. The job-queue database remains exclusively
+responsible for jobs and their execution lifecycle.
 
-After plugin registration, expand wildcards against registered entity types and validate the resulting graph. Reject undeclared cycles during startup.
+### Dirty revisions
 
-Event-based dependencies such as `topics:batch-completed -> skill` must be represented so graph validation can detect cycles that cross entity and message channels. This is load-bearing, not optional: the topic -> skill edge runs over the `topics:batch-completed` message, and SWOT regenerates by subscribing to `skill`/`agent` entity-change messages — none of which pass through projection-source scanning. Phase 1's exclusion breaks only the SWOT -> topic edge; the rest of the cycle machinery stays live until these event edges are in the registry.
+Pending ingress is an append-only revision journal:
 
-### Mutation provenance
-
-Propagate this context through jobs, entity mutations, and messages:
-
-- `rootJobId` / correlation ID;
-- causation ID;
-- projection ID;
-- source entity reference;
-- derivation depth.
-
-Use job-scoped context so nested mutations inherit provenance automatically.
-
-### Runtime circuit breaker
-
-Even with static validation, enforce runtime limits:
-
-- reject a repeated projection ID in the same causal lineage;
-- cap derivation depth;
-- cap jobs and mutations per root operation;
-- open a circuit when the same projection repeatedly changes the same target set;
-- expose the circuit state through readiness health and logs.
-
-## Phase 3: convergent, idempotent derivations
-
-### Input fingerprints
-
-Each derived projection should persist a fingerprint of its effective inputs, including sorted source IDs, content hashes, visibility, prompt version, and model configuration.
-
-Skip a derivation when that fingerprint matches the last successful run.
-
-### Semantic output comparison
-
-Do not emit entity updates when semantic content is unchanged.
-
-For SWOT:
-
-- compare quadrants independently of `derivedAt`;
-- do not update the entity when only the timestamp changes;
-- store operational generation timestamps outside the semantic content hash where possible.
-
-For skills and topics:
-
-- use deterministic ordering;
-- use stable generation settings;
-- normalize generated values before comparison;
-- emit completion events only when entities were actually created, changed, merged, or deleted.
-
-### Source evidence
-
-Topic reinforcement should record source evidence idempotently by source entity and content hash. Reprocessing the same source revision must be a no-op.
-
-## Phase 4: bounded and recoverable job execution
-
-Relevant code is under `shell/job-queue`.
-
-### Job deadlines
-
-Add per-job-type execution deadlines and pass an `AbortSignal` into handlers. On timeout:
-
-1. Abort supported I/O and AI calls.
-2. Mark the attempt failed.
-3. Release the worker slot.
-4. Apply bounded retry policy.
-
-### Leases and heartbeats
-
-Replace `startedAt`-only claims with explicit leases:
-
-- worker ID;
-- attempt ID;
-- lease expiry;
-- heartbeat timestamp.
-
-On startup, immediately reclaim attempts owned by a dead worker instead of waiting for a generic claim timeout. Long-running healthy jobs must renew their leases.
-
-### Queue circuit breakers
-
-Add configurable limits per job type and root operation. Initial defaults should stop abnormal rates such as:
-
-- more than five equivalent derivations in ten minutes;
-- more than three site builds from one causal mutation wave;
-- sustained queue growth with no completed jobs.
-
-### Process isolation
-
-A JavaScript timeout cannot recover from a runtime or GC deadlock. The long-term solution is to run heavy background jobs in a separate OS process or worker container. The web process should remain able to serve the built site and health endpoints if a derivation worker hangs.
-
-## Phase 5: site-build backpressure
-
-Refactor `plugins/site-builder/src/lib/auto-rebuild.ts`.
-
-Most of the coalescing machinery already exists — do not rebuild it. The
-manager already debounces via `LeadingTrailingDebounce` and enqueues with
-`deduplication: "skip"`, and because skip-dedup matches only _pending_ jobs,
-the queue already collapses requests arriving during a build into at most one
-pending successor. The actual gaps are the three items below.
-
-### Trailing rebuilds
-
-Drop the leading edge: the leading fire is what turns every mutation burst
-into an immediate build plus a trailing one. Automatic entity-triggered builds
-use trailing-only debounce. Explicit user build requests may remain immediate.
-
-### Environment-specific deduplication key
-
-Today the enqueue passes `deduplication: "skip"` with **no** deduplication
-key, and the deduplicator with no key matches all active jobs of the type —
-so a pending preview build silently swallows a production build request. This
-is a latent correctness bug, not just backpressure hygiene. Add a
-per-environment deduplication key so preview and production never dedup
-against each other.
-
-### Skip unnecessary successors
-
-The queue enqueues a successor even when nothing relevant changed. Track a
-dirty generation so that after a build completes, a successor is enqueued only
-if inputs changed since the build started.
-
-### Site input fingerprint
-
-Hash the route definitions, renderable entity content, templates, theme, and static assets. Skip builds whose input fingerprint equals the last successful build.
-
-Longer term, trigger site building when a causal projection wave becomes quiescent instead of rebuilding for every intermediate entity mutation.
-
-## Phase 6: child-process lifecycle
-
-### Git process ownership
-
-This is the load-bearing fix. Zombies that are direct children of the
-still-running brain process are un-awaited spawns; no PID 1 change reaps
-them. Audit `plugins/directory-sync/src/lib/git-*` and `simple-git` usage to
-ensure:
-
-- every process is awaited;
-- cancellation terminates child processes;
-- timeout paths wait for process exit;
-- shutdown drains or kills active Git operations.
-
-Add a container-level soak test that performs hundreds of Git sync operations and asserts the zombie count remains zero.
-
-### Proper PID 1
-
-Defense-in-depth for the orphan case: `tini` reaps only processes that get
-reparented to PID 1 (e.g. children of a crashed subprocess or shutdown races),
-not direct children of a live brain process. Update
-`shared/deploy-support/src/Dockerfile` to install and use `tini`:
-
-```dockerfile
-ENTRYPOINT ["/usr/bin/tini", "--"]
+```text
+(generation, kind, sourceType, sourceId, revision, operation, markedAt)
 ```
 
-Run the packaged brain entry point directly instead of through avoidable Bun and shell wrapper layers.
+Entity inputs use `kind = entity`, their entity type and ID, and content hash as
+the revision. `operation` is `upsert` or `delete`; deletes are tombstones.
+Non-entity inputs use `kind = rule`, the affected rule ID, and a revision for
+prompt/configuration/model changes or explicit operator invalidation. This
+makes those changes schedulable without inventing process-coordination state.
 
-## Phase 7: health and automatic recovery
+For entity inputs, the entity-service create, update, or delete transaction
+also inserts the journal row atomically. Each insert receives a database-owned,
+monotonic generation; marking dirty never rewrites an earlier generation or
+uses conflict-update SQL. Claiming coalesces rows through its generation cutoff
+to the latest revision per `(kind, sourceType, sourceId)`, then removes all
+journal rows through that cutoff. A newer mutation has a greater generation and
+cannot be cleared accidentally.
 
-### Separate endpoints
+### Wave records and claimed inputs
 
-Provide:
+A wave header records:
 
-- `/health/live`: minimal event-loop liveness, with no dependency traversal;
-- `/health/ready`: database access, queue progress, stale leases, daemon health, and open circuit breakers.
+```text
+(id, cutoffGeneration, graphFingerprint, status, startedAt, completedAt)
+```
 
-Readiness must return HTTP 503 when the application cannot safely serve dynamic traffic.
+The claim transaction copies each coalesced latest dirty revision into a
+wave-input record before removing the covered journal generations:
 
-### External supervision
+```text
+(waveId, kind, sourceType, sourceId, revision, operation, generation)
+```
 
-Add a Docker health check plus host-level supervision capable of restarting an unhealthy container. A Docker health status alone does not trigger recovery.
+This is the durable recovery source. A newer pending revision for the same
+entity can coexist with the claimed wave input.
 
-The watchdog should restart only after multiple consecutive liveness failures and should preserve logs and emit an incident record before restart.
+A per-rule record stores only scheduler coordination:
 
-### Resource signals
+```text
+(waveId, ruleId, targetType, level, jobId, status, inputFingerprint, changedTargets)
+```
 
-Expose or log:
+It does not store attempts, leases, heartbeats, or retry counters. Those remain
+in the existing job queue. `jobId` lets the scheduler reconcile terminal job
+results after restart.
 
-- RSS and heap usage;
-- FD count;
-- process/zombie count;
-- queue depth by status and type;
-- age of oldest pending and processing jobs;
-- jobs and mutations per root operation;
-- site-build rate;
-- projection circuit-breaker state.
+The one-running-wave invariant should be structural, not just behavioral: a
+unique partial index on `status = 'running'` makes concurrent claims impossible
+at the database level instead of relying on the check-then-insert transaction.
 
-## Phase 8: site-content validation boundary
+### Rule memos and atomic application
 
-Prepared site snapshots must contain JSON values, but data sources can currently return explicit `undefined` properties.
+A memo stores:
 
-### Normalize at the boundary
+```text
+(ruleId, ruleVersion, inputFingerprint, canonicalWriteIntents)
+```
 
-Before `jsonObjectSchema` validation in `plugins/site-builder/src/lib/prepare-site-build.ts`, recursively omit `undefined` object properties. Do not silently coerce unsupported values such as functions, symbols, unsafe integers, or non-JSON class instances.
+After derivation, one entity-service transaction:
 
-Data sources such as the newsletter detail datasource should also omit absent optional fields rather than assigning `undefined`.
+1. inserts the memo if it is absent;
+2. applies canonical upsert and delete intents, resolving each upsert to
+   create, semantic update, or no-op;
+3. records the changed-target set and terminal wave-rule outcome.
 
-### Concise validation logging
+A crash before this transaction may repeat model generation because no durable
+output exists yet. After the transaction commits, retry replays or verifies the
+memo without another model call, even if job-queue completion was interrupted.
+The transaction reconciles only targets owned by that rule.
 
-Log structured Zod issues with route, section, template, and field paths. Do not include minified bundle source excerpts in normal validation errors.
+Memos must not grow without bound: each distinct (rule, version, fingerprint)
+stores full write-intent JSON forever if never pruned. Retention rule: a memo
+is only needed to make an interrupted or repeated application of the _current_
+input replayable, so keep the latest memo per (ruleId, ruleVersion) and delete
+older fingerprints once a newer memo's wave completes.
 
-Add regression fixtures for draft newsletters without `sentAt`, `scheduledFor`, or `sourceEntities`.
+These are the only new durable scheduler concepts: pending dirty revisions,
+claimed wave inputs and coordination, and rule memos. They share the entity
+database so entity writes and scheduler outcomes have one atomic boundary.
 
-## Delivery sequence
+## Wave lifecycle
 
-### PR 1: upstream cycle fix and recovery
+### 1. Mark dirty
 
-- Mark SWOT as an excluded projection source upstream.
-- Make derived projection outputs excluded by default unless explicitly opted in.
-- Add the full-preset quiescence regression test.
-- Publish a new `@rizom/brain` release.
-- Upgrade `yeehaa.io` directly to that release, deploy, and verify the persisted queue reaches quiescence.
+External mutations—directory sync, user edits, API writes, and chat tools—append
+a source revision in the same entity-service transaction as the mutation. A
+changed rule configuration fingerprint or explicit operator invalidation
+appends a direct rule revision. Startup hydration and persistence replay do not
+mark entity inputs dirty.
 
-### PR 2: child-process lifecycle
+Projection-owned writes do not re-enter the global event path. Their changed
+results are attached directly to the active wave and evaluated against the
+next graph level.
 
-- Audit and fix Git process ownership (await, cancel, timeout, shutdown).
-- Add `tini` and direct entrypoint execution.
-- Add the container-level Git soak test.
+### 2. Start one wave
 
-### PR 3: bounded job execution
+A short trailing debounce allows an ingress burst to settle. If no wave is
+active, the scheduler atomically:
 
-- Add job deadlines, cancellation, and startup recovery (leases/heartbeats).
+1. chooses cutoff generation G;
+2. creates a wave record;
+3. coalesces dirty rows with generation ≤ G to the latest row per scheduling
+   input and copies those revisions into durable wave inputs;
+4. deletes journal rows with generation ≤ G;
+5. pins the finalized graph fingerprint.
 
-### PR 4: health and recovery
+Only one wave is active in one Brain runtime. Ingress newer than G stays dirty
+for the successor wave.
 
-- Add liveness/readiness separation and watchdog integration.
-- Expose resource signals.
+### 3. Schedule a level
 
-### PR 5: convergence and amplification
+The scheduler finds rules reachable from the current changed entity types and
+enqueues one job per rule using the durable key:
 
-- Add projection input fingerprints.
-- Make SWOT semantic updates idempotent.
-- Add trailing-only debounce, environment-specific dedup keys, dirty-generation successors, and site input fingerprints.
-- Fix JSON `undefined` normalization.
+```text
+projection-wave:<waveId>:<ruleId>
+```
 
-### PR 6: projection architecture
+The job queue owns execution deadlines, cancellation, fenced completion,
+leases, retries, and worker sessions.
 
-- Add projection registry and graph validation, including event-based edges.
-- Add causal provenance and runtime work budgets.
-- Add circuit-breaker health reporting.
+### 4. Advance
 
-### PR 7: failure isolation
+After all jobs in a level complete, the scheduler reads their atomically
+persisted wave-rule outcomes. Only targets that were actually created,
+semantically updated, or deleted feed the next level.
 
-- Move heavy background processing into a separate worker process/container.
-- Verify the web process remains responsive during worker failure and restart.
+A memo hit returns the previously recorded write intents. The same
+entity-service transaction verifies or reapplies those intents and records the
+outcome. If they are already reflected in entity state, the changed-target set
+is empty and no downstream rule runs.
+
+### 5. Complete or fail
+
+A successful final level marks the wave complete, enqueues embedding jobs for
+every changed target, and requests one site build. The embedding step is not
+optional: wave writes apply entity rows directly and bypass the interactive
+mutation path that normally schedules embedding generation, so without it,
+derived content (topics, skills, SWOT) would be invisible to semantic search
+until the next boot-time backfill. The existing site fingerprint skips
+rendering when output would be identical.
+
+If a rule exhausts queue retries:
+
+- the wave is marked failed;
+- no wave-completion site build runs;
+- claimed wave inputs are returned to the dirty set unless a newer pending
+  revision already supersedes them;
+- repeated rule crashes may open the existing persisted projection circuit.
+
+Restart recovery reads the active wave, reconciles each recorded `jobId` with
+the job queue, and resumes from the first incomplete level. It does not create a
+second job for a completed or active rule.
+
+A wave whose pinned graph fingerprint no longer matches the finalized
+composition (a deploy changed rules or rule versions mid-wave) must not wedge
+the scheduler: refusing to advance it is correct, but recovery must then fail
+that wave — returning its claimed inputs to the dirty set — and claim a fresh
+wave under the new fingerprint. An active stale wave that can only throw would
+otherwise block every successor while ingress accumulates in the journal.
+
+## Graph policy
+
+The existing projection registry remains the composition authority.
+
+At startup it:
+
+- expands wildcard entity sources;
+- rejects duplicate rule IDs;
+- rejects unknown targets;
+- rejects all directed cycles;
+- computes topological levels;
+- produces the graph fingerprint pinned by each wave.
+
+Intentional feedback/fixpoint groups are deferred. No current production
+projection requires one. If a legitimate cyclic derivation is introduced, it
+requires a separate design and cannot bypass the acyclic startup gate.
+
+Semantic completion events may still be emitted for external observers, but
+no projection rule consumes them to schedule another projection.
+
+## Relationship to completed resilience work
+
+The wave scheduler builds on, rather than replaces, the incident fixes already
+implemented on this branch:
+
+- derived outputs fail closed as projection sources;
+- the concrete SWOT feedback edge is removed;
+- projection composition is validated before runtime startup;
+- job attempts are leased, deadlined, cancellable, and fenced;
+- worker sessions fence replaced processes;
+- projection circuits persist and appear in readiness;
+- semantic output comparison prevents timestamp-only mutations;
+- site input fingerprints skip identical renders;
+- trailing rebuild backpressure prevents mutation bursts from starting
+  parallel builds;
+- Git operations are cancellable and children are reaped;
+- liveness and readiness are separate.
+
+Causal lineage and runtime budgets remain temporary guards while any
+choreographed projection still exists. They can be removed only after every
+rule has migrated and the old event scheduling path has no callers.
+
+## Migration strategy
+
+Wave scheduling and event choreography may coexist only across disconnected
+graph components. A connected derivation component cannot be split across
+execution owners: suppressing projection events would strand event-owned
+downstream rules, while emitting them would let work escape the wave.
+
+Each connected component therefore has one execution owner:
+
+```text
+event-owned | wave-owned
+```
+
+Startup rejects a rule registered in both modes and rejects every graph edge
+whose endpoints have different owners. Production cutover changes an entire
+connected component atomically. Completion events may still be emitted for
+external observers, but no projection consumes them inside a wave-owned
+component.
+
+### Stage 0: clean contract boundary
+
+- Remove the unfinished event-job-payload fingerprint rollout.
+- Keep proven PR 5 semantic fingerprints until each handler migrates.
+- Introduce `ProjectionRule`, narrow input/execution contexts, canonical write
+  intents, and entity-database memo storage.
+- Add entity-service schema and repository tests for atomic mutation/dirty
+  writes, dirty claims, wave recovery, atomic rule application, and memos.
+- Remove the registry's now-dead feedback surface: cycles are rejected
+  unconditionally, so `feedback` declarations and the always-empty
+  `declaredCycles` graph field are vestigial.
+- Schema nit: drop the dirty table's separate generation index — `generation`
+  is already the integer primary key.
+
+### Stage 1: scheduler walking skeleton
+
+- Add the scheduler in `shell/core` and scheduler persistence in the entity
+  database.
+- Mark external entity mutations dirty atomically.
+- Exercise one isolated fixture component end to end without changing a
+  production projection's execution owner.
+- Prove arbitrary N source revisions create one rule job in the fixture wave.
+- Keep all production components event-owned until a complete connected
+  component is ready to cut over.
+
+### Stage 2: migrate connected derivation components
+
+Migrate every registered derivation discovered from the graph, one complete
+connected component per cutover, including:
+
+- skill;
+- SWOT;
+- series;
+- conversation-memory summaries;
+- newsletter;
+- social posts;
+- preset-specific rules.
+
+For each component, remove all internal semantic-event scheduling edges in the
+same cutover that changes its owner to `wave-owned`. At the end of this stage,
+one ingress batch produces one job per reachable rule in validated topological
+order, with no event bridge between projection rules.
+
+### Stage 3: wave-end site build
+
+- Disable automatic rebuild triggers for wave-owned writes.
+- Request one build after successful wave completion.
+- Retain immediate explicitly requested builds.
+- Retain the site input fingerprint as the final render cache boundary.
+
+### Stage 4: delete choreography guards
+
+After all rules are wave-owned and soak tests pass:
+
+- remove projection event subscriptions;
+- remove projection lineage/depth enforcement;
+- remove per-root projection job/mutation budgets;
+- keep persisted crash circuits, queue fencing, health diagnostics, and a
+  scheduler assertion that jobs per wave cannot exceed reachable rule count.
+
+## Testing strategy
+
+The tests verify cardinality invariants, not a special value of N.
+
+### Unit and property tests
+
+For generated dirty sets of varying size:
+
+- every reachable acyclic rule is scheduled once;
+- unrelated rules are not scheduled;
+- duplicate revisions collapse to the latest source revision;
+- mutations after the cutoff remain pending;
+- unchanged fingerprints use memo replay;
+- only semantic writes propagate downstream;
+- restart resumes the same wave and job IDs;
+- an entity mutation and dirty revision commit or roll back together;
+- memo, semantic writes, changed targets, and wave-rule completion commit or
+  roll back together;
+- no connected graph edge crosses execution owners.
+
+### Full-preset integration
+
+For the Rover full graph:
+
+```text
+documents → topics → skills → SWOT
+```
+
+assert:
+
+- one job per reachable rule;
+- topological level order;
+- no second topic execution;
+- no model calls for unchanged rule inputs;
+- one site-build decision after successful completion.
+
+A batch of 100 documents remains a useful load fixture, but it is only one
+sample proving the general invariant. The implementation must pass the same
+cardinality assertion for every tested batch size.
+
+### Failure tests
+
+- changes arriving during execution create one successor wave;
+- a timed-out rule retries under the existing fenced attempt;
+- retry exhaustion fails the wave and requeues ingress;
+- process restart resumes from durable wave/job records;
+- a crash between wave claim and rule-row creation leaves a running wave with
+  zero rule rows; recovery treats it as "schedule level 0 from wave inputs";
+- a committed memo/result transaction survives interruption before job-queue
+  completion and retries without a second model call;
+- wave-end embedding enqueue covers every changed target, so derived entities
+  are searchable without waiting for boot backfill;
+- an open persisted circuit keeps full operational readiness at 503 until
+  expiry; after S5, this assertion targets `/health/operate` while routing
+  readiness remains web-specific.
 
 ## Acceptance criteria
 
-1. A new document produces one bounded topic/skill/SWOT wave and the queue reaches idle.
-2. The full preset contains no undeclared projection cycle. This is only checkable once the registry includes event-based edges (PR 6); before that, graph validation cannot see the topic/skill/SWOT message channels.
-3. Reprocessing unchanged inputs produces no entity mutations.
-4. A hung job times out or is isolated without permanently blocking the queue.
-5. A dead worker's job is reclaimed after restart without duplicate completion.
-6. A mutation burst creates at most one build plus one necessary successor.
-7. Hundreds of Git syncs leave zero zombie processes.
-8. Readiness returns 503 for stale workers or open circuit breakers.
-9. Draft newsletters build without optional-field validation errors.
-10. A one-hour mutation soak test shows bounded RSS, FD count, process count, queue depth, and site-build rate.
+1. For any dirty batch size N, each reachable rule has at most one job in the
+   wave.
+2. Job cardinality is O(reachable rules), not O(N × reachable rules).
+3. The full preset has no projection cycle and executes in topological order.
+4. Reprocessing an unchanged rule input performs no model call and no semantic
+   entity mutation.
+5. Entity mutation plus dirty marking, and memo plus projection writes plus
+   wave-rule outcome, each commit atomically.
+6. Changes during a wave are not lost and run in a successor wave.
+7. Restart resumes an active wave without duplicating completed rule jobs.
+8. A successful changed wave performs at most one site render; an unchanged
+   site fingerprint performs none.
+9. Existing job deadlines, leases, fencing, circuits, health checks, Git child
+   lifecycle, and JSON site boundary continue to pass.
+10. The implementation remains inside the existing single Bun package and does
+    not introduce process-coordination files or environment variables.
 
-Criteria 7 and 10 are soak tests that cannot run in ordinary CI. They run as a
-manual pre-release check against a staging deploy: criterion 7 gates the PR 2
-release, criterion 10 gates the PR 7 release.
+## Explicitly deferred
+
+- Splitting web and worker execution into separate packages, containers, or
+  runtime profiles (the process supervisor below keeps one package and one
+  container).
+- Distributed scheduling or multiple active Brain nodes.
+- Cyclic/fixpoint projection groups.
+- Replacing the existing job queue or entity database.
+
+## Process supervisor
+
+Sequenced after the scheduler work above; do not start it earlier. Phase S3
+onward additionally assumes the attempt leases, `job_worker_sessions` reclaim,
+and host watchdog from the completed resilience work; S5 builds on its
+health-endpoint split.
+
+### Problem
+
+A hung job handler currently escalates through `markUnhealthy` to
+`process.exit(1)`, restarting the whole container. The web interface — which
+could keep serving the built site and health endpoints — goes down with the
+worker. A JavaScript timeout cannot recover from a runtime or GC deadlock, so
+isolation must be at the OS-process level. An earlier draft expanded this into
+deployment isolation (separate images, runtime profiles, schema marker files,
+liveness files); that was the wrong scope — two containers need file- or
+network-based coordination, while two child processes of one parent get
+ordering and liveness from the process model itself.
+
+### Decision
+
+One published Bun package, one bundled entrypoint, one Docker image, one
+container. The entrypoint becomes a small parent supervisor:
+
+```text
+tini
+└── @rizom/brain/dist/brain.js start        (parent supervisor)
+    ├── brain.js start --child=web          (interfaces, ingress, daemons)
+    └── brain.js start --child=worker       (queue execution)
+```
+
+All three processes execute the same bundle and load the same brain
+configuration. The child role is an internal argv flag the parent appends when
+spawning; operators never pass it and no new environment variables exist.
+
+### Design
+
+- **Parent**: in the final topology, runs migrations exactly once, closes the
+  migration database handles, starts the web child, waits for a bounded IPC
+  `runtime-ready` signal, and only then starts the worker child. After startup
+  it holds process and IPC handles but no application database connections or
+  plugin services. Duties: spawn, signal forwarding (`SIGTERM`/`SIGINT`
+  forwarded, 15s grace, then `SIGKILL`), reaping, worker startup deadlines,
+  and worker respawn with exponential backoff budgeted at 3 attempts per
+  rolling hour. If the budget is exhausted, the parent keeps web alive, marks
+  worker supervision paused, and retries when the rolling window next permits
+  an attempt. A web child exit ends the parent immediately: a dead web child
+  is a container-level failure handled by the container restart policy.
+- **Web child**: boots interfaces, ingress, plugin ready hooks, daemons, the
+  wave scheduler, and enqueue services, but never starts `JobQueueWorker`.
+  When initial sync, prompt/identity materialization, and ready hooks finish,
+  it sends `runtime-ready` to the parent. It continues serving while the
+  worker is restarting or paused. Because the worker starts only after
+  `runtime-ready`, nothing on the web ready path may await a queued job's
+  completion — initial sync imports entities inline today and downstream
+  projections merely enqueue, but this is an invariant, not an accident. A
+  boot test must prove the web child reaches `runtime-ready` with no worker
+  process present.
+- **Worker child**: uses an execution-only registration path introduced after
+  every projection is wave-owned. It loads entity schemas/adapters, narrow
+  projection-rule execution capabilities, AI dependencies, all declared job
+  execution capabilities, and `JobQueueWorker`; it does not register
+  interfaces, ingress subscriptions, daemons, tools, or plugin ready hooks.
+  Before this split, an inventory test must prove that every registered job
+  type declares all local dependencies required in the worker. A handler that
+  relies on web-only mutable plugin state or an in-memory web `MessageBus`
+  subscriber blocks S3 until that dependency is refactored into an explicit
+  execution capability or durable service; this plan does not silently add a
+  cross-process message bus. The existing `markUnhealthy` → `process.exit(1)`
+  escalation then restarts only the worker. After boot it sends
+  `worker-ready`, then heartbeats every 5s over the child-process IPC channel.
+  A startup deadline or 3 consecutive missed beats causes the parent to kill
+  and respawn it under the same budget.
+- **Shared SQLite**: web enqueues while the worker claims from the same
+  job-queue database file. WAL mode and `busy_timeout` pragmas must be applied
+  in every child process — verify `applySqlitePragmas` runs in both boot paths.
+  Scheduler state remains in the shared entity database as defined above.
+- **Migration ownership**: the parent-to-child spawn ordering is the schema
+  barrier; there is no marker file. Internal child argv tells `App` that the
+  parent already completed migrations. This option is package-internal and is
+  not an operator-facing runtime profile.
+- **Health semantics**: `/health/live` remains dependency-free.
+  `/health/ready` represents web-serving/routing readiness and returns 200
+  while worker execution is degraded; its payload may include a `degraded`
+  worker check from `job_worker_sessions`. A separate `/health/operate`
+  endpoint represents full operational readiness and returns 503 for a stale
+  or paused worker, queue failure, unhealthy daemon, or open projection
+  circuit. Kamal uses `/health/ready`; operational monitoring uses
+  `/health/operate`; Docker and the host watchdog continue to act only on
+  liveness. Worker degradation never triggers a container restart. Because no
+  automated recovery acts on a paused worker, `/health/operate` must have a
+  named consumer — external uptime monitoring alerting the operator — and the
+  parent must emit a structured `worker-supervision-paused` incident to stderr
+  when it pauses worker supervision. Container logging preserves that record
+  without adding a host-path mount or coordination file; the watchdog only
+  records incidents on restarts, and a pause without a log and alert is silent
+  degradation.
+
+### Phases
+
+Each phase lands with deterministic tests; fake clocks and scripted child
+promises replace sleep-based synchronization. The tree stays green after every
+phase.
+
+0. **S0 — execution-boundary inventory**: enumerate every registered job type
+   in the full preset and its entity, AI, template, registry, and messaging
+   dependencies. Convert registration to immutable job execution capabilities.
+   Prove execution-only boot can construct every handler without interfaces,
+   ingress subscriptions, daemons, or ready hooks. S1 may start before every
+   handler is converted, but S3 is blocked until this gate passes. The known
+   largest item is job progress reporting: `JobProgressMonitor` emits over the
+   in-process message bus that web interfaces subscribe to, so in a worker
+   child those emissions have no subscribers and chat/web progress goes dark.
+   It must move to a durable path — the natural fit is the web child polling
+   job status from the shared queue database — before S3.
+1. **S1 — supervisor skeleton**: parent spawns a single `--child=web` process;
+   the unchanged web child still owns migrations in this phase. Add signal
+   forwarding, reaping, and exit-code propagation with externally identical
+   behavior.
+2. **S2 — parent boot ownership**: extract migration execution to the parent,
+   add the internal child "migrations completed" contract, add the bounded web
+   `runtime-ready` IPC handshake, and prove no child starts before migrations
+   succeed.
+3. **S3 — worker split**: add execution-only capability registration;
+   `--child=worker` boots those capabilities plus `JobQueueWorker`; web stops
+   starting the worker; parent starts worker only after web readiness; worker
+   exit or startup timeout triggers budgeted backoff respawn. Exhausted budget
+   pauses worker supervision without stopping web.
+4. **S4 — stuck-worker detection**: IPC heartbeat; kill-and-respawn after 3
+   missed beats, charged to the same rolling budget.
+5. **S5 — health semantics**: add `degraded` health details and
+   `/health/operate`; prove `/health/ready` remains 200 for worker-only failure
+   while operational readiness returns 503.
+6. **S6 — container verification**: manual staging soak — hang the worker with
+   a test handler and assert `/health/live`, `/health/ready`, and static serving
+   stay up while the worker respawns and the queue drains; exhaust the worker
+   budget and prove web stays up; SIGTERM the container and assert clean child
+   shutdown with zero zombies.
+
+### Acceptance criteria
+
+1. A hung worker child leaves web serving untouched; the worker respawns and
+   the queue resumes, with lease fencing preventing duplicate completion.
+2. A crash-looping worker exhausts its budget without stopping web; supervision
+   retries only when the rolling window permits another attempt,
+   `/health/operate` remains 503 meanwhile, and the pause emits a structured
+   incident log.
+3. The worker never claims a job before the web child sends `runtime-ready`,
+   and the web child reaches `runtime-ready` with no worker process present.
+4. Worker execution-only boot registers no interfaces, ingress subscriptions,
+   daemons, tools, or plugin ready hooks, and every full-preset job handler
+   passes the execution-boundary dependency audit.
+5. `SIGTERM` stops both children cleanly: worker sessions ended, no zombies,
+   exit within the grace period.
+6. No new environment variables, packages, images, containers, or coordination
+   files.
+7. `/health/ready` reports worker degradation without failing routing;
+   `/health/operate` fails for worker degradation; web-critical database
+   inaccessibility still makes `/health/ready` return 503.

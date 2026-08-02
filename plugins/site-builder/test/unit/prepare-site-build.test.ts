@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
   RouteRegistry,
+  type JsonObject,
   type ResolvedSiteImage,
   type SiteImageLookup,
   type SiteImageMap,
@@ -20,6 +21,17 @@ import { prepareSiteBuild } from "../../src/lib/prepare-site-build";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { SiteBuildProfile } from "../../src/lib/site-build-profile-service";
 
+const templateDataSchema = z.custom<JsonObject>(
+  (value) =>
+    z
+      .object({
+        heading: z.string(),
+        pageTitle: z.string(),
+        pageLabel: z.string().nullable().default(null),
+      })
+      .safeParse(value).success,
+);
+
 function createPipelineContext(
   routes: RouteDefinition[],
 ): BuildPipelineContext {
@@ -33,11 +45,7 @@ function createPipelineContext(
     return {
       name,
       pluginId: "fixture",
-      schema: z.object({
-        heading: z.string(),
-        pageTitle: z.string(),
-        pageLabel: z.string().nullable().default(null),
-      }),
+      schema: templateDataSchema,
       renderers: { web: (): VNode => h("div", {}) },
       fullscreen: true,
       runtimeScripts: [{ src: "/scripts/hero.js", defer: true }],
@@ -182,6 +190,85 @@ describe("prepareSiteBuild", () => {
     expect(Object.isFrozen(result.preparedBuild.routes[0]?.sections)).toBe(
       true,
     );
+  });
+
+  it("recursively omits undefined object properties at the JSON boundary", async () => {
+    const routes = [
+      createRoute({
+        heading: "Draft newsletter",
+        sentAt: undefined,
+        scheduledFor: undefined,
+        sourceEntities: undefined,
+        nested: { value: undefined },
+      }),
+    ];
+
+    const result = await prepareSiteBuild({
+      buildId: "undefined-content-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: {
+          title: "Fixture Site",
+          description: "Fixture description",
+        },
+      },
+      buildOptions: {},
+      pipelineContext: createPipelineContext(routes),
+      imageBuildService,
+      siteMetadata: {
+        title: "Fixture Site",
+        description: "Fixture description",
+      },
+    });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.preparedBuild.routes[0]?.sections[0]?.data).toEqual({
+      heading: "Draft newsletter",
+      pageTitle: "Home Route",
+      pageLabel: "Home Label",
+      nested: {},
+    });
+  });
+
+  it("rejects unsupported non-JSON values without verbose schema dumps", async () => {
+    const routes = [
+      createRoute({
+        heading: "Unsupported content",
+        unsupported: new Date("2026-07-22T00:00:00.000Z"),
+      }),
+    ];
+
+    const result = await prepareSiteBuild({
+      buildId: "unsupported-content-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: {
+          title: "Fixture Site",
+          description: "Fixture description",
+        },
+      },
+      buildOptions: {},
+      pipelineContext: createPipelineContext(routes),
+      imageBuildService,
+      siteMetadata: {
+        title: "Fixture Site",
+        description: "Fixture description",
+      },
+    });
+
+    expect(result.preparedBuild.routes[0]?.sections).toEqual([]);
+    expect(result.diagnostics[0]?.message).toContain(
+      "Unsupported non-JSON value at $.unsupported: Date",
+    );
+    expect(result.diagnostics[0]?.message.length).toBeLessThan(300);
   });
 
   it("reports invalid section content and omits it from the prepared route", async () => {

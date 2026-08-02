@@ -38,8 +38,10 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { OperationContext } from "@brains/operation-context";
 
 import { DaemonRegistry } from "../daemon-registry";
+import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
@@ -61,6 +63,8 @@ export function createShellServices(options: {
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
+  const operationContext =
+    dependencies?.operationContext ?? OperationContext.createFresh();
   const disposables: Array<() => void> = [];
 
   const embeddingService =
@@ -74,7 +78,9 @@ export function createShellServices(options: {
     AIService.createFresh(createAIModelConfig(config), logger);
   const entityRegistry =
     dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
-  const messageBus = dependencies?.messageBus ?? MessageBus.createFresh(logger);
+  const messageBus =
+    dependencies?.messageBus ??
+    MessageBus.createFresh(logger, operationContext);
   const templateRegistry =
     dependencies?.templateRegistry ?? TemplateRegistry.createFresh(logger);
   const dataSourceRegistry =
@@ -113,6 +119,11 @@ export function createShellServices(options: {
     runtimeStateContext,
     RuntimeStateServiceTag,
   );
+  const projectionRuntimeSupervisor =
+    dependencies?.projectionRuntimeSupervisor ??
+    ProjectionRuntimeSupervisor.createFresh(operationContext, {
+      runtimeState: runtimeStateService,
+    });
 
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
@@ -121,6 +132,8 @@ export function createShellServices(options: {
     dependencies,
     jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
     messageBus,
+    operationContext,
+    projectionAdmission: projectionRuntimeSupervisor,
     logger,
   });
   const {
@@ -185,6 +198,7 @@ export function createShellServices(options: {
       logger,
       jobQueueService,
       messageBus,
+      mutationAdmission: projectionRuntimeSupervisor,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
       ...(dependencies?.entityService && {
@@ -249,6 +263,8 @@ export function createShellServices(options: {
 
   return {
     logger,
+    operationContext,
+    projectionRuntimeSupervisor,
     disposables,
     entityRegistry,
     messageBus,

@@ -201,6 +201,26 @@ describe("NewsletterDataSource", () => {
       expect(result.content).toBe("Full newsletter content here");
     });
 
+    it("omits absent optional fields from draft detail data", async () => {
+      const newsletter = createMockNewsletter(
+        "draft-1",
+        "Draft newsletter",
+        "draft",
+      );
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(newsletter);
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]);
+
+      const result = await datasource.fetch(
+        { entityType: "newsletter", query: { id: "draft-1" } },
+        newsletterDetailSchema,
+        mockContext,
+      );
+
+      expect(Object.hasOwn(result, "sentAt")).toBe(false);
+      expect(Object.hasOwn(result, "scheduledFor")).toBe(false);
+      expect(Object.hasOwn(result, "sourceEntities")).toBe(false);
+    });
+
     it("should throw error when newsletter not found", async () => {
       spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
 

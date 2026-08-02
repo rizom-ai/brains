@@ -38,3 +38,9 @@ export interface IRuntimeStateStore<T> {
 export interface IRuntimeStateNamespace {
   scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T>;
 }
+
+export interface IRuntimeStateService extends IRuntimeStateNamespace {
+  /** Settle non-fatal database readiness work before the shell becomes ready. */
+  initialize(): Promise<void>;
+  close(): void;
+}

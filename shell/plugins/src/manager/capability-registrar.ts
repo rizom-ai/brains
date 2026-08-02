@@ -1,16 +1,19 @@
 import type { Logger } from "@brains/utils/logger";
 import type { IShell } from "../interfaces";
 import type { PluginCapabilities } from "../interfaces";
+import type { IProjectionRegistry } from "../entity/projection-registry";
 
 /**
  * Handles registration of plugin capabilities (tools, resources)
  * Extracted from PluginManager for single responsibility
  */
 export class CapabilityRegistrar {
-  private logger: Logger;
+  private readonly logger: Logger;
+  private readonly projectionRegistry: IProjectionRegistry;
 
-  constructor(logger: Logger) {
+  constructor(logger: Logger, projectionRegistry: IProjectionRegistry) {
     this.logger = logger.child("CapabilityRegistrar");
+    this.projectionRegistry = projectionRegistry;
   }
 
   /**
@@ -41,6 +44,26 @@ export class CapabilityRegistrar {
     if (capabilities.instructions) {
       shell.registerInstructions(pluginId, capabilities.instructions);
       this.logger.debug(`Registered instructions from ${pluginId}`);
+    }
+
+    const projections = capabilities.projections ?? [];
+    const projectionRules = capabilities.projectionRules ?? [];
+    try {
+      for (const projection of projections) {
+        this.projectionRegistry.register(pluginId, projection);
+      }
+      for (const rule of projectionRules) {
+        this.projectionRegistry.registerRule(pluginId, rule);
+      }
+    } catch (error) {
+      this.projectionRegistry.unregisterPlugin(pluginId);
+      throw error;
+    }
+    const projectionCount = projections.length + projectionRules.length;
+    if (projectionCount > 0) {
+      this.logger.debug(
+        `Registered ${projectionCount} projections from ${pluginId}`,
+      );
     }
   }
 }

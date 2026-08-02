@@ -12,6 +12,7 @@ import type {
   MessageInterfacePluginContext,
   ServicePluginContext,
   Tool,
+  ProjectionDeclaration,
 } from "../../src/public/types";
 import type { WebRouteDefinition } from "../../src/types/web-routes";
 import {
@@ -219,15 +220,32 @@ describe("public plugin API", () => {
       protected override async onRegister(
         _context: EntityPluginContext,
       ): Promise<void> {}
+
+      protected override getProjectionDeclarations(): ProjectionDeclaration[] {
+        return [
+          {
+            id: "test-entity-generation",
+            targetType: this.entityType,
+            sources: [{ kind: "event", events: ["test:generate"] }],
+          },
+        ];
+      }
     }
 
     const plugin = new TestEntityPlugin();
     const harness = createPluginHarness<TestEntityPlugin>();
-    await harness.installPlugin(plugin);
+    const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
     expect(
       harness.getMockShell().getEntityRegistry().hasEntityType("test-entity"),
     ).toBe(true);
+    expect(capabilities.projections).toEqual([
+      {
+        id: "test-entity-generation",
+        targetType: "test-entity",
+        sources: [{ kind: "event", events: ["test:generate"] }],
+      },
+    ]);
   });
 });

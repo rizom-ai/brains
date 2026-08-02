@@ -410,7 +410,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       failures.push(error);
     }
     try {
-      gitSync?.cleanup();
+      await gitSync?.cleanup();
     } catch (error) {
       failures.push(error);
     }
@@ -433,7 +433,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       // Preserve the candidate acquisition failure.
     }
     try {
-      gitSync?.cleanup();
+      await gitSync?.cleanup();
     } catch {
       // Preserve the candidate acquisition failure.
     }

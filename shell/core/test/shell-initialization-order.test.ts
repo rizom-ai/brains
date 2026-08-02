@@ -5,6 +5,8 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Daemon, Plugin } from "@brains/plugins";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 
 const mockEmbeddingService = {
   dimensions: 1536,
@@ -38,6 +40,10 @@ describe("Shell initialization order", () => {
 
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
+    await migrateJobQueue({ url: `file:${testDir.dir}/test-jobs.db` });
+    await migrateRuntimeState({
+      url: `file:${testDir.dir}/test-runtime-state.db`,
+    });
     initOrder.length = 0;
   });
 

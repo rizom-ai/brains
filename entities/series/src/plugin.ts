@@ -81,6 +81,10 @@ export class SeriesPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    // Explicit derived-output opt-in for the topic projection: series-only
+    // evidence can only reinforce existing topics, topics are terminal
+    // projection outputs, and the global topics-source-batch key coalesces the
+    // maximum one-hop derivation.
     return { weight: 0.5, projectionSourceRole: "supporting" };
   }
 
@@ -124,6 +128,7 @@ export class SeriesPlugin extends EntityPlugin<
           // type can carry — we filter per-event below by inspecting the
           // entity itself rather than its type.
           sourceTypes: ["*"],
+          excludeSourceTypes: ["series"],
           events: [
             ENTITY_CHANNELS.created,
             ENTITY_CHANNELS.updated,

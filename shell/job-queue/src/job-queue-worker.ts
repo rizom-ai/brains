@@ -1,4 +1,5 @@
 import { getErrorMessage, toError } from "@brains/utils/error";
+import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 import { HandlerFailureSchema, type JobResult } from "./schemas";
@@ -18,11 +19,24 @@ import {
   Scope,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
+import { OperationContext } from "@brains/operation-context";
 
-interface JobQueueWorkerRuntimeOptions {
+export interface JobQueueWorkerRuntimeOptions {
   /** Internal clock boundary used for deterministic polling tests. */
   clock?: Clock.Clock;
+  /** Shared app-scoped causal context. */
+  operationContext?: OperationContext;
 }
+
+class JobDeadlineExceededError extends Error {
+  constructor(jobType: string, timeoutMs: number) {
+    super(`Job ${jobType} exceeded its ${timeoutMs}ms execution deadline`);
+    this.name = "JobDeadlineExceededError";
+  }
+}
+
+type OperationOutcome<T> =
+  { kind: "success"; value: T } | { kind: "failure"; error: unknown };
 
 type WorkerTransitionKind = "start" | "stop";
 
@@ -55,12 +69,17 @@ export class JobQueueWorker {
   private activeTransition: WorkerTransition | null = null;
   private readonly transitionQueue: WorkerTransition[] = [];
   private readonly clock: Clock.Clock | undefined;
+  private readonly operationContext: OperationContext;
+  private workerSessionId: string | null = null;
+  private workerHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private workerHeartbeatInFlight: Promise<void> | null = null;
 
   public static createFresh(
     jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
+    runtimeOptions?: JobQueueWorkerRuntimeOptions,
   ): JobQueueWorker;
   public static createFresh(
     jobQueueService: IJobQueueService,
@@ -89,11 +108,25 @@ export class JobQueueWorker {
     this.jobQueueService = jobQueueService;
     this.progressMonitor = progressMonitor;
     this.clock = runtimeOptions?.clock;
+    this.operationContext =
+      runtimeOptions?.operationContext ?? OperationContext.createFresh();
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
       maxJobs: config?.maxJobs ?? 0,
       autoStart: config?.autoStart ?? false,
+      workerSlotId:
+        config?.workerSlotId ??
+        process.env["BRAIN_JOB_WORKER_SLOT_ID"] ??
+        "default",
+      defaultExecutionTimeoutMs: config?.defaultExecutionTimeoutMs ?? 300_000,
+      cancellationGraceMs: config?.cancellationGraceMs ?? 5_000,
+      errorCallbackTimeoutMs: config?.errorCallbackTimeoutMs ?? 10_000,
+      leaseDurationMs: config?.leaseDurationMs ?? 30_000,
+      attemptHeartbeatIntervalMs: config?.attemptHeartbeatIntervalMs ?? 10_000,
+      workerHeartbeatIntervalMs: config?.workerHeartbeatIntervalMs ?? 5_000,
+      workerSessionTimeoutMs: config?.workerSessionTimeoutMs ?? 15_000,
+      onUnhealthy: config?.onUnhealthy ?? ((): void => undefined),
     };
 
     this.stats = {
@@ -102,6 +135,7 @@ export class JobQueueWorker {
       activeJobs: 0,
       uptime: 0,
       isRunning: false,
+      isHealthy: true,
     };
 
     this.logger.debug("JobQueueWorker initialized", {
@@ -132,10 +166,19 @@ export class JobQueueWorker {
     }
 
     this.logger.debug("Starting JobQueueWorker");
+    const workerSessionId = createId();
+    await this.jobQueueService.startWorkerSession(
+      this.config.workerSlotId,
+      workerSessionId,
+    );
+    this.workerSessionId = workerSessionId;
     this.isRunning = true;
     this.shouldStop = false;
     this.startTime = Date.now();
     this.stats.isRunning = true;
+    this.stats.isHealthy = true;
+    delete this.stats.unhealthyReason;
+    this.startWorkerHeartbeat();
 
     this.workerScope = Effect.runSync(Scope.make());
     this.jobFibers = Effect.runSync(
@@ -192,6 +235,15 @@ export class JobQueueWorker {
     }
 
     await this.closeWorkerScope();
+    await this.stopWorkerHeartbeat();
+    const workerSessionId = this.workerSessionId;
+    this.workerSessionId = null;
+    if (workerSessionId) {
+      await this.jobQueueService.endWorkerSession(
+        this.config.workerSlotId,
+        workerSessionId,
+      );
+    }
     this.isRunning = false;
     this.stats.isRunning = false;
     this.logger.debug("JobQueueWorker stopped");
@@ -267,7 +319,16 @@ export class JobQueueWorker {
         if (this.isStopRequested()) {
           break;
         }
-        const job = await this.jobQueueService.dequeue();
+        const workerSessionId = this.workerSessionId;
+        if (!workerSessionId) {
+          throw new Error("Worker session is not available");
+        }
+        const job = await this.jobQueueService.dequeue({
+          workerSlotId: this.config.workerSlotId,
+          workerSessionId,
+          leaseDurationMs: this.config.leaseDurationMs,
+          workerSessionTimeoutMs: this.config.workerSessionTimeoutMs,
+        });
         if (job) {
           jobs.push(job);
         } else {
@@ -452,16 +513,176 @@ export class JobQueueWorker {
     }
   }
 
-  /**
-   * Process a job using its registered handler
-   */
-  private async processJob(job: JobInfo): Promise<JobResult> {
-    const handler = this.jobQueueService.getHandler(job.type);
-    if (!handler) {
-      const error = new Error(
-        `No handler registered for job type: ${job.type}`,
+  private startWorkerHeartbeat(): void {
+    this.workerHeartbeatTimer = setInterval(
+      () => {
+        const workerSessionId = this.workerSessionId;
+        if (!workerSessionId || this.workerHeartbeatInFlight) return;
+
+        this.workerHeartbeatInFlight = this.jobQueueService
+          .heartbeatWorkerSession(this.config.workerSlotId, workerSessionId)
+          .then((current) => {
+            if (!current) {
+              this.markUnhealthy("Worker session was superseded");
+            }
+          })
+          .catch((error: unknown) => {
+            this.markUnhealthy(
+              `Worker session heartbeat failed: ${getErrorMessage(error)}`,
+            );
+          })
+          .finally(() => {
+            this.workerHeartbeatInFlight = null;
+          });
+      },
+      Math.max(1, this.config.workerHeartbeatIntervalMs),
+    );
+  }
+
+  private async stopWorkerHeartbeat(): Promise<void> {
+    if (this.workerHeartbeatTimer) {
+      clearInterval(this.workerHeartbeatTimer);
+      this.workerHeartbeatTimer = null;
+    }
+    await this.workerHeartbeatInFlight;
+    this.workerHeartbeatInFlight = null;
+  }
+
+  private startAttemptHeartbeat(
+    job: JobInfo,
+    controller: AbortController,
+  ): () => Promise<void> {
+    const attemptId = job.attemptId;
+    if (!attemptId) return async () => undefined;
+
+    let inFlight: Promise<void> | null = null;
+    let stopped = false;
+    const timer = setInterval(
+      () => {
+        if (stopped || inFlight) return;
+        inFlight = this.jobQueueService
+          .renewAttemptLease(job.id, attemptId, this.config.leaseDurationMs)
+          .then((current) => {
+            if (current) return;
+            const error = new Error("Job attempt was superseded");
+            controller.abort(error);
+            this.markUnhealthy(error.message);
+          })
+          .catch((error: unknown) => {
+            const heartbeatError = toError(error);
+            controller.abort(heartbeatError);
+            this.markUnhealthy(
+              `Attempt lease heartbeat failed: ${heartbeatError.message}`,
+            );
+          })
+          .finally(() => {
+            inFlight = null;
+          });
+      },
+      Math.max(1, this.config.attemptHeartbeatIntervalMs),
+    );
+
+    return async (): Promise<void> => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      await inFlight;
+    };
+  }
+
+  private markUnhealthy(reason: string): void {
+    if (!this.stats.isHealthy) return;
+    this.stats.isHealthy = false;
+    this.stats.unhealthyReason = reason;
+    this.stats.lastError = reason;
+    this.shouldStop = true;
+    this.logger.error("Job queue worker is unhealthy", { reason });
+    try {
+      this.config.onUnhealthy(reason);
+    } catch (error) {
+      this.logger.error("Job queue worker unhealthy callback failed", {
+        reason,
+        error: getErrorMessage(error),
+      });
+    }
+  }
+
+  private async executeWithDeadline<T>(
+    jobType: string,
+    timeoutMs: number,
+    controller: AbortController,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const outcome: Promise<OperationOutcome<T>> = Promise.resolve()
+      .then(operation)
+      .then(
+        (value): OperationOutcome<T> => ({ kind: "success", value }),
+        (error: unknown): OperationOutcome<T> => ({
+          kind: "failure",
+          error,
+        }),
       );
-      await this.jobQueueService.fail(job.id, error);
+
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<{ kind: "deadline" }>((resolve) => {
+      deadlineTimer = setTimeout(
+        () => resolve({ kind: "deadline" }),
+        Math.max(1, timeoutMs),
+      );
+    });
+    const first = await Promise.race([outcome, deadline]);
+    if (first.kind !== "deadline") {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+      if (first.kind === "failure") throw first.error;
+      return first.value;
+    }
+
+    const deadlineError = new JobDeadlineExceededError(jobType, timeoutMs);
+    controller.abort(deadlineError);
+
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    const graceExpired = new Promise<{ kind: "grace-expired" }>((resolve) => {
+      graceTimer = setTimeout(
+        () => resolve({ kind: "grace-expired" }),
+        Math.max(1, this.config.cancellationGraceMs),
+      );
+    });
+    const afterCancellation = await Promise.race([outcome, graceExpired]);
+    if (afterCancellation.kind !== "grace-expired") {
+      if (graceTimer) clearTimeout(graceTimer);
+      throw deadlineError;
+    }
+
+    this.markUnhealthy(
+      `${deadlineError.message}; handler ignored cancellation grace`,
+    );
+    // Do not release this capacity or schedule a retry while user code can
+    // still mutate state. Process supervision must terminate a handler that
+    // never settles.
+    await outcome;
+    throw deadlineError;
+  }
+
+  /** Process a job using its registered handler. */
+  private processJob(job: JobInfo): Promise<JobResult> {
+    const provenance = job.metadata.provenance ?? {
+      rootJobId: job.metadata.rootJobId,
+      causationId: job.id,
+      projectionLineage: [],
+      derivationDepth: 0,
+    };
+    return this.operationContext.run(provenance, job.id, () =>
+      this.processJobWithinContext(job),
+    );
+  }
+
+  private async processJobWithinContext(job: JobInfo): Promise<JobResult> {
+    const attemptId = job.attemptId;
+    if (!attemptId) {
+      const error = new Error(
+        `Claimed job ${job.id} has no attempt fencing token`,
+      );
+      this.markUnhealthy(error.message);
       return {
         jobId: job.id,
         type: job.type,
@@ -470,46 +691,71 @@ export class JobQueueWorker {
       };
     }
 
+    const handler = this.jobQueueService.getHandler(job.type);
+    if (!handler) {
+      const error = new Error(
+        `No handler registered for job type: ${job.type}`,
+      );
+      await this.jobQueueService.fail(job.id, error, attemptId);
+      return {
+        jobId: job.id,
+        type: job.type,
+        status: JOB_STATUS.FAILED,
+        error: error.message,
+      };
+    }
+
+    const controller = new AbortController();
+    const stopAttemptHeartbeat = this.startAttemptHeartbeat(job, controller);
+    let heartbeatStopped = false;
+    const stopHeartbeat = async (): Promise<void> => {
+      if (heartbeatStopped) return;
+      heartbeatStopped = true;
+      await stopAttemptHeartbeat();
+    };
+
     try {
       this.logger.debug("Processing job", {
         jobId: job.id,
         type: job.type,
+        attemptId,
       });
 
-      // Validate and parse job data before processing
       const rawData = JSON.parse(job.data);
       const parsedData = handler.validateAndParse(rawData);
       if (parsedData === null) {
         throw new Error(`Invalid job data for type: ${job.type}`);
       }
 
-      // Create progress reporter for this job
       const progressReporter = this.progressMonitor.createProgressReporter(
         job.id,
+        attemptId,
+      );
+      const timeoutMs =
+        handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
+      const result = await this.executeWithDeadline(
+        job.type,
+        timeoutMs,
+        controller,
+        () =>
+          handler.process(
+            parsedData,
+            job.id,
+            progressReporter,
+            controller.signal,
+          ),
       );
 
-      const result = await handler.process(
-        parsedData,
-        job.id,
-        progressReporter,
-      );
-
-      // Check if handler returned a controlled failure
+      await stopHeartbeat();
       const failure = HandlerFailureSchema.safeParse(result);
       if (failure.success) {
         const errorMessage = failure.data.error ?? "Handler returned failure";
-
-        await this.jobQueueService.fail(job.id, new Error(errorMessage));
-
-        const status = await this.jobQueueService.getStatus(job.id);
-        if (status?.status === JOB_STATUS.FAILED) {
-          await this.progressMonitor.handleJobStatusChange(
-            job.id,
-            "failed",
-            job.metadata,
-          );
-        }
-
+        const applied = await this.jobQueueService.fail(
+          job.id,
+          new Error(errorMessage),
+          attemptId,
+        );
+        if (applied) await this.emitTerminalFailure(job);
         return {
           jobId: job.id,
           type: job.type,
@@ -518,15 +764,25 @@ export class JobQueueWorker {
         };
       }
 
-      await this.jobQueueService.complete(job.id, result);
+      const applied = await this.jobQueueService.complete(
+        job.id,
+        result,
+        attemptId,
+      );
+      if (!applied) {
+        return {
+          jobId: job.id,
+          type: job.type,
+          status: JOB_STATUS.FAILED,
+          error: "Job attempt no longer owns the claim",
+        };
+      }
 
-      // Handle job completion - emits individual job events and batch progress if applicable
       await this.progressMonitor.handleJobStatusChange(
         job.id,
         "completed",
         job.metadata,
       );
-
       return {
         jobId: job.id,
         type: job.type,
@@ -535,22 +791,29 @@ export class JobQueueWorker {
       };
     } catch (error) {
       const processError = toError(error);
+      await stopHeartbeat();
 
-      // Call handler's error callback if available
       try {
-        // Validate and parse job data for error handler
         const rawData = JSON.parse(job.data);
         const parsedData = handler.validateAndParse(rawData);
-        if (parsedData !== null) {
-          // Create progress reporter for error handling
+        if (parsedData !== null && handler.onError) {
           const progressReporter = this.progressMonitor.createProgressReporter(
             job.id,
+            attemptId,
           );
-          await handler.onError?.(
-            processError,
-            parsedData,
-            job.id,
-            progressReporter,
+          const errorController = new AbortController();
+          await this.executeWithDeadline(
+            `${job.type}:onError`,
+            this.config.errorCallbackTimeoutMs,
+            errorController,
+            () =>
+              handler.onError?.(
+                processError,
+                parsedData,
+                job.id,
+                progressReporter,
+                errorController.signal,
+              ) ?? Promise.resolve(),
           );
         }
       } catch (callbackError) {
@@ -560,17 +823,12 @@ export class JobQueueWorker {
         });
       }
 
-      await this.jobQueueService.fail(job.id, processError);
-
-      // Handle job failure - emits individual job events and batch progress if applicable
-      const status = await this.jobQueueService.getStatus(job.id);
-      if (status?.status === JOB_STATUS.FAILED) {
-        await this.progressMonitor.handleJobStatusChange(
-          job.id,
-          "failed",
-          job.metadata,
-        );
-      }
+      const applied = await this.jobQueueService.fail(
+        job.id,
+        processError,
+        attemptId,
+      );
+      if (applied) await this.emitTerminalFailure(job);
 
       return {
         jobId: job.id,
@@ -578,6 +836,17 @@ export class JobQueueWorker {
         status: JOB_STATUS.FAILED,
         error: processError.message,
       };
+    }
+  }
+
+  private async emitTerminalFailure(job: JobInfo): Promise<void> {
+    const status = await this.jobQueueService.getStatus(job.id);
+    if (status?.status === JOB_STATUS.FAILED) {
+      await this.progressMonitor.handleJobStatusChange(
+        job.id,
+        "failed",
+        job.metadata,
+      );
     }
   }
 }

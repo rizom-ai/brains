@@ -87,13 +87,19 @@ POST   /api/commands          # Execute command
 GET    /api/commands          # List available commands
 ```
 
-### System
+### Runtime health
 
 ```
-GET    /api/health            # Health check
-GET    /api/status            # System status
-GET    /api/plugins           # List plugins
+GET    /health/live           # Event-loop liveness; no dependency traversal
+GET    /health/ready          # Runtime readiness and resource signals
+GET    /health                # Readiness-aware compatibility response
 ```
+
+`/health/ready` returns HTTP 503 when database probes, the job worker, attempt
+leases, or daemon health indicate that the runtime cannot safely accept work.
+Its response includes memory, file descriptor, process/zombie, queue, and worker
+signals. `/health/live` remains minimal so external supervision can still
+observe a process when dependency checks are unavailable.
 
 ## WebSocket API
 

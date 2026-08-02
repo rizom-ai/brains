@@ -1,4 +1,10 @@
-import { actorRefSchema, type ActorRef } from "@brains/contracts";
+import {
+  actorRefSchema,
+  OperationProvenanceSchema,
+  type ActorRef,
+  type OperationProvenance,
+  type ProvenanceEntityReference,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 export type OperationType =
@@ -20,6 +26,7 @@ export interface JobContextInput {
   requestedByUserId?: string | undefined;
   requestedByInterface?: string | undefined;
   silent?: boolean | undefined;
+  provenance?: OperationProvenance | undefined;
 }
 
 export interface JobContext extends JobContextInput {
@@ -63,6 +70,7 @@ export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
     // Suppress all progress/completion events for this job (e.g. background
     // embedding jobs that would otherwise spam every subscriber)
     silent: z.boolean().optional(),
+    provenance: OperationProvenanceSchema.optional(),
   });
 
 /**
@@ -81,6 +89,7 @@ export const JobContextSchema: z.ZodType<JobContext, unknown> = z.object({
   requestedByUserId: z.string().optional(),
   requestedByInterface: z.string().optional(),
   silent: z.boolean().optional(),
+  provenance: OperationProvenanceSchema.optional(),
   rootJobId: z.string(), // Added by job queue service when job is created
 });
 
@@ -104,6 +113,11 @@ export type DeduplicationStrategy = z.output<typeof DeduplicationStrategyEnum>;
 /**
  * Job options for job creation
  */
+export interface ProjectionJobContext {
+  id: string;
+  sourceEntity?: ProvenanceEntityReference | undefined;
+}
+
 export interface JobOptions {
   priority?: number; // Job priority (lower = higher priority, 0 = default)
   maxRetries?: number; // Override default retry count
@@ -112,6 +126,8 @@ export interface JobOptions {
   metadata: JobContextInput; // Caller-provided metadata (rootJobId is added by job queue service)
   deduplication?: DeduplicationStrategy; // Deduplication strategy (default: "none")
   deduplicationKey?: string; // Optional key for fine-grained deduplication
+  /** Projection identity used to advance inherited causal provenance. */
+  projection?: ProjectionJobContext;
   /**
    * Override rootJobId for batch child jobs
    * External callers should not use this - it's set automatically by the job queue service

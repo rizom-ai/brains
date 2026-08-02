@@ -356,7 +356,7 @@ describe("BatchJobManager", () => {
 
       const job = await jobQueueService.dequeue();
       if (job) {
-        await jobQueueService.complete(job.id, {});
+        await jobQueueService.complete(job.id, {}, job.attemptId ?? undefined);
       }
 
       const activeBatches = await batchManager.getActiveBatches();
@@ -389,7 +389,7 @@ describe("BatchJobManager", () => {
 
       const job = await jobQueueService.dequeue();
       if (job) {
-        await jobQueueService.complete(job.id, {});
+        await jobQueueService.complete(job.id, {}, job.attemptId ?? undefined);
       }
 
       const activeBatches = await batchManager.getActiveBatches();
@@ -436,7 +436,11 @@ describe("BatchJobManager", () => {
       );
       const job = await jobQueueService.dequeue();
       if (!job) throw new Error("expected to dequeue a job");
-      await jobQueueService.complete(job.id, { ok: true });
+      await jobQueueService.complete(
+        job.id,
+        { ok: true },
+        job.attemptId ?? undefined,
+      );
     }
 
     it("should memoize terminalAt the first time getBatchStatus observes a terminal status", async () => {

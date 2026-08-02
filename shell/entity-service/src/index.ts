@@ -10,6 +10,32 @@ export type {
 } from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
 export {
+  ProjectionJsonObjectSchema,
+  ProjectionJsonValueSchema,
+  ProjectionWriteIntentSchema,
+  type ProjectionEntityWrite,
+  type ProjectionJsonObject,
+  type ProjectionJsonValue,
+  type ProjectionWriteIntent,
+} from "./projection-contracts";
+export {
+  ProjectionStore,
+  type ApplyProjectionRuleResultInput,
+  type ClaimProjectionWaveInput,
+  type GetProjectionRuleMemoInput,
+  type MarkProjectionDirtyInput,
+  type ProjectionRuleMemoValue,
+  type ProjectionWaveRuleInput,
+} from "./projection-store";
+export type {
+  ProjectionChangedTarget,
+  ProjectionDirtyInput,
+  ProjectionRuleMemo,
+  ProjectionWave,
+  ProjectionWaveInput,
+  ProjectionWaveRule,
+} from "./schema/projection-state";
+export {
   EntityValidationError,
   hasValidationIssues,
   isEntityValidationError,

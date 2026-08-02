@@ -1,6 +1,10 @@
 import { describe, it, expect, mock } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
-import type { EntityPluginContext } from "@brains/plugins";
+import {
+  createMemoryRuntimeStateNamespace,
+  createMockEntityPluginContext,
+  createSilentLogger,
+} from "@brains/test-utils";
+import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   buildSkillPrompt,
@@ -58,11 +62,11 @@ function contextForSkills(
   createEntity: ReturnType<typeof mock>;
   updateEntity: ReturnType<typeof mock>;
   deleteEntity: ReturnType<typeof mock>;
+  generate: EntityPluginContext["ai"]["generate"];
 } {
-  const createEntity = mock(async () => ({ entityId: "created", jobId: "" }));
-  const updateEntity = mock(async () => ({ entityId: "updated", jobId: "" }));
-  const deleteEntity = mock(async () => true);
-  const listEntities = mock(async (request: { entityType: string }) => {
+  const listEntitiesImpl = async (request: {
+    entityType: string;
+  }): Promise<BaseEntity[]> => {
     if (request.entityType === "topic") {
       return [
         {
@@ -70,6 +74,7 @@ function contextForSkills(
           entityType: "topic",
           content: "---\nname: Topic 1\n---\n",
           contentHash: "topic-hash",
+          visibility: "public",
           created: now,
           updated: now,
           metadata: { name: "Topic 1" },
@@ -79,21 +84,36 @@ function contextForSkills(
     if (request.entityType === "skill") return existingSkills;
     if (request.entityType === "agent") return [];
     return [];
-  });
+  };
 
-  const context = {
+  const listEntities = mock(listEntitiesImpl);
+  const baseContext = createMockEntityPluginContext({
+    listEntitiesImpl: listEntities,
+    returns: { ai: { generate: { skills: generatedSkills } } },
+  });
+  const createEntity = mock(baseContext.entityService.createEntity);
+  const updateEntity = mock(baseContext.entityService.updateEntity);
+  const deleteEntity = mock(baseContext.entityService.deleteEntity);
+  const context: EntityPluginContext = {
+    ...baseContext,
     entityService: {
-      listEntities,
+      ...baseContext.entityService,
       createEntity,
       updateEntity,
       deleteEntity,
     },
-    ai: {
-      generate: mock(async () => ({ skills: generatedSkills })),
-    },
-  } as unknown as EntityPluginContext;
+    runtimeState: createMemoryRuntimeStateNamespace(),
+  };
+  const generate = context.ai.generate;
 
-  return { context, listEntities, createEntity, updateEntity, deleteEntity };
+  return {
+    context,
+    listEntities,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    generate,
+  };
 }
 
 function listEntityCalls(
@@ -109,6 +129,29 @@ function createEntityCalls(
 }
 
 describe("deriveSkills", () => {
+  it("skips AI generation when effective projection inputs are unchanged", async () => {
+    const generated = {
+      name: "Research",
+      description: "Research complex systems",
+      tags: ["research"],
+      examples: ["What should I read?"],
+    };
+    const { context, generate } = contextForSkills([], [generated]);
+
+    await deriveSkills(context, createSilentLogger(), { replaceAll: true });
+    const second = await deriveSkills(context, createSilentLogger(), {
+      replaceAll: true,
+    });
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(second).toEqual({
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      skipped: 1,
+    });
+  });
+
   it("diffs replace-all skills instead of deleting and recreating unchanged rows", async () => {
     const unchanged = {
       name: "Research",

@@ -1,6 +1,9 @@
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import { LeadingTrailingDebounce } from "@brains/utils/debounce";
+import {
+  LeadingTrailingDebounce,
+  TrailingDebounce,
+} from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
@@ -29,12 +32,14 @@ interface AutoRebuildContext {
           trigger: string;
           timestamp: string;
         };
+        inputGeneration: number;
       };
       options: {
         priority: number;
         source: string;
         metadata: { operationType: "content_operations" };
         deduplication: "skip";
+        deduplicationKey: string;
       };
     }): Promise<string>;
   };
@@ -52,6 +57,16 @@ export class RebuildManager {
   private readonly logger: Logger;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
+  private automaticDebounces = new Map<string, TrailingDebounce>();
+  private readonly dirtyGenerations = new Map<string, number>();
+  private readonly queuedGenerations = new Map<
+    string,
+    { jobId: string; generation: number }
+  >();
+  private readonly activeBuilds = new Map<
+    string,
+    { jobId: string; generation: number }
+  >();
   private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
@@ -91,13 +106,72 @@ export class RebuildManager {
     if (!debounce) {
       debounce = new LeadingTrailingDebounce(() => {
         this.runTrackedTask(`enqueue ${env} build`, () =>
-          this.enqueueBuild(env),
+          this.enqueueBuild(env, false),
         );
       }, this.config.rebuildDebounce);
       this.debounces.set(env, debounce);
     }
 
     debounce.trigger();
+  }
+
+  private requestAutomaticBuild(environment?: "preview" | "production"): void {
+    if (this.disposed) return;
+    const env =
+      environment ?? (this.config.previewOutputDir ? "preview" : "production");
+
+    this.dirtyGenerations.set(env, (this.dirtyGenerations.get(env) ?? 0) + 1);
+
+    if (this.statusService) {
+      this.runTrackedTask(
+        "mark automatic build requested",
+        () => this.statusService?.markRequested(env) ?? Promise.resolve(),
+      );
+    }
+
+    let debounce = this.automaticDebounces.get(env);
+    if (!debounce) {
+      debounce = new TrailingDebounce(() => {
+        this.runTrackedTask(`enqueue automatic ${env} build`, () =>
+          this.enqueueBuild(env, true),
+        );
+      }, this.config.rebuildDebounce);
+      this.automaticDebounces.set(env, debounce);
+    }
+    debounce.trigger();
+  }
+
+  markBuildStarted(
+    environment: "preview" | "production",
+    jobId: string,
+    inputGeneration: number,
+  ): void {
+    if (this.disposed) return;
+    this.activeBuilds.set(environment, {
+      jobId,
+      generation: inputGeneration,
+    });
+    if (this.queuedGenerations.get(environment)?.jobId === jobId) {
+      this.queuedGenerations.delete(environment);
+    }
+  }
+
+  async markBuildFinished(
+    environment: "preview" | "production",
+    jobId: string,
+    inputGeneration: number,
+  ): Promise<void> {
+    const active = this.activeBuilds.get(environment);
+    if (active?.jobId !== jobId || active.generation !== inputGeneration) {
+      return;
+    }
+    this.activeBuilds.delete(environment);
+    if (
+      !this.disposed &&
+      (this.dirtyGenerations.get(environment) ?? 0) > inputGeneration
+    ) {
+      await this.enqueueBuild(environment, true);
+    }
   }
 
   /**
@@ -114,7 +188,7 @@ export class RebuildManager {
       const { entityType } = message.payload;
       if (!excludedTypes.has(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        this.requestBuild();
+        this.requestAutomaticBuild();
       }
       return { success: true };
     };
@@ -155,6 +229,16 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
+    for (const debounce of this.automaticDebounces.values()) {
+      try {
+        debounce.dispose();
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
+    }
+    this.automaticDebounces.clear();
+    this.queuedGenerations.clear();
+    this.activeBuilds.clear();
 
     for (const unsubscribe of this.unsubscribeFunctions) {
       try {
@@ -184,7 +268,13 @@ export class RebuildManager {
 
   private async enqueueBuild(
     environment: "preview" | "production",
+    automatic: boolean,
   ): Promise<void> {
+    if (automatic && this.activeBuilds.has(environment)) return;
+    const inputGeneration = this.dirtyGenerations.get(environment) ?? 0;
+    const queued = this.queuedGenerations.get(environment);
+    if (automatic && queued && queued.generation >= inputGeneration) return;
+
     const outputDir =
       environment === "production"
         ? this.config.productionOutputDir
@@ -204,6 +294,7 @@ export class RebuildManager {
             trigger: "debounced-rebuild",
             timestamp: new Date().toISOString(),
           },
+          inputGeneration,
         },
         options: {
           priority: 0,
@@ -212,8 +303,15 @@ export class RebuildManager {
             operationType: "content_operations",
           },
           deduplication: "skip",
+          deduplicationKey: `site-build:${environment}`,
         },
       });
+      if (automatic) {
+        this.queuedGenerations.set(environment, {
+          jobId,
+          generation: inputGeneration,
+        });
+      }
       await this.statusService?.markQueued(environment, jobId);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {

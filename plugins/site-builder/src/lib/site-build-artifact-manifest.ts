@@ -15,6 +15,7 @@ export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
 export interface CreateSiteBuildArtifactManifestOptions {
   generationDir: string;
   preparedBuild: PreparedSiteBuild;
+  inputFingerprint?: string | undefined;
   warnings: string[];
 }
 
@@ -69,6 +70,9 @@ export async function createSiteBuildArtifactManifest(
     version: 1,
     buildId: options.preparedBuild.buildId,
     environment: options.preparedBuild.environment,
+    ...(options.inputFingerprint && {
+      inputFingerprint: options.inputFingerprint,
+    }),
     routes,
     files: classifiedFiles,
     images: options.preparedBuild.images,

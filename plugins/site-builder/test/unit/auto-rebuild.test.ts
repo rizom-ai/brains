@@ -28,6 +28,117 @@ describe("RebuildManager", () => {
     context = createMockContext();
   });
 
+  test("automatic entity rebuilds use a trailing-only debounce", async () => {
+    let entityHandler:
+      | ((message: {
+          payload: { entityType: string };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribe = mock((_type, handler): (() => void) => {
+      entityHandler = handler as typeof entityHandler;
+      return () => {};
+    });
+    let signalEnqueued: (() => void) | undefined;
+    const enqueued = new Promise<void>((resolve) => {
+      signalEnqueued = resolve;
+    });
+    context.jobs.enqueue = mock(async () => {
+      signalEnqueued?.();
+      return "job-1";
+    });
+    const manager = new RebuildManager(
+      createTestConfig({ rebuildDebounce: 1 }),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!entityHandler) throw new Error("Expected entity subscription");
+
+    await entityHandler({ payload: { entityType: "post" } });
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+    await Promise.race([
+      enqueued,
+      Bun.sleep(500).then(() => {
+        throw new Error("Timed out waiting for trailing rebuild");
+      }),
+    ]);
+
+    expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
+    await manager.dispose();
+  });
+
+  test("enqueues one dirty-generation successor after an active build", async () => {
+    let entityHandler:
+      | ((message: {
+          payload: { entityType: string };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribe = mock((_type, handler): (() => void) => {
+      entityHandler = handler as typeof entityHandler;
+      return () => {};
+    });
+    let signalFirstEnqueue: (() => void) | undefined;
+    const firstEnqueue = new Promise<void>((resolve) => {
+      signalFirstEnqueue = resolve;
+    });
+    let nextJob = 0;
+    context.jobs.enqueue = mock(async () => {
+      nextJob += 1;
+      signalFirstEnqueue?.();
+      return `job-${nextJob}`;
+    });
+    const manager = new RebuildManager(
+      createTestConfig({ rebuildDebounce: 1 }),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!entityHandler) throw new Error("Expected entity subscription");
+
+    await entityHandler({ payload: { entityType: "post" } });
+    await Promise.race([
+      firstEnqueue,
+      Bun.sleep(500).then(() => {
+        throw new Error("Timed out waiting for first automatic rebuild");
+      }),
+    ]);
+    manager.markBuildStarted("preview", "job-1", 1);
+
+    await entityHandler({ payload: { entityType: "post" } });
+    await entityHandler({ payload: { entityType: "page" } });
+    await manager.markBuildFinished("preview", "job-1", 1);
+
+    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue.mock.calls[0]?.[0]?.data.inputGeneration).toBe(1);
+    expect(enqueue.mock.calls[1]?.[0]?.data.inputGeneration).toBe(3);
+    await manager.dispose();
+  });
+
+  test("uses environment-specific job deduplication keys", async () => {
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+
+    manager.requestBuild("preview");
+    manager.requestBuild("production");
+    await Promise.resolve();
+
+    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    expect(enqueue.mock.calls[0]?.[0]?.options.deduplicationKey).toBe(
+      "site-build:preview",
+    );
+    expect(enqueue.mock.calls[1]?.[0]?.options.deduplicationKey).toBe(
+      "site-build:production",
+    );
+    await manager.dispose();
+  });
+
   test("requestBuild defaults to preview when previewOutputDir is set", async () => {
     const config = createTestConfig();
     const manager = new RebuildManager(

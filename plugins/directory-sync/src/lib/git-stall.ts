@@ -87,12 +87,18 @@ export async function runGitWithStallTimeout<T>(
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
 
+  const operation = Promise.resolve().then(() => run(git));
+
   armStall();
   try {
-    return await Promise.race([run(git), stalled, cancelled]);
+    return await Promise.race([operation, stalled, cancelled]);
   } finally {
     closed = true;
     signal?.removeEventListener("abort", onAbort);
     await settleStallTimer();
+    // A timeout or caller cancellation aborts simple-git, but abort delivery is
+    // asynchronous. Do not return while its child process can still be alive
+    // (or has exited but has not yet been reaped by simple-git).
+    await operation.catch(() => undefined);
   }
 }

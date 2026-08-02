@@ -12,6 +12,8 @@ export interface SiteBuildJobData {
   workingDir?: string | undefined;
   enableContentGeneration?: boolean | undefined;
   siteConfig?: SiteMetadata | undefined;
+  /** Automatic content-change generation observed when this build was queued. */
+  inputGeneration?: number | undefined;
 }
 
 export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
@@ -21,6 +23,7 @@ export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
     workingDir: z.string().optional(),
     enableContentGeneration: z.boolean().optional(),
     siteConfig: siteBuilderSiteMetadataSchema.optional(),
+    inputGeneration: z.number().int().nonnegative().optional(),
   });
 
 /**
@@ -29,6 +32,7 @@ export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
 export interface SiteBuildJobResult {
   success: boolean;
   cancelled?: boolean;
+  skipped?: boolean;
   routesBuilt: number;
   outputDir: string;
   environment: "preview" | "production";

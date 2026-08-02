@@ -41,6 +41,7 @@ import {
   TOPIC_ENTITY_TYPE,
   TOPIC_PROJECTION_ID,
   TOPIC_PROJECTION_JOB_TYPE,
+  TOPICS_BATCH_COMPLETED_EVENT,
   TOPICS_JOB_SOURCE,
   TOPICS_PLUGIN_ID,
   TOPICS_SOURCE_BATCH_DEDUP_KEY,
@@ -171,6 +172,7 @@ export class TopicsPlugin extends EntityPlugin<
             },
           }),
         },
+        emittedEvents: [TOPICS_BATCH_COMPLETED_EVENT],
       },
     ];
   }

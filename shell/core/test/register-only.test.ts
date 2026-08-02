@@ -5,6 +5,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Plugin, Daemon } from "@brains/plugins";
 import { InterfacePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
 
 interface TestDir {
@@ -33,6 +34,9 @@ describe("Shell register-only mode", () => {
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
+    await migrateRuntimeState({
+      url: `file:${testDir.dir}/test-runtime-state.db`,
+    });
   });
 
   afterEach(async () => {

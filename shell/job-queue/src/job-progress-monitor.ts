@@ -79,9 +79,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   /**
    * Create a ProgressReporter for a specific job
    */
-  public createProgressReporter(jobId: string): ProgressReporter {
+  public createProgressReporter(
+    jobId: string,
+    attemptId?: string,
+  ): ProgressReporter {
     const reporter = ProgressReporter.from(async (notification) => {
-      await this.emitJobProgress(jobId, notification);
+      await this.emitJobProgress(jobId, notification, attemptId);
     });
 
     if (!reporter) {
@@ -164,8 +167,20 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private async emitJobProgress(
     jobId: string,
     progress: ProgressNotification,
+    attemptId?: string,
   ): Promise<void> {
     try {
+      if (
+        attemptId &&
+        !(await this.jobQueueService.recordAttemptProgress(jobId, attemptId))
+      ) {
+        this.logger.debug("Discarding progress from obsolete job attempt", {
+          jobId,
+          attemptId,
+        });
+        return;
+      }
+
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
         this.logger.warn("Job not found for progress update", { jobId });

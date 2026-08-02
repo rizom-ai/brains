@@ -69,7 +69,7 @@ describe("Git-aware initial sync", () => {
     const result = await gs.pull();
     expect(result.files).toEqual([]);
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 
   it("should return only changed files on subsequent pull", async () => {
@@ -105,7 +105,7 @@ describe("Git-aware initial sync", () => {
     expect(result.files).toContain("new-file.md");
     expect(result.files).not.toContain("existing.md");
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 
   it("should handle first startup with no remote content", async () => {
@@ -122,6 +122,6 @@ describe("Git-aware initial sync", () => {
     const result = await gs.pull();
     expect(result.files).toEqual([]);
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 });

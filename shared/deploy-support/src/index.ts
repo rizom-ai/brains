@@ -97,6 +97,7 @@ export function backendBootstrapEnvSchema(backend: string): string {
  * package-metadata.test.ts fails on drift.
  */
 export const deployScriptNames = [
+  "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
   "validate-secrets.ts",
@@ -122,6 +123,33 @@ export function copyDeployScripts(
 
 export function renderDockerfile(): string {
   return dockerfileTemplate;
+}
+
+/** Match the previously generated shared runtime image without claiming custom Dockerfiles. */
+export function isStaleDeployDockerfile(content: string): boolean {
+  const hasCurrentRuntime =
+    content.includes("http://127.0.0.1:8080/health/live") &&
+    content.includes('ENTRYPOINT ["/usr/bin/tini", "--"]') &&
+    content.includes(
+      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+    );
+  if (hasCurrentRuntime) return false;
+
+  const hasGeneratedCommand =
+    content.includes('CMD ["./node_modules/.bin/brain", "start"]') ||
+    content.includes(
+      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+    );
+  return (
+    hasGeneratedCommand &&
+    [
+      "ARG BUN_VERSION=",
+      "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
+      "FROM runtime AS standalone",
+      "FROM runtime AS fleet",
+      "bunx playwright-core install --with-deps chromium-headless-shell",
+    ].every((marker) => content.includes(marker))
+  );
 }
 
 export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
@@ -209,11 +237,17 @@ export function isStaleDeployMounts(
   const hasAllRequiredMounts = REQUIRED_DEPLOY_MOUNTS.every((mount) =>
     normalizedCurrent.includes(mount),
   );
+  const previousHealthcheckTemplate = normalizedTemplate.replace(
+    "path: /health/ready",
+    "path: /health",
+  );
 
+  const strippedCurrent = stripDeployVolumes(normalizedCurrent);
   return (
-    !hasAllRequiredMounts &&
-    stripDeployVolumes(normalizedCurrent) ===
-      stripDeployVolumes(normalizedTemplate)
+    normalizedCurrent === previousHealthcheckTemplate ||
+    (!hasAllRequiredMounts &&
+      (strippedCurrent === stripDeployVolumes(normalizedTemplate) ||
+        strippedCurrent === stripDeployVolumes(previousHealthcheckTemplate)))
   );
 }
 

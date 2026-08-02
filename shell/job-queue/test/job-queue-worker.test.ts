@@ -10,10 +10,12 @@ import {
 import { JobQueueWorker } from "../src/job-queue-worker";
 import type {
   IJobQueueService,
+  JobClaimOptions,
   JobInfo,
   JobQueueWorkerConfig,
 } from "../src/types";
 import {
+  createMockLogger,
   createSilentLogger,
   createMockProgressReporter,
   createMockJobQueueService,
@@ -26,6 +28,7 @@ import type {
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { OperationContext } from "@brains/operation-context";
 
 const mockProgressReporter = createMockProgressReporter();
 
@@ -61,6 +64,11 @@ const testJob: JobInfo = {
   scheduledFor: Date.now(),
   startedAt: Date.now(),
   completedAt: null,
+  attemptId: "attempt-123",
+  workerSlotId: "worker-a",
+  workerSessionId: "session-a",
+  leaseExpiresAt: Date.now() + 30_000,
+  attemptHeartbeatAt: Date.now(),
   metadata: {
     rootJobId: createId(),
     operationType: "data_processing",
@@ -69,6 +77,7 @@ const testJob: JobInfo = {
 };
 
 interface MockHandler {
+  executionTimeoutMs?: number;
   process: ReturnType<typeof mock>;
   onError: ReturnType<typeof mock>;
   validateAndParse: ReturnType<typeof mock>;
@@ -226,6 +235,360 @@ describe("JobQueueWorker", () => {
     });
   });
 
+  describe("Fenced worker lifecycle", () => {
+    it("registers a fresh session before claiming and ends it after a clean stop", async () => {
+      const startWorkerSession = spyOn(mockService, "startWorkerSession");
+      let observeClaim: (claim: JobClaimOptions) => void = () => undefined;
+      const claimed = new Promise<JobClaimOptions>((resolve) => {
+        observeClaim = resolve;
+      });
+      spyOn(mockService, "dequeue").mockImplementation(async (claim) => {
+        if (claim) observeClaim(claim);
+        return null;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 10,
+          workerSlotId: "stable-slot",
+          leaseDurationMs: 5_000,
+          workerSessionTimeoutMs: 15_000,
+        },
+      );
+
+      await worker.start();
+      const observedClaim = await claimed;
+
+      expect(startWorkerSession).toHaveBeenCalledTimes(1);
+      const startCall = startWorkerSession.mock.calls[0];
+      if (!startCall) throw new Error("Worker session was not registered");
+      expect(startCall[0]).toBe("stable-slot");
+      expect(startCall[1]).toBeString();
+      expect(observedClaim).toEqual({
+        workerSlotId: "stable-slot",
+        workerSessionId: startCall[1],
+        leaseDurationMs: 5_000,
+        workerSessionTimeoutMs: 15_000,
+      });
+
+      await worker.stop();
+      expect(mockService.endWorkerSession).toHaveBeenCalledWith(
+        "stable-slot",
+        startCall[1],
+      );
+    });
+
+    it("uses a new session token each time the same worker restarts", async () => {
+      const startWorkerSession = spyOn(mockService, "startWorkerSession");
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 10, workerSlotId: "stable-slot" },
+      );
+
+      await worker.start();
+      await worker.stop();
+      await worker.start();
+      await worker.stop();
+
+      const sessionIds = startWorkerSession.mock.calls.map((call) => call[1]);
+      expect(sessionIds).toHaveLength(2);
+      expect(sessionIds[0]).not.toBe(sessionIds[1]);
+    });
+
+    it("fails closed when a claimed processing job has no fencing token", async () => {
+      const handler = createMockHandler();
+      let dequeueCalls = 0;
+      const service = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      spyOn(service, "dequeue").mockImplementation(async () => {
+        dequeueCalls++;
+        return dequeueCalls === 1 ? { ...testJob, attemptId: null } : null;
+      });
+      const logger = createMockLogger();
+      let signalUnhealthy: () => void = () => undefined;
+      const unhealthy = new Promise<void>((resolve) => {
+        signalUnhealthy = resolve;
+      });
+      spyOn(logger, "error").mockImplementation((message) => {
+        if (message === "Job queue worker is unhealthy") signalUnhealthy();
+      });
+      const onUnhealthy = mock((_reason: string) => undefined);
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        logger,
+        { pollInterval: 5, onUnhealthy },
+      );
+
+      await worker.start();
+      await unhealthy;
+
+      expect(handler.process).not.toHaveBeenCalled();
+      expect(service.complete).not.toHaveBeenCalled();
+      expect(service.fail).not.toHaveBeenCalled();
+      expect(onUnhealthy).toHaveBeenCalledTimes(1);
+      expect(onUnhealthy).toHaveBeenCalledWith(
+        "Claimed job test-job-123 has no attempt fencing token",
+      );
+      await worker.stop();
+      expect(worker.getStats()).toMatchObject({
+        isHealthy: false,
+        failedJobs: 1,
+      });
+    });
+
+    it("heartbeats the worker session and renews a running attempt lease", async () => {
+      const handler = createMockHandler();
+      let release: () => void = () => {};
+      let signalJobStarted: () => void = () => undefined;
+      const jobStarted = new Promise<void>((resolve) => {
+        signalJobStarted = resolve;
+      });
+      handler.process.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            signalJobStarted();
+            release = (): void => resolve({ success: true });
+          }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalWorkerHeartbeat: () => void = () => undefined;
+      const workerHeartbeat = new Promise<void>((resolve) => {
+        signalWorkerHeartbeat = resolve;
+      });
+      spyOn(mockService, "heartbeatWorkerSession").mockImplementation(
+        async () => {
+          signalWorkerHeartbeat();
+          return true;
+        },
+      );
+      let signalAttemptHeartbeat: () => void = () => undefined;
+      const attemptHeartbeat = new Promise<void>((resolve) => {
+        signalAttemptHeartbeat = resolve;
+      });
+      spyOn(mockService, "renewAttemptLease").mockImplementation(async () => {
+        signalAttemptHeartbeat();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 5,
+          workerSlotId: "stable-slot",
+          workerHeartbeatIntervalMs: 10,
+          attemptHeartbeatIntervalMs: 10,
+          leaseDurationMs: 100,
+        },
+      );
+
+      await worker.start();
+      try {
+        await jobStarted;
+        await Promise.all([workerHeartbeat, attemptHeartbeat]);
+
+        expect(mockService.heartbeatWorkerSession).toHaveBeenCalled();
+        expect(mockService.renewAttemptLease).toHaveBeenCalledWith(
+          testJob.id,
+          testJob.attemptId,
+          100,
+        );
+      } finally {
+        release();
+      }
+      await worker.stop();
+    });
+  });
+
+  describe("Job deadlines", () => {
+    it("passes an AbortSignal and fails a cooperative timed-out attempt only after it settles", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 15;
+      let receivedSignal: AbortSignal | undefined;
+      let signalAborted: () => void = () => undefined;
+      const aborted = new Promise<void>((resolve) => {
+        signalAborted = resolve;
+      });
+      let releaseSettlement: () => void = () => undefined;
+      const settlementAllowed = new Promise<void>((resolve) => {
+        releaseSettlement = resolve;
+      });
+      let settled = false;
+      handler.process.mockImplementation(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((resolve) => {
+            receivedSignal = signal;
+            signal.addEventListener(
+              "abort",
+              () => {
+                signalAborted();
+                void settlementAllowed.then(() => {
+                  settled = true;
+                  resolve({ success: true });
+                });
+              },
+              { once: true },
+            );
+          }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalFailed: () => void = () => undefined;
+      const failed = new Promise<void>((resolve) => {
+        signalFailed = resolve;
+      });
+      const fail = spyOn(mockService, "fail").mockImplementation(async () => {
+        signalFailed();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await aborted;
+      expect(fail).not.toHaveBeenCalled();
+      releaseSettlement();
+      await failed;
+
+      expect(receivedSignal).toBeInstanceOf(AbortSignal);
+      expect(receivedSignal?.aborted).toBe(true);
+      expect(settled).toBe(true);
+      expect(fail).toHaveBeenCalledWith(
+        testJob.id,
+        expect.objectContaining({
+          message: expect.stringContaining("deadline"),
+        }),
+        testJob.attemptId,
+      );
+      expect(mockService.complete).not.toHaveBeenCalled();
+      expect(worker.getStats().isHealthy).toBe(true);
+    });
+
+    it("keeps an uncooperative timed-out handler fenced in place and stops claiming work", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 10;
+      let release: () => void = () => undefined;
+      handler.process.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            release = (): void => resolve({ success: true });
+          }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalFailed: () => void = () => undefined;
+      const failed = new Promise<void>((resolve) => {
+        signalFailed = resolve;
+      });
+      const fail = spyOn(mockService, "fail").mockImplementation(async () => {
+        signalFailed();
+        return true;
+      });
+      const logger = createMockLogger();
+      let signalUnhealthy: () => void = () => undefined;
+      const unhealthy = new Promise<void>((resolve) => {
+        signalUnhealthy = resolve;
+      });
+      spyOn(logger, "error").mockImplementation((message) => {
+        if (message === "Job queue worker is unhealthy") signalUnhealthy();
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        logger,
+        { pollInterval: 5, cancellationGraceMs: 10 },
+      );
+
+      await worker.start();
+      try {
+        await unhealthy;
+
+        expect(worker.getStats()).toMatchObject({
+          isHealthy: false,
+          activeJobs: 1,
+        });
+        expect(mockService.dequeue).toHaveBeenCalledTimes(1);
+        expect(fail).not.toHaveBeenCalled();
+        expect(mockService.complete).not.toHaveBeenCalled();
+      } finally {
+        release();
+      }
+      await failed;
+      expect(fail).toHaveBeenCalledWith(
+        testJob.id,
+        expect.any(Error),
+        testJob.attemptId,
+      );
+    });
+
+    it("bounds an uncooperative handler error callback", async () => {
+      const handler = createMockHandler();
+      handler.process.mockRejectedValue(new Error("processing failed"));
+      let errorSignal: AbortSignal | undefined;
+      let releaseOnError: () => void = () => undefined;
+      handler.onError.mockImplementation(
+        (
+          _error: Error,
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise<void>((resolve) => {
+            errorSignal = signal;
+            releaseOnError = resolve;
+          }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalUnhealthy: () => void = () => undefined;
+      const unhealthy = new Promise<void>((resolve) => {
+        signalUnhealthy = resolve;
+      });
+      const onUnhealthy = mock((_reason: string) => signalUnhealthy());
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 5,
+          errorCallbackTimeoutMs: 10,
+          cancellationGraceMs: 10,
+          onUnhealthy,
+        },
+      );
+
+      await worker.start();
+      try {
+        await unhealthy;
+        expect(errorSignal?.aborted).toBe(true);
+        expect(mockService.fail).not.toHaveBeenCalled();
+        expect(worker.getStats()).toMatchObject({
+          isHealthy: false,
+          activeJobs: 1,
+        });
+      } finally {
+        releaseOnError();
+      }
+    });
+  });
+
   describe("Configuration", () => {
     it("should accept custom configuration", () => {
       const customWorker = JobQueueWorker.createFresh(
@@ -251,9 +614,9 @@ describe("JobQueueWorker", () => {
         { autoStart: true },
       );
 
+      await autoWorker.start();
       expect(autoWorker.isWorkerRunning()).toBe(true);
       await autoWorker.stop();
-      await Bun.sleep(5);
       expect(autoWorker.isWorkerRunning()).toBe(false);
     });
   });
@@ -331,6 +694,65 @@ describe("JobQueueWorker", () => {
     it("should handle service errors gracefully", async () => {
       await worker.start();
       expect(worker.isWorkerRunning()).toBe(true);
+    });
+  });
+
+  describe("Causal execution context", () => {
+    it("restores persisted provenance only for the claimed attempt", async () => {
+      const operationContext = OperationContext.createFresh();
+      const provenance = {
+        rootJobId: "root-job",
+        causationId: "topics-message",
+        projectionId: "skill-derivation",
+        projectionLineage: ["topics-projection", "skill-derivation"],
+        derivationDepth: 2,
+      };
+      let handlerContext: ReturnType<OperationContext["current"]>;
+      let handlerEntered!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        handlerEntered = resolve;
+      });
+      const handler = createMockHandler();
+      handler.process.mockImplementation(async () => {
+        handlerContext = operationContext.current();
+        handlerEntered();
+        return { success: true };
+      });
+      const service = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      let dequeueCount = 0;
+      spyOn(service, "dequeue").mockImplementation(() => {
+        dequeueCount++;
+        return Promise.resolve(
+          dequeueCount === 1
+            ? {
+                ...testJob,
+                metadata: {
+                  ...testJob.metadata,
+                  provenance,
+                },
+              }
+            : null,
+        );
+      });
+      worker = JobQueueWorker.createFresh(
+        service,
+        new MockProgressMonitor(),
+        createSilentLogger(),
+        { pollInterval: 20 },
+        { operationContext },
+      );
+
+      await worker.start();
+      await entered;
+      await worker.stop();
+
+      expect(handlerContext).toEqual({
+        provenance,
+        operationId: testJob.id,
+      });
+      expect(operationContext.current()).toBeUndefined();
     });
   });
 
@@ -475,7 +897,11 @@ describe("JobQueueWorker", () => {
       await worker.start();
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      expect(result.mockService.complete).toHaveBeenCalled();
+      expect(result.mockService.complete).toHaveBeenCalledWith(
+        testJob.id,
+        { success: true, entityId: "abc" },
+        testJob.attemptId,
+      );
       expect(result.mockService.fail).not.toHaveBeenCalled();
     });
 

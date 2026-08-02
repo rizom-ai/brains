@@ -37,6 +37,7 @@ import type {
   UpdateEntityRequest,
   UpsertEntityRequest,
   EntityTypeConfig,
+  EntityMutationAdmission,
   EntityRegistry as IEntityRegistry,
 } from "./types";
 import { embeddings } from "./schema/embeddings";
@@ -62,6 +63,7 @@ export interface EntityServiceOptions {
   logger?: Logger;
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
+  mutationAdmission?: EntityMutationAdmission;
   dbConfig: EntityDbConfig;
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */
@@ -178,6 +180,9 @@ export class EntityService implements IEntityService {
         jobQueueService: this.jobQueueService,
         logger: this.logger,
         ...(options.messageBus && { messageBus: options.messageBus }),
+        ...(options.mutationAdmission && {
+          mutationAdmission: options.mutationAdmission,
+        }),
         embeddingDb: this.embeddingDb,
       });
       this.contentResolver = new ContentResolver(this.logger);

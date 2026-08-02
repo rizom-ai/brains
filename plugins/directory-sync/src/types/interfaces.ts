@@ -89,7 +89,7 @@ export interface IGitSync {
   commit(message?: string): Promise<void>;
   push(signal?: AbortSignal): Promise<void>;
   pull(signal?: AbortSignal): Promise<PullResult>;
-  cleanup(): void;
+  cleanup(): Promise<void>;
 
   /** Get commit history for a specific file path (relative to data dir) */
   log(filePath: string, limit?: number): Promise<GitLogEntry[]>;

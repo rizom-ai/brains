@@ -43,6 +43,7 @@ export async function collectTagVocabulary(
     minCount?: number;
     topN?: number;
     visibilityScope?: ContentVisibility;
+    includeSkills?: boolean;
   } = {},
 ): Promise<TagVocabularyEntry[]> {
   const minCount = opts.minCount ?? 1;
@@ -51,10 +52,12 @@ export async function collectTagVocabulary(
   const counts = new Map<string, number>();
 
   const [skills, agents] = await Promise.all([
-    context.entityService.listEntities<SkillEntity>({
-      entityType: SKILL_ENTITY_TYPE,
-      options: { filter: { visibilityScope } },
-    }),
+    opts.includeSkills === false
+      ? Promise.resolve([])
+      : context.entityService.listEntities<SkillEntity>({
+          entityType: SKILL_ENTITY_TYPE,
+          options: { filter: { visibilityScope } },
+        }),
     context.entityService.listEntities<AgentEntity>({
       entityType: AGENT_ENTITY_TYPE,
       options: { filter: { visibilityScope } },
@@ -67,7 +70,9 @@ export async function collectTagVocabulary(
     }
   };
 
-  for (const skill of skills) bump(skill.metadata.tags);
+  if (opts.includeSkills !== false) {
+    for (const skill of skills) bump(skill.metadata.tags);
+  }
   for (const agent of agents) {
     const body = agentAdapter.parseAgentContent(agent.content);
     bump(body.skills.flatMap((skill) => skill.tags));

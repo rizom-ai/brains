@@ -130,6 +130,7 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
 export interface BuildResult {
   success: boolean;
   cancelled?: boolean | undefined;
+  skipped?: boolean | undefined;
   outputDir: string;
   filesGenerated: number;
   routesBuilt: number;
@@ -141,6 +142,7 @@ export interface BuildResult {
 export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
   success: z.boolean(),
   cancelled: z.boolean().optional(),
+  skipped: z.boolean().optional(),
   outputDir: z.string(),
   filesGenerated: z.number(),
   routesBuilt: z.number(),

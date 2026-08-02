@@ -46,6 +46,9 @@ export type {
   PluginConfigInput,
   PluginFactory,
   Prompt,
+  ProjectionDeclaration,
+  ProjectionFeedbackPolicy,
+  ProjectionSource,
   ResolvedRuntimeUpload,
   Resource,
   ResourceTemplate,
@@ -78,6 +81,20 @@ export type {
 
 export { AppInfoSchema } from "@brains/plugins/contracts/app-info";
 export type { AppInfo } from "@brains/plugins/contracts/app-info";
+export {
+  RuntimeHealthCheckSchema,
+  RuntimeQueueSignalsSchema,
+  RuntimeReadinessSchema,
+  RuntimeResourceSignalsSchema,
+} from "@brains/plugins";
+export type {
+  RuntimeHealthCheck,
+  RuntimeProjectionCircuitSignal,
+  RuntimeProjectionSignals,
+  RuntimeQueueSignals,
+  RuntimeReadiness,
+  RuntimeResourceSignals,
+} from "@brains/plugins";
 
 export {
   ConversationSchema,

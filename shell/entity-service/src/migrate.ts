@@ -6,6 +6,13 @@ import {
 } from "@brains/db";
 import { ensureFtsTable } from "./db";
 import { entities } from "./schema/entities";
+import {
+  projectionDirtyInputs,
+  projectionRuleMemos,
+  projectionWaveInputs,
+  projectionWaveRules,
+  projectionWaves,
+} from "./schema/projection-state";
 import type { EntityDbConfig } from "./types";
 import type { Logger } from "@brains/utils/logger";
 
@@ -16,7 +23,14 @@ export async function migrateEntities(
   await runPackageMigrations({
     label: "entity",
     config,
-    schema: { entities },
+    schema: {
+      entities,
+      projectionDirtyInputs,
+      projectionWaves,
+      projectionWaveInputs,
+      projectionWaveRules,
+      projectionRuleMemos,
+    },
     migrationsFolder: resolveMigrationsFolder(
       import.meta.url,
       "entity-service",

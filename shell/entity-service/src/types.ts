@@ -39,6 +39,16 @@ export interface EntityMutationEventContext {
   interfaceType?: string;
 }
 
+export interface EntityMutationAdmissionTarget {
+  operation: "create" | "update" | "delete";
+  entityType: string;
+  entityId: string;
+}
+
+export interface EntityMutationAdmission {
+  assertMutationAdmission(target: EntityMutationAdmissionTarget): Promise<void>;
+}
+
 export interface EntityJobOptions {
   priority?: number;
   maxRetries?: number;

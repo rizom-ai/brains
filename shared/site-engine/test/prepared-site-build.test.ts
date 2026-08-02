@@ -79,13 +79,15 @@ describe("PreparedSiteBuild", () => {
     expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
   });
 
-  it("rejects undefined in nested section data", () => {
+  it("rejects non-JSON class instances before schemas can coerce them", () => {
     const input = createPreparedBuild();
     const section = input.routes[0]?.sections[0];
     if (!section) throw new Error("Expected fixture section");
-    Object.assign(section.data, { nested: { missing: undefined } });
+    section.data["publishedAt"] = new Date("2026-07-22T00:00:00.000Z") as never;
 
-    expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
+    expect(() => createPreparedSiteBuildSnapshot(input)).toThrow(
+      "Unsupported non-JSON value at $.routes[0].sections[0].data.publishedAt: Date",
+    );
   });
 
   it("rejects integers beyond the JSON-safe range", () => {

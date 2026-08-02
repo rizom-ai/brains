@@ -72,6 +72,7 @@ describe("EntityService", (): void => {
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
   let cleanup: () => Promise<void>;
+  let assertMutationAdmission: ReturnType<typeof mock>;
 
   beforeEach(async (): Promise<void> => {
     const testDb = await createTestEntityDatabase();
@@ -83,6 +84,7 @@ describe("EntityService", (): void => {
 
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
+    assertMutationAdmission = mock(async () => {});
     entityService = EntityService.createFresh({
       embeddingService: mockEmbeddingService,
       entityRegistry,
@@ -90,11 +92,43 @@ describe("EntityService", (): void => {
       jobQueueService: mockJobQueueService,
       dbConfig: testDb.config,
       embeddingDbConfig: testDb.embeddingConfig,
+      mutationAdmission: { assertMutationAdmission },
     });
   });
 
   afterEach(async (): Promise<void> => {
     await cleanup();
+  });
+
+  test("checks projection admission only for persisted mutations", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const entity = createNote({ id: "admission-note", content: "first" });
+
+    await entityService.createEntity({ entity });
+    await entityService.updateEntity({
+      entity: { ...entity, content: "second" },
+    });
+    await entityService.deleteEntity({ entityType: "note", id: entity.id });
+
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(1, {
+      operation: "create",
+      entityType: "note",
+      entityId: entity.id,
+    });
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(2, {
+      operation: "update",
+      entityType: "note",
+      entityId: entity.id,
+    });
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(3, {
+      operation: "delete",
+      entityType: "note",
+      entityId: entity.id,
+    });
   });
 
   test("getEntityTypes returns empty array when no types registered", (): void => {

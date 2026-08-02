@@ -135,6 +135,11 @@ describe("publication pipeline snapshot", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
+        attemptId: "attempt-1",
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseExpiresAt: 30_000,
+        attemptHeartbeatAt: 0,
         metadata: {
           operationType: "content_operations",
           rootJobId: "job-1",
@@ -332,6 +337,11 @@ describe("publication pipeline snapshot", () => {
         scheduledFor: 0,
         startedAt: null,
         completedAt: null,
+        attemptId: "attempt-orphan",
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseExpiresAt: 30_000,
+        attemptHeartbeatAt: 0,
         metadata: {
           operationType: "content_operations",
           rootJobId: "job-orphan",

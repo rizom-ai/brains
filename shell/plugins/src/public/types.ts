@@ -26,6 +26,15 @@ import type {
 import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
+export type {
+  ProjectionDeclaration,
+  ProjectionFeedbackPolicy,
+  ProjectionSource,
+} from "../entity/projection-registry";
+export type {
+  ProjectionRule,
+  ProjectionRuleDefinition,
+} from "../entity/projection-rule";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type {

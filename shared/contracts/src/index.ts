@@ -98,6 +98,12 @@ export type {
 } from "./json";
 export { messageRoleSchema, type MessageRole } from "./message-role";
 export {
+  OperationProvenanceSchema,
+  ProvenanceEntityReferenceSchema,
+  type OperationProvenance,
+  type ProvenanceEntityReference,
+} from "./operation-provenance";
+export {
   A2A_CHANNELS,
   BUTTONDOWN_CHANNELS,
   CONVERSATION_CHANNELS,

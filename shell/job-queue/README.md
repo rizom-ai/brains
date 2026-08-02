@@ -14,7 +14,9 @@ worker execution, retries, progress events, and in-process batch tracking.
 - Progress reporting through `JobProgressMonitor`
 - Batch job management
 - Job priorities, delays, retries, and deduplication
-- Claim timeout recovery for crashed workers
+- Fenced processing attempts with renewable leases
+- Persisted worker-session liveness and startup recovery
+- Per-handler execution deadlines and cancellation signals
 - SQLite/libSQL persistence
 - Worker concurrency controls
 
@@ -27,7 +29,7 @@ import { Logger, z } from "@brains/utils";
 const embedJobSchema = z.object({ entityId: z.string() });
 
 const logger = Logger.getInstance();
-const jobQueue = JobQueueService.getInstance(
+const jobQueue = JobQueueService.createFresh(
   { url: "file:job-queue.db" },
   logger,
 );
@@ -38,7 +40,10 @@ jobQueue.registerHandler("entity:embed", {
     return result.success ? result.data : null;
   },
 
-  async process(data, jobId, progress) {
+  executionTimeoutMs: 60_000,
+
+  async process(data, jobId, progress, signal) {
+    signal.throwIfAborted();
     await progress.report({ progress: 50, total: 100, message: "Embedding" });
     return { success: true, jobId, entityId: data.entityId };
   },
@@ -57,18 +62,36 @@ const jobId = await jobQueue.enqueue({
 
 ## Configuration
 
-`JobQueueService` accepts a `claimTimeoutMs` option. A `processing` job whose
-`startedAt` timestamp is older than this timeout is eligible to be reclaimed by
-another worker. The default is `300_000` ms.
+Every processing attempt receives a unique fencing token, worker-session owner,
+and renewable lease. Completion, failure, progress, and heartbeat writes only
+apply while that token still owns the job.
 
-If a worker crashes after claiming a job, the next worker can reclaim it after
-the timeout. Reclaims increment `retryCount` and set `lastError` to
-`"Claim expired"`; if the reclaim would exceed `maxRetries`, the job is marked
-`failed` instead of being returned for processing.
+Workers use a stable slot ID and a fresh session ID on every start. Starting a
+new session for the same slot immediately supersedes the previous session and
+makes its attempts reclaimable. Attempts from another slot are reclaimed only
+after both the attempt lease and owner-session heartbeat expire. Reclaims count
+against the job's retry budget.
 
-Handlers that legitimately run longer than `claimTimeoutMs` can be processed
-again before they finish because heartbeat/claim-extension support is not yet
-implemented. Increase `claimTimeoutMs` for long-running workloads.
+`JobQueueWorkerConfig` controls the lifecycle:
+
+- `workerSlotId` (or `BRAIN_JOB_WORKER_SLOT_ID`) identifies the stable worker;
+- `leaseDurationMs` and `attemptHeartbeatIntervalMs` control attempt leases;
+- `workerHeartbeatIntervalMs` and `workerSessionTimeoutMs` control persisted
+  session liveness;
+- `defaultExecutionTimeoutMs` is the fallback job deadline;
+- `cancellationGraceMs` bounds cooperative cancellation;
+- `errorCallbackTimeoutMs` bounds an optional handler `onError` callback;
+- `onUnhealthy` notifies the owning runtime when safe execution is no longer
+  possible.
+
+A handler can override the default deadline with `executionTimeoutMs`. Every
+handler receives an `AbortSignal`. If a timed-out handler does not settle during
+the cancellation grace period, the worker becomes unhealthy and stops claiming
+jobs without releasing that attempt for an in-process retry. External process
+supervision must replace such a worker. The shell runtime treats this state as
+fatal: it records the reason and exits so the container restart policy can
+replace the process. A bounded host watchdog separately handles event-loop
+liveness failures that prevent the process from exiting itself.
 
 ## Workers
 

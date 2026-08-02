@@ -4,3 +4,5 @@
 export const SOCIAL_CHANNELS = {
   autoGenerate: "social:auto-generate",
 } as const;
+
+export const SOCIAL_POST_GENERATION_PROJECTION_ID = "social-post-generation";

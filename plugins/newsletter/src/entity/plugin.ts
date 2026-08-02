@@ -5,6 +5,7 @@ import type {
   JobHandler,
   DataSource,
   Template,
+  ProjectionDeclaration,
 } from "@brains/plugins";
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
@@ -45,6 +46,8 @@ interface GenerationEvalInput {
   content?: string | undefined;
 }
 
+const NEWSLETTER_GENERATION_PROJECTION_ID = "newsletter-generation";
+
 const generationEvalInputSchema: z.ZodType<GenerationEvalInput> = z.object({
   prompt: z.string().optional(),
   content: z.string().optional(),
@@ -74,6 +77,19 @@ export class NewsletterPlugin extends EntityPlugin<
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     };
+  }
+
+  protected override getProjectionDeclarations(): ProjectionDeclaration[] {
+    return [
+      {
+        id: NEWSLETTER_GENERATION_PROJECTION_ID,
+        targetType: this.entityType,
+        sources: [
+          { kind: "entity", types: ["post"] },
+          { kind: "event", events: [GENERATE_CHANNELS.execute] },
+        ],
+      },
+    ];
   }
 
   protected override createGenerationHandler(
@@ -206,6 +222,7 @@ export class NewsletterPlugin extends EntityPlugin<
               sourceEntityType: "post",
               addToQueue: false,
             },
+            projection: { id: NEWSLETTER_GENERATION_PROJECTION_ID },
             toolContext: {
               interfaceType: "job",
               actor: {

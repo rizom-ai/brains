@@ -18,6 +18,8 @@ export interface BaseJobHandlerConfig<TInput> {
   schema?: JobDataSchema<TInput>;
   /** The name of the job type (used in log messages) */
   jobTypeName: string;
+  /** Optional per-type execution deadline in milliseconds. */
+  executionTimeoutMs?: number;
 }
 
 /**
@@ -67,6 +69,7 @@ export abstract class BaseJobHandler<
   protected readonly logger: Logger;
   protected readonly schema: JobDataSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
+  public readonly executionTimeoutMs: number | undefined;
 
   /**
    * Create a new BaseJobHandler
@@ -78,6 +81,7 @@ export abstract class BaseJobHandler<
     this.logger = logger;
     this.schema = config.schema;
     this.jobTypeName = config.jobTypeName;
+    this.executionTimeoutMs = config.executionTimeoutMs;
   }
 
   /**
@@ -91,6 +95,7 @@ export abstract class BaseJobHandler<
     data: TInput,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<TOutput>;
 
   /**
@@ -141,6 +146,7 @@ export abstract class BaseJobHandler<
     data: TInput,
     jobId: string,
     _progressReporter: ProgressReporter,
+    _signal: AbortSignal,
   ): Promise<void> {
     this.logger.error(`${this.jobTypeName} job error handler triggered`, {
       jobId,

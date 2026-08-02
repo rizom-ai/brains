@@ -1,14 +1,60 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { ServicePlugin } from "../src/service/service-plugin";
-import type { Resource, Tool } from "../src/interfaces";
+import type { PluginCapabilities, Resource, Tool } from "../src/interfaces";
+import type { ProjectionDeclaration } from "../src/entity/projection-registry";
+import {
+  defineProjectionRule,
+  type ProjectionRule,
+} from "../src/entity/projection-rule";
 import type { ServicePluginContext } from "../src/service/context";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
+import {
+  FallbackEntityAdapter,
+  baseEntitySchema,
+} from "@brains/entity-service";
 
 // Mock plugin for testing
+class ProjectionCapabilityPlugin extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  private readonly declarations: ProjectionDeclaration[];
+
+  constructor(id: string, declarations: ProjectionDeclaration[]) {
+    super(id, { name: id, version: "1.0.0" }, {}, z.object({}));
+    this.declarations = declarations;
+  }
+
+  protected override async getCapabilities(): Promise<PluginCapabilities> {
+    return { tools: [], resources: [], projections: this.declarations };
+  }
+}
+
+class ProjectionRuleCapabilityPlugin extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  private readonly rule: ProjectionRule;
+
+  constructor(rule: ProjectionRule) {
+    super(
+      "rule-plugin",
+      { name: "rule-plugin", version: "1.0.0" },
+      {},
+      z.object({}),
+    );
+    this.rule = rule;
+  }
+
+  protected override async getCapabilities(): Promise<PluginCapabilities> {
+    return { tools: [], resources: [], projectionRules: [this.rule] };
+  }
+}
+
 class TestPlugin extends ServicePlugin<
   Record<string, never>,
   Record<string, never>
@@ -230,6 +276,113 @@ describe("PluginManager - Direct Registration", () => {
   });
 
   describe("post-registration finalization", () => {
+    it("registers projection capabilities and publishes a frozen graph snapshot", async () => {
+      mockShell
+        .getEntityRegistry()
+        .registerEntityType("topic", z.any(), {} as never, {
+          projectionSource: false,
+        });
+      pluginManager.registerPlugin(
+        new ProjectionCapabilityPlugin("topics", [
+          {
+            id: "topic-projection",
+            targetType: "topic",
+            sources: [{ kind: "entity", types: ["*"] }],
+          },
+        ]),
+      );
+
+      await pluginManager.initializePlugins();
+      await pluginManager.finalizePluginRegistrations();
+
+      const graph = pluginManager.getProjectionGraphSnapshot();
+      expect(graph.projections.map(({ id }) => id)).toEqual([
+        "topic-projection",
+      ]);
+      expect(Object.isFrozen(graph)).toBe(true);
+      expect(Object.isFrozen(graph.projections)).toBe(true);
+    });
+
+    it("keeps executable projection rules behind the finalized manager snapshot", async () => {
+      const rule = defineProjectionRule({
+        id: "note-rule",
+        version: "1",
+        targetType: "note",
+        sources: [{ kind: "entity", types: ["document"] }],
+        inputSchema: z.object({}),
+        selectInput: async () => ({}),
+        derive: async () => [],
+      });
+      mockShell
+        .getEntityRegistry()
+        .registerEntityType(
+          "note",
+          baseEntitySchema,
+          new FallbackEntityAdapter(),
+          { projectionSource: false },
+        );
+      pluginManager.registerPlugin(new ProjectionRuleCapabilityPlugin(rule));
+
+      await pluginManager.initializePlugins();
+      expect(() => pluginManager.getProjectionRulesSnapshot()).toThrow(
+        "Projection graph has not been finalized",
+      );
+
+      await pluginManager.finalizePluginRegistrations();
+
+      const rules = pluginManager.getProjectionRulesSnapshot();
+      expect(rules).toEqual([rule]);
+      expect(Object.isFrozen(rules)).toBe(true);
+      expect(pluginManager.getProjectionGraphSnapshot().projections).toEqual([
+        expect.objectContaining({
+          id: "note-rule",
+          executionOwner: "wave-owned",
+        }),
+      ]);
+    });
+
+    it("rejects a cycle crossing entity and semantic-event capabilities", async () => {
+      for (const type of ["document", "topic", "skill"]) {
+        mockShell
+          .getEntityRegistry()
+          .registerEntityType(type, z.any(), {} as never);
+      }
+      pluginManager.registerPlugin(
+        new ProjectionCapabilityPlugin("topics", [
+          {
+            id: "topic-projection",
+            targetType: "topic",
+            sources: [{ kind: "entity", types: ["document"] }],
+            emittedEvents: ["topics:batch-completed"],
+          },
+        ]),
+      );
+      pluginManager.registerPlugin(
+        new ProjectionCapabilityPlugin("skills", [
+          {
+            id: "skill-projection",
+            targetType: "skill",
+            sources: [{ kind: "event", events: ["topics:batch-completed"] }],
+          },
+        ]),
+      );
+      pluginManager.registerPlugin(
+        new ProjectionCapabilityPlugin("documents", [
+          {
+            id: "document-projection",
+            targetType: "document",
+            sources: [{ kind: "entity", types: ["skill"] }],
+          },
+        ]),
+      );
+
+      await pluginManager.initializePlugins();
+
+      expect(pluginManager.finalizePluginRegistrations()).rejects.toThrow(
+        "Projection cycle is not supported",
+      );
+    });
+
     it("runs only after every plugin has registered", async () => {
       const events: string[] = [];
 
