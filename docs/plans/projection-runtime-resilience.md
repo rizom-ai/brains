@@ -9,7 +9,11 @@ problem is projection fan-out: N source mutations can independently trigger N
 jobs at each derivation level and repeated site builds. This plan solves that
 problem with scheduler-owned derivation waves.
 
-This plan keeps the existing packaging and deployment shape:
+This plan keeps the existing packaging and deployment shape and makes a clean
+runtime cutover. There is one derivation-rule contract and one scheduler-owned
+execution path. `DerivedEntityProjection`, event-owned scheduling, execution
+owner modes, and compatibility bridges are removed rather than retained beside
+the scheduler.
 
 - one published Bun package;
 - one bundled Brain entrypoint;
@@ -56,8 +60,9 @@ created one job per entity.
 ## Decision
 
 Derivations become scheduler-owned batch rules executed in topological waves.
-Entity and semantic events no longer connect derivation rules to each other.
-Events remain valid for external ingress and observer notification.
+Entity and semantic events never register or connect derivation rules. Events
+remain observer notifications only. Durable non-entity sources enter through a
+source-owned transactional outbox, not an in-memory event subscription.
 
 ```text
 ingress mutations
@@ -76,26 +81,30 @@ wave. Independent rules at the same level may execute concurrently.
 
 ## Invariants
 
-1. A rule is scheduled by the wave scheduler, never by another rule's event.
-2. Each reachable rule has at most one job per wave.
-3. The projection graph is acyclic. Startup rejects every cycle.
-4. A rule fingerprints the exact immutable input object passed to its derive
+1. `ProjectionRule` is the only plugin derivation registration contract.
+   `DerivedEntityProjection` and execution-owner modes do not exist.
+2. A rule is scheduled by the wave scheduler, never by another rule's event.
+3. Each reachable rule has at most one job per wave.
+4. The projection graph is acyclic. Startup rejects every cycle.
+5. A rule fingerprints the exact immutable input object passed to its derive
    function.
-5. An unchanged fingerprint performs no model call.
-6. The framework applies rule writes idempotently and reports which targets
+6. An unchanged fingerprint performs no model call.
+7. The framework applies rule writes idempotently and reports which targets
    actually changed.
-7. Only changed targets make downstream rules reachable.
-8. New ingress during an active wave remains pending for a successor wave.
-9. A successful wave makes one site-build decision; an unchanged site
-   fingerprint performs no render.
-10. Job attempts, leases, retries, sessions, and deadlines remain owned only by
+8. Only changed targets make downstream rules reachable.
+9. New ingress during an active wave remains pending for a successor wave.
+10. A successful wave makes one site-build decision; an unchanged site
+    fingerprint performs no render.
+11. Job attempts, leases, retries, sessions, and deadlines remain owned only by
     the existing job queue.
 
 ## Rule contract
 
-Projection declarations remain private plugin capabilities collected by
-`PluginManager`. They are not exposed through broad `IShell` or plugin-context
-mutation APIs.
+Projection rules remain private plugin capabilities collected by
+`PluginManager`. Registering a rule creates its graph declaration; plugins do
+not separately configure a declaration, event handler, job type, initial-sync
+handler, or execution owner. Rules are not exposed through broad `IShell` or
+plugin-context mutation APIs.
 
 An executable rule declares:
 
@@ -181,9 +190,14 @@ Pending ingress is an append-only revision journal:
 
 Entity inputs use `kind = entity`, their entity type and ID, and content hash as
 the revision. `operation` is `upsert` or `delete`; deletes are tombstones.
-Non-entity inputs use `kind = rule`, the affected rule ID, and a revision for
-prompt/configuration/model changes or explicit operator invalidation. This
-makes those changes schedulable without inventing process-coordination state.
+Direct rule invalidations use `kind = rule`, the affected rule ID, and a
+revision for prompt/configuration/model changes, bootstrap, or explicit
+operator invalidation. Durable non-entity domain inputs use their own kind; for
+example, conversation messages use a source-owned transactional outbox written
+in the conversation database with the message mutation. The scheduler imports
+that outbox idempotently into the entity-database journal before claiming a
+wave. This preserves the same-database atomicity of each source mutation without
+introducing an unsafe conversation-database/entity-database dual write.
 
 For entity inputs, the entity-service create, update, or delete transaction
 also inserts the journal row atomically. Each insert receives a database-owned,
@@ -260,10 +274,14 @@ database so entity writes and scheduler outcomes have one atomic boundary.
 ### 1. Mark dirty
 
 External mutations—directory sync, user edits, API writes, and chat tools—append
-a source revision in the same entity-service transaction as the mutation. A
+a source revision in the same entity-service transaction as the mutation. The
+entity service records ingress without knowing the projection graph; scheduler
+reachability is evaluated only from the finalized `PluginManager` graph. A
 changed rule configuration fingerprint or explicit operator invalidation
-appends a direct rule revision. Startup hydration and persistence replay do not
-mark entity inputs dirty.
+appends a direct rule revision. On boot, each enabled rule appends its canonical
+rule/version/config bootstrap revision; memo replay makes unchanged boots
+no-ops. Startup hydration and persistence replay do not mark entity inputs
+dirty.
 
 Projection-owned writes do not re-enter the global event path. Their changed
 results are attached directly to the active wave and evaluated against the
@@ -338,7 +356,8 @@ otherwise block every successor while ingress accumulates in the journal.
 
 ## Graph policy
 
-The existing projection registry remains the composition authority.
+`ProjectionRegistry`, populated only by `ProjectionRule` registration, is the
+composition authority. It has no separate declaration API.
 
 At startup it:
 
@@ -374,87 +393,81 @@ implemented on this branch:
 - Git operations are cancellable and children are reaped;
 - liveness and readiness are separate.
 
-Causal lineage and runtime budgets remain temporary guards while any
-choreographed projection still exists. They can be removed only after every
-rule has migrated and the old event scheduling path has no callers.
+Causal lineage and runtime budgets remain defense-in-depth during the cutover
+implementation, not support for a second execution path. They may be removed
+after the scheduler-only runtime passes the full-preset soak.
 
-## Migration strategy
+## Clean cutover strategy
 
-Wave scheduling and event choreography may coexist only across disconnected
-graph components. A connected derivation component cannot be split across
-execution owners: suppressing projection events would strand event-owned
-downstream rules, while emitting them would let work escape the wave.
+There is no mixed-mode runtime and no disconnected-component compatibility
+exception. The branch may contain incomplete code while implementation is in
+progress, but no mergeable state may register or execute both contracts.
 
-Each connected component therefore has one execution owner:
+### Stage 0: one canonical contract
 
-```text
-event-owned | wave-owned
-```
+- `ProjectionRule` is the only derivation registration capability.
+- Registering a rule creates its graph declaration; separate projection
+  declarations are removed.
+- Delete execution-owner fields, defaults, validation, and tests.
+- Delete `DerivedEntityProjection`, its controllers, initial-sync configuration,
+  source-change job configuration, and event subscription machinery.
+- Remove the registry's dead feedback surface: cycles are rejected
+  unconditionally, so `feedback` declarations and `declaredCycles` are removed.
+- Keep narrow input/execution contexts, canonical write intents, framework-owned
+  fingerprints, entity-database memo storage, and persisted crash circuits.
 
-Startup rejects a rule registered in both modes and rejects every graph edge
-whose endpoints have different owners. Production cutover changes an entire
-connected component atomically. Completion events may still be emitted for
-external observers, but no projection consumes them inside a wave-owned
-component.
+### Stage 1: convert every derivation before activation
 
-### Stage 0: clean contract boundary
+Inventory the complete preset and convert every derivation to the canonical
+rule contract, including:
 
-- Remove the unfinished event-job-payload fingerprint rollout.
-- Keep proven PR 5 semantic fingerprints until each handler migrates.
-- Introduce `ProjectionRule`, narrow input/execution contexts, canonical write
-  intents, and entity-database memo storage.
-- Add entity-service schema and repository tests for atomic mutation/dirty
-  writes, dirty claims, wave recovery, atomic rule application, and memos.
-- Remove the registry's now-dead feedback surface: cycles are rejected
-  unconditionally, so `feedback` declarations and the always-empty
-  `declaredCycles` graph field are vestigial.
-- Schema nit: drop the dirty table's separate generation index — `generation`
-  is already the integer primary key.
-
-### Stage 1: scheduler walking skeleton
-
-- Add the scheduler in `shell/core` and scheduler persistence in the entity
-  database.
-- Mark external entity mutations dirty atomically.
-- Exercise one isolated fixture component end to end without changing a
-  production projection's execution owner.
-- Prove arbitrary N source revisions create one rule job in the fixture wave.
-- Keep all production components event-owned until a complete connected
-  component is ready to cut over.
-
-### Stage 2: migrate connected derivation components
-
-Migrate every registered derivation discovered from the graph, one complete
-connected component per cutover, including:
-
-- skill;
+- topics;
+- skills;
 - SWOT;
 - series;
 - conversation-memory summaries;
 - newsletter;
 - social posts;
-- preset-specific rules.
+- every preset-specific derivation discovered by the finalized registry.
 
-For each component, remove all internal semantic-event scheduling edges in the
-same cutover that changes its owner to `wave-owned`. At the end of this stage,
-one ingress batch produces one job per reachable rule in validated topological
-order, with no event bridge between projection rules.
+Each conversion replaces handler-owned mutation with immutable input selection
+and canonical write intents. Topic-to-skill and skill-to-SWOT dependencies come
+from entity source/target graph edges, never semantic completion events.
+Conversation input uses its source-owned transactional outbox. Bootstrap work is
+a direct rule invalidation keyed by the rule/version/config fingerprint, not an
+`initialSync` event handler.
 
-### Stage 3: wave-end site build
+The scheduler runtime is not activated until the inventory test proves that
+every registered derivation uses `ProjectionRule` and no projection event
+subscription or legacy projection job type remains.
 
-- Disable automatic rebuild triggers for wave-owned writes.
-- Request one build after successful wave completion.
-- Retain immediate explicitly requested builds.
-- Retain the site input fingerprint as the final render cache boundary.
+### Stage 2: activate the scheduler-only runtime
 
-### Stage 4: delete choreography guards
+- Atomically append every external entity mutation to the entity-database dirty
+  journal; the entity service has no graph or rule-selector knowledge.
+- Import durable non-entity source outboxes idempotently.
+- Claim waves, select reachable rules from the one finalized graph, and enqueue
+  one job per reachable rule.
+- Register the one framework rule job handler and reconcile active wave job IDs
+  after restart.
+- Fail stale-graph or retry-exhausted waves and requeue their claimed ingress.
+- Prove arbitrary N source revisions create one job per reachable rule.
 
-After all rules are wave-owned and soak tests pass:
+### Stage 3: wave-end effects
 
-- remove projection event subscriptions;
+- Wave-owned writes never re-enter mutation ingress.
+- Enqueue embeddings for changed targets at successful wave completion.
+- Remove automatic mutation-event site rebuild triggers.
+- Request one site build after successful wave completion while retaining
+  immediate explicitly requested builds and the site-input fingerprint.
+
+### Stage 4: remove temporary choreography guards
+
+After the scheduler-only full-preset soak:
+
 - remove projection lineage/depth enforcement;
 - remove per-root projection job/mutation budgets;
-- keep persisted crash circuits, queue fencing, health diagnostics, and a
+- keep persisted crash circuits, queue fencing, health diagnostics, and the
   scheduler assertion that jobs per wave cannot exceed reachable rule count.
 
 ## Testing strategy
@@ -475,7 +488,8 @@ For generated dirty sets of varying size:
 - an entity mutation and dirty revision commit or roll back together;
 - memo, semantic writes, changed targets, and wave-rule completion commit or
   roll back together;
-- no connected graph edge crosses execution owners.
+- the finalized registry contains only executable `ProjectionRule` entries and
+  no event-driven derivation registrations.
 
 ### Full-preset integration
 
@@ -527,9 +541,12 @@ cardinality assertion for every tested batch size.
 7. Restart resumes an active wave without duplicating completed rule jobs.
 8. A successful changed wave performs at most one site render; an unchanged
    site fingerprint performs none.
-9. Existing job deadlines, leases, fencing, circuits, health checks, Git child
-   lifecycle, and JSON site boundary continue to pass.
-10. The implementation remains inside the existing single Bun package and does
+9. The full preset registers only `ProjectionRule`; `DerivedEntityProjection`,
+   projection execution owners, projection event subscriptions, and legacy
+   projection job types have no definitions or callers.
+10. Existing job deadlines, leases, fencing, circuits, health checks, Git child
+    lifecycle, and JSON site boundary continue to pass.
+11. The implementation remains inside the existing single Bun package and does
     not introduce process-coordination files or environment variables.
 
 ## Explicitly deferred
@@ -600,7 +617,7 @@ spawning; operators never pass it and no new environment variables exist.
   boot test must prove the web child reaches `runtime-ready` with no worker
   process present.
 - **Worker child**: uses an execution-only registration path introduced after
-  every projection is wave-owned. It loads entity schemas/adapters, narrow
+  the scheduler-only derivation cutover. It loads entity schemas/adapters, narrow
   projection-rule execution capabilities, AI dependencies, all declared job
   execution capabilities, and `JobQueueWorker`; it does not register
   interfaces, ingress subscriptions, daemons, tools, or plugin ready hooks.
