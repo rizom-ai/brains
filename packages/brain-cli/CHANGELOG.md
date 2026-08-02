@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.243
+
+### Patch Changes
+
+- [`84d70d7`](https://github.com/rizom-ai/brains/commit/84d70d7dfb222a3fd9223a45d13335da0d25ccf5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Unwrap `ZodDefault` when deriving section template field mappings. Fields authored as `z.string().nullable().default(null)` (as in `@rizom/site-rizom-ai`) threw at plugin-init time, which took down the whole site-package plugin and dropped every custom section from the build with missing-template warnings.
+
 ## 0.2.0-alpha.242
 
 ### Patch Changes
