@@ -9,21 +9,21 @@ const baseUser: ResolvedUser = {
   },
   brainVersion: "0.2.0-alpha.136",
   cohort: "sites",
-  contentRepo: "rizom-ai/rizom-work-content",
+  contentRepo: "rizom-ai/rizom-ai-content",
   deployStatus: "unknown",
   discordEnabled: false,
   dnsStatus: "unknown",
-  domain: "rizom.work",
+  domain: "rizom.ai",
   effectiveAiApiKey: "AI_API_KEY",
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
-  handle: "rizom-work",
+  handle: "rizom-ai",
   mcpStatus: "unknown",
   bundles: ["core", "site", "publishing"],
   add: ["docs"],
   remove: [],
   serverStatus: "unknown",
   siteOverride: {
-    package: "@rizom/site-rizom-work",
+    package: "@rizom/site-rizom-ai",
     version: "0.2.0-alpha.136",
     theme: "@brains/theme-rizom",
   },
@@ -43,15 +43,13 @@ describe("createDefaultUserRunner", () => {
     );
     expect(result.brainYaml).toContain(`add:\n  - docs`);
     expect(result.brainYaml).toContain(
-      `site:\n  package: "@rizom/site-rizom-work"\n  theme: "@brains/theme-rizom"`,
+      `site:\n  package: "@rizom/site-rizom-ai"\n  theme: "@brains/theme-rizom"`,
     );
     expect(result.brainYaml).not.toContain("0.2.0-alpha.136");
     expect(result.brainYaml).toContain(
-      `directory-sync:\n    git:\n      repo: rizom-ai/rizom-work-content`,
+      `directory-sync:\n    git:\n      repo: rizom-ai/rizom-ai-content`,
     );
-    expect(result.envFile).toContain(
-      "CONTENT_REPO=rizom-ai/rizom-work-content",
-    );
+    expect(result.envFile).toContain("CONTENT_REPO=rizom-ai/rizom-ai-content");
     expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
 

@@ -5,7 +5,6 @@ import { createRizomSite } from "../src/create-site";
 
 const baseOptions = {
   packageName: "@rizom/site-test",
-  themeProfile: "product" as const,
   layout: (): null => null,
   routes: [],
 };

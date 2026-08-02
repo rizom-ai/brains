@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import {
   assertCoordinatedStableReleasePlan,
+  assertReleaseConfigReferencesWorkspacePackages,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   packageMatchesReleaseLane,
@@ -12,11 +13,29 @@ import assembleReleasePlan from "@changesets/assemble-release-plan";
 import { read as readChangesetsConfig } from "@changesets/config";
 import parseChangesetFile from "@changesets/parse";
 import { getPackages } from "@manypkg/get-packages";
+import { z } from "@brains/utils/zod";
 import { mkdtemp, readFile, readdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 const repositoryRoot = process.cwd();
 const changesetDir = join(repositoryRoot, ".changeset");
+
+const changesetConfigSchema = z.looseObject({
+  fixed: z.array(z.array(z.string())).default([]),
+  linked: z.array(z.array(z.string())).default([]),
+  ignore: z.array(z.string()).default([]),
+});
+
+// Only `packages` selects workspace members; a group's `dependencies` may name
+// external packages that are correctly absent from the workspace.
+const syncpackGroupSchema = z.looseObject({
+  packages: z.array(z.string()).default([]),
+});
+const syncpackConfigSchema = z.looseObject({
+  versionGroups: z.array(syncpackGroupSchema).default([]),
+  semverGroups: z.array(syncpackGroupSchema).default([]),
+});
+
 const command = process.argv[2];
 const requestedLane = process.argv[3];
 
@@ -148,6 +167,7 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
 async function validateRepository(): Promise<PendingChangeset[]> {
   await assertNoUnscopedPendingChangesets();
   await assertConsumedChangesetsReferenceWorkspacePackages();
+  await assertReleaseConfigNamesLivePackages();
   const pending = await pendingChangesets();
   for (const lane of ["core", "site"] as const) {
     assertChangesetsMatchLane(lane, pending);
@@ -339,6 +359,45 @@ async function assertConsumedChangesetsReferenceWorkspacePackages(): Promise<voi
       `Consumed prerelease changesets reference packages that are no longer in the workspace:\n${missing.join("\n")}`,
     );
   }
+}
+
+/**
+ * Package deletions leave inert entries behind in release and dependency
+ * config. Hold both files to the live workspace so the next retirement fails
+ * here instead of during a release.
+ */
+async function assertReleaseConfigNamesLivePackages(): Promise<void> {
+  const { packages } = await getPackages(repositoryRoot);
+  const changesetConfig = changesetConfigSchema.parse(
+    JSON.parse(await readFile(join(changesetDir, "config.json"), "utf8")),
+  );
+  const syncpackConfig = syncpackConfigSchema.parse(
+    JSON.parse(
+      await readFile(join(repositoryRoot, ".syncpackrc.json"), "utf8"),
+    ),
+  );
+  const syncpackPackages = [
+    ...syncpackConfig.versionGroups,
+    ...syncpackConfig.semverGroups,
+  ].flatMap((group) => group.packages);
+
+  assertReleaseConfigReferencesWorkspacePackages(
+    packages.map(({ packageJson }) => packageJson.name),
+    [
+      {
+        source: ".changeset/config.json",
+        names: [
+          ...changesetConfig.fixed.flat(),
+          ...changesetConfig.linked.flat(),
+          ...changesetConfig.ignore,
+        ],
+      },
+      {
+        source: ".syncpackrc.json",
+        names: syncpackPackages,
+      },
+    ],
+  );
 }
 
 async function rootChangesetFiles(): Promise<string[]> {

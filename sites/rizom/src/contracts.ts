@@ -43,10 +43,7 @@ export type {
 } from "@rizom/site";
 export { NavigationSlots } from "@rizom/site";
 
-export type RizomThemeProfile = "product" | "editorial" | "studio";
-
 export interface RizomRuntimeConfig {
-  themeProfile?: RizomThemeProfile;
   theme?: string;
 }
 

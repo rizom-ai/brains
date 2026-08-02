@@ -365,7 +365,7 @@ function RizomAiChrome({
   const face = activeFace(path);
   const umbrella = isHome(path) || orgIndexActive(path) !== null;
   return (
-    <RizomFrame canvas={false}>
+    <RizomFrame>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
           section gutter) so the mycelium has real room to seep. */}
       <div data-room={face} className="relative xl:pl-[68px]">

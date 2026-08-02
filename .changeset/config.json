@@ -5,9 +5,6 @@
   "fixed": [
     [
       "@brains/*",
-      "!@brains/ranger",
-      "!@brains/relay",
-      "!@brains/rover",
       "!@brains/theme-rizom",
       "@rizom/brain",
       "@rizom/ops",

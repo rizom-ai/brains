@@ -13,6 +13,7 @@ export {
 export { runWithPreparedPublishManifests } from "./publish-workspace";
 export {
   assertCoordinatedStableReleasePlan,
+  assertReleaseConfigReferencesWorkspacePackages,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
@@ -20,6 +21,7 @@ export {
   resolveReleaseVersionStrategy,
   resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
+  type ReleaseConfigPackageNames,
   type ReleaseLane,
   type ReleasePlanPackage,
   type ReleaseVersionStrategy,
