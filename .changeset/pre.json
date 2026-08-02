@@ -120,7 +120,8 @@
     "@brains/style-guide": "0.2.0-alpha.223",
     "@brains/profile": "0.2.0-alpha.223",
     "@brains/email": "0.2.0-alpha.235",
-    "@brains/db": "0.2.0-alpha.229"
+    "@brains/db": "0.2.0-alpha.229",
+    "@brains/onboarding": "0.2.0-alpha.243"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -217,6 +218,12 @@
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
     "core--brain-definition-profile-kind",
+    "core--bundle-resolver-integration",
+    "core--canonical-brain-crossover",
+    "core--canonical-core-catalog",
+    "core--canonical-eval-persistent-failures",
+    "core--canonical-personal-bundles",
+    "core--canonical-team-bundle",
     "core--chat-identity-and-spaces",
     "core--contracts-channel-ownership",
     "core--dashboard-widget-namespace",
@@ -226,6 +233,7 @@
     "core--json-native-section-content",
     "core--media-provider-factories",
     "core--ops-explicit-theme-version",
+    "core--prepare-canonical-crossover",
     "core--relicense-agpl-apache-split",
     "core--remove-obsolete-auth-compatibility",
     "core--remove-service-singletons",

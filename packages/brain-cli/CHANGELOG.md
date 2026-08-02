@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.244
+
+### Minor Changes
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add public `defineBundle`, transitional `bundles:` authoring, and deterministic bundle resolution behind the existing brain resolver. Bundle-aware definitions now compose capability selection, member config, instructions, eval exclusions, and validated permission contributions while preserving legacy presets, external plugins, local site conventions, and instance overrides.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the single canonical brain contract: require explicit fixed bundles, scaffold recipes into visible instance configuration with composition-owned profile kinds, consolidate eval and runtime assets with suite-specific fixture directories, compose every registered agent-context provider, remove built-in model/preset selection, and replace versioned fleet formats with one strict canonical desired-state contract. Require exact hosted site and external-theme package pins, add temporary secret-free offline crossover staging, and move onboarding to its model-neutral package. Harden canonical model validation by preserving judge evidence, recording failed tool results, aligning migrated fixtures with canonical tools, and clarifying unmet-request, generation, and playbook-status routing. Eval runs without a locally built database drain seed-content ingestion before running turns; `--build-db` remains the fast path and its databases stay out of version control.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the package-owned canonical capability catalog, the model-neutral `core` bundle definition, and a consolidated canonical environment schema while leaving existing model selection unchanged until the coordinated crossover.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the canonical `site` and `publishing` bundle definitions, including deterministic dashboard routing, publishing defaults and instructions, bundle-owned eval exclusions, and a parallel explicit personal-posture fixture. Existing model selection remains unchanged until the coordinated crossover.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the canonical `team` bundle with shared-memory and topic posture, model-neutral team instructions, member-scoped trusted write policies, and explicit Admin-only delete, extract, and publish defaults. Add a parallel instance-owned team fixture and structural Relay migration characterization without changing legacy model registration.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prepare the clean brain-model crossover without activating it: add deterministic model/preset migration previews, explicit recipe expansion, a typed canonical model subpath, dormant runner/registry/packed-consumer support, and an opt-in next-schema migration preview for hosted desired state. Legacy runtime and ops loaders remain the only active paths until the coordinated crossover.
+
+### Patch Changes
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`9c4150b`](https://github.com/rizom-ai/brains/commit/9c4150bedd802edb402ccac361a7348fc19f061c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden canonical sync routing, projection-owned summary safety, and argument-scoped negative evaluation assertions.
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @brains/ops
 
+## 0.2.0-alpha.244
+
+### Minor Changes
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the single canonical brain contract: require explicit fixed bundles, scaffold recipes into visible instance configuration with composition-owned profile kinds, consolidate eval and runtime assets with suite-specific fixture directories, compose every registered agent-context provider, remove built-in model/preset selection, and replace versioned fleet formats with one strict canonical desired-state contract. Require exact hosted site and external-theme package pins, add temporary secret-free offline crossover staging, and move onboarding to its model-neutral package. Harden canonical model validation by preserving judge evidence, recording failed tool results, aligning migrated fixtures with canonical tools, and clarifying unmet-request, generation, and playbook-status routing. Eval runs without a locally built database drain seed-content ingestion before running turns; `--build-db` remains the fast path and its databases stay out of version control.
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prepare the clean brain-model crossover without activating it: add deterministic model/preset migration previews, explicit recipe expansion, a typed canonical model subpath, dormant runner/registry/packed-consumer support, and an opt-in next-schema migration preview for hosted desired state. Legacy runtime and ops loaders remain the only active paths until the coordinated crossover.
+
 ## 0.2.0-alpha.243
 
 ## 0.2.0-alpha.242

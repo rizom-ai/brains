@@ -1,5 +1,16 @@
 # @brains/cms
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.244
+  - @brains/auth-service@0.2.0-alpha.244
+  - @brains/console-theme@0.2.0-alpha.244
+  - @brains/contracts@0.2.0-alpha.244
+  - @brains/utils@0.2.0-alpha.244
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

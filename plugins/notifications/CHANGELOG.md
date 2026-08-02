@@ -1,5 +1,14 @@
 # @brains/notifications
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.244
+  - @brains/notification-contracts@0.2.0-alpha.244
+  - @brains/utils@0.2.0-alpha.244
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

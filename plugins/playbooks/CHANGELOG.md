@@ -1,5 +1,18 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- [#73](https://github.com/rizom-ai/brains/pull/73) [`e1b4422`](https://github.com/rizom-ai/brains/commit/e1b442233e18215f096ea4d758947761ffb4b89c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the single canonical brain contract: require explicit fixed bundles, scaffold recipes into visible instance configuration with composition-owned profile kinds, consolidate eval and runtime assets with suite-specific fixture directories, compose every registered agent-context provider, remove built-in model/preset selection, and replace versioned fleet formats with one strict canonical desired-state contract. Require exact hosted site and external-theme package pins, add temporary secret-free offline crossover staging, and move onboarding to its model-neutral package. Harden canonical model validation by preserving judge evidence, recording failed tool results, aligning migrated fixtures with canonical tools, and clarifying unmet-request, generation, and playbook-status routing. Eval runs without a locally built database drain seed-content ingestion before running turns; `--build-db` remains the fast path and its databases stay out of version control.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.244
+  - @brains/content-formatters@0.2.0-alpha.244
+  - @brains/contracts@0.2.0-alpha.244
+  - @brains/utils@0.2.0-alpha.244
+  - @brains/runtime-state@0.2.0-alpha.244
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes
