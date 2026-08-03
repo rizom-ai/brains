@@ -1,5 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cn } from "@brains/ui-library";
+import { cn } from "./cn";
 
 export type ButtonVariant = "primary" | "primary-strong" | "secondary";
 export type ButtonSize = "md" | "lg";

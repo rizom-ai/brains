@@ -115,6 +115,34 @@ test("deployable site and theme inventory declares brain compatibility", async (
   ).toBe("git+https://github.com/rizom-ai/site-smoke-canary.git");
 });
 
+test("public packages do not depend on private workspace packages", async () => {
+  const packages = await getPackages(repositoryRoot);
+  const privateNames = new Set(
+    packages.packages
+      .filter(({ packageJson }) => packageJson.private === true)
+      .map(({ packageJson }) => packageJson.name),
+  );
+  const offenders = packages.packages
+    .filter(({ packageJson }) => packageJson.private !== true)
+    .flatMap(({ packageJson }) => {
+      const manifest = packageJson as Record<string, unknown>;
+      return [
+        "dependencies",
+        "peerDependencies",
+        "optionalDependencies",
+      ].flatMap((field) => {
+        const dependencies = manifest[field] as
+          Record<string, string> | undefined;
+        return Object.keys(dependencies ?? {})
+          .filter((name) => privateNames.has(name))
+          .map((name) => `${packageJson.name} ${field} ${name}`);
+      });
+    })
+    .sort();
+
+  expect(offenders).toEqual([]);
+});
+
 test("publishable packages do not restore their manifest mid-publish", async () => {
   // npm derives the registry packument from the on-disk package.json AFTER
   // postpack runs, while the tarball is packed from the prepared manifest. A
