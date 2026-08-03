@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- [#76](https://github.com/rizom-ai/brains/pull/76) [`e2fa886`](https://github.com/rizom-ai/brains/commit/e2fa886134594d834582c5b55704e893fcb0988a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep observed pilot status rendering out of desired-state reconciliation and include both passes' changed file paths in `reconcile-all --dry-run` output.
+
 ## 0.2.0-alpha.244
 
 ### Minor Changes

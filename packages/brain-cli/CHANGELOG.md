@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- [#76](https://github.com/rizom-ai/brains/pull/76) [`e2fa886`](https://github.com/rizom-ai/brains/commit/e2fa886134594d834582c5b55704e893fcb0988a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add optional IMAP intake to the Email interface. Configured interfaces now connect to a read-only mailbox, parse MIME messages, publish the exported `EMAIL_INBOUND` contract, and persist an acknowledgement-gated, UIDVALIDITY-scoped cursor for at-least-once delivery. Poison messages no longer block later mail. Intake stays live through per-connection IDLE fallback and capped reconnect backoff, including failed initial connections, and enriches known senders through the auth principal registry. Outbound-only setups remain unchanged, and mailbox content, addresses, and credentials stay out of logs.
+
 ## 0.2.0-alpha.244
 
 ### Minor Changes

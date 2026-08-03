@@ -1,7 +1,7 @@
 {
   "name": "@brains/conversation-memory",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.244",
+  "version": "0.2.0-alpha.245",
   "description": "Plugin for deriving durable conversation memory",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

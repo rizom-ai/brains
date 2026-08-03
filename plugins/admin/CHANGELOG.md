@@ -1,5 +1,15 @@
 # @brains/admin
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- Updated dependencies [[`e2fa886`](https://github.com/rizom-ai/brains/commit/e2fa886134594d834582c5b55704e893fcb0988a)]:
+  - @brains/auth-service@0.2.0-alpha.245
+  - @brains/plugins@0.2.0-alpha.245
+  - @brains/console-theme@0.2.0-alpha.245
+  - @brains/utils@0.2.0-alpha.245
+
 ## 0.2.0-alpha.244
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/entity-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.244",
+  "version": "0.2.0-alpha.245",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
