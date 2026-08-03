@@ -65,10 +65,14 @@ in the mailbox.
    Discarded spam has no durable side effect; a rare mailbox replay may classify it
    again without producing duplicate state.
 8. **Model poison cannot wedge the mailbox forever.** Classification attempts are
-   counted by hashed message identifier in scoped runtime state. The first two failures
-   remain unacknowledged. After the third, triage persists a safe high-priority
+   counted by hashed message identifier in scoped runtime state — the same
+   runtime-state mechanism the mailbox cursor uses. The first two failures remain
+   unacknowledged. After the third, triage persists a safe high-priority
    `category=other` fallback titled “Unclassified email,” containing no source content
    and directing the operator to the mailbox. Database failure still holds the cursor.
+   Attempt counters are deleted the moment a message resolves — item persisted,
+   fallback persisted, or deterministic discard acknowledged — so the state holds
+   counters only for messages currently wedged, never one per message ever failed.
 9. **The operator surface is CMS-first and inbox-integrated.** An admin-only Email
    Triage CMS workspace owns combined filtering and typed status actions. A compact
    dashboard contribution links to it. New/high mail items register as a unified-inbox
@@ -166,8 +170,9 @@ not begin until those tests are red for the intended reason.
   newsletter skips AI; `noreply` security warning, automated invoice, and support update
   are retained; spam is discarded; model called exactly once for meaningful mail;
   duplicate replay calls it zero additional times; first two classification failures
-  hold the cursor; third creates the safe fallback; database failure never
-  acknowledges; no source content appears in entities or logs.
+  hold the cursor; third creates the safe fallback; the attempt counter is removed on
+  successful persistence, fallback persistence, and discard acknowledgement; database
+  failure never acknowledges; no source content appears in entities or logs.
 - **Phase 2 — Operator surfaces.** Add `email_triage_list`, the admin-only CMS workspace,
   compact dashboard link/counts, and unified-inbox source registration. _Tests first:_
   combined filters and empty states; permission enforcement; workspace registration and

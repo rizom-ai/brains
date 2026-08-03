@@ -50,7 +50,11 @@ digest.
      sourceId: string; // "mail-items", "agent-candidates", ...
      displayName: string;
      list(): Promise<InboxItem[]>; // current attention items only
-     act(itemId: string, actionId: string): Promise<void>;
+     act(
+       itemId: string,
+       actionId: string,
+       actor: { permissionLevel: UserPermissionLevel },
+     ): Promise<void>;
    }
 
    interface InboxItem {
@@ -66,11 +70,15 @@ digest.
 
    Any plugin type may register a source — attention is not interface-specific.
 
-3. **Actions delegate to the source.** "Handled" on a mail item calls the email-triage
-   source's `act`, while "Add" on a candidate runs the atproto plan's existing
-   confirmation-gated add. The inbox dispatches and re-lists; it contains no business
-   logic and no state of its own. Actions marked `confirm` go through the standard
-   confirmation flow.
+3. **Actions delegate to the source and carry the actor.** "Handled" on a mail item
+   calls the email-triage source's `act`, while "Add" on a candidate runs the atproto
+   plan's existing confirmation-gated add. The inbox dispatches and re-lists; it
+   contains no business logic and no state of its own. Actions marked `confirm` go
+   through the standard confirmation flow. Every dispatch passes the caller's
+   `UserPermissionLevel` (mirroring tool handlers' `context.userPermissionLevel`), so a
+   source enforces its own authorization instead of trusting the surface — "admin-only"
+   is a property of today's dashboard consumer, not of this contract. Sources mutating
+   restricted entities must reject non-admin actors.
 4. **One aggregation `DataSource`** merges all sources, ordered by urgency then
    `receivedAt`, tolerant of a failing source (its section reports an error; others
    still render — one broken plugin must not blank the inbox).
@@ -101,7 +109,8 @@ Tests are written first inside each phase.
 - **Phase 1 — Surfaces.** Dashboard `Inbox` widget (model on the wishlist/
   agent-discovery widgets) rendering grouped items with action buttons, and an
   `inbox_list` tool for chat surfaces. _Tests:_ dataProvider shape; action dispatch
-  reaches the owning source; `confirm` actions require confirmation.
+  reaches the owning source with the caller's permission level; a source rejects an
+  unauthorized actor; `confirm` actions require confirmation.
 - **Phase 2 — First real source: email triage.** Register the mail-item source (items =
   mail items in `status=new`, urgency `high` for `priority=high`; actions: mark reviewed,
   mark handled, or archive). Gated on email-triage Phase 2. _Acceptance:_ a
