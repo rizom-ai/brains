@@ -48,8 +48,8 @@ or accept it, and send a correctly threaded reply only after explicit approval.
    `sent` result. Failure leaves the current draft recoverable. An idempotency key tied
    to draft ID and revision prevents retry duplicates while allowing an edited revision
    to be sent deliberately.
-7. **Lead context is optional.** A support, finance, administrative, or personal mail
-   item may need a reply without being a lead. When a linked lead exists, its derived
+7. **Lead context is optional.** A work, administrative, or personal mail item may need
+   a reply without being a lead. When a linked lead exists, its derived
    intent and constraints may inform drafting, but it never supplies recipient or
    threading data.
 

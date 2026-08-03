@@ -1,69 +1,15 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser, type AddressObject, type HeaderLines } from "mailparser";
+import {
+  EMAIL_INBOUND,
+  inboundEmailSchema,
+  type InboundEmail,
+  type InboundEmailAddress,
+  type InboundEmailSender,
+} from "@brains/contracts";
 import type { IRuntimeStateStore, MessageSender } from "@brains/plugins";
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-
-export const EMAIL_INBOUND = "email:inbound" as const;
-
-export interface InboundEmailAddress {
-  name?: string | undefined;
-  address: string;
-}
-
-export interface InboundEmailSender {
-  personId: string;
-  permissionLevel: "admin" | "trusted" | "public";
-}
-
-export interface InboundEmail {
-  messageId: string;
-  threadId?: string | undefined;
-  from: InboundEmailAddress;
-  to: InboundEmailAddress[];
-  subject: string;
-  receivedAt: string;
-  text: string;
-  html?: string | undefined;
-  headers: {
-    listUnsubscribe?: string | undefined;
-    autoSubmitted?: string | undefined;
-    precedence?: string | undefined;
-  };
-  sender?: InboundEmailSender | undefined;
-}
-
-const inboundEmailAddressSchema: z.ZodType<
-  InboundEmailAddress,
-  InboundEmailAddress
-> = z.strictObject({
-  name: z.string().min(1).optional(),
-  address: z.email(),
-});
-
-export const inboundEmailSchema: z.ZodType<InboundEmail, InboundEmail> =
-  z.strictObject({
-    messageId: z.string().min(1),
-    threadId: z.string().min(1).optional(),
-    from: inboundEmailAddressSchema,
-    to: z.array(inboundEmailAddressSchema),
-    subject: z.string(),
-    receivedAt: z.iso.datetime(),
-    text: z.string(),
-    html: z.string().min(1).optional(),
-    headers: z.strictObject({
-      listUnsubscribe: z.string().min(1).optional(),
-      autoSubmitted: z.string().min(1).optional(),
-      precedence: z.string().min(1).optional(),
-    }),
-    sender: z
-      .strictObject({
-        personId: z.string().min(1),
-        permissionLevel: z.enum(["admin", "trusted", "public"]),
-      })
-      .optional(),
-  });
 
 export interface EmailImapConfig {
   host: string;
@@ -211,6 +157,18 @@ export interface InboundEmailCursor {
   lastUid: number;
 }
 
+export function createInboundEmailSourceRef(
+  selection: InboundEmailSelection,
+  uid: number,
+): string {
+  const locator = JSON.stringify({
+    mailbox: selection.mailbox,
+    uidValidity: selection.uidValidity,
+    uid,
+  });
+  return `imap:${sha256Hex(locator)}`;
+}
+
 export interface InboundEmailIntakeDependencies {
   cursor: IRuntimeStateStore<InboundEmailCursor>;
   publish: MessageSender;
@@ -243,7 +201,10 @@ export async function intakeInboundEmail(
     if (sourceMessage.uid <= cursorUid) continue;
     let email: InboundEmail;
     try {
-      email = await parseInboundEmail(sourceMessage);
+      email = await parseInboundEmail(
+        sourceMessage,
+        createInboundEmailSourceRef(selection, sourceMessage.uid),
+      );
     } catch {
       logger.warn("Inbound email message could not be parsed", {
         uid: sourceMessage.uid,
@@ -262,7 +223,7 @@ export async function intakeInboundEmail(
         if (sender) email = { ...email, sender };
       } catch {
         logger.warn("Inbound email sender resolution failed", {
-          messageId: email.messageId,
+          messageKey: sha256Hex(email.messageId),
         });
       }
     }
@@ -280,7 +241,7 @@ export async function intakeInboundEmail(
 
     if (!acknowledged) {
       logger.warn("Inbound email event was not acknowledged", {
-        messageId: email.messageId,
+        messageKey: sha256Hex(email.messageId),
       });
       break;
     }
@@ -292,7 +253,7 @@ export async function intakeInboundEmail(
     cursorUid = sourceMessage.uid;
     processed += 1;
     logger.debug("Inbound email event published", {
-      messageId: email.messageId,
+      messageKey: sha256Hex(email.messageId),
     });
   }
 
@@ -301,6 +262,7 @@ export async function intakeInboundEmail(
 
 export async function parseInboundEmail(
   sourceMessage: InboundEmailSourceMessage,
+  sourceRef: string,
 ): Promise<InboundEmail> {
   const parsed = await simpleParser(Buffer.from(sourceMessage.source), {
     skipImageLinks: true,
@@ -317,6 +279,7 @@ export async function parseInboundEmail(
   const html = typeof parsed.html === "string" ? parsed.html : undefined;
   const email: InboundEmail = {
     messageId,
+    sourceRef,
     ...(sourceMessage.threadId ? { threadId: sourceMessage.threadId } : {}),
     from,
     to: addresses(parsed.to),

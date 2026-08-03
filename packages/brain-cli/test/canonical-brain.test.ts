@@ -45,6 +45,7 @@ const expectedCatalogIds = [
   "products",
   "obsidian-vault",
   "rizom-ecosystem",
+  "email-triage",
   "mcp",
   "email",
   "webserver",
@@ -150,6 +151,7 @@ describe("canonical brain core", () => {
     expect(resolvedIds).toContain("atproto-registry");
     expect(resolvedIds).not.toContain("atproto");
     expect(resolvedIds).not.toContain("site-builder");
+    expect(resolvedIds).not.toContain("email-triage");
   });
 
   test("attaches transport permissions and eval exclusions to core members", () => {

@@ -284,6 +284,14 @@
           <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
           <div class="card-file">atproto-integration.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Email triage — safe derived mailbox attention</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">the opt-in ingestion foundation is implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, and bounded fallback retries. **After unified-inbox in the incoming-events sequence**, demand-gated operator work adds the CMS workflow, domain list tool, dashboard contribution, and inbox source registration.</div>
+          <div class="card-file">email-triage.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">NPM Package Boundary Plan</span>
@@ -307,14 +315,6 @@
           </div>
           <div class="card-desc">**last of the sequence**, gated on email triage: fetch original mail on demand, store only Brain-authored drafts, extend the delivery-provider threading contract, and require confirmation before sending; lead context is optional.</div>
           <div class="card-file">email-reply-drafting.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Email triage — safe derived mailbox attention</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">**after unified-inbox in the incoming-events sequence**, demand-gated on live mailbox volume; classify shipped <code>EMAIL_INBOUND</code> events into restricted derived mail items without copying original messages, with conservative bulk filtering, CMS workflow, and unified-inbox registration.</div>
-          <div class="card-file">email-triage.md</div>
         </div>
         </div>
       </details>

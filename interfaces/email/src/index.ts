@@ -2,6 +2,7 @@ import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   authPrincipalResolveResponseSchema,
   createExternalActorId,
+  type InboundEmailSender,
 } from "@brains/contracts";
 import {
   MessageInterfacePlugin,
@@ -21,7 +22,6 @@ import {
   type EmailImapConfigInput,
   type InboundEmailClientFactory,
   type InboundEmailCursor,
-  type InboundEmailSender,
 } from "./inbound-email";
 import {
   InboundEmailSupervisor,
@@ -34,7 +34,7 @@ export {
   type InboundEmail,
   type InboundEmailAddress,
   type InboundEmailSender,
-} from "./inbound-email";
+} from "@brains/contracts";
 export type {
   EmailImapConfig,
   EmailImapConfigInput,
@@ -44,6 +44,7 @@ export type {
   InboundEmailSelection,
   InboundEmailSourceMessage,
 } from "./inbound-email";
+export { createInboundEmailSourceRef } from "./inbound-email";
 export type { InboundEmailSleep } from "./inbound-supervisor";
 
 export interface EmailConfig {

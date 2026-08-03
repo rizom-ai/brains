@@ -10,6 +10,7 @@ import { createMockLogger } from "@brains/test-utils";
 import {
   EMAIL_INBOUND,
   EmailInterface,
+  createInboundEmailSourceRef,
   inboundEmailSchema,
   type EmailImapConfig,
   type InboundEmail,
@@ -49,6 +50,37 @@ async function fixtureMessage(
   };
 }
 
+function expectLoggerNotToContain(
+  logger: ReturnType<typeof createMockLogger>,
+  secret: string,
+): void {
+  const containsSecret = {
+    asymmetricMatch(value: unknown): boolean {
+      try {
+        return JSON.stringify(value).includes(secret);
+      } catch {
+        return false;
+      }
+    },
+  };
+  for (const logMethod of [
+    logger.debug,
+    logger.info,
+    logger.warn,
+    logger.error,
+  ]) {
+    expect(logMethod).not.toHaveBeenCalledWith(containsSecret);
+    expect(logMethod).not.toHaveBeenCalledWith(
+      containsSecret,
+      expect.anything(),
+    );
+    expect(logMethod).not.toHaveBeenCalledWith(
+      expect.anything(),
+      containsSecret,
+    );
+  }
+}
+
 async function waitForAbort(signal: AbortSignal): Promise<void> {
   await new Promise<void>((resolve) => {
     if (signal.aborted) {
@@ -81,19 +113,44 @@ function createFakeClient(
 }
 
 describe("inbound email intake", () => {
+  it("creates stable opaque references scoped to mailbox generation and UID", () => {
+    const selection = { mailbox: "INBOX", uidValidity: "42" };
+    const sourceRef = createInboundEmailSourceRef(selection, 7);
+
+    expect(createInboundEmailSourceRef(selection, 7)).toBe(sourceRef);
+    expect(createInboundEmailSourceRef(selection, 8)).not.toBe(sourceRef);
+    expect(
+      createInboundEmailSourceRef({ ...selection, uidValidity: "43" }, 7),
+    ).not.toBe(sourceRef);
+    expect(
+      createInboundEmailSourceRef({ ...selection, mailbox: "Archive" }, 7),
+    ).not.toBe(sourceRef);
+    expect(sourceRef).toMatch(/^imap:[a-f0-9]{64}$/);
+    expect(sourceRef).not.toContain(selection.mailbox);
+  });
+
   it("parses plain, HTML, multipart, and missing Message-ID fixtures", async () => {
-    const plain = await parseInboundEmail(await fixtureMessage(1, "plain.eml"));
-    const html = await parseInboundEmail(await fixtureMessage(2, "html.eml"));
+    const plain = await parseInboundEmail(
+      await fixtureMessage(1, "plain.eml"),
+      "imap:fixture-1",
+    );
+    const html = await parseInboundEmail(
+      await fixtureMessage(2, "html.eml"),
+      "imap:fixture-2",
+    );
     const multipart = await parseInboundEmail(
       await fixtureMessage(3, "multipart.eml", "thread-3"),
+      "imap:fixture-3",
     );
     const missingId = await parseInboundEmail(
       await fixtureMessage(4, "missing-message-id.eml"),
+      "imap:fixture-4",
     );
 
     expect(inboundEmailSchema.parse(plain)).toEqual(plain);
     expect(plain).toMatchObject({
       messageId: "<plain-1@example.com>",
+      sourceRef: "imap:fixture-1",
       from: { name: "Alice Example", address: "alice@example.com" },
       to: [{ name: "Work Inbox", address: "work@example.com" }],
       subject: "Plain inquiry",
@@ -174,16 +231,15 @@ describe("inbound email intake", () => {
     ]);
     expect(replayed).toHaveLength(1);
     expect(replayed[0]?.messageId).toBe(firstAttempt[1]?.messageId);
+    expect(replayed[0]?.sourceRef).toBe(firstAttempt[1]?.sourceRef);
+    expect(replayed[0]?.sourceRef).toMatch(/^imap:[A-Za-z0-9_-]+$/);
+    expect(replayed[0]?.sourceRef).not.toContain(imapConfig.mailbox);
     for (const secretContent of [
       "Missing message id",
       "This message has no Message-ID header.",
+      firstAttempt[1]?.messageId,
     ]) {
-      expect(logger.warn).not.toHaveBeenCalledWith(
-        expect.stringContaining(secretContent),
-      );
-      expect(logger.debug).not.toHaveBeenCalledWith(
-        expect.stringContaining(secretContent),
-      );
+      if (secretContent) expectLoggerNotToContain(logger, secretContent);
     }
   });
 
@@ -370,19 +426,10 @@ describe("inbound email intake", () => {
       personId: "prsn_alice",
       permissionLevel: "trusted",
     });
-    for (const logMethod of [
-      logger.debug,
-      logger.info,
-      logger.warn,
-      logger.error,
-    ]) {
-      expect(logMethod).not.toHaveBeenCalledWith(
-        expect.stringContaining("alice@example.com"),
-      );
-    }
+    expectLoggerNotToContain(logger, "alice@example.com");
   });
 
-  it("warns with only the message ID when sender resolution fails", async () => {
+  it("warns with only a derived message key when sender resolution fails", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
@@ -412,18 +459,13 @@ describe("inbound email intake", () => {
     expect(received[0]?.sender).toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(
       "Inbound email sender resolution failed",
-      { messageId: "<plain-1@example.com>" },
+      {
+        messageKey:
+          "84b6ea72aa5d7f15817967b4443af2669be52663eb24ad3f1cc46d6e3aa93cf2",
+      },
     );
-    for (const logMethod of [
-      logger.debug,
-      logger.info,
-      logger.warn,
-      logger.error,
-    ]) {
-      expect(logMethod).not.toHaveBeenCalledWith(
-        expect.stringContaining("alice@example.com"),
-      );
-    }
+    expectLoggerNotToContain(logger, "alice@example.com");
+    expectLoggerNotToContain(logger, "<plain-1@example.com>");
   });
 
   it("leaves unknown senders unenriched", async () => {

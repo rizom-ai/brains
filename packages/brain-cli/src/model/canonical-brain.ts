@@ -24,6 +24,7 @@ import { directorySync } from "@brains/directory-sync";
 import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
+import { emailTriage } from "@brains/email-triage";
 import { imagePlugin } from "@brains/image-plugin";
 import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
@@ -344,6 +345,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["products", productsPlugin, undefined],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
+    ["email-triage", emailTriage, {}],
   ],
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],

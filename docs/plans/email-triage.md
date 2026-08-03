@@ -2,11 +2,12 @@
 
 ## Status
 
-**Proposed, demand-gated, and sequenced after
-[unified-inbox.md](./unified-inbox.md).** Its transport dependency has shipped:
-`interfaces/email` publishes the at-least-once `EMAIL_INBOUND` contract. This plan is
-now deliberately generic. It classifies meaningful inbound mail into a safe derived
-`mail-item`; it does not define leads, draft replies, or opportunity promotion.
+**Phases 0–1 implemented; Phase 2 remains demand-gated and sequenced after
+[unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes the at-least-once
+`EMAIL_INBOUND` contract with an opaque source reference, and the opt-in
+`@brains/email-triage` capability classifies meaningful inbound mail into a safe derived
+`mail-item`. The remaining operator surfaces wait for the shared inbox contract. This
+plan does not define leads, draft replies, or opportunity promotion.
 
 ## Goal
 
@@ -18,10 +19,14 @@ in the mailbox.
 ## What exists today (fact-check)
 
 - `interfaces/email` (`@brains/email`) publishes `EMAIL_INBOUND` with parsed addresses,
-  subject, text/HTML, selected headers, `messageId`, optional `threadId`, and optional
-  resolved sender attribution (`interfaces/email/src/inbound-email.ts`). Delivery is
-  at-least-once: its mailbox cursor advances only when a subscriber acknowledges.
-- No email-triage service or `mail-item` entity exists.
+  subject, text/HTML, selected headers, `messageId`, opaque `sourceRef`, optional
+  `threadId`, and optional resolved sender attribution. Delivery is at-least-once: its
+  mailbox cursor advances only when a subscriber acknowledges.
+- The opt-in `@brains/email-triage` compound package owns the restricted `mail-item`
+  entity and the acknowledgement-gated filter/classify/persist service. It is in the
+  canonical catalog but no fixed bundle.
+- No email-triage CMS workspace, dashboard contribution, domain list tool, or
+  unified-inbox source registration exists yet.
 - The generic `system_list` tool filters only by entity type and status. Combined
   category/priority/reply filtering needs one narrow domain query tool; ordinary
   get/update/delete operations should remain on the shared system tools.
@@ -54,12 +59,16 @@ in the mailbox.
    automatic-submission header is never sufficient to discard mail. Only multiple
    strong bulk signals (for example `List-Unsubscribe` plus bulk/list precedence) skip
    the model. Useful automated security, finance, booking, and support messages remain
-   eligible and normally classify as `notification`, `finance`, or `support`.
+   eligible and classify by purpose rather than message form.
 6. **Classification is one structured model call per meaningful message.** The email is
-   delimited as untrusted source material and never enters agent chat. The call returns
-   `{ title, category, priority, needsReply, organization?, requestedActions, summary }`.
-   Brain-specific triage guidance is ordinary `brain.yaml` configuration, not an
-   environment variable.
+   delimited as untrusted source material and never enters agent chat. A fixed rubric
+   defines the five routing categories; optional Brain-specific guidance from
+   `brain.yaml` may tune prioritization but cannot expand the enum. The
+   schema-constrained call returns either a retained projection
+   `{ decision: "retain", title, category, priority, needsReply, organization?, requestedActions, summary }`
+   or `{ decision: "discard", reason: "spam" }`. The model must choose the closest
+   routing category for retained mail; invalid output follows the retry policy.
+   Rationale and confidence are not persisted.
 7. **Replay is cheap and idempotent.** The entity ID is derived from the hashed message
    identifier. An existing item acknowledges without filtering or another model call.
    Discarded spam has no durable side effect; a rare mailbox replay may classify it
@@ -68,7 +77,7 @@ in the mailbox.
    counted by hashed message identifier in scoped runtime state — the same
    runtime-state mechanism the mailbox cursor uses. The first two failures remain
    unacknowledged. After the third, triage persists a safe high-priority
-   `category=other` fallback titled “Unclassified email,” containing no source content
+   `category=null` fallback titled “Unclassified email,” containing no source content
    and directing the operator to the mailbox. Database failure still holds the cursor.
    Attempt counters are deleted the moment a message resolves — item persisted,
    fallback persisted, or deterministic discard acknowledged — so the state holds
@@ -91,22 +100,22 @@ in the mailbox.
 ## `mail-item` entity
 
 ```ts
-type MailCategory =
-  | "opportunity"
-  | "recruiting"
-  | "support"
-  | "finance"
-  | "administrative"
-  | "personal"
-  | "notification"
-  | "other";
+const mailCategorySchema = z.enum([
+  "opportunity",
+  "recruiting",
+  "work",
+  "administrative",
+  "personal",
+]);
+
+type MailCategory = z.output<typeof mailCategorySchema>;
 
 type MailPriority = "high" | "normal" | "low";
 type MailStatus = "new" | "reviewed" | "handled" | "archived";
 
 interface MailItemFrontmatter {
   title: string;
-  category: MailCategory;
+  category: MailCategory | null;
   priority: MailPriority;
   status: MailStatus;
   needsReply: boolean;
@@ -126,13 +135,21 @@ interface MailItemFrontmatter {
 
 interface MailItemMetadata {
   title: string;
-  category: MailCategory;
+  category: MailCategory | null;
   priority: MailPriority;
   status: MailStatus;
   needsReply: boolean;
   receivedAt: string;
 }
 ```
+
+The classifier applies the categories in routing terms: `opportunity` for prospective
+commercial or collaboration work, `recruiting` for employment and hiring, `work` for
+existing professional/project/client/support correspondence, `administrative` for
+finance/legal/security/scheduling/account operations and their automated notices, and
+`personal` for non-work relationships. Message form does not decide category. A normal
+projection always has one category; `null` is reserved for the system-authored poison
+fallback and is never a model choice.
 
 The markdown body is only the concise derived summary. `created`, `updated`,
 `contentHash`, and `visibility` remain standard entity-service fields; a separate
@@ -156,15 +173,19 @@ configuration does not enable IMAP and is not automatically emitted by `brain in
 
 ## Phased delivery (thin vertical slices, strict TDD)
 
-A phase starts with its behavior matrix committed as failing tests. Implementation does
-not begin until those tests are red for the intended reason.
+Schemas are defined first in each phase, TypeScript types are derived from those Zod
+schemas with `z.output`, and behavior tests are then written against the schemas. A
+phase's implementation does not begin until its behavior matrix is red for the intended
+reason.
 
-- **Phase 0 — Contract + derived entity.** Extend `EMAIL_INBOUND` with an opaque
+- **Phase 0 — Contract + derived entity — implemented.** Extend `EMAIL_INBOUND` with an opaque
   `sourceRef`; add the compound package, Zod schemas, markdown adapter, canonical
   catalog entry, and stable derived ID. _Tests first:_ source reference contract;
   schema constraints; markdown round-trip; restricted visibility; stable IDs; persisted
-  output contains no body, HTML, subject, address, header, recipient, or message ID.
-- **Phase 1 — Subscribe → filter → classify → persist → acknowledge.** Register the one
+  output contains no body, HTML, subject, address, header, recipient, or message ID;
+  the category schema exposes exactly the five routing categories, normal projections
+  require one of them, and only the system fallback may persist `category=null`.
+- **Phase 1 — Subscribe → filter → classify → persist → acknowledge — implemented.** Register the one
   raw-mail subscriber, conservative bulk filter, injected structured classifier,
   scoped attempt state, fallback item, and idempotent persistence. _Tests first:_ bulk
   newsletter skips AI; `noreply` security warning, automated invoice, and support update
@@ -173,7 +194,7 @@ not begin until those tests are red for the intended reason.
   hold the cursor; third creates the safe fallback; the attempt counter is removed on
   successful persistence, fallback persistence, and discard acknowledgement; database
   failure never acknowledges; no source content appears in entities or logs.
-- **Phase 2 — Operator surfaces.** Add `email_triage_list`, the admin-only CMS workspace,
+- **Phase 2 — Operator surfaces — blocked on unified inbox.** Add `email_triage_list`, the admin-only CMS workspace,
   compact dashboard link/counts, and unified-inbox source registration. _Tests first:_
   combined filters and empty states; permission enforcement; workspace registration and
   lifecycle; typed status actions; dashboard/inbox data shape; source failure isolation;
