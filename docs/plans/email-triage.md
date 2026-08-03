@@ -2,12 +2,14 @@
 
 ## Status
 
-**Phases 0–1 implemented; Phase 2 remains demand-gated and sequenced after
-[unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes the at-least-once
-`EMAIL_INBOUND` contract with an opaque source reference, and the opt-in
-`@brains/email-triage` capability classifies meaningful inbound mail into a safe derived
-`mail-item`. The remaining operator surfaces wait for the shared inbox contract. This
-plan does not define leads, draft replies, or opportunity promotion.
+**Phases 0–1 implemented; remaining Phase 2A operator surfaces are demand-gated but
+can proceed independently; Phase 2B waits for
+[unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes
+the at-least-once `EMAIL_INBOUND` contract with an opaque source reference, and the
+opt-in `@brains/email-triage` capability classifies meaningful inbound mail into a safe
+derived `mail-item`. The local CMS, query tool, and compact dashboard contribution do
+not depend on the shared inbox contract. This plan does not define leads, draft replies,
+or opportunity promotion.
 
 ## Goal
 
@@ -32,9 +34,10 @@ in the mailbox.
   get/update/delete operations should remain on the shared system tools.
 - Service plugins can contribute typed CMS workspaces and dashboard links; directory
   sync and content pipeline are current examples.
-- The unified-inbox plan is sequenced before this plan and defines the shared attention
-  projection. Email triage should register a source there instead of inventing a second
-  notification center.
+- The unified-inbox contract does not exist yet. That blocks only source registration,
+  cross-source aggregation, and digest policy. Email triage's source-owned CMS, query
+  tool, typed status actions, and compact dashboard link/counts can ship first without
+  inventing a second notification center.
 
 ## Core decisions
 
@@ -82,10 +85,12 @@ in the mailbox.
    Attempt counters are deleted the moment a message resolves — item persisted,
    fallback persisted, or deterministic discard acknowledged — so the state holds
    counters only for messages currently wedged, never one per message ever failed.
-9. **The operator surface is CMS-first and inbox-integrated.** An admin-only Email
-   Triage CMS workspace owns combined filtering and typed status actions. A compact
-   dashboard contribution links to it. New/high mail items register as a unified-inbox
-   source; this plan does not add immediate push notifications.
+9. **The local operator surface is CMS-first and inbox-independent.** An admin-only
+   Email Triage CMS workspace owns combined filtering and typed status actions. A
+   compact dashboard contribution provides source-owned counts and a link to that
+   workspace; it is not a second cross-source inbox. Once the shared inbox contract
+   exists, new/high mail items register there. This plan does not add immediate push
+   notifications.
 10. **Keep the tool surface narrow.** Add `email_triage_list` for combined category,
     priority, status, and `needsReply` filters. Use `system_get`, `system_update`, and
     `system_delete` for ordinary entity operations.
@@ -194,11 +199,21 @@ reason.
   hold the cursor; third creates the safe fallback; the attempt counter is removed on
   successful persistence, fallback persistence, and discard acknowledgement; database
   failure never acknowledges; no source content appears in entities or logs.
-- **Phase 2 — Operator surfaces — blocked on unified inbox.** Add `email_triage_list`, the admin-only CMS workspace,
-  compact dashboard link/counts, and unified-inbox source registration. _Tests first:_
-  combined filters and empty states; permission enforcement; workspace registration and
-  lifecycle; typed status actions; dashboard/inbox data shape; source failure isolation;
-  no endpoint or tool response exposes raw mailbox content.
+- **Phase 2A — Source-owned operator surfaces — independent of unified inbox.** Add
+  `email_triage_list`, the admin-only CMS workspace, typed status actions, and a compact
+  dashboard link/count contribution. The dashboard contribution reports only mail-item
+  counts and links to the workspace; it does not aggregate other sources or send a
+  digest. _Tests first:_ combined filters and empty states; permission enforcement;
+  workspace registration and lifecycle; typed status transitions; dashboard data shape;
+  no endpoint, tool response, or dashboard payload exposes raw mailbox content.
+- **Phase 2B — Shared inbox integration — blocked on unified inbox.** After the
+  `InboxSource` contract and aggregation surfaces exist, register new/high mail items as
+  a source with reviewed, handled, and archive actions. Reuse the Phase 2A status
+  operations rather than adding parallel mutation logic. _Tests first:_ source mapping
+  and empty state; admin enforcement at the source action boundary; action-to-status
+  transitions; handled items disappear on re-list; no inbox item exposes raw mailbox
+  content. Cross-source ordering, failure isolation, and digest behavior remain owned by
+  the unified-inbox plan.
 
 ## Out of scope
 
@@ -213,8 +228,8 @@ reason.
 
 ## Related plans
 
-- [unified-inbox.md](./unified-inbox.md) — shared attention projection implemented before
-  this plan.
+- [unified-inbox.md](./unified-inbox.md) — shared attention projection required only
+  for Phase 2B source registration and digest participation.
 - [lead-management.md](./lead-management.md) — downstream lead creation and
   consolidation.
 - [email-reply-drafting.md](./email-reply-drafting.md) — future on-demand source read,

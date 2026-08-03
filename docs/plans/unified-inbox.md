@@ -83,7 +83,8 @@ digest.
    `receivedAt`, tolerant of a failing source (its section reports an error; others
    still render — one broken plugin must not blank the inbox).
 5. **Consumers, phased in by their own plans:** derived mail items (email-triage Phase
-   2), agent candidates (the atproto plan's Candidate Inbox becomes an `InboxSource`
+   2B; its source-owned Phase 2A operator surfaces do not wait for this contract), agent
+   candidates (the atproto plan's Candidate Inbox becomes an `InboxSource`
    registration plus candidate-specific merge/retention logic it already owns — that
    plan's UI slice shrinks to a source registration; update it when this contract
    lands), stale opportunities (bd heartbeat lists stale Warm items as inbox items —
@@ -113,7 +114,8 @@ Tests are written first inside each phase.
   unauthorized actor; `confirm` actions require confirmation.
 - **Phase 2 — First real source: email triage.** Register the mail-item source (items =
   mail items in `status=new`, urgency `high` for `priority=high`; actions: mark reviewed,
-  mark handled, or archive). Gated on email-triage Phase 2. _Acceptance:_ a
+  mark handled, or archive). This is email-triage Phase 2B and reuses the typed status
+  operations from its independent Phase 2A operator workflow. _Acceptance:_ a
   high-priority mail item appears in the widget; "handled" updates its source state and
   the item disappears on re-list.
 - **Phase 3 — Digest.** Daily recurring check → `notifications:send` summary with
