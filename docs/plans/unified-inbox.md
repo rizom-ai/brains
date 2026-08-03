@@ -3,8 +3,8 @@
 ## Status
 
 **Proposed.** A single operator surface for everything that arrived and awaits a human
-decision — hot leads, agent candidates, stale-opportunity alerts — aggregated from
-source-owned state, never duplicating it.
+decision — high-priority mail items, agent candidates, stale-opportunity alerts —
+aggregated from source-owned state, never duplicating it.
 
 ## Goal
 
@@ -13,8 +13,9 @@ invents its own surface: [atproto-integration.md](./atproto-integration.md) desi
 operator-only "Candidate Inbox", [bd-priority-engine.md](./bd-priority-engine.md) blocks
 stale-opportunity alerts on shared infrastructure ("scheduling, dedupe, and notification
 delivery must not become business-development-specific"), and
-[email-triage.md](./email-triage.md) needs somewhere for hot leads to land. This plan is
-that shared surface: one contract, one dashboard widget, one digest.
+[email-triage.md](./email-triage.md) needs somewhere for high-priority derived mail items
+to land. This plan is that shared surface: one contract, one dashboard widget, one
+digest.
 
 ## What exists today (fact-check)
 
@@ -36,8 +37,9 @@ that shared surface: one contract, one dashboard widget, one digest.
 
 1. **The inbox is a projection, not a store.** Sources own their state; the inbox
    aggregates it live. The alternative — a materialized `inbox-item` entity every
-   producer writes — is rejected because it creates dual state (a lead's `status` and
-   its inbox item's status drifting) and makes every producer responsible for cleanup.
+   producer writes — is rejected because it creates dual state (a source entity's
+   `status` and its inbox item's status drifting) and makes every producer responsible
+   for cleanup.
    With a projection, an item disappears the moment its source state changes, by
    construction.
 2. **Sources register an `InboxSource` contract** (app-scoped registry in
@@ -45,7 +47,7 @@ that shared surface: one contract, one dashboard widget, one digest.
 
    ```ts
    interface InboxSource {
-     sourceId: string; // "leads", "agent-candidates", ...
+     sourceId: string; // "mail-items", "agent-candidates", ...
      displayName: string;
      list(): Promise<InboxItem[]>; // current attention items only
      act(itemId: string, actionId: string): Promise<void>;
@@ -64,20 +66,22 @@ that shared surface: one contract, one dashboard widget, one digest.
 
    Any plugin type may register a source — attention is not interface-specific.
 
-3. **Actions delegate to the source.** "Ignore" on a lead item calls the lead source's
-   `act`, which sets `status=ignored`; "Add" on a candidate runs the atproto plan's
-   existing confirmation-gated add. The inbox dispatches and re-lists; it contains no
-   business logic and no state of its own. Actions marked `confirm` go through the
-   standard confirmation flow.
+3. **Actions delegate to the source.** "Handled" on a mail item calls the email-triage
+   source's `act`, while "Add" on a candidate runs the atproto plan's existing
+   confirmation-gated add. The inbox dispatches and re-lists; it contains no business
+   logic and no state of its own. Actions marked `confirm` go through the standard
+   confirmation flow.
 4. **One aggregation `DataSource`** merges all sources, ordered by urgency then
    `receivedAt`, tolerant of a failing source (its section reports an error; others
    still render — one broken plugin must not blank the inbox).
-5. **Consumers, phased in by their own plans:** leads (email-triage Phase 3), agent
-   candidates (the atproto plan's Candidate Inbox becomes an `InboxSource` registration
-   plus candidate-specific merge/retention logic it already owns — that plan's UI slice
-   shrinks to a source registration; update it when this contract lands), stale
-   opportunities (bd heartbeat lists stale Warm items as inbox items — this registry
-   plus `recurring-checks` is the shared infrastructure its Status section waits on).
+5. **Consumers, phased in by their own plans:** derived mail items (email-triage Phase
+   2), agent candidates (the atproto plan's Candidate Inbox becomes an `InboxSource`
+   registration plus candidate-specific merge/retention logic it already owns — that
+   plan's UI slice shrinks to a source registration; update it when this contract
+   lands), stale opportunities (bd heartbeat lists stale Warm items as inbox items —
+   this registry plus `recurring-checks` is the shared infrastructure its Status
+   section waits on). Lead management does not register the same mail arrival again;
+   qualification remains a separate business view rather than a duplicate inbox item.
 6. **The digest is push over the projection.** A `daily` recurring check summarizes
    counts and top items per source via `notifications:send`, linking to the dashboard —
    titles only, never bodies. Cadence-based, so it needs no per-item dedupe state.
@@ -98,10 +102,11 @@ Tests are written first inside each phase.
   agent-discovery widgets) rendering grouped items with action buttons, and an
   `inbox_list` tool for chat surfaces. _Tests:_ dataProvider shape; action dispatch
   reaches the owning source; `confirm` actions require confirmation.
-- **Phase 2 — First real source: leads.** Register the lead source (items = leads in
-  `status=new`, urgency `high` for `fit=hot`; actions: ignore, and promote once
-  available). Gated on email-triage Phase 3. _Acceptance:_ a hot lead appears in the
-  widget; "ignore" flips the lead's status and the item disappears on re-list.
+- **Phase 2 — First real source: email triage.** Register the mail-item source (items =
+  mail items in `status=new`, urgency `high` for `priority=high`; actions: mark reviewed,
+  mark handled, or archive). Gated on email-triage Phase 2. _Acceptance:_ a
+  high-priority mail item appears in the widget; "handled" updates its source state and
+  the item disappears on re-list.
 - **Phase 3 — Digest.** Daily recurring check → `notifications:send` summary with
   per-source counts and top `high`-urgency titles; silent when the inbox is empty.
   _Tests:_ digest content redaction; empty inbox sends nothing.
@@ -112,12 +117,15 @@ Tests are written first inside each phase.
   the inbox lists only items whose source still considers them open.
 - **Not a task manager.** Items are source-owned facts, not free-form todos; there is
   no "create inbox item" API.
-- **Not a message reader.** Reading a full inquiry happens on the underlying entity
-  (via `entityRef`), not in the inbox.
+- **Not a message reader.** The inbox may link to a derived source entity via
+  `entityRef`; original email remains in the mailbox and is never rendered by this
+  surface.
 
 ## Related plans
 
-- [email-triage.md](./email-triage.md) — first real source (hot leads).
+- [email-triage.md](./email-triage.md) — first real source (derived mail attention).
+- [lead-management.md](./lead-management.md) — business qualification view; does not
+  duplicate mail items in this inbox.
 - [atproto-integration.md](./atproto-integration.md) — Candidate Inbox becomes a source
   registration when this lands; update that plan then.
 - [bd-priority-engine.md](./bd-priority-engine.md) — stale-opportunity heartbeat
