@@ -1,53 +1,41 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-07-28
+Last updated: 2026-08-03
 
 ## Status
 
-Phases 0 through 6 are complete. Phase 7 is staged and under review on
-`feature/brain-model-unification-phase-7`; it has not been merged, published, reconciled,
-or deployed. Phase 7 now includes the enforced legacy-code inventory, removes the
-`.model-entrypoint.js` Docker fallback, old `@brains/theme-default` alias, and
-`brain.config.ts` build flow, and proves offline migration modules are outside runtime
-boot and active ops import graphs. Offline crossover staging preserves YAML comments, and
-`reconcile-all --dry-run` now reconciles an isolated copy twice with external content-repository
-access blocked. A clean private-pilot review snapshot had no first-pass drift and converged
-with zero second-pass drift; staging and evidence must be regenerated from the final clean
-pilot revision after ongoing pilot changes settle. Exact unified package/image versions and
-immutable image digests remain Phase 8 approval evidence that cannot be finalized before the
-reviewed artifacts are published. At the operator's request the implementation remains unmerged on layered
-`feature/brain-model-unification-phase-1a` through Phase 7 branches. Phase 1A owns the resource-free kernel;
-Phase 1B connects it to parsing and production resolution for bundle-aware definitions
-while keeping every existing model on the same preset behavior. Phase 2 adds the final
-package-owned catalog, `core` definition, and canonical env schema. Phase 3 adds `site`
-and `publishing` plus the personal posture. Phase 4 adds `team`, the parallel team
-instance fixture, and structural Relay core/default/docs/full migration comparisons.
-Phase 5 adds the explicit commerce posture, structural Ranger characterization, and
-opt-in independence coverage without exposing a mixed legacy/canonical runtime path.
-Phase 6 adds deterministic migration previews, recipe expansion, the typed canonical
-model subpath, dormant runner/registry/packed-consumer preparation, and an offline
-canonical ops preview while leaving legacy runtime and loader paths active. Phase 7
-activates the one canonical definition, recipe scaffolding, canonical eval suites, and
-one unversioned ops schema; moves test, seed, and onboarding ownership; removes the three
-model packages and preset runtime contract; and generates a secret-free private-pilot
-review copy through offline tooling without changing the source repository. Phase 7
-review is reopened to remove the preparation-only schema-version distinction and hosted
-site/theme version inference. The three existing real hosted sites will cross over with
-explicit, reviewed package versions. The earlier review snapshot predates this correction
-and is superseded; regenerate it after the implementation changes. Phase 8 executes
-one operator-approved crossover window: freeze deployments, publish the unified runtime
-and ops artifacts, apply the reviewed desired-state migration, deploy coherent
-config/image pairs, verify convergence, and only then remove the freeze. No released
-runtime or active ops loader supports both the legacy and canonical contracts. The auth
-runtime and distinct Admin permission work are on `main`. Unification remains a **pre-`v0.2.0` release-candidate gate**. The immutable alpha.204
-characterization gated Phases 0–6; Phase 7 removes that obsolete three-model fixture only
-after canonical bundle, posture, migration, package, and packed-consumer tests own the
-replacement contract.
+Phases 0 through 7 are complete. PR #73 merged the one-brain runtime, removed the
+Rover/Relay/Ranger packages and preset contract, and preserved the evaluated feature tip
+through a merge commit. The exact merged runtime passed 219/221 authoritative model evals
+and 221/221 with one bounded rerun of each initial efficiency-only failure. The corrected
+release pipeline published `@rizom/brain`, `@rizom/ops`, and `@rizom/ui` at
+`0.2.0-alpha.244`.
 
-The known-good baseline is `@rizom/brain@0.2.0-alpha.204`, healthy on the hosted `jo` and
-`smoke` canaries and on the consolidated `rizom.ai` production deployment. Unification
-happens on the alpha line. A unified alpha must pass the release-candidate gates before
-Changesets exits prerelease mode.
+Phase 8 remains open. An operator-approved branch canary exercised canonical
+`0.2.0-alpha.244` on only `jo` and `smoke`; both coherent config/image pairs passed exact
+version, health, unauthenticated MCP, site, and CMS checks. The crossover then stopped at
+the post-deploy convergence gate: deploy finalization rendered live status into
+`views/users.md`, while `reconcile-all` would rewrite that observational view with
+non-observed status. The canaries were rolled back as coherent pairs to their prior
+`0.2.0-alpha.239` images and verified healthy. The private pilot remains on its prior
+legacy desired-state contract, and normal Build, Reconcile, and Deploy automation is
+restored.
+
+The next gate is a released `@rizom/ops` correction, not another deployment workaround:
+
+- the explicit users-table rendering path owns the observational `views/users.md`
+  projection; desired-state reconciliation owns generated per-user config and must not
+  rewrite that view;
+- `reconcile-all --dry-run` reports the changed file paths from both passes directly;
+- regression coverage proves that rendering observed status followed by reconciliation
+  produces zero reconciler-owned drift;
+- after the fix is published, crossover staging is regenerated from the then-current
+  pilot tip and canary deployment restarts from immutable artifacts and paired rollback
+  evidence.
+
+No released runtime or active ops loader supports both the legacy and canonical
+contracts. Unification remains a **pre-`v0.2.0` release-candidate gate** until the clean
+crossover, canary soak, `yeehaa.io` validation, and stable release complete.
 
 This plan supersedes the preset/three-reference-model framing of the retired
 `relay-presets.md` and the retired `custom-brain-definitions.md`. Team-native product work
@@ -724,20 +712,34 @@ target release; and pre-commit/CI prevents untracked legacy compatibility from r
 
 ### Phase 8 — Execute the clean crossover and certify the unified alpha
 
-Execute only in an explicitly authorized maintenance window:
+First remove the canary-discovered ops blocker through a normal reviewed release:
+
+1. Keep `views/users.md` under the explicit users-table rendering path;
+   reconciliation must not overwrite observational status.
+2. Have `reconcile-all --dry-run` print both changed-file lists so operator evidence never
+   depends on private diagnostic scripts.
+3. Test post-render reconciliation, two-pass convergence, blocked external access, and
+   input preservation.
+4. Publish the corrected `@rizom/ops` alpha, then regenerate staging from a freshly fetched
+   pilot tip. Evidence from any earlier source revision certifies nothing.
+
+Then execute only in an explicitly authorized maintenance window:
 
 1. Freeze pilot reconciliation, deploy automation, and unrelated releases.
-2. Merge the reviewed repository crossover, publish one unified alpha plus its matching
-   `@rizom/ops` artifact, and verify package/declaration/packed-startup integrity.
-3. Merge the reviewed private-pilot desired-state revision with the exact new artifact
-   pins. The new ops loader reads only the canonical schema.
-4. Deploy each instance as one coherent config/image unit. Existing instances may remain
-   on the old config and old image until their turn, but never pair either side with the
-   other contract.
-5. Verify `/health` version/status, expected unauthenticated MCP `401`, identity,
+2. Verify the unified runtime and matching `@rizom/ops` artifact through package,
+   declaration, packed-startup, and registry-integrity checks.
+3. Apply the reviewed private-pilot desired-state revision on an isolated canary branch
+   with exact artifact pins. The new ops loader reads only the canonical schema.
+4. Build and record immutable image digests before deployment.
+5. Deploy each approved instance as one coherent config/image unit. Existing instances
+   remain on the old config and old image until their turn; never pair either side with
+   the other contract.
+6. Verify `/health` version/status, expected unauthenticated MCP `401`, identity,
    repository/secret selectors, and application-managed site output after each deploy.
-6. Run a second reconcile and require zero generated drift before lifting the freeze.
-7. If any gate fails, restore the prior desired-state revision and prior image together,
+   Render observed fleet status separately after these probes.
+7. Run a second reconcile and require zero drift in reconciler-owned generated config
+   before lifting the freeze. `views/users.md` is not a reconciler-owned output.
+8. If any gate fails, restore the prior desired-state revision and prior image together,
    then verify convergence with the prior ops release.
 
 After crossover convergence:

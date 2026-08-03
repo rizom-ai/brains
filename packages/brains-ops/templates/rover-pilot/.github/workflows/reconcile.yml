@@ -39,23 +39,23 @@ jobs:
           # `git diff` cannot see untracked files — without intent-to-add
           # the new config is silently dropped here and every later deploy
           # skips that user (their files never appear in a commit range).
-          git add --intent-to-add -- views users
+          git add --intent-to-add -- users
 
-          if git diff --quiet -- views users; then
+          if git diff --quiet -- users; then
             exit 0
           fi
 
           git fetch origin "${{ github.ref_name }}"
-          if git diff --quiet "origin/${{ github.ref_name }}" -- views users; then
+          if git diff --quiet "origin/${{ github.ref_name }}" -- users; then
             exit 0
           fi
 
           patch_file="$(mktemp)"
-          git diff --binary -- views users > "$patch_file"
+          git diff --binary -- users > "$patch_file"
           git reset --hard "origin/${{ github.ref_name }}"
           git apply --3way --index "$patch_file"
 
-          if git diff --cached --quiet -- views users; then
+          if git diff --cached --quiet -- users; then
             exit 0
           fi
 

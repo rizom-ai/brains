@@ -487,9 +487,11 @@ describe("initPilotRepo", () => {
     );
     // Same untracked-blindness guard as the deploy finalize step: a brand
     // new users/<handle>/ directory must be visible to the diff dance.
-    expect(reconcileWorkflow).toContain(
+    expect(reconcileWorkflow).toContain("git add --intent-to-add -- users");
+    expect(reconcileWorkflow).not.toContain(
       "git add --intent-to-add -- views users",
     );
+    expect(reconcileWorkflow).not.toContain("-- views users");
     expect(reconcileWorkflow).toContain(
       'git reset --hard "origin/${{ github.ref_name }}"',
     );

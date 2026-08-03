@@ -10,9 +10,7 @@ import {
   loadPilotRegistry,
   type PilotRegistry,
   type ResolvedUser,
-  type SnapshotStatus,
 } from "./load-registry";
-import { writeUsersTable } from "./render-users-table";
 import type { ContentRepoFile, UserRunResult, UserRunner } from "./user-runner";
 
 export type { ContentRepoSyncOptions } from "./content-repo";
@@ -25,7 +23,6 @@ export async function runUsers(
   runner?: UserRunner,
   contentRepoOptions: ContentRepoSyncOptions = {},
 ): Promise<void> {
-  const snapshotWritten = new Set<string>();
   const defaultRunner = createDefaultUserRunner(registry.pilot.githubOrg);
 
   for (const user of users) {
@@ -48,7 +45,6 @@ export async function runUsers(
 
     if (brainYaml) {
       await writeUserFile(rootDir, user.handle, "brain.yaml", brainYaml);
-      snapshotWritten.add(user.handle);
     }
 
     await syncUserContentRepo(
@@ -71,20 +67,6 @@ export async function runUsers(
       );
     }
   }
-
-  const refreshedRegistry: PilotRegistry =
-    snapshotWritten.size === 0
-      ? registry
-      : {
-          ...registry,
-          users: registry.users.map((entry) =>
-            snapshotWritten.has(entry.handle)
-              ? { ...entry, snapshotStatus: "present" as SnapshotStatus }
-              : entry,
-          ),
-        };
-
-  await writeUsersTable(rootDir, { registry: refreshedRegistry });
 }
 
 async function writeUserFile(

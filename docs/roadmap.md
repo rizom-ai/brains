@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-29
+Last updated: 2026-08-03
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. The alpha.204 contract remains the hosted baseline. The canonical crossover is staged, deterministic checks are being completed, and no crossover artifact has been merged, published, reconciled, or deployed. The remaining structural release gate is reviewing and executing that one-brain crossover in an operator-approved maintenance window. "Launch" means certifying the unified contract and graduating it to stable `v0.2.0`.
+`brains` is approaching its first stable `v0.2.0` release. The canonical one-brain runtime is merged and published at `0.2.0-alpha.244`; the hosted pilot remains on its prior contract after the first branch-canary crossover was rolled back cleanly. Runtime health passed, but the canary exposed an ops convergence defect: reconciliation and live status rendering both write `views/users.md` with different status semantics. The immediate structural release gate is publishing the narrow `@rizom/ops` ownership fix, regenerating exact-tip staging, and repeating the operator-approved canary window before stable nomination. "Launch" means certifying that unified contract and graduating it to stable `v0.2.0`.
 
 What already exists today:
 
@@ -42,8 +42,8 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 
 | Priority | Outcome                            | Current execution                                                                                                                                                                                            |
 | -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **P0**   | One brain composed from bundles    | Review the staged canonical repository/private-fleet crossover, complete deterministic gates, then execute only in an approved freeze window with coherent config/image pairs and paired rollback.           |
-| **P0**   | Stable `v0.2.0` release candidate  | Publish and deploy a unified alpha, complete the release-candidate gates above, then exit prerelease mode.                                                                                                   |
+| **P0**   | One brain composed from bundles    | The runtime is published; fix ops view ownership, regenerate exact-tip pilot staging, then repeat canary crossover only in an approved freeze window with coherent config/image pairs and paired rollback.   |
+| **P0**   | Stable `v0.2.0` release candidate  | Complete clean canary convergence and soak on the corrected ops release, validate `yeehaa.io`, then exit prerelease mode.                                                                                    |
 | **P1**   | Real runtime identity boundary     | Implementation is complete on `main`: runtime auth storage, multi-user boundaries, People/Admin surfaces, invitations, connected delivery channels, and obsolete compatibility-path removal are implemented. |
 | **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.            |
 | **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                    |
@@ -71,7 +71,7 @@ The product is one brain, composed from **capability bundles** — named, postur
 
 Posture is then explicit `brain.yaml` configuration: personal publishing is `core + site + publishing`; a collective is `core + site + team`; commerce is `core + site` plus `products`. `site` and `publishing` are independent (publishing can target external channels with no website), and instances tune at the edges with visible `add`/`remove` plus plugin config rather than configurable bundles. `brain init` recipes expand to this explicit configuration and have no runtime meaning.
 
-**The structural bet that makes this true** is collapsing the three model packages into one and introducing the bundle primitive. Until it lands, the three `defineBrain` packages still exist; the work is sequenced as thin vertical slices that keep every posture eval-green.
+**The structural bet that makes this true** has shipped on the alpha line: the three model packages and preset runtime are gone, and one canonical definition owns the bundle primitive. The remaining work is operational certification of that contract through clean pilot convergence, canary soak, and stable release.
 
 The personal-publishing posture is the public reference and must stay sharp without the team posture. The operating model for it is reactive: real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction a POC won't —
 

@@ -17,7 +17,9 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
-- `brains-ops reconcile-all <repo> --dry-run` — reconciles an isolated copy twice with external content-repository access blocked, reports first-pass drift, and requires second-pass zero drift
+- `brains-ops reconcile-all <repo> --dry-run` — reconciles an isolated copy twice with external content-repository access blocked, lists both passes' changed files, and requires second-pass zero drift
+
+`render` owns the observational `views/users.md` projection. Onboard and reconcile commands own generated per-user config and never rewrite live observed status in that view.
 
 ## Scope
 
