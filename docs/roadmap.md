@@ -172,8 +172,9 @@ Plans:
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
-- [inbound-email.md](./plans/inbound-email.md) — grow the inbound half of `interfaces/email` (IMAP intake, parsing, published inbound event); completes the email interface per connected-channels decision 4. Deliberately non-conversational.
-- [unified-inbox.md](./plans/unified-inbox.md) — one operator surface for incoming events awaiting a human decision (hot leads, agent candidates, stale-opportunity alerts): a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store.
+- [unified-inbox.md](./plans/unified-inbox.md) — **next up in the incoming-events sequence**: one operator surface for incoming events awaiting a human decision (hot leads, agent candidates, stale-opportunity alerts) — a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store. It has consumers waiting today: it unblocks the bd-priority-engine stale-opportunity heartbeat and shrinks the atproto Candidate Inbox to a source registration.
+
+Shipped from this section: inbound email intake — `interfaces/email` now owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), completing connected-channels decision 4. Deliberately non-conversational: inbound mail never reaches agent chat.
 
 ### 6. Ecosystem
 
@@ -191,8 +192,8 @@ Plans:
 - [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
-- [email-triage.md](./plans/email-triage.md) — demand-gated: classify inbound mail and persist real inquiries as a `lead` entity (mail-shaped, upstream of `opportunity` via promotion); deterministic pre-filter before any model call.
-- [email-reply-drafting.md](./plans/email-reply-drafting.md) — gated on email-triage: in-voice reply drafts on leads, a threading extension to the delivery-provider contract, and confirmation-gated sending; draft-and-approve only, no auto-send capability.
+- [email-triage.md](./plans/email-triage.md) — **after unified-inbox in the incoming-events sequence**, demand-gated on live profiles/inquiry volume; its inbound-email dependency has shipped (`interfaces/email` publishes `EMAIL_INBOUND`): classify inbound mail and persist real inquiries as a `lead` entity (mail-shaped, upstream of `opportunity` via promotion); deterministic pre-filter before any model call. Promotion additionally wants `@brains/business-development` merged to main.
+- [email-reply-drafting.md](./plans/email-reply-drafting.md) — **last of the sequence**, gated on email-triage: in-voice reply drafts on leads, a threading extension to the delivery-provider contract, and confirmation-gated sending; draft-and-approve only, no auto-send capability.
 
 ### 7. Keep the framework sustainable
 

@@ -207,14 +207,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Inbound email</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">grow the inbound half of <code>interfaces/email</code> (IMAP intake, parsing, published inbound event); completes the email interface per connected-channels decision 4. Deliberately non-conversational.</div>
-          <div class="card-file">inbound-email.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Astryx adoption pilot</span>
@@ -236,7 +228,7 @@
             <span class="card-name">Unified inbox for incoming events</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">one operator surface for incoming events awaiting a human decision (hot leads, agent candidates, stale-opportunity alerts): a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store.</div>
+          <div class="card-desc">**next up in the incoming-events sequence**: one operator surface for incoming events awaiting a human decision (hot leads, agent candidates, stale-opportunity alerts) — a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store. It has consumers waiting today: it unblocks the bd-priority-engine stale-opportunity heartbeat and shrinks the atproto Candidate Inbox to a source registration.</div>
           <div class="card-file">unified-inbox.md</div>
         </div>
         <div class="card status-parked">
@@ -300,21 +292,21 @@
           <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
           <div class="card-file">npm-package-boundaries.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Email reply drafting and sending</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">gated on email-triage: in-voice reply drafts on leads, a threading extension to the delivery-provider contract, and confirmation-gated sending; draft-and-approve only, no auto-send capability.</div>
-          <div class="card-file">email-reply-drafting.md</div>
-        </div>
         <div class="card status-done">
           <div class="card-head">
             <span class="card-name">Email triage — the lead entity and classification pipeline</span>
             <span class="badge badge-done">Done</span>
           </div>
-          <div class="card-desc">demand-gated: classify inbound mail and persist real inquiries as a <code>lead</code> entity (mail-shaped, upstream of <code>opportunity</code> via promotion); deterministic pre-filter before any model call.</div>
+          <div class="card-desc">**after unified-inbox in the incoming-events sequence**, demand-gated on live profiles/inquiry volume; its inbound-email dependency has shipped (<code>interfaces/email</code> publishes <code>EMAIL_INBOUND</code>): classify inbound mail and persist real inquiries as a <code>lead</code> entity (mail-shaped, upstream of <code>opportunity</code> via promotion); deterministic pre-filter before any model call. Promotion additionally wants <code>@brains/business-development</code> merged to main.</div>
           <div class="card-file">email-triage.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Email reply drafting and sending</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">**last of the sequence**, gated on email-triage: in-voice reply drafts on leads, a threading extension to the delivery-provider contract, and confirmation-gated sending; draft-and-approve only, no auto-send capability.</div>
+          <div class="card-file">email-reply-drafting.md</div>
         </div>
         </div>
       </details>

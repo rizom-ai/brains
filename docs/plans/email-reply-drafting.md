@@ -2,9 +2,11 @@
 
 ## Status
 
-**Proposed, gated.** Requires [email-triage.md](./email-triage.md) (the `lead` entity)
-and [inbound-email.md](./inbound-email.md) (thread metadata). Last slice of the email
-funnel: draft a reply in the brain's voice, approve it, send it threaded.
+**Proposed, gated.** Requires [email-triage.md](./email-triage.md) (the `lead` entity).
+Inbound intake has shipped: `interfaces/email` publishes the `EMAIL_INBOUND` contract,
+whose payload carries the `messageId`/`threadId` this plan threads replies with. Last
+slice of the email funnel: draft a reply in the brain's voice, approve it, send it
+threaded.
 
 ## Goal
 
@@ -40,8 +42,8 @@ interface's delivery provider — with an explicit approval step in between, alw
    lead content plus plugin instructions (voice, negotiation posture, rate guidance —
    brain-config content, not code) and calls the shell's generation service. The
    untrusted inquiry body is quoted source material inside a template, not a message
-   that steers an agent loop — same trust posture as
-   [inbound-email.md](./inbound-email.md) decision 2.
+   that steers an agent loop — the same trust posture that keeps shipped inbound
+   intake non-conversational (inbound mail never reaches `agentService.chat`).
 3. **Threading extends the shared delivery contract.** Add optional
    `threading?: { inReplyTo: string; references: string[] }` to `ChannelDeliveryInput`
    in `@brains/plugins`. The email provider maps it to RFC 5322 `In-Reply-To`/
@@ -82,15 +84,15 @@ Tests are written first inside each phase.
 
 - Follow-up sequences, reminders, snoozing — attention lives in
   [unified-inbox.md](./unified-inbox.md); scheduling machinery is not email-specific.
-- Multi-turn email conversations (replies to our replies feed back through
-  inbound-email as new mail on the same `threadId`; a conversational loop is a separate
+- Multi-turn email conversations (replies to our replies feed back through inbound
+  intake as new mail on the same `threadId`; a conversational loop is a separate
   trust decision, deliberately not made here).
 - Attachments and rich MIME composition — text (+ optional HTML) only.
 
 ## Related plans
 
 - [email-triage.md](./email-triage.md) — owns the `lead` entity and status vocabulary.
-- [inbound-email.md](./inbound-email.md) — supplies `messageId`/`threadId` for
-  threading.
 - [connected-channels.md](./connected-channels.md) — the delivery-provider contract
   this plan extends.
+- Inbound intake is shipped, not a plan: `interfaces/email` (`@brains/email`) publishes
+  `EMAIL_INBOUND` with the `messageId`/`threadId` used for threading.

@@ -2,9 +2,10 @@
 
 ## Status
 
-**Proposed, demand-gated.** Requires [inbound-email.md](./inbound-email.md). Building it
-before the platform profiles are live and inquiries actually arrive triages nothing;
-build the walking skeleton when inbound volume exists or is imminent.
+**Proposed, demand-gated.** Its hard dependency has shipped: `interfaces/email`
+publishes the `EMAIL_INBOUND` contract. Building it before the platform profiles are
+live and inquiries actually arrive triages nothing; build the walking skeleton when
+inbound volume exists or is imminent.
 
 ## Goal
 
@@ -15,8 +16,10 @@ for fast response.
 
 ## What exists today (fact-check)
 
-- [inbound-email.md](./inbound-email.md) delivers `EMAIL_INBOUND` events (at-least-once,
-  deduplicated by `messageId`) via `context.messaging.subscribe`.
+- **Inbound email is shipped.** `interfaces/email` (`@brains/email`) delivers
+  `EMAIL_INBOUND` events — at-least-once, deduplicated by `messageId`, schema exported
+  from the package — consumable via `context.messaging.subscribe`
+  (`interfaces/email/src/inbound-email.ts`).
 - **No lead entity exists** — greenfield. `entities/wishlist` is the closest template:
   durable entity, enum `status`, `interceptCreate` dedup, a `ListWidget` dashboard tile.
 - `context.ai.generateObject(prompt, schema)` exists on plugin contexts
@@ -111,6 +114,6 @@ Tests are written first inside each phase.
 
 ## Related plans
 
-- [inbound-email.md](./inbound-email.md) — the event source; hard dependency.
+- The event source is shipped code, not a plan: `EMAIL_INBOUND` from `@brains/email`.
 - [bd-priority-engine.md](./bd-priority-engine.md) — the promotion target.
 - [unified-inbox.md](./unified-inbox.md) — the attention surface for hot leads.
