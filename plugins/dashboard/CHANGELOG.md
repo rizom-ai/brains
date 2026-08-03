@@ -1,5 +1,18 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [`2b6197f`](https://github.com/rizom-ai/brains/commit/2b6197f1f596b5ce0a41892fd4a4282648f73ddb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the console paper climate against dark-default site themes by synchronizing climate changes with the matching semantic theme mode and applying the dashboard preference before styles load.
+
+- Updated dependencies [[`2b6197f`](https://github.com/rizom-ai/brains/commit/2b6197f1f596b5ce0a41892fd4a4282648f73ddb)]:
+  - @brains/console-theme@0.2.0-alpha.246
+  - @brains/contracts@0.2.0-alpha.246
+  - @brains/utils@0.2.0-alpha.246
+  - @brains/auth-service@0.2.0-alpha.246
+  - @brains/plugins@0.2.0-alpha.246
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes

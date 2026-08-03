@@ -226,6 +226,7 @@
     "core--canonical-team-bundle",
     "core--chat-identity-and-spaces",
     "core--contracts-channel-ownership",
+    "core--dashboard-paper-theme-mode",
     "core--dashboard-widget-namespace",
     "core--delete-email-contracts",
     "core--drop-themes-subpath",
