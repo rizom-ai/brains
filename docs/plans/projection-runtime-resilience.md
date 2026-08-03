@@ -61,8 +61,9 @@ created one job per entity.
 
 Derivations become scheduler-owned batch rules executed in topological waves.
 Entity and semantic events never register or connect derivation rules. Events
-remain observer notifications only. Durable non-entity sources enter through a
-source-owned transactional outbox, not an in-memory event subscription.
+remain observer notifications only. This plan does not introduce a second
+projection-ingress abstraction, source outbox, importer, source adapter, or
+non-entity dirty-input kind.
 
 ```text
 ingress mutations
@@ -192,12 +193,8 @@ Entity inputs use `kind = entity`, their entity type and ID, and content hash as
 the revision. `operation` is `upsert` or `delete`; deletes are tombstones.
 Direct rule invalidations use `kind = rule`, the affected rule ID, and a
 revision for prompt/configuration/model changes, bootstrap, or explicit
-operator invalidation. Durable non-entity domain inputs use their own kind; for
-example, conversation messages use a source-owned transactional outbox written
-in the conversation database with the message mutation. The scheduler imports
-that outbox idempotently into the entity-database journal before claiming a
-wave. This preserves the same-database atomicity of each source mutation without
-introducing an unsafe conversation-database/entity-database dual write.
+operator invalidation. No other dirty-input kind is introduced. In particular,
+conversation messages do not gain an outbox/importer bridge into this journal.
 
 For entity inputs, the entity-service create, update, or delete transaction
 also inserts the journal row atomically. Each insert receives a database-owned,
@@ -425,7 +422,8 @@ rule contract, including:
 - skills;
 - SWOT;
 - series;
-- conversation-memory summaries;
+- conversation-memory summaries, after their canonical source model is
+  explicitly decided;
 - newsletter;
 - social posts;
 - every preset-specific derivation discovered by the finalized registry.
@@ -433,19 +431,25 @@ rule contract, including:
 Each conversion replaces handler-owned mutation with immutable input selection
 and canonical write intents. Topic-to-skill and skill-to-SWOT dependencies come
 from entity source/target graph edges, never semantic completion events.
-Conversation input uses its source-owned transactional outbox. Bootstrap work is
-a direct rule invalidation keyed by the rule/version/config fingerprint, not an
-`initialSync` event handler.
+Bootstrap work is a direct rule invalidation keyed by the
+rule/version/config fingerprint, not an `initialSync` event handler.
+
+Conversation-memory is an explicit design gate. Its messages currently live
+outside the entity database, and this plan does not choose an outbox, importer,
+event bridge, cross-database write, or new ingress service to compensate. Its
+canonical source representation must be approved in a separate plan amendment
+before conversation-memory is migrated or the scheduler-only runtime is
+activated.
 
 The scheduler runtime is not activated until the inventory test proves that
-every registered derivation uses `ProjectionRule` and no projection event
-subscription or legacy projection job type remains.
+every registered derivation uses `ProjectionRule`, conversation-memory has an
+approved canonical source model, and no projection event subscription or legacy
+projection job type remains.
 
 ### Stage 2: activate the scheduler-only runtime
 
 - Atomically append every external entity mutation to the entity-database dirty
   journal; the entity service has no graph or rule-selector knowledge.
-- Import durable non-entity source outboxes idempotently.
 - Claim waves, select reachable rules from the one finalized graph, and enqueue
   one job per reachable rule.
 - Register the one framework rule job handler and reconcile active wave job IDs
@@ -544,9 +548,11 @@ cardinality assertion for every tested batch size.
 9. The full preset registers only `ProjectionRule`; `DerivedEntityProjection`,
    projection execution owners, projection event subscriptions, and legacy
    projection job types have no definitions or callers.
-10. Existing job deadlines, leases, fencing, circuits, health checks, Git child
+10. No projection-ingress service, non-entity dirty-input kind, source outbox,
+    importer, selector mirror, or compatibility bridge is introduced.
+11. Existing job deadlines, leases, fencing, circuits, health checks, Git child
     lifecycle, and JSON site boundary continue to pass.
-11. The implementation remains inside the existing single Bun package and does
+12. The implementation remains inside the existing single Bun package and does
     not introduce process-coordination files or environment variables.
 
 ## Explicitly deferred
