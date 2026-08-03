@@ -1,5 +1,11 @@
 # @rizom/ui
 
+## 0.2.0-alpha.247
+
+### Patch Changes
+
+- [`e2861e1`](https://github.com/rizom-ai/brains/commit/e2861e1696b9da513b333390e652a4ab2d0b6b7b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore the standalone public package boundary by removing the private workspace dependency from `@rizom/ui`.
+
 ## 0.2.0-alpha.246
 
 ### Patch Changes

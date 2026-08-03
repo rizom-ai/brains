@@ -1,7 +1,7 @@
 {
   "name": "@brains/directory-sync",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.246",
+  "version": "0.2.0-alpha.247",
   "description": "Directory-based entity synchronization plugin for Brains",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

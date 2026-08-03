@@ -241,6 +241,7 @@
     "core--remove-obsolete-auth-compatibility",
     "core--remove-service-singletons",
     "core--retire-discord-interface",
+    "core--rizom-ui-public-boundary",
     "core--section-template-default-unwrap",
     "core--serialized-status-store",
     "core--shell-wiring-dedup",
