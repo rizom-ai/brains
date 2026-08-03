@@ -585,7 +585,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain(">CMS<");
   });
 
-  it("should default the climate to instrument and persist the toggle", () => {
+  it("should align the initial theme mode and apply stored climate before styles", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -594,14 +594,25 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
+      themeCSS: ":root { --color-bg: black; }",
     };
 
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain('data-climate="instrument"');
-    expect(html).not.toContain("data-theme");
-    // The toggle persists a console-wide preference all surfaces read.
-    expect(html).toContain('localStorage.getItem("console.climate")');
+    expect(html).toContain('data-theme="dark"');
+    // The toggle persists a console-wide preference all surfaces read and
+    // maps paper onto the injected theme's light semantic tokens.
+    const climateScriptIndex = html.indexOf(
+      'localStorage.getItem("console.climate")',
+    );
+    expect(climateScriptIndex).toBeGreaterThan(-1);
+    expect(climateScriptIndex).toBeLessThan(
+      html.indexOf("data-dashboard-theme"),
+    );
+    expect(html).toContain(
+      'root.setAttribute("data-theme", climate === "paper" ? "light" : "dark")',
+    );
     expect(html).toContain('localStorage.setItem("console.climate"');
   });
 

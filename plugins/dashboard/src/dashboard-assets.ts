@@ -1,8 +1,5 @@
 import type { WebRouteDefinition } from "@brains/plugins";
-import {
-  CONSOLE_CLIMATE_SCRIPT,
-  CONSOLE_PALETTE_SCRIPT,
-} from "@brains/console-theme";
+import { CONSOLE_PALETTE_SCRIPT } from "@brains/console-theme";
 import { computeContentHash } from "@brains/utils/hash";
 import { DASHBOARD_STYLES } from "./render/styles";
 import { DASHBOARD_UI_SCRIPT } from "./render/ui-script";
@@ -11,7 +8,6 @@ import type { DashboardAssetUrls } from "./render/types";
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 const DASHBOARD_CLIENT_SCRIPT = [
-  CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_PALETTE_SCRIPT,
   DASHBOARD_UI_SCRIPT,
 ].join("\n\n");

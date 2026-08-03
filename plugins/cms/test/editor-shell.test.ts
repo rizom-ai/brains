@@ -22,7 +22,9 @@ describe("renderEditorShellHtml", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 
     expect(html).toContain('data-climate="paper"');
-    expect(html).not.toContain("data-theme");
+    expect(html).toContain(
+      'root.setAttribute("data-theme", climate === "paper" ? "light" : "dark")',
+    );
     // Both climate scopes ship; paper is only the CMS default.
     expect(html).toContain('[data-climate="instrument"]');
     expect(html).toContain('[data-climate="paper"]');

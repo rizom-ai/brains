@@ -37,6 +37,27 @@ describe("DashboardAssetRegistry", () => {
     expect(firstUrls.widgetScripts).toHaveLength(1);
   });
 
+  it("keeps the pre-paint climate bootstrap out of the deferred client asset", async () => {
+    const registry = new DashboardAssetRegistry("/dashboard");
+    const urls = registry.createRenderUrls({
+      widgetStyles: [],
+      widgetScripts: [],
+    });
+    const route = registry
+      .getRoutes()
+      .find((candidate) => candidate.path === urls.dashboardScript);
+
+    expect(route).toBeDefined();
+    if (!route) throw new Error("Expected dashboard client asset route");
+    const response = await route.handler(
+      new Request(`http://brain${urls.dashboardScript}`),
+    );
+    const script = await response.text();
+
+    expect(script).not.toContain("console.climate");
+    expect(script).toContain("/api/console/jump");
+  });
+
   it("serves immutable typed assets and supports ETag revalidation", async () => {
     const registry = new DashboardAssetRegistry("/dashboard");
     const urls = registry.createRenderUrls({

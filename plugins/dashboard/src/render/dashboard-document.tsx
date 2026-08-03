@@ -27,7 +27,7 @@ export function DashboardDocument({
   const now = new Date();
 
   return (
-    <html lang="en" data-climate="instrument">
+    <html lang="en" data-climate="instrument" data-theme="dark">
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -35,6 +35,7 @@ export function DashboardDocument({
           content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
         <title>{input.title}</title>
+        <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -142,9 +143,6 @@ export function DashboardDocument({
           <script data-dashboard-script src={input.assetUrls.dashboardScript} />
         ) : (
           <>
-            <script
-              dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }}
-            />
             <script
               dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }}
             />

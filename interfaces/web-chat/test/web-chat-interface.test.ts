@@ -1092,7 +1092,9 @@ describe("WebChatInterface", () => {
     expect(html).toContain('[data-climate="instrument"]');
     expect(html).toContain('[data-climate="paper"]');
     expect(html).toContain('data-climate="instrument"');
-    expect(html).not.toContain("data-theme");
+    expect(html).toContain(
+      'root.setAttribute("data-theme", climate === "paper" ? "light" : "dark")',
+    );
     expect(html).not.toContain("var(--dashboard-");
     // The console strip: chat is the active surface; only registered
     // surfaces get doors (no dashboard or cms plugin in this harness).
