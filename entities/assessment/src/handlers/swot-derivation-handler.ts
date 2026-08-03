@@ -79,7 +79,9 @@ function getMatchSignals(
   };
 }
 
-function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
+export function buildPromptContext(
+  contextData: SwotContext,
+): Record<string, unknown> {
   const dependableNetworkSkills = contextData.approvedAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
@@ -159,7 +161,7 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
   };
 }
 
-function buildDraftPromptFallback(): string {
+export function buildDraftPromptFallback(): string {
   return `You are writing a concise SWOT assessment for a brain's capability profile and agent network.
 
 Use ONLY the supplied capability-profile context.
@@ -221,7 +223,7 @@ Output style:
 - Do not use generic threat themes like review quality, decision quality, or process discipline when a more concrete missing or tentative skill is available in the context`;
 }
 
-function buildDraftPrompt(
+export function buildDraftPrompt(
   contextData: SwotContext,
   basePrompt: string,
 ): string {
@@ -233,7 +235,7 @@ Grounded directory context:
 ${JSON.stringify(promptContext, null, 2)}`;
 }
 
-function buildRefinementPromptFallback(): string {
+export function buildRefinementPromptFallback(): string {
   return `You are refining a SWOT draft for a brain owner.
 
 Goal:
@@ -266,12 +268,11 @@ Output rules:
 - detail: one sentence with the practical implication or recommendation, grounded in the specific capability contrast`;
 }
 
-function buildRefinementPrompt(
-  contextData: SwotContext,
+export function buildRefinementPromptFromContext(
+  promptContext: Record<string, unknown>,
   draft: SwotDraftGeneration,
   basePrompt: string,
 ): string {
-  const promptContext = buildPromptContext(contextData);
   const allowedThemes = {
     strengths: draft.strengths.map((item) => item.theme),
     weaknesses: draft.weaknesses.map((item) => item.theme),
@@ -289,6 +290,18 @@ ${JSON.stringify(promptContext, null, 2)}
 
 Draft SWOT:
 ${JSON.stringify(draft, null, 2)}`;
+}
+
+export function buildRefinementPrompt(
+  contextData: SwotContext,
+  draft: SwotDraftGeneration,
+  basePrompt: string,
+): string {
+  return buildRefinementPromptFromContext(
+    buildPromptContext(contextData),
+    draft,
+    basePrompt,
+  );
 }
 
 function normalizeItems(items: SwotGeneration["strengths"]): SwotItem[] {
@@ -312,7 +325,9 @@ interface SwotSemanticContent {
   threats: SwotItem[];
 }
 
-function getSemanticContent(generated: SwotGeneration): SwotSemanticContent {
+export function getSemanticContent(
+  generated: SwotGeneration,
+): SwotSemanticContent {
   return {
     strengths: normalizeItems(generated.strengths),
     weaknesses: normalizeItems(generated.weaknesses),
@@ -341,7 +356,7 @@ function hasSameSemanticContent(
   }
 }
 
-function validateRefinement(
+export function validateRefinement(
   draft: SwotDraftGeneration,
   refined: SwotGeneration,
 ): void {

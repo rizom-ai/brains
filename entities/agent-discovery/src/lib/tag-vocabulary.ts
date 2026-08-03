@@ -37,6 +37,34 @@ function sortVocabulary(a: TagVocabularyEntry, b: TagVocabularyEntry): number {
   return a.tag.localeCompare(b.tag);
 }
 
+export function buildTagVocabulary(
+  skills: readonly SkillEntity[],
+  agents: readonly AgentEntity[],
+  opts: { minCount?: number; topN?: number } = {},
+): TagVocabularyEntry[] {
+  const minCount = opts.minCount ?? 1;
+  const topN = opts.topN ?? 12;
+  const counts = new Map<string, number>();
+
+  const bump = (tags: string[]): void => {
+    for (const tag of normalizeTags(tags)) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  };
+
+  for (const skill of skills) bump(skill.metadata.tags);
+  for (const agent of agents) {
+    const body = agentAdapter.parseAgentContent(agent.content);
+    bump(body.skills.flatMap((skill) => skill.tags));
+  }
+
+  return Array.from(counts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .filter((entry) => entry.count >= minCount)
+    .sort(sortVocabulary)
+    .slice(0, topN);
+}
+
 export async function collectTagVocabulary(
   context: EntityPluginContext,
   opts: {
@@ -46,11 +74,7 @@ export async function collectTagVocabulary(
     includeSkills?: boolean;
   } = {},
 ): Promise<TagVocabularyEntry[]> {
-  const minCount = opts.minCount ?? 1;
-  const topN = opts.topN ?? 12;
   const visibilityScope: ContentVisibility = opts.visibilityScope ?? "public";
-  const counts = new Map<string, number>();
-
   const [skills, agents] = await Promise.all([
     opts.includeSkills === false
       ? Promise.resolve([])
@@ -64,25 +88,7 @@ export async function collectTagVocabulary(
     }),
   ]);
 
-  const bump = (tags: string[]): void => {
-    for (const tag of normalizeTags(tags)) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    }
-  };
-
-  if (opts.includeSkills !== false) {
-    for (const skill of skills) bump(skill.metadata.tags);
-  }
-  for (const agent of agents) {
-    const body = agentAdapter.parseAgentContent(agent.content);
-    bump(body.skills.flatMap((skill) => skill.tags));
-  }
-
-  return Array.from(counts.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .filter((entry) => entry.count >= minCount)
-    .sort(sortVocabulary)
-    .slice(0, topN);
+  return buildTagVocabulary(skills, agents, opts);
 }
 
 export function formatVocabularyForPrompt(vocab: TagVocabularyEntry[]): string {

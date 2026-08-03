@@ -4,7 +4,7 @@ import type {
   DataSource,
   Template,
   EntityTypeConfig,
-  ProjectionDeclaration,
+  ProjectionRule,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
@@ -14,7 +14,7 @@ import { SocialPostDataSource } from "./datasources/social-post-datasource";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { GenerationJobHandler } from "./handlers/generationHandler";
-import { GENERATE_CHANNELS, type PublishProvider } from "@brains/contracts";
+import type { PublishProvider } from "@brains/contracts";
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
@@ -22,13 +22,9 @@ import {
   registerWithPublishPipeline,
   subscribeToPublishExecute,
 } from "./lib/publish-handler";
-import {
-  subscribeToEntityUpdatedForAutoGenerate,
-  subscribeToAutoGenerate,
-  subscribeToGenerateExecute,
-} from "./lib/auto-generate";
+import { subscribeToGenerateExecute } from "./lib/auto-generate";
 import { createSocialPostAtprotoProjection } from "./atproto-projection";
-import { SOCIAL_POST_GENERATION_PROJECTION_ID } from "./social-channels";
+import { createSocialPostProjectionRule } from "./lib/social-post-projection";
 import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
@@ -73,17 +69,12 @@ export class SocialMediaPlugin extends EntityPlugin<
     };
   }
 
-  protected override getProjectionDeclarations(): ProjectionDeclaration[] {
-    return [
-      {
-        id: SOCIAL_POST_GENERATION_PROJECTION_ID,
-        targetType: this.entityType,
-        sources: [
-          { kind: "entity", types: ["post"] },
-          { kind: "event", events: [GENERATE_CHANNELS.execute] },
-        ],
-      },
-    ];
+  protected override getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return this.config.autoGenerateOnBlogPublish
+      ? [createSocialPostProjectionRule()]
+      : [];
   }
 
   protected override async onRegister(
@@ -95,9 +86,7 @@ export class SocialMediaPlugin extends EntityPlugin<
     subscribeToPublishExecute(context, this.providers, this.logger);
 
     if (this.config.autoGenerateOnBlogPublish) {
-      subscribeToEntityUpdatedForAutoGenerate(context, this.logger);
-      subscribeToAutoGenerate(context, this.logger);
-      this.logger.info("Auto-generate on blog publish enabled");
+      this.logger.info("Scheduler-owned auto-generation enabled");
     }
 
     subscribeToGenerateExecute(context, this.logger);

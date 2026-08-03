@@ -17,16 +17,8 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     });
-    expect(capabilities.projections).toEqual([
-      {
-        id: "newsletter-generation",
-        targetType: "newsletter",
-        sources: [
-          { kind: "entity", types: ["post"] },
-          { kind: "event", events: ["generate:execute"] },
-        ],
-      },
-    ]);
+    expect(capabilities.projections).toBeUndefined();
+    expect(capabilities.projectionRules).toBeUndefined();
   });
 
   it("registers provider-mode publishing config", async () => {

@@ -1,145 +1,12 @@
 import { getErrorMessage } from "@brains/utils/error";
 import { type EntityPluginContext } from "@brains/plugins";
-import {
-  SOCIAL_CHANNELS,
-  SOCIAL_POST_GENERATION_PROJECTION_ID,
-} from "../social-channels";
-import { ENTITY_CHANNELS, GENERATE_CHANNELS } from "@brains/contracts";
+import { GENERATE_CHANNELS } from "@brains/contracts";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils/logger";
 
 /**
- * Subscribe to entity:updated to trigger auto-generation when blog posts are queued.
- */
-export function subscribeToEntityUpdatedForAutoGenerate(
-  context: EntityPluginContext,
-  logger: Logger,
-): void {
-  context.messaging.subscribe<
-    {
-      entityType: string;
-      entityId: string;
-      entity: { metadata?: { status?: string } };
-    },
-    { success: boolean }
-  >(ENTITY_CHANNELS.updated, async (msg) => {
-    const { entityType, entityId, entity } = msg.payload;
-
-    if (entityType !== "post") {
-      return { success: true };
-    }
-
-    const status = entity.metadata?.status;
-    if (status !== "queued") {
-      return { success: true };
-    }
-
-    try {
-      const existingPosts = await context.entityService.listEntities({
-        entityType: "social-post",
-        options: {
-          filter: {
-            metadata: {
-              sourceEntityType: "post",
-              sourceEntityId: entityId,
-            },
-          },
-          limit: 1,
-        },
-      });
-
-      if (existingPosts.length > 0) {
-        logger.debug(
-          `Social post already exists for ${entityId}, skipping auto-generate`,
-        );
-        return { success: true };
-      }
-
-      await context.messaging.send({
-        type: SOCIAL_CHANNELS.autoGenerate,
-        payload: {
-          sourceEntityType: entityType,
-          sourceEntityId: entityId,
-          platform: "linkedin",
-        },
-      });
-
-      logger.info(
-        `Auto-generate social post triggered for queued post ${entityId}`,
-      );
-      return { success: true };
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      logger.error(`Failed to trigger auto-generate for ${entityId}:`, {
-        error: errorMessage,
-      });
-      return { success: true };
-    }
-  });
-
-  logger.debug("Subscribed to entity:updated for auto-generation");
-}
-
-/**
- * Subscribe to social:auto-generate to enqueue generation jobs.
- */
-export function subscribeToAutoGenerate(
-  context: EntityPluginContext,
-  logger: Logger,
-): void {
-  context.messaging.subscribe<
-    {
-      sourceEntityType: string;
-      sourceEntityId: string;
-      platform: string;
-    },
-    { success: boolean; jobId?: string }
-  >(SOCIAL_CHANNELS.autoGenerate, async (msg) => {
-    const { sourceEntityType, sourceEntityId, platform } = msg.payload;
-
-    try {
-      const jobId = await context.jobs.enqueue({
-        type: `${socialPostAdapter.entityType}:generation`,
-        data: {
-          sourceEntityType,
-          sourceEntityId,
-          platform,
-          addToQueue: false,
-        },
-        projection: {
-          id: SOCIAL_POST_GENERATION_PROJECTION_ID,
-          sourceEntity: {
-            entityType: sourceEntityType,
-            entityId: sourceEntityId,
-          },
-        },
-        toolContext: {
-          interfaceType: "job",
-          actor: { kind: "service", serviceId: "social-media-auto-generate" },
-        },
-      });
-
-      logger.info(
-        `Social post generation job enqueued for ${sourceEntityType}/${sourceEntityId}`,
-        { jobId },
-      );
-
-      return { success: true, jobId };
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      logger.error(
-        `Failed to enqueue social post generation for ${sourceEntityId}:`,
-        { error: errorMessage },
-      );
-      return { success: false };
-    }
-  });
-
-  logger.debug("Subscribed to social:auto-generate messages");
-}
-
-/**
- * Subscribe to generate:execute to handle scheduled generation triggers.
+ * Subscribe to generate:execute to handle explicitly scheduled generation.
+ * This command workflow is not a projection and does not enter the derivation graph.
  */
 export function subscribeToGenerateExecute(
   context: EntityPluginContext,
@@ -217,16 +84,6 @@ export function subscribeToGenerateExecute(
             sourceEntityId: sourcePost.id,
             platform: "linkedin",
             addToQueue: false,
-          },
-          projection: {
-            id: SOCIAL_POST_GENERATION_PROJECTION_ID,
-            sourceEntity: {
-              entityType: sourcePost.entityType,
-              entityId: sourcePost.id,
-              ...(sourcePost.contentHash
-                ? { contentHash: sourcePost.contentHash }
-                : {}),
-            },
           },
           toolContext: {
             interfaceType: "job",

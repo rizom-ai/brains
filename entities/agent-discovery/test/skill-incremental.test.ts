@@ -1,88 +1,38 @@
-import { describe, it, expect } from "bun:test";
-import { SkillPlugin } from "../src/plugins/skill-plugin";
+import { describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { SkillPlugin } from "../src/plugins/skill-plugin";
 
-describe("Skill incremental derivation on topic batch completion", () => {
-  it("should re-derive skills when a topic batch completes", async () => {
+describe("Skill projection scheduling boundary", () => {
+  it("does not subscribe to topic completion or raw entity events", async () => {
     const harness = createPluginHarness<SkillPlugin>({});
-    const plugin = new SkillPlugin();
-
-    await harness.installPlugin(plugin);
+    const enqueue = mock(async () => "job-1");
+    const jobQueue = harness.getMockShell().getJobQueueService();
+    harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
+      ...jobQueue,
+      enqueue,
+    });
+    const capabilities = await harness.installPlugin(new SkillPlugin());
 
     await harness.sendMessage(
       "sync:initial:completed",
       { success: true },
       "directory-sync",
     );
-
-    // Topic batch completed after initial sync — should trigger re-derivation
-    // (deriveSkills runs but creates nothing without AI — the point is it doesn't throw)
     await harness.sendMessage(
       "topics:batch-completed",
       { created: 1, merged: 0, skipped: 0, batches: 1 },
       "topics",
     );
-
-    // No error = derivation was triggered and handled gracefully
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-
-    harness.reset();
-  });
-
-  it("should not re-derive before initial sync completes", async () => {
-    const harness = createPluginHarness<SkillPlugin>({});
-    const plugin = new SkillPlugin();
-
-    await harness.installPlugin(plugin);
-
-    expect(plugin.hasRunInitialDerivation()).toBe(false);
-
-    // Topic batch completed before initial sync — should NOT trigger
     await harness.sendMessage(
-      "topics:batch-completed",
-      { created: 1, merged: 0, skipped: 0, batches: 1 },
-      "topics",
+      "entity:updated",
+      { entityType: "topic", entityId: "topic-1" },
+      "entity-service",
     );
 
-    // Still false — no derivation ran
-    expect(plugin.hasRunInitialDerivation()).toBe(false);
-
-    harness.reset();
-  });
-
-  it("should ignore non-topic entity changes", async () => {
-    const harness = createPluginHarness<SkillPlugin>({});
-    const plugin = new SkillPlugin();
-
-    await harness.installPlugin(plugin);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-
-    // Post created — should NOT trigger skill derivation (no error either)
-    await harness.sendMessage(
-      "entity:created",
-      {
-        entityType: "post",
-        entityId: "new-post",
-        entity: {
-          id: "new-post",
-          entityType: "post",
-          content: "post content",
-          contentHash: "x",
-          metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        },
-      },
-      "blog",
-    );
-
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-
-    harness.reset();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(capabilities.projectionRules?.[0]?.sources).toEqual([
+      { kind: "entity", types: ["topic"] },
+      { kind: "entity", types: ["agent"] },
+    ]);
   });
 });

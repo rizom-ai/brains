@@ -2,7 +2,7 @@ import type {
   Plugin,
   EntityPluginContext,
   Template,
-  DerivedEntityProjection,
+  ProjectionRule,
   EntityTypeConfig,
 } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
@@ -10,13 +10,12 @@ import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
 import {
-  SKILL_DERIVATION_PROJECTION_ID,
   SKILL_DERIVATION_TEMPLATE_NAME,
   SKILL_ENTITY_TYPE,
   SKILL_PLUGIN_ID,
 } from "../lib/constants";
 import { registerSkillsDashboardWidget } from "../lib/skill-dashboard";
-import { getSkillDerivedEntityProjections } from "../lib/skill-projection";
+import { createSkillProjectionRule } from "../lib/skill-projection";
 import { registerSkillEvalHandlers } from "../lib/skill-eval-handlers";
 import packageJson from "../../package.json";
 
@@ -45,10 +44,10 @@ export class SkillPlugin extends EntityPlugin<
     };
   }
 
-  protected override getDerivedEntityProjections(
-    context: EntityPluginContext,
-  ): DerivedEntityProjection[] {
-    return getSkillDerivedEntityProjections(context, this.logger, this.id);
+  protected override getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return [createSkillProjectionRule()];
   }
 
   protected override async onRegister(
@@ -56,14 +55,6 @@ export class SkillPlugin extends EntityPlugin<
   ): Promise<void> {
     registerSkillsDashboardWidget(context);
     registerSkillEvalHandlers(context, this.logger);
-  }
-
-  public hasRunInitialDerivation(): boolean {
-    return (
-      this.getDerivedEntityProjectionController(
-        SKILL_DERIVATION_PROJECTION_ID,
-      )?.hasQueuedInitialSync() ?? false
-    );
   }
 }
 

@@ -1,106 +1,176 @@
-import type {
-  DerivedEntityProjection,
-  EntityPluginContext,
-  JobHandler,
-  JobOptions,
-} from "@brains/plugins";
-import { hasPersistedTargets } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
 import {
-  SKILL_DERIVATION_JOB_TYPE,
+  ProjectionJsonObjectSchema,
+  defineProjectionRule,
+  scopedDerivedId,
+  type ProjectionRule,
+  type ProjectionWriteIntent,
+} from "@brains/plugins";
+import { generateIdFromText } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
+import { SkillAdapter } from "../adapters/skill-adapter";
+import type { AgentEntity } from "../schemas/agent";
+import {
+  skillFrontmatterSchema,
+  type SkillEntity,
+  type SkillFrontmatter,
+} from "../schemas/skill";
+import { skillDerivationTemplate } from "../templates/skill-derivation-template";
+import {
   SKILL_DERIVATION_PROJECTION_ID,
+  SKILL_DERIVATION_TEMPLATE_REF,
   SKILL_ENTITY_TYPE,
 } from "./constants";
-import { deriveSkills } from "./skill-deriver";
+import { buildSkillPrompt } from "./skill-deriver";
+import { buildTagVocabulary } from "./tag-vocabulary";
 
-const skillDerivationJobDataSchema = z.object({
-  mode: z.literal("derive"),
-  replaceAll: z.boolean().default(false),
-  reason: z.string().optional(),
-  targetVisibility: contentVisibilitySchema,
+const topicMetadataSchema = z.looseObject({ name: z.string().optional() });
+
+const skillProjectionInputSchema = z.object({
+  topicTitles: z.array(z.string()),
+  tagVocabulary: z.array(
+    z.object({
+      tag: z.string(),
+      count: z.number().int().nonnegative(),
+    }),
+  ),
+  existingSkills: z.array(
+    z.object({
+      id: z.string(),
+      content: z.string(),
+      metadata: skillFrontmatterSchema,
+      visibility: z.enum(["public", "shared", "restricted"]),
+    }),
+  ),
+  targetVisibility: z.literal("public"),
+  prompt: z.string(),
+  templatePrompt: z.string(),
+  model: z.string(),
+  identity: ProjectionJsonObjectSchema,
 });
 
-type SkillDerivationJobData = z.output<typeof skillDerivationJobDataSchema>;
+type SkillProjectionInput = z.output<typeof skillProjectionInputSchema>;
 
-function createSkillDerivationHandler(
-  context: EntityPluginContext,
-  logger: Logger,
-): JobHandler<string, unknown> {
+function topicTitle(topic: {
+  id: string;
+  content: string;
+  metadata: unknown;
+}): string {
+  const parsed = topicMetadataSchema.safeParse(topic.metadata);
+  if (parsed.success && parsed.data.name) return parsed.data.name;
+  return topic.content.match(/^title:\s*(.+)$/m)?.[1]?.trim() ?? topic.id;
+}
+
+async function selectSkillInput(
+  context: Parameters<ProjectionRule["selectInput"]>[1],
+): Promise<SkillProjectionInput> {
+  const targetVisibility = "public" as const;
+  const [topics, agents, existingSkills, appInfo, templatePrompt] =
+    await Promise.all([
+      context.entities.listEntities({
+        entityType: "topic",
+        options: { filter: { visibilityScope: targetVisibility } },
+      }),
+      context.entities.listEntities<AgentEntity>({
+        entityType: "agent",
+        options: { filter: { visibilityScope: targetVisibility } },
+      }),
+      context.entities.listEntities<SkillEntity>({
+        entityType: SKILL_ENTITY_TYPE,
+        options: { filter: { visibilityScope: targetVisibility } },
+      }),
+      context.appInfo(),
+      context.resolvePrompt(
+        SKILL_DERIVATION_TEMPLATE_REF,
+        skillDerivationTemplate.basePrompt ?? "",
+      ),
+    ]);
+  const topicTitles = topics
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map(topicTitle);
+  const tagVocabulary = buildTagVocabulary([], agents);
+  const prompt = buildSkillPrompt({
+    topicTitles,
+    toolDescriptions: [],
+    tagVocabulary,
+  });
+
   return {
-    process: async (data): ReturnType<typeof deriveSkills> => {
-      const parsed = skillDerivationJobDataSchema.parse(data);
-      logger.info("Deriving skills from topics", {
-        replaceAll: parsed.replaceAll,
-        reason: parsed.reason,
-        targetVisibility: parsed.targetVisibility,
-      });
-      return deriveSkills(context, logger, {
-        replaceAll: parsed.replaceAll,
-        targetVisibility: parsed.targetVisibility,
-      });
-    },
-    validateAndParse: (data: unknown): SkillDerivationJobData | null => {
-      const result = skillDerivationJobDataSchema.safeParse(data ?? {});
-      return result.success ? result.data : null;
-    },
+    topicTitles,
+    tagVocabulary,
+    existingSkills: existingSkills
+      .filter((skill) => skill.visibility === targetVisibility)
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((skill) => ({
+        id: skill.id,
+        content: skill.content,
+        metadata: skill.metadata,
+        visibility: skill.visibility,
+      })),
+    targetVisibility,
+    prompt,
+    templatePrompt,
+    model: appInfo.ai.model,
+    identity: context.identityInput(),
   };
 }
 
-function getSkillDerivationJobOptions(
-  pluginId: string,
-  reason: string,
-): JobOptions {
-  return {
-    source: pluginId,
-    deduplication: "coalesce",
-    deduplicationKey: `skill-derivation:${reason}`,
-    metadata: {
-      operationType: "data_processing",
-      operationTarget: "skills",
-    },
-  };
+async function deriveSkillIntents(
+  input: SkillProjectionInput,
+  context: Parameters<ProjectionRule["derive"]>[1],
+): Promise<readonly ProjectionWriteIntent[]> {
+  if (input.topicTitles.length === 0) return [];
+
+  const generated = await context.ai.generate<{ skills: SkillFrontmatter[] }>({
+    prompt: input.prompt,
+    templateName: SKILL_DERIVATION_TEMPLATE_REF,
+    representedIdentity: "brain",
+  });
+  const skills = z
+    .array(skillFrontmatterSchema)
+    .parse(generated.skills)
+    .slice(0, 8);
+  const desired = new Map(
+    skills.map((skill) => [
+      scopedDerivedId(generateIdFromText(skill.name), input.targetVisibility),
+      skill,
+    ]),
+  );
+  const adapter = new SkillAdapter();
+  const intents: ProjectionWriteIntent[] = [...desired.entries()].map(
+    ([id, skill]) => ({
+      operation: "upsert",
+      entity: {
+        id,
+        entityType: SKILL_ENTITY_TYPE,
+        content: adapter.createSkillContent(skill),
+        metadata: skill,
+        visibility: input.targetVisibility,
+      },
+    }),
+  );
+  for (const existing of input.existingSkills) {
+    if (!desired.has(existing.id)) {
+      intents.push({
+        operation: "delete",
+        entityType: SKILL_ENTITY_TYPE,
+        id: existing.id,
+      });
+    }
+  }
+  return intents;
 }
 
-export function getSkillDerivedEntityProjections(
-  context: EntityPluginContext,
-  logger: Logger,
-  pluginId: string,
-): DerivedEntityProjection[] {
-  return [
-    {
-      id: SKILL_DERIVATION_PROJECTION_ID,
-      targetType: SKILL_ENTITY_TYPE,
-      job: {
-        type: SKILL_DERIVATION_JOB_TYPE,
-        handler: createSkillDerivationHandler(context, logger),
-      },
-      initialSync: {
-        shouldEnqueue: async () =>
-          !(await hasPersistedTargets(context, SKILL_ENTITY_TYPE)),
-        jobData: {
-          mode: "derive",
-          replaceAll: true,
-          reason: "initial-sync",
-          targetVisibility: "public",
-        },
-        jobOptions: getSkillDerivationJobOptions(pluginId, "initial-sync"),
-      },
-      sourceChange: {
-        sourceTypes: ["topic-batch"],
-        sourceType: "topic-batch",
-        events: ["topics:batch-completed"],
-        requireInitialSync: true,
-        jobData: () => ({
-          mode: "derive",
-          replaceAll: true,
-          reason: "topic-change",
-          targetVisibility: "public",
-        }),
-        jobOptions: () =>
-          getSkillDerivationJobOptions(pluginId, "topic-change"),
-      },
-    },
-  ];
+export function createSkillProjectionRule(): ProjectionRule {
+  return defineProjectionRule({
+    id: SKILL_DERIVATION_PROJECTION_ID,
+    version: "1",
+    sources: [
+      { kind: "entity", types: ["topic"] },
+      { kind: "entity", types: ["agent"] },
+    ],
+    targetType: SKILL_ENTITY_TYPE,
+    inputSchema: skillProjectionInputSchema,
+    selectInput: async (_trigger, context) => selectSkillInput(context),
+    derive: deriveSkillIntents,
+  });
 }

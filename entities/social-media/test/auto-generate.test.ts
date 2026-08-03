@@ -1,181 +1,67 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { SocialMediaPlugin } from "../src/plugin";
+import { describe, expect, it, mock } from "bun:test";
+import type { PluginCapabilities } from "@brains/plugins";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins";
+import { SocialMediaPlugin } from "../src/plugin";
 
-const samplePublishedPost: BaseEntity = {
-  id: "post-1",
-  entityType: "post",
-  content: `---
-title: Test Blog Post
-status: published
-excerpt: A test blog post
-author: Test Author
----
-This is the content of the blog post.`,
-  metadata: {
-    title: "Test Blog Post",
-    slug: "test-blog-post",
-    status: "published",
-    publishedAt: "2024-01-01T10:00:00Z",
-  },
-  contentHash: "abc123",
-  visibility: "public",
-  created: "2024-01-01T00:00:00Z",
-  updated: "2024-01-01T10:00:00Z",
-};
+async function install(config: {
+  autoGenerateOnBlogPublish: boolean;
+}): Promise<{
+  capabilities: PluginCapabilities;
+  enqueue: ReturnType<typeof mock>;
+  harness: PluginTestHarness<SocialMediaPlugin>;
+}> {
+  const harness = createPluginHarness<SocialMediaPlugin>({
+    dataDir: `/tmp/test-social-media-${String(config.autoGenerateOnBlogPublish)}`,
+  });
+  const enqueue = mock(async () => "job-1");
+  const jobQueue = harness.getMockShell().getJobQueueService();
+  harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
+    ...jobQueue,
+    enqueue,
+  });
+  const capabilities = await harness.installPlugin(
+    new SocialMediaPlugin(config),
+  );
+  return { capabilities, enqueue, harness };
+}
 
-describe("SocialMediaPlugin - Auto-Generate on Blog Queued", () => {
-  let harness: PluginTestHarness<SocialMediaPlugin>;
-  let generationTriggered: boolean;
-  let generationData: unknown;
-
-  beforeEach(async () => {
-    harness = createPluginHarness<SocialMediaPlugin>({
-      dataDir: "/tmp/test-social-media",
+describe("SocialMediaPlugin projection scheduling boundary", () => {
+  it("does not register a projection rule when auto generation is disabled", async () => {
+    const { capabilities } = await install({
+      autoGenerateOnBlogPublish: false,
     });
-    generationTriggered = false;
-    generationData = null;
+
+    expect(capabilities.projectionRules).toBeUndefined();
+    expect(capabilities.projections).toBeUndefined();
   });
 
-  describe("entity:updated subscription for queued status", () => {
-    it("should not auto-generate when feature is disabled", async () => {
-      harness.subscribe("social:auto-generate", async (msg) => {
-        generationTriggered = true;
-        generationData = msg.payload;
-        return { success: true };
-      });
-
-      await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: false }),
-      );
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "post",
-        entityId: "post-1",
-        entity: {
-          ...samplePublishedPost,
-          metadata: { ...samplePublishedPost.metadata, status: "queued" },
-        },
-      });
-
-      expect(generationTriggered).toBe(false);
+  it("registers one scheduler-owned rule and no event-driven auto-generation", async () => {
+    const { capabilities, enqueue, harness } = await install({
+      autoGenerateOnBlogPublish: true,
     });
 
-    it("should auto-generate social post when blog post status changes to queued", async () => {
-      harness.subscribe("social:auto-generate", async (msg) => {
-        generationTriggered = true;
-        generationData = msg.payload;
-        return { success: true };
-      });
-
-      await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
-      );
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "post",
-        entityId: "post-1",
-        entity: {
-          ...samplePublishedPost,
-          metadata: { ...samplePublishedPost.metadata, status: "queued" },
-        },
-      });
-
-      expect(generationTriggered).toBe(true);
-      expect(generationData).toMatchObject({
-        sourceEntityType: "post",
-        sourceEntityId: "post-1",
-        platform: "linkedin",
-      });
+    expect(capabilities.projections).toBeUndefined();
+    expect(capabilities.projectionRules).toHaveLength(1);
+    expect(capabilities.projectionRules?.[0]).toMatchObject({
+      id: "social-post-generation",
+      sources: [{ kind: "entity", types: ["post"] }],
+      targetType: "social-post",
     });
 
-    it("should not auto-generate when post status is not queued", async () => {
-      harness.subscribe("social:auto-generate", async (msg) => {
-        generationTriggered = true;
-        generationData = msg.payload;
-        return { success: true };
-      });
-
-      await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
-      );
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "post",
-        entityId: "post-1",
-        entity: {
-          ...samplePublishedPost,
-          metadata: { ...samplePublishedPost.metadata, status: "draft" },
-        },
-      });
-
-      expect(generationTriggered).toBe(false);
+    await harness.sendMessage("entity:updated", {
+      entityType: "post",
+      entityId: "post-1",
+      entity: { metadata: { status: "queued" } },
+    });
+    await harness.sendMessage("social:auto-generate", {
+      sourceEntityType: "post",
+      sourceEntityId: "post-1",
+      platform: "linkedin",
     });
 
-    it("should skip non-post entity types", async () => {
-      harness.subscribe("social:auto-generate", async (msg) => {
-        generationTriggered = true;
-        generationData = msg.payload;
-        return { success: true };
-      });
-
-      await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
-      );
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "deck",
-        entityId: "deck-1",
-        entity: {
-          id: "deck-1",
-          entityType: "deck",
-          metadata: { status: "queued" },
-        },
-      });
-
-      expect(generationTriggered).toBe(false);
-    });
-
-    it("should not auto-generate if social post already exists for this source", async () => {
-      harness.subscribe("social:auto-generate", async (msg) => {
-        generationTriggered = true;
-        generationData = msg.payload;
-        return { success: true };
-      });
-
-      await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
-      );
-
-      const entityService = harness.getEntityService();
-      await entityService.createEntity({
-        entity: {
-          id: "social-post-1",
-          entityType: "social-post",
-          content: "Existing social post",
-          metadata: {
-            platform: "linkedin",
-            status: "draft",
-            sourceEntityType: "post",
-            sourceEntityId: "post-1",
-          },
-        },
-      });
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "post",
-        entityId: "post-1",
-        entity: {
-          ...samplePublishedPost,
-          metadata: { ...samplePublishedPost.metadata, status: "queued" },
-        },
-      });
-
-      expect(generationTriggered).toBe(false);
-    });
+    expect(enqueue).not.toHaveBeenCalled();
   });
 });

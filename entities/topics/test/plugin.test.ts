@@ -95,9 +95,14 @@ describe("TopicsPlugin", () => {
         harness.getEntityRegistry().getEntityTypeConfig("topic")
           .projectionSource,
       ).toBe(false);
-      expect(capabilities.projections?.[0]?.emittedEvents).toEqual([
-        "topics:batch-completed",
-      ]);
+      expect(capabilities.projections).toBeUndefined();
+      expect(capabilities.projectionRules).toHaveLength(1);
+      expect(capabilities.projectionRules?.[0]).toMatchObject({
+        id: "topics-projection",
+        version: "1",
+        targetType: "topic",
+        sources: [{ kind: "entity", types: ["*"], excludeTypes: ["topic"] }],
+      });
     });
 
     it("should process registered projection sources by default", () => {

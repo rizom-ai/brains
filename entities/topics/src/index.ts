@@ -5,9 +5,7 @@ import {
   type DataSource,
   type Template,
   type BaseEntity,
-  type DerivedEntityProjection,
-  hasPersistedTargets,
-  isVisibleWithinScope,
+  type ProjectionRule,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
@@ -29,23 +27,8 @@ import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
 import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
-import {
-  createTopicProjectionHandler,
-  extractAllTopics,
-  getInitialProjectionJobOptions,
-  rebuildAllTopics,
-  TopicSourceBatchBuffer,
-  type TopicProjectionJobData,
-} from "./lib/topic-projection";
-import {
-  TOPIC_ENTITY_TYPE,
-  TOPIC_PROJECTION_ID,
-  TOPIC_PROJECTION_JOB_TYPE,
-  TOPICS_BATCH_COMPLETED_EVENT,
-  TOPICS_JOB_SOURCE,
-  TOPICS_PLUGIN_ID,
-  TOPICS_SOURCE_BATCH_DEDUP_KEY,
-} from "./lib/constants";
+import { createTopicProjectionRule } from "./lib/topic-wave-rule";
+import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
@@ -69,7 +52,6 @@ export class TopicsPlugin extends EntityPlugin<
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
-  private readonly sourceBatch = new TopicSourceBatchBuffer();
 
   constructor(config: TopicsPluginConfigInput = {}) {
     super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
@@ -100,81 +82,12 @@ export class TopicsPlugin extends EntityPlugin<
     ];
   }
 
-  protected override getDerivedEntityProjections(
-    context: EntityPluginContext,
-  ): DerivedEntityProjection[] {
-    if (!this.config.enableAutoExtraction) return [];
-
-    return [
-      {
-        id: TOPIC_PROJECTION_ID,
-        targetType: TOPIC_ENTITY_TYPE,
-        job: {
-          type: TOPIC_PROJECTION_JOB_TYPE,
-          handler: createTopicProjectionHandler({
-            context,
-            logger: this.logger,
-            config: this.config,
-            extractAllTopics: () => this.extractAllTopics(context),
-            rebuildAllTopics: () => this.rebuildAllTopics(context),
-            sourceBatch: this.sourceBatch,
-            isEntityPublished: (entity) => this.isEntityPublished(entity),
-          }),
-        },
-        initialSync: {
-          shouldEnqueue: async () =>
-            !(await hasPersistedTargets(context, TOPIC_ENTITY_TYPE, {
-              visibility: this.config.extractionVisibility,
-            })),
-          jobData: { mode: "derive", reason: "initial-sync" },
-          jobOptions: getInitialProjectionJobOptions(),
-        },
-        sourceChange: {
-          sourceTypes: this.config.includeEntityTypes,
-          requireInitialSync: true,
-          jobData: (payload): TopicProjectionJobData | null => {
-            const entity = payload.entity;
-            if (!entity) return null;
-            if (
-              !this.shouldProcessEntityType(
-                entity.entityType,
-                context.entityService,
-              )
-            ) {
-              return null;
-            }
-            if (!this.isEntityPublished(entity)) return null;
-            if (
-              !isVisibleWithinScope(
-                entity.visibility,
-                this.config.extractionVisibility,
-              )
-            ) {
-              return null;
-            }
-            this.sourceBatch.add({
-              entityId: entity.id,
-              entityType: entity.entityType,
-              contentHash: entity.contentHash,
-            });
-            return { mode: "source-batch" };
-          },
-          jobOptions: () => ({
-            priority: 5,
-            source: TOPICS_JOB_SOURCE,
-            delayMs: this.config.sourceChangeBatchDelayMs,
-            deduplication: "skip",
-            deduplicationKey: TOPICS_SOURCE_BATCH_DEDUP_KEY,
-            metadata: {
-              operationType: "data_processing" as const,
-              operationTarget: "topic-source-batch",
-              pluginId: TOPICS_PLUGIN_ID,
-            },
-          }),
-        },
-        emittedEvents: [TOPICS_BATCH_COMPLETED_EVENT],
-      },
-    ];
+  protected override getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return this.config.enableAutoExtraction
+      ? [createTopicProjectionRule(this.config)]
+      : [];
   }
 
   protected override async onRegister(
@@ -210,14 +123,6 @@ export class TopicsPlugin extends EntityPlugin<
 
   // ── Public helpers (used by tests) ──
 
-  public hasRunInitialDerivation(): boolean {
-    return (
-      this.getDerivedEntityProjectionController(
-        TOPIC_PROJECTION_ID,
-      )?.hasQueuedInitialSync() ?? false
-    );
-  }
-
   public shouldProcessEntityType(
     entityType: string,
     entityService: {
@@ -243,30 +148,6 @@ export class TopicsPlugin extends EntityPlugin<
     if (status === undefined || status === null) return true;
     if (typeof status !== "string") return false;
     return this.config.extractableStatuses.includes(status);
-  }
-
-  // ── Projection internals ──
-
-  private async extractAllTopics(context: EntityPluginContext): Promise<void> {
-    await extractAllTopics({
-      context,
-      logger: this.logger,
-      config: this.config,
-      shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType, context.entityService),
-      isEntityPublished: (entity) => this.isEntityPublished(entity),
-    });
-  }
-
-  private async rebuildAllTopics(context: EntityPluginContext): Promise<void> {
-    await rebuildAllTopics({
-      context,
-      logger: this.logger,
-      config: this.config,
-      shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType, context.entityService),
-      isEntityPublished: (entity) => this.isEntityPublished(entity),
-    });
   }
 }
 

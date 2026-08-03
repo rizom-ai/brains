@@ -424,9 +424,13 @@ rule contract, including:
 - series;
 - conversation-memory summaries, after their canonical source model is
   explicitly decided;
-- newsletter;
-- social posts;
+- social-post auto-generation from queued posts;
 - every preset-specific derivation discovered by the finalized registry.
+
+Newsletter generation and explicitly scheduled social-post generation are
+command workflows, not convergent derivations. Remove their projection
+declarations and projection job metadata; retain them as ordinary explicit
+generation jobs outside the derivation graph.
 
 Each conversion replaces handler-owned mutation with immutable input selection
 and canonical write intents. Topic-to-skill and skill-to-SWOT dependencies come
@@ -443,8 +447,10 @@ activated.
 
 The scheduler runtime is not activated until the inventory test proves that
 every registered derivation uses `ProjectionRule`, conversation-memory has an
-approved canonical source model, and no projection event subscription or legacy
-projection job type remains.
+approved canonical source model, and no derivation is subscribed to an event or
+uses a legacy projection job type. Ordinary command and observer subscriptions
+that do not register, enqueue, or identify projection work remain outside this
+constraint.
 
 ### Stage 2: activate the scheduler-only runtime
 

@@ -1,123 +1,29 @@
-import { describe, it, expect, mock } from "bun:test";
-import { TopicsPlugin } from "../src";
+import { describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { TopicsPlugin } from "../src";
 
-function installWithJobQueue(
-  config: ConstructorParameters<typeof TopicsPlugin>[0] = {},
-): {
-  harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>;
-  plugin: TopicsPlugin;
-  enqueue: ReturnType<typeof mock>;
-  registerHandler: ReturnType<typeof mock>;
-} {
-  const harness = createPluginHarness<TopicsPlugin>({});
-  const enqueue = mock(async () => "job-1");
-  const registerHandler = mock(() => {});
-
-  harness.getMockShell().getJobQueueService = (): never =>
-    ({
+describe("Topic projection registration", () => {
+  it("registers one scheduler rule and no event-driven projection job", async () => {
+    const harness = createPluginHarness<TopicsPlugin>({});
+    const enqueue = mock(async () => "job-1");
+    const registerHandler = mock(() => {});
+    const jobQueue = harness.getMockShell().getJobQueueService();
+    harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
+      ...jobQueue,
       enqueue,
       registerHandler,
-      getActiveJobs: async () => [],
-      getActiveBatches: async () => [],
-      getBatchStatus: async () => null,
-      getStatus: async () => null,
-    }) as never;
-
-  const plugin = new TopicsPlugin({
-    enableAutoExtraction: true,
-    includeEntityTypes: ["post"],
-    ...config,
-  });
-  return { harness, plugin, enqueue, registerHandler };
-}
-
-describe("Initial sync triggers batch projection", () => {
-  it("should queue projection after sync:initial:completed", async () => {
-    const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
-
-    await harness.installPlugin(plugin);
-
-    expect(plugin.hasRunInitialDerivation()).toBe(false);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-    expect(registerHandler).toHaveBeenCalledWith(
-      "topic:project",
-      expect.any(Object),
-      "topics",
-    );
-    expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith({
-      type: "topic:project",
-      data: { mode: "derive", reason: "initial-sync" },
-      options: expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "topics-initial-derivation",
-      }),
+    });
+    const plugin = new TopicsPlugin({
+      enableAutoExtraction: true,
+      includeEntityTypes: ["post"],
     });
 
-    harness.reset();
-  });
-
-  it("should not queue projection when auto-extraction is disabled", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
-    const plugin = new TopicsPlugin({ enableAutoExtraction: false });
-
-    await harness.installPlugin(plugin);
-
+    const capabilities = await harness.installPlugin(plugin);
     await harness.sendMessage(
       "sync:initial:completed",
       { success: true },
       "directory-sync",
     );
-
-    expect(plugin.hasRunInitialDerivation()).toBe(false);
-
-    harness.reset();
-  });
-
-  it("should only queue projection once across multiple sync events", async () => {
-    const { harness, plugin, enqueue } = installWithJobQueue();
-
-    await harness.installPlugin(plugin);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-
-    // Second sync should not re-trigger (flag stays true, no error)
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-    expect(enqueue).toHaveBeenCalledTimes(1);
-
-    harness.reset();
-  });
-
-  it("should queue source projection after initial sync", async () => {
-    const { harness, plugin, enqueue } = installWithJobQueue();
-
-    await harness.installPlugin(plugin);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    expect(enqueue).toHaveBeenCalledTimes(1);
-
     await harness.sendMessage(
       "entity:updated",
       {
@@ -136,73 +42,26 @@ describe("Initial sync triggers batch projection", () => {
       "entity-service",
     );
 
-    expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(enqueue).toHaveBeenLastCalledWith({
-      type: "topic:project",
-      data: { mode: "source-batch" },
-      options: expect.objectContaining({
-        deduplication: "skip",
-        deduplicationKey: "topics-source-batch",
-      }),
-    });
-
-    harness.reset();
-  });
-
-  it("should not queue initial extraction when persisted topics already exist", async () => {
-    const { harness, plugin, enqueue } = installWithJobQueue();
-
-    await harness.installPlugin(plugin);
-    harness.addEntities([
-      {
-        id: "existing-topic",
-        entityType: "topic",
-        content: "---\ntitle: Existing Topic\n---\nExisting topic",
-        visibility: "public",
-        metadata: { title: "Existing Topic" },
-      },
+    expect(capabilities.projections).toBeUndefined();
+    expect(capabilities.projectionRules).toHaveLength(1);
+    expect(capabilities.projectionRules?.[0]?.sources).toEqual([
+      { kind: "entity", types: ["post"], excludeTypes: ["topic"] },
     ]);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
+    expect(registerHandler).not.toHaveBeenCalledWith(
+      "topic:project",
+      expect.anything(),
+      expect.anything(),
     );
-
-    // Initial derivation is only marked after work is enqueued. Persisted
-    // topics skip the initial job while still allowing source-change jobs
-    // after the initial sync event has been observed.
-    expect(plugin.hasRunInitialDerivation()).toBe(false);
     expect(enqueue).not.toHaveBeenCalled();
-
-    harness.reset();
   });
 
-  it("should queue initial extraction when only other visibility topics exist", async () => {
-    const { harness, plugin, enqueue } = installWithJobQueue({
-      extractionVisibility: "shared",
-    });
-
-    await harness.installPlugin(plugin);
-    harness.addEntities([
-      {
-        id: "existing-public-topic",
-        entityType: "topic",
-        content: "---\ntitle: Existing Public Topic\n---\nExisting topic",
-        visibility: "public",
-        metadata: { title: "Existing Public Topic" },
-      },
-    ]);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
+  it("registers no projection rule when auto extraction is disabled", async () => {
+    const harness = createPluginHarness<TopicsPlugin>({});
+    const capabilities = await harness.installPlugin(
+      new TopicsPlugin({ enableAutoExtraction: false }),
     );
 
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
-    expect(enqueue).toHaveBeenCalledTimes(1);
-
-    harness.reset();
+    expect(capabilities.projections).toBeUndefined();
+    expect(capabilities.projectionRules).toBeUndefined();
   });
 });
