@@ -275,6 +275,54 @@ describe("inbound email intake", () => {
     expect(received[1]?.messageId).toBe(received[0]?.messageId);
   });
 
+  it("resets the cursor when the mailbox changes despite an equal UIDVALIDITY", async () => {
+    const messages = [await fixtureMessage(1, "plain.eml")];
+    const requestedUids: number[] = [];
+    const client = createFakeClient(messages, requestedUids);
+    const cursor = createPluginHarness()
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({
+        namespace: "email.inbound.mailbox-change-test",
+        schema: z.strictObject({
+          mailbox: z.string(),
+          uidValidity: z.string(),
+          lastUid: z.number().int().nonnegative(),
+        }),
+      });
+    const logger = createMockLogger();
+    const received: InboundEmail[] = [];
+
+    await intakeInboundEmail(
+      client,
+      { mailbox: "INBOX", uidValidity: "1" },
+      {
+        cursor,
+        publish: async (request) => {
+          received.push(inboundEmailSchema.parse(request.payload));
+          return { success: true };
+        },
+        logger,
+      },
+    );
+    await intakeInboundEmail(
+      client,
+      { mailbox: "Archive", uidValidity: "1" },
+      {
+        cursor,
+        publish: async (request) => {
+          received.push(inboundEmailSchema.parse(request.payload));
+          return { success: true };
+        },
+        logger,
+      },
+    );
+
+    expect(requestedUids).toEqual([1, 1]);
+    expect(received).toHaveLength(2);
+    expect(received[1]?.messageId).toBe(received[0]?.messageId);
+  });
+
   it("enriches known senders without logging their raw address", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
@@ -414,13 +462,15 @@ describe("inbound email intake", () => {
       .scoped({
         namespace: "email.inbound.no-subscriber-test",
         schema: z.strictObject({
+          mailbox: z.string(),
           uidValidity: z.string(),
           lastUid: z.number().int().nonnegative(),
         }),
       });
     const logger = createMockLogger();
+    const selection = { mailbox: "INBOX", uidValidity: "1" };
 
-    await intakeInboundEmail(client, "1", {
+    await intakeInboundEmail(client, selection, {
       cursor,
       publish: async () => ({
         success: false,
@@ -430,7 +480,7 @@ describe("inbound email intake", () => {
     });
 
     const received: InboundEmail[] = [];
-    await intakeInboundEmail(client, "1", {
+    await intakeInboundEmail(client, selection, {
       cursor,
       publish: async (request) => {
         received.push(inboundEmailSchema.parse(request.payload));

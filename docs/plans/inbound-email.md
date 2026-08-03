@@ -2,32 +2,12 @@
 
 ## Status
 
-**In progress on `work/inbound-email`.** Phases 0–2 are implemented. Grows the
-inbound half of the existing `interfaces/email` message interface: IMAP intake, parsing,
-and a published inbound-mail event. No triage, no drafting, no LLM — those are
-[email-triage.md](./email-triage.md) and
+**Implemented on `work/inbound-email`, pending merge.** Phases 0–2 and every review
+finding are implemented and tested; the findings live on as the hardening rules inside
+the decisions below. Grows the inbound half of the existing `interfaces/email` message
+interface: IMAP intake, parsing, and a published inbound-mail event. No triage, no
+drafting, no LLM — those are [email-triage.md](./email-triage.md) and
 [email-reply-drafting.md](./email-reply-drafting.md).
-
-**Review findings to fix before merge** (each is specified in the decision it amends):
-
-1. A deterministic parse failure must advance the cursor, not wedge intake behind a
-   poison message (decision 3).
-2. The cursor must be scoped to the mailbox's `UIDVALIDITY` and reset when it changes
-   (decision 3).
-3. An IDLE failure must degrade to interval polling only for the current connection; a
-   successful reconnect restores the configured mode (decision 5).
-4. Daemon lifecycle and retry failures should surface fixed, operation-specific
-   messages without propagating transport error content (decision 6).
-5. The env-schema additions must not touch `brains/rover` (decision 8).
-6. A failed connect at daemon start must enter the backoff reconnect loop instead of
-   disabling intake until the next process restart (decision 5).
-7. A sender-resolution failure must log a warn (message-id only) so it is
-   distinguishable from an unknown sender (decision 6).
-8. Non-secret IMAP settings must remain explicit `brain.yaml` configuration, not
-   process-global environment variables (decision 9).
-9. Only IMAP credentials qualify for the env schema. Inbound configuration is an
-   explicit operator opt-in and must not be emitted into every generated instance
-   (decision 9).
 
 ## Goal
 
@@ -74,8 +54,9 @@ integration."_
      run (retry next cycle). A deterministic parse failure logs the UID and **advances
      past the message** — the mail stays in the mailbox for manual inspection, and a
      poison message must not wedge every message behind it forever.
-   - **The cursor is `{ uidValidity, lastUid }`,** because IMAP UIDs are only meaningful
-     per mailbox `UIDVALIDITY` (imapflow reports it on `mailboxOpen`). On mismatch,
+   - **The cursor is `{ mailbox, uidValidity, lastUid }`,** because IMAP UIDs are only
+     meaningful per mailbox generation (`UIDVALIDITY`, reported on `mailboxOpen`) and
+     distinct mailboxes can share a `UIDVALIDITY` value. If either field differs,
      reset `lastUid` to 0 and re-intake: replayed messages carry the same `Message-ID`,
      so at-least-once consumers absorb the re-flood; a stale bare UID would instead
      silently skip or duplicate mail after a mailbox rebuild.
@@ -153,7 +134,8 @@ Tests are written first inside each phase.
   publish `EMAIL_INBOUND` per message, advance cursor after handler completion. _Tests:_
   `.eml` fixtures (plain, HTML, multipart, missing Message-ID → synthesized key); cursor
   holds only on unacknowledged publish; an unparseable message logs its UID, advances
-  the cursor, and mail behind it still flows; a `UIDVALIDITY` change resets the cursor
+  the cursor, and mail behind it still flows; a `UIDVALIDITY` or mailbox change resets
+  the cursor
   and replays with identical `messageId`s; replayed UIDs re-publish with the same
   `messageId` (at-least-once proven); redaction of logs.
 - **Phase 2 — Liveness + sender identity.** IMAP IDLE with reconnect/backoff and

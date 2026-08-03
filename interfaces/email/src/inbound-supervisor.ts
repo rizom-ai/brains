@@ -3,6 +3,7 @@ import type {
   EmailImapConfig,
   InboundEmailClient,
   InboundEmailClientFactory,
+  InboundEmailSelection,
 } from "./inbound-email";
 
 const BASE_BACKOFF_MS = 1_000;
@@ -16,14 +17,17 @@ export type InboundEmailSleep = (
 export interface InboundEmailSupervisorOptions {
   config: EmailImapConfig;
   createClient: InboundEmailClientFactory;
-  intake: (client: InboundEmailClient, uidValidity: string) => Promise<number>;
+  intake: (
+    client: InboundEmailClient,
+    selection: InboundEmailSelection,
+  ) => Promise<number>;
   logger: Logger;
   sleep?: InboundEmailSleep | undefined;
 }
 
 interface InboundEmailConnection {
   client: InboundEmailClient;
-  uidValidity: string;
+  selection: InboundEmailSelection;
 }
 
 /** Owns the active IMAP client and its abortable IDLE/polling loop. */
@@ -55,14 +59,14 @@ export class InboundEmailSupervisor {
     let client: InboundEmailClient | undefined;
     try {
       client = this.options.createClient(this.options.config);
-      const uidValidity = await this.connectAndIntake(client);
+      const selection = await this.connectAndIntake(client);
       if (isAborted(controller.signal)) {
         await disconnectWithoutThrow(client);
         return;
       }
       this.client = client;
       this.loop = this.observeLoop(
-        this.run({ client, uidValidity }, controller.signal),
+        this.run({ client, selection }, controller.signal),
         controller.signal,
       );
     } catch {
@@ -158,7 +162,7 @@ export class InboundEmailSupervisor {
 
       if (isAborted(signal)) return;
       try {
-        await this.options.intake(connection.client, connection.uidValidity);
+        await this.options.intake(connection.client, connection.selection);
         reconnectAttempt = 0;
       } catch {
         if (isAborted(signal)) return;
@@ -196,13 +200,13 @@ export class InboundEmailSupervisor {
       let nextClient: InboundEmailClient | undefined;
       try {
         nextClient = this.options.createClient(this.options.config);
-        const uidValidity = await this.connectAndIntake(nextClient);
+        const selection = await this.connectAndIntake(nextClient);
         if (isAborted(signal)) {
           await disconnectWithoutThrow(nextClient);
           break;
         }
         this.client = nextClient;
-        return { client: nextClient, uidValidity };
+        return { client: nextClient, selection };
       } catch {
         if (nextClient) await disconnectWithoutThrow(nextClient);
         attempt += 1;
@@ -213,11 +217,15 @@ export class InboundEmailSupervisor {
     throw new Error("Inbound email reconnect aborted");
   }
 
-  private async connectAndIntake(client: InboundEmailClient): Promise<string> {
+  private async connectAndIntake(
+    client: InboundEmailClient,
+  ): Promise<InboundEmailSelection> {
     await client.connect();
-    const uidValidity = await client.selectMailbox(this.options.config.mailbox);
-    await this.options.intake(client, uidValidity);
-    return uidValidity;
+    const mailbox = this.options.config.mailbox;
+    const uidValidity = await client.selectMailbox(mailbox);
+    const selection = { mailbox, uidValidity };
+    await this.options.intake(client, selection);
+    return selection;
   }
 
   private observeLoop(loop: Promise<void>, signal: AbortSignal): Promise<void> {

@@ -41,6 +41,7 @@ export type {
   InboundEmailClient,
   InboundEmailClientFactory,
   InboundEmailCursor,
+  InboundEmailSelection,
   InboundEmailSourceMessage,
 } from "./inbound-email";
 export type { InboundEmailSleep } from "./inbound-supervisor";
@@ -139,8 +140,8 @@ export class EmailInterface extends MessageInterfacePlugin<
     const supervisor = new InboundEmailSupervisor({
       config,
       createClient: this.imapClientFactory,
-      intake: async (client, uidValidity): Promise<number> =>
-        intakeInboundEmail(client, uidValidity, {
+      intake: async (client, selection): Promise<number> =>
+        intakeInboundEmail(client, selection, {
           cursor: this.getInboundCursor(),
           publish: this.getContext().messaging.send,
           resolveSender: async (
@@ -194,6 +195,7 @@ export class EmailInterface extends MessageInterfacePlugin<
       this.inboundCursor = context.runtimeState.scoped({
         namespace: "email.inbound.uid-cursor",
         schema: z.strictObject({
+          mailbox: z.string().min(1),
           uidValidity: z.string().regex(/^[1-9]\d*$/),
           lastUid: z.number().int().nonnegative(),
         }),

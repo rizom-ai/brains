@@ -199,7 +199,14 @@ export function createInboundEmailClient(
   };
 }
 
+/** The mailbox generation a UID cursor is valid for. */
+export interface InboundEmailSelection {
+  mailbox: string;
+  uidValidity: string;
+}
+
 export interface InboundEmailCursor {
+  mailbox: string;
   uidValidity: string;
   lastUid: number;
 }
@@ -214,15 +221,20 @@ export interface InboundEmailIntakeDependencies {
 
 export async function intakeInboundEmail(
   client: InboundEmailClient,
-  uidValidity: string,
+  selection: InboundEmailSelection,
   dependencies: InboundEmailIntakeDependencies,
 ): Promise<number> {
   const { cursor, publish, resolveSender, logger } = dependencies;
   const storedCursor = await cursor.get("cursor");
-  const lastUid =
-    storedCursor?.uidValidity === uidValidity ? storedCursor.lastUid : 0;
-  if (storedCursor?.uidValidity !== uidValidity) {
-    await cursor.set("cursor", { uidValidity, lastUid: 0 });
+  // A UID cursor is meaningful only within one mailbox generation; distinct
+  // mailboxes can share a UIDVALIDITY value, so both fields gate reuse.
+  const cursorMatches =
+    storedCursor !== null &&
+    storedCursor.mailbox === selection.mailbox &&
+    storedCursor.uidValidity === selection.uidValidity;
+  const lastUid = cursorMatches ? storedCursor.lastUid : 0;
+  if (!cursorMatches) {
+    await cursor.set("cursor", { ...selection, lastUid: 0 });
   }
   let cursorUid = lastUid;
   let processed = 0;
@@ -237,7 +249,7 @@ export async function intakeInboundEmail(
         uid: sourceMessage.uid,
       });
       await cursor.set("cursor", {
-        uidValidity,
+        ...selection,
         lastUid: sourceMessage.uid,
       });
       cursorUid = sourceMessage.uid;
@@ -274,7 +286,7 @@ export async function intakeInboundEmail(
     }
 
     await cursor.set("cursor", {
-      uidValidity,
+      ...selection,
       lastUid: sourceMessage.uid,
     });
     cursorUid = sourceMessage.uid;
