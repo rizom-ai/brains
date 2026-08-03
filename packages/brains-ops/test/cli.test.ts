@@ -693,7 +693,20 @@ members:
     });
 
     expect(result.success).toBe(true);
-    expect(result.message).toContain("second pass converged with zero drift");
+    expect(result.message).toBe(
+      [
+        "Dry-run reconcile found 6 first-pass changed file(s); second pass converged with zero drift",
+        "First-pass changed files:",
+        "- users/alice/.env",
+        "- users/alice/brain.yaml",
+        "- users/alice/content/anchor-profile/anchor-profile.md",
+        "- users/bob/.env",
+        "- users/bob/brain.yaml",
+        "- users/bob/content/anchor-profile/anchor-profile.md",
+        "Second-pass changed files:",
+        "- (none)",
+      ].join("\n"),
+    );
     expect(await Bun.file(join(root, "users/alice/brain.yaml")).exists()).toBe(
       false,
     );

@@ -52,7 +52,7 @@ Before the window, record and review:
 - canary-first rollout order, followed by the remaining cohorts;
 - expected `/health` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
 
-Run `bunx brains-ops reconcile-all <canonical-review-copy> --dry-run` against the isolated review copy. The command blocks external content-repository access, leaves the review copy untouched, and must report second-pass zero drift.
+Run `bunx brains-ops reconcile-all <canonical-review-copy> --dry-run` against the isolated review copy. The command blocks external content-repository access, leaves the review copy untouched, lists both passes' changed files, and must report second-pass zero drift. Reconciliation owns generated per-user config; only `render` owns the observational `views/users.md` projection.
 
 During the approved window:
 
@@ -60,9 +60,9 @@ During the approved window:
 2. Publish and verify the reviewed unified runtime and matching ops artifacts. Do not update pilot desired state until the exact versions are installable and the expected images can be built.
 3. Apply the reviewed canonical pilot revision while automation remains disabled. Confirm repository names, server/domain identity, content repositories, secret selectors, image names, and tag identity against the review diff.
 4. Enable only Build, run it for the canonical desired-state revision, and record every resulting image digest. Stop if the observed digest set differs from the cutover record.
-5. Enable only Reconcile, run it once, and review its generated config commit. No generated file may combine canonical config with a retired image version.
-6. Enable Deploy and deploy one handle at a time in the approved order. After each deploy, run `bunx brains-ops verify-user . <handle>` and complete the manual identity, content-sync, and app-managed site checks.
-7. Run Reconcile a second time. Require no generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze.
+5. Enable only Reconcile, run it once, and review its generated per-user config commit. It must not rewrite `views/users.md`, and no generated file may combine canonical config with a retired image version.
+6. Enable Deploy and deploy one handle at a time in the approved order. After each deploy, run `bunx brains-ops verify-user . <handle>`, render observed fleet status, and complete the manual identity, content-sync, and app-managed site checks.
+7. Run Reconcile a second time. Require no reconciler-owned generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze. Observed status rendering remains separate from this convergence gate.
 
 If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
 

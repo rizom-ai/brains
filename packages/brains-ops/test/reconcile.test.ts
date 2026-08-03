@@ -8,6 +8,7 @@ import { onboardUser } from "../src/onboard-user";
 import { reconcileAll } from "../src/reconcile-all";
 import { dryRunReconcileAll } from "../src/reconcile-dry-run";
 import { reconcileCohort } from "../src/reconcile-cohort";
+import { writeUsersTable } from "../src/render-users-table";
 import { getErrorMessage } from "@brains/utils/error";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
@@ -122,8 +123,42 @@ describe("reconcile scripts", () => {
     });
   });
 
-  it("onboardUser uses the default runner and refreshes users table", async () => {
+  it("preserves the observed users table across post-render reconciliation", async () => {
     const root = await createPilotRepo(baseFiles);
+    await reconcileAll(root, undefined, { env: {} });
+    await writeUsersTable(root, {
+      resolveStatus(user) {
+        return Promise.resolve(
+          user.handle === "alice"
+            ? {
+                serverStatus: "ready",
+                deployStatus: "ready",
+                dnsStatus: "ready",
+                mcpStatus: "ready",
+              }
+            : undefined,
+        );
+      },
+    });
+    const observedTable = await readFile(join(root, "views/users.md"), "utf8");
+
+    await reconcileAll(root, undefined, { env: {} });
+    const dryRun = await dryRunReconcileAll(root);
+
+    expect(await readFile(join(root, "views/users.md"), "utf8")).toBe(
+      observedTable,
+    );
+    expect(dryRun).toEqual({
+      firstPassChangedFiles: [],
+      secondPassChangedFiles: [],
+    });
+  });
+
+  it("onboardUser uses the default runner without rewriting the observed users table", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "views/users.md": "observed fleet status\n",
+    });
 
     await onboardUser(root, "alice");
 
@@ -144,9 +179,8 @@ describe("reconcile scripts", () => {
       "This profile was initialized by brains-ops. Edit it in your content repo.",
     );
 
-    const table = await readFile(join(root, "views/users.md"), "utf8");
-    expect(table).toContain(
-      "| alice | canary | core,site,publishing |  |  | 0.1.1-alpha.15 |",
+    expect(await readFile(join(root, "views/users.md"), "utf8")).toBe(
+      "observed fleet status\n",
     );
   });
 
@@ -279,11 +313,6 @@ discord:
     );
     expect(await readFile(join(root, "users/cara/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
-    );
-
-    const table = await readFile(join(root, "views/users.md"), "utf8");
-    expect(table).toContain(
-      "| cara | steady | core |  |  | 0.1.1-alpha.14 | cara.rizom.ai | rover-cara-content | off | unknown | unknown | unknown | unknown |",
     );
   });
 

@@ -75,8 +75,9 @@ Command:
 bunx brains-ops reconcile-all <canonical-review-copy> --dry-run
 ```
 
-- First-pass changed files:
-- Second-pass changed files (must be zero):
+- First-pass reconciler-owned changed files:
+- Second-pass reconciler-owned changed files (must be zero):
+- Observational `views/users.md` unchanged by reconciliation:
 - Review copy unchanged:
 - External content-repository access blocked:
 
@@ -98,6 +99,6 @@ Complete only inside the explicitly approved maintenance window.
 - Image digest set matched this record:
 - First reconcile reviewed:
 - Per-instance health, MCP authorization, identity, content, and site checks:
-- Second reconcile produced zero drift and no deploy work:
+- Second reconcile produced zero reconciler-owned drift and no deploy work:
 - Freeze lifted:
 - One-week soak start:

@@ -383,6 +383,16 @@ const reconcileCohortCommand: OpsCommand = defineCommand({
   },
 });
 
+function renderChangedFiles(
+  heading: string,
+  files: readonly string[],
+): string[] {
+  return [
+    heading,
+    ...(files.length === 0 ? ["- (none)"] : files.map((file) => `- ${file}`)),
+  ];
+}
+
 const reconcileAllCommand: OpsCommand = defineCommand({
   name: "reconcile-all",
   usage: "<repo> [--dry-run]",
@@ -400,7 +410,17 @@ const reconcileAllCommand: OpsCommand = defineCommand({
       const secondPass = result.secondPassChangedFiles.length;
       return {
         success: secondPass === 0,
-        message: `Dry-run reconcile found ${firstPass} first-pass changed file(s); second pass ${secondPass === 0 ? "converged with zero drift" : `still changed ${secondPass} file(s)`}`,
+        message: [
+          `Dry-run reconcile found ${firstPass} first-pass changed file(s); second pass ${secondPass === 0 ? "converged with zero drift" : `still changed ${secondPass} file(s)`}`,
+          ...renderChangedFiles(
+            "First-pass changed files:",
+            result.firstPassChangedFiles,
+          ),
+          ...renderChangedFiles(
+            "Second-pass changed files:",
+            result.secondPassChangedFiles,
+          ),
+        ].join("\n"),
       };
     }
 

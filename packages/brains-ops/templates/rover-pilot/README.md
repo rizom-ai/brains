@@ -46,6 +46,8 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 - `brains-ops secrets:encrypt <repo> <handle>`
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
-- `brains-ops reconcile-all <repo> --dry-run` (isolated, no external content-repository access)
+- `brains-ops reconcile-all <repo> --dry-run` (isolated, no external content-repository access; lists both passes' changed files)
+
+`render` owns the observational `views/users.md` projection. Reconcile owns generated per-user config and never rewrites observed status rows.
 
 Use `docs/canonical-crossover-record.md` to record exact forward and rollback artifact pins before an approved crossover window.
