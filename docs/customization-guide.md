@@ -130,7 +130,7 @@ Generated standalone instances can include:
 src/site.ts
 ```
 
-When `brain.yaml` omits `site.package`, the runtime can discover local `src/site.ts` by convention. Local `src/theme.css` still layers as a theme override.
+When local `src/site.ts` exists, the runtime uses it by convention. If `brain.yaml` also selects `site.package`, that package is the structural base and the local file layers layouts, routes, plugin choices, and display metadata over it. Local `src/theme.css` still layers as a theme override.
 
 ### Start from a shipped site
 
@@ -160,7 +160,7 @@ const site: SitePackage = {
 export default site;
 ```
 
-Then remove an explicit `site.package` override from `brain.yaml` when you want the local site convention to win.
+This example is a complete site package, so `site.package` may be omitted. Keep an explicit `site.package` when the local file contains only overrides and should inherit the shipped site's plugin, templates, datasources, and other structure.
 
 ### Entity display metadata
 

@@ -133,7 +133,7 @@ site:
   themeOverride: ":root { --brand: rebeccapurple; }"
 ```
 
-All fields are optional. Local `src/site.ts`, `src/theme.css`, and `src/site-content.ts` conventions apply when the corresponding explicit choice is absent.
+All fields are optional. Local `src/site.ts` is always the effective site package when present; an explicit `site.package` becomes its base and the local file layers structural overrides over it. Local `src/theme.css` and `src/site-content.ts` apply when `site.themeOverride` or `plugins.site-content.definitions` is absent, respectively.
 
 ## Plugins
 

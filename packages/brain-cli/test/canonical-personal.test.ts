@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import defaultSite from "@brains/site-default";
 import {
+  applyConventionalSiteRefs,
+  CONVENTIONAL_SITE_PACKAGE_REF,
   parseInstanceOverrides,
+  registerConventionalSitePackage,
   registerPackage,
   resolve,
   type AppConfig,
@@ -118,6 +121,44 @@ describe("canonical personal bundles", () => {
     });
     expect(pluginConfig(resolved, "buttondown")).toMatchObject({
       doubleOptIn: true,
+    });
+  });
+
+  test("preserves the base professional plugin under local site overrides", () => {
+    const home = defaultSite.routes.find((route) => route.id === "home");
+    if (!home) throw new Error("Default professional site has no home route");
+
+    registerConventionalSitePackage(
+      {
+        layouts: { default: "local-layout" },
+        routes: [
+          {
+            ...home,
+            sections: [
+              ...(home.sections ?? []),
+              { id: "ecosystem", template: "rizom-ecosystem:ecosystem" },
+            ],
+          },
+        ],
+        entityDisplay: { post: { label: "Essay" } },
+      },
+      "@brains/site-default",
+    );
+    const overrides = applyConventionalSiteRefs(canonicalOverrides(), {
+      sitePackageRef: CONVENTIONAL_SITE_PACKAGE_REF,
+    });
+
+    const resolved = resolve(canonicalBrain, {}, overrides);
+    const routes = pluginConfig(resolved, "site-builder")?.["routes"];
+    const resolvedHome = Array.isArray(routes)
+      ? routes.find((route) => isRecord(route) && route["id"] === "home")
+      : undefined;
+
+    expect(pluginIds(resolved)).toContain("professional-site");
+    expect(resolvedHome).toMatchObject({
+      sections: expect.arrayContaining([
+        { id: "ecosystem", template: "rizom-ecosystem:ecosystem" },
+      ]),
     });
   });
 
