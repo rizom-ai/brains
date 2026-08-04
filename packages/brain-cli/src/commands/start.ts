@@ -115,16 +115,6 @@ export async function start(
       };
     }
 
-    if (flags.mode === undefined && !flags.chat && childRole === undefined) {
-      const entrypointPath = dependencies.entrypointPath ?? process.argv[1];
-      if (!entrypointPath) {
-        return {
-          success: false,
-          message: "Cannot supervise Brain without a bundled entrypoint path.",
-        };
-      }
-      return superviseWebChild(cwd, entrypointPath, dependencies);
-    }
     if (childRole === "worker") {
       return {
         success: false,
@@ -139,7 +129,30 @@ export async function start(
     try {
       const definition = await loadDefinition(config.brain);
       const { bootBrain } = await import("../lib/boot");
-      const bootedBrain = await bootBrain(cwd, definition, flags);
+
+      if (flags.mode === undefined && !flags.chat && childRole === undefined) {
+        const entrypointPath = dependencies.entrypointPath ?? process.argv[1];
+        if (!entrypointPath) {
+          return {
+            success: false,
+            message:
+              "Cannot supervise Brain without a bundled entrypoint path.",
+          };
+        }
+        await bootBrain(cwd, definition, {
+          chat: false,
+          operation: "migrate",
+        });
+        return await superviseWebChild(cwd, entrypointPath, dependencies);
+      }
+
+      const bootedBrain = await bootBrain(cwd, definition, {
+        ...flags,
+        ...(childRole && {
+          childRole,
+          migrationsCompleted: true,
+        }),
+      });
       if (flags.mode === "startup-check") {
         await bootedBrain?.stop?.();
       }

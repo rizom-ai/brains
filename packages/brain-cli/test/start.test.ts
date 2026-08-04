@@ -159,8 +159,19 @@ describe("builtin process supervision", () => {
     child.exitCode = null;
     child.killed = false;
     child.kill = mock(() => true);
-    const spawnImpl = mock(() => child as never);
-    const boot = mock(async (): Promise<void> => {});
+    const order: string[] = [];
+    let admitSpawn = (): void => {};
+    const spawned = new Promise<void>((resolve) => {
+      admitSpawn = resolve;
+    });
+    const spawnImpl = mock(() => {
+      order.push("spawn");
+      admitSpawn();
+      return child as never;
+    });
+    const boot = mock(async (): Promise<void> => {
+      order.push("migrate");
+    });
     setBootFn(boot);
 
     const resultPromise = start(
@@ -174,15 +185,47 @@ describe("builtin process supervision", () => {
       },
     );
 
+    await spawned;
     expect(spawnImpl).toHaveBeenCalledWith(
       "bun",
       ["/tmp/brain.js", "start", "--child=web"],
-      expect.objectContaining({ cwd: testDir, stdio: "inherit" }),
+      expect.objectContaining({
+        cwd: testDir,
+        stdio: ["inherit", "inherit", "inherit", "ipc"],
+      }),
     );
-    expect(boot).not.toHaveBeenCalled();
+    expect(boot).toHaveBeenCalledWith(testDir, definition, {
+      chat: false,
+      operation: "migrate",
+    });
+    expect(order).toEqual(["migrate", "spawn"]);
 
+    child.emit("message", { type: "runtime-ready" });
     child.emit("close", 0, null);
     expect(await resultPromise).toEqual({ success: true });
+  });
+
+  it("does not spawn the web child when parent migrations fail", async () => {
+    const spawnImpl = mock(() => {
+      throw new Error("must not spawn");
+    });
+    setBootFn(async () => {
+      throw new Error("migration failed");
+    });
+
+    const result = await start(
+      testDir,
+      { chat: false },
+      {
+        argv: ["start"],
+        entrypointPath: "/tmp/brain.js",
+        spawnImpl,
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("migration failed");
+    expect(spawnImpl).not.toHaveBeenCalled();
   });
 
   it("boots the web child without recursively spawning another child", async () => {
@@ -204,7 +247,11 @@ describe("builtin process supervision", () => {
 
     expect(result).toEqual({ success: true });
     expect(spawnImpl).not.toHaveBeenCalled();
-    expect(boot).toHaveBeenCalledTimes(1);
+    expect(boot).toHaveBeenCalledWith(testDir, definition, {
+      chat: false,
+      childRole: "web",
+      migrationsCompleted: true,
+    });
   });
 });
 

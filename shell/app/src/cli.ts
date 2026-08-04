@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
 import type { AppConfig } from "./types";
-import type { App as AppClass } from "./app";
+import type { App as AppClass, AppRuntimeOptions } from "./app";
 import type { ActorRef } from "@brains/contracts";
 import type { ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
@@ -167,7 +167,10 @@ function exportDeployConfig(config: AppConfig): void {
 /**
  * Handle CLI arguments and run appropriate commands from a generated brain entrypoint.
  */
-export async function handleCLI(config: AppConfig): Promise<void> {
+export async function handleCLI(
+  config: AppConfig,
+  runtimeOptions?: AppRuntimeOptions,
+): Promise<void> {
   const args = process.argv.slice(2);
 
   // Handle --export-deploy-config first (no app startup needed)
@@ -217,10 +220,11 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   } else {
     // Default: run the app
     console.log(`🚀 Starting ${config.name} v${config.version}...`);
-    App.run(config).catch((error) => {
-      console.error(`❌ Failed to start ${config.name}:`, error);
-      process.exit(1);
-    });
+    if (runtimeOptions) {
+      await App.run(config, undefined, runtimeOptions);
+    } else {
+      await App.run(config);
+    }
   }
 }
 

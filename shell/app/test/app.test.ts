@@ -173,6 +173,28 @@ describe("App", () => {
       expect(mockShell.initialize).toHaveBeenCalled();
     });
 
+    it("skips child migrations only after the supervisor schema barrier", async () => {
+      const mockShell = createMockShell();
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockReturnValue(
+        mockShell,
+      );
+
+      try {
+        const app = App.create({});
+        await app.initialize(undefined, { migrationsCompleted: true });
+
+        expect(migrationSpy).not.toHaveBeenCalled();
+        expect(mockShell.initialize).toHaveBeenCalled();
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
+    });
+
     it("should provide a startup-check API key placeholder when no key is configured", async () => {
       const mockShell = createMockShell();
       let shellConfig: Parameters<typeof Shell.createFresh>[0];

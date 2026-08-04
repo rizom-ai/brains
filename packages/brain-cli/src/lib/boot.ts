@@ -23,10 +23,18 @@ export interface BootedBrain {
   stop?(): Promise<void>;
 }
 
+export interface BootFlags {
+  chat: boolean;
+  mode?: BootMode;
+  childRole?: "web" | "worker";
+  migrationsCompleted?: boolean;
+  operation?: "migrate";
+}
+
 type BootFn = (
   cwd: string,
   definition: unknown,
-  flags: { chat: boolean; mode?: BootMode },
+  flags: BootFlags,
 ) => Promise<BootedBrain | void>;
 
 let registeredBootFn: BootFn | undefined;
@@ -44,7 +52,7 @@ export function setBootFn(fn: BootFn): void {
 export async function bootBrain(
   cwd: string,
   definition: unknown,
-  flags: { chat: boolean; mode?: BootMode },
+  flags: BootFlags,
 ): Promise<BootedBrain | void> {
   if (!registeredBootFn) {
     throw new Error(

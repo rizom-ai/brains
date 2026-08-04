@@ -691,7 +691,7 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S1 is complete. S0 and S2–S6 remain in progress.
+Implementation status: S1–S2 are complete. S0 and S3–S6 remain in progress.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every

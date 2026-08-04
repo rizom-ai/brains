@@ -78,6 +78,12 @@ setBootFn(async (cwd, definition, flags) => {
 
   const config = resolve(definition, process.env, effectiveOverrides);
 
+  if (flags.operation === "migrate") {
+    const app = App.create(config);
+    await app.migrate();
+    return;
+  }
+
   if (flags.mode) {
     const app = App.create(config);
     await app.initialize({ mode: flags.mode });
@@ -87,7 +93,17 @@ setBootFn(async (cwd, definition, flags) => {
   if (flags.chat) {
     await handleCLI({ ...config, args: ["--cli"] });
   } else {
-    await handleCLI(config);
+    await handleCLI(config, {
+      ...(flags.migrationsCompleted && { migrationsCompleted: true }),
+      ...(flags.childRole === "web" && {
+        onRuntimeReady: (): void => {
+          if (!process.send) {
+            throw new Error("Supervised Brain web child has no IPC channel");
+          }
+          process.send({ type: "runtime-ready" });
+        },
+      }),
+    });
   }
 });
 
