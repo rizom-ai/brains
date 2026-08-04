@@ -1,5 +1,15 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.249
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.249
+  - @brains/utils@0.2.0-alpha.249
+  - @brains/runtime-state@0.2.0-alpha.249
+  - @brains/scheduler@0.2.0-alpha.249
+
 ## 0.2.0-alpha.248
 
 ### Patch Changes

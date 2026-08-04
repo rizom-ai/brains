@@ -1,7 +1,7 @@
 {
   "name": "@brains/scheduler",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.248",
+  "version": "0.2.0-alpha.249",
   "description": "Shared scheduler backend contracts and deterministic test implementation",
   "dependencies": {
     "@brains/utils": "workspace:*",

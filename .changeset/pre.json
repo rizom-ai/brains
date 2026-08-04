@@ -121,7 +121,8 @@
     "@brains/profile": "0.2.0-alpha.223",
     "@brains/email": "0.2.0-alpha.235",
     "@brains/db": "0.2.0-alpha.229",
-    "@brains/onboarding": "0.2.0-alpha.243"
+    "@brains/onboarding": "0.2.0-alpha.243",
+    "@brains/email-triage": "0.2.0-alpha.247"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -231,6 +232,7 @@
     "core--dashboard-widget-namespace",
     "core--delete-email-contracts",
     "core--drop-themes-subpath",
+    "core--email-triage-routing",
     "core--fix-professional-profile-view-schema",
     "core--inbound-email-daemon",
     "core--json-native-section-content",
