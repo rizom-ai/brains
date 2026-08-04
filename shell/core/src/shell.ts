@@ -17,12 +17,18 @@ import type {
   QueryContext,
   RegisteredApiRoute,
   RegisteredWebRoute,
+  ProjectionExecutionContext,
+  ProjectionInputContext,
+  ProjectionJsonObject,
 } from "@brains/plugins";
 
 // Plugin manager
 import {
+  createAINamespace,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
+  ProjectionJsonObjectSchema,
+  resolvePrompt,
   type IAttachmentsNamespace,
   type IChannelRegistry,
   type IInboxRegistry,
@@ -170,6 +176,33 @@ export class Shell implements IShell {
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
+          createProjectionInputContext: (): ProjectionInputContext => ({
+            entities: this.services.entityService,
+            resolvePrompt: (reference, fallback): Promise<string> =>
+              resolvePrompt(this.services.entityService, reference, fallback),
+            appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
+            identityInput: (): ProjectionJsonObject => {
+              const identity = this.getIdentity();
+              const profile = this.getProfile();
+              return ProjectionJsonObjectSchema.parse({
+                brainName: identity.name,
+                role: identity.role,
+                purpose: identity.purpose,
+                values: identity.values,
+                profileName: profile.name,
+                ...(profile.description !== undefined
+                  ? { profileDescription: profile.description }
+                  : {}),
+                ...(profile.organization !== undefined
+                  ? { profileOrganization: profile.organization }
+                  : {}),
+              });
+            },
+          }),
+          createProjectionExecutionContext: (): ProjectionExecutionContext => ({
+            ai: createAINamespace(this),
+            logger: this.services.logger.child("ProjectionRuntime"),
+          }),
         },
       );
 

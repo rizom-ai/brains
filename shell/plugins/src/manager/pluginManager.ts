@@ -232,7 +232,6 @@ export class PluginManager implements IPluginManager {
     this.logger.debug("Validated projection graph", {
       projections: graph.projections.length,
       edges: graph.edges.length,
-      declaredCycles: graph.declaredCycles.length,
     });
   }
 

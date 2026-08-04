@@ -1,8 +1,4 @@
-import { z } from "@brains/utils/zod";
-import {
-  getProjectionRuleDeclaration,
-  type ProjectionRule,
-} from "./projection-rule";
+import type { ProjectionRule } from "./projection-rule";
 
 export interface ProjectionEntitySource {
   kind: "entity";
@@ -10,75 +6,11 @@ export interface ProjectionEntitySource {
   excludeTypes?: string[] | undefined;
 }
 
-export interface ProjectionEventSource {
-  kind: "event";
-  events: string[];
-}
-
-export type ProjectionSource = ProjectionEntitySource | ProjectionEventSource;
-
-export interface ProjectionFeedbackPolicy {
-  allowed: true;
-  convergenceRule: string;
-  deduplicationKey: string;
-  maxDepth: number;
-}
-
-export type ProjectionExecutionOwner = "event-owned" | "wave-owned";
-
-export interface ProjectionDeclaration {
+export interface RegisteredProjection {
   id: string;
-  targetType: string;
-  sources: ProjectionSource[];
-  executionOwner?: ProjectionExecutionOwner | undefined;
-  emittedEvents?: string[] | undefined;
-  feedback?: ProjectionFeedbackPolicy | undefined;
-}
-
-export type ProjectionDeclarationInput = ProjectionDeclaration;
-
-export const ProjectionEntitySourceSchema: z.ZodType<ProjectionEntitySource> =
-  z.object({
-    kind: z.literal("entity"),
-    types: z.array(z.string().min(1)).min(1),
-    excludeTypes: z.array(z.string().min(1)).optional(),
-  });
-
-export const ProjectionEventSourceSchema: z.ZodType<ProjectionEventSource> =
-  z.object({
-    kind: z.literal("event"),
-    events: z.array(z.string().min(1)).min(1),
-  });
-
-export const ProjectionSourceSchema: z.ZodType<ProjectionSource> = z.union([
-  ProjectionEntitySourceSchema,
-  ProjectionEventSourceSchema,
-]);
-
-export const ProjectionFeedbackPolicySchema: z.ZodType<ProjectionFeedbackPolicy> =
-  z.object({
-    allowed: z.literal(true),
-    convergenceRule: z.string().trim().min(1),
-    deduplicationKey: z.string().trim().min(1),
-    maxDepth: z.number().int().positive(),
-  });
-
-export const ProjectionDeclarationSchema: z.ZodType<ProjectionDeclarationInput> =
-  z.object({
-    id: z.string().trim().min(1),
-    targetType: z.string().trim().min(1),
-    sources: z.array(ProjectionSourceSchema),
-    executionOwner: z.enum(["event-owned", "wave-owned"]).optional(),
-    emittedEvents: z.array(z.string().min(1)).optional(),
-    feedback: ProjectionFeedbackPolicySchema.optional(),
-  });
-
-export interface RegisteredProjection extends Omit<
-  ProjectionDeclaration,
-  "executionOwner"
-> {
   pluginId: string;
-  executionOwner: ProjectionExecutionOwner;
+  targetType: string;
+  sources: ProjectionEntitySource[];
 }
 
 export interface ProjectionEntityType {
@@ -100,18 +32,13 @@ export interface ProjectionUnknownSourceTypes {
 export interface ProjectionGraph {
   readonly projections: readonly RegisteredProjection[];
   readonly edges: readonly ProjectionGraphEdge[];
-  readonly declaredCycles: readonly (readonly string[])[];
   /** Declared entity source types no installed plugin registers. Not an
-   *  error: a preset may legitimately omit a source plugin, but a typo'd
+   *  error: a bundle may legitimately omit a source plugin, but a typo'd
    *  type would otherwise silently produce no edges. */
   readonly unknownSourceTypes: readonly ProjectionUnknownSourceTypes[];
 }
 
 export interface IProjectionRegistry {
-  register(
-    pluginId: string,
-    declaration: ProjectionDeclarationInput,
-  ): () => void;
   registerRule(pluginId: string, rule: ProjectionRule): () => void;
   unregisterPlugin(pluginId: string): void;
   list(): RegisteredProjection[];
@@ -119,9 +46,9 @@ export interface IProjectionRegistry {
   validate(entityTypes: readonly ProjectionEntityType[]): ProjectionGraph;
 }
 
-/** App-scoped registry for projection dependencies and feedback policy. */
+/** App-scoped registry for immutable scheduler-owned projection rules. */
 export class ProjectionRegistry implements IProjectionRegistry {
-  private readonly declarations = new Map<string, RegisteredProjection>();
+  private readonly projections = new Map<string, RegisteredProjection>();
   private readonly rules = new Map<string, ProjectionRule>();
 
   public static createFresh(): ProjectionRegistry {
@@ -130,45 +57,32 @@ export class ProjectionRegistry implements IProjectionRegistry {
 
   private constructor() {}
 
-  public register(
-    pluginId: string,
-    input: ProjectionDeclarationInput,
-  ): () => void {
-    const parsed = ProjectionDeclarationSchema.parse(input);
-    const declaration: Omit<RegisteredProjection, "pluginId"> = {
-      ...parsed,
-      executionOwner: parsed.executionOwner ?? "event-owned",
-    };
-    const existing = this.declarations.get(declaration.id);
-    if (existing) {
-      throw new Error(
-        `Projection "${declaration.id}" is already registered by "${existing.pluginId}"`,
-      );
-    }
-
-    const registered = cloneProjection({ ...declaration, pluginId });
-    this.declarations.set(registered.id, registered);
-
-    let active = true;
-    return (): void => {
-      if (!active) return;
-      active = false;
-      if (this.declarations.get(registered.id) === registered) {
-        this.declarations.delete(registered.id);
-      }
-    };
-  }
-
   public registerRule(pluginId: string, rule: ProjectionRule): () => void {
     if (!Object.isFrozen(rule)) {
       throw new Error(
         `Projection rule "${rule.id}" must be created with defineProjectionRule`,
       );
     }
-    const unregisterDeclaration = this.register(
+    const existing = this.projections.get(rule.id);
+    if (existing) {
+      throw new Error(
+        `Projection "${rule.id}" is already registered by "${existing.pluginId}"`,
+      );
+    }
+
+    const projection: RegisteredProjection = {
+      id: rule.id,
       pluginId,
-      getProjectionRuleDeclaration(rule),
-    );
+      targetType: rule.targetType,
+      sources: rule.sources.map((source) => ({
+        kind: source.kind,
+        types: [...source.types],
+        ...(source.excludeTypes
+          ? { excludeTypes: [...source.excludeTypes] }
+          : {}),
+      })),
+    };
+    this.projections.set(rule.id, projection);
     this.rules.set(rule.id, rule);
 
     let active = true;
@@ -176,21 +90,23 @@ export class ProjectionRegistry implements IProjectionRegistry {
       if (!active) return;
       active = false;
       if (this.rules.get(rule.id) === rule) this.rules.delete(rule.id);
-      unregisterDeclaration();
+      if (this.projections.get(rule.id) === projection) {
+        this.projections.delete(rule.id);
+      }
     };
   }
 
   public unregisterPlugin(pluginId: string): void {
-    for (const [id, declaration] of this.declarations) {
-      if (declaration.pluginId === pluginId) {
-        this.declarations.delete(id);
+    for (const [id, projection] of this.projections) {
+      if (projection.pluginId === pluginId) {
+        this.projections.delete(id);
         this.rules.delete(id);
       }
     }
   }
 
   public list(): RegisteredProjection[] {
-    return Array.from(this.declarations.values())
+    return Array.from(this.projections.values())
       .sort((left, right) => left.id.localeCompare(right.id))
       .map(cloneProjection);
   }
@@ -219,22 +135,7 @@ export class ProjectionRegistry implements IProjectionRegistry {
       .map(({ type }) => type)
       .sort();
     const edges = buildEdges(projections, wildcardTypes);
-    const projectionById = new Map(
-      projections.map((projection) => [projection.id, projection]),
-    );
-    const mixedOwnerEdge = edges.find(
-      (edge) =>
-        projectionById.get(edge.from)?.executionOwner !==
-        projectionById.get(edge.to)?.executionOwner,
-    );
-    if (mixedOwnerEdge) {
-      throw new Error(
-        `Projection edge "${mixedOwnerEdge.from}" -> "${mixedOwnerEdge.to}" crosses execution owners`,
-      );
-    }
-
-    const cycles = findStronglyConnectedCycles(projections, edges);
-    const cycle = cycles[0];
+    const cycle = findStronglyConnectedCycles(projections, edges)[0];
     if (cycle) {
       const cyclePath = findCyclePath(cycle, edges);
       throw new Error(
@@ -245,7 +146,6 @@ export class ProjectionRegistry implements IProjectionRegistry {
     return freezeProjectionGraph({
       projections,
       edges,
-      declaredCycles: [],
       unknownSourceTypes: findUnknownSourceTypes(projections, registeredTypes),
     });
   }
@@ -260,7 +160,6 @@ function findUnknownSourceTypes(
     const types = [
       ...new Set(
         projection.sources
-          .filter((source) => source.kind === "entity")
           .flatMap((source) => [
             ...source.types,
             ...(source.excludeTypes ?? []),
@@ -278,22 +177,17 @@ function findUnknownSourceTypes(
 function freezeProjectionGraph(graph: ProjectionGraph): ProjectionGraph {
   for (const projection of graph.projections) {
     for (const source of projection.sources) {
-      Object.freeze(source.kind === "entity" ? source.types : source.events);
-      if (source.kind === "entity" && source.excludeTypes) {
-        Object.freeze(source.excludeTypes);
-      }
+      Object.freeze(source.types);
+      if (source.excludeTypes) Object.freeze(source.excludeTypes);
       Object.freeze(source);
     }
     Object.freeze(projection.sources);
-    if (projection.emittedEvents) Object.freeze(projection.emittedEvents);
-    if (projection.feedback) Object.freeze(projection.feedback);
     Object.freeze(projection);
   }
   for (const edge of graph.edges) {
     Object.freeze(edge.causes);
     Object.freeze(edge);
   }
-  for (const cycle of graph.declaredCycles) Object.freeze(cycle);
   for (const entry of graph.unknownSourceTypes) {
     Object.freeze(entry.types);
     Object.freeze(entry);
@@ -301,7 +195,6 @@ function freezeProjectionGraph(graph: ProjectionGraph): ProjectionGraph {
   Object.freeze(graph.unknownSourceTypes);
   Object.freeze(graph.projections);
   Object.freeze(graph.edges);
-  Object.freeze(graph.declaredCycles);
   return Object.freeze(graph);
 }
 
@@ -310,21 +203,13 @@ function cloneProjection(
 ): RegisteredProjection {
   return {
     ...projection,
-    sources: projection.sources.map((source) =>
-      source.kind === "entity"
-        ? {
-            ...source,
-            types: [...source.types],
-            ...(source.excludeTypes
-              ? { excludeTypes: [...source.excludeTypes] }
-              : {}),
-          }
-        : { ...source, events: [...source.events] },
-    ),
-    ...(projection.emittedEvents
-      ? { emittedEvents: [...projection.emittedEvents] }
-      : {}),
-    ...(projection.feedback ? { feedback: { ...projection.feedback } } : {}),
+    sources: projection.sources.map((source) => ({
+      ...source,
+      types: [...source.types],
+      ...(source.excludeTypes
+        ? { excludeTypes: [...source.excludeTypes] }
+        : {}),
+    })),
   };
 }
 
@@ -357,16 +242,7 @@ function getDependencyCauses(
   wildcardTypes: string[],
 ): string[] {
   const causes: string[] = [];
-  const emittedEvents = new Set(producer.emittedEvents ?? []);
-
   for (const source of consumer.sources) {
-    if (source.kind === "event") {
-      for (const event of source.events) {
-        if (emittedEvents.has(event)) causes.push(`event:${event}`);
-      }
-      continue;
-    }
-
     const excluded = new Set(source.excludeTypes ?? []);
     const types = source.types.includes("*")
       ? [...source.types.filter((type) => type !== "*"), ...wildcardTypes]
@@ -378,7 +254,6 @@ function getDependencyCauses(
       causes.push(`entity:${producer.targetType}`);
     }
   }
-
   return [...new Set(causes)];
 }
 

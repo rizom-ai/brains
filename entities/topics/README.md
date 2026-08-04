@@ -71,49 +71,19 @@ Default role policies:
 
 ## Runtime behavior
 
-### Incremental extraction
+When `enableAutoExtraction` is enabled, the plugin registers one immutable scheduler-owned `ProjectionRule`. Committed mutations to eligible source entities are coalesced into durable topological waves. One rule job selects the complete current source set, partitions it deterministically when needed, fingerprints the effective input, and returns canonical topic write intents.
 
-When `enableAutoExtraction` is enabled, the plugin waits until initial sync finishes, then subscribes to entity create/update events for registered projection sources except blacklisted types.
-
-Each qualifying entity queues a topic extraction job with the configured relevance threshold and merge settings.
-
-### Batch projection
-
-The `topic:project` job re-extracts topics from all default-open, non-blacklisted published source entities using batched prompts.
-
-This is what normal batch `system_extract` uses:
-
-```json
-{
-  "entityType": "topic"
-}
-```
-
-### Replace-all rebuild
-
-The rebuild projection deletes all existing topics, then re-derives them from the current source entities.
-
-Use the shared system tool:
-
-```json
-{
-  "entityType": "topic",
-  "mode": "rebuild"
-}
-```
-
-This requires explicit confirmation.
+Topic derivation is automatic. There is no event-owned `topic:project` job or manual extract/rebuild tool.
 
 ## Shared system tool surface
 
-The topics package does **not** expose its own CRUD or extract tools.
+The topics package does **not** expose its own CRUD or extraction tools.
 
-Use the shared system tools instead:
+Use the shared read and mutation tools for direct topic access:
 
-- `system_extract` — queue topic projection/rebuild jobs
 - `system_get` / `system_list` / `system_search` — read topics
 - `system_update` / `system_delete` — edit or remove topics
-- `system_create` — manual topic creation if you really want it
+- `system_create` — create a topic manually
 
 ## Merge behavior
 
@@ -157,8 +127,8 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 ## Key files
 
 - `src/index.ts` — plugin registration and package wiring
-- `src/lib/constants.ts` — package-local IDs and job constants
-- `src/lib/topic-projection.ts` — derive/rebuild projection flow
+- `src/lib/constants.ts` — package-local IDs
+- `src/lib/topic-wave-rule.ts` — scheduler-owned topic derivation
 - `src/lib/topic-presenter.ts` — shared topic presentation/projection helpers
 - `src/lib/dashboard-widget.ts` — dashboard widget registration
 - `src/lib/eval-handlers.ts` — eval harness handlers

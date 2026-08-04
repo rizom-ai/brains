@@ -1,4 +1,6 @@
 import type { ActorRef } from "@brains/contracts";
+import type { ProjectionStore } from "./projection-store";
+import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { z } from "@brains/utils/zod";
 import {
   contentVisibilitySchema,
@@ -883,6 +885,10 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
 }
 
 export interface EntityService extends ICoreEntityService {
+  // Scheduler-owned projection coordination
+  getProjectionStore(): ProjectionStore;
+  setProjectionWakeup(wakeup: () => Promise<void>): () => void;
+
   // Mutations
   createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
@@ -898,6 +904,9 @@ export interface EntityService extends ICoreEntityService {
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
+  reconcileProjectionTargets(
+    targets: readonly ProjectionChangedTarget[],
+  ): Promise<void>;
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
   isIndexReady(): boolean;
   awaitIndexReady(

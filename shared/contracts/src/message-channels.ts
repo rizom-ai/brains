@@ -79,8 +79,8 @@ export const PUBLISH_ASSET_CHANNELS = {
   register: "publish-assets:register",
 } as const;
 
-export const SERIES_CHANNELS = {
-  project: "series:project",
+export const PROJECTION_CHANNELS = {
+  waveReady: "projection:wave-ready",
 } as const;
 
 export const SHELL_CHANNELS = {

@@ -10,7 +10,6 @@ import { z } from "@brains/utils/zod";
 import type { RuntimeAppInfo } from "../interfaces";
 import type { IEntityAINamespace } from "./context";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
-import type { ProjectionDeclaration } from "./projection-registry";
 
 export {
   ProjectionJsonObjectSchema,
@@ -29,7 +28,6 @@ export interface ProjectionRuleEntitySource {
 }
 
 export interface ProjectionWaveInput {
-  readonly kind: "entity" | "rule";
   readonly sourceType: string;
   readonly sourceId: string;
   readonly revision: string;
@@ -114,23 +112,6 @@ export interface ProjectionRuleDefinition<
     context: ProjectionExecutionContext,
     signal: AbortSignal,
   ) => Promise<readonly ProjectionWriteIntent[]>;
-}
-
-export function getProjectionRuleDeclaration(
-  rule: ProjectionRule,
-): ProjectionDeclaration {
-  return {
-    id: rule.id,
-    targetType: rule.targetType,
-    executionOwner: "wave-owned",
-    sources: rule.sources.map((source) => ({
-      kind: source.kind,
-      types: [...source.types],
-      ...(source.excludeTypes
-        ? { excludeTypes: [...source.excludeTypes] }
-        : {}),
-    })),
-  };
 }
 
 const ProjectionRuleMetadataSchema = z.strictObject({

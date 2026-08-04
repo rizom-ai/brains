@@ -48,13 +48,10 @@ describe("full preset projection resilience", () => {
       "topics-projection",
     ]);
     expect(
-      graph.projections.every(
-        (projection) => projection.executionOwner === "wave-owned",
-      ),
-    ).toBe(true);
-    expect(
       graph.projections.flatMap((projection) => projection.sources),
-    ).not.toContainEqual(expect.objectContaining({ kind: "event" }));
+    ).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "entity" })]),
+    );
     expect(
       pluginManager.getProjectionRulesSnapshot().map(({ id }) => id),
     ).toEqual(projectionIds);
@@ -71,7 +68,6 @@ describe("full preset projection resilience", () => {
     expect(
       edgeCauses.get("social-post-generation -> topics-projection"),
     ).toEqual(["entity:social-post"]);
-    expect(graph.declaredCycles).toEqual([]);
     expect(graph.unknownSourceTypes).toEqual([]);
 
     await pluginManager.shutdownPlugins();

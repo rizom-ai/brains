@@ -121,6 +121,15 @@ export interface JobHandler<
     signal: AbortSignal,
   ): Promise<void>;
 
+  /** Runs once after the queue exhausts retries and persists terminal failure. */
+  onTerminalError?(
+    error: Error,
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+    signal: AbortSignal,
+  ): Promise<void>;
+
   /**
    * Validate and parse job data
    * Returns parsed data if valid, null if invalid

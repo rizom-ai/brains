@@ -8,24 +8,17 @@ export {
   EntityPlugin,
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
+export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export {
-  computeProjectionInputFingerprint,
-  getProjectionDeclaration,
-  hasPersistedTargets,
-  reconcileDerivedEntities,
-  registerDerivedEntityProjection,
-  type DerivedEntityProjection,
-  type DerivedEntityProjectionController,
-  type EntityChangePayload,
-  type ProjectionSourceChangeConfig,
-  type ReconcileDerivedEntitiesResult,
-} from "./entity/derived-entity-projection";
+  reconcileEntities,
+  type ReconcileEntitiesOptions,
+  type ReconcileEntitiesResult,
+} from "./entity/entity-reconciler";
 export {
   ProjectionJsonObjectSchema,
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,
   defineProjectionRule,
-  getProjectionRuleDeclaration,
   type ProjectionEntityReader,
   type ProjectionEntityWrite,
   type ProjectionExecutionContext,
@@ -40,20 +33,11 @@ export {
   type ProjectionWriteIntent,
 } from "./entity/projection-rule";
 export {
-  ProjectionDeclarationSchema,
-  ProjectionEntitySourceSchema,
-  ProjectionEventSourceSchema,
-  ProjectionFeedbackPolicySchema,
-  ProjectionSourceSchema,
-  type ProjectionDeclaration,
-  type ProjectionDeclarationInput,
+  type ProjectionEntitySource,
   type ProjectionEntityType,
-  type ProjectionExecutionOwner,
-  type ProjectionFeedbackPolicy,
   type ProjectionGraph,
   type ProjectionGraphEdge,
   type ProjectionUnknownSourceTypes,
-  type ProjectionSource,
   type RegisteredProjection,
 } from "./entity/projection-registry";
 export type {
@@ -62,7 +46,7 @@ export type {
   IEntityAINamespace,
   IPromptsNamespace,
 } from "./entity/context";
-export { createEntityPluginContext } from "./entity/context";
+export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   resetPromptCache,

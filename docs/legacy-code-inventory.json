@@ -19,9 +19,7 @@
     },
     {
       "id": "image-handler-alias",
-      "paths": [
-        "entities/image/src/image-plugin.ts"
-      ],
+      "paths": ["entities/image/src/image-plugin.ts"],
       "symbol": "image-generate handler alias",
       "owner": "@brains/image-plugin",
       "class": "runtime-compatibility",
@@ -48,9 +46,7 @@
     },
     {
       "id": "a2a-removed-token-config-errors",
-      "paths": [
-        "interfaces/a2a/src/a2a-interface.ts"
-      ],
+      "paths": ["interfaces/a2a/src/a2a-interface.ts"],
       "symbol": "trustedTokens/outboundTokens rejection",
       "owner": "@brains/a2a",
       "class": "rejection-only-compatibility",
@@ -62,9 +58,7 @@
     },
     {
       "id": "public-brain-config-migration",
-      "paths": [
-        "packages/brain-cli/src/lib/brain-config-migration.ts"
-      ],
+      "paths": ["packages/brain-cli/src/lib/brain-config-migration.ts"],
       "symbol": "brain config migrate",
       "owner": "@rizom/brain",
       "class": "offline-migration",
@@ -123,9 +117,7 @@
     },
     {
       "id": "starter-identity-fingerprints",
-      "paths": [
-        "plugins/profile/src/starter-identity.ts"
-      ],
+      "paths": ["plugins/profile/src/starter-identity.ts"],
       "symbol": "LEGACY_BRAIN_CHARACTER_FINGERPRINTS",
       "owner": "@brains/profile",
       "class": "durable-data-compatibility",
@@ -137,9 +129,7 @@
     },
     {
       "id": "standalone-deploy-shape-normalization",
-      "paths": [
-        "shared/deploy-support/src/index.ts"
-      ],
+      "paths": ["shared/deploy-support/src/index.ts"],
       "symbol": "normalizeStandaloneDeployYmlForComparison",
       "owner": "@brains/deploy-support",
       "class": "runtime-compatibility",
@@ -151,9 +141,7 @@
     },
     {
       "id": "site-package-plugin-factory",
-      "paths": [
-        "shared/site-composition/src/package.ts"
-      ],
+      "paths": ["shared/site-composition/src/package.ts"],
       "symbol": "SitePackage.plugin",
       "owner": "@brains/site-composition",
       "class": "runtime-compatibility",
@@ -165,9 +153,7 @@
     },
     {
       "id": "site-analytics-script-field",
-      "paths": [
-        "shared/site-engine/src/html-generator.ts"
-      ],
+      "paths": ["shared/site-engine/src/html-generator.ts"],
       "symbol": "analytics script fallback",
       "owner": "@brains/site-engine",
       "class": "runtime-compatibility",
@@ -179,9 +165,7 @@
     },
     {
       "id": "typescript-eval-config-loader",
-      "paths": [
-        "shell/ai-evaluation/src/eval-config-loader.ts"
-      ],
+      "paths": ["shell/ai-evaluation/src/eval-config-loader.ts"],
       "symbol": "brain.eval.config.ts loader",
       "owner": "@brains/ai-evaluation",
       "class": "runtime-compatibility",
@@ -223,9 +207,7 @@
     },
     {
       "id": "conversation-metadata-null-reader",
-      "paths": [
-        "shell/conversation-service/src/metadata.ts"
-      ],
+      "paths": ["shell/conversation-service/src/metadata.ts"],
       "symbol": "parseMessageMetadata",
       "owner": "@brains/conversation-service",
       "class": "durable-data-compatibility",
@@ -237,9 +219,7 @@
     },
     {
       "id": "entity-vector-drizzle-schema",
-      "paths": [
-        "shell/entity-service/src/schema/vector.ts"
-      ],
+      "paths": ["shell/entity-service/src/schema/vector.ts"],
       "symbol": "entity DB vector migration schema",
       "owner": "@brains/entity-service",
       "class": "durable-data-compatibility",
@@ -250,34 +230,40 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "derived-projection-visibility-option",
-      "paths": [
-        "shell/plugins/src/entity/derived-entity-projection.ts"
-      ],
-      "symbol": "visibility option compatibility",
-      "owner": "@brains/plugins",
+      "id": "webserver-health-endpoint-alias",
+      "paths": ["interfaces/webserver/src/server-manager.ts"],
+      "symbol": "/health endpoint alias",
+      "owner": "@brains/webserver",
       "class": "runtime-compatibility",
-      "behavior": "Honors the retired visibility option when deriving projection partition behavior.",
-      "currentConsumers": "External or internal derived projections configured before partition-first options.",
-      "removalPrerequisite": "Migrate all supported projection declarations and observe zero explicit use of the retired visibility option.",
-      "rollbackDependency": "Prior projection declarations remain runnable during their support window.",
-      "targetRelease": "0.3.0"
+      "behavior": "Serves the pre-split health endpoint alongside canonical liveness and readiness endpoints.",
+      "currentConsumers": "Older deployment probes and operators that still request /health.",
+      "removalPrerequisite": "Migrate supported probes to /health/live or /health/ready and observe zero /health requests.",
+      "rollbackDependency": "Older deployment configurations require /health during their support window.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "job-queue-direct-dequeue-timeout",
+      "paths": ["shell/job-queue/src/types.ts"],
+      "symbol": "claimTimeoutMs direct-dequeue fallback",
+      "owner": "@brains/job-queue",
+      "class": "runtime-compatibility",
+      "behavior": "Supplies a fallback lease duration for direct dequeue callers that do not pass worker-owned lease settings.",
+      "currentConsumers": "Supported direct job-queue consumers outside the canonical worker claim path.",
+      "removalPrerequisite": "Require explicit lease settings on every supported dequeue caller and observe zero fallback use.",
+      "rollbackDependency": "Older direct dequeue callers require the fallback while they remain supported.",
+      "targetRelease": "0.3.0-or-later"
     }
   ],
   "exemptions": [
     {
       "id": "typescript-compat-package-alias",
-      "paths": [
-        "scripts/eslint-typescript-compat.cjs"
-      ],
+      "paths": ["scripts/eslint-typescript-compat.cjs"],
       "class": "third-party-naming",
       "reason": "typescript-legacy is an npm alias used to isolate the compatibility compiler; it is not a persisted or runtime legacy contract."
     },
     {
       "id": "pdfjs-legacy-build-subpath",
-      "paths": [
-        "shared/document/src/lib/pdf-markdown.ts"
-      ],
+      "paths": ["shared/document/src/lib/pdf-markdown.ts"],
       "class": "third-party-naming",
       "reason": "pdfjs-dist/legacy is an upstream package export path and cannot be renamed locally."
     }

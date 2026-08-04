@@ -80,6 +80,7 @@ interface MockHandler {
   executionTimeoutMs?: number;
   process: ReturnType<typeof mock>;
   onError: ReturnType<typeof mock>;
+  onTerminalError: ReturnType<typeof mock>;
   validateAndParse: ReturnType<typeof mock>;
 }
 
@@ -87,6 +88,7 @@ function createMockHandler(): MockHandler {
   return {
     process: mock(() => Promise.resolve({ success: true })),
     onError: mock(() => Promise.resolve()),
+    onTerminalError: mock(() => Promise.resolve()),
     validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
   };
 }
@@ -952,6 +954,7 @@ describe("JobQueueWorker", () => {
         "failed",
         testJob.metadata,
       );
+      expect(handler.onTerminalError).toHaveBeenCalledTimes(1);
     });
 
     it("should not report failed status for controlled failure while retry is pending", async () => {
@@ -993,6 +996,7 @@ describe("JobQueueWorker", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(handleStatusChange).not.toHaveBeenCalled();
+      expect(handler.onTerminalError).not.toHaveBeenCalled();
     });
 
     it("should count handler { success: false } as a failed job in stats", async () => {

@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { type JobHandler } from "@brains/plugins";
 import { SeriesPlugin } from "../src/plugin";
 
 describe("SeriesPlugin", () => {
@@ -12,20 +11,6 @@ describe("SeriesPlugin", () => {
       logger: createSilentLogger("series-plugin-test"),
     });
   });
-
-  function captureJobHandlers(): Map<string, JobHandler<string, unknown>> {
-    const handlers = new Map<string, JobHandler<string, unknown>>();
-    const originalJobQueue = harness.getMockShell().getJobQueueService();
-    harness.getMockShell().getJobQueueService =
-      (): typeof originalJobQueue => ({
-        ...originalJobQueue,
-        enqueue: mock(async () => "job-1"),
-        registerHandler: (type, handler): void => {
-          handlers.set(type, handler);
-        },
-      });
-    return handlers;
-  }
 
   describe("registration", () => {
     it("should register as entity plugin", async () => {
@@ -51,12 +36,10 @@ describe("SeriesPlugin", () => {
     });
 
     it("should register one scheduler-owned projection rule", async () => {
-      const handlers = captureJobHandlers();
       const plugin = new SeriesPlugin();
       const capabilities = await harness.installPlugin(plugin);
 
-      expect(handlers.has("series:project")).toBe(false);
-      expect(capabilities.projections).toBeUndefined();
+      expect("projections" in capabilities).toBe(false);
       expect(capabilities.projectionRules).toHaveLength(1);
       expect(capabilities.projectionRules?.[0]).toMatchObject({
         id: "series-projection",

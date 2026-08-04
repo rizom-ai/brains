@@ -11,3 +11,4 @@ export {
   inboxItemSchema,
   inboxSourceMetadataSchema,
 } from "../inbox-registry";
+export { defineProjectionRule } from "../entity/projection-rule";

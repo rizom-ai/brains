@@ -1,10 +1,18 @@
-import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
+import { PROJECTION_CHANNELS } from "@brains/contracts";
+import {
+  materializePrompts,
+  SYSTEM_CHANNELS,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+} from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "@brains/utils/effect";
+import { createId } from "@brains/utils/id";
+import { activateProjectionRuntime } from "../projection-runtime";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -29,6 +37,8 @@ export interface ShellBootloaderOptions {
 export interface ShellBootloaderHooks {
   registerCoreDataSources(): void;
   registerSystemCapabilities(): void;
+  createProjectionInputContext(): ProjectionInputContext;
+  createProjectionExecutionContext(): ProjectionExecutionContext;
 }
 
 /**
@@ -100,6 +110,47 @@ export class ShellBootloader {
       this.services.contentService,
       this.services.entityService,
     );
+
+    if (options?.mode === undefined) {
+      const projectionRuntime = await activateProjectionRuntime({
+        store: this.services.entityService.getProjectionStore(),
+        queue: this.services.jobQueueService,
+        setWakeup: (wakeup) =>
+          this.services.entityService.setProjectionWakeup(wakeup),
+        graph: this.services.pluginManager.getProjectionGraphSnapshot(),
+        rules: this.services.pluginManager.getProjectionRulesSnapshot(),
+        inputContext: this.hooks.createProjectionInputContext(),
+        executionContext: this.hooks.createProjectionExecutionContext(),
+        reconcileTargets: (targets) =>
+          this.services.entityService.reconcileProjectionTargets(targets),
+        beforeWaveCompletion: async (summary): Promise<void> => {
+          if (
+            !this.services.messageBus.hasHandlers(PROJECTION_CHANNELS.waveReady)
+          ) {
+            return;
+          }
+          const responses = await this.services.messageBus.collect({
+            type: PROJECTION_CHANNELS.waveReady,
+            payload: summary,
+            sender: "shell",
+          });
+          if (
+            responses.length === 0 ||
+            responses.some(
+              (response) => "noop" in response || !response.success,
+            )
+          ) {
+            throw new Error(
+              `Projection wave ${summary.waveId} completion was not acknowledged`,
+            );
+          }
+        },
+        logger: this.services.logger,
+        createWaveId: createId,
+        now: Date.now,
+      });
+      this.services.disposables.push(() => projectionRuntime.dispose());
+    }
 
     this.hooks.registerCoreDataSources();
     this.hooks.registerSystemCapabilities();

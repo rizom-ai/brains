@@ -82,7 +82,6 @@ The stable base target is 20 tools:
 - `system_generate`
 - `system_update`
 - `system_delete`
-- `system_extract`
 - `system_job_status`
 - `system_status`
 - `system_analytics` after the existing analytics plan; `system_insights` until then

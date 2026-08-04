@@ -13,7 +13,7 @@ import {
   toTopicContentProjection,
   toTopicContentProjectionWithMetadata,
 } from "./topic-presenter";
-import { replaceAllTopics } from "./topic-projection";
+import { replaceAllTopics } from "./topic-rebuild";
 import { TopicService } from "./topic-service";
 import { TopicAdapter } from "./topic-adapter";
 import { reconcileTopics } from "./topic-reconciliation";

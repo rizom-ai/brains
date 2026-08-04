@@ -2,4 +2,4 @@
 "@rizom/brain": minor
 ---
 
-Persist effective-input fingerprints for topic, skill, and SWOT projections, skip semantically unchanged SWOT updates and site renders, coalesce automatic site rebuilds with trailing-only dirty generations and environment-scoped deduplication, and normalize optional undefined site data at the JSON boundary.
+Replace event-owned derivations with durable scheduler-owned projection waves, atomically journal entity mutations, memoize immutable effective inputs, reconcile derived embeddings, trigger automatic site builds only at successful wave boundaries, remove the obsolete manual extraction tool, and normalize optional undefined site data at the JSON boundary.

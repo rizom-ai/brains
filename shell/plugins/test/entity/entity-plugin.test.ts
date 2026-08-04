@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
@@ -6,8 +6,6 @@ import {
   EntityPlugin,
   emptyEntityPluginConfigSchema,
 } from "../../src/entity/entity-plugin";
-import type { EntityPluginContext } from "../../src/entity/context";
-import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
 import {
   defineProjectionRule,
   type ProjectionRule,
@@ -92,46 +90,6 @@ class InterceptingEntityPlugin extends EntityPlugin<
   }
 }
 
-class ProjectionEntityPlugin extends EntityPlugin<
-  TestEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType = "projection-item";
-  readonly schema = testSchema;
-  readonly adapter = new TestAdapter();
-
-  constructor() {
-    super("projection-item", testPkg, {}, emptyEntityPluginConfigSchema);
-  }
-
-  protected override getDerivedEntityProjections(
-    _context: EntityPluginContext,
-  ): DerivedEntityProjection[] {
-    return [
-      {
-        id: "projection-item-sync",
-        targetType: "projection-item",
-        job: {
-          type: "project",
-          handler: {
-            process: async () => ({ success: true }),
-            validateAndParse: (data) => data as { reason: string },
-          },
-        },
-        initialSync: {
-          jobData: { reason: "initial-sync" },
-        },
-        sourceChange: {
-          sourceTypes: ["document"],
-          jobData: () => null,
-        },
-        emittedEvents: ["projection-item:completed"],
-      },
-    ];
-  }
-}
-
 class WaveRuleEntityPlugin extends EntityPlugin<
   TestEntity,
   Record<string, never>,
@@ -160,13 +118,13 @@ class WaveRuleEntityPlugin extends EntityPlugin<
   }
 }
 
-class OptedInProjectionEntityPlugin extends ProjectionEntityPlugin {
+class OptedInProjectionEntityPlugin extends WaveRuleEntityPlugin {
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return { projectionSourceRole: "supporting" };
   }
 }
 
-class RoleExcludedProjectionEntityPlugin extends ProjectionEntityPlugin {
+class RoleExcludedProjectionEntityPlugin extends WaveRuleEntityPlugin {
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return { projectionSourceRole: "excluded" };
   }
@@ -243,64 +201,14 @@ describe("EntityPlugin", () => {
       });
     });
 
-    it("should auto-register declared derived entity projections", async () => {
-      const registerHandler = mock(() => {});
-      const enqueue = mock(async () => "job-1");
-      harness.getMockShell().getJobQueueService = (): never =>
-        ({
-          enqueue,
-          registerHandler,
-          getActiveJobs: async () => [],
-          getFailedJobs: async () => [],
-          getActiveBatches: async () => [],
-          getBatchStatus: async () => null,
-          getStatus: async () => null,
-        }) as never;
-
-      const plugin = new ProjectionEntityPlugin();
-      const capabilities = await harness.installPlugin(plugin);
-
-      expect(
-        harness.getEntityRegistry().getEntityTypeConfig("projection-item"),
-      ).toMatchObject({
-        projectionSource: false,
-        projectionSourceRole: "excluded",
-      });
-      expect(registerHandler).toHaveBeenCalledWith(
-        "projection-item:project",
-        expect.any(Object),
-        "projection-item",
-      );
-      expect(capabilities.projections).toEqual([
-        {
-          id: "projection-item-sync",
-          targetType: "projection-item",
-          sources: [{ kind: "entity", types: ["document"] }],
-          emittedEvents: ["projection-item:completed"],
-        },
-      ]);
-
-      await harness.sendMessage(
-        "sync:initial:completed",
-        { success: true },
-        "directory-sync",
-      );
-
-      expect(enqueue).toHaveBeenCalledWith({
-        type: "projection-item:project",
-        data: { reason: "initial-sync" },
-        options: expect.objectContaining({ source: "projection-item" }),
-      });
-    });
-
-    it("publishes executable rules without registering event-owned handlers", async () => {
+    it("publishes only scheduler-owned executable rules", async () => {
       const plugin = new WaveRuleEntityPlugin();
       const capabilities = await harness.installPlugin(plugin);
 
       expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
         "wave-item-rule",
       ]);
-      expect(capabilities.projections).toBeUndefined();
+      expect("projections" in capabilities).toBe(false);
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
       ).toMatchObject({
@@ -314,7 +222,7 @@ describe("EntityPlugin", () => {
       await harness.installPlugin(plugin);
 
       expect(
-        harness.getEntityRegistry().getEntityTypeConfig("projection-item"),
+        harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
       ).toEqual({ projectionSourceRole: "supporting" });
     });
 
@@ -323,7 +231,7 @@ describe("EntityPlugin", () => {
       await harness.installPlugin(plugin);
 
       expect(
-        harness.getEntityRegistry().getEntityTypeConfig("projection-item"),
+        harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
       ).toEqual({
         projectionSource: false,
         projectionSourceRole: "excluded",

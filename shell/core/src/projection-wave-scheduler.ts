@@ -1,3 +1,4 @@
+import type { ProjectionWaveReady } from "@brains/contracts";
 import type {
   ClaimProjectionWaveInput,
   ProjectionWave,
@@ -30,6 +31,7 @@ export interface ProjectionWaveStore {
     jobId: string,
   ): Promise<unknown>;
   completeWave(waveId: string, completedAt: number): Promise<ProjectionWave>;
+  failWave(waveId: string, failedAt: number): Promise<ProjectionWave>;
 }
 
 export interface ProjectionWaveQueue {
@@ -42,6 +44,8 @@ export interface ProjectionWaveSchedulerOptions {
   graph: ProjectionGraph;
   rules: readonly ProjectionRule[];
   createWaveId: () => string;
+  beforeWaveCompletion?:
+    ((summary: ProjectionWaveReady) => Promise<void>) | undefined;
   now: () => number;
 }
 
@@ -55,7 +59,11 @@ export class ProjectionWaveScheduler {
   private readonly ruleById: ReadonlyMap<string, ProjectionRule>;
   private readonly graphFingerprint: string;
   private readonly createWaveId: () => string;
+  private readonly beforeWaveCompletion: (
+    summary: ProjectionWaveReady,
+  ) => Promise<void>;
   private readonly now: () => number;
+  private operationTail: Promise<void> = Promise.resolve();
 
   constructor(options: ProjectionWaveSchedulerOptions) {
     this.store = options.store;
@@ -67,20 +75,48 @@ export class ProjectionWaveScheduler {
       options.rules,
     );
     this.createWaveId = options.createWaveId;
+    this.beforeWaveCompletion =
+      options.beforeWaveCompletion ?? (async (): Promise<void> => {});
     this.now = options.now;
   }
 
-  public async advanceActiveWave(waveId: string): Promise<ProjectionWave> {
-    const activeWave = await this.store.getActiveWave();
-    if (activeWave?.id !== waveId) {
-      throw new Error(`Projection wave "${waveId}" is not active`);
-    }
-    return this.advanceWave(activeWave);
+  public advanceActiveWave(waveId: string): Promise<ProjectionWave> {
+    return this.runExclusive(async () => {
+      const activeWave = await this.store.getActiveWave();
+      if (activeWave?.id !== waveId) {
+        throw new Error(`Projection wave "${waveId}" is not active`);
+      }
+      const advanced = await this.advanceWave(activeWave);
+      if (advanced.status === "completed") {
+        await this.startNextWaveInternal();
+      }
+      return advanced;
+    });
   }
 
-  public async startNextWave(): Promise<ProjectionWave | null> {
+  public startNextWave(): Promise<ProjectionWave | null> {
+    return this.runExclusive(() => this.startNextWaveInternal());
+  }
+
+  public failActiveWave(waveId: string): Promise<ProjectionWave> {
+    return this.runExclusive(async () => {
+      const activeWave = await this.store.getActiveWave();
+      if (activeWave?.id !== waveId) {
+        throw new Error(`Projection wave "${waveId}" is not active`);
+      }
+      return this.store.failWave(waveId, this.now());
+    });
+  }
+
+  private async startNextWaveInternal(): Promise<ProjectionWave | null> {
     const activeWave = await this.store.getActiveWave();
-    if (activeWave) return this.advanceWave(activeWave);
+    if (activeWave) {
+      const advanced = await this.advanceWave(activeWave);
+      if (advanced.status === "completed") {
+        await this.startNextWaveInternal();
+      }
+      return advanced;
+    }
 
     const startedAt = this.now();
     const wave = await this.store.claimPendingWave({
@@ -93,11 +129,29 @@ export class ProjectionWaveScheduler {
     const inputs = await this.store.listWaveInputs(wave.id);
     const plannedRules = planReachableRules(this.graph, this.ruleById, inputs);
     if (plannedRules.length === 0) {
-      return this.store.completeWave(wave.id, this.now());
+      const completed = await this.completeWave(wave);
+      await this.startNextWaveInternal();
+      return completed;
     }
 
     await this.store.putWaveRules(wave.id, plannedRules);
     return this.advanceWave(wave);
+  }
+
+  private async runExclusive<TResult>(
+    operation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    const previous = this.operationTail;
+    let release = (): void => {};
+    this.operationTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
   }
 
   private async advanceWave(wave: ProjectionWave): Promise<ProjectionWave> {
@@ -115,13 +169,13 @@ export class ProjectionWaveScheduler {
         inputs,
       );
       if (plannedRules.length === 0) {
-        return this.store.completeWave(wave.id, this.now());
+        return this.completeWave(wave);
       }
       await this.store.putWaveRules(wave.id, plannedRules);
       rules = await this.store.listWaveRules(wave.id);
     }
     if (rules.every((rule) => rule.status === "completed")) {
-      return this.store.completeWave(wave.id, this.now());
+      return this.completeWave(wave, rules);
     }
     const failedRule = rules.find((rule) => rule.status === "failed");
     if (failedRule) {
@@ -142,6 +196,30 @@ export class ProjectionWaveScheduler {
       pendingRules.map((rule) => this.enqueueRule(wave.id, rule)),
     );
     return wave;
+  }
+
+  private async completeWave(
+    wave: ProjectionWave,
+    waveRules?: readonly ProjectionWaveRule[],
+  ): Promise<ProjectionWave> {
+    const [inputs, rules] = await Promise.all([
+      this.store.listWaveInputs(wave.id),
+      waveRules
+        ? Promise.resolve(waveRules)
+        : this.store.listWaveRules(wave.id),
+    ]);
+    await this.beforeWaveCompletion({
+      waveId: wave.id,
+      sourceTypes: [...new Set(inputs.map((input) => input.sourceType))].sort(),
+      changedTargetTypes: [
+        ...new Set(
+          rules.flatMap((rule) =>
+            rule.changedTargets.map((target) => target.entityType),
+          ),
+        ),
+      ].sort(),
+    });
+    return this.store.completeWave(wave.id, this.now());
   }
 
   private async enqueueRule(
@@ -179,22 +257,18 @@ function validateRuleComposition(
     ruleById.set(rule.id, rule);
   }
 
-  const waveProjectionIds = new Set(
-    graph.projections
-      .filter((projection) => projection.executionOwner === "wave-owned")
-      .map((projection) => projection.id),
+  const projectionIds = new Set(
+    graph.projections.map((projection) => projection.id),
   );
-  for (const projectionId of waveProjectionIds) {
+  for (const projectionId of projectionIds) {
     if (!ruleById.has(projectionId)) {
-      throw new Error(
-        `Wave-owned projection "${projectionId}" has no executable rule`,
-      );
+      throw new Error(`Projection "${projectionId}" has no executable rule`);
     }
   }
   for (const ruleId of ruleById.keys()) {
-    if (!waveProjectionIds.has(ruleId)) {
+    if (!projectionIds.has(ruleId)) {
       throw new Error(
-        `Executable projection rule "${ruleId}" is not wave-owned in the graph`,
+        `Executable projection rule "${ruleId}" is not in the graph`,
       );
     }
   }
@@ -219,14 +293,11 @@ function planReachableRules(
   ruleById: ReadonlyMap<string, ProjectionRule>,
   inputs: readonly ProjectionWaveInput[],
 ): ProjectionWaveRuleInput[] {
-  const waveProjections = graph.projections.filter(
-    (projection) => projection.executionOwner === "wave-owned",
-  );
   const projectionById = new Map(
-    waveProjections.map((projection) => [projection.id, projection]),
+    graph.projections.map((projection) => [projection.id, projection]),
   );
   const reachable = new Set(
-    waveProjections
+    graph.projections
       .filter((projection) => isTriggeredBy(projection, inputs))
       .map((projection) => projection.id),
   );
@@ -266,20 +337,10 @@ function isTriggeredBy(
   projection: RegisteredProjection,
   inputs: readonly ProjectionWaveInput[],
 ): boolean {
-  if (
-    inputs.some(
-      (input) => input.kind === "rule" && input.sourceId === projection.id,
-    )
-  ) {
-    return true;
-  }
-
   return projection.sources.some((source) => {
-    if (source.kind !== "entity") return false;
     const excluded = new Set(source.excludeTypes ?? []);
     return inputs.some(
       (input) =>
-        input.kind === "entity" &&
         !excluded.has(input.sourceType) &&
         (source.types.includes("*") || source.types.includes(input.sourceType)),
     );

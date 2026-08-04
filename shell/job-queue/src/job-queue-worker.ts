@@ -5,6 +5,7 @@ import type { IJobProgressMonitor } from "@brains/utils/progress";
 import { HandlerFailureSchema, type JobResult } from "./schemas";
 import type {
   IJobQueueService,
+  JobHandler,
   JobInfo,
   JobQueueWorkerConfig,
   JobQueueWorkerStats,
@@ -750,12 +751,15 @@ export class JobQueueWorker {
       const failure = HandlerFailureSchema.safeParse(result);
       if (failure.success) {
         const errorMessage = failure.data.error ?? "Handler returned failure";
+        const processError = new Error(errorMessage);
         const applied = await this.jobQueueService.fail(
           job.id,
-          new Error(errorMessage),
+          processError,
           attemptId,
         );
-        if (applied) await this.emitTerminalFailure(job);
+        if (applied) {
+          await this.emitTerminalFailure(job, processError, handler, attemptId);
+        }
         return {
           jobId: job.id,
           type: job.type,
@@ -828,7 +832,9 @@ export class JobQueueWorker {
         processError,
         attemptId,
       );
-      if (applied) await this.emitTerminalFailure(job);
+      if (applied) {
+        await this.emitTerminalFailure(job, processError, handler, attemptId);
+      }
 
       return {
         jobId: job.id,
@@ -839,14 +845,50 @@ export class JobQueueWorker {
     }
   }
 
-  private async emitTerminalFailure(job: JobInfo): Promise<void> {
+  private async emitTerminalFailure(
+    job: JobInfo,
+    error: Error,
+    handler: JobHandler,
+    attemptId: string,
+  ): Promise<void> {
     const status = await this.jobQueueService.getStatus(job.id);
-    if (status?.status === JOB_STATUS.FAILED) {
-      await this.progressMonitor.handleJobStatusChange(
-        job.id,
-        "failed",
-        job.metadata,
-      );
+    if (status?.status !== JOB_STATUS.FAILED) return;
+
+    if (handler.onTerminalError) {
+      try {
+        const parsedData = handler.validateAndParse(JSON.parse(job.data));
+        if (parsedData !== null) {
+          const progressReporter = this.progressMonitor.createProgressReporter(
+            job.id,
+            attemptId,
+          );
+          const terminalController = new AbortController();
+          await this.executeWithDeadline(
+            `${job.type}:onTerminalError`,
+            this.config.errorCallbackTimeoutMs,
+            terminalController,
+            () =>
+              handler.onTerminalError?.(
+                error,
+                parsedData,
+                job.id,
+                progressReporter,
+                terminalController.signal,
+              ) ?? Promise.resolve(),
+          );
+        }
+      } catch (callbackError) {
+        this.logger.error("Job handler terminal error callback failed", {
+          jobId: job.id,
+          error: callbackError,
+        });
+      }
     }
+
+    await this.progressMonitor.handleJobStatusChange(
+      job.id,
+      "failed",
+      job.metadata,
+    );
   }
 }

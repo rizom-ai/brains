@@ -29,7 +29,6 @@ describe("ProjectionStore", () => {
   it("commits an entity mutation and dirty revision together", async () => {
     await store.withDirtyInput(
       {
-        kind: "entity",
         sourceType: "document",
         sourceId: "doc-atomic",
         revision: "hash-atomic",
@@ -63,7 +62,6 @@ describe("ProjectionStore", () => {
     void expect(
       store.withDirtyInput(
         {
-          kind: "entity",
           sourceType: "document",
           sourceId: "doc-rollback",
           revision: "hash-rollback",
@@ -92,7 +90,6 @@ describe("ProjectionStore", () => {
 
   it("keeps only the latest pending revision for each scheduling input", async () => {
     const firstGeneration = await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-1",
@@ -100,7 +97,6 @@ describe("ProjectionStore", () => {
       markedAt: 10,
     });
     const secondGeneration = await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-2",
@@ -108,10 +104,9 @@ describe("ProjectionStore", () => {
       markedAt: 20,
     });
     await store.markDirty({
-      kind: "rule",
-      sourceType: "rule",
-      sourceId: "topics",
-      revision: "config-1",
+      sourceType: "topic",
+      sourceId: "topic-1",
+      revision: "hash-topic",
       operation: "upsert",
       markedAt: 30,
     });
@@ -119,7 +114,6 @@ describe("ProjectionStore", () => {
     expect(secondGeneration).toBeGreaterThan(firstGeneration);
     expect(await store.listPendingInputs()).toEqual([
       {
-        kind: "entity",
         sourceType: "document",
         sourceId: "doc-1",
         revision: "hash-2",
@@ -128,16 +122,15 @@ describe("ProjectionStore", () => {
         markedAt: 20,
       },
       expect.objectContaining({
-        kind: "rule",
-        sourceId: "topics",
-        revision: "config-1",
+        sourceType: "topic",
+        sourceId: "topic-1",
+        revision: "hash-topic",
       }),
     ]);
   });
 
   it("coalesces a claimed generation while newer ingress remains pending", async () => {
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-obsolete",
@@ -145,7 +138,6 @@ describe("ProjectionStore", () => {
       markedAt: 5,
     });
     const claimedGeneration = await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-1",
@@ -159,7 +151,6 @@ describe("ProjectionStore", () => {
       startedAt: 20,
     });
     const successorGeneration = await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-2",
@@ -178,7 +169,6 @@ describe("ProjectionStore", () => {
     expect(await store.listWaveInputs("wave-1")).toEqual([
       {
         waveId: "wave-1",
-        kind: "entity",
         sourceType: "document",
         sourceId: "doc-1",
         revision: "hash-1",
@@ -207,7 +197,6 @@ describe("ProjectionStore", () => {
 
   it("recovers a failed wave without replacing newer pending ingress", async () => {
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-newer",
       revision: "hash-claimed",
@@ -215,7 +204,6 @@ describe("ProjectionStore", () => {
       markedAt: 10,
     });
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-requeue",
       revision: "hash-requeue",
@@ -228,7 +216,6 @@ describe("ProjectionStore", () => {
       startedAt: 20,
     });
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-newer",
       revision: "hash-newer",
@@ -256,7 +243,6 @@ describe("ProjectionStore", () => {
 
   it("atomically stores a memo, canonical writes, and rule outcome", async () => {
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-1",
@@ -346,9 +332,38 @@ describe("ProjectionStore", () => {
     expect(await store.getActiveWave()).toBeNull();
   });
 
+  it("accepts late queue bookkeeping after a fast rule completes", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "document-fast",
+      revision: "hash-fast",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-fast",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await store.putWaveRules("wave-fast", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    const completed = await store.applyRuleResult({
+      waveId: "wave-fast",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "input-fast",
+      writeIntents: [],
+      completedAt: 30,
+    });
+
+    expect(
+      await store.queueWaveRule("wave-fast", "topics", "job-fast"),
+    ).toEqual(completed);
+  });
+
   it("rejects rule writes outside the scheduler-authorized target type", async () => {
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-1",
@@ -395,7 +410,6 @@ describe("ProjectionStore", () => {
 
   it("rolls back memo and writes when rule outcome persistence fails", async () => {
     await store.markDirty({
-      kind: "entity",
       sourceType: "document",
       sourceId: "doc-1",
       revision: "hash-1",

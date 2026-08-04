@@ -51,6 +51,7 @@ export interface ProjectionRuleExecutionStore {
 
 export interface ProjectionWaveCoordinator {
   advanceActiveWave(waveId: string): Promise<unknown>;
+  failActiveWave(waveId: string): Promise<unknown>;
 }
 
 export interface ProjectionRuleJobHandlerOptions {
@@ -59,6 +60,9 @@ export interface ProjectionRuleJobHandlerOptions {
   coordinator: ProjectionWaveCoordinator;
   inputContext: ProjectionInputContext;
   executionContext: ProjectionExecutionContext;
+  reconcileTargets: (
+    targets: ProjectionWaveRule["changedTargets"],
+  ) => Promise<void>;
   now: () => number;
 }
 
@@ -73,6 +77,9 @@ export class ProjectionRuleJobHandler implements JobHandler<
   private readonly coordinator: ProjectionWaveCoordinator;
   private readonly inputContext: ProjectionInputContext;
   private readonly executionContext: ProjectionExecutionContext;
+  private readonly reconcileTargets: (
+    targets: ProjectionWaveRule["changedTargets"],
+  ) => Promise<void>;
   private readonly now: () => number;
 
   constructor(options: ProjectionRuleJobHandlerOptions) {
@@ -88,12 +95,21 @@ export class ProjectionRuleJobHandler implements JobHandler<
     this.coordinator = options.coordinator;
     this.inputContext = options.inputContext;
     this.executionContext = options.executionContext;
+    this.reconcileTargets = options.reconcileTargets;
     this.now = options.now;
   }
 
   public validateAndParse(data: unknown): ProjectionRuleJobData | null {
     const parsed = projectionRuleJobDataSchema.safeParse(data);
     return parsed.success ? parsed.data : null;
+  }
+
+  public async onTerminalError(
+    _error: Error,
+    data: ProjectionRuleJobData,
+  ): Promise<void> {
+    const parsedData = projectionRuleJobDataSchema.parse(data);
+    await this.coordinator.failActiveWave(parsedData.waveId);
   }
 
   public async process(
@@ -152,6 +168,7 @@ export class ProjectionRuleJobHandler implements JobHandler<
       completedAt: this.now(),
     });
 
+    await this.reconcileTargets(outcome.changedTargets);
     await this.coordinator.advanceActiveWave(parsedData.waveId);
     return {
       waveId: parsedData.waveId,
@@ -168,7 +185,6 @@ function buildTriggerInputs(
   currentLevel: number,
 ): ProjectionWaveInput[] {
   const ingress: ProjectionWaveInput[] = waveInputs.map((input) => ({
-    kind: input.kind,
     sourceType: input.sourceType,
     sourceId: input.sourceId,
     revision: input.revision,
@@ -179,7 +195,6 @@ function buildTriggerInputs(
     .filter((rule) => rule.status === "completed" && rule.level < currentLevel)
     .flatMap((rule) =>
       rule.changedTargets.map((target) => ({
-        kind: "entity",
         sourceType: target.entityType,
         sourceId: target.entityId,
         revision:

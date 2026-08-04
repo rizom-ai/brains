@@ -31,7 +31,7 @@ describe("SwotAssessmentPlugin", () => {
       projectionSource: false,
       projectionSourceRole: "excluded",
     });
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toHaveLength(1);
     expect(capabilities.projectionRules?.[0]).toMatchObject({
       id: "swot-derivation",

@@ -42,16 +42,12 @@ describe("Topic projection registration", () => {
       "entity-service",
     );
 
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toHaveLength(1);
     expect(capabilities.projectionRules?.[0]?.sources).toEqual([
       { kind: "entity", types: ["post"], excludeTypes: ["topic"] },
     ]);
-    expect(registerHandler).not.toHaveBeenCalledWith(
-      "topic:project",
-      expect.anything(),
-      expect.anything(),
-    );
+    expect(registerHandler).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -61,7 +57,7 @@ describe("Topic projection registration", () => {
       new TopicsPlugin({ enableAutoExtraction: false }),
     );
 
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toBeUndefined();
   });
 });

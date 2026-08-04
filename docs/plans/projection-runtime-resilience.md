@@ -4,10 +4,7 @@
 
 Implementation is in progress on `work/projection-runtime-resilience`.
 
-The incident-hardening work is largely implemented. The remaining structural
-problem is projection fan-out: N source mutations can independently trigger N
-jobs at each derivation level and repeated site builds. This plan solves that
-problem with scheduler-owned derivation waves.
+The incident-hardening work and scheduler-only projection cutover are implemented. Durable wave execution, framework-owned output indexing, and wave-end site-build admission are active; same-bundle process supervision remains in progress.
 
 This plan keeps the existing packaging and deployment shape and makes a clean
 runtime cutover. There is one derivation-rule contract and one scheduler-owned
@@ -146,8 +143,7 @@ input. Global rules select their full effective current input:
 
 `selectInput` returns one plain, immutable JSON-compatible object containing all
 effective inputs: sorted source IDs and content hashes, visibility, prompt
-content/version, plugin configuration, identity inputs, model configuration,
-and any explicit operator invalidation revision.
+content/version, plugin configuration, identity inputs, and model configuration.
 
 The framework supplies the canonical fingerprint implementation; rule
 definitions cannot override it. It computes and stores the fingerprint from
@@ -183,26 +179,24 @@ responsible for jobs and their execution lifecycle.
 
 ### Dirty revisions
 
-Pending ingress is an append-only revision journal:
+Pending ingress is an append-only entity revision journal:
 
 ```text
-(generation, kind, sourceType, sourceId, revision, operation, markedAt)
+(generation, sourceType, sourceId, revision, operation, markedAt)
 ```
 
-Entity inputs use `kind = entity`, their entity type and ID, and content hash as
-the revision. `operation` is `upsert` or `delete`; deletes are tombstones.
-Direct rule invalidations use `kind = rule`, the affected rule ID, and a
-revision for prompt/configuration/model changes, bootstrap, or explicit
-operator invalidation. No other dirty-input kind is introduced. In particular,
-conversation messages do not gain an outbox/importer bridge into this journal.
+Each input identifies an entity type and ID. Its revision covers the persisted
+content, metadata, and visibility; `operation` is `upsert` or `delete`, with
+deletes represented as tombstones. There is no non-entity input kind, synthetic
+rule input, manual invalidation path, or conversation outbox/importer bridge.
 
-For entity inputs, the entity-service create, update, or delete transaction
-also inserts the journal row atomically. Each insert receives a database-owned,
-monotonic generation; marking dirty never rewrites an earlier generation or
-uses conflict-update SQL. Claiming coalesces rows through its generation cutoff
-to the latest revision per `(kind, sourceType, sourceId)`, then removes all
-journal rows through that cutoff. A newer mutation has a greater generation and
-cannot be cleared accidentally.
+The entity-service create, update, or delete transaction also inserts the
+journal row atomically. Each insert receives a database-owned, monotonic
+generation; marking dirty never rewrites an earlier generation or uses
+conflict-update SQL. Claiming coalesces rows through its generation cutoff to
+the latest revision per `(sourceType, sourceId)`, then removes all journal rows
+through that cutoff. A newer mutation has a greater generation and cannot be
+cleared accidentally.
 
 ### Wave records and claimed inputs
 
@@ -216,7 +210,7 @@ The claim transaction copies each coalesced latest dirty revision into a
 wave-input record before removing the covered journal generations:
 
 ```text
-(waveId, kind, sourceType, sourceId, revision, operation, generation)
+(waveId, sourceType, sourceId, revision, operation, generation)
 ```
 
 This is the durable recovery source. A newer pending revision for the same
@@ -266,6 +260,47 @@ These are the only new durable scheduler concepts: pending dirty revisions,
 claimed wave inputs and coordination, and rule memos. They share the entity
 database so entity writes and scheduler outcomes have one atomic boundary.
 
+### Entity-database connection roles
+
+Transactional ingress exposed a driver constraint: `@libsql/client`'s sqlite3
+flavor discards its connection on every `transaction()` call and lazily opens
+a fresh one for later statements (verified against the vendored client;
+`sqlite3.js` sets `#db = null` inside `transaction()`). Any connection-local
+state on that client — the `ATTACH ... AS emb` used by vector search, and
+`busy_timeout` — silently dies with the first mutation. This was latent
+before because no entity-client code path used interactive transactions; the
+atomic journal transaction makes every create/update/delete trigger it, so one
+mutation permanently severs search from the embedding database in production
+as well as tests (`no such table: emb.embeddings`).
+
+Decision: split entity-database access by connection role.
+
+- A **mutation client** owns every transaction (`withDirtyInput`, wave claim,
+  rule-result application, wave failure). It never carries ATTACH and expects
+  nothing connection-local to survive.
+- A **search client** — a second client on the same file, created with the
+  service — owns the embedding ATTACH and serves every query that joins
+  `emb.*`. It never calls `transaction()`, enforced structurally: search code
+  receives a read-only type with no transaction affordance, so regression is
+  a compile error, not a convention. WAL (persistent in the file) makes the
+  concurrent reader and writer safe.
+
+Database-dependent operations gate on the initialization promise internally
+(`await` at entry — search and mutations are already async) instead of
+trusting callers to await `initialize()` first; sleeps, retries, and other
+timing workarounds stay prohibited. Embeddings remain in their separate
+rebuildable database; moving them into the entity database or replacing the
+driver are rejected — the placement rule stands, and the vector functions
+(`vector32`, `vector_distance_cos`) are libsql extensions.
+
+Required regression test: create one entity (forcing a transaction and the
+connection replacement), then run a vector search joining `emb.embeddings`
+and assert it succeeds. The paired `SQLITE_BUSY: cannot commit transaction -
+SQL statements in progress` failures sit in the same init-race /
+connection-churn family this split removes; if any survive the split plus
+init gating, that is a distinct bug requiring its own diagnosis before
+cutover is complete.
+
 ## Wave lifecycle
 
 ### 1. Mark dirty
@@ -273,12 +308,10 @@ database so entity writes and scheduler outcomes have one atomic boundary.
 External mutations—directory sync, user edits, API writes, and chat tools—append
 a source revision in the same entity-service transaction as the mutation. The
 entity service records ingress without knowing the projection graph; scheduler
-reachability is evaluated only from the finalized `PluginManager` graph. A
-changed rule configuration fingerprint or explicit operator invalidation
-appends a direct rule revision. On boot, each enabled rule appends its canonical
-rule/version/config bootstrap revision; memo replay makes unchanged boots
-no-ops. Startup hydration and persistence replay do not mark entity inputs
-dirty.
+reachability is evaluated only from the finalized `PluginManager` graph.
+Existing entities enter the scheduler once through the upgrade migration
+backfill. Startup hydration and persistence replay do not mark inputs dirty,
+and rule/config changes do not create synthetic scheduler inputs.
 
 Projection-owned writes do not re-enter the global event path. Their changed
 results are attached directly to the active wave and evaluated against the
@@ -422,8 +455,7 @@ rule contract, including:
 - skills;
 - SWOT;
 - series;
-- conversation-memory summaries, after their canonical source model is
-  explicitly decided;
+- conversation-memory summaries, or disable their automatic producer until a canonical entity-backed source is approved;
 - social-post auto-generation from queued posts;
 - every preset-specific derivation discovered by the finalized registry.
 
@@ -435,22 +467,11 @@ generation jobs outside the derivation graph.
 Each conversion replaces handler-owned mutation with immutable input selection
 and canonical write intents. Topic-to-skill and skill-to-SWOT dependencies come
 from entity source/target graph edges, never semantic completion events.
-Bootstrap work is a direct rule invalidation keyed by the
-rule/version/config fingerprint, not an `initialSync` event handler.
+Upgrade bootstrap is a one-time migration backfill of existing entity revisions into the ordinary entity dirty journal, not an `initialSync` event handler or a non-entity invalidation kind.
 
-Conversation-memory is an explicit design gate. Its messages currently live
-outside the entity database, and this plan does not choose an outbox, importer,
-event bridge, cross-database write, or new ingress service to compensate. Its
-canonical source representation must be approved in a separate plan amendment
-before conversation-memory is migrated or the scheduler-only runtime is
-activated.
+Conversation messages remain outside the entity database. The automatic conversation-memory producer is therefore disabled; existing memory readers, context providers, datasources, templates, and evaluation utilities remain available. Re-enabling production requires a separately approved canonical entity-backed source model, not an outbox, importer, event bridge, or cross-database ingress service.
 
-The scheduler runtime is not activated until the inventory test proves that
-every registered derivation uses `ProjectionRule`, conversation-memory has an
-approved canonical source model, and no derivation is subscribed to an event or
-uses a legacy projection job type. Ordinary command and observer subscriptions
-that do not register, enqueue, or identify projection work remain outside this
-constraint.
+The activated runtime inventory proves that every registered derivation uses `ProjectionRule` and no derivation subscribes to an event or uses a legacy projection job type. Ordinary command and observer subscriptions that do not register, enqueue, or identify projection work remain outside this constraint.
 
 ### Stage 2: activate the scheduler-only runtime
 

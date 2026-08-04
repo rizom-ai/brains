@@ -41,6 +41,7 @@ import type {
   EntityRegistry as IEntityRegistry,
 } from "./types";
 import { embeddings } from "./schema/embeddings";
+import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
 import { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
@@ -50,6 +51,7 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
+import { ProjectionStore } from "./projection-store";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
@@ -82,6 +84,7 @@ export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
+  private searchDbClient: Client;
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
   private dbInitPromise!: Promise<void>;
@@ -93,6 +96,7 @@ export class EntityService implements IEntityService {
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
+  private readonly projectionStore: ProjectionStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
@@ -119,6 +123,12 @@ export class EntityService implements IEntityService {
       failed = true;
     }
     try {
+      this.searchDbClient.close();
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    try {
       this.dbClient.close();
     } catch (error) {
       if (!failed) firstError = error;
@@ -136,9 +146,20 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
+    this.projectionStore = new ProjectionStore(
+      this.db,
+      options.mutationAdmission,
+    );
 
+    let searchDbClient: Client | undefined;
     let embeddingDbClient: Client | undefined;
     try {
+      // Search has a dedicated connection because libSQL replaces a client's
+      // connection after every transaction, losing connection-local ATTACHes.
+      const search = createEntityDatabase(options.dbConfig);
+      searchDbClient = search.client;
+      this.searchDbClient = search.client;
+
       // Set up separate embedding database
       const emb = createEmbeddingDatabase(options.embeddingDbConfig);
       embeddingDbClient = emb.client;
@@ -167,7 +188,7 @@ export class EntityService implements IEntityService {
         embeddingDb: this.embeddingDb,
       });
       this.entitySearch = new EntitySearch(
-        this.db,
+        search.db,
         options.embeddingService,
         this.entitySerializer,
         this.logger,
@@ -183,6 +204,7 @@ export class EntityService implements IEntityService {
         ...(options.mutationAdmission && {
           mutationAdmission: options.mutationAdmission,
         }),
+        projectionStore: this.projectionStore,
         embeddingDb: this.embeddingDb,
       });
       this.contentResolver = new ContentResolver(this.logger);
@@ -221,6 +243,11 @@ export class EntityService implements IEntityService {
         // Preserve the construction failure after attempting all cleanup.
       }
       try {
+        searchDbClient?.close();
+      } catch {
+        // Preserve the construction failure after attempting all cleanup.
+      }
+      try {
         client.close();
       } catch {
         // Preserve the construction failure after attempting all cleanup.
@@ -251,6 +278,14 @@ export class EntityService implements IEntityService {
       );
     }
     try {
+      await applySqlitePragmas(this.searchDbClient, this.dbUrl);
+    } catch (error) {
+      this.logger.warn(
+        "Failed to configure entity search database (non-fatal)",
+        error,
+      );
+    }
+    try {
       await applySqlitePragmas(this.embeddingDbClient, embeddingDbConfig.url);
     } catch (error) {
       this.logger.warn(
@@ -265,9 +300,19 @@ export class EntityService implements IEntityService {
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
     await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(
-      this.dbClient,
+      this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
     );
+  }
+
+  // ── Projection coordination ───────────────────────────────────────
+
+  public getProjectionStore(): ProjectionStore {
+    return this.projectionStore;
+  }
+
+  public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
+    return this.entityMutations.setProjectionWakeup(wakeup);
   }
 
   // ── Mutations ─────────────────────────────────────────────────────
@@ -275,12 +320,14 @@ export class EntityService implements IEntityService {
   public async createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    await this.initialize();
     return this.entityMutations.createEntity(request);
   }
 
   public async createEntityFromMarkdown(
     request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult> {
+    await this.initialize();
     const { input, options } = request;
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
@@ -302,24 +349,36 @@ export class EntityService implements IEntityService {
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    await this.initialize();
     return this.entityMutations.updateEntity(request);
   }
 
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
+    await this.initialize();
     return this.entityMutations.deleteEntity(request);
   }
 
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
+    await this.initialize();
     return this.entityMutations.upsertEntity(request);
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
+    await this.initialize();
     return this.entityMutations.storeEmbedding(data);
   }
 
+  public async reconcileProjectionTargets(
+    targets: readonly ProjectionChangedTarget[],
+  ): Promise<void> {
+    await this.initialize();
+    return this.entityMutations.reconcileProjectionTargets(targets);
+  }
+
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    await this.initialize();
     this.indexReady = false;
     return this.entityMutations.backfillMissingEmbeddings();
   }
@@ -331,6 +390,7 @@ export class EntityService implements IEntityService {
   public async awaitIndexReady(
     options: IndexReadinessOptions,
   ): Promise<IndexReadinessStatus> {
+    await this.initialize();
     let probeFailed = false;
     const probe = Effect.tryPromise({
       try: () => this.getIndexReadinessStatus(),
@@ -403,6 +463,7 @@ export class EntityService implements IEntityService {
   public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
   ): Promise<T | null> {
+    await this.initialize();
     const { entityType, id, visibilityScope } = request;
     const entity = await this.getEntityRaw<T>({
       entityType,
@@ -430,6 +491,7 @@ export class EntityService implements IEntityService {
   public async getEntityRaw<T extends BaseEntity>(
     request: GetEntityRawRequest,
   ): Promise<T | null> {
+    await this.initialize();
     const { entityType, id, visibilityScope } = request;
     const entityData = await this.entityQueries.getEntityData(
       entityType,
@@ -446,6 +508,7 @@ export class EntityService implements IEntityService {
   public async listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
   ): Promise<T[]> {
+    await this.initialize();
     const { entityType, options } = request;
     return this.entityQueries.listEntities<T>(
       entityType,
@@ -455,6 +518,7 @@ export class EntityService implements IEntityService {
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
+    await this.initialize();
     const { entityType, options } = request;
     return this.entityQueries.countEntities(
       entityType,
@@ -478,6 +542,7 @@ export class EntityService implements IEntityService {
   public async getEntityCounts(
     visibilityScope?: ContentVisibility,
   ): Promise<Array<{ entityType: string; count: number }>> {
+    await this.initialize();
     return this.entityQueries.getEntityCounts(visibilityScope);
   }
 
@@ -486,6 +551,7 @@ export class EntityService implements IEntityService {
   public async search<T extends BaseEntity = BaseEntity>(
     request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]> {
+    await this.initialize();
     return this.entitySearch.search<T>(request.query, request.options);
   }
 
@@ -494,6 +560,7 @@ export class EntityService implements IEntityService {
     query: string,
     options?: Pick<SearchOptions, "limit">,
   ): Promise<SearchResult[]> {
+    await this.initialize();
     return this.entitySearch.searchEntities(entityType, query, options);
   }
 
@@ -502,16 +569,19 @@ export class EntityService implements IEntityService {
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
+    await this.initialize();
     return this.entitySearch.searchWithDistances(request.query);
   }
 
   public async projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection> {
+    await this.initialize();
     return this.entitySearch.projectSemanticSpace(request);
   }
 
   public async countEmbeddings(): Promise<number> {
+    await this.initialize();
     const result = await this.embeddingDb
       .select({ count: sql<number>`count(*)` })
       .from(embeddings);

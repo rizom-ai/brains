@@ -1,6 +1,6 @@
 import {
   computeProjectionInputFingerprint,
-  reconcileDerivedEntities,
+  reconcileEntities,
   scopedDerivedId,
   type ContentVisibility,
   type EntityPluginContext,
@@ -187,7 +187,7 @@ export async function deriveSkills(
       unique: desired.size,
     });
   }
-  const { created, updated, deleted, skipped } = await reconcileDerivedEntities<
+  const { created, updated, deleted, skipped } = await reconcileEntities<
     SkillFrontmatter,
     SkillEntity
   >({

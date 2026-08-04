@@ -39,7 +39,7 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
         new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
       );
 
-      expect(capabilities.projections).toBeUndefined();
+      expect("projections" in capabilities).toBe(false);
       expect(capabilities.projectionRules).toHaveLength(1);
       expect(capabilities.projectionRules?.[0]).toMatchObject({
         id: "social-post-generation",

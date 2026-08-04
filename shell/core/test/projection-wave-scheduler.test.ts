@@ -33,6 +33,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   queuedRules: Array<{ waveId: string; ruleId: string; jobId: string }> = [];
   completed = false;
   active = false;
+  pending = true;
   readonly completedRuleIds = new Set<string>();
 
   constructor(inputs: ProjectionWaveInput[]) {
@@ -46,6 +47,8 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null> {
+    if (!this.pending) return Promise.resolve(null);
+    this.pending = false;
     this.claimedWave.graphFingerprint = input.graphFingerprint;
     this.active = true;
     return Promise.resolve(this.claimedWave);
@@ -91,6 +94,16 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   ): Promise<unknown> {
     this.queuedRules.push({ waveId, ruleId, jobId });
     return Promise.resolve();
+  }
+
+  failWave(_waveId: string, failedAt: number): Promise<ProjectionWave> {
+    this.active = false;
+    this.pending = true;
+    return Promise.resolve({
+      ...this.claimedWave,
+      status: "failed",
+      completedAt: failedAt,
+    });
   }
 
   completeWave(_waveId: string, _completedAt: number): Promise<ProjectionWave> {
@@ -139,14 +152,12 @@ const graph: ProjectionGraph = {
       id: "skills",
       pluginId: "skills",
       targetType: "skill",
-      executionOwner: "wave-owned",
       sources: [{ kind: "entity", types: ["topic"] }],
     },
     {
       id: "topics",
       pluginId: "topics",
       targetType: "topic",
-      executionOwner: "wave-owned",
       sources: [{ kind: "entity", types: ["document"] }],
     },
   ],
@@ -157,7 +168,6 @@ const graph: ProjectionGraph = {
       causes: ["entity:topic"],
     },
   ],
-  declaredCycles: [],
   unknownSourceTypes: [],
 };
 
@@ -172,7 +182,6 @@ const graphFingerprint = computeProjectionInputFingerprint({
 function documentInputs(count: number): ProjectionWaveInput[] {
   return Array.from({ length: count }, (_unused, index) => ({
     waveId: "wave-1",
-    kind: "entity",
     sourceType: "document",
     sourceId: `document-${index}`,
     revision: `hash-${index}`,
@@ -215,12 +224,16 @@ describe("ProjectionWaveScheduler", () => {
   it("advances topological levels and completes after the final outcome", async () => {
     const store = new MemoryProjectionStore(documentInputs(100));
     const queue = new MemoryProjectionQueue();
+    const completionSummaries: unknown[] = [];
     const scheduler = new ProjectionWaveScheduler({
       store,
       queue,
       graph,
       rules: [topicRule, skillRule],
       createWaveId: (): string => "wave-1",
+      beforeWaveCompletion: async (summary): Promise<void> => {
+        completionSummaries.push(summary);
+      },
       now: (): number => 10,
     });
 
@@ -236,6 +249,13 @@ describe("ProjectionWaveScheduler", () => {
     ]);
     expect(store.completed).toBe(true);
     expect(store.active).toBe(false);
+    expect(completionSummaries).toEqual([
+      {
+        waveId: "wave-1",
+        sourceTypes: ["document"],
+        changedTargetTypes: [],
+      },
+    ]);
   });
 
   it("reconstructs rule records after interruption immediately after claim", async () => {
@@ -303,6 +323,25 @@ describe("ProjectionWaveScheduler", () => {
     });
   });
 
+  it("fails an active wave after a terminal rule failure", async () => {
+    const store = new MemoryProjectionStore(documentInputs(1));
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue: new MemoryProjectionQueue(),
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "wave-1",
+      now: (): number => 30,
+    });
+    await scheduler.startNextWave();
+
+    expect(await scheduler.failActiveWave("wave-1")).toEqual(
+      expect.objectContaining({ status: "failed", completedAt: 30 }),
+    );
+    expect(store.active).toBe(false);
+    expect(store.pending).toBe(true);
+  });
+
   it("refuses to resume a wave pinned to another graph", async () => {
     const store = new MemoryProjectionStore(documentInputs(1));
     store.active = true;
@@ -322,11 +361,40 @@ describe("ProjectionWaveScheduler", () => {
     expect(queue.requests).toEqual([]);
   });
 
+  it("keeps the wave active when its completion effect fails", async () => {
+    const store = new MemoryProjectionStore([
+      {
+        waveId: "wave-1",
+        sourceType: "unrelated",
+        sourceId: "unrelated-1",
+        revision: "hash-1",
+        operation: "upsert",
+        generation: 1,
+      },
+    ]);
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue: new MemoryProjectionQueue(),
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "wave-1",
+      beforeWaveCompletion: async (): Promise<void> => {
+        throw new Error("completion effect failed");
+      },
+      now: (): number => 10,
+    });
+
+    void expect(scheduler.startNextWave()).rejects.toThrow(
+      "completion effect failed",
+    );
+    expect(store.completed).toBe(false);
+    expect(store.active).toBe(true);
+  });
+
   it("completes a wave with no reachable executable rules", async () => {
     const store = new MemoryProjectionStore([
       {
         waveId: "wave-1",
-        kind: "entity",
         sourceType: "unrelated",
         sourceId: "unrelated-1",
         revision: "hash-1",

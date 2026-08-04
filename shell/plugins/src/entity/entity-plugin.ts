@@ -19,14 +19,7 @@ import { z } from "@brains/utils/zod";
 import type { PluginConfigSchema } from "../config";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
-import type { ProjectionDeclaration } from "./projection-registry";
 import type { ProjectionRule } from "./projection-rule";
-import {
-  getProjectionDeclaration,
-  registerDerivedEntityProjection,
-  type DerivedEntityProjection,
-  type DerivedEntityProjectionController,
-} from "./derived-entity-projection";
 
 export const emptyEntityPluginConfigSchema: z.ZodObject<Record<string, never>> =
   z.object({});
@@ -49,11 +42,6 @@ export abstract class EntityPlugin<
 
   /** Optional default action policy owned by this entity plugin. */
   public readonly entityActionPolicy?: EntityActionPolicyConfig;
-
-  private readonly derivedEntityProjectionControllers = new Map<
-    string,
-    DerivedEntityProjectionController
-  >();
 
   constructor(
     id: string,
@@ -92,19 +80,13 @@ export abstract class EntityPlugin<
     // Set up message handlers (tool/resource execution via message bus)
     this.setupMessageHandlers(context);
 
-    // Resolve projections before entity registration so projection outputs fail
-    // closed as source material unless their plugin explicitly opts them in.
-    const projections = this.getDerivedEntityProjections(context);
+    // Resolve scheduler rules before entity registration so projection outputs
+    // fail closed as source material unless their plugin explicitly opts in.
     const projectionRules = this.getProjectionRules(context);
-    const projectionDeclarations = [
-      ...projections.map(getProjectionDeclaration),
-      ...this.getProjectionDeclarations(context),
-    ];
     const entityTypeConfig = this.getEntityTypeConfig();
-    const producesOwnEntityType =
-      projectionDeclarations.some(
-        (projection) => projection.targetType === this.entityType,
-      ) || projectionRules.some((rule) => rule.targetType === this.entityType);
+    const producesOwnEntityType = projectionRules.some(
+      (rule) => rule.targetType === this.entityType,
+    );
     const hasExplicitProjectionSourceOptIn =
       entityTypeConfig?.projectionSource !== false &&
       entityTypeConfig?.projectionSourceRole !== "excluded" &&
@@ -153,16 +135,6 @@ export abstract class EntityPlugin<
       context.entities.registerDataSource(ds);
     }
 
-    // Auto-register executable derived entity projections.
-    for (const projection of projections) {
-      const controller = registerDerivedEntityProjection(
-        context,
-        this.logger,
-        projection,
-      );
-      this.derivedEntityProjectionControllers.set(projection.id, controller);
-    }
-
     // Call subclass hook for additional registration
     await this.onRegister(this.context);
 
@@ -171,9 +143,6 @@ export abstract class EntityPlugin<
       tools: [],
       resources: [],
       ...(instructions && { instructions }),
-      ...(projectionDeclarations.length > 0 && {
-        projections: projectionDeclarations,
-      }),
       ...(projectionRules.length > 0 && { projectionRules }),
     };
   }
@@ -226,30 +195,5 @@ export abstract class EntityPlugin<
     _context: EntityPluginContext,
   ): ProjectionRule[] {
     return [];
-  }
-
-  /**
-   * Override for static declarations backed by custom event-owned execution.
-   * Prefer getDerivedEntityProjections when the standard event runner fits.
-   */
-  protected getProjectionDeclarations(
-    _context: EntityPluginContext,
-  ): ProjectionDeclaration[] {
-    return [];
-  }
-
-  /**
-   * Override to declare derived entity projections owned by this plugin.
-   */
-  protected getDerivedEntityProjections(
-    _context: EntityPluginContext,
-  ): DerivedEntityProjection[] {
-    return [];
-  }
-
-  protected getDerivedEntityProjectionController(
-    projectionId: string,
-  ): DerivedEntityProjectionController | undefined {
-    return this.derivedEntityProjectionControllers.get(projectionId);
   }
 }

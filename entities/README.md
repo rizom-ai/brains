@@ -1,8 +1,8 @@
 # Entity Plugins
 
-Entity plugins define content types — each owns one entity type with its schema, adapter, and optional generation handler, templates, datasources, and derived-entity projections.
+Entity plugins define content types — each owns one entity type with its schema, adapter, and optional generation handler, templates, datasources, and projection rules.
 
-Entity plugins extend `EntityPlugin` and have **zero tools**. All entity CRUD goes through the system plugin's `system_create`, `system_update`, `system_delete`, and `system_extract` tools.
+Entity plugins extend `EntityPlugin` and have **zero tools**. Entity CRUD goes through the system plugin's shared create, update, and delete tools.
 
 ## Create flow pattern
 
@@ -30,10 +30,9 @@ Examples in the repo:
 
 ## Projection pattern
 
-Derived entities are maintained by explicit projection jobs, normally declared with `getDerivedEntityProjections()`. Custom projection execution must return an equivalent immutable declaration from `getProjectionDeclarations()`.
-Projection declarations are registered as plugin capabilities and validated as one entity/event graph before initial sync. Projection jobs own their sync/source lifecycle and are queued with causal provenance after initial sync or source changes. AI-backed projections persist fingerprints of their effective source revisions and generation configuration in runtime state, then skip unchanged inputs. Reconcilers and handlers must also compare semantic output so operational timestamps do not create entity mutations.
+Derived entities are maintained only by immutable `ProjectionRule`s declared with `getProjectionRules()`. `PluginManager` validates one acyclic entity-source graph, while the shell scheduler coalesces committed source mutations into topological waves. Each reachable rule runs at most once per wave, fingerprints its complete immutable input, and returns canonical write intents. The framework skips unchanged inputs and semantic no-op writes.
 
-`system_extract` queues `{entityType}:project` jobs for manual derive/rebuild requests.
+There is no event-owned projection job or manual derive/rebuild tool. Command-owned generation remains an ordinary job workflow.
 
 ## Plugins
 
@@ -42,7 +41,7 @@ Projection declarations are registered as plugin capabilities and validated as o
 | agent-discovery     | `agent`, `skill`                     | yes        | Discovered peer brains and their projected capabilities  |
 | assessment          | `swot`                               | yes        | SWOT assessments derived from other content              |
 | blog                | `post`                               |            | Blog posts with frontmatter, publish pipeline, RSS       |
-| conversation-memory | `summary`, `decision`, `action-item` | yes        | Conversation summaries generated from message events     |
+| conversation-memory | `summary`, `decision`, `action-item` |            | Read/evaluate stored team memory entities                |
 | decks               | `deck`                               |            | Slide decks with markdown directives                     |
 | doc                 | `doc`                                |            | Documentation pages rendered on the site                 |
 | document            | `document`                           |            | Uploaded binary artifacts (PDFs and similar files)       |

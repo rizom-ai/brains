@@ -29,6 +29,20 @@
       "when": 1785663132511,
       "tag": "0003_typical_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785775035073,
+      "tag": "0004_entity_only_projection_inputs",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785775040805,
+      "tag": "0005_backfill_projection_inputs",
+      "breakpoints": true
     }
   ]
 }

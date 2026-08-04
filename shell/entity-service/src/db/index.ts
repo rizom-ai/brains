@@ -16,6 +16,10 @@ import type { EntityDbConfig } from "../types";
 
 export type EntityDB = SqliteDatabase;
 
+/** Search-only entity database surface. It cannot start a transaction and
+ * therefore cannot replace the connection that owns the `emb` attachment. */
+export type EntitySearchDB = Pick<EntityDB, "select">;
+
 /**
  * Create an entity database connection
  * Config is now required - use createShellServiceConfig() for standard paths

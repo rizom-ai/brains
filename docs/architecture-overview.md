@@ -196,7 +196,7 @@ Brains uses three primary plugin categories:
 
 `plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. At that boundary, undefined object properties are recursively omitted while unsupported JSON values remain errors with route, section, template, and field-path diagnostics. Renderers consume the validated snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
 
-Automatic entity-triggered builds use trailing-only debounce, environment-scoped queue deduplication, and dirty generations. Changes during an active build produce at most one necessary successor; preview and production never suppress each other. The prepared route/content/template/layout/theme/asset input is fingerprinted, and a fingerprint matching the active successful manifest skips rendering.
+Automatic builds are requested only after a scheduler wave has committed its derived outputs. Environment-scoped queue deduplication and dirty generations ensure changes during an active build produce at most one necessary successor; preview and production never suppress each other. The prepared route/content/template/layout/theme/asset input is fingerprinted, and a fingerprint matching the active successful manifest skips rendering.
 
 Each non-skipped build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
 
@@ -214,7 +214,7 @@ They can automatically register:
 - site datasources
 - executable derived projections and immutable projection graph declarations
 
-Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
+Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, and deletion flow through shared system tools like `system_create`, `system_update`, and `system_delete`. Derived entities are maintained automatically by scheduler-owned projection rules.
 
 For creation, the standard pattern is:
 

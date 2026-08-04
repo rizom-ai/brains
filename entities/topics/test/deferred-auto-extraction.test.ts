@@ -79,6 +79,6 @@ describe("Topics projection scheduling boundary", () => {
 
     expect(enqueue).not.toHaveBeenCalled();
     expect(capabilities.projectionRules).toBeUndefined();
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
   });
 });

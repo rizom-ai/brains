@@ -11,27 +11,17 @@ import type {
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 
-function graph(options: { feedback?: boolean } = {}): ProjectionGraph {
+function graph(): ProjectionGraph {
   return {
     projections: [
       {
         id: "topics-projection",
         pluginId: "topics",
         targetType: "topic",
-        executionOwner: "event-owned",
         sources: [{ kind: "entity", types: ["document"] }],
-        ...(options.feedback && {
-          feedback: {
-            allowed: true,
-            convergenceRule: "Input fingerprints make repeats no-ops",
-            deduplicationKey: "topics",
-            maxDepth: 3,
-          },
-        }),
       },
     ],
     edges: [],
-    declaredCycles: [],
     unknownSourceTypes: [],
   };
 }
@@ -130,31 +120,20 @@ describe("ProjectionRuntimeSupervisor", () => {
     expect((await supervisor.getDiagnostics()).openCircuits).toEqual([]);
   });
 
-  it("allows declared feedback only within its depth bound", async () => {
+  it("rejects repeated scheduler rules in one causal lineage", async () => {
     const supervisor = ProjectionRuntimeSupervisor.createFresh(
       OperationContext.createFresh(),
     );
-    await supervisor.initialize(graph({ feedback: true }));
+    await supervisor.initialize(graph());
 
-    await supervisor.assertJobAdmission(
-      provenance({
-        projectionLineage: ["topics-projection", "topics-projection"],
-        derivationDepth: 2,
-      }),
-    );
     void expect(
       supervisor.assertJobAdmission(
         provenance({
-          projectionLineage: [
-            "topics-projection",
-            "topics-projection",
-            "topics-projection",
-            "topics-projection",
-          ],
-          derivationDepth: 4,
+          projectionLineage: ["topics-projection", "topics-projection"],
+          derivationDepth: 2,
         }),
       ),
-    ).rejects.toThrow("depth 4 exceeds its declared maximum 3");
+    ).rejects.toThrow("repeats in one causal lineage");
   });
 
   it("enforces per-root job and mutation budgets", async () => {

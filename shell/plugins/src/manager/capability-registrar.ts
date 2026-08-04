@@ -46,12 +46,8 @@ export class CapabilityRegistrar {
       this.logger.debug(`Registered instructions from ${pluginId}`);
     }
 
-    const projections = capabilities.projections ?? [];
     const projectionRules = capabilities.projectionRules ?? [];
     try {
-      for (const projection of projections) {
-        this.projectionRegistry.register(pluginId, projection);
-      }
       for (const rule of projectionRules) {
         this.projectionRegistry.registerRule(pluginId, rule);
       }
@@ -59,10 +55,9 @@ export class CapabilityRegistrar {
       this.projectionRegistry.unregisterPlugin(pluginId);
       throw error;
     }
-    const projectionCount = projections.length + projectionRules.length;
-    if (projectionCount > 0) {
+    if (projectionRules.length > 0) {
       this.logger.debug(
-        `Registered ${projectionCount} projections from ${pluginId}`,
+        `Registered ${projectionRules.length} projection rules from ${pluginId}`,
       );
     }
   }

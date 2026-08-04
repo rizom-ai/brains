@@ -46,7 +46,6 @@ The canonical entity/runtime tools are stable:
 - `system_get`
 - `system_list`
 - `system_search`
-- `system_extract`
 - `system_status`
 - `system_insights`
 

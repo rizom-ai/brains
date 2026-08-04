@@ -35,7 +35,7 @@ describe("SocialMediaPlugin projection scheduling boundary", () => {
     });
 
     expect(capabilities.projectionRules).toBeUndefined();
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
   });
 
   it("registers one scheduler-owned rule and no event-driven auto-generation", async () => {
@@ -43,7 +43,7 @@ describe("SocialMediaPlugin projection scheduling boundary", () => {
       autoGenerateOnBlogPublish: true,
     });
 
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toHaveLength(1);
     expect(capabilities.projectionRules?.[0]).toMatchObject({
       id: "social-post-generation",

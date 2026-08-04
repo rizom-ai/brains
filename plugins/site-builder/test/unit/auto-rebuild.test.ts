@@ -28,23 +28,19 @@ describe("RebuildManager", () => {
     context = createMockContext();
   });
 
-  test("automatic entity rebuilds use a trailing-only debounce", async () => {
-    let entityHandler:
+  test("successful projection waves enqueue a build before acknowledgment", async () => {
+    let waveReadyHandler:
       | ((message: {
-          payload: { entityType: string };
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
         }) => Promise<{ success: boolean }>)
       | undefined;
     context.messaging.subscribe = mock((_type, handler): (() => void) => {
-      entityHandler = handler as typeof entityHandler;
+      waveReadyHandler = handler as typeof waveReadyHandler;
       return () => {};
-    });
-    let signalEnqueued: (() => void) | undefined;
-    const enqueued = new Promise<void>((resolve) => {
-      signalEnqueued = resolve;
-    });
-    context.jobs.enqueue = mock(async () => {
-      signalEnqueued?.();
-      return "job-1";
     });
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
@@ -53,39 +49,72 @@ describe("RebuildManager", () => {
       context.logger,
     );
     manager.setupAutoRebuild();
-    if (!entityHandler) throw new Error("Expected entity subscription");
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
-    await entityHandler({ payload: { entityType: "post" } });
-    expect(context.jobs.enqueue).not.toHaveBeenCalled();
-    await Promise.race([
-      enqueued,
-      Bun.sleep(500).then(() => {
-        throw new Error("Timed out waiting for trailing rebuild");
-      }),
-    ]);
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-1",
+        sourceTypes: ["post"],
+        changedTargetTypes: ["topic"],
+      },
+    });
 
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
     await manager.dispose();
   });
 
-  test("enqueues one dirty-generation successor after an active build", async () => {
-    let entityHandler:
+  test("does not rebuild for note-only waves", async () => {
+    let waveReadyHandler:
       | ((message: {
-          payload: { entityType: string };
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
         }) => Promise<{ success: boolean }>)
       | undefined;
     context.messaging.subscribe = mock((_type, handler): (() => void) => {
-      entityHandler = handler as typeof entityHandler;
+      waveReadyHandler = handler as typeof waveReadyHandler;
       return () => {};
     });
-    let signalFirstEnqueue: (() => void) | undefined;
-    const firstEnqueue = new Promise<void>((resolve) => {
-      signalFirstEnqueue = resolve;
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
+
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-note",
+        sourceTypes: ["note"],
+        changedTargetTypes: [],
+      },
+    });
+
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+    await manager.dispose();
+  });
+
+  test("enqueues one dirty-generation successor after an active build", async () => {
+    let waveReadyHandler:
+      | ((message: {
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribe = mock((_type, handler): (() => void) => {
+      waveReadyHandler = handler as typeof waveReadyHandler;
+      return () => {};
     });
     let nextJob = 0;
     context.jobs.enqueue = mock(async () => {
       nextJob += 1;
-      signalFirstEnqueue?.();
       return `job-${nextJob}`;
     });
     const manager = new RebuildManager(
@@ -95,19 +124,31 @@ describe("RebuildManager", () => {
       context.logger,
     );
     manager.setupAutoRebuild();
-    if (!entityHandler) throw new Error("Expected entity subscription");
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
-    await entityHandler({ payload: { entityType: "post" } });
-    await Promise.race([
-      firstEnqueue,
-      Bun.sleep(500).then(() => {
-        throw new Error("Timed out waiting for first automatic rebuild");
-      }),
-    ]);
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-1",
+        sourceTypes: ["post"],
+        changedTargetTypes: [],
+      },
+    });
     manager.markBuildStarted("preview", "job-1", 1);
 
-    await entityHandler({ payload: { entityType: "post" } });
-    await entityHandler({ payload: { entityType: "page" } });
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-2",
+        sourceTypes: ["post"],
+        changedTargetTypes: [],
+      },
+    });
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-3",
+        sourceTypes: ["page"],
+        changedTargetTypes: [],
+      },
+    });
     await manager.markBuildFinished("preview", "job-1", 1);
 
     const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;

@@ -15,7 +15,6 @@ export {
 } from "./lib/agent-context-provider";
 export { ConversationMemoryRetriever } from "./lib/conversation-memory-retriever";
 export { SummarySourceReader } from "./lib/summary-source-reader";
-export { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 
 export type {
   SummaryEntity,

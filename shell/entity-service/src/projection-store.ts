@@ -2,6 +2,7 @@ import { and, asc, desc, eq, lte, ne, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
+import type { EntityMutationAdmission } from "./types";
 import {
   ProjectionWriteIntentSchema,
   type ProjectionWriteIntent,
@@ -22,7 +23,6 @@ import {
 import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
-  kind: z.enum(["entity", "rule"]),
   sourceType: z.string().trim().min(1),
   sourceId: z.string().trim().min(1),
   revision: z.string().trim().min(1),
@@ -50,7 +50,6 @@ const changedTargetSchema = z.strictObject({
 });
 
 export interface MarkProjectionDirtyInput {
-  kind: "entity" | "rule";
   sourceType: string;
   sourceId: string;
   revision: string;
@@ -95,9 +94,9 @@ export interface ProjectionRuleMemoValue extends Omit<
 type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
 
 function inputKey(
-  input: Pick<ProjectionDirtyInput, "kind" | "sourceType" | "sourceId">,
+  input: Pick<ProjectionDirtyInput, "sourceType" | "sourceId">,
 ): string {
-  return `${input.kind}\u0000${input.sourceType}\u0000${input.sourceId}`;
+  return `${input.sourceType}\u0000${input.sourceId}`;
 }
 
 function coalesceLatestInputs(
@@ -135,9 +134,12 @@ function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
+  private readonly mutationAdmission: EntityMutationAdmission | undefined;
+  private transactionTail: Promise<void> = Promise.resolve();
 
-  constructor(db: EntityDB) {
+  constructor(db: EntityDB, mutationAdmission?: EntityMutationAdmission) {
     this.db = db;
+    this.mutationAdmission = mutationAdmission;
   }
 
   public async markDirty(input: MarkProjectionDirtyInput): Promise<number> {
@@ -158,7 +160,7 @@ export class ProjectionStore {
     mutation: (transaction: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
     const parsed = dirtyInputSchema.parse(input);
-    return this.db.transaction(async (transaction) => {
+    return this.runTransaction(async (transaction) => {
       const result = await mutation(transaction);
       await transaction.insert(projectionDirtyInputs).values(parsed);
       return result;
@@ -184,7 +186,7 @@ export class ProjectionStore {
       .parse(input.graphFingerprint);
     const startedAt = z.number().int().nonnegative().parse(input.startedAt);
 
-    return this.db.transaction(async (transaction) => {
+    return this.runTransaction(async (transaction) => {
       const active = await transaction
         .select({ id: projectionWaves.id })
         .from(projectionWaves)
@@ -223,7 +225,6 @@ export class ProjectionStore {
       await transaction.insert(projectionWaveInputs).values(
         claimed.map((entry) => ({
           waveId,
-          kind: entry.kind,
           sourceType: entry.sourceType,
           sourceId: entry.sourceId,
           revision: entry.revision,
@@ -262,7 +263,7 @@ export class ProjectionStore {
   ): Promise<ProjectionWave> {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedCompletedAt = z.number().int().nonnegative().parse(completedAt);
-    return this.db.transaction(async (transaction) => {
+    return this.runTransaction(async (transaction) => {
       const waveRows = await transaction
         .select()
         .from(projectionWaves)
@@ -314,7 +315,7 @@ export class ProjectionStore {
   ): Promise<ProjectionWave> {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedFailedAt = z.number().int().nonnegative().parse(failedAt);
-    return this.db.transaction(async (transaction) => {
+    return this.runTransaction(async (transaction) => {
       const waveRows = await transaction
         .select()
         .from(projectionWaves)
@@ -343,7 +344,6 @@ export class ProjectionStore {
       if (requeued.length > 0) {
         await transaction.insert(projectionDirtyInputs).values(
           requeued.map((input) => ({
-            kind: input.kind,
             sourceType: input.sourceType,
             sourceId: input.sourceId,
             revision: input.revision,
@@ -418,7 +418,10 @@ export class ProjectionStore {
     if (queued) return parseWaveRule(queued);
 
     const current = await this.getWaveRule(parsedWaveId, parsedRuleId);
-    if (current?.status === "queued" && current.jobId === parsedJobId) {
+    if (
+      current?.status === "completed" ||
+      (current?.status === "queued" && current.jobId === parsedJobId)
+    ) {
       return current;
     }
     throw new Error(
@@ -458,7 +461,7 @@ export class ProjectionStore {
       .parse(input.writeIntents);
     const completedAt = z.number().int().nonnegative().parse(input.completedAt);
 
-    return this.db.transaction(async (transaction) => {
+    return this.runTransaction(async (transaction) => {
       const ruleRows = await transaction
         .select()
         .from(projectionWaveRules)
@@ -598,6 +601,22 @@ export class ProjectionStore {
     };
   }
 
+  private async runTransaction<TResult>(
+    transaction: (database: EntityTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    const previous = this.transactionTail;
+    let release = (): void => {};
+    this.transactionTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await this.db.transaction(transaction);
+    } finally {
+      release();
+    }
+  }
+
   private async applyWriteIntent(
     transaction: EntityTransaction,
     intent: ProjectionWriteIntent,
@@ -625,6 +644,11 @@ export class ProjectionStore {
 
     if (intent.operation === "delete") {
       if (!existing) return null;
+      await this.mutationAdmission?.assertMutationAdmission({
+        operation: "delete",
+        entityType,
+        entityId,
+      });
       await transaction
         .delete(entities)
         .where(
@@ -645,6 +669,12 @@ export class ProjectionStore {
     ) {
       return null;
     }
+
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: existing ? "update" : "create",
+      entityType,
+      entityId,
+    });
 
     if (existing) {
       await transaction

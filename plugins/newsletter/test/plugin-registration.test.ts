@@ -17,7 +17,7 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
     });
-    expect(capabilities.projections).toBeUndefined();
+    expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toBeUndefined();
   });
 

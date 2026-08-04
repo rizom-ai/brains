@@ -21,6 +21,7 @@ import type {
 } from "./types";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
+import type { ProjectionStore } from "./projection-store";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
@@ -28,6 +29,7 @@ import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
+import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { and, eq, sql } from "drizzle-orm";
 
 const jsonObjectSchema = z.custom<object>(
@@ -57,6 +59,14 @@ function toStableJsonValue(value: unknown): unknown {
 
 function stableJson(value: unknown): string {
   return JSON.stringify(toStableJsonValue(value));
+}
+
+function entityRevision(input: {
+  contentHash: string;
+  metadata: unknown;
+  visibility: string;
+}): string {
+  return computeContentHash(stableJson(input));
 }
 
 const failedEmbeddingJobDataSchema = z.object({
@@ -97,6 +107,8 @@ function isUniqueConstraintError(error: unknown): boolean {
   return false;
 }
 
+class StaleEntityUpdateError extends Error {}
+
 interface EmbeddingBackfillCandidate {
   id: string;
   entityType: string;
@@ -118,6 +130,7 @@ export interface EntityMutationDeps {
   logger: Logger;
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
+  projectionStore: ProjectionStore;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
 }
@@ -135,6 +148,8 @@ export class EntityMutations {
   private jobQueueService: IJobQueueService;
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
+  private readonly projectionStore: ProjectionStore;
+  private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
 
   constructor(deps: EntityMutationDeps) {
@@ -144,6 +159,7 @@ export class EntityMutations {
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
+    this.projectionStore = deps.projectionStore;
     this.logger = deps.logger.child("EntityMutations");
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
@@ -151,6 +167,16 @@ export class EntityMutations {
     if (deps.mutationAdmission) {
       this.mutationAdmission = deps.mutationAdmission;
     }
+  }
+
+  public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
+    this.projectionWakeup = wakeup;
+    let active = true;
+    return (): void => {
+      if (!active) return;
+      active = false;
+      if (this.projectionWakeup === wakeup) this.projectionWakeup = undefined;
+    };
   }
 
   /**
@@ -212,20 +238,39 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Write entity to database immediately (without embedding)
-    await this.db.insert(entities).values({
-      id: finalId,
-      entityType: validatedEntity.entityType,
-      content: markdown,
-      contentHash,
-      visibility: validatedEntity.visibility,
-      metadata,
-      created: new Date(validatedEntity.created).getTime(),
-      updated: new Date(validatedEntity.updated).getTime(),
-    });
-
-    // Update FTS5 index
-    await this.upsertFtsIndex(finalId, validatedEntity.entityType, markdown);
+    // Persist the entity, search row, and scheduler journal atomically.
+    await this.projectionStore.withDirtyInput(
+      {
+        sourceType: validatedEntity.entityType,
+        sourceId: finalId,
+        revision: entityRevision({
+          contentHash,
+          metadata,
+          visibility: validatedEntity.visibility,
+        }),
+        operation: "upsert",
+        markedAt: Date.now(),
+      },
+      async (transaction) => {
+        await transaction.insert(entities).values({
+          id: finalId,
+          entityType: validatedEntity.entityType,
+          content: markdown,
+          contentHash,
+          visibility: validatedEntity.visibility,
+          metadata,
+          created: new Date(validatedEntity.created).getTime(),
+          updated: new Date(validatedEntity.updated).getTime(),
+        });
+        await this.upsertFtsIndex(
+          transaction,
+          finalId,
+          validatedEntity.entityType,
+          markdown,
+        );
+      },
+    );
+    await this.notifyProjectionScheduler();
 
     this.logger.debug(
       `Persisted entity ${validatedEntity.entityType}:${finalId} immediately`,
@@ -363,29 +408,54 @@ export class EntityMutations {
       entityId: validatedEntity.id,
     });
 
-    const updateResult = await this.db
-      .update(entities)
-      .set({
-        content: markdown,
-        contentHash,
-        visibility: validatedEntity.visibility,
-        metadata,
-        updated: new Date(validatedEntity.updated).getTime(),
-      })
-      .where(
-        and(
-          eq(entities.id, validatedEntity.id),
-          eq(entities.entityType, validatedEntity.entityType),
-          options?.expectedContentHash !== undefined
-            ? eq(entities.contentHash, options.expectedContentHash)
-            : undefined,
-        ),
+    try {
+      await this.projectionStore.withDirtyInput(
+        {
+          sourceType: validatedEntity.entityType,
+          sourceId: validatedEntity.id,
+          revision: entityRevision({
+            contentHash,
+            metadata,
+            visibility: validatedEntity.visibility,
+          }),
+          operation: "upsert",
+          markedAt: Date.now(),
+        },
+        async (transaction) => {
+          const updateResult = await transaction
+            .update(entities)
+            .set({
+              content: markdown,
+              contentHash,
+              visibility: validatedEntity.visibility,
+              metadata,
+              updated: new Date(validatedEntity.updated).getTime(),
+            })
+            .where(
+              and(
+                eq(entities.id, validatedEntity.id),
+                eq(entities.entityType, validatedEntity.entityType),
+                options?.expectedContentHash !== undefined
+                  ? eq(entities.contentHash, options.expectedContentHash)
+                  : undefined,
+              ),
+            );
+          if (
+            options?.expectedContentHash !== undefined &&
+            Number(updateResult.rowsAffected) === 0
+          ) {
+            throw new StaleEntityUpdateError();
+          }
+          await this.upsertFtsIndex(
+            transaction,
+            validatedEntity.id,
+            validatedEntity.entityType,
+            markdown,
+          );
+        },
       );
-
-    if (
-      options?.expectedContentHash !== undefined &&
-      Number(updateResult.rowsAffected) === 0
-    ) {
+    } catch (error) {
+      if (!(error instanceof StaleEntityUpdateError)) throw error;
       this.logger.debug(
         `Skipping concurrently stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -396,13 +466,7 @@ export class EntityMutations {
         skipReason: "content-conflict",
       };
     }
-
-    // Update FTS5 index
-    await this.upsertFtsIndex(
-      validatedEntity.id,
-      validatedEntity.entityType,
-      markdown,
-    );
+    await this.notifyProjectionScheduler();
 
     this.logger.debug(
       `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
@@ -456,20 +520,48 @@ export class EntityMutations {
       });
     }
 
-    const deleted = await this.entityQueries.deleteEntity(entityType, id);
+    if (!priorData) return false;
 
-    if (deleted) {
-      await this.emitEntityEvent(
-        ENTITY_CHANNELS.deleted,
-        entityType,
-        id,
-        prior,
-        undefined,
-        options?.eventContext,
+    // Embeddings live in another database and are recoverable by backfill; the
+    // entity row, FTS row, and scheduler journal share one atomic transaction.
+    await this.embeddingDb
+      .delete(embeddings)
+      .where(
+        and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
       );
-    }
+    await this.projectionStore.withDirtyInput(
+      {
+        sourceType: entityType,
+        sourceId: id,
+        revision: `deleted:${entityRevision({
+          contentHash: priorData.contentHash,
+          metadata: priorData.metadata,
+          visibility: priorData.visibility,
+        })}`,
+        operation: "delete",
+        markedAt: Date.now(),
+      },
+      async (transaction) => {
+        await transaction.run(
+          sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
+        );
+        await transaction
+          .delete(entities)
+          .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
+      },
+    );
+    await this.notifyProjectionScheduler();
 
-    return deleted;
+    await this.emitEntityEvent(
+      ENTITY_CHANNELS.deleted,
+      entityType,
+      id,
+      prior,
+      undefined,
+      options?.eventContext,
+    );
+
+    return true;
   }
 
   /**
@@ -518,6 +610,38 @@ export class EntityMutations {
       });
       return { ...result, created: false };
     }
+  }
+
+  /** Reconcile the separate embedding index after atomic projection writes. */
+  public async reconcileProjectionTargets(
+    targets: readonly ProjectionChangedTarget[],
+  ): Promise<void> {
+    await Promise.all(
+      targets.map(async (target) => {
+        if (target.operation === "delete") {
+          await this.embeddingDb
+            .delete(embeddings)
+            .where(
+              and(
+                eq(embeddings.entityType, target.entityType),
+                eq(embeddings.entityId, target.entityId),
+              ),
+            );
+          return;
+        }
+        if (!target.contentHash) {
+          throw new Error(
+            `Projection target ${target.entityType}:${target.entityId} has no content hash`,
+          );
+        }
+        await this.enqueueEmbeddingJob({
+          entityId: target.entityId,
+          entityType: target.entityType,
+          contentHash: target.contentHash,
+          operation: "update",
+        });
+      }),
+    );
   }
 
   /**
@@ -709,15 +833,16 @@ export class EntityMutations {
    * Insert or replace FTS5 index entry for an entity.
    */
   private async upsertFtsIndex(
+    database: Pick<EntityDB, "run">,
     entityId: string,
     entityType: string,
     content: string,
   ): Promise<void> {
     // FTS5 doesn't support upsert — delete then insert
-    await this.db.run(
+    await database.run(
       sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
     );
-    await this.db.run(
+    await database.run(
       sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
     );
   }
@@ -755,6 +880,15 @@ export class EntityMutations {
       `Could not deduplicate entity ID after 100 attempts, using random suffix: ${fallbackId}`,
     );
     return fallbackId;
+  }
+
+  private async notifyProjectionScheduler(): Promise<void> {
+    try {
+      await this.projectionWakeup?.();
+    } catch (error) {
+      // The durable journal remains pending for the next wakeup or restart.
+      this.logger.error("Failed to wake projection scheduler", error);
+    }
   }
 
   /**

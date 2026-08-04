@@ -116,15 +116,19 @@ export {
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
   PROJECT_CHANNELS,
+  PROJECTION_CHANNELS,
   PUBLISH_ASSET_CHANNELS,
   PUBLISH_CHANNELS,
-  SERIES_CHANNELS,
   SHELL_CHANNELS,
   SITE_BUILDER_CHANNELS,
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
+export {
+  ProjectionWaveReadySchema,
+  type ProjectionWaveReady,
+} from "./projection-wave";
 export {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   lifecycleStarterRegistrationSchema,

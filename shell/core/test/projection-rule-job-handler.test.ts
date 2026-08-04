@@ -55,7 +55,6 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   constructor(inputCount: number) {
     this.inputs = Array.from({ length: inputCount }, (_unused, index) => ({
       waveId: "wave-1",
-      kind: "entity",
       sourceType: "document",
       sourceId: `document-${index}`,
       revision: `hash-${index}`,
@@ -101,16 +100,35 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
       jobId: "job-1",
       status: "completed",
       inputFingerprint: input.inputFingerprint,
-      changedTargets: [],
+      changedTargets: input.writeIntents.map((intent) =>
+        intent.operation === "upsert"
+          ? {
+              entityType: intent.entity.entityType,
+              entityId: intent.entity.id,
+              operation: "upsert" as const,
+              contentHash: "output-hash",
+            }
+          : {
+              entityType: intent.entityType,
+              entityId: intent.id,
+              operation: "delete" as const,
+            },
+      ),
     });
   }
 }
 
 class MemoryCoordinator implements ProjectionWaveCoordinator {
   readonly advancedWaveIds: string[] = [];
+  readonly failedWaveIds: string[] = [];
 
   advanceActiveWave(waveId: string): Promise<unknown> {
     this.advancedWaveIds.push(waveId);
+    return Promise.resolve();
+  }
+
+  failActiveWave(waveId: string): Promise<unknown> {
+    this.failedWaveIds.push(waveId);
     return Promise.resolve();
   }
 }
@@ -135,12 +153,14 @@ describe("ProjectionRuleJobHandler", () => {
     });
     const store = new MemoryExecutionStore(100);
     const coordinator = new MemoryCoordinator();
+    const reconcileTargets = mock(async () => {});
     const handler = new ProjectionRuleJobHandler({
       rules: [rule],
       store,
       coordinator,
       inputContext,
       executionContext,
+      reconcileTargets,
       now: (): number => 20,
     });
 
@@ -165,7 +185,43 @@ describe("ProjectionRuleJobHandler", () => {
         inputFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       }),
     );
+    expect(reconcileTargets).toHaveBeenCalledWith([
+      {
+        entityType: "topic",
+        entityId: "stale-topic",
+        operation: "delete",
+      },
+    ]);
     expect(coordinator.advancedWaveIds).toEqual(["wave-1"]);
+  });
+
+  it("fails the active wave after terminal queue exhaustion", async () => {
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      inputSchema: z.object({}),
+      selectInput: async () => ({}),
+      derive: async () => [],
+    });
+    const coordinator = new MemoryCoordinator();
+    const handler = new ProjectionRuleJobHandler({
+      rules: [rule],
+      store: new MemoryExecutionStore(1),
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      now: (): number => 20,
+    });
+
+    await handler.onTerminalError(new Error("exhausted"), {
+      waveId: "wave-1",
+      ruleId: "topics",
+    });
+
+    expect(coordinator.failedWaveIds).toEqual(["wave-1"]);
   });
 
   it("replays a durable memo without deriving again", async () => {
@@ -196,6 +252,7 @@ describe("ProjectionRuleJobHandler", () => {
       coordinator: new MemoryCoordinator(),
       inputContext,
       executionContext,
+      reconcileTargets: async (): Promise<void> => {},
       now: (): number => 20,
     });
 

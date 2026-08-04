@@ -66,7 +66,6 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
-import type { ProjectionDeclaration } from "./entity/projection-registry";
 import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
@@ -472,8 +471,6 @@ export interface PluginCapabilities {
   tools: Tool[];
   resources: Resource[];
   instructions?: string;
-  /** Immutable event-owned projection graph declarations. */
-  projections?: ProjectionDeclaration[];
   /** Immutable scheduler-owned executable projection capabilities. */
   projectionRules?: ProjectionRule[];
 }

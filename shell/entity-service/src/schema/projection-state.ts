@@ -106,15 +106,6 @@ type ProjectionDirtyInputsTable = SQLiteTableWithColumns<{
       true,
       true
     >;
-    kind: ProjectionTextColumn<
-      "projection_dirty_inputs",
-      "kind",
-      true,
-      false,
-      false,
-      "entity" | "rule",
-      ["entity", "rule"]
-    >;
     sourceType: ProjectionTextColumn<
       "projection_dirty_inputs",
       "source_type",
@@ -183,15 +174,6 @@ type ProjectionWaveInputsTable = SQLiteTableWithColumns<{
   schema: undefined;
   columns: {
     waveId: ProjectionTextColumn<"projection_wave_inputs", "wave_id", true>;
-    kind: ProjectionTextColumn<
-      "projection_wave_inputs",
-      "kind",
-      true,
-      false,
-      false,
-      "entity" | "rule",
-      ["entity", "rule"]
-    >;
     sourceType: ProjectionTextColumn<
       "projection_wave_inputs",
       "source_type",
@@ -294,7 +276,6 @@ export const projectionDirtyInputs: ProjectionDirtyInputsTable = sqliteTable(
   "projection_dirty_inputs",
   {
     generation: integer("generation").primaryKey({ autoIncrement: true }),
-    kind: text("kind", { enum: ["entity", "rule"] }).notNull(),
     sourceType: text("source_type").notNull(),
     sourceId: text("source_id").notNull(),
     revision: text("revision").notNull(),
@@ -328,7 +309,6 @@ export const projectionWaveInputs: ProjectionWaveInputsTable = sqliteTable(
     waveId: text("wave_id")
       .notNull()
       .references(() => projectionWaves.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["entity", "rule"] }).notNull(),
     sourceType: text("source_type").notNull(),
     sourceId: text("source_id").notNull(),
     revision: text("revision").notNull(),
@@ -337,7 +317,7 @@ export const projectionWaveInputs: ProjectionWaveInputsTable = sqliteTable(
   },
   (table) => ({
     pk: primaryKey({
-      columns: [table.waveId, table.kind, table.sourceType, table.sourceId],
+      columns: [table.waveId, table.sourceType, table.sourceId],
     }),
     generationIdx: index("projection_wave_inputs_generation_idx").on(
       table.waveId,

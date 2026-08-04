@@ -1,16 +1,10 @@
 import {
   EntityPlugin,
-  hasPersistedTargets,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_SOURCE_KIND,
-  type EntityChangePayload,
-  type EntityPluginContext,
   type DataSource,
-  type DerivedEntityProjection,
+  type EntityPluginContext,
+  type EntityTypeConfig,
   type Template,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import { summarySchema, type SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
@@ -36,29 +30,17 @@ import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-mem
 import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
-import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
-  SUMMARY_JOB_SOURCE,
   SUMMARY_PLUGIN_ID,
-  SUMMARY_PROJECTION_JOB_TYPE,
 } from "./lib/constants";
 import packageJson from "../package.json";
 
 const summaryAdapter: SummaryAdapter = new SummaryAdapter();
 const decisionAdapter: DecisionAdapter = new DecisionAdapter();
 const actionItemAdapter: ActionItemAdapter = new ActionItemAdapter();
-
-interface ConversationMessageAddedPayload {
-  conversationId: string;
-}
-
-const conversationMessageAddedSchema: z.ZodType<ConversationMessageAddedPayload> =
-  z.object({
-    conversationId: z.string(),
-  });
 
 export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryEntity,
@@ -99,118 +81,8 @@ export class ConversationMemoryPlugin extends EntityPlugin<
     return [new SummaryDataSource(this.logger.child("SummaryDataSource"))];
   }
 
-  protected override getDerivedEntityProjections(
-    context: EntityPluginContext,
-  ): DerivedEntityProjection[] {
-    if (!this.config.enableProjection) return [];
-
-    return [
-      {
-        id: "conversation-memory-projection",
-        targetType: SUMMARY_ENTITY_TYPE,
-        job: {
-          type: SUMMARY_PROJECTION_JOB_TYPE,
-          handler: new SummaryProjectionHandler(
-            context,
-            this.logger,
-            this.config,
-          ),
-        },
-        initialSync: {
-          shouldEnqueue: async () =>
-            context.spaces.length > 0 &&
-            !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE, {
-              outputVisibility: this.config.memoryVisibility,
-            })),
-          jobData: { mode: "rebuild-all", reason: "initial-sync" },
-          jobOptions: {
-            source: SUMMARY_JOB_SOURCE,
-            deduplication: "coalesce",
-            deduplicationKey: "conversation-memory:rebuild-all:initial-sync",
-            metadata: {
-              operationType: "data_processing",
-              operationTarget: "conversation-memory:rebuild-all",
-              pluginId: SUMMARY_PLUGIN_ID,
-            },
-          },
-        },
-        sourceChange: {
-          sourceKind: CONVERSATION_SOURCE_KIND,
-          sourceTypes: [CONVERSATION_SOURCE_KIND],
-          shouldEnqueue: (payload) =>
-            this.shouldEnqueueConversationProjection(context, payload),
-          events: [CONVERSATION_MESSAGE_ADDED_CHANNEL],
-          jobData: (
-            payload,
-          ): {
-            mode: "conversation";
-            conversationId: string;
-            reason: string;
-          } => {
-            const { conversationId } =
-              this.parseConversationMessagePayload(payload);
-            return {
-              mode: "conversation",
-              conversationId,
-              reason: "message-added",
-            };
-          },
-          jobOptions: (
-            payload,
-          ): {
-            priority: number;
-            source: string;
-            delayMs: number;
-            deduplication: "skip";
-            deduplicationKey: string;
-            metadata: {
-              operationType: "data_processing";
-              operationTarget: string;
-              pluginId: string;
-            };
-          } => {
-            const { conversationId } =
-              this.parseConversationMessagePayload(payload);
-            return {
-              priority: 5,
-              delayMs: this.config.projectionDelayMs,
-              source: SUMMARY_JOB_SOURCE,
-              deduplication: "skip",
-              deduplicationKey: `conversation-memory:${conversationId}`,
-              metadata: {
-                operationType: "data_processing" as const,
-                operationTarget: `conversation-memory:${conversationId}`,
-                pluginId: SUMMARY_PLUGIN_ID,
-              },
-            };
-          },
-        },
-      },
-    ];
-  }
-
-  private parseConversationMessagePayload(payload: EntityChangePayload): {
-    conversationId: string;
-  } {
-    return conversationMessageAddedSchema.parse(payload);
-  }
-
-  private async shouldEnqueueConversationProjection(
-    context: EntityPluginContext,
-    payload: EntityChangePayload,
-  ): Promise<boolean> {
-    const { conversationId } = this.parseConversationMessagePayload(payload);
-
-    const conversation = await context.conversations.get(conversationId);
-    if (!conversation) return false;
-
-    // Skip the messages fetch here; the projector re-runs eligibility
-    // against the fully-loaded message window when the job actually runs.
-    const eligibility = evaluateSummaryEligibility({
-      conversation,
-      spaces: context.spaces,
-    });
-    return eligibility.eligible;
+  protected override getEntityTypeConfig(): EntityTypeConfig {
+    return { projectionSource: false, projectionSourceRole: "excluded" };
   }
 
   protected override async onRegister(

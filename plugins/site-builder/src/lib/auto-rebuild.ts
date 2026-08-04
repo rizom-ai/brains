@@ -1,14 +1,15 @@
-import { ENTITY_CHANNELS } from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
 import {
-  LeadingTrailingDebounce,
-  TrailingDebounce,
-} from "@brains/utils/debounce";
+  PROJECTION_CHANNELS,
+  ProjectionWaveReadySchema,
+  type ProjectionWaveReady,
+} from "@brains/contracts";
+import type { Logger } from "@brains/utils/logger";
+import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
-interface EntityChangeMessage {
-  payload: { entityType: string };
+interface ProjectionWaveReadyMessage {
+  payload: ProjectionWaveReady;
 }
 
 interface AutoRebuildContext {
@@ -16,7 +17,7 @@ interface AutoRebuildContext {
     subscribe(
       type: string,
       handler: (
-        message: EntityChangeMessage,
+        message: ProjectionWaveReadyMessage,
       ) => Promise<{ success: boolean }> | { success: boolean },
     ): () => void;
   };
@@ -57,7 +58,6 @@ export class RebuildManager {
   private readonly logger: Logger;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
-  private automaticDebounces = new Map<string, TrailingDebounce>();
   private readonly dirtyGenerations = new Map<string, number>();
   private readonly queuedGenerations = new Map<
     string,
@@ -115,30 +115,16 @@ export class RebuildManager {
     debounce.trigger();
   }
 
-  private requestAutomaticBuild(environment?: "preview" | "production"): void {
+  private async requestAutomaticBuild(
+    environment?: "preview" | "production",
+  ): Promise<void> {
     if (this.disposed) return;
     const env =
       environment ?? (this.config.previewOutputDir ? "preview" : "production");
 
     this.dirtyGenerations.set(env, (this.dirtyGenerations.get(env) ?? 0) + 1);
-
-    if (this.statusService) {
-      this.runTrackedTask(
-        "mark automatic build requested",
-        () => this.statusService?.markRequested(env) ?? Promise.resolve(),
-      );
-    }
-
-    let debounce = this.automaticDebounces.get(env);
-    if (!debounce) {
-      debounce = new TrailingDebounce(() => {
-        this.runTrackedTask(`enqueue automatic ${env} build`, () =>
-          this.enqueueBuild(env, true),
-        );
-      }, this.config.rebuildDebounce);
-      this.automaticDebounces.set(env, debounce);
-    }
-    debounce.trigger();
+    await this.statusService?.markRequested(env);
+    await this.enqueueBuild(env, true, true);
   }
 
   markBuildStarted(
@@ -174,38 +160,37 @@ export class RebuildManager {
     }
   }
 
-  /**
-   * Subscribe to entity CRUD events so content changes automatically trigger
-   * a site rebuild.
-   */
+  /** Subscribe to successful scheduler waves instead of intermediate CRUD. */
   setupAutoRebuild(): void {
     if (this.disposed) return;
     const excludedTypes = new Set(["note"]);
 
-    const entityEventHandler = async (
-      message: EntityChangeMessage,
+    const waveReadyHandler = async (
+      message: ProjectionWaveReadyMessage,
     ): Promise<{ success: boolean }> => {
-      const { entityType } = message.payload;
-      if (!excludedTypes.has(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        this.requestAutomaticBuild();
+      const summary = ProjectionWaveReadySchema.parse(message.payload);
+      const changedTypes = new Set([
+        ...summary.sourceTypes,
+        ...summary.changedTargetTypes,
+      ]);
+      if ([...changedTypes].some((type) => !excludedTypes.has(type))) {
+        this.logger.debug(
+          `Projection wave ${summary.waveId} will trigger rebuild`,
+        );
+        await this.requestAutomaticBuild();
       }
       return { success: true };
     };
 
-    const events = [
-      ENTITY_CHANNELS.created,
-      ENTITY_CHANNELS.updated,
-      ENTITY_CHANNELS.deleted,
-    ];
-    for (const event of events) {
-      this.unsubscribeFunctions.push(
-        this.context.messaging.subscribe(event, entityEventHandler),
-      );
-    }
+    this.unsubscribeFunctions.push(
+      this.context.messaging.subscribe(
+        PROJECTION_CHANNELS.waveReady,
+        waveReadyHandler,
+      ),
+    );
 
     this.logger.debug(
-      `Auto-rebuild enabled (${this.config.rebuildDebounce}ms debounce), excluding types: ${[...excludedTypes].join(", ")}`,
+      `Wave-end auto-rebuild enabled, excluding types: ${[...excludedTypes].join(", ")}`,
     );
   }
 
@@ -229,14 +214,6 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
-    for (const debounce of this.automaticDebounces.values()) {
-      try {
-        debounce.dispose();
-      } catch (error) {
-        cleanupErrors.push(error);
-      }
-    }
-    this.automaticDebounces.clear();
     this.queuedGenerations.clear();
     this.activeBuilds.clear();
 
@@ -269,11 +246,12 @@ export class RebuildManager {
   private async enqueueBuild(
     environment: "preview" | "production",
     automatic: boolean,
+    failClosed: boolean = false,
   ): Promise<void> {
     if (automatic && this.activeBuilds.has(environment)) return;
     const inputGeneration = this.dirtyGenerations.get(environment) ?? 0;
     const queued = this.queuedGenerations.get(environment);
-    if (automatic && queued && queued.generation >= inputGeneration) return;
+    if (automatic && queued) return;
 
     const outputDir =
       environment === "production"
@@ -317,6 +295,7 @@ export class RebuildManager {
     } catch (error) {
       await this.statusService?.clearActive(environment);
       this.logger.error("Failed to enqueue site rebuild", { error });
+      if (failClosed) throw error;
     }
   }
 }

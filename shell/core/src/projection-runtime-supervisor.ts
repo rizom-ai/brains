@@ -1,10 +1,6 @@
 import type { OperationProvenance } from "@brains/contracts";
 import type { OperationContext } from "@brains/operation-context";
-import type {
-  ProjectionFeedbackPolicy,
-  ProjectionGraph,
-  RegisteredProjection,
-} from "@brains/plugins";
+import type { ProjectionGraph, RegisteredProjection } from "@brains/plugins";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -149,14 +145,14 @@ export class ProjectionRuntimeSupervisor {
 
     const now = this.options.now();
     await this.prune(now);
-    const projection = await this.requireProjection(projectionId, now);
+    await this.requireProjection(projectionId, now);
     await this.assertCircuitClosed(projectionId, now);
-    await this.assertDepth(provenance, projection.feedback, now);
+    await this.assertDepth(provenance, now);
 
     const repeats = provenance.projectionLineage.filter(
       (id) => id === projectionId,
     ).length;
-    if (repeats > 1 && !projection.feedback) {
+    if (repeats > 1) {
       await this.rejectAndOpen(
         projectionId,
         `Projection ${projectionId} repeats in one causal lineage`,
@@ -248,7 +244,6 @@ export class ProjectionRuntimeSupervisor {
 
   private async assertDepth(
     provenance: OperationProvenance,
-    feedback: ProjectionFeedbackPolicy | undefined,
     now: number,
   ): Promise<void> {
     const projectionId = provenance.projectionId;
@@ -257,13 +252,6 @@ export class ProjectionRuntimeSupervisor {
       await this.rejectAndOpen(
         projectionId,
         `Projection ${projectionId} depth ${provenance.derivationDepth} exceeds global maximum ${this.options.maxDerivationDepth}`,
-        now,
-      );
-    }
-    if (feedback && provenance.derivationDepth > feedback.maxDepth) {
-      await this.rejectAndOpen(
-        projectionId,
-        `Projection ${projectionId} depth ${provenance.derivationDepth} exceeds its declared maximum ${feedback.maxDepth}`,
         now,
       );
     }
