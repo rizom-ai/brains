@@ -6,7 +6,11 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { createMailClassifier } from "./lib/classifier";
+import {
+  createMailClassifier,
+  DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
+  EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
+} from "./lib/classifier";
 import { EntityMailItemRepository } from "./mail-item-repository";
 import { registerEmailTriageCmsWorkspace } from "./operator-cms";
 import { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget";
@@ -25,21 +29,25 @@ export class EmailTriagePlugin extends ServicePlugin<
 > {
   private operator: MailTriageOperatorService | undefined;
 
-  constructor(config: EmailTriageConfigInput = {}) {
-    super("email-triage", packageJson, config, emailTriageConfigSchema);
+  constructor() {
+    super("email-triage", packageJson, {}, emailTriageConfigSchema);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     this.operator = new MailTriageOperatorService(context);
+    const classificationPrompt = await context.prompts.resolve(
+      EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
+      DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
+    );
     const processor = new EmailTriageProcessor({
       repository: new EntityMailItemRepository(context.entityService),
       attempts: context.runtimeState.scoped({
         namespace: "email-triage.classification-attempts",
         schema: z.number().int().min(1).max(3),
       }),
-      classify: createMailClassifier(context.ai, this.config.instructions),
+      classify: createMailClassifier(context.ai, classificationPrompt),
       logger: this.logger,
     });
 

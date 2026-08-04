@@ -45,11 +45,14 @@ const classification: RetainedMailClassification = {
 };
 
 describe("email triage plugin", () => {
-  it("activates the entity and service from one explicit capability", () => {
+  it("activates the entity and service without a parallel prompt config", () => {
+    expect(() =>
+      Reflect.apply(emailTriage, undefined, [
+        { instructions: "Prioritize collaboration." },
+      ]),
+    ).toThrow();
     expect(
-      emailTriage({ instructions: "Prioritize collaboration." }).map(
-        (plugin) => ({ id: plugin.id, type: plugin.type }),
-      ),
+      emailTriage().map((plugin) => ({ id: plugin.id, type: plugin.type })),
     ).toEqual([
       { id: "mail-item", type: "entity" },
       { id: "email-triage", type: "service" },
@@ -70,10 +73,25 @@ describe("email triage plugin", () => {
       return { object: schema.parse(classification) };
     };
 
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "email-triage-classification",
+        entityType: "prompt",
+        content: `---
+title: Email Triage Classification
+target: email-triage:classification
+---
+Prioritize collaboration connected to Project Aurora.`,
+        metadata: {
+          title: "Email Triage Classification",
+          target: "email-triage:classification",
+        },
+        created: inbound.receivedAt,
+        updated: inbound.receivedAt,
+      },
+    });
     await harness.installPlugin(new MailItemPlugin());
-    await harness.installPlugin(
-      new EmailTriagePlugin({ instructions: "Prioritize collaboration." }),
-    );
+    await harness.installPlugin(new EmailTriagePlugin());
 
     const response = await harness.getMockShell().getMessageBus().send({
       type: EMAIL_INBOUND,
@@ -86,7 +104,9 @@ describe("email triage plugin", () => {
 
     expect(response).toEqual({ success: true });
     expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain("Prioritize collaboration.");
+    expect(prompts[0]).toContain(
+      "Prioritize collaboration connected to Project Aurora.",
+    );
     expect(schemas).toEqual([mailTriageDecisionSchema]);
     expect(items).toHaveLength(1);
     expect(items[0]?.visibility).toBe("restricted");

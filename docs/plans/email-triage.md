@@ -63,9 +63,10 @@ in the mailbox.
    the model. Useful automated security, finance, booking, and support messages remain
    eligible and classify by purpose rather than message form.
 6. **Classification is one structured model call per meaningful message.** The email is
-   delimited as untrusted source material and never enters agent chat. A fixed rubric
-   defines the five routing categories; optional Brain-specific guidance from
-   `brain.yaml` may tune prioritization but cannot expand the enum. The
+   delimited as untrusted source material and never enters agent chat. A fixed schema
+   defines the five routing categories; the editable `email-triage:classification`
+   prompt supplies their routing rubric and may tune prioritization but cannot expand
+   the enum. The
    schema-constrained call returns either a retained projection
    `{ decision: "retain", title, category, priority, needsReply, organization?, requestedActions, summary }`
    or `{ decision: "discard", reason: "spam" }`. The model must choose the closest
@@ -164,16 +165,14 @@ omitted until a real workflow needs them.
 
 ```yaml
 add: [email-triage]
-
-plugins:
-  email-triage:
-    instructions: |
-      Treat urgent security and financial notices as high priority.
-      Administrative receipts normally need no reply.
 ```
 
-The existing `plugins.email.imap` block remains the transport configuration. Triage
-configuration does not enable IMAP and is not automatically emitted by `brain init`.
+The classifier resolves the standard `email-triage:classification` prompt, materializing
+its built-in routing rubric as an editable prompt entity when needed. The code-owned
+safety envelope, fixed output schema, untrusted-source boundaries, and persistence
+validator are not editable prompt content. The existing `plugins.email.imap` block
+remains the transport configuration. Triage does not enable IMAP and is not
+automatically emitted by `brain init`.
 
 ## Phased delivery (thin vertical slices, strict TDD)
 

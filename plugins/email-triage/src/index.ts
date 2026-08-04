@@ -6,6 +6,7 @@ import {
   type EmailTriageConfigInput,
 } from "./schemas/config";
 
+export function emailTriage(): Plugin[];
 export function emailTriage(config: EmailTriageConfigInput = {}): Plugin[] {
   const parsed = emailTriageConfigSchema.safeParse(config);
   if (!parsed.success) {
@@ -18,7 +19,7 @@ export function emailTriage(config: EmailTriageConfigInput = {}): Plugin[] {
       })),
     );
   }
-  return [new MailItemPlugin(), new EmailTriagePlugin(parsed.data)];
+  return [new MailItemPlugin(), new EmailTriagePlugin()];
 }
 
 export { MailItemPlugin } from "./entity/plugin";
@@ -57,6 +58,8 @@ export {
 export {
   createMailClassifier,
   buildClassificationPrompt,
+  DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
+  EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
   type MailClassifier,
 } from "./lib/classifier";
 export { isDeterministicBulkMail } from "./lib/bulk-filter";
@@ -79,11 +82,6 @@ export {
   type DiscardedMailClassification,
   type MailTriageDecision,
 } from "./schemas/triage";
-export {
-  emailTriageConfigSchema,
-  type EmailTriageConfig,
-  type EmailTriageConfigInput,
-} from "./schemas/config";
 export {
   mailTriageFilterSchema,
   mailTriageListItemSchema,
