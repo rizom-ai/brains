@@ -284,6 +284,14 @@
           <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
           <div class="card-file">atproto-integration.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Email triage — safe derived mailbox attention</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, <code>email_triage_list</code>, typed status actions, and compact dashboard counts. Only shared-inbox source registration and digest participation wait for unified-inbox.</div>
+          <div class="card-file">email-triage.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">NPM Package Boundary Plan</span>
@@ -292,20 +300,20 @@
           <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
           <div class="card-file">npm-package-boundaries.md</div>
         </div>
-        <div class="card status-done">
+        <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Email triage — the lead entity and classification pipeline</span>
-            <span class="badge badge-done">Done</span>
+            <span class="card-name">Lead management — qualification and semantic consolidation</span>
+            <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**after unified-inbox in the incoming-events sequence**, demand-gated on live profiles/inquiry volume; its inbound-email dependency has shipped (<code>interfaces/email</code> publishes <code>EMAIL_INBOUND</code>): classify inbound mail and persist real inquiries as a <code>lead</code> entity (mail-shaped, upstream of <code>opportunity</code> via promotion); deterministic pre-filter before any model call. Promotion additionally wants <code>@brains/business-development</code> merged to main.</div>
-          <div class="card-file">email-triage.md</div>
+          <div class="card-desc">**after email triage**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into <code>@brains/business-development</code>.</div>
+          <div class="card-file">lead-management.md</div>
         </div>
-        <div class="card status-done">
+        <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Email reply drafting and sending</span>
-            <span class="badge badge-done">Done</span>
+            <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**last of the sequence**, gated on email-triage: in-voice reply drafts on leads, a threading extension to the delivery-provider contract, and confirmation-gated sending; draft-and-approve only, no auto-send capability.</div>
+          <div class="card-desc">**last of the sequence**, gated on email triage: fetch original mail on demand, store only Brain-authored drafts, extend the delivery-provider threading contract, and require confirmation before sending; lead context is optional.</div>
           <div class="card-file">email-reply-drafting.md</div>
         </div>
         </div>

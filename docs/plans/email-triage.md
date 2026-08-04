@@ -1,119 +1,236 @@
-# Plan: Email triage — the lead entity and classification pipeline
+# Plan: Email triage — safe derived mailbox attention
 
 ## Status
 
-**Proposed, demand-gated.** Its hard dependency has shipped: `interfaces/email`
-publishes the `EMAIL_INBOUND` contract. Building it before the platform profiles are
-live and inquiries actually arrive triages nothing; build the walking skeleton when
-inbound volume exists or is imminent.
+**Phases 0–2A implemented; remaining Phase 2B waits for
+[unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes
+the at-least-once `EMAIL_INBOUND` contract with an opaque source reference, and the
+opt-in `@brains/email-triage` capability classifies meaningful inbound mail into a safe
+derived `mail-item`. The local CMS, query tool, typed status actions, and compact
+dashboard contribution are implemented without the shared inbox contract. This plan
+does not define leads, draft replies, or opportunity promotion.
 
 ## Goal
 
-Every inbound email is automatically classified, scored for fit, and — when it is a real
-inquiry — persisted as a `lead` entity the operator can list, filter, and act on.
-`system_search`/`lead_list` over leads becomes the intake funnel view; hot leads surface
-for fast response.
+Give the operator a useful answer to “what arrived and needs me?” without copying the
+mailbox into Brain storage. Obvious bulk mail is discarded conservatively, meaningful
+mail becomes a restricted derived record, and the original message remains exclusively
+in the mailbox.
 
 ## What exists today (fact-check)
 
-- **Inbound email is shipped.** `interfaces/email` (`@brains/email`) delivers
-  `EMAIL_INBOUND` events — at-least-once, deduplicated by `messageId`, schema exported
-  from the package — consumable via `context.messaging.subscribe`
-  (`interfaces/email/src/inbound-email.ts`).
-- **No lead entity exists** — greenfield. `entities/wishlist` is the closest template:
-  durable entity, enum `status`, `interceptCreate` dedup, a `ListWidget` dashboard tile.
-- `context.ai.generateObject(prompt, schema)` exists on plugin contexts
-  (`shell/plugins/src/entity/context.ts`) for structured classification.
-- The `opportunity` entity (`@brains/business-development`,
-  [bd-priority-engine.md](./bd-priority-engine.md), in progress on
-  `feat/opportunity-priority-engine`) is decision-shaped: value/integrity scores, states,
-  ranking. It is explicitly **not** a CRM and must not absorb mail-shaped state.
+- `interfaces/email` (`@brains/email`) publishes `EMAIL_INBOUND` with parsed addresses,
+  subject, text/HTML, selected headers, `messageId`, opaque `sourceRef`, optional
+  `threadId`, and optional resolved sender attribution. Delivery is at-least-once: its
+  mailbox cursor advances only when a subscriber acknowledges.
+- The opt-in `@brains/email-triage` compound package owns the restricted `mail-item`
+  entity and the acknowledgement-gated filter/classify/persist service. It is in the
+  canonical catalog but no fixed bundle.
+- The Admin-only Email Triage CMS workspace provides combined client-side filters and
+  typed reviewed/handled/archive actions over a bounded derived snapshot.
+  `email_triage_list` provides server-side combined category, priority, status, and
+  reply filtering; ordinary get/update/delete operations remain on shared system tools.
+- A compact Admin dashboard contribution shows source-owned new/high/reply/unclassified
+  counts and links to the CMS workspace when CMS is mounted.
+- No unified-inbox source registration exists yet.
+- The unified-inbox contract does not exist yet. That blocks only source registration,
+  cross-source aggregation, and digest policy. Email triage's source-owned CMS, query
+  tool, typed status actions, and compact dashboard link/counts can ship first without
+  inventing a second notification center.
 
 ## Core decisions
 
-1. **`lead` is a dedicated entity, upstream of `opportunity`.** A lead is mail-shaped
-   evidence (who wrote, what they want, does it fit); an opportunity is decision-shaped
-   (value scores, integrity gate, active/staged/warm). The seam is **promotion**: a
-   promising lead is promoted into an `opportunity` capture, which then owns the deal
-   lifecycle. Neither entity duplicates the other's fields. Package: `entities/lead`
-   (`@brains/lead`), separate from `@brains/business-development` — intake and
-   prioritization evolve independently, and neither ships in a public reference preset.
-2. **Deterministic pre-filter before any model call.** `noreply@` senders, a
-   `List-Unsubscribe` header, `Auto-Submitted`, or bulk `Precedence` classify as
-   `platform-notification` with zero LLM cost. Cost control is the pre-filter, not model
-   routing.
-3. **Classification is one `generateObject` call** returning `{ category, fit,
-extracted, needsReply }` against the lead schema. The rubric lives in the plugin's
-   `getInstructions()`/prompt, so brain-specific fit criteria (e.g. Rizom's rate and
-   role preferences) are configuration-time content, not code.
-4. **Dedupe on `messageId` via `interceptCreate`** (the `entities/wishlist` pattern):
-   replayed at-least-once events and IMAP re-reads collapse to one lead.
-5. **Fit is an enum (`hot | warm | cold`), not a score.** Deterministic filters and
-   widget grouping beat a spurious-precision float; ranking with real scoring already
-   belongs to `opportunity` after promotion.
-6. **Status vocabulary is defined here, once:**
-   `new | drafted | replied | promoted | ignored`. This plan uses `new`, `promoted`,
-   `ignored`; [email-reply-drafting.md](./email-reply-drafting.md) owns the transitions
-   into `drafted` and `replied`. No won/lost/proposal states — that pipeline lives on
-   `opportunity`.
+1. **Email triage and lead management are separate capabilities.** This plan owns safe
+   mailbox classification and operator attention. Qualifying mail becomes a lead only
+   in [lead-management.md](./lead-management.md), which consumes durable mail items and
+   cannot block mailbox intake.
+2. **Triage is the sole acknowledgement owner for raw inbound mail.** A deterministic
+   discard acknowledges immediately. Meaningful mail acknowledges only after its
+   derived record is durable. Classification or database failure returns an
+   unacknowledged result so the shipped mailbox cursor retries.
+3. **The mailbox remains the canonical message store.** Brain never persists the body,
+   HTML, exact subject, raw addresses, recipients, headers, attachments, or raw
+   `Message-ID`. The inbound contract gains an opaque, transport-owned `sourceRef` so a
+   future reply-drafting capability can locate the original on demand. Reading the
+   original remains a mailbox operation in this plan.
+4. **`mail-item` is derived working knowledge, not a copied email.** It stores a
+   generated non-quoting title and summary, classification, requested actions, and only
+   the hashed/opaque source facts required for dedupe, correlation, and later lead
+   matching. Every item has `restricted` visibility.
+5. **Deterministic filtering is conservative.** A sender named `noreply` or one
+   automatic-submission header is never sufficient to discard mail. Only multiple
+   strong bulk signals (for example `List-Unsubscribe` plus bulk/list precedence) skip
+   the model. Useful automated security, finance, booking, and support messages remain
+   eligible and classify by purpose rather than message form.
+6. **Classification is one structured model call per meaningful message.** The email is
+   delimited as untrusted source material and never enters agent chat. A fixed rubric
+   defines the five routing categories; optional Brain-specific guidance from
+   `brain.yaml` may tune prioritization but cannot expand the enum. The
+   schema-constrained call returns either a retained projection
+   `{ decision: "retain", title, category, priority, needsReply, organization?, requestedActions, summary }`
+   or `{ decision: "discard", reason: "spam" }`. The model must choose the closest
+   routing category for retained mail; invalid output follows the retry policy.
+   Rationale and confidence are not persisted.
+7. **Replay is cheap and idempotent.** The entity ID is derived from the hashed message
+   identifier. An existing item acknowledges without filtering or another model call.
+   Discarded spam has no durable side effect; a rare mailbox replay may classify it
+   again without producing duplicate state.
+8. **Model poison cannot wedge the mailbox forever.** Classification attempts are
+   counted by hashed message identifier in scoped runtime state — the same
+   runtime-state mechanism the mailbox cursor uses. The first two failures remain
+   unacknowledged. After the third, triage persists a safe high-priority
+   `category=null` fallback titled “Unclassified email,” containing no source content
+   and directing the operator to the mailbox. Database failure still holds the cursor.
+   Attempt counters are deleted the moment a message resolves — item persisted,
+   fallback persisted, or deterministic discard acknowledged — so the state holds
+   counters only for messages currently wedged, never one per message ever failed.
+9. **The local operator surface is CMS-first and inbox-independent.** An admin-only
+   Email Triage CMS workspace owns combined filtering and typed status actions. A
+   compact dashboard contribution provides source-owned counts and a link to that
+   workspace; it is not a second cross-source inbox. Once the shared inbox contract
+   exists, new/high mail items register there. This plan does not add immediate push
+   notifications.
+10. **Keep the tool surface narrow.** Add `email_triage_list` for combined category,
+    priority, status, and `needsReply` filters. Use `system_get`, `system_update`, and
+    `system_delete` for ordinary entity operations.
+11. **No mailbox content in observability.** Logs never contain source bodies, exact
+    subjects, addresses, model prompts, model output, credentials, mailbox names, or
+    transport exception messages. Fixed operation messages may carry only a derived
+    item ID or count.
+12. **The capability is explicit opt-in.** `@brains/email-triage` is a compound package
+    containing the service and its tightly coupled `mail-item` entity plugin. It enters
+    the canonical catalog but no fixed bundle and no generated instance configuration.
 
-## `lead` entity — data model
+## `mail-item` entity
 
+```ts
+const mailCategorySchema = z.enum([
+  "opportunity",
+  "recruiting",
+  "work",
+  "administrative",
+  "personal",
+]);
+
+type MailCategory = z.output<typeof mailCategorySchema>;
+
+type MailPriority = "high" | "normal" | "low";
+type MailStatus = "new" | "reviewed" | "handled" | "archived";
+
+interface MailItemFrontmatter {
+  title: string;
+  category: MailCategory | null;
+  priority: MailPriority;
+  status: MailStatus;
+  needsReply: boolean;
+  receivedAt: string;
+
+  source: {
+    ref: string;
+    senderKey: string;
+    threadKey?: string;
+    personId?: string;
+    domain?: string;
+  };
+
+  organization?: string;
+  requestedActions: string[];
+}
+
+interface MailItemMetadata {
+  title: string;
+  category: MailCategory | null;
+  priority: MailPriority;
+  status: MailStatus;
+  needsReply: boolean;
+  receivedAt: string;
+}
 ```
-messageId    : string                       # dedupe key
-threadId?    : string
-from         : { name?, address }
-source       : string                       # inferred from sender domain, free text
-subject      : string
-receivedAt   : ISO
-category     : "inquiry" | "recruiter" | "platform-notification" | "admin" | "spam"
-fit          : "hot" | "warm" | "cold"
-needsReply   : boolean
-extracted    : { roles: string[], tech: string[], budget?, remote?, timeline? }
-status       : "new" | "drafted" | "replied" | "promoted" | "ignored"
-draftReply?  : string                       # written by email-reply-drafting.md
-opportunityId?: string                      # set on promotion
+
+The classifier applies the categories in routing terms: `opportunity` for prospective
+commercial or collaboration work, `recruiting` for employment and hiring, `work` for
+existing professional/project/client/support correspondence, `administrative` for
+finance/legal/security/scheduling/account operations and their automated notices, and
+`personal` for non-work relationships. Message form does not decide category. A normal
+projection always has one category; `null` is reserved for the system-authored poison
+fallback and is never a model choice.
+
+The markdown body is only the concise derived summary. `created`, `updated`,
+`contentHash`, and `visibility` remain standard entity-service fields; a separate
+`triagedAt`, raw dedupe field, topic list, and structured deadline are intentionally
+omitted until a real workflow needs them.
+
+## Configuration
+
+```yaml
+add: [email-triage]
+
+plugins:
+  email-triage:
+    instructions: |
+      Treat urgent security and financial notices as high priority.
+      Administrative receipts normally need no reply.
 ```
 
-The body text stays in the entity content (markdown), not in frontmatter, so search and
-drafting see the full inquiry while list views stay light.
+The existing `plugins.email.imap` block remains the transport configuration. Triage
+configuration does not enable IMAP and is not automatically emitted by `brain init`.
 
-## Phased delivery (thin vertical slices, TDD)
+## Phased delivery (thin vertical slices, strict TDD)
 
-Tests are written first inside each phase.
+Schemas are defined first in each phase, TypeScript types are derived from those Zod
+schemas with `z.output`, and behavior tests are then written against the schemas. A
+phase's implementation does not begin until its behavior matrix is red for the intended
+reason.
 
-- **Phase 0 — Walking skeleton: the entity.** `entities/lead` with schema, adapter,
-  `EntityPlugin`, `getInstructions()`; manual capture via `system_create`. _Tests:_
-  schema validation, markdown round-trip, status/category/fit constraints.
-- **Phase 1 — Pipeline: subscribe → filter → classify → persist.** Subscribe to
-  `EMAIL_INBOUND`; deterministic pre-filter; `generateObject` classification for the
-  remainder; `createEntity` with `interceptCreate` dedupe. _Tests:_ fixture set (real
-  inquiry, recruiter blast, platform notification, spam) with an injected fake AI
-  service; pre-filtered mail never reaches the model; duplicate `messageId` creates one
-  lead; body content absent from logs.
-- **Phase 2 — Views.** `lead_list` (filter by status/fit/category) and `lead_get`
-  tools over `entityService`; a `ListWidget` dashboard tile grouped by fit (model on
-  `entities/wishlist`). _Tests:_ filter correctness, empty states, widget dataProvider
-  shape.
-- **Phase 3 — Attention + promotion.** Hot leads publish a `notifications:send` push
-  (idempotencyKey = `messageId`; title/summary only, never the body) and register as a
-  [unified-inbox.md](./unified-inbox.md) source once that contract exists. `lead_promote`
-  creates an `opportunity` capture (title, source context, link back via
-  `opportunityId`, status → `promoted`) — this step lands only after
-  `@brains/business-development` merges to main; until then promotion is not exposed.
-  _Tests:_ notification dedupe and content redaction; promotion round-trip; inbox items
-  disappear when a lead leaves `new`.
+- **Phase 0 — Contract + derived entity — implemented.** Extend `EMAIL_INBOUND` with an opaque
+  `sourceRef`; add the compound package, Zod schemas, markdown adapter, canonical
+  catalog entry, and stable derived ID. _Tests first:_ source reference contract;
+  schema constraints; markdown round-trip; restricted visibility; stable IDs; persisted
+  output contains no body, HTML, subject, address, header, recipient, or message ID;
+  the category schema exposes exactly the five routing categories, normal projections
+  require one of them, and only the system fallback may persist `category=null`.
+- **Phase 1 — Subscribe → filter → classify → persist → acknowledge — implemented.** Register the one
+  raw-mail subscriber, conservative bulk filter, injected structured classifier,
+  scoped attempt state, fallback item, and idempotent persistence. _Tests first:_ bulk
+  newsletter skips AI; `noreply` security warning, automated invoice, and support update
+  are retained; spam is discarded; model called exactly once for meaningful mail;
+  duplicate replay calls it zero additional times; first two classification failures
+  hold the cursor; third creates the safe fallback; the attempt counter is removed on
+  successful persistence, fallback persistence, and discard acknowledgement; database
+  failure never acknowledges; no source content appears in entities or logs.
+- **Phase 2A — Source-owned operator surfaces — implemented independently of unified inbox.** Add
+  `email_triage_list`, the admin-only CMS workspace, typed status actions, and a compact
+  dashboard link/count contribution. The dashboard contribution reports only mail-item
+  counts and links to the workspace; it does not aggregate other sources or send a
+  digest. _Tests first:_ combined filters and empty states; permission enforcement;
+  workspace registration and lifecycle; typed status transitions; dashboard data shape;
+  no endpoint, tool response, or dashboard payload exposes raw mailbox content.
+- **Phase 2B — Shared inbox integration — blocked on unified inbox.** After the
+  `InboxSource` contract and aggregation surfaces exist, register new/high mail items as
+  a source with reviewed, handled, and archive actions. Reuse the Phase 2A status
+  operations rather than adding parallel mutation logic. _Tests first:_ source mapping
+  and empty state; admin enforcement at the source action boundary; action-to-status
+  transitions; handled items disappear on re-list; no inbox item exposes raw mailbox
+  content. Cross-source ordering, failure isolation, and digest behavior remain owned by
+  the unified-inbox plan.
 
 ## Out of scope
 
-- Reply drafting and sending — [email-reply-drafting.md](./email-reply-drafting.md).
-- Deal pipeline, scoring, ranking — [bd-priority-engine.md](./bd-priority-engine.md).
-- Non-email intake (contact forms, ATProto mentions). The pipeline subscribes to the
-  email contract; a second source would justify extracting a shared intake abstraction
-  at that moment, not speculatively now.
+- Lead creation, semantic consolidation, fit, and merge/split operations —
+  [lead-management.md](./lead-management.md).
+- Reading original messages inside Brain — operators use the mailbox in this plan;
+  on-demand retrieval belongs to reply drafting.
+- Drafting and sending replies — [email-reply-drafting.md](./email-reply-drafting.md).
+- Opportunity scoring and ranking — [bd-priority-engine.md](./bd-priority-engine.md).
+- Push notifications — unified inbox owns attention policy and its digest.
+- Attachments, full mailbox search, and non-email intake.
 
 ## Related plans
 
-- The event source is shipped code, not a plan: `EMAIL_INBOUND` from `@brains/email`.
-- [bd-priority-engine.md](./bd-priority-engine.md) — the promotion target.
-- [unified-inbox.md](./unified-inbox.md) — the attention surface for hot leads.
+- [unified-inbox.md](./unified-inbox.md) — shared attention projection required only
+  for Phase 2B source registration and digest participation.
+- [lead-management.md](./lead-management.md) — downstream lead creation and
+  consolidation.
+- [email-reply-drafting.md](./email-reply-drafting.md) — future on-demand source read,
+  drafting, approval, and send.
+- Inbound intake is shipped code: `interfaces/email` publishes `EMAIL_INBOUND`.

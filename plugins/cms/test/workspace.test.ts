@@ -104,6 +104,28 @@ describe("optional CMS workspaces", () => {
     });
   });
 
+  it("accepts the typed Email Triage workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    const response = await registerWorkspace(shell, {
+      id: "email-triage",
+      pluginId: "email-triage",
+      label: "Email Triage",
+      rendererName: "EmailTriageWorkspace",
+      priority: 30,
+      entityTypes: ["mail-item"],
+      accessHandler: (actor) => actor.userPermissionLevel === "admin",
+      dataProvider: async () => ({ items: [] }),
+    });
+
+    expect(response).toEqual({
+      success: true,
+      data: { workspaceUrl: "/cms/workspaces/email-triage" },
+    });
+  });
+
   it("exposes registered descriptors and provider data to the browser", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);

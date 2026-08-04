@@ -1,0 +1,33 @@
+{
+  "name": "@brains/email-triage",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.247",
+  "description": "Safe derived triage for inbound email",
+  "dependencies": {
+    "@brains/contracts": "workspace:*",
+    "@brains/dashboard": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

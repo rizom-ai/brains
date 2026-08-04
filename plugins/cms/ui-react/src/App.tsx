@@ -23,6 +23,8 @@ import {
   type CmsWorkspaceInfo,
   type DirectorySyncWorkspaceActionResult,
   type FieldAssistResponse,
+  type MailTriageStatusAction,
+  type MailTriageStatusActionResult,
   type PublishingAction,
   type PublishingActionResult,
   type SiteWorkspaceAction,
@@ -47,6 +49,7 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
   type SaveEntityInput,
@@ -171,6 +174,9 @@ export function App(): ReactElement {
   const directorySyncWorkspaceActionMutation = useMutation({
     mutationFn: runDirectorySyncWorkspaceAction,
   });
+  const mailTriageWorkspaceActionMutation = useMutation({
+    mutationFn: runMailTriageWorkspaceAction,
+  });
   const deleting = deleteEntityMutation.isPending;
 
   const activeWorkspace = workspaces.find(
@@ -189,6 +195,11 @@ export function App(): ReactElement {
   const directorySyncWorkspaceData =
     activeWorkspace?.rendererName === "DirectorySyncWorkspace" &&
     workspaceResponse?.rendererName === "DirectorySyncWorkspace"
+      ? workspaceResponse.data
+      : null;
+  const mailTriageWorkspaceData =
+    activeWorkspace?.rendererName === "EmailTriageWorkspace" &&
+    workspaceResponse?.rendererName === "EmailTriageWorkspace"
       ? workspaceResponse.data
       : null;
 
@@ -707,6 +718,30 @@ export function App(): ReactElement {
       return result;
     }, [directorySyncWorkspaceActionMutation, queryClient, workspaces]);
 
+  const performMailTriageAction = useCallback(
+    async (
+      action: MailTriageStatusAction,
+    ): Promise<MailTriageStatusActionResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "EmailTriageWorkspace",
+      );
+      if (!capability) throw new Error("Email triage is unavailable");
+
+      const result = await mailTriageWorkspaceActionMutation.mutateAsync({
+        workspaceId: capability.id,
+        action,
+      });
+      await Promise.all([
+        invalidateAfterWorkspaceAction(queryClient, capability.id),
+        queryClient.invalidateQueries({
+          queryKey: cmsKeys.entities("mail-item"),
+        }),
+      ]);
+      return result;
+    },
+    [mailTriageWorkspaceActionMutation, queryClient, workspaces],
+  );
+
   const visibleLoadError =
     loadError ??
     (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
@@ -735,6 +770,7 @@ export function App(): ReactElement {
       publicationWorkspaceData={publicationWorkspaceData}
       siteWorkspaceData={siteWorkspaceData}
       directorySyncWorkspaceData={directorySyncWorkspaceData}
+      mailTriageWorkspaceData={mailTriageWorkspaceData}
       entityType={entityType}
       entities={entities}
       schema={schema}
@@ -759,6 +795,7 @@ export function App(): ReactElement {
       performPublishingAction={performPublishingAction}
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}
+      performMailTriageAction={performMailTriageAction}
       startCreate={startCreate}
       openEntity={openEntity}
       runFieldAssist={runFieldAssist}

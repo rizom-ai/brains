@@ -68,6 +68,13 @@ export {
   type AuthPrincipalResolveResponse,
 } from "./auth-principal";
 export {
+  EMAIL_INBOUND,
+  inboundEmailSchema,
+  type InboundEmail,
+  type InboundEmailAddress,
+  type InboundEmailSender,
+} from "./inbound-email";
+export {
   hashInterfacePrincipal,
   normalizeInterfacePrincipal,
   parseConfiguredInterfacePrincipal,

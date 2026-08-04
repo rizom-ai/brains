@@ -2,97 +2,90 @@
 
 ## Status
 
-**Proposed, gated.** Requires [email-triage.md](./email-triage.md) (the `lead` entity).
-Inbound intake has shipped: `interfaces/email` publishes the `EMAIL_INBOUND` contract,
-whose payload carries the `messageId`/`threadId` this plan threads replies with. Last
-slice of the email funnel: draft a reply in the brain's voice, approve it, send it
-threaded.
+**Proposed, gated, and requires a focused review after
+[email-triage.md](./email-triage.md).** Email triage will persist only a safe derived
+`mail-item`; it will not copy the original email. Lead context from
+[lead-management.md](./lead-management.md) is optional enrichment, not the source of
+threading or recipient truth.
 
 ## Goal
 
-For a lead that `needsReply`, the operator gets an in-voice draft stored on the lead,
-edits or accepts it, and sends it as a proper threaded reply through the email
-interface's delivery provider — with an explicit approval step in between, always.
+For a mail item that needs a reply, fetch the original from its mailbox source on demand,
+generate an in-voice draft without persisting the source message, let the operator edit
+or accept it, and send a correctly threaded reply only after explicit approval.
 
 ## What exists today (fact-check)
 
 - Outbound email works: `interfaces/email` registers the `email`
-  `ChannelDeliveryProvider`; senders resolve it via
-  `context.channels.getDeliveryProvider("email")` (the `@brains/notifications` dispatch
-  path proves this end to end).
-- **`ChannelDeliveryInput` has no threading fields** — `recipient`, `subject`, `text`,
-  `html?`, `sensitivity`, `idempotencyKey` only. A reply that ignores
-  `In-Reply-To`/`References` breaks recipients' thread view; this plan extends the
-  contract.
-- The `lead` entity carries `threadId`, the inbound `messageId`, the full inquiry body
-  in its content, and the `drafted`/`replied` statuses reserved by
-  [email-triage.md](./email-triage.md).
-- Identity/voice guidance is being consolidated by
-  [identity-profiles-and-expression.md](./identity-profiles-and-expression.md); drafting
-  consumes whatever profile context the brain exposes rather than hardcoding persona
-  text.
+  `ChannelDeliveryProvider`; senders resolve it through the channel registry.
+- Inbound email publishes parsed `EMAIL_INBOUND` events, but it exposes no durable
+  on-demand source-read operation today.
+- `ChannelDeliveryInput` has no threading fields — `recipient`, `subject`, `text`,
+  `html?`, `sensitivity`, and `idempotencyKey` only.
+- The planned mail-item entity deliberately contains no original body, subject, address,
+  or raw message identifier. This plan therefore cannot draft correctly by reading
+  entity content.
 
 ## Core decisions
 
-1. **Draft-and-approve is the whole safety model.** Nothing is ever auto-sent to a
-   human. The pipeline may draft eagerly; only an explicit, confirmation-gated
-   `lead_reply` invocation sends. There is no auto-send configuration flag to misset —
-   the capability does not exist.
-2. **Drafting is generation, not agent chat.** `lead_draft` builds a prompt from the
-   lead content plus plugin instructions (voice, negotiation posture, rate guidance —
-   brain-config content, not code) and calls the shell's generation service. The
-   untrusted inquiry body is quoted source material inside a template, not a message
-   that steers an agent loop — the same trust posture that keeps shipped inbound
-   intake non-conversational (inbound mail never reaches `agentService.chat`).
-3. **Threading extends the shared delivery contract.** Add optional
-   `threading?: { inReplyTo: string; references: string[] }` to `ChannelDeliveryInput`
-   in `@brains/plugins`. The email provider maps it to RFC 5322 `In-Reply-To`/
-   `References` headers on the Resend request; providers that don't understand
-   threading ignore the field. Optional field, no migration, existing senders
-   unaffected.
-4. **Send truth over optimism.** `lead_reply` records `status=replied` plus the
-   `providerDeliveryId` only on a `sent` result; a `failed` result leaves the lead
-   `drafted` with the failure surfaced. Idempotency key is `${leadId}:${draftRevision}`
-   so a retry cannot double-send and an edited draft can be re-sent deliberately.
-5. **Drafts live on the lead** (`draftReply` plus a `draftRevision` counter), not as
-   separate entities — one inquiry, one current draft; git-style draft history is not a
-   requirement.
+1. **Draft-and-approve is the safety boundary.** Nothing auto-sends. The pipeline may
+   generate a draft, but only a confirmation-gated send operation can contact a human.
+2. **The mailbox remains source of truth.** Extend the email interface with an internal,
+   permission-checked source-read operation that resolves the mail item's opaque
+   `source.ref`. Original content is held only for the active draft/send operation and is
+   never copied into a mail item, lead, log, job payload, or model trace owned by Brain.
+3. **Drafting is structured generation, not agent chat.** The fetched email is delimited
+   as untrusted source material. Voice and response guidance are explicit plugin
+   configuration/profile context. No inbound instruction can enter an agent loop.
+4. **Drafts are separate, per-mail-item records.** A future `email-reply-draft` entity
+   stores only Brain-authored reply text, revision, and send state. It links to one mail
+   item and optionally one lead; draft lifecycle does not overload lead status.
+5. **Threading extends the shared delivery contract.** Add optional
+   `threading?: { inReplyTo: string; references: string[] }` to
+   `ChannelDeliveryInput`. The email provider maps it to RFC 5322 headers; providers
+   that do not support threading ignore it and existing senders remain unchanged.
+6. **Send truth over optimism.** Record sent state and provider delivery ID only after a
+   `sent` result. Failure leaves the current draft recoverable. An idempotency key tied
+   to draft ID and revision prevents retry duplicates while allowing an edited revision
+   to be sent deliberately.
+7. **Lead context is optional.** A work, administrative, or personal mail item may need
+   a reply without being a lead. When a linked lead exists, its derived
+   intent and constraints may inform drafting, but it never supplies recipient or
+   threading data.
 
-## Phased delivery (thin vertical slices, TDD)
+## Phased delivery (thin vertical slices, strict TDD)
 
-Tests are written first inside each phase.
+Tests are written and observed failing before implementation in every phase.
 
-- **Phase 0 — Drafting.** `lead_draft` tool: prompt assembly from lead content +
-  instructions + profile context, store `draftReply`, bump `draftRevision`, status →
-  `drafted`. Redraft overwrites. _Tests:_ draft stored and revision bumped; category
-  `platform-notification`/`spam` refuses to draft; inquiry body appears only as quoted
-  material in the prompt (injected fake AI asserts prompt shape); no body content in
-  logs.
-- **Phase 1 — Threading contract.** Extend `ChannelDeliveryInput` with the optional
-  `threading` field; email provider maps it to Resend headers. _Tests:_ contract schema
-  accepts/omits threading; header mapping (`In-Reply-To`, `References` ordering);
-  notifications-path sends without threading are byte-identical to today.
-- **Phase 2 — Sending.** `lead_reply`: confirmation-gated; sends the current draft (or
-  an operator-edited body) via the `email` delivery provider with
-  `threading: { inReplyTo: lead.messageId, references: [...thread] }`; on `sent`,
-  status → `replied` + `providerDeliveryId`; on `failed`, status stays `drafted`.
-  _Tests:_ confirmation required (unconfirmed invocation sends nothing); idempotency
-  key stability per revision; failure leaves state recoverable; subject gains `Re: `
-  exactly once.
+- **Phase 0 — On-demand source read.** Add the internal source-read contract and email
+  interface implementation. _Tests first:_ admin/internal authorization; valid/expired
+  source references; bounded fetch; no mailbox content in logs, runtime state, or job
+  payloads; source bytes released after the operation.
+- **Phase 1 — Draft entity + generation.** Finalize the `email-reply-draft` schema and a
+  confirmation-neutral draft operation that fetches the source, generates reply text,
+  stores only the reply, and increments revision. _Tests first:_ raw source never
+  persists; redraft creates a new revision; lead context optional; untrusted source is
+  delimited; no content in logs.
+- **Phase 2 — Threading contract.** Extend `ChannelDeliveryInput` and map threading to
+  email-provider headers. _Tests first:_ schema accepts/omits threading; `In-Reply-To`
+  and `References` ordering; existing notification delivery remains byte-identical.
+- **Phase 3 — Approval + send.** Confirmation-gated send of the current revision through
+  the email provider. _Tests first:_ unconfirmed invocation sends nothing; recipient
+  and subject come from fresh source resolution; idempotency stability; failure keeps
+  the draft editable; success records delivery ID exactly once.
 
 ## Out of scope
 
-- Follow-up sequences, reminders, snoozing — attention lives in
-  [unified-inbox.md](./unified-inbox.md); scheduling machinery is not email-specific.
-- Multi-turn email conversations (replies to our replies feed back through inbound
-  intake as new mail on the same `threadId`; a conversational loop is a separate
-  trust decision, deliberately not made here).
-- Attachments and rich MIME composition — text (+ optional HTML) only.
+- Automatic sending, follow-up sequences, reminders, or conversational email loops.
+- Storing original mailbox messages in Brain entities.
+- Attachments and rich MIME composition.
+- Lead qualification and promotion — [lead-management.md](./lead-management.md).
 
 ## Related plans
 
-- [email-triage.md](./email-triage.md) — owns the `lead` entity and status vocabulary.
-- [connected-channels.md](./connected-channels.md) — the delivery-provider contract
-  this plan extends.
-- Inbound intake is shipped, not a plan: `interfaces/email` (`@brains/email`) publishes
-  `EMAIL_INBOUND` with the `messageId`/`threadId` used for threading.
+- [email-triage.md](./email-triage.md) — owns the derived mail item and opaque source
+  reference.
+- [lead-management.md](./lead-management.md) — optional business context.
+- [connected-channels.md](./connected-channels.md) — delivery-provider contract extended
+  for threading.
+- [unified-inbox.md](./unified-inbox.md) — attention and digest policy.
