@@ -7,7 +7,7 @@ the at-least-once `EMAIL_INBOUND` contract with an opaque source reference, and 
 opt-in `@brains/email-triage` capability classifies meaningful inbound mail into a safe
 derived `mail-item`. The local CMS, query tool, typed status actions, and compact
 dashboard contribution are implemented without the shared inbox contract. This plan
-does not define leads, draft replies, or opportunity promotion.
+does not define leads, draft replies, or opportunity qualification.
 
 ## Goal
 
