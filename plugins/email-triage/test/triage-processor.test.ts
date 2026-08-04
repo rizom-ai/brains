@@ -4,6 +4,7 @@ import type { IRuntimeStateStore } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
 import {
+  DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
   EmailTriageProcessor,
   buildClassificationPrompt,
   mailItemIdForMessage,
@@ -351,10 +352,10 @@ describe("email triage processor", () => {
   it("delimits mailbox content as untrusted source material", () => {
     const prompt = buildClassificationPrompt(
       baseEmail,
-      "Prefer security notices.",
+      DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
     );
 
-    expect(prompt).toContain("Prefer security notices.");
+    expect(prompt).toContain("Classification guidance:");
     const boundary = prompt.match(/<(untrusted-email-[a-f0-9]{24})>/)?.[1];
     expect(boundary).toBeDefined();
     expect(prompt).toContain(`</${boundary}>`);
