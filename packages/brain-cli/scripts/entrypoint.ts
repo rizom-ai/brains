@@ -131,7 +131,7 @@ const result = await runCommand(parsed, cwd);
 
 if (!result.success) {
   console.error(result.message);
-  process.exit(1);
+  process.exit(result.exitCode ?? 1);
 }
 
 if (result.message) {

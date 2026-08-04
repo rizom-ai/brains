@@ -9,12 +9,16 @@ import {
 } from "../lib/definition-registry";
 import { checkApiKey } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
+import { getErrorMessage } from "@brains/utils/error";
+import { spawnBunRunner } from "../lib/spawn-bun-runner";
 import {
-  spawnBunRunner,
-  type SpawnBunRunnerDependencies,
-} from "../lib/spawn-bun-runner";
+  parseBrainChildRole,
+  superviseWebChild,
+  type BrainChildRole,
+  type ProcessSupervisorDependencies,
+} from "../lib/process-supervisor";
 
-type StartDependencies = SpawnBunRunnerDependencies;
+type StartDependencies = ProcessSupervisorDependencies;
 
 /**
  * Detect monorepo root by walking up looking for bun.lock.
@@ -96,6 +100,35 @@ export async function start(
       return {
         success: false,
         message: keyCheck.message ?? "AI_API_KEY is not set.",
+      };
+    }
+
+    let childRole: BrainChildRole | undefined;
+    try {
+      childRole = parseBrainChildRole(
+        dependencies.argv ?? process.argv.slice(2),
+      );
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error),
+      };
+    }
+
+    if (flags.mode === undefined && !flags.chat && childRole === undefined) {
+      const entrypointPath = dependencies.entrypointPath ?? process.argv[1];
+      if (!entrypointPath) {
+        return {
+          success: false,
+          message: "Cannot supervise Brain without a bundled entrypoint path.",
+        };
+      }
+      return superviseWebChild(cwd, entrypointPath, dependencies);
+    }
+    if (childRole === "worker") {
+      return {
+        success: false,
+        message: "Brain worker child is not available before the worker split.",
       };
     }
 

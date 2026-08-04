@@ -7,9 +7,18 @@ export type SpawnImpl = (
   options: SpawnOptions,
 ) => ChildProcess;
 
+export interface SignalProcess {
+  env: NodeJS.ProcessEnv;
+  on(event: "SIGINT" | "SIGTERM" | "exit", listener: () => void): unknown;
+  removeListener(
+    event: "SIGINT" | "SIGTERM" | "exit",
+    listener: () => void,
+  ): unknown;
+}
+
 export interface SpawnBunRunnerDependencies {
   spawnImpl?: SpawnImpl;
-  processImpl?: Pick<NodeJS.Process, "env" | "on" | "removeListener">;
+  processImpl?: SignalProcess;
 }
 
 export interface SpawnBunRunnerOptions extends SpawnBunRunnerDependencies {
@@ -80,7 +89,12 @@ export function spawnBunRunner(
 
       finish({
         success: code === 0,
-        ...(code !== 0 ? { message: options.failureMessage(code) } : {}),
+        ...(code !== 0
+          ? {
+              message: options.failureMessage(code),
+              exitCode: code ?? 1,
+            }
+          : {}),
       });
     });
   });

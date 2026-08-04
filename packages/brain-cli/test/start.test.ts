@@ -116,6 +116,98 @@ describe("start subprocess lifecycle", () => {
   });
 });
 
+describe("builtin process supervision", () => {
+  let testDir: string;
+  let previousApiKey: string | undefined;
+
+  beforeEach(() => {
+    testDir = join(
+      tmpdir(),
+      `brain-supervisor-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: brain\nbundles: [core]\n",
+    );
+    previousApiKey = process.env["AI_API_KEY"];
+    process.env["AI_API_KEY"] = "test-key";
+    setCanonicalDefinition(definition);
+  });
+
+  afterEach(() => {
+    if (previousApiKey === undefined) {
+      delete process.env["AI_API_KEY"];
+    } else {
+      process.env["AI_API_KEY"] = previousApiKey;
+    }
+    rmSync(testDir, { recursive: true, force: true });
+    resetBootFn();
+    resetCanonicalDefinition();
+  });
+
+  it("spawns one web child instead of booting the parent runtime", async () => {
+    const fakeProcess = new EventEmitter() as EventEmitter & {
+      env: NodeJS.ProcessEnv;
+    };
+    fakeProcess.env = process.env;
+    const child = new EventEmitter() as EventEmitter & {
+      kill: ReturnType<typeof mock>;
+      exitCode: number | null;
+      killed: boolean;
+    };
+    child.exitCode = null;
+    child.killed = false;
+    child.kill = mock(() => true);
+    const spawnImpl = mock(() => child as never);
+    const boot = mock(async (): Promise<void> => {});
+    setBootFn(boot);
+
+    const resultPromise = start(
+      testDir,
+      { chat: false },
+      {
+        argv: ["start"],
+        entrypointPath: "/tmp/brain.js",
+        spawnImpl,
+        processImpl: fakeProcess,
+      },
+    );
+
+    expect(spawnImpl).toHaveBeenCalledWith(
+      "bun",
+      ["/tmp/brain.js", "start", "--child=web"],
+      expect.objectContaining({ cwd: testDir, stdio: "inherit" }),
+    );
+    expect(boot).not.toHaveBeenCalled();
+
+    child.emit("close", 0, null);
+    expect(await resultPromise).toEqual({ success: true });
+  });
+
+  it("boots the web child without recursively spawning another child", async () => {
+    const spawnImpl = mock(() => {
+      throw new Error("nested supervisor");
+    });
+    const boot = mock(async (): Promise<void> => {});
+    setBootFn(boot);
+
+    const result = await start(
+      testDir,
+      { chat: false },
+      {
+        argv: ["start", "--child=web"],
+        entrypointPath: "/tmp/brain.js",
+        spawnImpl,
+      },
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(spawnImpl).not.toHaveBeenCalled();
+    expect(boot).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("resolveRunnerType", () => {
   let testDir: string;
 
