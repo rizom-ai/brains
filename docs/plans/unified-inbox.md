@@ -10,12 +10,11 @@ aggregated from source-owned state, never duplicating it.
 
 The operator answers "what came in that needs me?" in one place. Today each producer
 invents its own surface: [atproto-integration.md](./atproto-integration.md) designs an
-operator-only "Candidate Inbox", [bd-priority-engine.md](./bd-priority-engine.md) blocks
-stale-opportunity alerts on shared infrastructure ("scheduling, dedupe, and notification
-delivery must not become business-development-specific"), and
-[email-triage.md](./email-triage.md) needs somewhere for high-priority derived mail items
-to land. This plan is that shared surface: one contract, one dashboard widget, one
-digest.
+operator-only "Candidate Inbox", [bd-priority-engine.md](./bd-priority-engine.md) needs
+a live source for stale Warm opportunities without owning another timer or notification
+policy, and [email-triage.md](./email-triage.md) needs somewhere for high-priority
+derived mail items to land. This plan is that shared surface: one contract, one
+dashboard widget, one digest.
 
 ## What exists today (fact-check)
 
@@ -69,6 +68,8 @@ digest.
    ```
 
    Any plugin type may register a source — attention is not interface-specific.
+   `actions` may be empty for link-only attention items; `act` must reject any action ID
+   the source did not advertise.
 
 3. **Actions delegate to the source and carry the actor.** "Handled" on a mail item
    calls the email-triage source's `act`, while "Add" on a candidate runs the atproto
@@ -82,15 +83,16 @@ digest.
 4. **One aggregation `DataSource`** merges all sources, ordered by urgency then
    `receivedAt`, tolerant of a failing source (its section reports an error; others
    still render — one broken plugin must not blank the inbox).
-5. **Consumers, phased in by their own plans:** derived mail items (email-triage Phase
+5. **Consumers, phased in by their own plans:** derived mail items (Email Triage Phase
    2B; its source-owned Phase 2A operator surfaces do not wait for this contract), agent
-   candidates (the atproto plan's Candidate Inbox becomes an `InboxSource`
+   candidates (the Atproto plan's Candidate Inbox becomes an `InboxSource`
    registration plus candidate-specific merge/retention logic it already owns — that
    plan's UI slice shrinks to a source registration; update it when this contract
-   lands), stale opportunities (bd heartbeat lists stale Warm items as inbox items —
-   this registry plus `recurring-checks` is the shared infrastructure its Status
-   section waits on). Lead management does not register the same mail arrival again;
-   qualification remains a separate business view rather than a duplicate inbox item.
+   lands), and stale opportunities (Business Development registers a live source
+   computed from current Warm records). Sources own no timer, delivery, or per-item
+   dedupe; this plan's daily digest is the only recurring push. Lead Management does not
+   register the same mail arrival again; qualification remains a separate business view
+   rather than a duplicate inbox item.
 6. **The digest is push over the projection.** A `daily` recurring check summarizes
    counts and top items per source via `notifications:send`, linking to the dashboard —
    titles only, never bodies. Cadence-based, so it needs no per-item dedupe state.
@@ -106,7 +108,8 @@ Tests are written first inside each phase.
 - **Phase 0 — Walking skeleton: contract + registry + projection.** `InboxSource`/
   `InboxItem` schemas, app-scoped registry, aggregation DataSource; proven with a
   synthetic in-test source. _Tests:_ duplicate `sourceId` rejected; ordering
-  (urgency, then recency); failing source isolated; empty state.
+  (urgency, then recency); failing source isolated; empty action lists accepted;
+  unsupported actions rejected; empty state.
 - **Phase 1 — Surfaces.** Dashboard `Inbox` widget (model on the wishlist/
   agent-discovery widgets) rendering grouped items with action buttons, and an
   `inbox_list` tool for chat surfaces. _Tests:_ dataProvider shape; action dispatch
@@ -139,7 +142,7 @@ Tests are written first inside each phase.
   duplicate mail items in this inbox.
 - [atproto-integration.md](./atproto-integration.md) — Candidate Inbox becomes a source
   registration when this lands; update that plan then.
-- [bd-priority-engine.md](./bd-priority-engine.md) — stale-opportunity heartbeat
+- [bd-priority-engine.md](./bd-priority-engine.md) — its live stale-opportunity source
   registers here instead of growing bespoke alert delivery.
 - [operator-console-pwa.md](./operator-console-pwa.md) — the dashboard this widget
   ships in.

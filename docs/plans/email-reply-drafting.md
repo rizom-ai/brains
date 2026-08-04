@@ -79,7 +79,7 @@ Tests are written and observed failing before implementation in every phase.
 - Automatic sending, follow-up sequences, reminders, or conversational email loops.
 - Storing original mailbox messages in Brain entities.
 - Attachments and rich MIME composition.
-- Lead qualification and promotion — [lead-management.md](./lead-management.md).
+- Lead consolidation and qualification — [lead-management.md](./lead-management.md).
 
 ## Related plans
 

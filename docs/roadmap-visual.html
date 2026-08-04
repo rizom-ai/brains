@@ -228,7 +228,7 @@
             <span class="card-name">Unified inbox for incoming events</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**next up in the incoming-events sequence**: one operator surface for incoming events awaiting a human decision (hot leads, agent candidates, stale-opportunity alerts) — a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store. It has consumers waiting today: it unblocks the bd-priority-engine stale-opportunity heartbeat and shrinks the atproto Candidate Inbox to a source registration.</div>
+          <div class="card-desc">**next up in the incoming-events sequence**: one operator surface for incoming events awaiting a human decision (high-priority mail items, agent candidates, stale-opportunity alerts) — a source-registration contract plus an aggregating dashboard widget and daily digest, never a second store. It has consumers waiting today: it unblocks the bd-priority-engine stale-opportunity heartbeat and shrinks the atproto Candidate Inbox to a source registration.</div>
           <div class="card-file">unified-inbox.md</div>
         </div>
         <div class="card status-parked">
@@ -273,7 +273,7 @@
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: the initial capture/ranking/focus slice exists, but the single-entity rework now comes first: split <code>@brains/opportunity</code> from the Business Development service, add <code>state=lead</code>, and make stale Warm records a Unified Inbox source.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
         <div class="card status-partial">
@@ -302,10 +302,10 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Lead management — qualification and semantic consolidation</span>
+            <span class="card-name">Lead management — inbound qualification on the opportunity lifecycle</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**after email triage**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into <code>@brains/business-development</code>.</div>
+          <div class="card-desc">**after the opportunity entity rework**: consolidate qualifying mail items into restricted <code>state=lead</code> opportunities, provide reversible merge/split/reassignment, and qualify the same record through a confirmed state-and-scores update rather than promotion copying.</div>
           <div class="card-file">lead-management.md</div>
         </div>
         <div class="card status-proposed">
