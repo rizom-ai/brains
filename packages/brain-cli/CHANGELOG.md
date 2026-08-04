@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.248
+
+### Patch Changes
+
+- [#78](https://github.com/rizom-ai/brains/pull/78) [`bf899db`](https://github.com/rizom-ai/brains/commit/bf899db444e357cdb00a82245107a0aa71b5f3f3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose standalone `src/site.ts` overrides over an explicit `site.package` base so canonical rebuilds retain the base site's plugin, templates, and datasources.
+
 ## 0.2.0-alpha.247
 
 ## 0.2.0-alpha.246

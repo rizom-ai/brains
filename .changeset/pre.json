@@ -222,6 +222,7 @@
     "core--canonical-brain-crossover",
     "core--canonical-core-catalog",
     "core--canonical-eval-persistent-failures",
+    "core--canonical-local-site-composition",
     "core--canonical-personal-bundles",
     "core--canonical-team-bundle",
     "core--chat-identity-and-spaces",
