@@ -7,6 +7,9 @@ import type {
   DirectorySyncWorkspaceSnapshot,
   EntitySummary,
   EntityTypeInfo,
+  MailTriageStatusAction,
+  MailTriageStatusActionResult,
+  MailTriageWorkspaceSnapshot,
   PublicationPipelineSnapshot,
   PublishingAction,
   PublishingActionResult,
@@ -18,6 +21,7 @@ import type {
 } from "./api";
 import { BodyEditor, type BodyMode } from "./body-editor";
 import { DirectorySyncWorkspace } from "./directory-sync-workspace";
+import { EmailTriageWorkspace } from "./email-triage-workspace";
 import {
   Field,
   FieldAssistControls,
@@ -74,6 +78,7 @@ export interface CmsAppViewProps {
   publicationWorkspaceData: PublicationPipelineSnapshot | null;
   siteWorkspaceData: SiteWorkspaceSnapshot | null;
   directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
+  mailTriageWorkspaceData: MailTriageWorkspaceSnapshot | null;
   entityType: string | null;
   entities: EntitySummary[] | null;
   schema: TypeSchema | null;
@@ -102,6 +107,9 @@ export interface CmsAppViewProps {
     action: SiteWorkspaceAction,
   ) => Promise<SiteWorkspaceActionResult>;
   performDirectorySyncAction: () => Promise<DirectorySyncWorkspaceActionResult>;
+  performMailTriageAction: (
+    action: MailTriageStatusAction,
+  ) => Promise<MailTriageStatusActionResult>;
   startCreate: () => void;
   openEntity: (entityId: string) => void;
   runFieldAssist: (variant: FieldAssistVariant, field: string) => void;
@@ -139,6 +147,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     publicationWorkspaceData,
     siteWorkspaceData,
     directorySyncWorkspaceData,
+    mailTriageWorkspaceData,
     entityType,
     entities,
     schema,
@@ -163,6 +172,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     performPublishingAction,
     performSiteAction,
     performDirectorySyncAction,
+    performMailTriageAction,
     startCreate,
     openEntity,
     runFieldAssist,
@@ -255,6 +265,9 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
               ...(directorySyncWorkspaceData
                 ? { sync: directorySyncWorkspaceData.issues.length }
                 : {}),
+              ...(mailTriageWorkspaceData
+                ? { "email-triage": mailTriageWorkspaceData.summary.new }
+                : {}),
             }}
             onSelectWorkspace={selectWorkspace}
           />
@@ -282,6 +295,11 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             <DirectorySyncWorkspace
               data={directorySyncWorkspaceData}
               onAction={performDirectorySyncAction}
+            />
+          ) : mailTriageWorkspaceData ? (
+            <EmailTriageWorkspace
+              data={mailTriageWorkspaceData}
+              onAction={performMailTriageAction}
             />
           ) : null
         ) : !editing ? (

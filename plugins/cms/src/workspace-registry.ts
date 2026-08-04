@@ -12,6 +12,7 @@ const workspaceRegistrationSchema = z.object({
     "PublishingWorkspace",
     "SiteWorkspace",
     "DirectorySyncWorkspace",
+    "EmailTriageWorkspace",
   ]),
   priority: z.number().int(),
   entityTypes: z

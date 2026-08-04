@@ -15,7 +15,10 @@ export interface CmsWorkspaceActor {
 
 /** Optional server-side capability hosted by the first-party CMS. */
 export type CmsWorkspaceRendererName =
-  "PublishingWorkspace" | "SiteWorkspace" | "DirectorySyncWorkspace";
+  | "PublishingWorkspace"
+  | "SiteWorkspace"
+  | "DirectorySyncWorkspace"
+  | "EmailTriageWorkspace";
 
 export interface CmsWorkspaceRegistration {
   id: string;

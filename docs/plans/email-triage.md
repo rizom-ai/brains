@@ -2,14 +2,13 @@
 
 ## Status
 
-**Phases 0–1 implemented; remaining Phase 2A operator surfaces are demand-gated but
-can proceed independently; Phase 2B waits for
+**Phases 0–2A implemented; remaining Phase 2B waits for
 [unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes
 the at-least-once `EMAIL_INBOUND` contract with an opaque source reference, and the
 opt-in `@brains/email-triage` capability classifies meaningful inbound mail into a safe
-derived `mail-item`. The local CMS, query tool, and compact dashboard contribution do
-not depend on the shared inbox contract. This plan does not define leads, draft replies,
-or opportunity promotion.
+derived `mail-item`. The local CMS, query tool, typed status actions, and compact
+dashboard contribution are implemented without the shared inbox contract. This plan
+does not define leads, draft replies, or opportunity promotion.
 
 ## Goal
 
@@ -27,13 +26,13 @@ in the mailbox.
 - The opt-in `@brains/email-triage` compound package owns the restricted `mail-item`
   entity and the acknowledgement-gated filter/classify/persist service. It is in the
   canonical catalog but no fixed bundle.
-- No email-triage CMS workspace, dashboard contribution, domain list tool, or
-  unified-inbox source registration exists yet.
-- The generic `system_list` tool filters only by entity type and status. Combined
-  category/priority/reply filtering needs one narrow domain query tool; ordinary
-  get/update/delete operations should remain on the shared system tools.
-- Service plugins can contribute typed CMS workspaces and dashboard links; directory
-  sync and content pipeline are current examples.
+- The Admin-only Email Triage CMS workspace provides combined client-side filters and
+  typed reviewed/handled/archive actions over a bounded derived snapshot.
+  `email_triage_list` provides server-side combined category, priority, status, and
+  reply filtering; ordinary get/update/delete operations remain on shared system tools.
+- A compact Admin dashboard contribution shows source-owned new/high/reply/unclassified
+  counts and links to the CMS workspace when CMS is mounted.
+- No unified-inbox source registration exists yet.
 - The unified-inbox contract does not exist yet. That blocks only source registration,
   cross-source aggregation, and digest policy. Email triage's source-owned CMS, query
   tool, typed status actions, and compact dashboard link/counts can ship first without
@@ -199,7 +198,7 @@ reason.
   hold the cursor; third creates the safe fallback; the attempt counter is removed on
   successful persistence, fallback persistence, and discard acknowledgement; database
   failure never acknowledges; no source content appears in entities or logs.
-- **Phase 2A — Source-owned operator surfaces — independent of unified inbox.** Add
+- **Phase 2A — Source-owned operator surfaces — implemented independently of unified inbox.** Add
   `email_triage_list`, the admin-only CMS workspace, typed status actions, and a compact
   dashboard link/count contribution. The dashboard contribution reports only mail-item
   counts and links to the workspace; it does not aggregate other sources or send a

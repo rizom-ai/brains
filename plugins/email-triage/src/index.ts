@@ -62,6 +62,16 @@ export {
 export { isDeterministicBulkMail } from "./lib/bulk-filter";
 export { assertClassificationIsDerived } from "./lib/source-safety";
 export {
+  MailTriageOperatorService,
+  assertMailTriageAdmin,
+} from "./operator-service";
+export { createEmailTriageListTool } from "./operator-tool";
+export { registerEmailTriageCmsWorkspace } from "./operator-cms";
+export {
+  MailTriageDashboardWidget,
+  registerEmailTriageDashboardWidget,
+} from "./operator-dashboard-widget";
+export {
   retainedMailClassificationSchema,
   discardedMailClassificationSchema,
   mailTriageDecisionSchema,
@@ -74,3 +84,23 @@ export {
   type EmailTriageConfig,
   type EmailTriageConfigInput,
 } from "./schemas/config";
+export {
+  mailTriageFilterSchema,
+  mailTriageListItemSchema,
+  mailTriageListResultSchema,
+  mailTriageListToolOutputSchema,
+  mailTriageSummarySchema,
+  mailTriageWorkspaceSnapshotSchema,
+  mailTriageStatusActionSchema,
+  mailTriageStatusActionResultSchema,
+  mailTriageDashboardDataSchema,
+  type MailTriageFilter,
+  type MailTriageListItem,
+  type MailTriageListResult,
+  type MailTriageListToolOutput,
+  type MailTriageSummary,
+  type MailTriageWorkspaceSnapshot,
+  type MailTriageStatusAction,
+  type MailTriageStatusActionResult,
+  type MailTriageDashboardData,
+} from "./schemas/operator";

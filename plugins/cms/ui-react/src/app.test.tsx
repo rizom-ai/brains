@@ -105,6 +105,15 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 
+  it("gives the mail desk a responsive routing-ledger treatment", () => {
+    expect(visualRefreshStyles).toContain(".mail-triage-workspace");
+    expect(visualRefreshStyles).toContain(".mail-triage-filters");
+    expect(visualRefreshStyles).toContain(".mail-triage-item");
+    expect(responsiveStyles).toMatch(
+      /\.mail-triage-vitals \{[^}]*grid-template-columns: repeat\(2/,
+    );
+  });
+
   it("carries no content-studio wordmark in the crumbbar", () => {
     // The label added noise without wayfinding value; the crumbbar leads
     // with the collection breadcrumb directly.
@@ -516,6 +525,7 @@ function renderCapabilityView(
     publicationWorkspaceData: null,
     siteWorkspaceData: null,
     directorySyncWorkspaceData: null,
+    mailTriageWorkspaceData: null,
     entityType: "post",
     entities: [entity],
     schema,
@@ -553,6 +563,10 @@ function renderCapabilityView(
         accepted: true,
         status: "queued",
       }),
+    performMailTriageAction: async () => ({
+      id: "mail-1",
+      status: "reviewed",
+    }),
     startCreate: () => {},
     openEntity: () => {},
     runFieldAssist: () => {},

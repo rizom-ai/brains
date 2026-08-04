@@ -27,7 +27,10 @@ export interface CmsWorkspaceInfo {
   pluginId: string;
   label: string;
   rendererName:
-    "PublishingWorkspace" | "SiteWorkspace" | "DirectorySyncWorkspace";
+    | "PublishingWorkspace"
+    | "SiteWorkspace"
+    | "DirectorySyncWorkspace"
+    | "EmailTriageWorkspace";
   priority: number;
   entityTypes: string[];
 }
@@ -192,6 +195,36 @@ export interface DirectorySyncWorkspaceSnapshot {
   issues: DirectorySyncIssue[];
 }
 
+export type MailTriageCategory =
+  "opportunity" | "recruiting" | "work" | "administrative" | "personal";
+
+export type MailTriagePriority = "high" | "normal" | "low";
+export type MailTriageStatus = "new" | "reviewed" | "handled" | "archived";
+
+export interface MailTriageListItem {
+  id: string;
+  title: string;
+  category: MailTriageCategory | null;
+  priority: MailTriagePriority;
+  status: MailTriageStatus;
+  needsReply: boolean;
+  receivedAt: string;
+  summary: string;
+  organization?: string;
+  requestedActions: string[];
+}
+
+export interface MailTriageWorkspaceSnapshot {
+  summary: {
+    total: number;
+    new: number;
+    high: number;
+    needsReply: number;
+    unclassified: number;
+  };
+  items: MailTriageListItem[];
+}
+
 export type CmsWorkspaceData =
   | {
       id: string;
@@ -207,6 +240,11 @@ export type CmsWorkspaceData =
       id: string;
       rendererName: "DirectorySyncWorkspace";
       data: DirectorySyncWorkspaceSnapshot;
+    }
+  | {
+      id: string;
+      rendererName: "EmailTriageWorkspace";
+      data: MailTriageWorkspaceSnapshot;
     };
 
 export interface PublishConfirmationArgs {
@@ -242,6 +280,16 @@ export interface DirectorySyncWorkspaceActionResult {
   runId?: string;
   jobId?: string;
   batchId?: string;
+}
+
+export interface MailTriageStatusAction {
+  type: "mark-reviewed" | "mark-handled" | "archive";
+  id: string;
+}
+
+export interface MailTriageStatusActionResult {
+  id: string;
+  status: MailTriageStatus;
 }
 
 export interface SiteWorkspaceActionResult {
