@@ -20,9 +20,13 @@ function clearRegistryEntries(): void {
 
 describe("registerConventionalSiteTheme", () => {
   let testDir: string;
+  let testSequence = 0;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-conventional-site-${Date.now()}`);
+    testDir = join(
+      tmpdir(),
+      `brain-conventional-site-${Date.now()}-${testSequence++}`,
+    );
     mkdirSync(join(testDir, "src"), { recursive: true });
     clearRegistryEntries();
   });
@@ -82,10 +86,23 @@ describe("registerConventionalSiteTheme", () => {
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(themeCss);
   });
 
-  test("explicit site.package still wins, while local theme.css layers after explicit site.theme", async () => {
+  test("local site and theme conventions layer over explicit base choices", async () => {
+    const basePlugin = (): never => {
+      throw new Error("not called during composition");
+    };
+    registerPackage("@brains/site-explicit", {
+      layouts: { default: "base-layout" },
+      routes: [{ id: "home", path: "/", sections: [] }],
+      plugin: basePlugin,
+      entityDisplay: { post: { label: "Post" } },
+    });
     writeFileSync(
       join(testDir, "src/site.ts"),
-      "export default { layouts: {}, routes: [], plugin() { return { id: 'x', version: '1.0.0', description: 'x', packageName: '@x/x', type: 'service', async register() { return { tools: [], resources: [] }; } }; }, entityDisplay: {} };",
+      `export default {
+        layouts: { default: "local-layout" },
+        routes: [{ id: "home", path: "/", sections: [{ id: "hero", template: "local:hero" }] }],
+        entityDisplay: { post: { label: "Essay" } },
+      };`,
     );
     writeFileSync(
       join(testDir, "src/theme.css"),
@@ -104,13 +121,23 @@ describe("registerConventionalSiteTheme", () => {
 
     expect(result).toEqual({
       site: {
-        package: "@brains/site-explicit",
+        package: CONVENTIONAL_SITE_PACKAGE_REF,
         theme: "@brains/theme-explicit",
         themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
         variant: "studio",
       },
     });
-    expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeUndefined();
+    expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toMatchObject({
+      layouts: { default: "local-layout" },
+      routes: [
+        {
+          id: "home",
+          sections: [{ id: "hero", template: "local:hero" }],
+        },
+      ],
+      plugin: basePlugin,
+      entityDisplay: { post: { label: "Essay" } },
+    });
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(
       ":root { --color-brand: cyan; }",
     );

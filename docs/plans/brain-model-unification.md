@@ -736,7 +736,10 @@ Then execute only in an explicitly authorized maintenance window:
    the other contract.
 6. Verify `/health` version/status, expected unauthenticated MCP `401`, identity,
    repository/secret selectors, and application-managed site output after each deploy.
-   Render observed fleet status separately after these probes.
+   Site evidence must come from a fresh rebuild on the running app rather than a
+   persisted pre-deploy `dist`; local `src/site.ts` overrides must retain the selected
+   base site's plugin, templates, and datasources. Render observed fleet status
+   separately after these probes.
 7. Run a second reconcile and require zero drift in reconciler-owned generated config
    before lifting the freeze. `views/users.md` is not a reconciler-owned output.
 8. If any gate fails, restore the prior desired-state revision and prior image together,

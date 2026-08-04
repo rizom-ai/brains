@@ -47,7 +47,10 @@ function buildAppImports(options: {
     appImports.push("registerPackage");
   }
   if (options.hasConventions) {
-    appImports.push("applyConventionalSiteRefs");
+    appImports.push(
+      "applyConventionalSiteRefs",
+      "registerConventionalSitePackage",
+    );
   }
 
   return appImports;
@@ -105,21 +108,25 @@ function collectConventionalEntrypointParts(
     packageRef: string;
     importLine: string;
     arg: string;
+    registrationLine?: string;
   }): void => {
     parts.imports.push(options.importLine);
     parts.registrations.push(
-      `registerPackage("${options.packageRef}", __pkg${importIndex});`,
+      options.registrationLine ??
+        `registerPackage("${options.packageRef}", __pkg${importIndex});`,
     );
     parts.args.push(options.arg);
     importIndex += 1;
   };
 
   const sitePath = `${cwd}/src/site.ts`;
-  if (!overrides.site?.package && existsSync(sitePath)) {
+  if (existsSync(sitePath)) {
+    const basePackageRef = overrides.site?.package;
     addConvention({
       packageRef: CONVENTIONAL_SITE_PACKAGE_REF,
       importLine: `import __pkg${importIndex} from "${toImportPath(cwd, sitePath)}";`,
       arg: `sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
+      registrationLine: `registerConventionalSitePackage(__pkg${importIndex}, ${basePackageRef === undefined ? "undefined" : JSON.stringify(basePackageRef)});`,
     });
   }
 
@@ -157,7 +164,7 @@ function collectConventionalEntrypointParts(
  *
  * When `cwd` is provided, conventional local authoring files are also
  * bundled:
- * - `./src/site.ts` if `site.package` is omitted
+ * - `./src/site.ts`, composed over `site.package` when one is explicit
  * - `./src/theme.css` as an additive theme override layer when
  *   `site.themeOverride` is omitted
  * - `./src/site-content.ts` if `plugins.site-content.definitions` is omitted

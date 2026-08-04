@@ -35,7 +35,7 @@ bundles: [core]`,
     expect(code).not.toBeNull();
     expect(code).toContain('import __pkg0 from "./src/site.ts"');
     expect(code).toContain(
-      `registerPackage("${CONVENTIONAL_SITE_PACKAGE_REF}", __pkg0);`,
+      "registerConventionalSitePackage(__pkg0, undefined);",
     );
     expect(code).toContain(
       `applyConventionalSiteRefs(overrides, { sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
@@ -85,7 +85,7 @@ bundles: [core]`,
     );
   });
 
-  test("explicit site.package suppresses only the site import; local theme override still bundles", () => {
+  test("explicit site.package is bundled as the base for local site overrides", () => {
     writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
@@ -100,9 +100,11 @@ site:
     );
 
     expect(code).not.toBeNull();
-    expect(code).not.toContain("./src/site.ts");
+    expect(code).toContain("./src/site.ts");
     expect(code).toContain("./src/theme.css");
-    expect(code).not.toContain(CONVENTIONAL_SITE_PACKAGE_REF);
+    expect(code).toContain(CONVENTIONAL_SITE_PACKAGE_REF);
     expect(code).toContain(CONVENTIONAL_THEME_PACKAGE_REF);
+    expect(code).toContain("registerConventionalSitePackage(");
+    expect(code).toContain('"@brains/site-default"');
   });
 });

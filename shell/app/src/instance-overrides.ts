@@ -327,7 +327,7 @@ function applyConventionalSiteBlock(
 ): SiteOverrides {
   const nextSite = { ...site };
 
-  if (!nextSite.package && conventions.sitePackageRef) {
+  if (conventions.sitePackageRef) {
     nextSite.package = conventions.sitePackageRef;
   }
 
@@ -364,8 +364,11 @@ function applyConventionalSiteContentDefinitions(
 }
 
 /**
- * Apply convention-discovered local authoring refs only when brain.yaml does
- * not explicitly choose them.
+ * Apply convention-discovered local authoring refs.
+ *
+ * `sitePackageRef` selects the already-composed local site package. When
+ * brain.yaml names a base package, registration composes `src/site.ts` over it
+ * before this helper replaces the effective package ref.
  *
  * `themeOverrideRef` is additive: it layers local theme CSS after the base
  * theme from `site.theme` or the brain definition's default theme.

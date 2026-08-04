@@ -406,7 +406,7 @@ site:
   theme: "@brains/theme-rizom"
 ```
 
-The brain resolver loads `site.package` and `site.theme` independently. App-specific composition belongs in the standalone app repo's local `src/site.ts`; the shared `sites/rizom` package and `shared/theme-rizom` stay single-sourced in this repo. The resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
+The brain resolver loads `site.package` and `site.theme` independently. App-specific composition belongs in the standalone app repo's local `src/site.ts`; when `site.package` is explicit, the local file layers over that structural base instead of replacing its plugin, templates, or datasources. The shared `sites/rizom` package and `shared/theme-rizom` stay single-sourced in this repo. The resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
 
 ### Site Builder Integration
 
