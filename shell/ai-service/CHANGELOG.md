@@ -1,5 +1,19 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.250
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.250
+  - @brains/utils@0.2.0-alpha.250
+  - @brains/conversation-service@0.2.0-alpha.250
+  - @brains/entity-service@0.2.0-alpha.250
+  - @brains/identity-service@0.2.0-alpha.250
+  - @brains/mcp-service@0.2.0-alpha.250
+  - @brains/messaging-service@0.2.0-alpha.250
+  - @brains/templates@0.2.0-alpha.250
+
 ## 0.2.0-alpha.249
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.250
+
+### Patch Changes
+
+- [#79](https://github.com/rizom-ai/brains/pull/79) [`246dcb8`](https://github.com/rizom-ai/brains/commit/246dcb8fe1f8abede1acf7fd00e5c946f9d22e3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move editable email-classification guidance from plugin configuration to the standard `email-triage:classification` prompt entity while keeping privacy and schema invariants code-owned.
+
 ## 0.2.0-alpha.249
 
 ### Patch Changes

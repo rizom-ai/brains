@@ -1,7 +1,7 @@
 {
   "name": "@brains/wishlist",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.249",
+  "version": "0.2.0-alpha.250",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
     "@brains/plugins": "workspace:*",
