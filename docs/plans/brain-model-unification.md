@@ -695,7 +695,7 @@ inventory, not an informal cleanup list.
    for rollback. Record that no deployed config contains model, preset, or an old-format
    schema discriminator, and that every external hosted package has an exact pin.
 5. The rollback horizon closes when the Phase 8 second reconcile converges with zero
-   drift and the hosted canaries plus `yeehaa.io` have soaked one week on the unified
+   drift and the hosted canaries plus `yeehaa.io` have soaked for 48 continuous hours on the unified
    alpha; then delete the private-pilot migration and crossover staging modules,
    command, exports, tests, and documentation. Public `brain config migrate` remains
    supported until stable `0.2.0` ships and is deleted with that release, along with
