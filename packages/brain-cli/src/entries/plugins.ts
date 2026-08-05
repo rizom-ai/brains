@@ -94,6 +94,7 @@ export type {
   RuntimeQueueSignals,
   RuntimeReadiness,
   RuntimeResourceSignals,
+  RuntimeWorkerSignals,
 } from "@brains/plugins";
 
 export {

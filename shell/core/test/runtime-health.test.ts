@@ -8,7 +8,6 @@ type RuntimeDependencies = Pick<
   RuntimeReadinessOptions,
   | "entityService"
   | "jobQueueService"
-  | "jobQueueWorker"
   | "daemonRegistry"
   | "projectionRuntimeSupervisor"
 >;
@@ -25,16 +24,12 @@ function createDependencies(): RuntimeDependencies {
         oldestPendingAgeMs: 25,
         oldestProcessingAgeMs: null,
         staleLeaseCount: 0,
-      }),
-    },
-    jobQueueWorker: {
-      getStats: () => ({
-        processedJobs: 3,
-        failedJobs: 0,
-        activeJobs: 0,
-        uptime: 1_000,
-        isRunning: true,
-        isHealthy: true,
+        workerSessions: {
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 1_000,
+        },
       }),
     },
     projectionRuntimeSupervisor: {
@@ -84,6 +79,7 @@ describe("getRuntimeReadiness", () => {
     });
 
     expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("operational");
     expect(readiness.checkedAt).toBe("2025-07-30T12:00:00.000Z");
     expect(readiness.checks).toEqual(
       expect.arrayContaining([
@@ -117,6 +113,12 @@ describe("getRuntimeReadiness", () => {
         oldestPendingAgeMs: 25,
         oldestProcessingAgeMs: null,
         staleLeaseCount: 0,
+        workerSessions: {
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 1_000,
+        },
       },
       projection: {
         initialized: true,
@@ -124,17 +126,15 @@ describe("getRuntimeReadiness", () => {
         openCircuits: [],
       },
       worker: {
-        isRunning: true,
-        isHealthy: true,
-        activeJobs: 0,
-        processedJobs: 3,
-        failedJobs: 0,
-        uptimeMs: 1_000,
+        total: 1,
+        active: 1,
+        stale: 0,
+        latestHeartbeatAgeMs: 1_000,
       },
     });
   });
 
-  it("fails readiness for stale leases, unhealthy workers, and daemons", async () => {
+  it("keeps routing ready while worker, lease, and daemon operation is degraded", async () => {
     const dependencies = createDependencies();
     dependencies.jobQueueService.getDiagnostics = async (): Promise<
       Awaited<
@@ -143,17 +143,12 @@ describe("getRuntimeReadiness", () => {
     > => ({
       ...(await createDependencies().jobQueueService.getDiagnostics()),
       staleLeaseCount: 2,
-    });
-    dependencies.jobQueueWorker.getStats = (): ReturnType<
-      RuntimeDependencies["jobQueueWorker"]["getStats"]
-    > => ({
-      processedJobs: 3,
-      failedJobs: 1,
-      activeJobs: 1,
-      uptime: 1_000,
-      isRunning: true,
-      isHealthy: false,
-      unhealthyReason: "handler ignored cancellation",
+      workerSessions: {
+        total: 1,
+        active: 0,
+        stale: 1,
+        latestHeartbeatAgeMs: 20_000,
+      },
     });
     dependencies.daemonRegistry.getStatuses = async (): Promise<
       Awaited<ReturnType<RuntimeDependencies["daemonRegistry"]["getStatuses"]>>
@@ -174,24 +169,25 @@ describe("getRuntimeReadiness", () => {
       ...runtimeOptions,
     });
 
-    expect(readiness.status).toBe("not_ready");
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
     expect(readiness.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "job-worker",
-          status: "unhealthy",
-          message: "handler ignored cancellation",
+          status: "degraded",
+          message: "No live worker session",
         }),
         expect.objectContaining({
           name: "attempt-leases",
-          status: "unhealthy",
+          status: "degraded",
         }),
-        expect.objectContaining({ name: "daemons", status: "unhealthy" }),
+        expect.objectContaining({ name: "daemons", status: "degraded" }),
       ]),
     );
   });
 
-  it("fails readiness while a projection circuit is open", async () => {
+  it("degrades operation while a projection circuit is open", async () => {
     const dependencies = createDependencies();
     dependencies.projectionRuntimeSupervisor.getDiagnostics = async (): Promise<
       Awaited<
@@ -218,10 +214,11 @@ describe("getRuntimeReadiness", () => {
       ...runtimeOptions,
     });
 
-    expect(readiness.status).toBe("not_ready");
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
     expect(readiness.checks).toContainEqual({
       name: "projection-circuits",
-      status: "unhealthy",
+      status: "degraded",
       message: "1 projection circuit(s) open",
       details: {
         circuits: [
@@ -251,6 +248,7 @@ describe("getRuntimeReadiness", () => {
     });
 
     expect(readiness.status).toBe("not_ready");
+    expect(readiness.operationalStatus).toBe("degraded");
     expect(readiness.resources.queue).toBeNull();
     expect(readiness.checks).toEqual(
       expect.arrayContaining([

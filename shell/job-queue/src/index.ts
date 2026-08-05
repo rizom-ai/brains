@@ -20,6 +20,7 @@ export type {
   JobExecutionRegistration,
   JobHandlerRegistrationMode,
   JobQueueDiagnostics,
+  JobWorkerSessionDiagnostics,
   JobRuntimeUpdate,
   JobRuntimeUpdateCursor,
   JobQueueEnqueueRequest,
@@ -32,7 +33,7 @@ export type {
   IBatchJobManager,
   IJobsNamespace,
 } from "./types";
-export { JobInfoSchema } from "./types";
+export { DEFAULT_WORKER_SESSION_TIMEOUT_MS, JobInfoSchema } from "./types";
 export {
   JobStatusSchema,
   JobResultSchema,

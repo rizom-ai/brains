@@ -32,6 +32,9 @@ the worker only after the web process reports runtime readiness, and respawns a
 failed worker under a bounded rolling budget without taking web serving down.
 After worker readiness, a five-second IPC heartbeat lets the parent kill and
 replace a stuck worker after three missed beats under that same budget.
+Routing readiness remains independent of worker health: `/health/ready` fails
+only for web-critical dependencies, while `/health/operate` fails for stale
+worker sessions, queue leases, projection circuits, or unhealthy daemons.
 
 Job-handler registrations are finalized into an immutable inventory during
 boot. Web retains their validation side for durable enqueue, while the worker
@@ -371,13 +374,15 @@ Current deployment paths:
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
 The shared webserver separates dependency-free liveness (`/health/live`) from
-runtime readiness (`/health/ready`). Readiness covers database access, queue
-worker state, stale attempt leases, daemon health, and projection circuit state
-and includes bounded process, queue, and causal-work resource signals. `/health`
-remains a readiness-aware legacy
-surface. Generated containers probe liveness, while generated host deployment
-artifacts install a restart-budgeted systemd watchdog that preserves container
-diagnostics before restarting a persistently unhealthy Brain container.
+web routing readiness (`/health/ready`) and full operational health
+(`/health/operate`). Routing readiness covers web-critical database access.
+Operational health additionally covers durable worker sessions, stale attempt
+leases, daemon health, and projection circuit state; both reports include
+bounded process, queue, and causal-work resource signals. `/health` remains a
+routing-readiness legacy surface. Generated containers probe liveness, while
+generated host deployment artifacts install a restart-budgeted systemd
+watchdog that preserves container diagnostics before restarting a persistently
+unhealthy Brain container.
 
 ## Where to read next
 

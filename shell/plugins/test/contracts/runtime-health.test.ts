@@ -6,6 +6,7 @@ import {
 
 const validReport: RuntimeReadiness = {
   status: "ready",
+  operationalStatus: "operational",
   checkedAt: "2026-07-30T12:00:00.000Z",
   checks: [
     {
@@ -36,6 +37,12 @@ const validReport: RuntimeReadiness = {
       oldestPendingAgeMs: 20,
       oldestProcessingAgeMs: 10,
       staleLeaseCount: 0,
+      workerSessions: {
+        total: 1,
+        active: 1,
+        stale: 0,
+        latestHeartbeatAgeMs: 100,
+      },
     },
     projection: {
       initialized: true,
@@ -43,12 +50,10 @@ const validReport: RuntimeReadiness = {
       openCircuits: [],
     },
     worker: {
-      isRunning: true,
-      isHealthy: true,
-      activeJobs: 1,
-      processedJobs: 4,
-      failedJobs: 0,
-      uptimeMs: 500,
+      total: 1,
+      active: 1,
+      stale: 0,
+      latestHeartbeatAgeMs: 100,
     },
   },
 };
@@ -56,6 +61,24 @@ const validReport: RuntimeReadiness = {
 describe("RuntimeReadinessSchema", () => {
   it("validates structured readiness checks and resource signals", () => {
     expect(RuntimeReadinessSchema.parse(validReport)).toEqual(validReport);
+  });
+
+  it("accepts degraded operational checks without failing routing readiness", () => {
+    const degradedReport: RuntimeReadiness = {
+      ...validReport,
+      operationalStatus: "degraded",
+      checks: [
+        {
+          name: "job-worker",
+          status: "degraded",
+          message: "No live worker session",
+        },
+      ],
+    };
+
+    expect(RuntimeReadinessSchema.parse(degradedReport)).toEqual(
+      degradedReport,
+    );
   });
 
   it("rejects invalid queue and process counters", () => {

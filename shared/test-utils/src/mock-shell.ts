@@ -831,6 +831,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
     getRuntimeReadiness: async (): Promise<RuntimeReadiness> => ({
       status: "ready",
+      operationalStatus: "operational",
       checkedAt: new Date().toISOString(),
       checks: [],
       resources: {
@@ -843,6 +844,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           oldestPendingAgeMs: null,
           oldestProcessingAgeMs: null,
           staleLeaseCount: 0,
+          workerSessions: {
+            total: 1,
+            active: 1,
+            stale: 0,
+            latestHeartbeatAgeMs: 0,
+          },
         },
         projection: {
           initialized: true,
@@ -850,12 +857,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           openCircuits: [],
         },
         worker: {
-          isRunning: true,
-          isHealthy: true,
-          activeJobs: 0,
-          processedJobs: 0,
-          failedJobs: 0,
-          uptimeMs: 0,
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 0,
         },
       },
     }),

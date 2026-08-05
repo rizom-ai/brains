@@ -394,6 +394,7 @@ export {
   type RuntimeQueueSignals,
   type RuntimeReadiness,
   type RuntimeResourceSignals,
+  type RuntimeWorkerSignals,
 } from "./contracts/runtime-health";
 export {
   ConversationSchema,

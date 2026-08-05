@@ -3,12 +3,13 @@ import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 import { HandlerFailureSchema, type JobResult } from "./schemas";
-import type {
-  IJobQueueService,
-  JobHandler,
-  JobInfo,
-  JobQueueWorkerConfig,
-  JobQueueWorkerStats,
+import {
+  DEFAULT_WORKER_SESSION_TIMEOUT_MS,
+  type IJobQueueService,
+  type JobHandler,
+  type JobInfo,
+  type JobQueueWorkerConfig,
+  type JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
 import {
@@ -126,7 +127,8 @@ export class JobQueueWorker {
       leaseDurationMs: config?.leaseDurationMs ?? 30_000,
       attemptHeartbeatIntervalMs: config?.attemptHeartbeatIntervalMs ?? 10_000,
       workerHeartbeatIntervalMs: config?.workerHeartbeatIntervalMs ?? 5_000,
-      workerSessionTimeoutMs: config?.workerSessionTimeoutMs ?? 15_000,
+      workerSessionTimeoutMs:
+        config?.workerSessionTimeoutMs ?? DEFAULT_WORKER_SESSION_TIMEOUT_MS,
       onUnhealthy: config?.onUnhealthy ?? ((): void => undefined),
     };
 

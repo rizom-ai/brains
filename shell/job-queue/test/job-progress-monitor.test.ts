@@ -114,6 +114,12 @@ describe("JobProgressMonitor", () => {
           oldestPendingAgeMs: null,
           oldestProcessingAgeMs: null,
           staleLeaseCount: 0,
+          workerSessions: {
+            total: 1,
+            active: 1,
+            stale: 0,
+            latestHeartbeatAgeMs: 0,
+          },
         }),
       ),
       getRuntimeUpdates: getRuntimeUpdatesMock,

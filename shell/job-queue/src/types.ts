@@ -178,6 +178,13 @@ export interface JobRuntimeUpdate {
   readonly cursor: JobRuntimeUpdateCursor;
 }
 
+export interface JobWorkerSessionDiagnostics {
+  total: number;
+  active: number;
+  stale: number;
+  latestHeartbeatAgeMs: number | null;
+}
+
 export interface JobQueueDiagnostics {
   totals: Omit<JobQueueStats, "total">;
   byType: Array<{
@@ -188,6 +195,7 @@ export interface JobQueueDiagnostics {
   oldestPendingAgeMs: number | null;
   oldestProcessingAgeMs: number | null;
   staleLeaseCount: number;
+  workerSessions: JobWorkerSessionDiagnostics;
 }
 
 /**
@@ -346,6 +354,8 @@ export type JobQueueServiceConfig = DbConfig & {
    */
   claimTimeoutMs?: number;
 };
+
+export const DEFAULT_WORKER_SESSION_TIMEOUT_MS = 15_000;
 
 /**
  * Configuration for the JobQueueWorker

@@ -17,12 +17,13 @@ import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import type { Logger } from "@brains/utils/logger";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import type {
-  JobInfo,
-  JobQueueDiagnostics,
-  JobQueueStats,
-  JobRuntimeUpdate,
-  JobRuntimeUpdateCursor,
+import {
+  DEFAULT_WORKER_SESSION_TIMEOUT_MS,
+  type JobInfo,
+  type JobQueueDiagnostics,
+  type JobQueueStats,
+  type JobRuntimeUpdate,
+  type JobRuntimeUpdateCursor,
 } from "./types";
 import type { ProgressNotification } from "@brains/utils/progress";
 
@@ -349,7 +350,8 @@ export class JobQueueRepository {
   public async getDiagnostics(
     now: number = Date.now(),
   ): Promise<JobQueueDiagnostics> {
-    const [byTypeRows, ageRows] = await Promise.all([
+    const workerSessionExpiredBefore = now - DEFAULT_WORKER_SESSION_TIMEOUT_MS;
+    const [byTypeRows, ageRows, workerSessionRows] = await Promise.all([
       this.db
         .select({
           type: jobQueue.type,
@@ -369,6 +371,16 @@ export class JobQueueRepository {
           staleLeaseCount: sql<number>`coalesce(sum(case when ${jobQueue.status} = ${JOB_STATUS.PROCESSING} and ${jobQueue.leaseExpiresAt} is not null and ${jobQueue.leaseExpiresAt} <= ${now} then 1 else 0 end), 0)`,
         })
         .from(jobQueue),
+      this.db
+        .select({
+          total: sql<number>`count(*)`,
+          active: sql<number>`coalesce(sum(case when ${jobWorkerSessions.heartbeatAt} > ${workerSessionExpiredBefore} then 1 else 0 end), 0)`,
+          stale: sql<number>`coalesce(sum(case when ${jobWorkerSessions.heartbeatAt} <= ${workerSessionExpiredBefore} then 1 else 0 end), 0)`,
+          latestHeartbeatAt: sql<
+            number | null
+          >`max(${jobWorkerSessions.heartbeatAt})`,
+        })
+        .from(jobWorkerSessions),
     ]);
 
     const totals: JobQueueDiagnostics["totals"] = {
@@ -383,6 +395,7 @@ export class JobQueueRepository {
       return { type: row.type, status: row.status, count };
     });
     const ages = ageRows[0];
+    const workerSessions = workerSessionRows[0];
     const ageSince = (timestamp: number | null | undefined): number | null =>
       timestamp === null || timestamp === undefined
         ? null
@@ -394,6 +407,12 @@ export class JobQueueRepository {
       oldestPendingAgeMs: ageSince(ages?.oldestPendingAt),
       oldestProcessingAgeMs: ageSince(ages?.oldestProcessingAt),
       staleLeaseCount: Number(ages?.staleLeaseCount ?? 0),
+      workerSessions: {
+        total: Number(workerSessions?.total ?? 0),
+        active: Number(workerSessions?.active ?? 0),
+        stale: Number(workerSessions?.stale ?? 0),
+        latestHeartbeatAgeMs: ageSince(workerSessions?.latestHeartbeatAt),
+      },
     };
   }
 

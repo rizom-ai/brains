@@ -222,6 +222,13 @@ export class ServerManager {
         const readiness = await this.getReadinessData();
         return c.json(readiness, readiness.status === "ready" ? 200 : 503);
       });
+      app.get("/health/operate", async (c) => {
+        const readiness = await this.getReadinessData();
+        return c.json(
+          readiness,
+          readiness.operationalStatus === "operational" ? 200 : 503,
+        );
+      });
       app.get("/health", async (c) => {
         let readiness = await this.getReadinessData();
         let info: AppInfo | undefined;
@@ -232,6 +239,7 @@ export class ServerManager {
             readiness = {
               ...readiness,
               status: "not_ready",
+              operationalStatus: "degraded",
               checks: [
                 ...readiness.checks,
                 {
@@ -308,6 +316,7 @@ export class ServerManager {
     if (!this.options.getReadinessData) {
       return {
         status: "ready",
+        operationalStatus: "degraded",
         checkedAt: new Date().toISOString(),
         checks: [],
         resources: this.getUnavailableResourceSignals(),
@@ -319,6 +328,7 @@ export class ServerManager {
     } catch (error) {
       return {
         status: "not_ready",
+        operationalStatus: "degraded",
         checkedAt: new Date().toISOString(),
         checks: [
           {
@@ -349,13 +359,10 @@ export class ServerManager {
         openCircuits: [],
       },
       worker: {
-        isRunning: false,
-        isHealthy: false,
-        activeJobs: 0,
-        processedJobs: 0,
-        failedJobs: 0,
-        uptimeMs: 0,
-        unhealthyReason: "Runtime readiness provider is unavailable",
+        total: 0,
+        active: 0,
+        stale: 0,
+        latestHeartbeatAgeMs: null,
       },
     };
   }

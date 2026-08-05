@@ -37,6 +37,12 @@ describe("ServerManager (in-process)", () => {
         oldestPendingAgeMs: null,
         oldestProcessingAgeMs: null,
         staleLeaseCount: 0,
+        workerSessions: {
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 1,
+        },
       },
       projection: {
         initialized: true,
@@ -44,12 +50,10 @@ describe("ServerManager (in-process)", () => {
         openCircuits: [],
       },
       worker: {
-        isRunning: true,
-        isHealthy: true,
-        activeJobs: 0,
-        processedJobs: 0,
-        failedJobs: 0,
-        uptimeMs: 1,
+        total: 1,
+        active: 1,
+        stale: 0,
+        latestHeartbeatAgeMs: 1,
       },
     };
   }
@@ -267,15 +271,16 @@ describe("ServerManager (in-process)", () => {
     expect(readinessCalls).toBe(0);
   });
 
-  it("returns 503 readiness details when runtime dependencies are unhealthy", async () => {
-    const report = {
-      status: "not_ready" as const,
+  it("returns 503 readiness details when routing dependencies are unhealthy", async () => {
+    const report: RuntimeReadiness = {
+      status: "not_ready",
+      operationalStatus: "degraded",
       checkedAt: "2026-07-30T12:00:00.000Z",
       checks: [
         {
-          name: "job-worker",
-          status: "unhealthy" as const,
-          message: "handler ignored cancellation",
+          name: "entity-database",
+          status: "unhealthy",
+          message: "entity database offline",
         },
       ],
       resources: testResourceSignals(),
@@ -291,10 +296,58 @@ describe("ServerManager (in-process)", () => {
     expect(await res.json()).toEqual(report);
   });
 
+  it("keeps routing ready while operational health reports worker degradation", async () => {
+    const report: RuntimeReadiness = {
+      status: "ready",
+      operationalStatus: "degraded",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "job-worker",
+          status: "degraded",
+          message: "No live worker session",
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const ready = await fetch(`${url}/health/ready`);
+    const operate = await fetch(`${url}/health/operate`);
+
+    expect(ready.status).toBe(200);
+    expect(await ready.json()).toEqual(report);
+    expect(operate.status).toBe(503);
+    expect(await operate.json()).toEqual(report);
+  });
+
+  it("returns 200 operational health when every check is healthy", async () => {
+    const report: RuntimeReadiness = {
+      status: "ready",
+      operationalStatus: "operational",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [{ name: "job-worker", status: "healthy" }],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const operate = await fetch(`${url}/health/operate`);
+
+    expect(operate.status).toBe(200);
+    expect(await operate.json()).toEqual(report);
+  });
+
   it("returns structured legacy health when app metadata collection fails", async () => {
     const m = setup({
       getReadinessData: async () => ({
         status: "ready",
+        operationalStatus: "operational",
         checkedAt: "2026-07-30T12:00:00.000Z",
         checks: [],
         resources: testResourceSignals(),
@@ -326,13 +379,14 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("keeps /health as a readiness-aware compatibility endpoint", async () => {
-    const report = {
-      status: "not_ready" as const,
+    const report: RuntimeReadiness = {
+      status: "not_ready",
+      operationalStatus: "degraded",
       checkedAt: "2026-07-30T12:00:00.000Z",
       checks: [
         {
-          name: "job-worker",
-          status: "unhealthy" as const,
+          name: "entity-database",
+          status: "unhealthy",
         },
       ],
       resources: testResourceSignals(),

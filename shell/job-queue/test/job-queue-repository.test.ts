@@ -485,6 +485,7 @@ describe("JobQueueRepository fenced attempts", () => {
     await repository.insert(processing);
     await repository.insert(completed);
     await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    await repository.startWorkerSession("worker-b", "session-b", -4_000);
     await repository.claimNextReady(claimOptions());
 
     const diagnostics = await repository.getDiagnostics(12_000);
@@ -499,6 +500,12 @@ describe("JobQueueRepository fenced attempts", () => {
       oldestPendingAgeMs: 11_000,
       oldestProcessingAgeMs: 2_000,
       staleLeaseCount: 1,
+      workerSessions: {
+        total: 2,
+        active: 1,
+        stale: 1,
+        latestHeartbeatAgeMs: 2_000,
+      },
     });
     expect(diagnostics.byType).toEqual(
       expect.arrayContaining([

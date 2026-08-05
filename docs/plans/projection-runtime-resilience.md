@@ -691,7 +691,7 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S0–S4 are complete. S5–S6 remain in progress.
+Implementation status: S0–S5 are complete. S6 remains in progress.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every
@@ -727,9 +727,11 @@ phase.
    watchdog on every beat and kills the worker after 3 missed beats. The
    replacement flows through the existing exponential backoff and rolling
    restart budget.
-5. **S5 — health semantics**: add `degraded` health details and
-   `/health/operate`; prove `/health/ready` remains 200 for worker-only failure
-   while operational readiness returns 503.
+5. **S5 — health semantics**: complete. Queue diagnostics now derive durable
+   worker liveness from `job_worker_sessions`. `/health/ready` remains 200 with
+   `degraded` checks for worker, lease, projection-circuit, or daemon failure,
+   while `/health/operate` returns 503 for any operational degradation.
+   Web-critical database failure still returns 503 from both surfaces.
 6. **S6 — container verification**: manual staging soak — hang the worker with
    a test handler and assert `/health/live`, `/health/ready`, and static serving
    stay up while the worker respawns and the queue drains; exhaust the worker

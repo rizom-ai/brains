@@ -2,7 +2,7 @@ import { z } from "@brains/utils/zod";
 
 export interface RuntimeHealthCheck {
   name: string;
-  status: "healthy" | "unhealthy";
+  status: "healthy" | "degraded" | "unhealthy";
   message?: string | undefined;
   details?: Record<string, unknown> | undefined;
 }
@@ -22,6 +22,14 @@ export interface RuntimeQueueSignals {
   oldestPendingAgeMs: number | null;
   oldestProcessingAgeMs: number | null;
   staleLeaseCount: number;
+  workerSessions: RuntimeWorkerSignals;
+}
+
+export interface RuntimeWorkerSignals {
+  total: number;
+  active: number;
+  stale: number;
+  latestHeartbeatAgeMs: number | null;
 }
 
 export interface RuntimeProjectionCircuitSignal {
@@ -50,19 +58,12 @@ export interface RuntimeResourceSignals {
   };
   queue: RuntimeQueueSignals | null;
   projection: RuntimeProjectionSignals;
-  worker: {
-    isRunning: boolean;
-    isHealthy: boolean;
-    activeJobs: number;
-    processedJobs: number;
-    failedJobs: number;
-    uptimeMs: number;
-    unhealthyReason?: string | undefined;
-  };
+  worker: RuntimeWorkerSignals;
 }
 
 export interface RuntimeReadiness {
   status: "ready" | "not_ready";
+  operationalStatus: "operational" | "degraded";
   checkedAt: string;
   checks: RuntimeHealthCheck[];
   resources: RuntimeResourceSignals;
@@ -71,7 +72,7 @@ export interface RuntimeReadiness {
 export const RuntimeHealthCheckSchema: z.ZodType<RuntimeHealthCheck> = z.object(
   {
     name: z.string().min(1),
-    status: z.enum(["healthy", "unhealthy"]),
+    status: z.enum(["healthy", "degraded", "unhealthy"]),
     message: z.string().optional(),
     details: z.record(z.string(), z.unknown()).optional(),
   },
@@ -95,6 +96,12 @@ export const RuntimeQueueSignalsSchema: z.ZodType<RuntimeQueueSignals> =
     oldestPendingAgeMs: z.number().nonnegative().nullable(),
     oldestProcessingAgeMs: z.number().nonnegative().nullable(),
     staleLeaseCount: z.number().int().nonnegative(),
+    workerSessions: z.object({
+      total: z.number().int().nonnegative(),
+      active: z.number().int().nonnegative(),
+      stale: z.number().int().nonnegative(),
+      latestHeartbeatAgeMs: z.number().nonnegative().nullable(),
+    }),
   });
 
 export const RuntimeResourceSignalsSchema: z.ZodType<RuntimeResourceSignals> =
@@ -123,18 +130,16 @@ export const RuntimeResourceSignalsSchema: z.ZodType<RuntimeResourceSignals> =
       ),
     }),
     worker: z.object({
-      isRunning: z.boolean(),
-      isHealthy: z.boolean(),
-      activeJobs: z.number().int().nonnegative(),
-      processedJobs: z.number().int().nonnegative(),
-      failedJobs: z.number().int().nonnegative(),
-      uptimeMs: z.number().nonnegative(),
-      unhealthyReason: z.string().optional(),
+      total: z.number().int().nonnegative(),
+      active: z.number().int().nonnegative(),
+      stale: z.number().int().nonnegative(),
+      latestHeartbeatAgeMs: z.number().nonnegative().nullable(),
     }),
   });
 
 export const RuntimeReadinessSchema: z.ZodType<RuntimeReadiness> = z.object({
   status: z.enum(["ready", "not_ready"]),
+  operationalStatus: z.enum(["operational", "degraded"]),
   checkedAt: z.iso.datetime(),
   checks: z.array(RuntimeHealthCheckSchema),
   resources: RuntimeResourceSignalsSchema,

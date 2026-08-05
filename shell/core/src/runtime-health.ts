@@ -1,9 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { internalFullScope } from "@brains/entity-service";
-import type {
-  JobQueueDiagnostics,
-  JobQueueWorkerStats,
-} from "@brains/job-queue";
+import type { JobQueueDiagnostics } from "@brains/job-queue";
 import type {
   DaemonStatusInfo,
   RuntimeHealthCheck,
@@ -28,7 +25,6 @@ interface RuntimeMemoryUsage {
 export interface RuntimeReadinessOptions {
   entityService: Pick<ShellServices["entityService"], "getEntityCounts">;
   jobQueueService: Pick<ShellServices["jobQueueService"], "getDiagnostics">;
-  jobQueueWorker: Pick<ShellServices["jobQueueWorker"], "getStats">;
   daemonRegistry: Pick<ShellServices["daemonRegistry"], "getStatuses">;
   projectionRuntimeSupervisor: Pick<
     ShellServices["projectionRuntimeSupervisor"],
@@ -94,15 +90,39 @@ function dependencyCheck(
       };
 }
 
-function workerCheck(stats: JobQueueWorkerStats): RuntimeHealthCheck {
-  const healthy = stats.isRunning && stats.isHealthy;
+function workerCheck(
+  diagnostics: JobQueueDiagnostics | null,
+): RuntimeHealthCheck {
+  if (!diagnostics) {
+    return {
+      name: "job-worker",
+      status: "degraded",
+      message: "Worker session state is unavailable",
+    };
+  }
+
+  const sessions = diagnostics.workerSessions;
+  if (sessions.active === 0) {
+    return {
+      name: "job-worker",
+      status: "degraded",
+      message: "No live worker session",
+      details: { sessions },
+    };
+  }
+  if (sessions.stale > 0) {
+    return {
+      name: "job-worker",
+      status: "degraded",
+      message: `${sessions.stale} stale worker session(s)`,
+      details: { sessions },
+    };
+  }
   return {
     name: "job-worker",
-    status: healthy ? "healthy" : "unhealthy",
-    message: healthy
-      ? "Worker is accepting claims"
-      : (stats.unhealthyReason ??
-        (stats.isRunning ? "Worker is unhealthy" : "Worker is not running")),
+    status: "healthy",
+    message: `${sessions.active} live worker session(s)`,
+    details: { sessions },
   };
 }
 
@@ -112,7 +132,7 @@ function leaseCheck(
   if (!diagnostics) {
     return {
       name: "attempt-leases",
-      status: "unhealthy",
+      status: "degraded",
       message: "Lease state is unavailable",
     };
   }
@@ -124,7 +144,7 @@ function leaseCheck(
       }
     : {
         name: "attempt-leases",
-        status: "unhealthy",
+        status: "degraded",
         message: `${diagnostics.staleLeaseCount} processing lease(s) are stale`,
         details: { staleLeaseCount: diagnostics.staleLeaseCount },
       };
@@ -136,7 +156,7 @@ function projectionCheck(
   if (!diagnostics.initialized) {
     return {
       name: "projection-circuits",
-      status: "unhealthy",
+      status: "degraded",
       message: "Projection runtime supervisor is not initialized",
     };
   }
@@ -149,7 +169,7 @@ function projectionCheck(
   }
   return {
     name: "projection-circuits",
-    status: "unhealthy",
+    status: "degraded",
     message: `${diagnostics.openCircuits.length} projection circuit(s) open`,
     details: { circuits: diagnostics.openCircuits },
   };
@@ -168,7 +188,7 @@ function daemonCheck(statuses: DaemonStatusInfo[]): RuntimeHealthCheck {
       }
     : {
         name: "daemons",
-        status: "unhealthy",
+        status: "degraded",
         message: `${unhealthy.length} daemon(s) unhealthy`,
         details: {
           daemons: unhealthy.map((daemon) => ({
@@ -186,7 +206,6 @@ export async function getRuntimeReadiness(
 ): Promise<RuntimeReadiness> {
   const now = options.now?.() ?? Date.now();
   const memory = (options.memoryUsage ?? process.memoryUsage)();
-  const workerStats = options.jobQueueWorker.getStats();
   const [
     entityResult,
     queueResult,
@@ -235,24 +254,31 @@ export async function getRuntimeReadiness(
       queueResult,
       "Job queue database is accessible",
     ),
-    workerCheck(workerStats),
+    workerCheck(diagnostics),
     leaseCheck(diagnostics),
     projectionResult.status === "fulfilled"
       ? projectionCheck(projectionDiagnostics)
-      : dependencyCheck(
-          "projection-circuits",
-          projectionResult,
-          "No projection circuits are open",
-        ),
+      : {
+          name: "projection-circuits",
+          status: "degraded",
+          message: getErrorMessage(projectionResult.reason),
+        },
     daemonResult.status === "fulfilled"
       ? daemonCheck(daemonStatuses)
-      : dependencyCheck("daemons", daemonResult, "Daemons are healthy"),
+      : {
+          name: "daemons",
+          status: "degraded",
+          message: getErrorMessage(daemonResult.reason),
+        },
   ];
 
   return {
     status: checks.some((check) => check.status === "unhealthy")
       ? "not_ready"
       : "ready",
+    operationalStatus: checks.some((check) => check.status !== "healthy")
+      ? "degraded"
+      : "operational",
     checkedAt: new Date(now).toISOString(),
     checks,
     resources: {
@@ -272,16 +298,11 @@ export async function getRuntimeReadiness(
         trackedRoots: projectionDiagnostics.trackedRoots,
         openCircuits: projectionDiagnostics.openCircuits,
       },
-      worker: {
-        isRunning: workerStats.isRunning,
-        isHealthy: workerStats.isHealthy,
-        activeJobs: workerStats.activeJobs,
-        processedJobs: workerStats.processedJobs,
-        failedJobs: workerStats.failedJobs,
-        uptimeMs: workerStats.uptime,
-        ...(workerStats.unhealthyReason && {
-          unhealthyReason: workerStats.unhealthyReason,
-        }),
+      worker: diagnostics?.workerSessions ?? {
+        total: 0,
+        active: 0,
+        stale: 0,
+        latestHeartbeatAgeMs: null,
       },
     },
   };
