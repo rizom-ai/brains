@@ -121,6 +121,13 @@ plugins:
 Without a default recipient, the dashboard and `inbox_list` still work; the recurring
 notification remains pending for the standard retry path.
 
+A dedicated synthetic-only pilot lives at
+`packages/brain-cli/test-apps/unified-inbox`. It keeps email triage and unified inbox
+opt-in, leaves IMAP host/port/cadence explicit, reads only mailbox credentials from the
+local environment, and starts through `bun start:unified-inbox` from
+`packages/brain-cli`. Its README documents the isolated mailbox and optional digest
+delivery setup; no secrets or real mailbox fixtures are committed.
+
 ## Phased delivery (thin vertical slices, TDD)
 
 Tests are written first inside each phase.

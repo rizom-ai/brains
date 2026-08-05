@@ -23,7 +23,7 @@ This file applies to the whole repository unless a more specific `AGENTS.md` exi
 - Fix failing checks before continuing.
 - Do not bypass tests or commit hooks.
 - For app/site verification, remember this repo serves app-managed site-builder outputs, not just static site files. Start the app, then trigger a site rebuild **on the running app** via the app command surface (typically MCP HTTP via `--remote`, even for `localhost`) before inspecting generated output. When preview is configured, start with the default preview rebuild/output (`dist/site-preview`); production is separate (`dist/site-production`).
-- Canonical brain test apps start from `packages/brain-cli` with its posture scripts; do not invent alternate commands: `bun start:minimal|start:personal|start:publishing|start:team`.
+- Canonical brain test apps start from `packages/brain-cli` with its posture scripts; do not invent alternate commands: `bun start:minimal|start:personal|start:publishing|start:team|start:unified-inbox`.
 
 ## Architecture defaults
 
