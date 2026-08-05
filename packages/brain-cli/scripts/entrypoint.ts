@@ -32,6 +32,7 @@ registerPackage("@brains/theme-rizom", rizomTheme);
 // ─── Register boot function ───────────────────────────────────────────────
 
 import { setBootFn } from "../src/lib/boot";
+import { startWorkerHeartbeat } from "../src/lib/process-supervisor";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -98,14 +99,25 @@ setBootFn(async (cwd, definition, flags) => {
       ...(flags.childRole && { processRole: flags.childRole }),
       ...(flags.childRole && {
         onRuntimeReady: (): void => {
-          if (!process.send) {
-            throw new Error(
-              `Supervised Brain ${flags.childRole} child has no IPC channel`,
+          const sendSupervisorMessage = (
+            type: "runtime-ready" | "worker-ready" | "worker-heartbeat",
+          ): void => {
+            if (!process.send) {
+              throw new Error(
+                `Supervised Brain ${flags.childRole} child has no IPC channel`,
+              );
+            }
+            process.send({ type });
+          };
+
+          sendSupervisorMessage(
+            flags.childRole === "web" ? "runtime-ready" : "worker-ready",
+          );
+          if (flags.childRole === "worker") {
+            startWorkerHeartbeat((): void =>
+              sendSupervisorMessage("worker-heartbeat"),
             );
           }
-          process.send({
-            type: flags.childRole === "web" ? "runtime-ready" : "worker-ready",
-          });
         },
       }),
     });

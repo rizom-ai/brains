@@ -9,6 +9,15 @@ import type {
 
 export type BrainChildRole = "web" | "worker";
 type SupervisorTimer = ReturnType<typeof setTimeout> | number;
+type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
+
+export const WORKER_HEARTBEAT_INTERVAL_MS = 5_000;
+const MISSED_WORKER_HEARTBEATS_BEFORE_RESTART = 3;
+
+export interface WorkerHeartbeatClock {
+  setInterval(callback: () => void, intervalMs: number): WorkerHeartbeatTimer;
+  clearInterval(handle: WorkerHeartbeatTimer): void;
+}
 
 export interface SupervisorClock {
   now(): number;
@@ -25,6 +34,7 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerRestartBaseMs?: number;
   workerRestartBudget?: number;
   workerRestartWindowMs?: number;
+  workerHeartbeatIntervalMs?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
 }
 
@@ -33,6 +43,19 @@ const defaultClock: SupervisorClock = {
   setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
   clearTimeout: (handle) => clearTimeout(handle),
 };
+
+const defaultWorkerHeartbeatClock: WorkerHeartbeatClock = {
+  setInterval: (callback, intervalMs) => setInterval(callback, intervalMs),
+  clearInterval: (handle) => clearInterval(handle),
+};
+
+export function startWorkerHeartbeat(
+  sendHeartbeat: () => void,
+  clock: WorkerHeartbeatClock = defaultWorkerHeartbeatClock,
+): () => void {
+  const timer = clock.setInterval(sendHeartbeat, WORKER_HEARTBEAT_INTERVAL_MS);
+  return (): void => clock.clearInterval(timer);
+}
 
 export function parseBrainChildRole(
   argv: readonly string[],
@@ -65,6 +88,7 @@ interface RuntimeSupervisorOptions {
   workerRestartBaseMs: number;
   workerRestartBudget: number;
   workerRestartWindowMs: number;
+  workerHeartbeatIntervalMs: number;
   reportIncident: (incident: Record<string, unknown>) => void;
 }
 
@@ -74,7 +98,9 @@ interface ManagedChild {
   ready: boolean;
   closed: boolean;
   startupTimedOut: boolean;
+  heartbeatTimedOut: boolean;
   startupTimer: SupervisorTimer | undefined;
+  heartbeatTimer: SupervisorTimer | undefined;
   handleMessage(message: unknown): void;
 }
 
@@ -97,10 +123,14 @@ function runRuntimeSupervisor(
         (child): child is ManagedChild => child !== undefined && !child.closed,
       );
 
-    const clearChildTimer = (child: ManagedChild): void => {
+    const clearChildTimers = (child: ManagedChild): void => {
       if (child.startupTimer !== undefined) {
         options.clock.clearTimeout(child.startupTimer);
         child.startupTimer = undefined;
+      }
+      if (child.heartbeatTimer !== undefined) {
+        options.clock.clearTimeout(child.heartbeatTimer);
+        child.heartbeatTimer = undefined;
       }
     };
 
@@ -114,8 +144,8 @@ function runRuntimeSupervisor(
       if (workerRestartTimer !== undefined) {
         options.clock.clearTimeout(workerRestartTimer);
       }
-      if (web) clearChildTimer(web);
-      if (worker) clearChildTimer(worker);
+      if (web) clearChildTimers(web);
+      if (worker) clearChildTimers(worker);
     };
 
     const finish = (result: CommandResult): void => {
@@ -135,6 +165,37 @@ function runRuntimeSupervisor(
       } catch {
         // The child won the race and has already exited.
       }
+    };
+
+    const armWorkerHeartbeatWatchdog = (child: ManagedChild): void => {
+      if (
+        child.role !== "worker" ||
+        !child.ready ||
+        child.closed ||
+        parentShutdownRequested
+      ) {
+        return;
+      }
+      if (child.heartbeatTimer !== undefined) {
+        options.clock.clearTimeout(child.heartbeatTimer);
+      }
+      child.heartbeatTimer = options.clock.setTimeout(() => {
+        child.heartbeatTimer = undefined;
+        if (
+          child.closed ||
+          child.heartbeatTimedOut ||
+          parentShutdownRequested
+        ) {
+          return;
+        }
+        child.heartbeatTimedOut = true;
+        options.reportIncident({
+          type: "worker-heartbeat-timeout",
+          missedBeats: MISSED_WORKER_HEARTBEATS_BEFORE_RESTART,
+          intervalMs: options.workerHeartbeatIntervalMs,
+        });
+        signalChild(child, "SIGKILL");
+      }, options.workerHeartbeatIntervalMs * MISSED_WORKER_HEARTBEATS_BEFORE_RESTART);
     };
 
     const maybeFinish = (): void => {
@@ -226,7 +287,7 @@ function runRuntimeSupervisor(
     ): void => {
       if (child.closed) return;
       child.closed = true;
-      clearChildTimer(child);
+      clearChildTimers(child);
       child.process.removeListener("message", child.handleMessage);
 
       if (child.role === "web") {
@@ -294,7 +355,9 @@ function runRuntimeSupervisor(
         ready: false,
         closed: false,
         startupTimedOut: false,
+        heartbeatTimedOut: false,
         startupTimer: undefined,
+        heartbeatTimer: undefined,
         handleMessage: () => {},
       };
       if (role === "web") web = child;
@@ -304,14 +367,27 @@ function runRuntimeSupervisor(
         if (child.closed) return;
         if (role === "web" && hasMessageType(message, "runtime-ready")) {
           child.ready = true;
-          clearChildTimer(child);
+          clearChildTimers(child);
           scheduleWorker();
           return;
         }
         if (role === "worker" && hasMessageType(message, "worker-ready")) {
           child.ready = true;
           consecutiveWorkerFailures = 0;
-          clearChildTimer(child);
+          if (child.startupTimer !== undefined) {
+            options.clock.clearTimeout(child.startupTimer);
+            child.startupTimer = undefined;
+          }
+          armWorkerHeartbeatWatchdog(child);
+          return;
+        }
+        if (
+          role === "worker" &&
+          child.ready &&
+          !child.heartbeatTimedOut &&
+          hasMessageType(message, "worker-heartbeat")
+        ) {
+          armWorkerHeartbeatWatchdog(child);
         }
       };
       child.startupTimer = options.clock.setTimeout(() => {
@@ -364,6 +440,8 @@ export function superviseRuntimeChildren(
     workerRestartBaseMs: dependencies.workerRestartBaseMs ?? 1_000,
     workerRestartBudget: dependencies.workerRestartBudget ?? 3,
     workerRestartWindowMs: dependencies.workerRestartWindowMs ?? 3_600_000,
+    workerHeartbeatIntervalMs:
+      dependencies.workerHeartbeatIntervalMs ?? WORKER_HEARTBEAT_INTERVAL_MS,
     reportIncident:
       dependencies.reportIncident ??
       ((incident): void => {

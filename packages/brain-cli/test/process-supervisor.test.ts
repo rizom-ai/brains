@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
 import type { CommandResult } from "../src/lib/command-result";
 import {
+  startWorkerHeartbeat,
   superviseRuntimeChildren,
   type SupervisorClock,
 } from "../src/lib/process-supervisor";
@@ -88,11 +89,37 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
     workerRestartBaseMs: 10,
     workerRestartBudget: 3,
     workerRestartWindowMs: 3_600,
+    workerHeartbeatIntervalMs: 20,
     reportIncident: harness.reportIncident,
   });
 }
 
 describe("bundled process supervisor", () => {
+  it("emits worker heartbeats every five seconds until stopped", () => {
+    const sendHeartbeat = mock(() => {});
+    const clearInterval = mock((_handle: number) => {});
+    let tick = (): void => {
+      throw new Error("Heartbeat interval was not registered");
+    };
+
+    const stop = startWorkerHeartbeat(sendHeartbeat, {
+      setInterval: (callback, intervalMs): number => {
+        tick = callback;
+        expect(intervalMs).toBe(5_000);
+        return 7;
+      },
+      clearInterval,
+    });
+
+    expect(sendHeartbeat).not.toHaveBeenCalled();
+    tick();
+    tick();
+    expect(sendHeartbeat).toHaveBeenCalledTimes(2);
+
+    stop();
+    expect(clearInterval).toHaveBeenCalledWith(7);
+  });
+
   it("starts the worker only after web runtime readiness", async () => {
     const harness = createHarness();
     const supervised = supervise(harness);
@@ -231,6 +258,48 @@ describe("bundled process supervisor", () => {
     ).toBe(true);
 
     harness.processEvents.emit("SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("kills and replaces a worker after three missed heartbeats", async () => {
+    const harness = createHarness();
+    const supervised = supervise(harness);
+    const web = harness.children[0];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[1];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    const firstWatchdog = [...harness.timers.entries()].find(
+      ([, timer]) => timer.delayMs === 60,
+    );
+    if (!firstWatchdog) throw new Error("Expected worker heartbeat watchdog");
+
+    worker.emit("message", { type: "worker-heartbeat" });
+    expect(harness.timers.has(firstWatchdog[0])).toBe(false);
+    expect(
+      [...harness.timers.values()].some((timer) => timer.delayMs === 60),
+    ).toBe(true);
+
+    harness.fireTimer(60);
+    expect(worker.kill).toHaveBeenCalledWith("SIGKILL");
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "worker-heartbeat-timeout",
+      missedBeats: 3,
+      intervalMs: 20,
+    });
+
+    worker.emit("close", null, "SIGKILL");
+    harness.advanceTo(10);
+    harness.fireTimer(10);
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(3);
+
+    const replacement = harness.children[2];
+    if (!replacement) throw new Error("Expected replacement worker");
+    harness.processEvents.emit("SIGTERM");
+    replacement.emit("close", null, "SIGTERM");
     web.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({ success: true });
   });

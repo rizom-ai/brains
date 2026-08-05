@@ -691,7 +691,7 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S0–S3 are complete. S4–S6 remain in progress.
+Implementation status: S0–S4 are complete. S5–S6 remain in progress.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every
@@ -722,8 +722,11 @@ phase.
    but does not start a worker. The parent starts the worker after web readiness,
    applies bounded exponential respawn for exits and startup timeouts, and
    pauses only worker supervision when the rolling budget is exhausted.
-4. **S4 — stuck-worker detection**: IPC heartbeat; kill-and-respawn after 3
-   missed beats, charged to the same rolling budget.
+4. **S4 — stuck-worker detection**: complete. The worker emits a five-second
+   IPC heartbeat after `worker-ready`; the parent resets a deterministic
+   watchdog on every beat and kills the worker after 3 missed beats. The
+   replacement flows through the existing exponential backoff and rolling
+   restart budget.
 5. **S5 — health semantics**: add `degraded` health details and
    `/health/operate`; prove `/health/ready` remains 200 for worker-only failure
    while operational readiness returns 503.

@@ -30,6 +30,8 @@ interfaces, ingress, daemons, scheduling, and enqueue validation, and a worker
 process for durable queue execution. The parent runs migrations once, admits
 the worker only after the web process reports runtime readiness, and respawns a
 failed worker under a bounded rolling budget without taking web serving down.
+After worker readiness, a five-second IPC heartbeat lets the parent kill and
+replace a stuck worker after three missed beats under that same budget.
 
 Job-handler registrations are finalized into an immutable inventory during
 boot. Web retains their validation side for durable enqueue, while the worker
