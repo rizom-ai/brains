@@ -640,7 +640,11 @@ workflows:
 10. A clean restore from synced `brain-data` rebuilds the asset store and produces a
     working site.
 11. Missing or corrupt assets produce bounded errors and visible failed state rather than
-    process crashes or silent empty images.
+    process crashes or silent empty images. `read` is deliberately not digest-verified —
+    hashing every read would be prohibitive on site builds — so it catches truncation
+    through a size check only. Image and document readers call `verify` on the failure
+    path before surfacing an error, so corruption fails loudly instead of rendering as
+    wrong or empty bytes.
 
 The stored/raw entity contract intentionally changes: completed `image.content` and later
 `document.content` contain an internal asset reference. The transitional resolved-read
