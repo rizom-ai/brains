@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-08-03
+Last updated: 2026-08-05
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -172,7 +172,7 @@ Plans:
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
-- [unified-inbox.md](./plans/unified-inbox.md) — **in progress**: the schema-first source contract, finalized app-scoped registry, and failure-isolating live projection are implemented without a second store. Next are the dashboard/tool surfaces, email-triage source registration, and daily digest; later consumers include agent candidates and stale-opportunity alerts.
+- [unified-inbox.md](./plans/unified-inbox.md) — **in progress**: the schema-first source contract, finalized app-scoped registry, failure-isolating live projection, and first real source (`mail-items`) are implemented without a second store. Next are the dashboard/tool surfaces and daily digest; later consumers include agent candidates and stale-opportunity alerts.
 
 Shipped from this section: inbound email intake — `interfaces/email` now owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), completing connected-channels decision 4. Deliberately non-conversational: inbound mail never reaches agent chat.
 
@@ -192,7 +192,7 @@ Plans:
 - [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
-- [email-triage.md](./plans/email-triage.md) — the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, `email_triage_list`, typed status actions, and compact dashboard counts. Only shared-inbox source registration and digest participation wait for unified-inbox.
+- [email-triage.md](./plans/email-triage.md) — the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, `email_triage_list`, typed status actions, compact dashboard counts, and a live `mail-items` inbox source. Shared inbox surfaces and digest participation remain in unified-inbox.
 - [lead-management.md](./plans/lead-management.md) — **after email triage**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into `@brains/business-development`.
 - [email-reply-drafting.md](./plans/email-reply-drafting.md) — **last of the sequence**, gated on email triage: fetch original mail on demand, store only Brain-authored drafts, extend the delivery-provider threading contract, and require confirmation before sending; lead context is optional.
 

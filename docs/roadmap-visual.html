@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-08-03 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-08-05 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -252,7 +252,7 @@
             <span class="card-name">Unified inbox for incoming events</span>
             <span class="badge badge-done">Done</span>
           </div>
-          <div class="card-desc">**in progress**: the schema-first source contract, finalized app-scoped registry, and failure-isolating live projection are implemented without a second store. Next are the dashboard/tool surfaces, email-triage source registration, and daily digest; later consumers include agent candidates and stale-opportunity alerts.</div>
+          <div class="card-desc">**in progress**: the schema-first source contract, finalized app-scoped registry, failure-isolating live projection, and first real source (<code>mail-items</code>) are implemented without a second store. Next are the dashboard/tool surfaces and daily digest; later consumers include agent candidates and stale-opportunity alerts.</div>
           <div class="card-file">unified-inbox.md</div>
         </div>
         </div>
@@ -284,14 +284,6 @@
           <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
           <div class="card-file">atproto-integration.md</div>
         </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Email triage — safe derived mailbox attention</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, <code>email_triage_list</code>, typed status actions, and compact dashboard counts. Only shared-inbox source registration and digest participation wait for unified-inbox.</div>
-          <div class="card-file">email-triage.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">NPM Package Boundary Plan</span>
@@ -315,6 +307,14 @@
           </div>
           <div class="card-desc">**last of the sequence**, gated on email triage: fetch original mail on demand, store only Brain-authored drafts, extend the delivery-provider threading contract, and require confirmation before sending; lead context is optional.</div>
           <div class="card-file">email-reply-drafting.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Email triage — safe derived mailbox attention</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, <code>email_triage_list</code>, typed status actions, compact dashboard counts, and a live <code>mail-items</code> inbox source. Shared inbox surfaces and digest participation remain in unified-inbox.</div>
+          <div class="card-file">email-triage.md</div>
         </div>
         </div>
       </details>
