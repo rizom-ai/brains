@@ -29,7 +29,7 @@ const emptyConfig = z.object({});
  * else in the package exercises that wiring.
  */
 describe("public plugin API", () => {
-  it("runs a service plugin's hooks and publishes its tools", async () => {
+  it("runs a service plugin's hooks and publishes its tools and inbox source", async () => {
     const seen: string[] = [];
 
     class TestService extends ServicePlugin<
@@ -49,6 +49,12 @@ describe("public plugin API", () => {
         context: ServicePluginContext,
       ): Promise<void> {
         seen.push(`register:${context.pluginId}`);
+        context.inbox.registerSource({
+          sourceId: "public-test",
+          displayName: "Public test",
+          list: async () => [],
+          act: async () => undefined,
+        });
       }
 
       protected override async getTools(): Promise<Tool[]> {
@@ -70,8 +76,12 @@ describe("public plugin API", () => {
 
     const harness = createPluginHarness<TestService>();
     const capabilities = await harness.installPlugin(new TestService());
+    await harness.finalizeRegistration();
 
     expect(seen).toEqual(["register:test-service"]);
+    expect(
+      harness.getMockShell().getInboxRegistry().getSource("public-test"),
+    ).toBeDefined();
     expect(capabilities.tools.map((tool) => tool.name)).toContain(
       "test-service_ping",
     );

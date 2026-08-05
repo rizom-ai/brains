@@ -21,6 +21,7 @@ import {
   createEndpointsNamespace,
   createEvalNamespace,
   createIdentityNamespace,
+  createInboxNamespace,
   createInsightsNamespace,
   createInteractionsNamespace,
   createJobsNamespace,
@@ -37,6 +38,7 @@ import type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
@@ -57,6 +59,7 @@ export type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
@@ -154,6 +157,9 @@ export interface BasePluginContext {
 
   /** App-scoped channel metadata and delivery-provider catalog. */
   readonly channels: IChannelsNamespace;
+
+  /** App-scoped source-owned attention registry. */
+  readonly inbox: IInboxNamespace;
 
   // ============================================================================
   // Inter-Plugin Messaging
@@ -286,6 +292,7 @@ export function createBasePluginContext(
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
     channels: createChannelsNamespace(shell),
+    inbox: createInboxNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
     judge: (input) => shell.judge(input),

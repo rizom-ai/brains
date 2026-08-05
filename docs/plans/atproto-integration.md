@@ -92,7 +92,7 @@ For a known repo refresh, Jetstream remains an untrusted signal and never the re
 
 #### Unified Candidate Inbox — approved UX direction
 
-Sightings and optional ambient ATProto observations belong in one operator-only Candidate Inbox. A candidate is evidence about a possible relationship, not an agent and not part of the public directory.
+Sightings and optional ambient ATProto observations belong in the shared operator inbox through an `agent-candidates` `InboxSource`. A candidate is evidence about a possible relationship, not an agent and not part of the public directory.
 
 - Add a durable `agent-candidate` entity owned by the agent-discovery compound package. It is operator-visible, never projected or published, bounded by retention policy, and separate from `agent` approval/runtime trust.
 - Merge evidence by stable identity (`repoDid` first, normalized domain fallback) so one candidate can carry multiple sources instead of producing duplicate cards.
@@ -100,11 +100,11 @@ Sightings and optional ambient ATProto observations belong in one operator-only 
   - **Trusted introduction**: introducer agent, hop count, first/last observed timestamps.
   - **ATProto observation**: repo DID, domain, card URI/CID, verification time.
   - Additional independent sources append evidence and raise review priority.
-- The inbox groups or filters candidates by source and ranks trusted introductions above ambient observations. Candidate cards show source badges such as “Introduced by Alice” and “Found on ATProto.”
+- The source owns candidate ranking and emits content-safe inbox items with badges such as “Introduced by Alice” and “Found on ATProto”; the shared inbox owns aggregation and rendering.
 - **Add to directory** authoritatively revalidates the current source, then creates an `agent` through a confirmation-gated operator action. Local approval and runtime trust remain explicit downstream decisions.
 - **Ignore** dismisses the candidate without creating an agent. Keep a bounded identity tombstone so replay does not immediately recreate it; a materially changed identity/card or a new trusted introducer may resurface it for review.
 - Explicit `agent_connect` may bypass the inbox because the operator already expressed intent, but it retains its existing confirmation and verification gates.
-- Notification digests summarize pending candidates and link to the Candidate Inbox, never `/agents?status=discovered`.
+- The shared inbox digest summarizes pending candidates and links to the unified Inbox surface, never `/agents?status=discovered`.
 
 Ambient ATProto intake remains a separate opt-in capability such as `jetstream.ambientCandidates.enabled`; it is never inferred from `jetstream.enabled`. With ambient intake disabled, unknown repo events remain terminal no-fetch skips. With it enabled, unknown cards may be safely fetched and validated only to upsert bounded candidate evidence—never an `agent`.
 
@@ -119,8 +119,8 @@ Ship this as three independently reviewed slices:
    - Add the known-repo preflight before `discoverBrainCards`; route known create/update events through authoritative refresh with creation disabled.
    - Restrict delete/unavailability handling to known repo DIDs and remove alpha.224's automatic unknown-agent digest path.
    - Update config, `@rizom/ops`, baseline fixtures, README, and this plan so transport enablement cannot imply admission.
-2. **Unified Candidate Inbox**
-   - Add the `agent-candidate` schema/adapter, source-provenance merge rules, retention/dismissal semantics, operator-only inbox UI, and confirmation-gated Add/Ignore actions.
+2. **Unified Candidate Inbox source**
+   - Add the `agent-candidate` schema/adapter, source-provenance merge rules, retention/dismissal semantics, `InboxSource` registration, and confirmation-gated Add/Ignore actions. Reuse the shared inbox UI rather than adding a candidate-specific inbox.
    - Change approved-peer directory scans to upsert trusted-introduction candidates instead of `agent` entities.
    - Migrate legacy unapproved `agent.status: discovered` records into candidates without touching approved agents; test idempotence and rollback behavior.
 3. **Optional ambient intake**

@@ -2,9 +2,9 @@
 
 ## Status
 
-**Proposed.** A single operator surface for everything that arrived and awaits a human
-decision — high-priority mail items, agent candidates, stale-opportunity alerts —
-aggregated from source-owned state, never duplicating it.
+**Phase 0 implemented; Phases 1–3 proposed.** The schema-first `InboxSource` contract,
+app-scoped finalized registry, and failure-isolating live aggregation DataSource are in
+place. The operator surfaces, first real source, and daily digest remain.
 
 ## Goal
 
@@ -19,13 +19,13 @@ digest.
 
 ## What exists today (fact-check)
 
-- **Push exists, pull does not.** `notifications:send` delivers a transient message to a
-  channel recipient and resolves transports via the channel registry
-  (`plugins/notifications/src/index.ts`). Nothing durable lists what still needs
-  attention.
-- The registry-of-contributions pattern is established: channel descriptors/providers
-  (`shell/plugins/src/channel-registry.ts`), widget registry
-  (`plugins/dashboard/src/widget-registry.ts`).
+- **Push exists, and the pull foundation now exists.** `notifications:send` delivers a
+  transient message to a channel recipient. `@brains/plugins` now exposes the finalized
+  app-scoped inbox-source registry, while opt-in `@brains/unified-inbox` contributes the
+  live `unified-inbox:inbox` aggregation DataSource. No dashboard/tool consumer exists
+  yet.
+- The registry follows the established contribution lifecycle used by channel
+  descriptors/providers (`shell/plugins/src/channel-registry.ts`).
 - Read-model precedent: the bd-priority-engine ranking is a `DataSource` computed on
   demand from stored fields, deliberately avoiding a persisted projection that can go
   stale. The same reasoning applies here.
@@ -103,7 +103,7 @@ digest.
 
 Tests are written first inside each phase.
 
-- **Phase 0 — Walking skeleton: contract + registry + projection.** `InboxSource`/
+- **Phase 0 — Walking skeleton: contract + registry + projection — implemented.** `InboxSource`/
   `InboxItem` schemas, app-scoped registry, aggregation DataSource; proven with a
   synthetic in-test source. _Tests:_ duplicate `sourceId` rejected; ordering
   (urgency, then recency); failing source isolated; empty state.
@@ -137,8 +137,8 @@ Tests are written first inside each phase.
 - [email-triage.md](./email-triage.md) — first real source (derived mail attention).
 - [lead-management.md](./lead-management.md) — business qualification view; does not
   duplicate mail items in this inbox.
-- [atproto-integration.md](./atproto-integration.md) — Candidate Inbox becomes a source
-  registration when this lands; update that plan then.
+- [atproto-integration.md](./atproto-integration.md) — its Candidate Inbox is specified
+  as an `InboxSource` registration over source-owned candidate state.
 - [bd-priority-engine.md](./bd-priority-engine.md) — stale-opportunity heartbeat
   registers here instead of growing bespoke alert delivery.
 - [operator-console-pwa.md](./operator-console-pwa.md) — the dashboard this widget

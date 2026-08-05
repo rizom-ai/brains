@@ -32,11 +32,11 @@ in the mailbox.
   reply filtering; ordinary get/update/delete operations remain on shared system tools.
 - A compact Admin dashboard contribution shows source-owned new/high/reply/unclassified
   counts and links to the CMS workspace when CMS is mounted.
-- No unified-inbox source registration exists yet.
-- The unified-inbox contract does not exist yet. That blocks only source registration,
-  cross-source aggregation, and digest policy. Email triage's source-owned CMS, query
-  tool, typed status actions, and compact dashboard link/counts can ship first without
-  inventing a second notification center.
+- No email-triage `InboxSource` registration exists yet.
+- The unified-inbox contract, finalized registry, and aggregation DataSource now exist.
+  Its dashboard/tool surfaces and email source registration remain. Email triage's
+  source-owned CMS, query tool, typed status actions, and compact dashboard link/counts
+  remain independently usable without inventing a second notification center.
 
 ## Core decisions
 

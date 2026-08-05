@@ -21,6 +21,7 @@ import {
 import {
   AttachmentRegistry,
   ChannelRegistry,
+  InboxRegistry,
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
@@ -93,6 +94,7 @@ export function createShellServices(options: {
     new ProfileKindRegistry(config.profileKind);
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
+  const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -272,6 +274,7 @@ export function createShellServices(options: {
     canonicalIdentityService,
     profileKindRegistry,
     channelRegistry,
+    inboxRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

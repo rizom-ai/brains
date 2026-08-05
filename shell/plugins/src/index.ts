@@ -54,6 +54,22 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export {
+  InboxRegistry,
+  inboxActionSchema,
+  inboxActorSchema,
+  inboxEntityRefSchema,
+  inboxItemListSchema,
+  inboxItemSchema,
+  inboxSourceMetadataSchema,
+  type IInboxRegistry,
+  type InboxAction,
+  type InboxActor,
+  type InboxEntityRef,
+  type InboxItem,
+  type InboxSource,
+  type InboxSourceMetadata,
+} from "./inbox-registry";
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
@@ -100,6 +116,7 @@ export type {
   IInsightsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
+  IInboxNamespace,
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";

@@ -89,6 +89,7 @@
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/unified-inbox": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",

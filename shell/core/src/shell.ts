@@ -24,6 +24,7 @@ import {
   createRuntimeUploadsNamespace,
   type IAttachmentsNamespace,
   type IChannelRegistry,
+  type IInboxRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -630,6 +631,10 @@ export class Shell implements IShell {
 
   public getChannelRegistry(): IChannelRegistry {
     return this.services.channelRegistry;
+  }
+
+  public getInboxRegistry(): IInboxRegistry {
+    return this.services.inboxRegistry;
   }
 
   public getDomain(): string | undefined {

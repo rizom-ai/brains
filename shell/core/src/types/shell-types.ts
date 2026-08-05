@@ -29,6 +29,7 @@ import type {
 import type {
   AttachmentRegistry,
   ChannelRegistry,
+  InboxRegistry,
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
@@ -68,6 +69,7 @@ export interface ShellServices {
   canonicalIdentityService: CanonicalIdentityService;
   profileKindRegistry: ProfileKindRegistry;
   channelRegistry: ChannelRegistry;
+  inboxRegistry: InboxRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
@@ -101,4 +103,5 @@ export interface ShellDependencies {
   recurringCheckService?: RecurringCheckService;
   profileKindRegistry?: ProfileKindRegistry;
   channelRegistry?: ChannelRegistry;
+  inboxRegistry?: InboxRegistry;
 }
