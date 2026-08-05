@@ -232,6 +232,7 @@
     "core--dashboard-paper-theme-mode",
     "core--dashboard-widget-namespace",
     "core--delete-email-contracts",
+    "core--directory-sync-incremental-git",
     "core--drop-themes-subpath",
     "core--email-triage-inbox-source",
     "core--email-triage-prompt-entity",

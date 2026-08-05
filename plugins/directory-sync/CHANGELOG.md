@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.253
+
+### Patch Changes
+
+- [`2cf73cb`](https://github.com/rizom-ai/brains/commit/2cf73cbde78b481857e9093b711126565f227e39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reduce Git sync load by importing only pulled paths, avoiding cleanup for non-deletion pulls, suppressing duplicate watcher echoes, batching watcher changes, and skipping no-op Git commit/push cycles.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.253
+  - @brains/contracts@0.2.0-alpha.253
+  - @brains/image@0.2.0-alpha.253
+  - @brains/utils@0.2.0-alpha.253
+  - @brains/plugins@0.2.0-alpha.253
+
 ## 0.2.0-alpha.252
 
 ### Patch Changes
