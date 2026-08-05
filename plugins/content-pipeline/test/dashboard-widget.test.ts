@@ -232,6 +232,8 @@ describe("dashboard widget registration", () => {
         workerSessionId: "session-a",
         leaseExpiresAt: 30_000,
         attemptHeartbeatAt: 0,
+        runtimeUpdatedAt: 0,
+        progress: null,
         metadata: {} as never,
       },
       {
@@ -253,6 +255,8 @@ describe("dashboard widget registration", () => {
         workerSessionId: "session-a",
         leaseExpiresAt: 30_000,
         attemptHeartbeatAt: 0,
+        runtimeUpdatedAt: 0,
+        progress: null,
         metadata: {} as never,
       },
     ];

@@ -15,28 +15,28 @@ export function subscribeToSiteBuildStaging(
   context: EntityPluginContext,
   logger: Logger,
 ): void {
-  context.messaging.subscribe<SiteBuildStagingPayload, { success: boolean }>(
-    SITE_CHANNELS.buildStaging,
-    async (message) => {
-      const payload = message.payload;
-      try {
-        logger.info(
-          `Received site:build:staging event for ${payload.environment} environment`,
-        );
+  context.messaging.subscribeExecution<
+    SiteBuildStagingPayload,
+    { success: boolean }
+  >(SITE_CHANNELS.buildStaging, async (message) => {
+    const payload = message.payload;
+    try {
+      logger.info(
+        `Received site:build:staging event for ${payload.environment} environment`,
+      );
 
-        await generateRSSAfterBuild(context, logger, payload);
-      } catch (error) {
-        // Throwing here would be swallowed by the broadcast dispatcher and the
-        // build would publish a generation with no feed. Report it instead so
-        // the build fails and the previous generation stays active.
-        logger.error("Failed to generate RSS feed", error);
-        payload.reportFailure(
-          `RSS feed generation failed: ${getErrorMessage(error)}`,
-        );
-      }
-      return { success: true };
-    },
-  );
+      await generateRSSAfterBuild(context, logger, payload);
+    } catch (error) {
+      // Throwing here would be swallowed by the broadcast dispatcher and the
+      // build would publish a generation with no feed. Report it instead so
+      // the build fails and the previous generation stays active.
+      logger.error("Failed to generate RSS feed", error);
+      payload.reportFailure(
+        `RSS feed generation failed: ${getErrorMessage(error)}`,
+      );
+    }
+    return { success: true };
+  });
 }
 
 async function generateRSSAfterBuild(

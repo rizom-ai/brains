@@ -69,6 +69,8 @@ const testJob: JobInfo = {
   workerSessionId: "session-a",
   leaseExpiresAt: Date.now() + 30_000,
   attemptHeartbeatAt: Date.now(),
+  runtimeUpdatedAt: Date.now(),
+  progress: null,
   metadata: {
     rootJobId: createId(),
     operationType: "data_processing",

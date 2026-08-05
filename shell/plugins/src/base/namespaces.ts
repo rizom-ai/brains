@@ -150,6 +150,10 @@ export function createMessagingNamespace(
         handler as MessageHandler<T, R>,
       );
     },
+    subscribeExecution: <T = unknown, R = unknown>(
+      channel: string,
+      handler: MessageHandler<T, R>,
+    ): (() => void) => messageBus.subscribe(channel, handler),
   };
 }
 

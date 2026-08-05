@@ -6,7 +6,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 function createMockContext(): ServicePluginContext {
   return {
     messaging: {
-      subscribe: mock(() => () => {}),
+      subscribeExecution: mock(() => () => {}),
       send: mock(() => Promise.resolve()),
     },
     jobs: {
@@ -38,10 +38,12 @@ describe("RebuildManager", () => {
           };
         }) => Promise<{ success: boolean }>)
       | undefined;
-    context.messaging.subscribe = mock((_type, handler): (() => void) => {
-      waveReadyHandler = handler as typeof waveReadyHandler;
-      return () => {};
-    });
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
       context,
@@ -73,10 +75,12 @@ describe("RebuildManager", () => {
           };
         }) => Promise<{ success: boolean }>)
       | undefined;
-    context.messaging.subscribe = mock((_type, handler): (() => void) => {
-      waveReadyHandler = handler as typeof waveReadyHandler;
-      return () => {};
-    });
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
     const manager = new RebuildManager(
       createTestConfig(),
       context,
@@ -108,10 +112,12 @@ describe("RebuildManager", () => {
           };
         }) => Promise<{ success: boolean }>)
       | undefined;
-    context.messaging.subscribe = mock((_type, handler): (() => void) => {
-      waveReadyHandler = handler as typeof waveReadyHandler;
-      return () => {};
-    });
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
     let nextJob = 0;
     context.jobs.enqueue = mock(async () => {
       nextJob += 1;

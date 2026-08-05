@@ -6,7 +6,10 @@ import type {
 } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import type { DbConfig } from "@brains/contracts";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type {
+  ProgressNotification,
+  ProgressReporter,
+} from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 
 // Re-export types that are used internally
@@ -43,7 +46,9 @@ export interface JobInfo {
   workerSessionId: string | null;
   leaseExpiresAt: number | null;
   attemptHeartbeatAt: number | null;
+  runtimeUpdatedAt: number | null;
   metadata: JobContext;
+  progress: ProgressNotification | null;
   result?: unknown;
 }
 
@@ -78,7 +83,17 @@ export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
   workerSessionId: z.string().nullable(),
   leaseExpiresAt: z.number().nullable(),
   attemptHeartbeatAt: z.number().nullable(),
+  runtimeUpdatedAt: z.number().nullable(),
   metadata: JobContextSchema,
+  progress: z
+    .custom<ProgressNotification>(
+      (value) =>
+        typeof value === "object" &&
+        value !== null &&
+        "progress" in value &&
+        typeof value.progress === "number",
+    )
+    .nullable(),
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
 
@@ -143,6 +158,16 @@ export interface JobQueueStats {
   failed: number;
   completed: number;
   total: number;
+}
+
+export interface JobRuntimeUpdateCursor {
+  readonly updatedAt: number;
+  readonly jobId: string;
+}
+
+export interface JobRuntimeUpdate {
+  readonly job: JobInfo;
+  readonly cursor: JobRuntimeUpdateCursor;
 }
 
 export interface JobQueueDiagnostics {
@@ -217,8 +242,12 @@ export interface IJobQueueService {
     leaseDurationMs: number,
   ): Promise<boolean>;
 
-  /** Fence a progress write without extending the attempt lease. */
-  recordAttemptProgress(jobId: string, attemptId: string): Promise<boolean>;
+  /** Fence and persist a progress snapshot without extending the lease. */
+  recordAttemptProgress(
+    jobId: string,
+    attemptId: string,
+    progress: ProgressNotification,
+  ): Promise<boolean>;
 
   /** Mark job as completed, fenced when an attempt token is supplied. */
   complete(
@@ -250,6 +279,12 @@ export interface IJobQueueService {
 
   /** Get bounded operational diagnostics without loading queue rows. */
   getDiagnostics(now?: number): Promise<JobQueueDiagnostics>;
+
+  /** Read durable processing and terminal updates for web-owned publication. */
+  getRuntimeUpdates(
+    cursor: JobRuntimeUpdateCursor,
+    limit?: number,
+  ): Promise<JobRuntimeUpdate[]>;
 
   /**
    * Clean up old completed jobs

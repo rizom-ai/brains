@@ -140,6 +140,8 @@ describe("publication pipeline snapshot", () => {
         workerSessionId: "session-a",
         leaseExpiresAt: 30_000,
         attemptHeartbeatAt: 0,
+        runtimeUpdatedAt: 0,
+        progress: null,
         metadata: {
           operationType: "content_operations",
           rootJobId: "job-1",
@@ -342,6 +344,8 @@ describe("publication pipeline snapshot", () => {
         workerSessionId: "session-a",
         leaseExpiresAt: 30_000,
         attemptHeartbeatAt: 0,
+        runtimeUpdatedAt: 0,
+        progress: null,
         metadata: {
           operationType: "content_operations",
           rootJobId: "job-orphan",

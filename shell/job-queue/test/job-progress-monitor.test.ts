@@ -38,6 +38,7 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
     maxRetries: 3,
     lastError: null,
     result: null,
+    progress: null,
     completedAt: null,
     startedAt: null,
     scheduledFor: Date.now(),
@@ -51,6 +52,7 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
     workerSessionId: "session-a",
     leaseExpiresAt: Date.now() + 10_000,
     attemptHeartbeatAt: Date.now(),
+    runtimeUpdatedAt: Date.now(),
     ...overrides,
   };
 }
@@ -64,13 +66,15 @@ describe("JobProgressMonitor", () => {
 
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
   let recordAttemptProgressMock: Mock<
-    (jobId: string, attemptId: string) => Promise<boolean>
+    IJobQueueService["recordAttemptProgress"]
   >;
   let messageBusSendMock: ReturnType<typeof mock>;
+  let getRuntimeUpdatesMock: Mock<IJobQueueService["getRuntimeUpdates"]>;
 
   beforeEach(() => {
     getStatusMock = mock(() => Promise.resolve(null));
     recordAttemptProgressMock = mock(() => Promise.resolve(true));
+    getRuntimeUpdatesMock = mock(() => Promise.resolve([]));
 
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
@@ -110,6 +114,7 @@ describe("JobProgressMonitor", () => {
           staleLeaseCount: 0,
         }),
       ),
+      getRuntimeUpdates: getRuntimeUpdatesMock,
       cleanup: mock(() => Promise.resolve(0)),
       close: mock(() => {}),
     };
@@ -233,9 +238,66 @@ describe("JobProgressMonitor", () => {
       expect(recordAttemptProgressMock).toHaveBeenCalledWith(
         "job-123",
         "obsolete-attempt",
+        { progress: 5, total: 10, message: "Stale progress" },
       );
       expect(getStatusMock).not.toHaveBeenCalled();
       expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("persists worker progress without publishing on its local bus", async () => {
+      const writerMonitor = JobProgressMonitor.createFresh(
+        mockJobQueueService,
+        mockMessageBus,
+        mockBatchJobManager,
+        mockLogger,
+        "durable-writer",
+      );
+      getStatusMock.mockResolvedValue(createMockJob());
+
+      await writerMonitor
+        .createProgressReporter("job-123", "attempt-123")
+        .report({ progress: 4, total: 10, message: "Durable" });
+
+      expect(recordAttemptProgressMock).toHaveBeenCalledWith(
+        "job-123",
+        "attempt-123",
+        { progress: 4, total: 10, message: "Durable" },
+      );
+      expect(getStatusMock).not.toHaveBeenCalled();
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("publishes durable worker progress from the web process", async () => {
+      const job = createMockJob({
+        progress: { progress: 4, total: 10, message: "Durable" },
+        attemptHeartbeatAt: 2_000,
+      });
+      getRuntimeUpdatesMock
+        .mockResolvedValueOnce([
+          { job, cursor: { updatedAt: 2_000, jobId: job.id } },
+        ])
+        .mockResolvedValueOnce([]);
+      const readerMonitor = JobProgressMonitor.createFresh(
+        mockJobQueueService,
+        mockMessageBus,
+        mockBatchJobManager,
+        mockLogger,
+        "durable-reader",
+      );
+
+      await readerMonitor.pollDurableUpdates();
+
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: expect.objectContaining({
+          id: "job-123",
+          status: "processing",
+          message: "Durable",
+          progress: { current: 4, total: 10, percentage: 40 },
+        }),
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
   });
 

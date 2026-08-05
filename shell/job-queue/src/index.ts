@@ -3,6 +3,7 @@ export { JobQueueService } from "./job-queue-service";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";
+export type { JobProgressMonitorMode } from "./job-progress-monitor";
 export { BaseJobHandler } from "./base-job-handler";
 export type {
   BaseJobHandlerConfig,
@@ -17,6 +18,8 @@ export type {
   JobInfo,
   JobClaimOptions,
   JobQueueDiagnostics,
+  JobRuntimeUpdate,
+  JobRuntimeUpdateCursor,
   JobQueueEnqueueRequest,
   JobQueueStats,
   JobQueueDbConfig,

@@ -294,11 +294,21 @@ describe("JobQueueRepository fenced attempts", () => {
       await repository.update(job.id, { stale: true }, first.attemptId),
     ).toBe(false);
     expect(
-      await repository.recordAttemptProgress(job.id, first.attemptId, 10_100),
+      await repository.recordAttemptProgress(
+        job.id,
+        first.attemptId,
+        { progress: 10 },
+        10_100,
+      ),
     ).toBe(false);
 
     expect(
-      await repository.recordAttemptProgress(job.id, second.attemptId, 10_100),
+      await repository.recordAttemptProgress(
+        job.id,
+        second.attemptId,
+        { progress: 10 },
+        10_100,
+      ),
     ).toBe(true);
     expect(
       await repository.complete(job.id, { current: true }, second.attemptId),
@@ -307,6 +317,123 @@ describe("JobQueueRepository fenced attempts", () => {
       status: JOB_STATUS.COMPLETED,
       result: { current: true },
     });
+  });
+
+  it("uses the covering index for durable cursor seeks", async () => {
+    const index = await client.execute(
+      "PRAGMA index_info('idx_job_queue_runtime_updates')",
+    );
+    const plan = await client.execute({
+      sql: `EXPLAIN QUERY PLAN
+        SELECT * FROM job_queue
+        WHERE (runtimeUpdatedAt, id) > (?, ?)
+        ORDER BY runtimeUpdatedAt, id
+        LIMIT ?`,
+      args: [0, "", 100],
+    });
+
+    expect(index.rows.map((row) => row["name"])).toEqual([
+      "runtimeUpdatedAt",
+      "id",
+    ]);
+    expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
+      expect.stringContaining(
+        "SEARCH job_queue USING INDEX idx_job_queue_runtime_updates",
+      ),
+    ]);
+  });
+
+  it("streams durable progress and terminal snapshots through a stable cursor", async () => {
+    const job = createTestJob();
+    const claim = claimOptions();
+    await repository.insert(job);
+    await repository.startWorkerSession(
+      claim.workerSlotId,
+      claim.workerSessionId,
+      claim.now,
+    );
+    await repository.claimNextReady(claim);
+
+    await repository.recordAttemptProgress(
+      job.id,
+      claim.attemptId,
+      { progress: 1, total: 2, message: "first" },
+      10_100,
+    );
+    const first = await repository.getRuntimeUpdates(
+      { updatedAt: 0, jobId: "" },
+      10,
+    );
+    expect(first).toHaveLength(1);
+    expect(first[0]?.job.progress).toEqual({
+      progress: 1,
+      total: 2,
+      message: "first",
+    });
+
+    await repository.recordAttemptProgress(
+      job.id,
+      claim.attemptId,
+      { progress: 2, total: 2, message: "second" },
+      10_100,
+    );
+    const second = await repository.getRuntimeUpdates(
+      first[0]?.cursor ?? { updatedAt: 0, jobId: "" },
+      10,
+    );
+    expect(second).toHaveLength(1);
+    expect(second[0]?.job.progress?.message).toBe("second");
+
+    await repository.complete(job.id, { success: true }, claim.attemptId);
+    const terminal = await repository.getRuntimeUpdates(
+      second[0]?.cursor ?? { updatedAt: 0, jobId: "" },
+      10,
+    );
+    expect(terminal).toHaveLength(1);
+    expect(terminal[0]?.job.status).toBe(JOB_STATUS.COMPLETED);
+  });
+
+  it("does not skip a lower-id update written in the cursor timestamp", async () => {
+    const higherIdJob = createTestJob({
+      id: "z-job",
+      status: JOB_STATUS.PROCESSING,
+      attemptId: "attempt-z",
+    });
+    const lowerIdJob = createTestJob({
+      id: "a-job",
+      status: JOB_STATUS.PROCESSING,
+      attemptId: "attempt-a",
+    });
+    await repository.insert(higherIdJob);
+    await repository.insert(lowerIdJob);
+
+    await repository.recordAttemptProgress(
+      higherIdJob.id,
+      "attempt-z",
+      { progress: 1 },
+      10_100,
+    );
+    const first = await repository.getRuntimeUpdates(
+      { updatedAt: 0, jobId: "" },
+      1,
+    );
+
+    await repository.recordAttemptProgress(
+      lowerIdJob.id,
+      "attempt-a",
+      { progress: 1 },
+      10_100,
+    );
+    const second = await repository.getRuntimeUpdates(
+      first[0]?.cursor ?? { updatedAt: 0, jobId: "" },
+      1,
+    );
+
+    expect(first[0]?.job.id).toBe(higherIdJob.id);
+    expect(second[0]?.job.id).toBe(lowerIdJob.id);
+    expect(second[0]?.cursor.updatedAt).toBeGreaterThan(
+      first[0]?.cursor.updatedAt ?? 0,
+    );
   });
 
   it("terminally fails an expired attempt when reclaim exceeds max retries", async () => {
@@ -325,6 +452,10 @@ describe("JobQueueRepository fenced attempts", () => {
       }),
     );
     const stored = await repository.getStatus(job.id);
+    const updates = await repository.getRuntimeUpdates(
+      { updatedAt: 0, jobId: "" },
+      1,
+    );
 
     expect(reclaimed).toBeNull();
     expect(stored).toMatchObject({
@@ -333,6 +464,8 @@ describe("JobQueueRepository fenced attempts", () => {
       lastError: "Attempt lease expired",
       completedAt: first.now + 1,
     });
+    expect(stored?.runtimeUpdatedAt).not.toBeNull();
+    expect(updates).toHaveLength(1);
   });
 
   it("reports bounded queue depth, age, type, and stale-lease diagnostics", async () => {

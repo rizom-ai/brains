@@ -14,7 +14,7 @@ interface ProjectionWaveReadyMessage {
 
 interface AutoRebuildContext {
   messaging: {
-    subscribe(
+    subscribeExecution(
       type: string,
       handler: (
         message: ProjectionWaveReadyMessage,
@@ -183,7 +183,7 @@ export class RebuildManager {
     };
 
     this.unsubscribeFunctions.push(
-      this.context.messaging.subscribe(
+      this.context.messaging.subscribeExecution(
         PROJECTION_CHANNELS.waveReady,
         waveReadyHandler,
       ),

@@ -7,6 +7,7 @@ import type {
   DataSource,
   IShell,
   PluginCapabilities,
+  PluginRegistrationContext,
   CreateInput,
   CreateExecutionContext,
   CreateInterceptionResult,
@@ -71,9 +72,12 @@ export class LinkPlugin extends EntityPlugin<
    * Register that alias here so core stays generic and does not need to know
    * about plugin-scoped handler naming.
    */
-  override async register(shell: IShell): Promise<PluginCapabilities> {
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
     this.shell = shell;
-    const capabilities = await super.register(shell);
+    const capabilities = await super.register(shell, registrationContext);
 
     if (!this.context) {
       throw new Error(

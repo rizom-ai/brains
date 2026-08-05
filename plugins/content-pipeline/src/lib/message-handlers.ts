@@ -141,14 +141,18 @@ function subscribeToGenerationMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.subscribe<GenerateCompletedPayload, { success: boolean }>(
-    GENERATE_MESSAGES.REPORT_SUCCESS,
-    async (msg) => handleGenerationCompleted(deps, msg.payload),
+  context.messaging.subscribeExecution<
+    GenerateCompletedPayload,
+    { success: boolean }
+  >(GENERATE_MESSAGES.REPORT_SUCCESS, async (msg) =>
+    handleGenerationCompleted(deps, msg.payload),
   );
 
-  context.messaging.subscribe<GenerateFailedPayload, { success: boolean }>(
-    GENERATE_MESSAGES.REPORT_FAILURE,
-    async (msg) => handleGenerationFailed(deps, msg.payload),
+  context.messaging.subscribeExecution<
+    GenerateFailedPayload,
+    { success: boolean }
+  >(GENERATE_MESSAGES.REPORT_FAILURE, async (msg) =>
+    handleGenerationFailed(deps, msg.payload),
   );
 
   deps.logger.debug("Subscribed to generation messages");

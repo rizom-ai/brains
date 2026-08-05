@@ -11,6 +11,8 @@ import type {
   JobQueueEnqueueRequest,
   JobQueueServiceConfig,
   JobQueueStats,
+  JobRuntimeUpdate,
+  JobRuntimeUpdateCursor,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
 import { applySqlitePragmas } from "@brains/db";
@@ -25,6 +27,7 @@ import {
   type OperationProvenance,
 } from "@brains/contracts";
 import { OperationContext } from "@brains/operation-context";
+import type { ProgressNotification } from "@brains/utils/progress";
 
 export interface ProjectionJobAdmission {
   assertJobAdmission(provenance: OperationProvenance): Promise<void>;
@@ -381,8 +384,9 @@ export class JobQueueService implements IJobQueueService {
   public recordAttemptProgress(
     jobId: string,
     attemptId: string,
+    progress: ProgressNotification,
   ): Promise<boolean> {
-    return this.repository.recordAttemptProgress(jobId, attemptId);
+    return this.repository.recordAttemptProgress(jobId, attemptId, progress);
   }
 
   /** Mark a job as completed. */
@@ -446,6 +450,13 @@ export class JobQueueService implements IJobQueueService {
 
   public getDiagnostics(now?: number): Promise<JobQueueDiagnostics> {
     return this.repository.getDiagnostics(now);
+  }
+
+  public getRuntimeUpdates(
+    cursor: JobRuntimeUpdateCursor,
+    limit: number = 1_000,
+  ): Promise<JobRuntimeUpdate[]> {
+    return this.repository.getRuntimeUpdates(cursor, limit);
   }
 
   /**

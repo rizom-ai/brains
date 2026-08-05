@@ -17,7 +17,14 @@ import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import type { Logger } from "@brains/utils/logger";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import type { JobInfo, JobQueueDiagnostics, JobQueueStats } from "./types";
+import type {
+  JobInfo,
+  JobQueueDiagnostics,
+  JobQueueStats,
+  JobRuntimeUpdate,
+  JobRuntimeUpdateCursor,
+} from "./types";
+import type { ProgressNotification } from "@brains/utils/progress";
 
 export interface JobAttemptClaim {
   now: number;
@@ -114,12 +121,14 @@ export class JobQueueRepository {
     jobId: string,
     errorMessage: string,
   ): Promise<void> {
+    const now = Date.now();
     await this.db
       .update(jobQueue)
       .set({
         status: JOB_STATUS.FAILED,
         lastError: errorMessage,
-        completedAt: Date.now(),
+        completedAt: now,
+        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
       })
       .where(
         and(eq(jobQueue.id, jobId), eq(jobQueue.status, JOB_STATUS.PENDING)),
@@ -150,6 +159,7 @@ export class JobQueueRepository {
         result,
         lastError: null,
         completedAt: now,
+        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
       })
       .where(this.attemptWriteGuard(jobId, attemptId))
       .returning({ id: jobQueue.id });
@@ -185,11 +195,16 @@ export class JobQueueRepository {
   public async recordAttemptProgress(
     jobId: string,
     attemptId: string,
+    progress: ProgressNotification,
     now: number = Date.now(),
   ): Promise<boolean> {
     const updated = await this.db
       .update(jobQueue)
-      .set({ attemptHeartbeatAt: now })
+      .set({
+        attemptHeartbeatAt: now,
+        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
+        progress,
+      })
       .where(this.attemptWriteGuard(jobId, attemptId))
       .returning({ id: jobQueue.id });
     return updated.length === 1;
@@ -227,6 +242,7 @@ export class JobQueueRepository {
         type: jobQueue.type,
         scheduledFor: jobQueue.scheduledFor,
         startedAt: jobQueue.startedAt,
+        runtimeUpdatedAt: jobQueue.runtimeUpdatedAt,
       })
       .from(jobQueue)
       .where(this.attemptWriteGuard(jobId, attemptId))
@@ -246,6 +262,9 @@ export class JobQueueRepository {
         lastError: error.message,
         scheduledFor,
         completedAt: canRetry ? null : now,
+        runtimeUpdatedAt: canRetry
+          ? job.runtimeUpdatedAt
+          : this.nextRuntimeUpdatedAt(now),
         startedAt: canRetry ? null : job.startedAt,
         attemptId: null,
         workerSlotId: null,
@@ -376,6 +395,28 @@ export class JobQueueRepository {
       oldestProcessingAgeMs: ageSince(ages?.oldestProcessingAt),
       staleLeaseCount: Number(ages?.staleLeaseCount ?? 0),
     };
+  }
+
+  public async getRuntimeUpdates(
+    cursor: JobRuntimeUpdateCursor,
+    limit: number,
+  ): Promise<JobRuntimeUpdate[]> {
+    const rows = await this.db
+      .select()
+      .from(jobQueue)
+      .where(
+        sql`(${jobQueue.runtimeUpdatedAt}, ${jobQueue.id}) > (${cursor.updatedAt}, ${cursor.jobId})`,
+      )
+      .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id))
+      .limit(limit);
+
+    return rows.map((job) => ({
+      job,
+      cursor: {
+        updatedAt: job.runtimeUpdatedAt ?? 0,
+        jobId: job.id,
+      },
+    }));
   }
 
   public async cleanup(olderThanMs: number): Promise<number> {
@@ -513,6 +554,7 @@ export class JobQueueRepository {
         workerSessionId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.workerSessionId} ELSE ${workerSessionId} END`,
         leaseExpiresAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.leaseExpiresAt} ELSE ${now + leaseDurationMs} END`,
         attemptHeartbeatAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptHeartbeatAt} ELSE ${now} END`,
+        runtimeUpdatedAt: sql`CASE WHEN ${terminalReclaim} THEN ${this.nextRuntimeUpdatedAt(now)} ELSE ${jobQueue.runtimeUpdatedAt} END`,
       })
       .where(and(inArray(jobQueue.id, candidate), exists(claimingSession)))
       .returning();
@@ -527,6 +569,11 @@ export class JobQueueRepository {
       workerSessionId,
     });
     return claimed;
+  }
+
+  /** Allocate a globally increasing cursor value within the serialized write. */
+  private nextRuntimeUpdatedAt(now: number): SQL<number> {
+    return sql<number>`max(${now}, coalesce((select max(${jobQueue.runtimeUpdatedAt}) from ${jobQueue}), 0) + 1)`;
   }
 
   private attemptWriteGuard(

@@ -66,6 +66,8 @@ function makeJobStatus(
     workerSessionId: status === "pending" ? null : "session-a",
     leaseExpiresAt: status === "pending" ? null : Date.now() + 30_000,
     attemptHeartbeatAt: status === "pending" ? null : Date.now(),
+    runtimeUpdatedAt: status === "pending" ? null : Date.now(),
+    progress: null,
     metadata: {
       operationType: "content_operations",
       rootJobId: jobId,

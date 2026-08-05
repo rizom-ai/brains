@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { createId } from "@brains/utils/id";
 import type { JobContext } from "./types";
+import type { ProgressNotification } from "@brains/utils/progress";
 
 type JobQueueStatus = "pending" | "processing" | "completed" | "failed";
 
@@ -162,6 +163,12 @@ type JobQueueTable = SQLiteTableWithColumns<{
     type: JobQueueTextColumn<"type", true>;
     data: JobQueueTextColumn<"data", true>;
     result: JobQueueJsonColumn<"result", unknown, false>;
+    progress: JobQueueJsonColumn<
+      "progress",
+      ProgressNotification,
+      false,
+      { $type: ProgressNotification }
+    >;
     source: JobQueueTextColumn<"source", false>;
     metadata: JobQueueJsonColumn<
       "metadata",
@@ -191,6 +198,7 @@ type JobQueueTable = SQLiteTableWithColumns<{
     workerSessionId: JobQueueTextColumn<"workerSessionId", false>;
     leaseExpiresAt: JobQueueIntegerColumn<"leaseExpiresAt", false>;
     attemptHeartbeatAt: JobQueueIntegerColumn<"attemptHeartbeatAt", false>;
+    runtimeUpdatedAt: JobQueueIntegerColumn<"runtimeUpdatedAt", false>;
   };
   dialect: "sqlite";
 }>;
@@ -217,6 +225,9 @@ export const jobQueue: JobQueueTable = sqliteTable(
 
     // Job result (JSON - type-specific result after completion)
     result: text("result", { mode: "json" }),
+
+    // Latest durable progress snapshot for cross-process observers.
+    progress: text("progress", { mode: "json" }).$type<ProgressNotification>(),
 
     // Job source (who created this job)
     source: text("source"),
@@ -251,6 +262,7 @@ export const jobQueue: JobQueueTable = sqliteTable(
     workerSessionId: text("workerSessionId"),
     leaseExpiresAt: integer("leaseExpiresAt"),
     attemptHeartbeatAt: integer("attemptHeartbeatAt"),
+    runtimeUpdatedAt: integer("runtimeUpdatedAt"),
   },
   (table) => ({
     // Index for efficient queue operations (ready to process)
@@ -261,6 +273,11 @@ export const jobQueue: JobQueueTable = sqliteTable(
     ),
     // Index for job type filtering
     jobTypeIdx: index("idx_job_queue_type").on(table.type, table.status),
+    // Cover durable progress polling by (updatedAt, jobId).
+    runtimeUpdatesIdx: index("idx_job_queue_runtime_updates").on(
+      table.runtimeUpdatedAt,
+      table.id,
+    ),
     // Index for source filtering
     jobSourceIdx: index("idx_job_queue_source").on(table.source),
   }),

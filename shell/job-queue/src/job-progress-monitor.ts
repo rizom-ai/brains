@@ -24,6 +24,8 @@ const jobResultRecordSchema = z.preprocess(
  * Progress event emitted by the monitor
  */
 export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;
+export type JobProgressMonitorMode =
+  "combined" | "durable-reader" | "durable-writer";
 
 /**
  * Simplified service that emits job and batch progress events
@@ -36,17 +38,23 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private messageBus: MessageBus;
   private batchJobManager: IBatchJobManager;
   private logger: Logger;
+  private readonly mode: JobProgressMonitorMode;
+  private pollTimer: ReturnType<typeof setInterval> | undefined;
+  private pollCursor = { updatedAt: 0, jobId: "" };
+  private polling = false;
   public static createFresh(
     jobQueueService: IJobQueueService,
     messageBus: MessageBus,
     batchJobManager: IBatchJobManager,
     logger: Logger,
+    mode: JobProgressMonitorMode = "combined",
   ): JobProgressMonitor {
     return new JobProgressMonitor(
       jobQueueService,
       messageBus,
       batchJobManager,
       logger,
+      mode,
     );
   }
 
@@ -55,25 +63,63 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     messageBus: MessageBus,
     batchJobManager: IBatchJobManager,
     logger: Logger,
+    mode: JobProgressMonitorMode,
   ) {
     this.jobQueueService = jobQueueService;
     this.messageBus = messageBus;
     this.batchJobManager = batchJobManager;
     this.logger = logger;
+    this.mode = mode;
   }
 
-  /**
-   * Start monitoring - now a no-op since we're event-driven
-   */
   public start(): void {
+    if (this.mode === "durable-reader" && !this.pollTimer) {
+      this.pollCursor = { updatedAt: Date.now(), jobId: "" };
+      this.pollTimer = setInterval(() => {
+        void this.pollDurableUpdates();
+      }, 250);
+      this.pollTimer.unref();
+      this.logger.debug("Job progress monitor ready (durable polling mode)");
+      return;
+    }
     this.logger.debug("Job progress monitor ready (event-driven mode)");
   }
 
-  /**
-   * Stop monitoring - now a no-op since no polling
-   */
   public stop(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = undefined;
     this.logger.debug("Job progress monitor stopped");
+  }
+
+  /** Flush one bounded durable update page sequence. */
+  public async pollDurableUpdates(): Promise<void> {
+    if (this.polling) return;
+    this.polling = true;
+    try {
+      const updates = await this.jobQueueService.getRuntimeUpdates(
+        this.pollCursor,
+        100,
+      );
+      for (const update of updates) {
+        this.pollCursor = update.cursor;
+        if (update.job.status === "processing" && update.job.progress) {
+          await this.publishJobProgress(update.job, update.job.progress);
+        } else if (
+          update.job.status === "completed" ||
+          update.job.status === "failed"
+        ) {
+          await this.handleJobStatusChange(
+            update.job.id,
+            update.job.status,
+            update.job.metadata,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error("Failed to poll durable job progress", { error });
+    } finally {
+      this.polling = false;
+    }
   }
 
   /**
@@ -172,7 +218,11 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     try {
       if (
         attemptId &&
-        !(await this.jobQueueService.recordAttemptProgress(jobId, attemptId))
+        !(await this.jobQueueService.recordAttemptProgress(
+          jobId,
+          attemptId,
+          progress,
+        ))
       ) {
         this.logger.debug("Discarding progress from obsolete job attempt", {
           jobId,
@@ -181,53 +231,54 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         return;
       }
 
+      if (this.mode === "durable-writer") return;
+
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
         this.logger.warn("Job not found for progress update", { jobId });
         return;
       }
-
-      if (job.metadata.silent) {
-        return;
-      }
-
-      if (this.isBatchChild(jobId, job.metadata.rootJobId)) {
-        this.logger.debug(
-          "Skipping individual job progress for batch operation",
-          { jobId, rootJobId: job.metadata.rootJobId },
-        );
-        return;
-      }
-
-      const total = progress.total ?? 0;
-      const event: JobProgressEvent = {
-        id: jobId,
-        type: "job",
-        status: "processing",
-        metadata: job.metadata,
-        message: progress.message,
-      };
-
-      if (total > 0) {
-        event.progress = {
-          current: progress.progress,
-          total,
-          percentage: Math.round((progress.progress / total) * 100),
-        };
-      }
-
-      await this.broadcastEvent(event);
+      await this.publishJobProgress(job, progress);
     } catch (error) {
       this.logger.error("Error emitting job progress", { jobId, error });
     }
   }
 
+  private async publishJobProgress(
+    job: JobInfo,
+    progress: ProgressNotification,
+  ): Promise<void> {
+    if (job.metadata.silent) return;
+    if (this.isBatchChild(job.id, job.metadata.rootJobId)) return;
+
+    const total = progress.total ?? 0;
+    const event: JobProgressEvent = {
+      id: job.id,
+      type: "job",
+      status: "processing",
+      metadata: job.metadata,
+      message: progress.message,
+    };
+    if (total > 0) {
+      event.progress = {
+        current: progress.progress,
+        total,
+        percentage: Math.round((progress.progress / total) * 100),
+      };
+    }
+    await this.broadcastEvent(event);
+  }
+
   public async emitJobCompletion(jobId: string): Promise<void> {
-    await this.emitJobStatusEvent(jobId, "completed");
+    if (this.mode !== "durable-writer") {
+      await this.emitJobStatusEvent(jobId, "completed");
+    }
   }
 
   public async emitJobFailure(jobId: string): Promise<void> {
-    await this.emitJobStatusEvent(jobId, "failed");
+    if (this.mode !== "durable-writer") {
+      await this.emitJobStatusEvent(jobId, "failed");
+    }
   }
 
   private async emitJobStatusEvent(
@@ -325,6 +376,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     status: "completed" | "failed",
     metadata?: Record<string, unknown>,
   ): Promise<void> {
+    if (this.mode === "durable-writer") return;
     const parsedMetadata = metadata
       ? JobContextSchema.safeParse(metadata)
       : undefined;

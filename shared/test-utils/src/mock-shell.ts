@@ -742,6 +742,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           total: 0,
         }),
         cleanup: async () => 0,
+        getRuntimeUpdates: async () => [],
         registerHandler: () => {},
         unregisterHandler: () => {},
         unregisterPluginHandlers: () => {},

@@ -691,23 +691,22 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S1–S2 are complete. S0 and S3–S6 remain in progress.
+Implementation status: S0–S2 are complete. S3–S6 remain in progress.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every
 phase.
 
-0. **S0 — execution-boundary inventory**: enumerate every registered job type
-   in the full preset and its entity, AI, template, registry, and messaging
-   dependencies. Convert registration to immutable job execution capabilities.
-   Prove execution-only boot can construct every handler without interfaces,
-   ingress subscriptions, daemons, or ready hooks. S1 may start before every
-   handler is converted, but S3 is blocked until this gate passes. The known
-   largest item is job progress reporting: `JobProgressMonitor` emits over the
-   in-process message bus that web interfaces subscribe to, so in a worker
-   child those emissions have no subscribers and chat/web progress goes dark.
-   It must move to a durable path — the natural fit is the web child polling
-   job status from the shared queue database — before S3.
+0. **S0 — execution-boundary prerequisites**: job progress is persisted in the
+   shared queue and published by a bounded, indexed reader instead of relying
+   on the worker's in-process message bus. Internal subscriptions required by
+   durable execution are explicitly marked `subscribeExecution`; ordinary
+   ingress subscriptions remain distinct. During S3, immutable execution
+   capability registration must be introduced first, then used to derive the
+   exact full-preset dependency inventory and execution-only boot gate. A
+   hand-maintained manifest is prohibited. The worker split remains blocked
+   until that derived gate proves every handler can be constructed without
+   interfaces, ordinary ingress subscriptions, daemons, tools, or ready hooks.
 1. **S1 — supervisor skeleton**: parent spawns a single `--child=web` process;
    the unchanged web child still owns migrations in this phase. Add signal
    forwarding, reaping, and exit-code propagation with externally identical

@@ -92,6 +92,8 @@ export function createMockJobQueueService(
       workerSessionId: null,
       leaseExpiresAt: null,
       attemptHeartbeatAt: null,
+      runtimeUpdatedAt: null,
+      progress: null,
       metadata: {
         operationType:
           request.options?.metadata.operationType ?? "data_processing",
@@ -182,6 +184,7 @@ export function createMockJobQueueService(
         },
       ),
     ),
+    getRuntimeUpdates: mock(() => Promise.resolve([])),
     cleanup: mock(() => Promise.resolve(returns.cleanup ?? 0)),
     getActiveJobs: mock(() =>
       Promise.resolve(
