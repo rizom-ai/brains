@@ -157,6 +157,21 @@ export const inboxActionOutcomeSchema: z.ZodType<
   InboxActionOutcomeValue
 > = z.union([inboxActionConfirmationSchema, inboxActionCompletedSchema]);
 
+interface InboxDigestAlertValue {
+  dedupeKey: string;
+  title: string;
+  body: string;
+}
+
+export const inboxDigestAlertSchema: z.ZodType<
+  InboxDigestAlertValue,
+  InboxDigestAlertValue
+> = z.strictObject({
+  dedupeKey: z.string().min(1).max(200),
+  title: z.string().min(1).max(200),
+  body: z.string().min(1).max(10_000),
+});
+
 interface InboxListToolSuccessValue {
   success: true;
   data: InboxListResultValue;
@@ -192,3 +207,4 @@ export type InboxListResult = z.output<typeof inboxListResultSchema>;
 export type InboxActionRequest = z.output<typeof inboxActionRequestSchema>;
 export type InboxActionOutcome = z.output<typeof inboxActionOutcomeSchema>;
 export type InboxListToolOutput = z.output<typeof inboxListToolOutputSchema>;
+export type InboxDigestAlert = z.output<typeof inboxDigestAlertSchema>;

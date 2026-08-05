@@ -2,10 +2,9 @@
 
 ## Status
 
-**Phases 0–2 implemented; Phase 3 proposed.** The schema-first `InboxSource`
-contract, app-scoped finalized registry, failure-isolating live aggregation DataSource,
-Admin dashboard/tool surfaces, and first real source (`mail-items`) are in place. The
-daily digest remains.
+**Phases 0–3 implemented.** The schema-first `InboxSource` contract, app-scoped
+finalized registry, failure-isolating live aggregation DataSource, Admin dashboard/tool
+surfaces, first real source (`mail-items`), and daily notification digest are in place.
 
 ## Goal
 
@@ -30,7 +29,9 @@ digest.
 - Read-model precedent: the bd-priority-engine ranking is a `DataSource` computed on
   demand from stored fields, deliberately avoiding a persisted projection that can go
   stale. The same reasoning applies here.
-- `shell/recurring-checks` supports `daily | weekly` cadences — sufficient for a digest.
+- The daily digest is registered through `shell/recurring-checks` and delivered through
+  `notifications:send` to the notifications plugin's configured default recipient. It is
+  silent when no item is open.
 - Dashboard widget templates: `entities/wishlist` `ListWidget`, the `agent-discovery`
   widget.
 
@@ -94,12 +95,31 @@ digest.
    section waits on). Lead management does not register the same mail arrival again;
    qualification remains a separate business view rather than a duplicate inbox item.
 6. **The digest is push over the projection.** A `daily` recurring check summarizes
-   counts and top items per source via `notifications:send`, linking to the dashboard —
-   titles only, never bodies. Cadence-based, so it needs no per-item dedupe state.
+   counts and top high-priority titles per source via `notifications:send`, linking to
+   the configured dashboard route — titles only, never summaries or bodies. Its dedupe
+   key is scoped to the UTC run date, so retries are idempotent without per-item state.
 7. **Items are content-safe by contract.** `title`/`summary` must be safe for
    notification transport and dashboard rendering: no mail bodies, no raw addresses
    beyond what the operator needs to recognize the item. Enforced in each source's
    tests.
+
+## Configuration
+
+The capability remains opt-in. Daily delivery uses the core notifications capability's
+existing default recipient:
+
+```yaml
+add: [unified-inbox]
+
+plugins:
+  notifications:
+    defaultRecipient:
+      type: email
+      address: operator@example.com
+```
+
+Without a default recipient, the dashboard and `inbox_list` still work; the recurring
+notification remains pending for the standard retry path.
 
 ## Phased delivery (thin vertical slices, TDD)
 
@@ -124,9 +144,12 @@ Tests are written first inside each phase.
   operation. _Tests:_ source mapping and empty state; Admin enforcement; all action
   transitions; source-content redaction; handled items disappear on re-list and from
   the shared widget projection.
-- **Phase 3 — Digest.** Daily recurring check → `notifications:send` summary with
-  per-source counts and top `high`-urgency titles; silent when the inbox is empty.
-  _Tests:_ digest content redaction; empty inbox sends nothing.
+- **Phase 3 — Digest — implemented.** A daily recurring check returns one
+  `notifications:send` alert with bounded per-source counts, top `high`-urgency titles,
+  fixed source-unavailable counts, and the mounted dashboard URL. It is silent when the
+  inbox is empty and uses a UTC-date dedupe key for retry-safe daily delivery. _Tests:_
+  title-only content policy; summary/action/ID redaction; empty inbox sends nothing;
+  recurring registration and custom dashboard route resolution.
 
 ## Out of scope
 

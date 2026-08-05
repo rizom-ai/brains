@@ -3,4 +3,4 @@
 "@rizom/brain": patch
 ---
 
-Add the Admin unified-inbox dashboard and `inbox_list` surfaces. The dashboard groups live source-owned attention, isolates source failures, dispatches current offered actions through same-origin authenticated routes, requires explicit confirmation where declared, and re-lists without creating duplicate inbox state.
+Add the Admin unified-inbox dashboard, `inbox_list` tool, and daily digest. The dashboard groups live source-owned attention, isolates source failures, dispatches current offered actions through same-origin authenticated routes, requires explicit confirmation where declared, and re-lists without duplicate inbox state. The digest sends bounded per-source counts and high-priority titles through recurring notifications while omitting summaries, action details, and entity identifiers.

@@ -11,6 +11,7 @@ import packageJson from "../package.json";
 import { createInboxActionRoute } from "./action-route";
 import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
 import { InboxDataSource } from "./inbox-datasource";
+import { registerUnifiedInboxDigest } from "./digest";
 import { createInboxListTool } from "./inbox-tool";
 import { InboxOperatorService } from "./operator-service";
 
@@ -44,7 +45,9 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    await registerUnifiedInboxDashboardWidget(context, this.getDataSource());
+    const dataSource = this.getDataSource();
+    await registerUnifiedInboxDashboardWidget(context, dataSource);
+    registerUnifiedInboxDigest(context, dataSource);
   }
 
   protected override async getTools(): Promise<Tool[]> {
