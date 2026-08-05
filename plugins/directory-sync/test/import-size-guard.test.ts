@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -27,7 +28,11 @@ describe("directory import size guard", () => {
     mkdirSync(join(testDir, "note"), { recursive: true });
     writeFileSync(join(testDir, "note", "exact.md"), "x".repeat(LIMIT_BYTES));
     const service = createMockEntityService({ entityTypes: ["note"] });
-    const fileOperations = new FileOperations(testDir, service);
+    const fileOperations = new FileOperations(
+      testDir,
+      service,
+      createMockAssetsNamespace(),
+    );
 
     const entity = await fileOperations.readEntity(
       "note/exact.md",
@@ -48,6 +53,7 @@ describe("directory import size guard", () => {
       syncPath: testDir,
       maxImportFileBytes: LIMIT_BYTES,
       entityService: service,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("oversized-text-import"),
     });
 
@@ -75,7 +81,11 @@ describe("directory import size guard", () => {
       Buffer.alloc(LIMIT_BYTES),
     );
     const service = createMockEntityService({ entityTypes: ["image"] });
-    const fileOperations = new FileOperations(testDir, service);
+    const fileOperations = new FileOperations(
+      testDir,
+      service,
+      createMockAssetsNamespace(),
+    );
 
     const entity = await fileOperations.readEntity(
       "image/exact.png",
@@ -92,7 +102,11 @@ describe("directory import size guard", () => {
     const relativePath = "image/oversized.png";
     writeFileSync(join(testDir, relativePath), Buffer.alloc(LIMIT_BYTES + 1));
     const service = createMockEntityService({ entityTypes: ["image"] });
-    const fileOperations = new FileOperations(testDir, service);
+    const fileOperations = new FileOperations(
+      testDir,
+      service,
+      createMockAssetsNamespace(),
+    );
 
     try {
       await fileOperations.readEntity(relativePath, LIMIT_BYTES);

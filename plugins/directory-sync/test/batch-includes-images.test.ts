@@ -11,10 +11,11 @@ import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
+  createMockServicePluginContext,
 } from "@brains/test-utils";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
 
 describe("queueSyncBatch should include images (regression)", () => {
@@ -31,6 +32,7 @@ describe("queueSyncBatch should include images (regression)", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
   });

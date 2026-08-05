@@ -1,3 +1,4 @@
+import type { BinaryContentResolver } from "@brains/assets";
 import { EntityService } from "../../src/entityService";
 import { EntityRegistry } from "../../src/entityRegistry";
 import {
@@ -43,6 +44,7 @@ export async function setupEntityService(
   options?: {
     messageBus?: EntityEventBus;
     embeddingsEnabled?: boolean;
+    binaryContentResolver?: BinaryContentResolver;
   },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
@@ -72,6 +74,9 @@ export async function setupEntityService(
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
+    ...(options?.binaryContentResolver && {
+      binaryContentResolver: options.binaryContentResolver,
+    }),
   });
 
   const cleanup = async (): Promise<void> => {

@@ -57,6 +57,7 @@ describe("EntityTypeConfig fullTextSearchable", () => {
     await setup({
       embeddable: false,
       fullTextSearchable: false,
+      binaryStorage: "asset",
     });
     if (!ctx) throw new Error("Test service not initialized");
     const entity = createTestEntity("test", {
@@ -70,6 +71,7 @@ describe("EntityTypeConfig fullTextSearchable", () => {
     expect(ctx.entityRegistry.getEntityTypeConfig("test")).toMatchObject({
       embeddable: false,
       fullTextSearchable: false,
+      binaryStorage: "asset",
     });
   });
 

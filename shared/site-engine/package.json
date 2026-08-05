@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.285",
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/site-composition": "workspace:*",

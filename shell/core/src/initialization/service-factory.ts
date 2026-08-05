@@ -1,5 +1,8 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
-import { FilesystemAssetStore } from "@brains/asset-service";
+import {
+  AssetBinaryContentResolver,
+  FilesystemAssetStore,
+} from "@brains/asset-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import {
   ConversationServiceTag,
@@ -211,6 +214,7 @@ export function createShellServices(options: {
       mutationAdmission: projectionRuntimeSupervisor,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
+      binaryContentResolver: new AssetBinaryContentResolver(assetStore),
       ...(dependencies?.entityService && {
         service: dependencies.entityService,
       }),

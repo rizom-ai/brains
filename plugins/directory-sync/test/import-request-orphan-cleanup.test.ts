@@ -5,6 +5,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
@@ -48,6 +49,7 @@ describe("Import then orphan cleanup", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
       deleteOnFileRemoval: true,
     });

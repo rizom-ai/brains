@@ -273,7 +273,10 @@ coverImageId: project-cover-image
       });
 
       // Mock entityService.getEntity to return the image
-      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
+      const getEntity = spyOn(
+        mockContext.entityService,
+        "getEntity",
+      ).mockResolvedValue({
         id: "project-cover-image",
         entityType: "image",
         content: "data:image/png;base64,abc123",
@@ -302,6 +305,12 @@ coverImageId: project-cover-image
       expect(result.coverImageWidth).toBe(800);
       expect(result.coverImageHeight).toBe(600);
       expect(result.url).toBe("/projects/test-project");
+      expect(getEntity).toHaveBeenCalledWith({
+        entityType: "image",
+        id: "project-cover-image",
+        binaryContent: "legacy-data-url",
+        binaryContentSurface: "site-content-enrichment-fallback",
+      });
     });
 
     it("should resolve absolute ogImageUrl from ogImageId before coverImageId", async () => {

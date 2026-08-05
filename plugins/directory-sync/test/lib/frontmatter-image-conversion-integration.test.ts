@@ -3,6 +3,7 @@ import { createTempDataDirSync } from "@brains/plugins/test";
 import { DirectorySync } from "../../src/lib/directory-sync";
 import type { IEntityService } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -68,6 +69,7 @@ describe("DirectorySync - Non-blocking Image Conversion", () => {
     directorySync = new DirectorySync({
       syncPath: tempDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger,
       autoSync: false,
     });
@@ -211,6 +213,7 @@ Post content here.`;
     const directorySyncNoQueue = new DirectorySync({
       syncPath: tempDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger,
       autoSync: false,
     });

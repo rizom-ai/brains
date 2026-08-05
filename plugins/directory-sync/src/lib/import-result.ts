@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult } from "../types";
 import { getErrorMessage } from "@brains/utils/error";
+import { OversizedImportFileError } from "./import-limits";
 
 export function createImportResult(): ImportResult {
   return {
@@ -39,6 +40,18 @@ export function recordImportReadError(
       path: filePath,
     });
     recordSkippedImport(result);
+    return;
+  }
+
+  if (error instanceof OversizedImportFileError) {
+    recordSkippedImport(result);
+    result.errors.push({ path: filePath, error: error.message });
+    logger.warn("Skipped oversized import file", {
+      path: filePath,
+      sizeBytes: error.sizeBytes,
+      maxBytes: error.maxBytes,
+      limitKind: error.limitKind,
+    });
     return;
   }
 

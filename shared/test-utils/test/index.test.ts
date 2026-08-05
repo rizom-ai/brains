@@ -2,6 +2,9 @@ import { describe, it, expect } from "bun:test";
 import {
   createSilentLogger,
   createMockLogger,
+  createMockAssetStore,
+  createMockAssetsNamespace,
+  createMockEntityPluginContext,
   createMockEntityService,
   createMockProgressReporter,
   createMockServicePluginContext,
@@ -38,6 +41,25 @@ describe("@brains/test-utils", () => {
         entityTypes: ["note", "post"],
       });
       expect(service.getEntityTypes()).toEqual(["note", "post"]);
+    });
+  });
+
+  describe("durable asset mocks", () => {
+    it("stores content-addressed bytes through the plugin namespace", async () => {
+      const store = createMockAssetStore();
+      const assets = createMockAssetsNamespace(store);
+      const bytes = Buffer.from("asset bytes");
+
+      const record = await assets.put(bytes, { maxBytes: bytes.byteLength });
+
+      expect(Buffer.from(await assets.read(record.ref))).toEqual(bytes);
+      expect(await assets.verify(record.ref)).toMatchObject({ valid: true });
+    });
+
+    it("exposes a configured asset namespace on entity plugin contexts", () => {
+      const assets = createMockAssetsNamespace();
+      const context = createMockEntityPluginContext({ assets });
+      expect(context.assets).toBe(assets);
     });
   });
 

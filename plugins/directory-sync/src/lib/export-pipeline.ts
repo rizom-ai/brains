@@ -16,6 +16,8 @@ export interface ExportPipelineDeps {
     getEntityTypes(): string[];
     listEntities(request: {
       entityType: string;
+      binaryContent?: "reference";
+      binaryContentSurface?: string;
       options?: {
         limit?: number;
         filter?: { visibilityScope?: ContentVisibility };
@@ -49,6 +51,8 @@ export async function exportEntities(
   for (const entityType of typesToExport) {
     const entities = await deps.entityService.listEntities({
       entityType: entityType,
+      binaryContent: "reference",
+      binaryContentSurface: "directory-sync-export",
       options: {
         limit: 1000,
         filter: {

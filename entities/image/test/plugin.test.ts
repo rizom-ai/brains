@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { JobHandler } from "@brains/plugins";
+import { parseAssetRef, type JobHandler } from "@brains/plugins";
+import { createMockAssetStore, type MockAssetStore } from "@brains/test-utils";
 import { ProgressReporter } from "@brains/utils/progress";
 
 describe("ImagePlugin", () => {
@@ -11,6 +12,7 @@ describe("ImagePlugin", () => {
   let plugin: ImagePlugin;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
+  let assetStore: MockAssetStore;
 
   beforeEach(async () => {
     enqueuedJobs = [];
@@ -19,6 +21,8 @@ describe("ImagePlugin", () => {
       dataDir: `/tmp/test-image-${crypto.randomUUID()}`,
     });
     const shell = harness.getMockShell();
+    assetStore = createMockAssetStore();
+    shell.getAssetStore = (): MockAssetStore => assetStore;
     const jobQueue = shell.getJobQueueService();
     shell.getJobQueueService = (): typeof jobQueue => ({
       ...jobQueue,
@@ -51,6 +55,7 @@ describe("ImagePlugin", () => {
     ).toMatchObject({
       embeddable: false,
       fullTextSearchable: false,
+      binaryStorage: "asset",
     });
   });
 
@@ -136,6 +141,7 @@ describe("ImagePlugin", () => {
           url: "/api/chat/attachments/image?id=robot",
           downloadUrl: "/api/chat/attachments/image?id=robot&download=1",
           filename: "robot.png",
+          sizeBytes: pngBytes.byteLength,
           source: {
             entityType: "image",
             entityId: "robot",
@@ -192,13 +198,15 @@ describe("ImagePlugin", () => {
       id: "robot",
       visibilityScope: "shared",
     });
-    expect(entity?.content).toBe(
-      `data:image/png;base64,${pngBytes.toString("base64")}`,
-    );
-    expect(entity?.metadata).toMatchObject({
+    if (!entity) throw new Error("Expected promoted image entity");
+    const assetRef = parseAssetRef(entity.content);
+    expect(Buffer.from(await assetStore.read(assetRef))).toEqual(pngBytes);
+    expect(entity.metadata).toMatchObject({
       title: "Robot",
       alt: "Robot",
       format: "png",
+      mediaType: "image/png",
+      sizeBytes: pngBytes.byteLength,
       status: "draft",
       sourceUploadId: record.ref.id,
       sourceFilename: "robot.png",

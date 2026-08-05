@@ -4,6 +4,7 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createMockServicePluginContext,
   createMockShell,
 } from "@brains/test-utils";
@@ -76,19 +77,28 @@ describe("blog ATProto projection", () => {
         },
       ),
     };
+    const assets = createMockAssetsNamespace();
+    const stored = assets.store.seed(Buffer.from("hello"));
     const image = {
       id: "image-1",
       entityType: "image",
-      content: "data:image/png;base64,aGVsbG8=",
+      content: stored.ref,
       created: "2026-05-28T10:00:00.000Z",
       updated: "2026-05-28T10:00:00.000Z",
       visibility: "public" as const,
       contentHash: "image-hash",
-      metadata: { alt: "Cover alt", width: 1200, height: 630 },
+      metadata: {
+        alt: "Cover alt",
+        mediaType: "image/png",
+        sizeBytes: stored.sizeBytes,
+        width: 1200,
+        height: 630,
+      },
     };
-    const shell = createMockShell();
-    shell.addEntities([postWithCover, image]);
-    const context = createServicePluginContext(shell, "blog");
+    const context = createMockServicePluginContext({
+      assets,
+      returns: { entityService: { getEntity: image } },
+    });
 
     const record = await projection.buildRecord({
       entity: postWithCover,

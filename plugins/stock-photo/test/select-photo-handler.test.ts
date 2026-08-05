@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockAssetStore, createSilentLogger } from "@brains/test-utils";
 import {
   ProgressReporter,
   type ProgressNotification,
 } from "@brains/utils/progress";
-import type { IEntityService } from "@brains/plugins";
+import type { AssetStore, IEntityService } from "@brains/plugins";
 import { SelectPhotoJobHandler } from "../src/handlers/select-photo-handler";
 import type { SelectPhotoJobData } from "../src/handlers/select-photo-handler";
 import type { StockPhotoProvider } from "../src/lib/types";
@@ -54,6 +54,10 @@ function createEntityService(
   } as unknown as IEntityService;
 }
 
+function createAssetStore(): AssetStore {
+  return createMockAssetStore();
+}
+
 function createProgressReporter(): ProgressReporter {
   const reporter = ProgressReporter.from(
     async (_notification: ProgressNotification) => {},
@@ -98,6 +102,7 @@ describe("SelectPhotoJobHandler", () => {
     const handler = new SelectPhotoJobHandler(createSilentLogger(), {
       provider: createProvider(),
       entityService,
+      assets: createAssetStore(),
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
     });
 
@@ -124,6 +129,7 @@ describe("SelectPhotoJobHandler", () => {
     const handler = new SelectPhotoJobHandler(createSilentLogger(), {
       provider: createProvider(),
       entityService,
+      assets: createAssetStore(),
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
     });
 
@@ -142,6 +148,7 @@ describe("SelectPhotoJobHandler", () => {
     const handler = new SelectPhotoJobHandler(createSilentLogger(), {
       provider: createProvider(),
       entityService: createEntityService(),
+      assets: createAssetStore(),
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
     });
 

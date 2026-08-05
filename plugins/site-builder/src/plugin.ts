@@ -142,6 +142,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
     const siteBuilderServices: SiteBuilderServices = {
       entityService: context.entityService,
+      assets: context.assets,
       sendMessage: context.messaging.send,
       resolveTemplateContent: (templateName, options) =>
         context.templates.resolve(templateName, options),

@@ -39,12 +39,20 @@ describe("asset contracts", () => {
       binaryContentResolutionRequestSchema.parse({
         ref,
         mediaType: "image/png",
+        method: "getEntity",
+        surface: "contracts-test",
       }),
-    ).toEqual({ ref, mediaType: "image/png" });
+    ).toEqual({
+      ref,
+      mediaType: "image/png",
+      method: "getEntity",
+      surface: "contracts-test",
+    });
     expect(() =>
       binaryContentResolutionRequestSchema.parse({
         ref,
         mediaType: "invalid\nmedia-type",
+        method: "getEntity",
       }),
     ).toThrow();
   });

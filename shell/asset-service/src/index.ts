@@ -1,4 +1,7 @@
-export { AssetBinaryContentResolver } from "./binary-content-resolver";
+export {
+  AssetBinaryContentResolver,
+  type BinaryContentMaterializationCount,
+} from "./binary-content-resolver";
 export {
   AssetStoreError,
   FilesystemAssetStore,

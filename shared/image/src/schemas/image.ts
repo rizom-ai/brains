@@ -1,25 +1,23 @@
+import { assetRefSchema } from "@brains/assets";
 import { baseEntityParserSchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
-/**
- * Supported image formats
- */
-export type ImageFormat = "png" | "jpg" | "jpeg" | "webp" | "gif" | "svg";
+/** Canonical durable raster formats. JPEG metadata is normalized to `jpeg`. */
+export type ImageFormat = "png" | "jpeg" | "webp" | "gif";
+export type ImageMediaType =
+  "image/png" | "image/jpeg" | "image/webp" | "image/gif";
 
-export const imageFormatSchema: z.ZodType<ImageFormat> = z.enum([
-  "png",
-  "jpg",
-  "jpeg",
-  "webp",
-  "gif",
-  "svg",
+export const imageFormatSchema: z.ZodType<ImageFormat, unknown> = z
+  .enum(["png", "jpg", "jpeg", "webp", "gif"])
+  .transform((format): ImageFormat => (format === "jpg" ? "jpeg" : format));
+
+export const imageMediaTypeSchema: z.ZodType<ImageMediaType> = z.enum([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
 ]);
 
-/**
- * Image entity metadata schema
- * All fields required (auto-detected on upload)
- * sourceUrl is optional - used for deduplication when importing from URLs
- */
 export type ImageIngestionStatus = "pending" | "draft" | "failed";
 
 export const imageIngestionStatusSchema: z.ZodType<ImageIngestionStatus> =
@@ -28,9 +26,11 @@ export const imageIngestionStatusSchema: z.ZodType<ImageIngestionStatus> =
 type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
-  format: z.ZodType<ImageFormat>;
-  width: z.ZodNumber;
-  height: z.ZodNumber;
+  format: z.ZodOptional<z.ZodType<ImageFormat, unknown>>;
+  mediaType: z.ZodOptional<z.ZodType<ImageMediaType>>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  width: z.ZodOptional<z.ZodNumber>;
+  height: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<z.ZodType<ImageIngestionStatus>>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
@@ -47,9 +47,11 @@ type ImageMetadataSchema = z.ZodObject<{
 export const imageMetadataSchema: ImageMetadataSchema = z.object({
   title: z.string().optional(),
   alt: z.string().optional(),
-  format: imageFormatSchema,
-  width: z.number(),
-  height: z.number(),
+  format: imageFormatSchema.optional(),
+  mediaType: imageMediaTypeSchema.optional(),
+  sizeBytes: z.number().int().nonnegative().optional(),
+  width: z.number().int().nonnegative().optional(),
+  height: z.number().int().nonnegative().optional(),
   status: imageIngestionStatusSchema.optional(),
   processingJobId: z.string().optional(),
   processingError: z.string().optional(),
@@ -65,25 +67,78 @@ export const imageMetadataSchema: ImageMetadataSchema = z.object({
 
 export type ImageMetadata = z.output<typeof imageMetadataSchema>;
 
-/**
- * Image entity schema (extends BaseEntity)
- * Content field contains base64 data URL: data:image/png;base64,...
- */
-export const imageSchema: ReturnType<
-  typeof baseEntityParserSchema.extend<{
-    entityType: z.ZodLiteral<"image">;
-    metadata: ImageMetadataSchema;
-  }>
-> = baseEntityParserSchema.extend({
-  entityType: z.literal("image"),
-  metadata: imageMetadataSchema,
-});
-
-export type Image = z.output<typeof imageSchema>;
+const supportedLegacyImageDataUrlPattern =
+  /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[a-z0-9+/]+={0,2}$/i;
 
 /**
- * Resolved image data for templates
+ * Transitional image schema. Existing raster data URLs remain readable during
+ * the cutover, while every newly completed image is stored as an asset ref.
  */
+export interface Image extends Omit<
+  z.output<typeof baseEntityParserSchema>,
+  "entityType" | "metadata"
+> {
+  entityType: "image";
+  metadata: ImageMetadata;
+}
+
+export const imageSchema: z.ZodType<Image, unknown> = baseEntityParserSchema
+  .extend({
+    entityType: z.literal("image"),
+    content: z.string(),
+    metadata: imageMetadataSchema,
+  })
+  .superRefine((image, context) => {
+    const content = image.content.trim();
+    const isAsset = assetRefSchema.safeParse(content).success;
+    const isLegacyDataUrl = supportedLegacyImageDataUrlPattern.test(content);
+    const isIncomplete =
+      image.metadata.status === "pending" || image.metadata.status === "failed";
+
+    if (!content) {
+      if (!isIncomplete) {
+        context.addIssue({
+          code: "custom",
+          path: ["content"],
+          message: "Only pending or failed images may have empty content",
+        });
+      }
+      return;
+    }
+
+    if (!isAsset && !isLegacyDataUrl) {
+      context.addIssue({
+        code: "custom",
+        path: ["content"],
+        message:
+          "Image content must be a supported raster data URL or SHA-256 asset reference",
+      });
+      return;
+    }
+
+    // Legacy rows predate mediaType/sizeBytes, so require the complete binary
+    // fact set only once content has crossed to the asset representation.
+    if (isAsset) {
+      const requiredFacts: Array<keyof ImageMetadata> = [
+        "format",
+        "mediaType",
+        "sizeBytes",
+        "width",
+        "height",
+      ];
+      for (const fact of requiredFacts) {
+        if (image.metadata[fact] === undefined) {
+          context.addIssue({
+            code: "custom",
+            path: ["metadata", fact],
+            message: `Asset-backed images require ${fact}`,
+          });
+        }
+      }
+    }
+  });
+
+/** Resolved image data for templates. */
 export interface ResolvedImage {
   url: string;
   alt: string;

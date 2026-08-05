@@ -50,6 +50,7 @@ describe("Blog printable attachment provider", () => {
 
     const provider = createBlogPrintableProvider({
       entityService: harness.getEntityService(),
+      assets: harness.getEntityContext("test").assets,
       themeCSS: "",
       identity: harness.getEntityContext("test").identity,
       domain: undefined,
@@ -83,6 +84,7 @@ describe("Blog printable attachment provider", () => {
     const provider = createBlogPrintableProvider(
       {
         entityService: harness.getEntityService(),
+        assets: harness.getEntityContext("test").assets,
         themeCSS: ":root { --print-test-token: #123456; }",
         identity: harness.getEntityContext("test").identity,
         domain: "example.com",

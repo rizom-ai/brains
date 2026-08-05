@@ -16,6 +16,7 @@ import {
   type EntityMutationResult,
 } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -53,6 +54,7 @@ describe("Invalid Entity Handling", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
   });

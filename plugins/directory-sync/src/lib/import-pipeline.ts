@@ -13,6 +13,7 @@ import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
 import { persistImportEntity } from "./import-persistence";
+import { OversizedImportFileError } from "./import-limits";
 import { OversizedFileError } from "./oversized-file-error";
 import {
   createImportResult,
@@ -71,7 +72,10 @@ async function importFile(
 
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch (error) {
-    if (error instanceof OversizedFileError) {
+    if (
+      error instanceof OversizedFileError ||
+      error instanceof OversizedImportFileError
+    ) {
       recordSkippedImport(result);
       recordImportIssue(result, filePath, error.message);
       return;
@@ -92,6 +96,11 @@ async function processEntityImport(
       path: filePath,
       entityType: rawEntity.entityType,
     });
+    recordSkippedImport(result);
+    return;
+  }
+
+  if (rawEntity.assetUnchanged) {
     recordSkippedImport(result);
     return;
   }

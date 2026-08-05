@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins/test";
@@ -218,6 +218,7 @@ slug: test-series
 
       const entityService = harness.getEntityService();
       await entityService.upsertEntity({ entity: currentEntity });
+      const getEntity = spyOn(entityService, "getEntity");
 
       // Create series directory
       const seriesDir = join(syncPath, "series");
@@ -246,6 +247,12 @@ slug: test-series
 
       // Should have coverImageId from current DB entity, not stale payload
       expect(fileContent).toContain("coverImageId: series-test-cover");
+      expect(getEntity).toHaveBeenCalledWith({
+        entityType: "series",
+        id: "series-stale-test",
+        binaryContent: "reference",
+        binaryContentSurface: "directory-sync-auto-export",
+      });
     });
   });
 });

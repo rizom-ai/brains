@@ -5,6 +5,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -67,6 +68,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
     const dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
 
@@ -110,6 +112,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
     const dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
 

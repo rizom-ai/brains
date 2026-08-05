@@ -47,6 +47,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
     });
     this.converter = new MarkdownImageConverter(
       context.entityService,
+      context.assets,
       logger,
       fetcher,
     );

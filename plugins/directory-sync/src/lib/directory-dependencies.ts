@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { IAssetsNamespace, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
 import { DirectoryBatchQueue } from "./directory-batch-queue";
@@ -23,9 +23,19 @@ export function createDirectorySyncDependencies(
   logger: Logger,
   entityService: IEntityService,
   syncPath: string,
+  assets: IAssetsNamespace,
+  limits: {
+    maxImportFileBytes: number;
+    maxAssetImportBytes: number;
+  },
   deleteOnFileRemoval: boolean,
 ): DirectorySyncDependencies {
-  const fileOperations = new FileOperations(syncPath, entityService);
+  const fileOperations = new FileOperations(
+    syncPath,
+    entityService,
+    assets,
+    limits,
+  );
 
   return {
     fileOperations,
@@ -40,8 +50,16 @@ export function createDirectorySyncDependencies(
       entityService,
       fileOperations,
     ),
-    coverImageConverter: new FrontmatterImageConverter(entityService, logger),
-    inlineImageConverter: new MarkdownImageConverter(entityService, logger),
+    coverImageConverter: new FrontmatterImageConverter(
+      entityService,
+      assets,
+      logger,
+    ),
+    inlineImageConverter: new MarkdownImageConverter(
+      entityService,
+      assets,
+      logger,
+    ),
     quarantine: new Quarantine(logger, syncPath),
   };
 }

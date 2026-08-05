@@ -74,8 +74,17 @@ describe("FilesystemAssetStore", () => {
       await resolver.materializeLegacyDataUrl({
         ref: record.ref,
         mediaType: "image/png",
+        method: "getEntityRaw",
+        surface: "asset-service-test",
       }),
     ).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+    expect(resolver.getMaterializationCounts()).toEqual([
+      {
+        method: "getEntityRaw",
+        surface: "asset-service-test",
+        count: 1,
+      },
+    ]);
   });
 
   test("deduplicates concurrent writes of identical content", async () => {

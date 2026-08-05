@@ -11,7 +11,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
-  createDataUrl,
   imageAdapter,
   setCoverImageId,
   setOgImageId,
@@ -120,12 +119,11 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Creating image entity",
       });
 
-      // Derive the data-URL format from the attachment's declared mime type
-      // rather than hardcoding "png", so it stays correct if providers ever
-      // emit another image format.
-      const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
+      const asset = await this.context.assets.put(attachment.data);
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
+        assetRef: asset.ref,
+        bytes: attachment.data,
+        declaredMediaType: attachment.mimeType,
         title: data.imageId,
         status: "draft",
         sourceEntityType: data.sourceEntityType,
@@ -169,6 +167,8 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     const images = await this.context.entityService.listEntities<Image>({
       entityType: "image",
       options: { filter: { metadata: { dedupKey } } },
+      binaryContent: "reference",
+      binaryContentSurface: "image-source-render-dedup",
     });
     return images.find(
       (image) =>

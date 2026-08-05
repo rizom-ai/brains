@@ -29,11 +29,9 @@ describe("parseDataUrl", () => {
     expect(result.base64).toBe(TINY_JPG_BASE64);
   });
 
-  it("should parse WebP data URL", () => {
+  it("should reject payloads without the declared image signature", () => {
     const dataUrl = "data:image/webp;base64,abc123";
-    const result = parseDataUrl(dataUrl);
-    expect(result.format).toBe("webp");
-    expect(result.base64).toBe("abc123");
+    expect(() => parseDataUrl(dataUrl)).toThrow();
   });
 
   it("should parse a data URL with a trailing newline (filesystem round-trip)", () => {
@@ -79,7 +77,7 @@ describe("detectImageFormat", () => {
 
   it("should detect JPEG from magic bytes", () => {
     const format = detectImageFormat(TINY_JPG_BASE64);
-    expect(format).toBe("jpg");
+    expect(format).toBe("jpeg");
   });
 
   it("should return null for unknown format", () => {

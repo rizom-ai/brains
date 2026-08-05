@@ -8,7 +8,7 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockAssetStore, createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
 
@@ -52,7 +52,10 @@ describe("preparePublishContent", () => {
   let mockShell: MockShell;
 
   beforeEach(() => {
-    mockShell = createMockShell({ logger: createSilentLogger() });
+    mockShell = createMockShell({
+      logger: createSilentLogger(),
+      assetStore: createMockAssetStore(),
+    });
     context = createServicePluginContext(mockShell, "content-pipeline");
     mockShell
       .getEntityRegistry()
@@ -86,13 +89,18 @@ This is the body.`;
     expect(result.imageData).toBeUndefined();
   });
 
-  it("should fetch image data when coverImageId is present", async () => {
+  it("should fetch asset-backed image data when coverImageId is present", async () => {
+    const bytes = Buffer.from("hello");
+    const stored = await context.assets.put(bytes);
     await context.entityService.createEntity({
       entity: {
         id: "cover-image",
         entityType: "image",
-        content: "data:image/png;base64,aGVsbG8=",
-        metadata: {},
+        content: stored.ref,
+        metadata: {
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
+        },
       },
     });
 
@@ -108,7 +116,7 @@ Post with image.`;
 
     expect(result.bodyContent).toBe("Post with image.");
     expect(result.imageData?.mimeType).toBe("image/png");
-    expect(result.imageData?.data.toString("utf8")).toBe("hello");
+    expect(result.imageData?.data).toEqual(bytes);
   });
 
   it("should fetch structured document attachment data", async () => {

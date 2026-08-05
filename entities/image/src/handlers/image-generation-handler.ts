@@ -7,7 +7,7 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { imageAdapter, setCoverImageId } from "@brains/image";
+import { imageAdapter, parseDataUrl, setCoverImageId } from "@brains/image";
 import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
@@ -186,7 +186,7 @@ ${entityContent}`,
           jobId,
           error: getErrorMessage(error),
         });
-        return JobResult.failure(error);
+        throw error;
       }
 
       await this.reportProgress(progressReporter, {
@@ -194,9 +194,13 @@ ${entityContent}`,
         message: "Creating image entity",
       });
 
-      // Step 3: Create or update image entity
+      // Step 3: Validate provider output, persist bytes, then update the entity.
+      const parsedImage = parseDataUrl(generationResult.dataUrl);
+      const asset = await this.context.assets.put(parsedImage.bytes);
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: generationResult.dataUrl,
+        assetRef: asset.ref,
+        bytes: parsedImage.bytes,
+        declaredMediaType: parsedImage.mediaType,
         title,
         status: "draft",
         attachmentType: "generated",

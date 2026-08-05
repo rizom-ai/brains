@@ -37,9 +37,6 @@ import {
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 
-const PENDING_IMAGE_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
 type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
 function createAttributionJobOptions(
@@ -161,11 +158,13 @@ function buildUploadedImageAttachment(input: {
   mediaType: string;
   entityId: string;
   filename: string;
+  sizeBytes: number;
 }): {
   mediaType: string;
   url: string;
   downloadUrl: string;
   filename: string;
+  sizeBytes: number;
   source: {
     entityType: "image";
     entityId: string;
@@ -178,6 +177,7 @@ function buildUploadedImageAttachment(input: {
     url: `/api/chat/attachments/image?id=${encodedId}`,
     downloadUrl: `/api/chat/attachments/image?id=${encodedId}&download=1`,
     filename: input.filename,
+    sizeBytes: input.sizeBytes,
     source: {
       entityType: "image",
       entityId: input.entityId,
@@ -211,6 +211,7 @@ export class ImagePlugin extends EntityPlugin<
     return {
       embeddable: false,
       fullTextSearchable: false,
+      binaryStorage: "asset",
       projectionSource: false,
       projectionSourceRole: "excluded",
     };
@@ -432,6 +433,7 @@ export class ImagePlugin extends EntityPlugin<
             mediaType: uploadRecord.mediaType,
             entityId: identity.id,
             filename: uploadRecord.filename,
+            sizeBytes: uploadRecord.sizeBytes,
           }),
         },
       },
@@ -554,8 +556,7 @@ export class ImagePlugin extends EntityPlugin<
     executionContext?: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const entityData = imageAdapter.createImageEntity({
-      dataUrl: PENDING_IMAGE_DATA_URL,
+    const entityData = imageAdapter.createPendingImageEntity({
       title: input.title,
       alt: input.alt,
       status: "pending",

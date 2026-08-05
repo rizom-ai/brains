@@ -6,7 +6,6 @@ export const IMAGE_EXTENSIONS: readonly string[] = [
   ".jpeg",
   ".webp",
   ".gif",
-  ".svg",
 ];
 
 export function isImageFile(filePath: string): boolean {
@@ -26,8 +25,6 @@ export function getMimeTypeForExtension(ext: string): string {
       return "image/gif";
     case "webp":
       return "image/webp";
-    case "svg":
-      return "image/svg+xml";
     default:
       return "image/png";
   }
@@ -37,8 +34,6 @@ export function getExtensionForFormat(format: string): string {
   switch (format.toLowerCase()) {
     case "jpeg":
       return ".jpg";
-    case "svg+xml":
-      return ".svg";
     default:
       return `.${format.toLowerCase()}`;
   }

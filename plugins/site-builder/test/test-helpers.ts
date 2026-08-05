@@ -220,6 +220,7 @@ export function createSiteBuilderServices(
 ): SiteBuilderServices {
   return {
     entityService: context.entityService,
+    assets: context.assets,
     sendMessage: context.messaging.send,
     resolveTemplateContent: (templateName, options) =>
       context.templates.resolve(templateName, options),

@@ -1119,6 +1119,7 @@
       "name": "@brains/atproto-contracts",
       "version": "0.2.0-alpha.278",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1244,6 +1245,7 @@
       "name": "@brains/image",
       "version": "0.2.0-alpha.278",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "remark": "^15.0.1",
@@ -1358,6 +1360,7 @@
       "name": "@brains/site-engine",
       "version": "0.2.0-alpha.278",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/site-composition": "workspace:*",
@@ -1681,6 +1684,7 @@
       "name": "@brains/entity-service",
       "version": "0.2.0-alpha.278",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",

@@ -14,6 +14,7 @@ export async function prepareSiteImages(
   options.signal.throwIfAborted();
   const imageBuildService = new ImageBuildService(
     options.pipelineContext.services.entityService,
+    options.pipelineContext.services.assets,
     options.pipelineContext.logger,
     options.sharedImagesDir,
   );

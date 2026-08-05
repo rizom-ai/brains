@@ -16,6 +16,7 @@ import {
 } from "@brains/plugins/test";
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
+import { createMockAssetStore } from "@brains/test-utils";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -1920,23 +1921,31 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toBe("Document not found");
   });
 
-  it("serves generated image attachments to Admins", async () => {
+  it("serves asset-backed image attachments to Admins", async () => {
     const plugin = adminPlugin();
-    harness.addEntities([
+    const assetStore = createMockAssetStore();
+    const attachmentHarness = createPluginHarness<WebChatInterface>({
+      assetStore,
+    });
+    const bytes = Buffer.from("iVBORw0KGgo=", "base64");
+    const stored = await assetStore.put(bytes);
+    attachmentHarness.addEntities([
       {
         id: "mossy-robot",
         entityType: "image",
-        content: "data:image/png;base64,iVBORw0KGgo=",
+        content: stored.ref,
         metadata: {
           title: "Mossy robot",
           alt: "Mossy robot",
           format: "png",
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
           width: 1,
           height: 1,
         },
       },
     ]);
-    await harness.installPlugin(plugin);
+    await attachmentHarness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
     const response = await route?.handler(
@@ -1951,9 +1960,7 @@ describe("WebChatInterface", () => {
     expect(response?.headers.get("content-disposition")).toBe(
       "attachment; filename=\"mossy-robot.png\"; filename*=UTF-8''mossy-robot.png",
     );
-    expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("base64")).toBe(
-      "iVBORw0KGgo=",
-    );
+    expect(Buffer.from(body ?? new ArrayBuffer(0))).toEqual(bytes);
   });
 
   it("rejects image attachment requests from unauthenticated callers", async () => {

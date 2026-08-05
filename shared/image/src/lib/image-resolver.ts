@@ -23,6 +23,8 @@ export async function resolveImage(
   const image = await entityService.getEntity<Image>({
     entityType: "image",
     id: imageId,
+    binaryContent: "legacy-data-url",
+    binaryContentSurface: "shared-image-resolver",
   });
 
   if (!image) {
@@ -33,8 +35,8 @@ export async function resolveImage(
     url: image.content,
     alt: image.metadata.alt ?? "",
     title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
+    width: image.metadata.width ?? 0,
+    height: image.metadata.height ?? 0,
   };
 }
 

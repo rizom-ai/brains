@@ -31,9 +31,15 @@ export interface AssetPutStreamOptions {
 
 export type BinaryContentMode = "legacy-data-url" | "reference";
 
+export type BinaryContentReadMethod =
+  "getEntity" | "getEntityRaw" | "listEntities" | "embedded-reference";
+
 export interface BinaryContentResolutionRequest {
   ref: AssetRef;
   mediaType: string;
+  method: BinaryContentReadMethod;
+  /** Caller-owned inventory label; never contains entity content. */
+  surface?: string | undefined;
 }
 
 /** Transitional adapter used only by explicitly inventoried legacy readers. */
@@ -79,6 +85,13 @@ export const binaryContentResolutionRequestSchema: z.ZodType<BinaryContentResolu
       .string()
       .trim()
       .regex(/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/i),
+    method: z.enum([
+      "getEntity",
+      "getEntityRaw",
+      "listEntities",
+      "embedded-reference",
+    ]),
+    surface: z.string().trim().min(1).optional(),
   });
 
 export const assetRecordSchema: z.ZodType<AssetRecord> = z

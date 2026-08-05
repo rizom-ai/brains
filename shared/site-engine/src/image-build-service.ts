@@ -1,10 +1,11 @@
+import type { AssetStore } from "@brains/assets";
 import type { ImageRenderer } from "@brains/ui-library";
 import type { Logger } from "@brains/utils/logger";
 import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { tryParseDataUrl } from "@brains/image";
+import { resolveImageBytes, type Image } from "@brains/image";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
@@ -24,6 +25,7 @@ export type BuildImageMap = SiteImageMap;
  */
 export class ImageBuildService {
   private entityService: Pick<IEntityService, "getEntity">;
+  private assets: AssetStore;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
@@ -31,10 +33,12 @@ export class ImageBuildService {
 
   constructor(
     entityService: Pick<IEntityService, "getEntity">,
+    assets: AssetStore,
     logger: Logger,
     imagesDir: string,
   ) {
     this.entityService = entityService;
+    this.assets = assets;
     this.logger = logger.child("ImageBuildService");
     this.imagesDir = imagesDir;
     this.optimizer = new ImageOptimizer(this.imagesDir, this.logger);
@@ -80,9 +84,11 @@ export class ImageBuildService {
     signal: AbortSignal,
   ): Promise<void> {
     signal.throwIfAborted();
-    const image = await this.entityService.getEntity({
+    const image = await this.entityService.getEntity<Image>({
       entityType: "image",
       id: imageId,
+      binaryContent: "reference",
+      binaryContentSurface: "site-image-build",
     });
     signal.throwIfAborted();
 
@@ -91,16 +97,14 @@ export class ImageBuildService {
       return;
     }
 
-    const parsed = tryParseDataUrl(image.content);
-    if (!parsed) {
-      this.logger.warn("Could not extract base64 from image", { imageId });
-      return;
-    }
+    const resolved = await resolveImageBytes(image, this.assets);
+    const buffer = Buffer.from(
+      resolved.bytes.buffer,
+      resolved.bytes.byteOffset,
+      resolved.bytes.byteLength,
+    );
 
-    const buffer = Buffer.from(parsed.base64, "base64");
-
-    const format =
-      getImageFormatMetadata(image.metadata).format ?? parsed.format;
+    const format = resolved.format === "jpeg" ? "jpg" : resolved.format;
     const originalFileName = `${imageId}.${format}`;
     const originalFilePath = join(this.imagesDir, originalFileName);
     await fs.writeFile(originalFilePath, buffer, { signal });
@@ -121,8 +125,8 @@ export class ImageBuildService {
     } else {
       this.imageMap[imageId] = {
         src: originalUrl,
-        width: getNumericMetadata(image.metadata, "width"),
-        height: getNumericMetadata(image.metadata, "height"),
+        width: resolved.width,
+        height: resolved.height,
       };
     }
 
@@ -147,25 +151,4 @@ export class ImageBuildService {
   createImageRenderer(): ImageRenderer {
     return createSiteImageRenderer(this.imageMap);
   }
-}
-
-function getImageFormatMetadata(metadata: Record<string, unknown>): {
-  format?: string;
-} {
-  const format = metadata["format"];
-  if (typeof format === "string") {
-    return { format };
-  }
-  return {};
-}
-
-function getNumericMetadata(
-  metadata: Record<string, unknown>,
-  key: string,
-): number {
-  const value = metadata[key];
-  if (typeof value === "number") {
-    return value;
-  }
-  return 0;
 }

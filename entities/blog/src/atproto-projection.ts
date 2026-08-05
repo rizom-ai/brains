@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { assetRefSchema, parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
@@ -20,15 +20,26 @@ interface BlobUploader {
   }): Promise<{ blob: AtprotoBlobRef }>;
 }
 
-function dataUrlToUploadInput(dataUrl: string): {
-  data: Buffer;
-  mimeType: string;
-} {
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must be a base64 data URL");
+async function imageToUploadInput(
+  context: AtprotoProjectionContext,
+  image: BaseEntity,
+): Promise<{ data: Buffer; mimeType: string }> {
+  const assetRef = assetRefSchema.safeParse(image.content.trim());
+  if (assetRef.success) {
+    const mimeType = image.metadata["mediaType"];
+    if (typeof mimeType !== "string" || !mimeType.startsWith("image/")) {
+      throw new Error("Cover image asset requires an image media type");
+    }
+    return {
+      data: Buffer.from(await context.assets.read(assetRef.data)),
+      mimeType,
+    };
   }
 
+  const match = /^data:([^;,]+);base64,(.*)$/.exec(image.content);
+  if (!match?.[1] || !match[2]) {
+    throw new Error("Cover image must contain an asset reference or data URL");
+  }
   return {
     data: Buffer.from(match[2], "base64"),
     mimeType: match[1],
@@ -55,13 +66,15 @@ async function uploadCoverImage(
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
+    binaryContent: "reference",
+    binaryContentSurface: "blog-atproto-publish",
   });
   if (!image) return undefined;
   if (image.visibility !== "public") {
     throw new Error(`Cannot publish non-public cover image: ${image.id}`);
   }
 
-  const uploadInput = dataUrlToUploadInput(image.content);
+  const uploadInput = await imageToUploadInput(context, image);
   const blob = dryRun
     ? {
         $type: "blob" as const,

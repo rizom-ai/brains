@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { createMockEntityService } from "@brains/test-utils";
+import {
+  createMockAssetsNamespace,
+  createMockEntityService,
+} from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
 import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "../../src/attachments/og-image-template";
@@ -8,9 +11,10 @@ const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 function createContext(): Pick<
   EntityPluginContext,
-  "entityService" | "themeCSS" | "identity" | "domain"
+  "entityService" | "assets" | "themeCSS" | "identity" | "domain"
 > {
   return {
+    assets: createMockAssetsNamespace(),
     entityService: createMockEntityService({
       entityTypes: ["post", "image"],
       returns: {

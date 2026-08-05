@@ -125,6 +125,8 @@ export class ContentResolver {
           entityType: "image",
           id: imageId,
           ...(visibilityScope !== undefined && { visibilityScope }),
+          binaryContent: "legacy-data-url",
+          binaryContentSurface: "entity-content-resolver",
         });
         if (image?.content) {
           imageMap.set(imageId, image.content);

@@ -155,6 +155,8 @@ export interface RawEntity {
   created: Date;
   updated: Date;
   metadata?: Record<string, unknown>;
+  /** Asset was verified or restored and its source digest is unchanged. */
+  assetUnchanged?: boolean;
 }
 
 /**

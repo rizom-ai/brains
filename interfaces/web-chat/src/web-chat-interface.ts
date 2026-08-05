@@ -714,6 +714,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
+      assets: this.getContext().assets,
     });
   }
 
@@ -726,6 +727,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
+      assets: this.getContext().assets,
     });
   }
 

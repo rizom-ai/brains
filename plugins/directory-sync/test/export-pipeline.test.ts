@@ -48,6 +48,8 @@ describe("exportEntities visibility", () => {
     expect(deps.entityService.listEntities).toHaveBeenCalledWith(
       expect.objectContaining({
         entityType: "note",
+        binaryContent: "reference",
+        binaryContentSurface: "directory-sync-export",
         options: expect.objectContaining({
           filter: expect.objectContaining({
             visibilityScope: "restricted",

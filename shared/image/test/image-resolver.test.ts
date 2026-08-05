@@ -72,6 +72,8 @@ describe("resolveImage", () => {
     expect(entityService.getEntity).toHaveBeenCalledWith({
       entityType: "image",
       id: "hero-image",
+      binaryContent: "legacy-data-url",
+      binaryContentSurface: "shared-image-resolver",
     });
   });
 });

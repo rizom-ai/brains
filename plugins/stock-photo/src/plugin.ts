@@ -69,6 +69,7 @@ export class StockPhotoPlugin extends ServicePlugin<
       new SelectPhotoJobHandler(this.logger.child("SelectPhotoJobHandler"), {
         provider: this.createProvider(),
         entityService: context.entityService,
+        assets: context.assets,
         fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
       }),
     );
