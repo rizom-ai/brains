@@ -2,9 +2,9 @@
 
 ## Status
 
-Implementation is in progress on `work/projection-runtime-resilience`.
+Implementation is complete on `work/projection-runtime-resilience`.
 
-The incident-hardening work and scheduler-only projection cutover are implemented. Durable wave execution, framework-owned output indexing, and wave-end site-build admission are active; same-bundle process supervision remains in progress.
+The incident-hardening work, scheduler-only projection cutover, durable wave execution, framework-owned output indexing, wave-end site-build admission, and same-bundle process supervision are implemented and validated.
 
 This plan keeps the existing packaging and deployment shape and makes a clean
 runtime cutover. There is one derivation-rule contract and one scheduler-owned
@@ -691,7 +691,7 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S0–S5 are complete. S6 remains in progress.
+Implementation status: S0–S6 are complete.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every
@@ -732,11 +732,14 @@ phase.
    `degraded` checks for worker, lease, projection-circuit, or daemon failure,
    while `/health/operate` returns 503 for any operational degradation.
    Web-critical database failure still returns 503 from both surfaces.
-6. **S6 — container verification**: manual staging soak — hang the worker with
-   a test handler and assert `/health/live`, `/health/ready`, and static serving
-   stay up while the worker respawns and the queue drains; exhaust the worker
-   budget and prove web stays up; SIGTERM the container and assert clean child
-   shutdown with zero zombies.
+6. **S6 — container verification**: complete. A containerized packed-bundle
+   soak stopped the worker with `SIGSTOP`, a stronger event-loop hang than a test
+   handler. `/health/live`, `/health/ready`, and static serving stayed 200
+   across every sample while the worker was replaced, and five queued jobs
+   drained to terminal state. Repeating the hang exhausted all three rolling
+   attempts: web stayed up, `/health/operate` returned 503, and the parent
+   emitted `worker-supervision-paused`. Final `SIGTERM` completed in one second
+   with no remaining children or zombies.
 
 ### Acceptance criteria
 
