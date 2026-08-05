@@ -34,6 +34,24 @@ export interface ImportPersistenceDeps {
   imageJobQueue: { syncPath: string };
 }
 
+function hasVisibilityFrontmatter(content: string): boolean {
+  const frontmatterMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---/);
+  const visibilityMatch = frontmatterMatch?.[0].match(/^visibility:/m);
+  return visibilityMatch !== null && visibilityMatch !== undefined;
+}
+
+function resolveImportVisibility(
+  rawEntity: RawEntity,
+  parsedEntity: Partial<BaseEntity>,
+  existing: BaseEntity | null,
+): ContentVisibility {
+  if (hasVisibilityFrontmatter(rawEntity.content)) {
+    return parsedEntity.visibility ?? "public";
+  }
+
+  return existing?.visibility ?? parsedEntity.visibility ?? "public";
+}
+
 export async function persistImportEntity(
   deps: ImportPersistenceDeps,
   rawEntity: RawEntity,
@@ -64,12 +82,17 @@ export async function persistImportEntity(
     // cannot recover from content alone (e.g., document sidecar metadata).
     const sidecarMetadata = rawEntity.metadata ?? {};
     const adapterMetadata = parsedEntity.metadata ?? {};
+    const visibility = resolveImportVisibility(
+      rawEntity,
+      parsedEntity,
+      existing,
+    );
     const entity: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
       content: parsedEntity.content ?? rawEntity.content,
-      visibility: parsedEntity.visibility ?? "public",
+      visibility,
       metadata: { ...adapterMetadata, ...sidecarMetadata },
       created: existing?.created ?? rawEntity.created.toISOString(),
       updated: rawEntity.updated.toISOString(),
