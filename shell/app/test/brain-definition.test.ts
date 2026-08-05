@@ -443,6 +443,47 @@ describe("resolve", () => {
     expect(config.plugins).toBeDefined();
   });
 
+  test("should skip validation errors from a separately bundled interface", () => {
+    class BundledPluginConfigValidationError extends Error {
+      readonly pluginId = "bundled-validating";
+      readonly issues = [
+        { path: "adapters", code: "custom", message: "Missing adapter" },
+      ];
+
+      constructor() {
+        super("Invalid plugin config for bundled-validating");
+        this.name = "PluginConfigValidationError";
+      }
+    }
+
+    class BundledValidatingInterface extends MockInterface {
+      override readonly id = "bundled-validating";
+      constructor(config: PluginConfig) {
+        super(config);
+        throw new BundledPluginConfigValidationError();
+      }
+    }
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [
+        [
+          "bundled-validating",
+          BundledValidatingInterface,
+          (): PluginConfig => ({}),
+        ],
+      ],
+    });
+
+    const config = resolve(def, {});
+
+    expect(
+      config.plugins?.find((plugin) => plugin.id === "bundled-validating"),
+    ).toBeUndefined();
+  });
+
   test("should rethrow non-validation errors from interface constructor", () => {
     class BuggyInterface extends MockInterface {
       override readonly id = "buggy";

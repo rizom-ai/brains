@@ -37,6 +37,25 @@ import {
 
 export { isScopedPackageRef };
 
+function isPluginConfigValidationError(
+  error: unknown,
+): error is PluginConfigValidationError {
+  if (error instanceof PluginConfigValidationError) return true;
+  if (
+    !(error instanceof Error) ||
+    error.name !== "PluginConfigValidationError"
+  ) {
+    return false;
+  }
+  const candidate = error as Error & {
+    pluginId?: unknown;
+    issues?: unknown;
+  };
+  return (
+    typeof candidate.pluginId === "string" && Array.isArray(candidate.issues)
+  );
+}
+
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.
  *
@@ -141,7 +160,7 @@ function instantiateCapabilities(
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
     } catch (error) {
-      if (error instanceof PluginConfigValidationError) {
+      if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping capability "${id}": missing required config`);
       } else {
         throw error;
@@ -193,7 +212,7 @@ function instantiateInterfaces(
     try {
       interfaces.push(new ctor(merged));
     } catch (error) {
-      if (error instanceof PluginConfigValidationError) {
+      if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping interface "${id}": missing required config`);
       } else {
         throw error;

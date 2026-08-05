@@ -12,7 +12,10 @@ import { registerConventionalSiteTheme } from "./register-conventional-site-them
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerOverridePackages } from "./register-override-packages";
-import { resolveBrainPackageName } from "./brain-package";
+import {
+  resolveBrainPackageName,
+  resolveBrainPackageRootName,
+} from "./brain-package";
 import { internal } from "varlock";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -84,8 +87,9 @@ async function main(): Promise<void> {
   // Validate env against the brain's .env.schema.
   // Uses varlock's `internal` API — no public API supports custom schema paths yet.
   // TODO: Switch to public API when varlock adds path support (pin version until then).
+  const brainPackageRoot = resolveBrainPackageRootName(brainPackage);
   const brainPkgDir = dirname(
-    new URL(import.meta.resolve(`${brainPackage}/package.json`)).pathname,
+    new URL(import.meta.resolve(`${brainPackageRoot}/package.json`)).pathname,
   );
   const schemaPath = join(brainPkgDir, ".env.schema");
   if (existsSync(schemaPath)) {
