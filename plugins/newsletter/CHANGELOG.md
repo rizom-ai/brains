@@ -1,5 +1,16 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.252
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/style-guide@0.2.0-alpha.252
+  - @brains/contracts@0.2.0-alpha.252
+  - @brains/ui-library@0.2.0-alpha.252
+  - @brains/utils@0.2.0-alpha.252
+  - @brains/plugins@0.2.0-alpha.252
+
 ## 0.2.0-alpha.251
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @brains/email-triage
 
+## 0.2.0-alpha.252
+
+### Minor Changes
+
+- [#82](https://github.com/rizom-ai/brains/pull/82) [`2f8a48e`](https://github.com/rizom-ai/brains/commit/2f8a48eac1b316c44cd765ca35e9393ae856c78a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Register restricted derived mail items as the first unified-inbox source. New items are projected live with high-priority urgency and Admin-enforced reviewed, handled, and archive actions that reuse email triage's typed status workflow without persisting raw mailbox content or duplicate inbox state.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.252
+  - @brains/contracts@0.2.0-alpha.252
+  - @brains/utils@0.2.0-alpha.252
+  - @brains/plugins@0.2.0-alpha.252
+
 ## 0.2.0-alpha.251
 
 ### Patch Changes

@@ -233,6 +233,7 @@
     "core--dashboard-widget-namespace",
     "core--delete-email-contracts",
     "core--drop-themes-subpath",
+    "core--email-triage-inbox-source",
     "core--email-triage-prompt-entity",
     "core--email-triage-routing",
     "core--fix-professional-profile-view-schema",
