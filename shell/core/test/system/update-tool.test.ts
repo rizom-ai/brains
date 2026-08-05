@@ -581,7 +581,13 @@ describe("system_update tool", () => {
     expect(updated?.visibility).toBe("restricted");
   });
 
-  it("clears non-default visibility when replacement markdown omits the field", async () => {
+  // Previously this cleared the entity back to public. That treated "the file
+  // omits the key" as an explicit reset, but export never writes
+  // `visibility: public` — omission is the ordinary shape of content, not a
+  // demotion request, so the old behaviour silently published restricted
+  // entities on any content replacement. Demoting now requires an explicit
+  // `visibility: public` (covered in write-tools-visibility.test.ts).
+  it("keeps non-default visibility when replacement markdown omits the field", async () => {
     // Seed agent as restricted, then replace with markdown that has no visibility key.
     const restricted = services.getEntities().get("old-agent.io");
     if (restricted) {
@@ -606,7 +612,7 @@ describe("system_update tool", () => {
     });
 
     const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.visibility).toBe("public");
+    expect(updated?.visibility).toBe("restricted");
   });
 
   it("normalizes plain JSON objects passed via content into field updates", async () => {

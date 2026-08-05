@@ -52,11 +52,13 @@ export class EntitySerializer {
       visibility: _parsedVisibility,
       ...parsed
     } = parsedFromMarkdown;
+    // Left unset when the file declares no visibility, so callers can tell
+    // "the file said nothing" from "the file said public".
     const visibility = extractVisibilityFromMarkdown(markdown);
     const metadata = this.stripPolicyMetadata(parsedMetadata ?? {});
     return {
       ...parsed,
-      visibility,
+      ...(visibility && { visibility }),
       metadata,
     };
   }

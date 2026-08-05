@@ -289,6 +289,48 @@ describe("write tools cap visibility by caller permission", () => {
       expect(error).toMatch(/restricted/);
     });
 
+    // Content replacement must not double as a demotion. Export never writes
+    // `visibility: public`, so hand-edited or regenerated content routinely
+    // arrives without the key — treating that as "make it public" would
+    // silently publish restricted entities.
+    it("preserves existing restricted visibility when replacing content without visibility frontmatter", async () => {
+      const confirm = expectConfirmation(
+        await runUpdate(
+          {
+            entityType: "doc",
+            id: "doc-restricted",
+            content: "---\ntitle: Edited\n---\nNew body",
+          },
+          "admin",
+        ),
+      );
+      const result = await runUpdate(confirm.args, "admin");
+
+      expectSuccess(result, z.object({ updated: z.string() }));
+      expect(services.getEntities().get("doc-restricted")?.visibility).toBe(
+        "restricted",
+      );
+    });
+
+    it("still allows an explicit visibility: public to demote an entity", async () => {
+      const confirm = expectConfirmation(
+        await runUpdate(
+          {
+            entityType: "doc",
+            id: "doc-restricted",
+            content: "---\ntitle: Edited\nvisibility: public\n---\nNew body",
+          },
+          "admin",
+        ),
+      );
+      const result = await runUpdate(confirm.args, "admin");
+
+      expectSuccess(result, z.object({ updated: z.string() }));
+      expect(services.getEntities().get("doc-restricted")?.visibility).toBe(
+        "public",
+      );
+    });
+
     it("allows replacing content that keeps the visibility within the caller's writable scope", async () => {
       const confirm = expectConfirmation(
         await runUpdate(

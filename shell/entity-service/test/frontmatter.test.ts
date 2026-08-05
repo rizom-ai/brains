@@ -6,6 +6,9 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
+  applyVisibilityToMarkdown,
+  extractVisibilityFromMarkdown,
+  hasVisibilityFrontmatter,
   type FrontmatterConfig,
 } from "../src/frontmatter";
 import type { BaseEntity } from "../src/types";
@@ -325,6 +328,73 @@ Content here`;
       );
 
       expect(parsed.metadata).toEqual(complexEntity.metadata);
+    });
+  });
+});
+
+describe("visibility frontmatter", () => {
+  describe("extractVisibilityFromMarkdown", () => {
+    // Absence has to stay distinguishable from an explicit "public": callers
+    // that merge over an existing entity need to know the file said nothing,
+    // otherwise a file without the key silently demotes a restricted entity.
+    it("returns undefined when frontmatter omits visibility", () => {
+      expect(
+        extractVisibilityFromMarkdown("---\ntitle: Note\n---\n\nBody"),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined when there is no frontmatter at all", () => {
+      expect(extractVisibilityFromMarkdown("# Note\n\nBody")).toBeUndefined();
+    });
+
+    it("distinguishes an explicit public from an absent key", () => {
+      expect(
+        extractVisibilityFromMarkdown("---\nvisibility: public\n---\n\nBody"),
+      ).toBe("public");
+    });
+
+    it("reads an explicit non-public visibility", () => {
+      expect(
+        extractVisibilityFromMarkdown("---\nvisibility: shared\n---\n\nBody"),
+      ).toBe("shared");
+    });
+
+    it("normalizes the private synonym to restricted", () => {
+      expect(
+        extractVisibilityFromMarkdown("---\nvisibility: private\n---\n\nBody"),
+      ).toBe("restricted");
+    });
+  });
+
+  describe("applyVisibilityToMarkdown", () => {
+    it("round-trips a non-public visibility", () => {
+      const markdown = applyVisibilityToMarkdown(
+        "# Note\n\nBody",
+        "restricted",
+      );
+
+      expect(hasVisibilityFrontmatter(markdown)).toBe(true);
+      expect(extractVisibilityFromMarkdown(markdown)).toBe("restricted");
+    });
+
+    // Export deliberately omits the key for public, so a public entity's file
+    // reads back as "absent" rather than "explicitly public". Readers must
+    // therefore treat absence as "no opinion", not as a demotion request.
+    it("writes no visibility key for public, which reads back as absent", () => {
+      const markdown = applyVisibilityToMarkdown("# Note\n\nBody", "public");
+
+      expect(hasVisibilityFrontmatter(markdown)).toBe(false);
+      expect(extractVisibilityFromMarkdown(markdown)).toBeUndefined();
+    });
+
+    it("drops a stale visibility key when demoting to public", () => {
+      const restricted = applyVisibilityToMarkdown(
+        "# Note\n\nBody",
+        "restricted",
+      );
+      const demoted = applyVisibilityToMarkdown(restricted, "public");
+
+      expect(hasVisibilityFrontmatter(demoted)).toBe(false);
     });
   });
 });

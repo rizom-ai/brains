@@ -510,6 +510,19 @@ describe("entity visibility", () => {
     expect(parsed.visibility).toBe("restricted");
     expect(parsed.metadata).toEqual({ title: "Imported" });
   });
+
+  // A file that omits visibility carries no opinion about it. Callers merging
+  // this over an existing entity keep the stored tier; callers creating a new
+  // entity fall back to the schema default.
+  test("deserializeEntity leaves visibility unset when the file omits it", () => {
+    const parsed = ctx.entityService.deserializeEntity(
+      "---\ntitle: Imported\n---\n\nImported body",
+      "visibility-note",
+    );
+
+    expect(parsed.visibility).toBeUndefined();
+    expect(parsed.metadata).toEqual({ title: "Imported" });
+  });
 });
 
 describe("note visibility serialization", () => {

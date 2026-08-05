@@ -6,7 +6,6 @@ import type {
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
-  hasVisibilityFrontmatter,
 } from "@brains/entity-service";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -408,8 +407,10 @@ async function prepareCreate(
     return { kind: "error", result: unregisteredDerivedError };
   }
 
-  if (resolvedContent && hasVisibilityFrontmatter(resolvedContent)) {
-    const requestedVisibility = extractVisibilityFromMarkdown(resolvedContent);
+  const requestedVisibility = resolvedContent
+    ? extractVisibilityFromMarkdown(resolvedContent)
+    : undefined;
+  if (requestedVisibility) {
     if (
       !canWriteVisibility(toolContext.userPermissionLevel, requestedVisibility)
     ) {

@@ -34,22 +34,36 @@ export interface ImportPersistenceDeps {
   imageJobQueue: { syncPath: string };
 }
 
-function hasVisibilityFrontmatter(content: string): boolean {
-  const frontmatterMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---/);
-  const visibilityMatch = frontmatterMatch?.[0].match(/^visibility:/m);
-  return visibilityMatch !== null && visibilityMatch !== undefined;
+interface ResolvedVisibility {
+  visibility: ContentVisibility;
+  /**
+   * Set when the file declared nothing and a non-public stored tier was kept,
+   * i.e. the file on disk understates the entity's visibility.
+   */
+  retainedFrom?: ContentVisibility;
 }
 
+/**
+ * A file that declares no visibility carries no opinion about it, so an
+ * existing entity keeps its stored tier. Only an explicit frontmatter value
+ * moves an entity between tiers; without this, any file exported as public
+ * (which omits the key) would silently publish a restricted entity on the
+ * next import.
+ */
 function resolveImportVisibility(
-  rawEntity: RawEntity,
   parsedEntity: Partial<BaseEntity>,
   existing: BaseEntity | null,
-): ContentVisibility {
-  if (hasVisibilityFrontmatter(rawEntity.content)) {
-    return parsedEntity.visibility ?? "public";
+): ResolvedVisibility {
+  if (parsedEntity.visibility) {
+    return { visibility: parsedEntity.visibility };
   }
 
-  return existing?.visibility ?? parsedEntity.visibility ?? "public";
+  const stored = existing?.visibility;
+  if (stored && stored !== "public") {
+    return { visibility: stored, retainedFrom: stored };
+  }
+
+  return { visibility: stored ?? "public" };
 }
 
 export async function persistImportEntity(
@@ -82,11 +96,24 @@ export async function persistImportEntity(
     // cannot recover from content alone (e.g., document sidecar metadata).
     const sidecarMetadata = rawEntity.metadata ?? {};
     const adapterMetadata = parsedEntity.metadata ?? {};
-    const visibility = resolveImportVisibility(
-      rawEntity,
+    const { visibility, retainedFrom } = resolveImportVisibility(
       parsedEntity,
       existing,
     );
+    // The file and the database disagree about a non-public tier, and the
+    // database wins. Auto-sync will rewrite the file with the retained value,
+    // so surface the override rather than letting an edit vanish silently.
+    if (retainedFrom) {
+      deps.logger.debug(
+        "Retained stored visibility; imported file declared none",
+        {
+          path: filePath,
+          entityType: rawEntity.entityType,
+          id: rawEntity.id,
+          retained: retainedFrom,
+        },
+      );
+    }
     const entity: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,

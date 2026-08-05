@@ -183,15 +183,25 @@ const visibilityFrontmatterSchema = z.object({
   visibility: z
     .enum(["public", "shared", "restricted", "private"])
     .optional()
-    .transform((value): ContentVisibility => {
-      if (value === undefined) return "public";
+    .transform((value): ContentVisibility | undefined => {
+      if (value === undefined) return undefined;
       return value === "private" ? "restricted" : value;
     }),
 });
 
+/**
+ * Read the visibility a markdown file declares, or undefined when it declares
+ * none.
+ *
+ * Absence must stay distinguishable from an explicit "public".
+ * `applyVisibilityToMarkdown` omits the key entirely for public entities, so a
+ * file without it is the normal shape of exported content and carries no
+ * opinion about visibility. Collapsing that to "public" makes every merge over
+ * an existing entity a silent demotion.
+ */
 export function extractVisibilityFromMarkdown(
   markdown: string,
-): ContentVisibility {
+): ContentVisibility | undefined {
   const parsed = matter(markdown);
   return visibilityFrontmatterSchema.parse(parsed.data).visibility;
 }

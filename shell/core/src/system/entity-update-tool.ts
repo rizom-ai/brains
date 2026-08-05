@@ -364,9 +364,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
             ? {
                 ...entity,
                 content: normalizedInput.content,
-                visibility: extractVisibilityFromMarkdown(
-                  normalizedInput.content,
-                ),
+                // Replacement content that declares no visibility is not a
+                // demotion request: export omits the key for public entities,
+                // so regenerated or hand-edited content routinely arrives
+                // without it. Keep the stored tier unless the file says
+                // otherwise.
+                visibility:
+                  extractVisibilityFromMarkdown(normalizedInput.content) ??
+                  entity.visibility,
               }
             : applyFieldUpdates(entity, normalizedInput.fields ?? {});
 

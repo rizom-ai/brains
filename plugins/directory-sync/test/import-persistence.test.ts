@@ -1,8 +1,10 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
 import {
   persistImportEntity,
   type ImportPersistenceDeps,
 } from "../src/lib/import-persistence";
+import { createSilentLogger } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { BaseEntity } from "@brains/plugins";
 import type { ImportResult, RawEntity } from "../src/types";
 
@@ -31,6 +33,22 @@ function makeExistingEntity(
   };
 }
 
+/**
+ * Mirrors what entityService.deserializeEntity returns: `visibility` is
+ * present only when the file actually carried the frontmatter key.
+ */
+function makeParsedEntity(
+  visibility?: BaseEntity["visibility"],
+  content = "# Note\n\nUpdated body.",
+): Partial<BaseEntity> {
+  return {
+    content,
+    entityType: "note",
+    metadata: { title: "Note" },
+    ...(visibility && { visibility }),
+  };
+}
+
 function createImportResult(): ImportResult {
   return {
     imported: 0,
@@ -56,13 +74,12 @@ function createMockDeps(
     entityService: {
       getEntity,
       upsertEntity,
-      serializeEntity: () => "serialized",
+      // Stands in for the canonical serialization, which re-adds the
+      // visibility frontmatter the file on disk may be missing.
+      serializeEntity: (entity: BaseEntity) =>
+        `canonical:${entity.visibility}:${entity.content}`,
     },
-    logger: {
-      debug: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-    } as unknown as ImportPersistenceDeps["logger"],
+    logger: createSilentLogger(),
     fileOperations: {
       shouldUpdateEntity: () => true,
     },
@@ -75,6 +92,16 @@ function createMockDeps(
       syncPath: "/tmp/sync",
     },
   };
+}
+
+function upsertedEntity(deps: ImportPersistenceDeps): BaseEntity {
+  const call = (
+    deps.entityService.upsertEntity as unknown as {
+      mock: { calls: [{ entity: BaseEntity }][] };
+    }
+  ).mock.calls[0];
+  if (!call) throw new Error("upsertEntity was not called");
+  return call[0].entity;
 }
 
 describe("persistImportEntity visibility", () => {
@@ -106,19 +133,12 @@ describe("persistImportEntity visibility", () => {
     await persistImportEntity(
       deps,
       makeRawEntity("# Note\n\nUpdated body."),
-      {
-        content: "# Note\n\nUpdated body.",
-        entityType: "note",
-        metadata: { title: "Note" },
-        visibility: "public",
-      },
+      makeParsedEntity(),
       "note/note-1.md",
       result,
     );
 
-    expect(deps.entityService.upsertEntity).toHaveBeenCalledWith({
-      entity: expect.objectContaining({ visibility: "restricted" }),
-    });
+    expect(upsertedEntity(deps).visibility).toBe("restricted");
   });
 
   it("allows explicit visibility frontmatter to change existing visibility", async () => {
@@ -129,18 +149,108 @@ describe("persistImportEntity visibility", () => {
     await persistImportEntity(
       deps,
       makeRawEntity(content),
-      {
-        content,
-        entityType: "note",
-        metadata: { title: "Note" },
-        visibility: "public",
-      },
+      makeParsedEntity("public", content),
       "note/note-1.md",
       result,
     );
 
-    expect(deps.entityService.upsertEntity).toHaveBeenCalledWith({
-      entity: expect.objectContaining({ visibility: "public" }),
+    expect(upsertedEntity(deps).visibility).toBe("public");
+  });
+
+  it("defaults a brand new entity to public when the file omits visibility", async () => {
+    const deps = createMockDeps(null);
+    const result = createImportResult();
+
+    await persistImportEntity(
+      deps,
+      makeRawEntity(),
+      makeParsedEntity(),
+      "note/note-1.md",
+      result,
+    );
+
+    expect(upsertedEntity(deps).visibility).toBe("public");
+  });
+
+  it("honours explicit visibility on a brand new entity", async () => {
+    const deps = createMockDeps(null);
+    const result = createImportResult();
+    const content = "---\nvisibility: restricted\n---\n# Note\n\nBody.";
+
+    await persistImportEntity(
+      deps,
+      makeRawEntity(content),
+      makeParsedEntity("restricted", content),
+      "note/note-1.md",
+      result,
+    );
+
+    expect(upsertedEntity(deps).visibility).toBe("restricted");
+  });
+
+  it("logs when the file's visibility is overridden by the stored value", async () => {
+    const deps = createMockDeps(makeExistingEntity("restricted"));
+    const debug = spyOn(deps.logger, "debug");
+    const result = createImportResult();
+
+    await persistImportEntity(
+      deps,
+      makeRawEntity("# Note\n\nUpdated body."),
+      makeParsedEntity(),
+      "note/note-1.md",
+      result,
+    );
+
+    const logged = debug.mock.calls.find(
+      ([message]) => typeof message === "string" && /visibility/i.test(message),
+    );
+    expect(logged).toBeDefined();
+    expect(logged?.[1]).toMatchObject({
+      path: "note/note-1.md",
+      retained: "restricted",
     });
+  });
+
+  it("does not log an override when the file and the stored value agree", async () => {
+    const deps = createMockDeps(makeExistingEntity("public"));
+    const debug = spyOn(deps.logger, "debug");
+    const result = createImportResult();
+
+    await persistImportEntity(
+      deps,
+      makeRawEntity(),
+      makeParsedEntity(),
+      "note/note-1.md",
+      result,
+    );
+
+    const logged = debug.mock.calls.find(
+      ([message]) => typeof message === "string" && /visibility/i.test(message),
+    );
+    expect(logged).toBeUndefined();
+  });
+
+  // The stored hash is the canonical serialization, not the bytes on disk.
+  // That mismatch is deliberate: auto-sync rewrites the file with the
+  // preserved visibility, after which the file hash matches and the entity
+  // stops re-importing on every scan.
+  it("stores the canonical content hash so auto-sync converges", async () => {
+    const deps = createMockDeps(makeExistingEntity("restricted"));
+    const result = createImportResult();
+    const fileContent = "# Note\n\nUpdated body.";
+
+    await persistImportEntity(
+      deps,
+      makeRawEntity(fileContent),
+      makeParsedEntity(),
+      "note/note-1.md",
+      result,
+    );
+
+    const entity = upsertedEntity(deps);
+    expect(entity.contentHash).toBe(
+      computeContentHash(`canonical:restricted:${fileContent}`),
+    );
+    expect(entity.contentHash).not.toBe(computeContentHash(fileContent));
   });
 });
