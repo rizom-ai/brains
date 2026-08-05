@@ -112,7 +112,7 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(items[0]?.visibility).toBe("restricted");
   });
 
-  it("registers the Admin tool, CMS workflow, typed actions, and compact dashboard", async () => {
+  it("registers the Admin tool, CMS workflow, inbox source, and compact dashboard", async () => {
     const harness = createPluginHarness();
     const entityService = harness.getEntityService();
     entityService.countEntities = async (request): Promise<number> =>
@@ -153,7 +153,24 @@ Prioritize collaboration connected to Project Aurora.`,
     });
     const plugin = new EmailTriagePlugin();
     const capabilities = await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
     await plugin.ready();
+
+    const inboxSource = harness
+      .getMockShell()
+      .getInboxRegistry()
+      .getSource("mail-items");
+    expect(inboxSource).toMatchObject({
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+    });
+    expect(await inboxSource?.list()).toMatchObject([
+      {
+        title: "Possible collaboration",
+        urgency: "normal",
+        entityRef: { entityType: "mail-item" },
+      },
+    ]);
 
     expect(capabilities.tools.map((tool) => tool.name)).toEqual([
       "email_triage_list",
@@ -222,6 +239,7 @@ Prioritize collaboration connected to Project Aurora.`,
         admin,
       ),
     ).toEqual({ id: itemId, status: "reviewed" });
+    expect(await inboxSource?.list()).toEqual([]);
 
     expect(widget).toMatchObject({
       pluginId: "email-triage",

@@ -68,6 +68,7 @@ export {
   MailTriageOperatorService,
   assertMailTriageAdmin,
 } from "./operator-service";
+export { MailTriageInboxSource } from "./inbox-source";
 export { createEmailTriageListTool } from "./operator-tool";
 export { registerEmailTriageCmsWorkspace } from "./operator-cms";
 export {

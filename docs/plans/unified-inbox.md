@@ -2,9 +2,10 @@
 
 ## Status
 
-**Phase 0 implemented; Phases 1–3 proposed.** The schema-first `InboxSource` contract,
-app-scoped finalized registry, and failure-isolating live aggregation DataSource are in
-place. The operator surfaces, first real source, and daily digest remain.
+**Phases 0 and 2 implemented; Phases 1 and 3 proposed.** The schema-first
+`InboxSource` contract, app-scoped finalized registry, failure-isolating live aggregation
+DataSource, and first real source (`mail-items`) are in place. The shared operator
+surfaces and daily digest remain.
 
 ## Goal
 
@@ -22,8 +23,8 @@ digest.
 - **Push exists, and the pull foundation now exists.** `notifications:send` delivers a
   transient message to a channel recipient. `@brains/plugins` now exposes the finalized
   app-scoped inbox-source registry, while opt-in `@brains/unified-inbox` contributes the
-  live `unified-inbox:inbox` aggregation DataSource. No dashboard/tool consumer exists
-  yet.
+  live `unified-inbox:inbox` aggregation DataSource. Email triage registers the first
+  real source; no shared dashboard/tool consumer exists yet.
 - The registry follows the established contribution lifecycle used by channel
   descriptors/providers (`shell/plugins/src/channel-registry.ts`).
 - Read-model precedent: the bd-priority-engine ranking is a `DataSource` computed on
@@ -112,12 +113,12 @@ Tests are written first inside each phase.
   `inbox_list` tool for chat surfaces. _Tests:_ dataProvider shape; action dispatch
   reaches the owning source with the caller's permission level; a source rejects an
   unauthorized actor; `confirm` actions require confirmation.
-- **Phase 2 — First real source: email triage.** Register the mail-item source (items =
-  mail items in `status=new`, urgency `high` for `priority=high`; actions: mark reviewed,
-  mark handled, or archive). This is email-triage Phase 2B and reuses the typed status
-  operations from its independent Phase 2A operator workflow. _Acceptance:_ a
-  high-priority mail item appears in the widget; "handled" updates its source state and
-  the item disappears on re-list.
+- **Phase 2 — First real source: email triage — implemented.** The mail-item source
+  lists items in `status=new`, maps `priority=high` to high urgency, and delegates mark
+  reviewed, mark handled, and archive actions to email triage's typed Phase 2A status
+  operation. _Tests:_ source mapping and empty state; Admin enforcement; all action
+  transitions; source-content redaction; handled items disappear on re-list. Appearance
+  in the shared widget remains Phase 1 acceptance once that surface exists.
 - **Phase 3 — Digest.** Daily recurring check → `notifications:send` summary with
   per-source counts and top `high`-urgency titles; silent when the inbox is empty.
   _Tests:_ digest content redaction; empty inbox sends nothing.

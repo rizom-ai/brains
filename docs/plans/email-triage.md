@@ -2,8 +2,7 @@
 
 ## Status
 
-**Phases 0–2A implemented; remaining Phase 2B waits for
-[unified-inbox.md](./unified-inbox.md).** `interfaces/email` publishes
+**Phases 0–2B implemented.** `interfaces/email` publishes
 the at-least-once `EMAIL_INBOUND` contract with an opaque source reference, and the
 opt-in `@brains/email-triage` capability classifies meaningful inbound mail into a safe
 derived `mail-item`. The local CMS, query tool, typed status actions, and compact
@@ -32,9 +31,11 @@ in the mailbox.
   reply filtering; ordinary get/update/delete operations remain on shared system tools.
 - A compact Admin dashboard contribution shows source-owned new/high/reply/unclassified
   counts and links to the CMS workspace when CMS is mounted.
-- No email-triage `InboxSource` registration exists yet.
-- The unified-inbox contract, finalized registry, and aggregation DataSource now exist.
-  Its dashboard/tool surfaces and email source registration remain. Email triage's
+- Email triage registers a `mail-items` `InboxSource` that maps live `status=new`
+  derived items, marks high-priority items urgent, and delegates reviewed/handled/archive
+  actions to the existing typed status operation with Admin enforcement.
+- The unified-inbox contract, finalized registry, and aggregation DataSource exist. Its
+  dashboard/tool surfaces and digest remain in the unified-inbox plan. Email triage's
   source-owned CMS, query tool, typed status actions, and compact dashboard link/counts
   remain independently usable without inventing a second notification center.
 
@@ -88,9 +89,9 @@ in the mailbox.
 9. **The local operator surface is CMS-first and inbox-independent.** An admin-only
    Email Triage CMS workspace owns combined filtering and typed status actions. A
    compact dashboard contribution provides source-owned counts and a link to that
-   workspace; it is not a second cross-source inbox. Once the shared inbox contract
-   exists, new/high mail items register there. This plan does not add immediate push
-   notifications.
+   workspace; it is not a second cross-source inbox. The `mail-items` inbox source now
+   projects new items there and marks high-priority items urgent. This plan does not add
+   immediate push notifications.
 10. **Keep the tool surface narrow.** Add `email_triage_list` for combined category,
     priority, status, and `needsReply` filters. Use `system_get`, `system_update`, and
     `system_delete` for ordinary entity operations.
@@ -167,6 +168,12 @@ omitted until a real workflow needs them.
 add: [email-triage]
 ```
 
+To also install the shared live aggregation DataSource:
+
+```yaml
+add: [email-triage, unified-inbox]
+```
+
 The classifier resolves the standard `email-triage:classification` prompt, materializing
 its built-in routing rubric as an editable prompt entity when needed. The code-owned
 safety envelope, fixed output schema, untrusted-source boundaries, and persistence
@@ -204,14 +211,13 @@ reason.
   digest. _Tests first:_ combined filters and empty states; permission enforcement;
   workspace registration and lifecycle; typed status transitions; dashboard data shape;
   no endpoint, tool response, or dashboard payload exposes raw mailbox content.
-- **Phase 2B — Shared inbox integration — blocked on unified inbox.** After the
-  `InboxSource` contract and aggregation surfaces exist, register new/high mail items as
-  a source with reviewed, handled, and archive actions. Reuse the Phase 2A status
-  operations rather than adding parallel mutation logic. _Tests first:_ source mapping
-  and empty state; admin enforcement at the source action boundary; action-to-status
-  transitions; handled items disappear on re-list; no inbox item exposes raw mailbox
-  content. Cross-source ordering, failure isolation, and digest behavior remain owned by
-  the unified-inbox plan.
+- **Phase 2B — Shared inbox integration — implemented.** The `mail-items` source lists
+  live `status=new` derived items, maps `priority=high` to high urgency, and exposes
+  reviewed, handled, and archive actions through the Phase 2A typed status operation.
+  _Tests:_ source mapping and empty state; Admin enforcement at the source action
+  boundary; action-to-status transitions; handled items disappear on re-list; no inbox
+  item exposes raw mailbox content. Cross-source ordering, failure isolation, surfaces,
+  and digest behavior remain owned by the unified-inbox plan.
 
 ## Out of scope
 
@@ -226,8 +232,8 @@ reason.
 
 ## Related plans
 
-- [unified-inbox.md](./unified-inbox.md) — shared attention projection required only
-  for Phase 2B source registration and digest participation.
+- [unified-inbox.md](./unified-inbox.md) — owns aggregation, shared operator surfaces,
+  confirmation routing, and digest participation over the registered mail-item source.
 - [lead-management.md](./lead-management.md) — downstream lead creation and
   consolidation.
 - [email-reply-drafting.md](./email-reply-drafting.md) — future on-demand source read,

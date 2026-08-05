@@ -6,6 +6,7 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
+import { MailTriageInboxSource } from "./inbox-source";
 import {
   createMailClassifier,
   DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
@@ -37,6 +38,7 @@ export class EmailTriagePlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     this.operator = new MailTriageOperatorService(context);
+    context.inbox.registerSource(new MailTriageInboxSource(this.operator));
     const classificationPrompt = await context.prompts.resolve(
       EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
       DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
