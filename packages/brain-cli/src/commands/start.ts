@@ -13,7 +13,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { spawnBunRunner } from "../lib/spawn-bun-runner";
 import {
   parseBrainChildRole,
-  superviseWebChild,
+  superviseRuntimeChildren,
   type BrainChildRole,
   type ProcessSupervisorDependencies,
 } from "../lib/process-supervisor";
@@ -115,13 +115,6 @@ export async function start(
       };
     }
 
-    if (childRole === "worker") {
-      return {
-        success: false,
-        message: "Brain worker child is not available before the worker split.",
-      };
-    }
-
     const config = parseBrainYaml(cwd);
 
     // In-process boot — the package bundles the canonical definition. Explicitly
@@ -143,7 +136,11 @@ export async function start(
           chat: false,
           operation: "migrate",
         });
-        return await superviseWebChild(cwd, entrypointPath, dependencies);
+        return await superviseRuntimeChildren(
+          cwd,
+          entrypointPath,
+          dependencies,
+        );
       }
 
       const bootedBrain = await bootBrain(cwd, definition, {

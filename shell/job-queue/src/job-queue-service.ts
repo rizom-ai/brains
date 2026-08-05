@@ -5,7 +5,9 @@ import { Logger } from "@brains/utils/logger";
 import type {
   IJobQueueService,
   JobClaimOptions,
+  JobExecutionRegistration,
   JobHandler,
+  JobHandlerRegistrationMode,
   JobInfo,
   JobQueueDiagnostics,
   JobQueueEnqueueRequest,
@@ -36,6 +38,7 @@ export interface ProjectionJobAdmission {
 export interface JobQueueServiceRuntimeOptions {
   operationContext?: OperationContext | undefined;
   projectionAdmission?: ProjectionJobAdmission | undefined;
+  handlerRegistrationMode?: JobHandlerRegistrationMode | undefined;
 }
 
 /**
@@ -96,7 +99,10 @@ export class JobQueueService implements IJobQueueService {
       runtimeOptions?.operationContext ?? OperationContext.createFresh();
     this.projectionAdmission = runtimeOptions?.projectionAdmission;
 
-    this.handlerRegistry = new HandlerRegistry(this.logger);
+    this.handlerRegistry = new HandlerRegistry(
+      this.logger,
+      runtimeOptions?.handlerRegistrationMode ?? "combined",
+    );
     this.repository = new JobQueueRepository(db, this.logger);
     this.directLeaseDurationMs = config.claimTimeoutMs ?? 300_000;
     this.deduplicator = new JobDeduplicator();
@@ -165,6 +171,14 @@ export class JobQueueService implements IJobQueueService {
     return this.handlerRegistry.getHandler(type);
   }
 
+  public finalizeHandlerRegistrations(): readonly JobExecutionRegistration[] {
+    return this.handlerRegistry.finalizeRegistrations();
+  }
+
+  public getExecutionRegistrations(): readonly JobExecutionRegistration[] {
+    return this.handlerRegistry.getExecutionRegistrations();
+  }
+
   /**
    * Check for duplicate jobs based on deduplication strategy
    * Returns the duplicate job if one should block this enqueue, null otherwise
@@ -223,12 +237,12 @@ export class JobQueueService implements IJobQueueService {
       }
     }
 
-    const handler = this.handlerRegistry.getHandler(type);
-    if (!handler) {
+    const validator = this.handlerRegistry.getValidator(type);
+    if (!validator) {
       throw new Error(`No handler registered for job type: ${type}`);
     }
 
-    const parsedData = handler.validateAndParse(data);
+    const parsedData = validator.validateAndParse(data);
     if (parsedData === null) {
       throw new Error(`Invalid job data for type: ${type}`);
     }

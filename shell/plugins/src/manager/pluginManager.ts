@@ -188,6 +188,7 @@ export class PluginManager implements IPluginManager {
         shell,
         pluginId,
         capabilities,
+        { executionOnly: registrationContext?.executionOnly },
       );
 
       this.initializedPluginIds.push(pluginId);

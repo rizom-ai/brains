@@ -85,6 +85,9 @@ export interface BasePluginContext {
   /** Unique plugin identifier */
   readonly pluginId: string;
 
+  /** Whether this context may register only durable execution dependencies. */
+  readonly executionOnly: boolean;
+
   /** Logger instance for this plugin */
   readonly logger: Logger;
 
@@ -282,10 +285,17 @@ export function createBasePluginContext(
   const attachments = shell.getAttachmentRegistry();
   const uploads = shell.getRuntimeUploadRegistry();
   const runtimeState = shell.getRuntimeState();
-  const messaging = createMessagingNamespace(shell, pluginId, logger);
+  const executionOnly = registrationContext?.executionOnly === true;
+  const messaging = createMessagingNamespace(
+    shell,
+    pluginId,
+    logger,
+    executionOnly,
+  );
 
   return {
     pluginId,
+    executionOnly,
     logger,
     entityService,
 
@@ -330,13 +340,21 @@ export function createBasePluginContext(
 
     dataDir: shell.getDataDir(),
 
-    eval: createEvalNamespace(shell, pluginId),
+    eval: executionOnly
+      ? { registerHandler: (): void => {} }
+      : createEvalNamespace(shell, pluginId),
 
-    insights: createInsightsNamespace(shell),
+    insights: executionOnly
+      ? { register: (): void => {} }
+      : createInsightsNamespace(shell),
 
     plugins: createPluginsNamespace(shell),
 
-    endpoints: createEndpointsNamespace(shell, pluginId),
-    interactions: createInteractionsNamespace(shell, pluginId),
+    endpoints: executionOnly
+      ? { register: (): void => {} }
+      : createEndpointsNamespace(shell, pluginId),
+    interactions: executionOnly
+      ? { register: (): void => {} }
+      : createInteractionsNamespace(shell, pluginId),
   };
 }

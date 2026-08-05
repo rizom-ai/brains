@@ -22,6 +22,22 @@ canonical definition + explicit brain.yaml bundles = running brain
 5. **Definition / instance separation** — the reusable definition owns catalog policy; lightweight instances own explicit selection and deployment settings in `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
+## Supervised runtime topology
+
+The published Brain remains one Bun package, bundle, image, and container. Its
+entrypoint owns two children from that same bundle: a web process for
+interfaces, ingress, daemons, scheduling, and enqueue validation, and a worker
+process for durable queue execution. The parent runs migrations once, admits
+the worker only after the web process reports runtime readiness, and respawns a
+failed worker under a bounded rolling budget without taking web serving down.
+
+Job-handler registrations are finalized into an immutable inventory during
+boot. Web retains their validation side for durable enqueue, while the worker
+constructs every executable handler and only the internal message subscriptions
+explicitly marked as execution dependencies. Worker progress and terminal
+status cross the process boundary through the shared indexed queue database,
+not through a second message bus or deployment unit.
+
 ## Effect runtime boundary
 
 The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: transactional shell and plugin startup rollback, scoped resource finalization, daemon lifecycle, background monitors, worker and agent-turn fibers, cancellation, and concurrent lifecycle barriers.

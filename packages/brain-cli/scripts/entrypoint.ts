@@ -95,12 +95,17 @@ setBootFn(async (cwd, definition, flags) => {
   } else {
     await handleCLI(config, {
       ...(flags.migrationsCompleted && { migrationsCompleted: true }),
-      ...(flags.childRole === "web" && {
+      ...(flags.childRole && { processRole: flags.childRole }),
+      ...(flags.childRole && {
         onRuntimeReady: (): void => {
           if (!process.send) {
-            throw new Error("Supervised Brain web child has no IPC channel");
+            throw new Error(
+              `Supervised Brain ${flags.childRole} child has no IPC channel`,
+            );
           }
-          process.send({ type: "runtime-ready" });
+          process.send({
+            type: flags.childRole === "web" ? "runtime-ready" : "worker-ready",
+          });
         },
       }),
     });

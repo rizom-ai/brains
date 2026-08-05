@@ -45,6 +45,7 @@ import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
+import type { RuntimeProcessRole } from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import {
@@ -58,8 +59,10 @@ export function createShellServices(options: {
   dependencies: ShellDependencies | undefined;
   initializerLogger: Logger;
   lifecycle: ShellLifecycle;
+  processRole?: RuntimeProcessRole;
 }): ShellServices {
-  const { config, dependencies, initializerLogger, lifecycle } = options;
+  const { config, dependencies, initializerLogger, lifecycle, processRole } =
+    options;
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
@@ -134,6 +137,18 @@ export function createShellServices(options: {
     messageBus,
     operationContext,
     projectionAdmission: projectionRuntimeSupervisor,
+    handlerRegistrationMode:
+      processRole === "web"
+        ? "validation-only"
+        : processRole === "worker"
+          ? "execution-only"
+          : "combined",
+    progressMonitorMode:
+      processRole === "web"
+        ? "durable-reader"
+        : processRole === "worker"
+          ? "durable-writer"
+          : "combined",
     logger,
   });
   const {
@@ -180,16 +195,20 @@ export function createShellServices(options: {
     });
   lifecycle.addSyncFinalizer(() => recurringCheckService.abandon());
 
-  const recurringDaemonName = "shell:recurring-checks";
-  daemonRegistry.register(
-    recurringDaemonName,
-    {
-      start: () => recurringCheckService.start(),
-      stop: () => recurringCheckService.stop(),
-    },
-    "shell",
-  );
-  lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(recurringDaemonName));
+  if (processRole !== "worker") {
+    const recurringDaemonName = "shell:recurring-checks";
+    daemonRegistry.register(
+      recurringDaemonName,
+      {
+        start: () => recurringCheckService.start(),
+        stop: () => recurringCheckService.stop(),
+      },
+      "shell",
+    );
+    lifecycle.addSyncFinalizer(() =>
+      daemonRegistry.abandon(recurringDaemonName),
+    );
+  }
 
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({
@@ -259,6 +278,7 @@ export function createShellServices(options: {
     conversationService,
     runtimeUploadRegistry,
     disposables,
+    executionOnly: processRole === "worker",
   });
 
   return {

@@ -41,6 +41,7 @@ export interface ProjectionRuntimeOptions {
   logger: Logger;
   createWaveId: () => string;
   now: () => number;
+  activationMode?: "scheduler" | "executor";
 }
 
 export interface ActiveProjectionRuntime {
@@ -74,10 +75,12 @@ export async function activateProjectionRuntime(
   options.queue.registerHandler(PROJECTION_RULE_JOB_TYPE, handler, "shell");
   let removeWakeup = (): void => {};
   try {
-    removeWakeup = options.setWakeup(async (): Promise<void> => {
+    if (options.activationMode !== "executor") {
+      removeWakeup = options.setWakeup(async (): Promise<void> => {
+        await scheduler.startNextWave();
+      });
       await scheduler.startNextWave();
-    });
-    await scheduler.startNextWave();
+    }
   } catch (error) {
     removeWakeup();
     options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
@@ -86,6 +89,7 @@ export async function activateProjectionRuntime(
 
   options.logger.debug("Projection runtime activated", {
     rules: options.rules.length,
+    mode: options.activationMode ?? "scheduler",
   });
   let active = true;
   return {

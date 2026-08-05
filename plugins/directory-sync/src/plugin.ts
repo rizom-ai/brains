@@ -121,7 +121,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     );
     await this.operationStatus.initialize();
 
-    if (this.config.autoSync) {
+    if (!context.executionOnly && this.config.autoSync) {
       setupFileWatcher(
         context,
         this.directorySync,
@@ -132,15 +132,16 @@ export class DirectorySyncPlugin extends ServicePlugin<
 
     await this.registerJobHandlers(context);
 
-    // Entity subscriptions are registered once and resolve the active path at
-    // execution time so reconfiguration cannot leave stale callbacks behind.
-    setupAutoSync(
-      context,
-      () => this.requireDirectorySync(),
-      this.logger,
-      this.config.entityTypes,
-      this.operationStatus,
-    );
+    // Entity subscriptions remain web-owned; workers construct only handlers.
+    if (!context.executionOnly) {
+      setupAutoSync(
+        context,
+        () => this.requireDirectorySync(),
+        this.logger,
+        this.config.entityTypes,
+        this.operationStatus,
+      );
+    }
 
     if (this.config.git && !this.isGitConfigured()) {
       this.logger.debug(
@@ -149,7 +150,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     }
 
     if (this.isGitConfigured()) {
-      await this.bootstrapContentRemote();
+      if (!context.executionOnly) await this.bootstrapContentRemote();
       this.gitSync = await this.initializeGitSync(syncPath);
       context.jobs.registerHandler(
         "sync-request",
@@ -162,7 +163,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       );
     }
 
-    if (this.config.initialSync) {
+    if (!context.executionOnly && this.config.initialSync) {
       setupInitialSync(
         context,
         () => this.requireDirectorySync(),
@@ -172,24 +173,26 @@ export class DirectorySyncPlugin extends ServicePlugin<
       );
     }
 
-    this.workspaceProvider = new DirectorySyncWorkspaceProvider({
-      context,
-      pluginId: this.id,
-      config: this.config,
-      getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
-      getGitSync: (): GitSync | undefined => this.gitSync,
-      operationStatus: this.operationStatus,
-    });
+    if (!context.executionOnly) {
+      this.workspaceProvider = new DirectorySyncWorkspaceProvider({
+        context,
+        pluginId: this.id,
+        config: this.config,
+        getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
+        getGitSync: (): GitSync | undefined => this.gitSync,
+        operationStatus: this.operationStatus,
+      });
 
-    registerMessageHandlers(
-      context,
-      () => this.requireDirectorySync(),
-      (options) => this.configure(options),
-      this.logger,
-      this.config.git,
-      () => this.gitSync,
-      () => this.cmsWorkspaceUrl,
-    );
+      registerMessageHandlers(
+        context,
+        () => this.requireDirectorySync(),
+        (options) => this.configure(options),
+        this.logger,
+        this.config.git,
+        () => this.gitSync,
+        () => this.cmsWorkspaceUrl,
+      );
+    }
   }
 
   protected override async onReady(): Promise<void> {

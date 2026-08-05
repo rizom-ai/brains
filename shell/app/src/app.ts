@@ -6,12 +6,14 @@ import { preferLocalUrlsForRuntime } from "./runtime-env";
 import { resolveStandardConfig } from "./standard-paths";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
+import type { RuntimeProcessRole } from "@brains/core";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
 
 export interface AppRuntimeOptions {
   migrationsCompleted?: boolean;
+  processRole?: RuntimeProcessRole;
   onRuntimeReady?: () => void;
 }
 
@@ -70,11 +72,16 @@ export class App {
     });
   }
 
-  private createShell(options?: InitializeOptions): void {
+  private createShell(
+    options?: InitializeOptions,
+    processRole?: RuntimeProcessRole,
+  ): void {
     // Let shellInitializer build the logger from shellConfig.logging so
     // logFile, format, and level take effect. Logger.getInstance() ignores
     // options on a pre-existing singleton.
-    this.shell = Shell.createFresh(this.buildShellConfig(options));
+    this.shell = Shell.createFresh(this.buildShellConfig(options), undefined, {
+      ...(processRole && { processRole }),
+    });
   }
 
   private buildShellConfig(options?: InitializeOptions): ShellConfig {
@@ -219,7 +226,7 @@ export class App {
     // Injected shells remain migration-free for tests and embedding applications.
     if (!this.shell) {
       if (!runtimeOptions?.migrationsCompleted) await this.migrate();
-      this.createShell(options);
+      this.createShell(options, runtimeOptions?.processRole);
     }
 
     await this.registerCLIInterface();

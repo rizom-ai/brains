@@ -2,6 +2,8 @@ import type {
   IBatchJobManager,
   IJobQueueService,
   IJobQueueWorker,
+  JobHandlerRegistrationMode,
+  JobProgressMonitorMode,
   JobQueueServiceConfig,
 } from "@brains/job-queue";
 import {
@@ -48,6 +50,8 @@ export interface JobServiceOptions {
   messageBus: MessageBus;
   operationContext?: OperationContext;
   projectionAdmission?: ProjectionRuntimeSupervisor;
+  handlerRegistrationMode?: JobHandlerRegistrationMode;
+  progressMonitorMode?: JobProgressMonitorMode;
   logger: Logger;
 }
 
@@ -91,6 +95,9 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
           ...(options.projectionAdmission && {
             projectionAdmission: options.projectionAdmission,
           }),
+          ...(options.handlerRegistrationMode && {
+            handlerRegistrationMode: options.handlerRegistrationMode,
+          }),
           ...(options.dependencies?.jobQueueService && {
             service: options.dependencies.jobQueueService,
           }),
@@ -107,6 +114,9 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       logger: options.logger,
       operationContext,
       onWorkerUnhealthy: createFatalJobWorkerHandler(options.logger),
+      ...(options.progressMonitorMode && {
+        progressMonitorMode: options.progressMonitorMode,
+      }),
       ...(options.dependencies?.batchJobManager && {
         batchJobManager: options.dependencies.batchJobManager,
       }),

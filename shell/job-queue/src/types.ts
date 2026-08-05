@@ -97,6 +97,20 @@ export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
 
+export type JobHandlerRegistrationMode =
+  "combined" | "validation-only" | "execution-only";
+
+export interface JobValidator<TInput = unknown> {
+  /** Validate and parse job data before durable enqueue. */
+  validateAndParse(data: unknown): TInput | null;
+}
+
+/** Immutable declaration derived from a registered durable handler. */
+export interface JobExecutionRegistration {
+  readonly type: string;
+  readonly pluginId: string | undefined;
+}
+
 /**
  * Job handler interface for processing specific job types
  *
@@ -108,7 +122,7 @@ export interface JobHandler<
   _TJobType extends string = string,
   TInput = unknown,
   TOutput = unknown,
-> {
+> extends JobValidator<TInput> {
   /** Per-type execution deadline; falls back to the worker default. */
   readonly executionTimeoutMs?: number | undefined;
 
@@ -144,12 +158,6 @@ export interface JobHandler<
     progressReporter: ProgressReporter,
     signal: AbortSignal,
   ): Promise<void>;
-
-  /**
-   * Validate and parse job data
-   * Returns parsed data if valid, null if invalid
-   */
-  validateAndParse(data: unknown): TInput | null;
 }
 
 export interface JobQueueStats {
@@ -208,6 +216,12 @@ export interface IJobQueueService {
    * Get a handler for a specific job type
    */
   getHandler(type: string): JobHandler | undefined;
+
+  /** Freeze handler declarations before runtime services can admit work. */
+  finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
+
+  /** Read the immutable handler declarations derived during boot. */
+  getExecutionRegistrations(): readonly JobExecutionRegistration[];
 
   /**
    * Enqueue a job for processing

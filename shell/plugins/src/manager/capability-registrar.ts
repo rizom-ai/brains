@@ -23,9 +23,10 @@ export class CapabilityRegistrar {
     shell: IShell,
     pluginId: string,
     capabilities: PluginCapabilities,
+    options?: { executionOnly?: boolean | undefined },
   ): Promise<void> {
-    // Register tools
-    if (capabilities.tools.length > 0) {
+    // The worker constructs handlers but exposes no agent-facing surface.
+    if (!options?.executionOnly && capabilities.tools.length > 0) {
       shell.registerTools(pluginId, capabilities.tools);
       this.logger.debug(
         `Registered ${capabilities.tools.length} tools from ${pluginId}`,
@@ -33,7 +34,7 @@ export class CapabilityRegistrar {
     }
 
     // Register resources
-    if (capabilities.resources.length > 0) {
+    if (!options?.executionOnly && capabilities.resources.length > 0) {
       shell.registerResources(pluginId, capabilities.resources);
       this.logger.debug(
         `Registered ${capabilities.resources.length} resources from ${pluginId}`,
@@ -41,7 +42,7 @@ export class CapabilityRegistrar {
     }
 
     // Register instructions
-    if (capabilities.instructions) {
+    if (!options?.executionOnly && capabilities.instructions) {
       shell.registerInstructions(pluginId, capabilities.instructions);
       this.logger.debug(`Registered instructions from ${pluginId}`);
     }

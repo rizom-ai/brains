@@ -146,7 +146,7 @@ describe("builtin process supervision", () => {
     resetCanonicalDefinition();
   });
 
-  it("spawns one web child instead of booting the parent runtime", async () => {
+  it("spawns web then worker children instead of booting the parent runtime", async () => {
     const fakeProcess = new EventEmitter() as EventEmitter & {
       env: NodeJS.ProcessEnv;
     };
@@ -159,15 +159,22 @@ describe("builtin process supervision", () => {
     child.exitCode = null;
     child.killed = false;
     child.kill = mock(() => true);
+    const workerChild = Object.assign(new EventEmitter(), {
+      kill: mock((_signal?: number | NodeJS.Signals) => true),
+      exitCode: null,
+      killed: false,
+    });
     const order: string[] = [];
     let admitSpawn = (): void => {};
     const spawned = new Promise<void>((resolve) => {
       admitSpawn = resolve;
     });
+    let spawnCount = 0;
     const spawnImpl = mock(() => {
       order.push("spawn");
       admitSpawn();
-      return child as never;
+      spawnCount += 1;
+      return spawnCount === 1 ? child : workerChild;
     });
     const boot = mock(async (): Promise<void> => {
       order.push("migrate");
@@ -201,7 +208,17 @@ describe("builtin process supervision", () => {
     expect(order).toEqual(["migrate", "spawn"]);
 
     child.emit("message", { type: "runtime-ready" });
-    child.emit("close", 0, null);
+    expect(spawnImpl).toHaveBeenLastCalledWith(
+      "bun",
+      ["/tmp/brain.js", "start", "--child=worker"],
+      expect.objectContaining({ cwd: testDir }),
+    );
+    expect(order).toEqual(["migrate", "spawn", "spawn"]);
+
+    workerChild.emit("message", { type: "worker-ready" });
+    fakeProcess.emit("SIGTERM");
+    workerChild.emit("close", null, "SIGTERM");
+    child.emit("close", null, "SIGTERM");
     expect(await resultPromise).toEqual({ success: true });
   });
 
@@ -228,31 +245,35 @@ describe("builtin process supervision", () => {
     expect(spawnImpl).not.toHaveBeenCalled();
   });
 
-  it("boots the web child without recursively spawning another child", async () => {
-    const spawnImpl = mock(() => {
-      throw new Error("nested supervisor");
-    });
-    const boot = mock(async (): Promise<void> => {});
-    setBootFn(boot);
+  const childRoles: Array<"web" | "worker"> = ["web", "worker"];
+  it.each(childRoles)(
+    "boots the %s child without recursively spawning another child",
+    async (childRole) => {
+      const spawnImpl = mock(() => {
+        throw new Error("nested supervisor");
+      });
+      const boot = mock(async (): Promise<void> => {});
+      setBootFn(boot);
 
-    const result = await start(
-      testDir,
-      { chat: false },
-      {
-        argv: ["start", "--child=web"],
-        entrypointPath: "/tmp/brain.js",
-        spawnImpl,
-      },
-    );
+      const result = await start(
+        testDir,
+        { chat: false },
+        {
+          argv: ["start", `--child=${childRole}`],
+          entrypointPath: "/tmp/brain.js",
+          spawnImpl,
+        },
+      );
 
-    expect(result).toEqual({ success: true });
-    expect(spawnImpl).not.toHaveBeenCalled();
-    expect(boot).toHaveBeenCalledWith(testDir, definition, {
-      chat: false,
-      childRole: "web",
-      migrationsCompleted: true,
-    });
-  });
+      expect(result).toEqual({ success: true });
+      expect(spawnImpl).not.toHaveBeenCalled();
+      expect(boot).toHaveBeenCalledWith(testDir, definition, {
+        chat: false,
+        childRole,
+        migrationsCompleted: true,
+      });
+    },
+  );
 });
 
 describe("resolveRunnerType", () => {

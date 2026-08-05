@@ -13,6 +13,7 @@ import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "@brains/utils/effect";
 import { createId } from "@brains/utils/id";
 import { activateProjectionRuntime } from "../projection-runtime";
+import type { RuntimeProcessRole } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -52,18 +53,21 @@ export class ShellBootloader {
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly initializer: ShellInitializer;
+  private readonly processRole: RuntimeProcessRole | undefined;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
     services: ShellServices,
     lifecycle: ShellLifecycle,
     initializer: ShellInitializer,
+    processRole: RuntimeProcessRole | undefined,
     hooks: ShellBootloaderHooks,
   ) {
     this.config = config;
     this.services = services;
     this.lifecycle = lifecycle;
     this.initializer = initializer;
+    this.processRole = processRole;
     this.hooks = hooks;
   }
 
@@ -83,14 +87,20 @@ export class ShellBootloader {
         this.services.conversationService.initialize?.() ?? Promise.resolve(),
     ]);
 
+    const registrationContext = {
+      ...(this.config.entityDisplay !== undefined && {
+        entityDisplay: this.config.entityDisplay,
+      }),
+      ...(this.processRole === "worker" && { executionOnly: true }),
+    };
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
       this.services.entityRegistry,
       this.services.pluginManager,
       {
         ...(options?.mode === "register-only" && { registerOnly: true }),
-        ...(this.config.entityDisplay !== undefined && {
-          registrationContext: { entityDisplay: this.config.entityDisplay },
+        ...(Object.keys(registrationContext).length > 0 && {
+          registrationContext,
         }),
       },
     );
@@ -148,15 +158,29 @@ export class ShellBootloader {
         logger: this.services.logger,
         createWaveId: createId,
         now: Date.now,
+        activationMode:
+          this.processRole === "worker" ? "executor" : "scheduler",
       });
       this.services.disposables.push(() => projectionRuntime.dispose());
     }
 
+    this.services.jobQueueService.finalizeHandlerRegistrations();
+
     this.hooks.registerCoreDataSources();
-    this.hooks.registerSystemCapabilities();
+    if (this.processRole !== "worker") {
+      this.hooks.registerSystemCapabilities();
+    }
 
     if (options?.mode === "register-only") {
       this.services.logger.debug("Shell boot complete (register-only mode)");
+      return;
+    }
+
+    if (this.processRole === "worker") {
+      await this.initializeIdentityServices();
+      this.services.jobProgressMonitor.start();
+      await this.services.jobQueueWorker.start();
+      this.services.logger.debug("Shell boot complete (worker process)");
       return;
     }
 
@@ -213,7 +237,7 @@ export class ShellBootloader {
     this.services.logger.debug("Emitted plugins registered event");
   }
 
-  private async prepareReadyState(): Promise<void> {
+  private async initializeIdentityServices(): Promise<void> {
     await runConcurrentPhase([
       (): Promise<void> => this.services.identityService.initialize(),
       (): Promise<void> => this.services.profileService.initialize(),
@@ -221,6 +245,10 @@ export class ShellBootloader {
         this.services.canonicalIdentityService.refreshCache(),
     ]);
     this.services.logger.debug("Identity services initialized");
+  }
+
+  private async prepareReadyState(): Promise<void> {
+    await this.initializeIdentityServices();
 
     const count = await materializePrompts(
       this.services.templateRegistry,
@@ -237,7 +265,9 @@ export class ShellBootloader {
       await this.services.daemonRegistry.start(recurringDaemonName);
     }
     await this.services.pluginManager.startPluginDaemons();
-    await this.services.jobQueueWorker.start();
+    if (this.processRole !== "web") {
+      await this.services.jobQueueWorker.start();
+    }
     this.services.jobProgressMonitor.start();
     await this.services.batchJobManager.start();
   }

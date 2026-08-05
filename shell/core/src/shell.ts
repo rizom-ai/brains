@@ -109,6 +109,7 @@ import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
 import { Exit } from "@brains/utils/effect";
+import type { ShellRuntimeOptions } from "./runtime-process-role";
 
 export type { ShellDependencies };
 
@@ -135,17 +136,23 @@ export class Shell implements IShell {
   public static createFresh(
     config?: ShellConfigInput,
     dependencies?: ShellDependencies,
+    runtimeOptions?: ShellRuntimeOptions,
   ): Shell {
-    return new Shell(createShellConfig(config), dependencies);
+    return new Shell(createShellConfig(config), dependencies, runtimeOptions);
   }
 
-  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
+  private constructor(
+    config: ShellConfig,
+    dependencies?: ShellDependencies,
+    runtimeOptions?: ShellRuntimeOptions,
+  ) {
     this.config = config;
     this.lifecycle = new ShellLifecycle();
     const constructionLogger = dependencies?.logger ?? Logger.getInstance();
     const shellInitializer = ShellInitializer.createFresh(
       constructionLogger,
       this.config,
+      runtimeOptions?.processRole,
     );
 
     try {
@@ -165,6 +172,7 @@ export class Shell implements IShell {
         this.services,
         this.lifecycle,
         shellInitializer,
+        runtimeOptions?.processRole,
         {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),

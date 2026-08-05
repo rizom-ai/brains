@@ -691,7 +691,7 @@ spawning; operators never pass it and no new environment variables exist.
 
 ### Phases
 
-Implementation status: S0–S2 are complete. S3–S6 remain in progress.
+Implementation status: S0–S3 are complete. S4–S6 remain in progress.
 
 Each phase lands with deterministic tests; fake clocks and scripted child
 promises replace sleep-based synchronization. The tree stays green after every
@@ -715,11 +715,13 @@ phase.
    add the internal child "migrations completed" contract, add the bounded web
    `runtime-ready` IPC handshake, and prove no child starts before migrations
    succeed.
-3. **S3 — worker split**: add execution-only capability registration;
-   `--child=worker` boots those capabilities plus `JobQueueWorker`; web stops
-   starting the worker; parent starts worker only after web readiness; worker
-   exit or startup timeout triggers budgeted backoff respawn. Exhausted budget
-   pauses worker supervision without stopping web.
+3. **S3 — worker split**: complete. Immutable job registrations now derive the
+   full-preset execution inventory; `--child=worker` boots execution
+   dependencies plus `JobQueueWorker` without interfaces, ordinary ingress,
+   daemons, tools, or ready hooks. Web retains validation and enqueue ownership
+   but does not start a worker. The parent starts the worker after web readiness,
+   applies bounded exponential respawn for exits and startup timeouts, and
+   pauses only worker supervision when the rolling budget is exhausted.
 4. **S4 — stuck-worker detection**: IPC heartbeat; kill-and-respawn after 3
    missed beats, charged to the same rolling budget.
 5. **S5 — health semantics**: add `degraded` health details and

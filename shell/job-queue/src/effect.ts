@@ -11,7 +11,10 @@ import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 import type { OperationContext } from "@brains/operation-context";
 import { BatchJobManager } from "./batch-job-manager";
-import { JobProgressMonitor } from "./job-progress-monitor";
+import {
+  JobProgressMonitor,
+  type JobProgressMonitorMode,
+} from "./job-progress-monitor";
 import {
   JobQueueService,
   type ProjectionJobAdmission,
@@ -21,6 +24,7 @@ import type {
   IBatchJobManager,
   IJobQueueService,
   IJobQueueWorker,
+  JobHandlerRegistrationMode,
   JobQueueServiceConfig,
 } from "./types";
 
@@ -64,6 +68,7 @@ export interface JobQueueServiceLayerOptions {
   logger: Logger;
   operationContext?: OperationContext;
   projectionAdmission?: ProjectionJobAdmission;
+  handlerRegistrationMode?: JobHandlerRegistrationMode;
   service?: IJobQueueService;
 }
 
@@ -75,6 +80,7 @@ export interface JobQueueRuntimeLayerOptions {
   jobQueueWorker?: IJobQueueWorker;
   onWorkerUnhealthy?: (reason: string) => void;
   operationContext?: OperationContext;
+  progressMonitorMode?: JobProgressMonitorMode;
 }
 
 export interface JobQueueRuntimeLayerHandle {
@@ -96,6 +102,9 @@ export function createJobQueueServiceLayer(
         }),
         ...(options.projectionAdmission && {
           projectionAdmission: options.projectionAdmission,
+        }),
+        ...(options.handlerRegistrationMode && {
+          handlerRegistrationMode: options.handlerRegistrationMode,
         }),
       });
     return { service, close: () => service.close() };
@@ -124,6 +133,7 @@ export function createJobQueueRuntimeLayer(
         options.messageBus,
         batchJobManager,
         options.logger,
+        options.progressMonitorMode,
       );
     const jobQueueWorker =
       options.jobQueueWorker ??

@@ -142,6 +142,44 @@ describe("JobQueueService", () => {
         }),
       ).rejects.toThrow("No handler registered for job type: shell:embedding");
     });
+
+    it("freezes validation-only execution declarations without exposing handlers", async () => {
+      const validationService = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+        { handlerRegistrationMode: "validation-only" },
+      );
+      try {
+        validationService.registerHandler(
+          "shell:embedding",
+          testHandler,
+          "shell",
+        );
+        const registrations = validationService.finalizeHandlerRegistrations();
+
+        expect(Object.isFrozen(registrations)).toBe(true);
+        expect(registrations).toEqual([
+          { type: "shell:embedding", pluginId: "shell" },
+        ]);
+        expect(validationService.getRegisteredTypes()).toEqual([]);
+        expect(validationService.getHandler("shell:embedding")).toBeUndefined();
+        const jobId = await validationService.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+        expect(jobId).toBeString();
+        expect(() =>
+          validationService.registerHandler(
+            "shell:content-generation",
+            testHandler,
+            "shell",
+          ),
+        ).toThrow("Job handler registrations are finalized");
+      } finally {
+        validationService.close();
+      }
+    });
   });
   describe("Job enqueueing", () => {
     beforeEach(() => {

@@ -126,6 +126,8 @@ export function createMockJobQueueService(
     unregisterHandler: mock(() => {}),
     unregisterPluginHandlers: mock(() => {}),
     getHandler: mock(() => returns.getHandler),
+    finalizeHandlerRegistrations: mock(() => []),
+    getExecutionRegistrations: mock(() => []),
     enqueue: mock((request: JobQueueEnqueueRequest) => {
       const id = returns.enqueue ?? `mock-job-id-${++generatedJobCount}`;
       jobs.set(id, createJobInfo(request, id));

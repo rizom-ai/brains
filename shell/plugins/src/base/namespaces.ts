@@ -110,6 +110,7 @@ export function createMessagingNamespace(
   shell: IShell,
   pluginId: string,
   logger: Logger,
+  executionOnly: boolean = false,
 ): IMessagingNamespace {
   const messageBus = shell.getMessageBus();
   const sendMessage: MessageSender = async (request) => {
@@ -125,6 +126,7 @@ export function createMessagingNamespace(
       channelOrName: string | Channel<T, R>,
       handler: MessageHandler<T, R> | TypedMessageHandler<T, R>,
     ): (() => void) => {
+      if (executionOnly) return () => {};
       if (isChannel(channelOrName)) {
         const channel = channelOrName;
         const typedHandler = handler as TypedMessageHandler<T, R>;

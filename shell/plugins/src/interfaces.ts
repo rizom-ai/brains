@@ -288,7 +288,9 @@ export interface IInsightsRegistry {
 
 export interface PluginRegistrationContext {
   /** Site/entity display metadata derived from the active site package. */
-  entityDisplay?: Record<string, EntityDisplayEntry>;
+  readonly entityDisplay?: Record<string, EntityDisplayEntry>;
+  /** Internal registration boundary for the supervised worker process. */
+  readonly executionOnly?: boolean;
 }
 
 export interface IShell {

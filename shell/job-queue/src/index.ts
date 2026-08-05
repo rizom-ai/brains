@@ -17,6 +17,8 @@ export type {
   EnqueueJob,
   JobInfo,
   JobClaimOptions,
+  JobExecutionRegistration,
+  JobHandlerRegistrationMode,
   JobQueueDiagnostics,
   JobRuntimeUpdate,
   JobRuntimeUpdateCursor,

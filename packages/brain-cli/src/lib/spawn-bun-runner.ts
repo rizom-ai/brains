@@ -1,11 +1,24 @@
-import { spawn, type ChildProcess, type SpawnOptions } from "child_process";
+import { spawn, type SpawnOptions } from "child_process";
 import type { CommandResult } from "./command-result";
+
+export interface SpawnedProcess {
+  exitCode: number | null;
+  killed: boolean;
+  kill(signal?: number | NodeJS.Signals): boolean;
+  on(event: "error", listener: (error: Error) => void): this;
+  on(
+    event: "close",
+    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ): this;
+  on(event: "message", listener: (message: unknown) => void): this;
+  removeListener(event: "message", listener: (message: unknown) => void): this;
+}
 
 export type SpawnImpl = (
   command: string,
   args: string[],
   options: SpawnOptions,
-) => ChildProcess;
+) => SpawnedProcess;
 
 export interface SignalProcess {
   env: NodeJS.ProcessEnv;
@@ -55,12 +68,11 @@ export function spawnBunRunner(
       resolve(result);
     };
     const forwardSignal = (signal: NodeJS.Signals): void => {
-      const child = proc as ChildProcess;
-      if (child.exitCode !== null || child.killed) {
+      if (proc.exitCode !== null || proc.killed) {
         return;
       }
       try {
-        child.kill(signal);
+        proc.kill(signal);
       } catch {
         // Ignore races where the child exits between the status check and kill.
       }
