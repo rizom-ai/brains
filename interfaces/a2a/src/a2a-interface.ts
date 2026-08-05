@@ -147,11 +147,13 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       character,
       profile,
       version: packageJson.version,
-      domain: context.domain,
-      organization: this.config.organization,
+      ...(context.domain ? { domain: context.domain } : {}),
+      ...(this.config.organization
+        ? { organization: this.config.organization }
+        : {}),
       profileKind: context.profileKinds.getResolved(),
       tools,
-      skills,
+      ...(skills ? { skills } : {}),
       authEnabled: false,
     });
 
@@ -441,8 +443,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   }
 
   private createClientDeps(context: InterfacePluginContext): A2AClientDeps {
+    const requestSigner = this.createRequestSigner();
     return {
-      requestSigner: this.createRequestSigner(),
+      ...(requestSigner ? { requestSigner } : {}),
       requestTimeoutMs: this.config.requestTimeoutMs,
       streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
       maxNetworkAttempts: this.config.maxNetworkAttempts,

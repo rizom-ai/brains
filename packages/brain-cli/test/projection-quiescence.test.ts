@@ -1,8 +1,21 @@
 import { describe, expect, it, mock } from "bun:test";
-import { parseInstanceOverrides, resolve } from "@brains/app";
+import { parseInstanceOverrides, resolve, type AppConfig } from "@brains/app";
 import { PluginManager, type Plugin } from "@brains/plugins";
 import { createMockShell, createSilentLogger } from "@brains/test-utils";
-import rover from "../src";
+import { canonicalBrain } from "../src/model/canonical-brain";
+
+function resolveProjectionConfig(): AppConfig {
+  return resolve(
+    canonicalBrain,
+    {},
+    parseInstanceOverrides(`brain: brain
+bundles: [core, publishing]
+plugins:
+  social-media:
+    autoGenerateOnBlogPublish: true
+`),
+  );
+}
 
 function getProjectionPlugins(plugins: Plugin[]): Plugin[] {
   const ids = new Set(["prompt", "topics", "skill", "swot"]);
@@ -18,11 +31,7 @@ function getProjectionPlugins(plugins: Plugin[]): Plugin[] {
 
 describe("full preset projection resilience", () => {
   it("validates a scheduler-only projection graph", async () => {
-    const config = resolve(
-      rover,
-      {},
-      parseInstanceOverrides("brain: rover\npreset: full\n"),
-    );
+    const config = resolveProjectionConfig();
     const shell = createMockShell();
     const pluginManager = PluginManager.createFresh(
       createSilentLogger(),
@@ -74,11 +83,7 @@ describe("full preset projection resilience", () => {
   });
 
   it("does not enqueue legacy projection jobs from event notifications", async () => {
-    const config = resolve(
-      rover,
-      {},
-      parseInstanceOverrides("brain: rover\npreset: full\n"),
-    );
+    const config = resolveProjectionConfig();
     const shell = createMockShell();
     const enqueue = mock(async () => "job-1");
     const jobQueue = shell.getJobQueueService();

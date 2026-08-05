@@ -37,7 +37,7 @@ interface MCPConversationRef {
 }
 
 function getConversationRef(
-  input: { conversationId?: string },
+  input: { conversationId?: string | undefined },
   actorKey: string,
   contextConversationId?: string,
   channelId?: string,

@@ -366,7 +366,9 @@ export class StreamableHTTPServer {
       this.touchSession(sessionId);
       this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request, { authInfo }),
+        await this.transports[sessionId].handleRequest(request, {
+          ...(authInfo ? { authInfo } : {}),
+        }),
       );
     }
 
@@ -377,7 +379,9 @@ export class StreamableHTTPServer {
 
       this.logger.info(`DELETE /mcp - Terminating session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request, { authInfo }),
+        await this.transports[sessionId].handleRequest(request, {
+          ...(authInfo ? { authInfo } : {}),
+        }),
       );
     }
 
@@ -468,7 +472,10 @@ export class StreamableHTTPServer {
       }
 
       return this.withCors(
-        await transport.handleRequest(request, { parsedBody, authInfo }),
+        await transport.handleRequest(request, {
+          parsedBody,
+          ...(authInfo ? { authInfo } : {}),
+        }),
       );
     } catch (error) {
       this.logger.error("MCP transport error:", error);
@@ -645,7 +652,10 @@ function sessionAuthorizationFromAuthInfo(
 
   const permissionLevel = authInfo?.extra?.["permissionLevel"] as
     ToolVisibility | undefined;
-  return { subject, permissionLevel };
+  return {
+    subject,
+    ...(permissionLevel ? { permissionLevel } : {}),
+  };
 }
 
 function escapeChallengeValue(value: string): string {

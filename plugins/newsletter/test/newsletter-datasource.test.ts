@@ -201,7 +201,7 @@ describe("NewsletterDataSource", () => {
       expect(result.content).toBe("Full newsletter content here");
     });
 
-    it("omits absent optional fields from draft detail data", async () => {
+    it("normalizes absent draft detail fields to JSON nulls", async () => {
       const newsletter = createMockNewsletter(
         "draft-1",
         "Draft newsletter",
@@ -216,9 +216,9 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(Object.hasOwn(result, "sentAt")).toBe(false);
-      expect(Object.hasOwn(result, "scheduledFor")).toBe(false);
-      expect(Object.hasOwn(result, "sourceEntities")).toBe(false);
+      expect(result.sentAt).toBeNull();
+      expect(result.scheduledFor).toBeNull();
+      expect(result.sourceEntities).toBeNull();
     });
 
     it("should throw error when newsletter not found", async () => {
