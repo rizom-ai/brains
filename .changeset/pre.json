@@ -122,7 +122,8 @@
     "@brains/email": "0.2.0-alpha.235",
     "@brains/db": "0.2.0-alpha.229",
     "@brains/onboarding": "0.2.0-alpha.243",
-    "@brains/email-triage": "0.2.0-alpha.247"
+    "@brains/email-triage": "0.2.0-alpha.247",
+    "@brains/unified-inbox": "0.2.0-alpha.250"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -251,6 +252,7 @@
     "core--shell-wiring-dedup",
     "core--status-palette-light-mode",
     "core--theme-package-build-helper",
+    "core--unified-inbox-foundation",
     "core--widget-card-and-rizom-ui-reuse",
     "core-preset-eval-release",
     "current-main-alpha-release",

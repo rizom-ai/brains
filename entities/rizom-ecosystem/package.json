@@ -1,7 +1,7 @@
 {
   "name": "@brains/rizom-ecosystem",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.250",
+  "version": "0.2.0-alpha.251",
   "description": "Entity-backed Rizom ecosystem section",
   "dependencies": {
     "@brains/plugins": "workspace:*",

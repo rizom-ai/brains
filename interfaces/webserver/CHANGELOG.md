@@ -1,5 +1,13 @@
 # @brains/webserver
 
+## 0.2.0-alpha.251
+
+### Patch Changes
+
+- Updated dependencies [[`ca41276`](https://github.com/rizom-ai/brains/commit/ca412762e73ca8391d8a77a6c08b20c63b30848e)]:
+  - @brains/plugins@0.2.0-alpha.251
+  - @brains/contracts@0.2.0-alpha.251
+
 ## 0.2.0-alpha.250
 
 ### Patch Changes
