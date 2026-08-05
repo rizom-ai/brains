@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { InboxRegistry, type InboxItem } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
+  INBOX_ACTION_PATH,
   InboxDataSource,
   UnifiedInboxPlugin,
   inboxProjectionSchema,
@@ -102,14 +103,36 @@ describe("InboxDataSource", () => {
     });
   });
 
-  it("registers the aggregation datasource from the opt-in plugin", async () => {
+  it("registers the DataSource, tool, widget lifecycle, and action route", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       logContext: "unified-inbox-test",
     });
-    await harness.installPlugin(new UnifiedInboxPlugin());
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("mail-plugin", {
+        sourceId: "mail-items",
+        displayName: "Email Triage",
+        list: async () => [
+          item("mail-high", "high", "2026-08-04T10:00:00.000Z"),
+        ],
+        act: async () => undefined,
+      });
+    const plugin = new UnifiedInboxPlugin();
+    const capabilities = await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready();
 
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
     ).toBe(true);
+    expect(capabilities.tools.map((tool) => tool.name)).toEqual(["inbox_list"]);
+    expect(await harness.executeTool("inbox_list", {})).toMatchObject({
+      success: true,
+      data: { total: 1, entries: [{ item: { id: "mail-high" } }] },
+    });
+    expect(plugin.getWebRoutes()).toMatchObject([
+      { path: INBOX_ACTION_PATH, method: "POST", public: true },
+    ]);
   });
 });

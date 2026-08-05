@@ -2,10 +2,10 @@
 
 ## Status
 
-**Phases 0 and 2 implemented; Phases 1 and 3 proposed.** The schema-first
-`InboxSource` contract, app-scoped finalized registry, failure-isolating live aggregation
-DataSource, and first real source (`mail-items`) are in place. The shared operator
-surfaces and daily digest remain.
+**Phases 0–2 implemented; Phase 3 proposed.** The schema-first `InboxSource`
+contract, app-scoped finalized registry, failure-isolating live aggregation DataSource,
+Admin dashboard/tool surfaces, and first real source (`mail-items`) are in place. The
+daily digest remains.
 
 ## Goal
 
@@ -23,8 +23,8 @@ digest.
 - **Push exists, and the pull foundation now exists.** `notifications:send` delivers a
   transient message to a channel recipient. `@brains/plugins` now exposes the finalized
   app-scoped inbox-source registry, while opt-in `@brains/unified-inbox` contributes the
-  live `unified-inbox:inbox` aggregation DataSource. Email triage registers the first
-  real source; no shared dashboard/tool consumer exists yet.
+  live `unified-inbox:inbox` aggregation DataSource, grouped Admin dashboard widget,
+  and bounded `inbox_list` tool. Email triage registers the first real source.
 - The registry follows the established contribution lifecycle used by channel
   descriptors/providers (`shell/plugins/src/channel-registry.ts`).
 - Read-model precedent: the bd-priority-engine ranking is a `DataSource` computed on
@@ -74,8 +74,9 @@ digest.
 3. **Actions delegate to the source and carry the actor.** "Handled" on a mail item
    calls the email-triage source's `act`, while "Add" on a candidate runs the atproto
    plan's existing confirmation-gated add. The inbox dispatches and re-lists; it
-   contains no business logic and no state of its own. Actions marked `confirm` go
-   through the standard confirmation flow. Every dispatch passes the caller's
+   contains no business logic and no state of its own. Dashboard mutations require
+   same-origin JSON, an authenticated Admin, and explicit confirmation for actions
+   marked `confirm`. Every dispatch passes the caller's
    `UserPermissionLevel` (mirroring tool handlers' `context.userPermissionLevel`), so a
    source enforces its own authorization instead of trusting the surface — "admin-only"
    is a property of today's dashboard consumer, not of this contract. Sources mutating
@@ -108,17 +109,21 @@ Tests are written first inside each phase.
   `InboxItem` schemas, app-scoped registry, aggregation DataSource; proven with a
   synthetic in-test source. _Tests:_ duplicate `sourceId` rejected; ordering
   (urgency, then recency); failing source isolated; empty state.
-- **Phase 1 — Surfaces.** Dashboard `Inbox` widget (model on the wishlist/
-  agent-discovery widgets) rendering grouped items with action buttons, and an
-  `inbox_list` tool for chat surfaces. _Tests:_ dataProvider shape; action dispatch
-  reaches the owning source with the caller's permission level; a source rejects an
-  unauthorized actor; `confirm` actions require confirmation.
+- **Phase 1 — Surfaces — implemented.** The Admin `Inbox` dashboard widget renders
+  grouped live items, urgency, source failures, and source-owned action buttons. The
+  bounded Admin `inbox_list` tool supports source and urgency filters for chat surfaces.
+  Dashboard actions use a same-origin JSON endpoint, re-resolve the Admin principal,
+  verify the action is still offered, require explicit confirmation when marked, pass
+  the caller permission to the source, and re-list after mutation. _Tests:_ dataProvider
+  and rendered control shape; empty state; filtered tool output; action dispatch and
+  actor propagation; source-owned authorization; explicit confirmation; CSRF/auth
+  policy; fixed-error privacy.
 - **Phase 2 — First real source: email triage — implemented.** The mail-item source
   lists items in `status=new`, maps `priority=high` to high urgency, and delegates mark
   reviewed, mark handled, and archive actions to email triage's typed Phase 2A status
   operation. _Tests:_ source mapping and empty state; Admin enforcement; all action
-  transitions; source-content redaction; handled items disappear on re-list. Appearance
-  in the shared widget remains Phase 1 acceptance once that surface exists.
+  transitions; source-content redaction; handled items disappear on re-list and from
+  the shared widget projection.
 - **Phase 3 — Digest.** Daily recurring check → `notifications:send` summary with
   per-source counts and top `high`-urgency titles; silent when the inbox is empty.
   _Tests:_ digest content redaction; empty inbox sends nothing.
