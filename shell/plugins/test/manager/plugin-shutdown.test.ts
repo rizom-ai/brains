@@ -192,12 +192,19 @@ describe("Plugin shutdown lifecycle", () => {
           { start: async () => {}, stop: async () => {} },
           "scoped-plugin",
         );
+        shell.getInboxRegistry().registerSource("scoped-plugin", {
+          sourceId: "scoped-source",
+          displayName: "Scoped source",
+          list: async () => [],
+          act: async () => undefined,
+        });
         return { tools: [], resources: [] };
       },
     };
 
     pluginManager.registerPlugin(plugin);
     await pluginManager.initializePlugins();
+    mockShell.getInboxRegistry().finalize();
     await mockShell.getMessageBus().send({
       type: "scoped:event",
       payload: {},
@@ -207,6 +214,7 @@ describe("Plugin shutdown lifecycle", () => {
     expect(mockShell.getDaemonRegistry().has("scoped-plugin:daemon")).toBe(
       true,
     );
+    expect(mockShell.getInboxRegistry().listSources()).toHaveLength(1);
 
     await pluginManager.disablePlugin("scoped-plugin");
     await mockShell.getMessageBus().send({
@@ -221,6 +229,7 @@ describe("Plugin shutdown lifecycle", () => {
     expect(mockShell.getDaemonRegistry().has("scoped-plugin:daemon")).toBe(
       false,
     );
+    expect(mockShell.getInboxRegistry().listSources()).toEqual([]);
   });
 
   test("scoped MessageBus.unsubscribe removes wrapped subscriptions", async () => {

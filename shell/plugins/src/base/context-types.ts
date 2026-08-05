@@ -22,6 +22,7 @@ import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
 } from "../channel-registry";
+import type { InboxSource } from "../inbox-registry";
 
 /**
  * Handler for typed channel subscriptions
@@ -111,6 +112,13 @@ export interface IChannelsNamespace {
 export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
   registerDescriptor(descriptor: ChannelDescriptor): void;
   registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
+}
+
+/** App-scoped inbox source registration and finalized read access. */
+export interface IInboxNamespace {
+  registerSource(source: InboxSource): void;
+  listSources(): InboxSource[];
+  getSource(sourceId: string): InboxSource | undefined;
 }
 
 /**

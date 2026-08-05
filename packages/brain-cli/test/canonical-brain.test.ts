@@ -46,6 +46,7 @@ const expectedCatalogIds = [
   "obsidian-vault",
   "rizom-ecosystem",
   "email-triage",
+  "unified-inbox",
   "mcp",
   "email",
   "webserver",
@@ -152,6 +153,7 @@ describe("canonical brain core", () => {
     expect(resolvedIds).not.toContain("atproto");
     expect(resolvedIds).not.toContain("site-builder");
     expect(resolvedIds).not.toContain("email-triage");
+    expect(resolvedIds).not.toContain("unified-inbox");
   });
 
   test("attaches transport permissions and eval exclusions to core members", () => {

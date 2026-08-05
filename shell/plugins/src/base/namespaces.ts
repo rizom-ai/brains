@@ -24,6 +24,7 @@ import type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
@@ -72,6 +73,20 @@ export function createChannelsNamespace(shell: IShell): IChannelsNamespace {
     getDescriptor: (channelType) => registry.getDescriptor(channelType),
     getDeliveryProvider: (channelType) =>
       registry.getDeliveryProvider(channelType),
+  };
+}
+
+export function createInboxNamespace(
+  shell: IShell,
+  pluginId: string,
+): IInboxNamespace {
+  const registry = shell.getInboxRegistry();
+  return {
+    registerSource: (source): void => {
+      registry.registerSource(pluginId, source);
+    },
+    listSources: () => registry.listSources(),
+    getSource: (sourceId) => registry.getSource(sourceId),
   };
 }
 

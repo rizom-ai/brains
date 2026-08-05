@@ -47,6 +47,7 @@ import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import { styleGuidePlugin } from "@brains/style-guide";
 import { topicsPlugin } from "@brains/topics";
+import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
 import { wishlistPlugin } from "@brains/wishlist";
@@ -346,6 +347,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["email-triage", emailTriage, {}],
+    ["unified-inbox", unifiedInboxPlugin, {}],
   ],
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],

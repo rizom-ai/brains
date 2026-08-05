@@ -88,6 +88,7 @@ export class ShellBootloader {
     // Freeze composition before imported content can be parsed or validated.
     this.services.profileKindRegistry.finalize();
     this.services.channelRegistry.finalize();
+    this.services.inboxRegistry.finalize();
     await this.services.pluginManager.finalizePluginRegistrations();
 
     // Register job handlers for content operations before any ready signals.

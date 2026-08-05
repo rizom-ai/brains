@@ -38,6 +38,7 @@ import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
 } from "../channel-registry";
+import type { InboxSource } from "../inbox-registry";
 export type {
   ChannelDeliveryInput,
   ChannelDeliveryProvider,
@@ -45,6 +46,14 @@ export type {
   ChannelDescriptor,
   ChannelSubjectPattern,
 } from "../channel-registry";
+export type {
+  InboxAction,
+  InboxActor,
+  InboxEntityRef,
+  InboxItem,
+  InboxSource,
+  InboxSourceMetadata,
+} from "../inbox-registry";
 
 export type PluginConfig = Record<string, unknown>;
 export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
@@ -358,6 +367,12 @@ export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
   registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
 }
 
+export interface IInboxNamespace {
+  registerSource(source: InboxSource): void;
+  listSources(): InboxSource[];
+  getSource(sourceId: string): InboxSource | undefined;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -380,6 +395,7 @@ export interface BasePluginContext {
   readonly semantic: ISemanticNamespace;
   readonly identity: IIdentityNamespace;
   readonly channels: IChannelsNamespace;
+  readonly inbox: IInboxNamespace;
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;
   readonly eval: IEvalNamespace;
