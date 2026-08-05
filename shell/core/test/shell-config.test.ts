@@ -32,6 +32,7 @@ describe("standard shell paths", () => {
     try {
       const config = getStandardConfig();
 
+      expect(config.assetDirectory).toBe("./data/assets");
       expect(config.database.url).toBe("file:./data/brain.db");
       expect(config.jobQueueDatabase.url).toBe("file:./data/brain-jobs.db");
       expect(config.conversationDatabase.url).toBe(
@@ -45,6 +46,24 @@ describe("standard shell paths", () => {
     } finally {
       delete process.env["XDG_DATA_HOME"];
     }
+  });
+
+  it("does not derive assets from a database URL override", () => {
+    const config = createShellConfig({
+      database: { url: "file:/tmp/custom/brain.db" },
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+    });
+
+    expect(config.assetDirectory).toBe("./data/assets");
+  });
+
+  it("preserves an explicit asset directory override", () => {
+    const config = createShellConfig({
+      assetDirectory: "/srv/brain-assets",
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+    });
+
+    expect(config.assetDirectory).toBe("/srv/brain-assets");
   });
 
   it("does not read database auth tokens from ambient env", () => {

@@ -143,6 +143,15 @@ Keep the `proxy.hosts` entries as bare hostnames. Do not append `:80` or `:81`.
 
 `/app/data` is runtime app state. The built-in OAuth/passkey provider stores its default auth state under `/app/data/auth`; keep this volume persistent across redeploys. Do not put auth state under `/app/brain-data`, because `brain-data` is durable content that may be synced/exported separately.
 
+`/data` is the standard persisted shell-data root. Alongside the SQLite databases,
+content-addressed binary assets live under `/data/assets` (locally,
+`./data/assets`) unless `assetDirectory` is explicitly overridden. Back up the
+configured asset directory with the database snapshot. For a manual backup or
+restore, stop the application before snapshotting/replacing `/opt/brain-state` so
+the database and asset references stay at one point in time; restore the matching
+runtime release before restarting. `brain-data` remains a separate synced-content
+boundary and is not a substitute for routine runtime-state backups.
+
 ## Local secret sources
 
 The deploy CLI reads from `.env`, `.env.local`, and `process.env`.

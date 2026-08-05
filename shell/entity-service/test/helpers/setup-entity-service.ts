@@ -10,6 +10,7 @@ import type {
   EntityAdapter,
   BaseEntity,
   EntityEventBus,
+  EntityTypeConfig,
 } from "../../src/types";
 import { mockEmbeddingService } from "./mock-services";
 import { createTestEntityDatabase } from "./test-entity-db";
@@ -27,7 +28,7 @@ interface EntityTypeRegistration {
   name: string;
   schema: EntityAdapter<BaseEntity>["schema"];
   adapter: EntityAdapter<BaseEntity>;
-  config?: { weight?: number; embeddable?: boolean };
+  config?: EntityTypeConfig;
 }
 
 /**

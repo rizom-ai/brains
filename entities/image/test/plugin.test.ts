@@ -44,8 +44,14 @@ describe("ImagePlugin", () => {
     expect(plugin.type).toBe("entity");
   });
 
-  it("should register image entity type", () => {
+  it("should register image entity type outside full-text search", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("image");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("image"),
+    ).toMatchObject({
+      embeddable: false,
+      fullTextSearchable: false,
+    });
   });
 
   it("should return zero tools", async () => {

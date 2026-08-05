@@ -1,4 +1,5 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
+import type { AssetStore } from "@brains/assets";
 import type { ContentService } from "@brains/content-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { DaemonRegistry } from "../daemon-registry";
@@ -78,6 +79,7 @@ export interface ShellServices {
   operationalHealthRegistry: OperationalHealthRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
+  assetStore: AssetStore;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   runtimeStateService: IRuntimeStateService;
   recurringCheckService: RecurringCheckService;
@@ -106,6 +108,7 @@ export interface ShellDependencies {
   templateRegistry?: TemplateRegistry;
   dataSourceRegistry?: DataSourceRegistry;
   attachmentRegistry?: AttachmentRegistry;
+  assetStore?: AssetStore;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
   runtimeStateService?: IRuntimeStateService;
   recurringCheckService?: RecurringCheckService;

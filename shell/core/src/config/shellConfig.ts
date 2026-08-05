@@ -48,6 +48,7 @@ export interface ShellConfigSchemaOutput {
   conversationDatabase: DbConfig;
   runtimeStateDatabase: DbConfig;
   embeddingDatabase: DbConfig;
+  assetDirectory: string;
   ai: {
     apiKey: string;
     imageApiKey?: string | undefined;
@@ -95,6 +96,7 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
     conversationDatabase: dbConfigSchema,
     runtimeStateDatabase: dbConfigSchema,
     embeddingDatabase: dbConfigSchema,
+    assetDirectory: z.string().trim().min(1),
 
     ai: z.object({
       apiKey: z.string(),
@@ -172,6 +174,7 @@ export function createShellConfig(
       overrides.runtimeStateDatabase ?? standardConfig.runtimeStateDatabase,
     embeddingDatabase:
       overrides.embeddingDatabase ?? standardConfig.embeddingDatabase,
+    assetDirectory: overrides.assetDirectory ?? standardConfig.assetDirectory,
     ai: {
       apiKey: overrides.ai?.apiKey ?? "",
       ...(overrides.ai?.imageApiKey

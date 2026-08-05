@@ -1,4 +1,35 @@
 // ============================================================================
+// Durable Asset Contracts
+// ============================================================================
+
+export {
+  ASSET_REF_PATTERN,
+  SHA256_DIGEST_PATTERN,
+  assetRecordSchema,
+  assetRefSchema,
+  binaryContentModeSchema,
+  binaryContentResolutionRequestSchema,
+  createAssetRef,
+  getAssetDigest,
+  parseAssetRef,
+  type AssetPutStreamOptions,
+  type AssetRecord,
+  type AssetRef,
+  type AssetStat,
+  type AssetStore,
+  type AssetVerification,
+  type BinaryContentMode,
+  type BinaryContentResolutionRequest,
+  type BinaryContentResolver,
+} from "@brains/assets";
+
+export {
+  createAssetsNamespace,
+  defaultPluginAssetMaxBytes,
+  type IAssetsNamespace,
+} from "./service/assets-namespace";
+
+// ============================================================================
 // Plugin Framework Core
 // ============================================================================
 

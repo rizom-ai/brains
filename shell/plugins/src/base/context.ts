@@ -1,3 +1,7 @@
+import {
+  createAssetsNamespace,
+  type IAssetsNamespace,
+} from "../service/assets-namespace";
 import type { IShell } from "../interfaces";
 import { type Logger } from "@brains/utils/logger";
 import { derivePreviewDomain } from "@brains/site-composition";
@@ -202,6 +206,9 @@ export interface BasePluginContext {
   /** Source-derived publish attachment resolution namespace */
   readonly attachments: IAttachmentsNamespace;
 
+  /** Durable content-addressed bytes. References are never browser URLs. */
+  readonly assets: IAssetsNamespace;
+
   // ============================================================================
   // Runtime Uploads
   // ============================================================================
@@ -289,6 +296,7 @@ export function createBasePluginContext(
   const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
   const attachments = shell.getAttachmentRegistry();
+  const assets = createAssetsNamespace(shell.getAssetStore(), pluginId, logger);
   const uploads = shell.getRuntimeUploadRegistry();
   const runtimeState = shell.getRuntimeState();
   const executionOnly = registrationContext?.executionOnly === true;
@@ -337,6 +345,8 @@ export function createBasePluginContext(
     jobs: createJobsNamespace(shell, pluginId),
 
     attachments,
+
+    assets,
 
     uploads,
 

@@ -7,6 +7,7 @@ export interface StandardPaths {
 }
 
 export interface StandardConfig {
+  assetDirectory: string;
   database: DbConfig;
   jobQueueDatabase: DbConfig;
   conversationDatabase: DbConfig;
@@ -32,6 +33,7 @@ export function createStandardPaths(): StandardPaths {
 
 export function createStandardConfig(paths: StandardPaths): StandardConfig {
   return {
+    assetDirectory: `${paths.dataDir}/assets`,
     database: {
       url: `file:${paths.dataDir}/brain.db`,
     },

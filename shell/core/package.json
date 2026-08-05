@@ -3,6 +3,8 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.285",
   "dependencies": {
+    "@brains/asset-service": "workspace:*",
+    "@brains/assets": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/notification-contracts": "workspace:*",

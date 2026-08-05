@@ -355,6 +355,30 @@ describe("FileOperations", () => {
       expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
     });
 
+    it("fails loudly instead of decoding an image asset reference as base64", async () => {
+      const imageDir = join(testDir, "image");
+      const imagePath = join(imageDir, "guarded.png");
+      mkdirSync(imageDir, { recursive: true });
+      writeFileSync(imagePath, TINY_PNG_BYTES);
+      const entity = createTestEntity("image", {
+        id: "guarded",
+        content: `asset://sha256/${"a".repeat(64)}`,
+        metadata: { format: "png" },
+      });
+
+      let writeError: unknown;
+      try {
+        await fileOps.writeEntity(entity);
+      } catch (error) {
+        writeError = error;
+      }
+      expect(writeError).toHaveProperty(
+        "message",
+        expect.stringContaining("expected a supported base64 data URL"),
+      );
+      expect(readFileSync(imagePath).equals(TINY_PNG_BYTES)).toBe(true);
+    });
+
     it("should include image files from image/ directory in getAllSyncFiles", async () => {
       // Create mix of markdown and image files
       mkdirSync(join(testDir, "topic"), { recursive: true });
@@ -460,6 +484,30 @@ describe("FileOperations", () => {
 
       const writtenBytes = readFileSync(expectedPath);
       expect(writtenBytes.equals(TINY_PDF_BYTES)).toBe(true);
+    });
+
+    it("fails loudly instead of decoding a document asset reference as base64", async () => {
+      const documentDir = join(testDir, "document");
+      const documentPath = join(documentDir, "guarded.pdf");
+      mkdirSync(documentDir, { recursive: true });
+      writeFileSync(documentPath, TINY_PDF_BYTES);
+      const entity = createTestEntity("document", {
+        id: "guarded",
+        content: `asset://sha256/${"b".repeat(64)}`,
+        metadata: { mimeType: "application/pdf", filename: "guarded.pdf" },
+      });
+
+      let writeError: unknown;
+      try {
+        await fileOps.writeEntity(entity);
+      } catch (error) {
+        writeError = error;
+      }
+      expect(writeError).toHaveProperty(
+        "message",
+        expect.stringContaining("expected a supported base64 data URL"),
+      );
+      expect(readFileSync(documentPath).equals(TINY_PDF_BYTES)).toBe(true);
     });
 
     it("should include PDF files from document/ directory in getAllSyncFiles", async () => {

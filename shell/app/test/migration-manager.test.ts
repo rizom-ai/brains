@@ -12,6 +12,7 @@ describe("MigrationManager", () => {
   let mockMigrations: IMigrationFunctions;
   let migrationManager: MigrationManager;
   const mockConfig = {
+    assetDirectory: "/test/data/assets",
     database: {
       url: "file:test.db",
       authToken: "test-token",
@@ -118,6 +119,7 @@ describe("MigrationManager", () => {
 
     it("should work without auth tokens", async () => {
       const configWithoutTokens = {
+        assetDirectory: "/test/data/assets",
         database: {
           url: "file:test.db",
           authToken: undefined,

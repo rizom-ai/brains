@@ -210,6 +210,7 @@ export class ImagePlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
       embeddable: false,
+      fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     };

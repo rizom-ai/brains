@@ -24,6 +24,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | `shell/core`                 | Plugin lifecycle, daemon registry, initialization                       |
 | `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing                          |
 | `shell/plugins`              | Base plugin classes, context types, test harnesses                      |
+| `shell/asset-service`        | Filesystem-backed durable content-addressed asset storage               |
 | `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter                     |
 | `shell/ai-service`           | Agent state machine, conversation routing, tool execution               |
 | `shell/content-service`      | Template rendering, content formatting                                  |
@@ -42,6 +43,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | -------------------------- | -------------------------------------------------------------------------- |
 | `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
 | `shared/contracts`         | Shared result, job progress, and publish contracts                         |
+| `shared/assets`            | Asset-reference, store, streaming, and compatibility-resolver contracts    |
 | `shared/ui-library`        | Preact components (Header, Footer, Cards, CTA)                             |
 | `shared/site-composition`  | Shared site composition contract and merge helpers                         |
 | `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |

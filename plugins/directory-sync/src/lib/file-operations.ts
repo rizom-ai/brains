@@ -165,9 +165,13 @@ export class FileOperations {
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
         : /^data:application\/pdf;base64,(.+)$/i;
       const match = entity.content.match(dataUrlPattern);
-      const contentToWrite = match?.[1]
-        ? Buffer.from(match[1], "base64")
-        : Buffer.from(entity.content, "base64");
+      const encodedContent = match?.[1];
+      if (!encodedContent) {
+        throw new Error(
+          `Cannot export ${entity.entityType}:${entity.id}: expected a supported base64 data URL`,
+        );
+      }
+      const contentToWrite = Buffer.from(encodedContent, "base64");
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {

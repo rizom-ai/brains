@@ -1,3 +1,4 @@
+import type { AssetStore } from "@brains/assets";
 import { z } from "@brains/utils/zod";
 import type {
   EntityActionPolicyConfig,
@@ -233,6 +234,7 @@ export interface IShell {
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
   getAttachmentRegistry(): IAttachmentsNamespace;
+  getAssetStore(): AssetStore;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getRuntimeState(): IRuntimeStateNamespace;
   getRecurringChecks(pluginId: string): IRecurringChecksNamespace;

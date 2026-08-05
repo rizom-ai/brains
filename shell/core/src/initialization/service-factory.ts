@@ -1,4 +1,5 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
+import { FilesystemAssetStore } from "@brains/asset-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import {
   ConversationServiceTag,
@@ -105,6 +106,11 @@ export function createShellServices(options: {
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
+  const assetStore =
+    dependencies?.assetStore ??
+    FilesystemAssetStore.createFresh({
+      assetDirectory: config.assetDirectory,
+    });
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
     RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
@@ -299,6 +305,7 @@ export function createShellServices(options: {
     operationalHealthRegistry,
     agentService,
     attachmentRegistry,
+    assetStore,
     runtimeUploadRegistry,
     runtimeStateService,
     recurringCheckService,

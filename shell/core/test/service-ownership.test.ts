@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
+import type { AssetStore } from "@brains/assets";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -62,6 +63,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   templateRegistry: { honoredByCore: true, cleanup: "none" },
   dataSourceRegistry: { honoredByCore: true, cleanup: "none" },
   attachmentRegistry: { honoredByCore: true, cleanup: "none" },
+  assetStore: { honoredByCore: true, cleanup: "none" },
   runtimeUploadRegistry: { honoredByCore: true, cleanup: "none" },
   runtimeStateService: { honoredByCore: true, cleanup: "close" },
   recurringCheckService: {
@@ -216,6 +218,7 @@ describe("Shell service ownership", () => {
 
     expect({
       agentService: shellA.getAgentService() === shellB.getAgentService(),
+      assetStore: shellA.getAssetStore() === shellB.getAssetStore(),
       aiService: shellA.getAIService() === shellB.getAIService(),
       contentService: shellA.getContentService() === shellB.getContentService(),
       conversationService:
@@ -235,6 +238,7 @@ describe("Shell service ownership", () => {
       runtimeState: shellA.getRuntimeState() === shellB.getRuntimeState(),
     }).toEqual({
       agentService: false,
+      assetStore: false,
       aiService: false,
       contentService: false,
       conversationService: false,
@@ -379,6 +383,7 @@ describe("Shell service ownership", () => {
     });
     await entityService.initialize();
 
+    const assetStore = {} as AssetStore;
     let installedEntityService = false;
     let shell: Shell | undefined;
     try {
@@ -386,15 +391,21 @@ describe("Shell service ownership", () => {
         ...defaultDependencies(),
         entityService,
         entityRegistry,
+        assetStore,
       });
       shells.push(shell);
       await shell.initialize({ mode: "register-only" });
 
       installedEntityService = shell.getEntityService() === entityService;
       expect({
+        assetStore: shell.getAssetStore() === assetStore,
         entityService: installedEntityService,
         entityRegistry: shell.getEntityRegistry() === entityRegistry,
-      }).toEqual({ entityService: true, entityRegistry: true });
+      }).toEqual({
+        assetStore: true,
+        entityService: true,
+        entityRegistry: true,
+      });
 
       await shell.shutdown();
       let queryError: unknown;

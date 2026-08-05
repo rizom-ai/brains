@@ -30,6 +30,18 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "image-data-url-read-bridge",
+      "paths": ["shared/assets/src/index.ts"],
+      "symbol": "BinaryContentMode legacy-data-url",
+      "owner": "@brains/assets",
+      "class": "runtime-compatibility",
+      "behavior": "Defines the bounded compatibility mode that materializes asset bytes as image data URLs for explicitly inventoried callers during the image cutover.",
+      "currentConsumers": "Image readers that still require the pre-cutover data-URL response while the authorized attachment and direct asset-reader surfaces land.",
+      "removalPrerequisite": "Complete the image caller inventory, migrate every caller, and observe zero data-URL bridge materializations throughout the agreed yeehaa.io soak.",
+      "rollbackDependency": "The transitional image release keeps prior clients readable while migration rollback remains supported.",
+      "targetRelease": "post-yeehaa-image-soak"
+    },
+    {
       "id": "topic-entity-shape",
       "paths": [
         "entities/topics/src/lib/topic-adapter.ts",
@@ -240,6 +252,18 @@
       "removalPrerequisite": "Require explicit lease settings on every supported dequeue caller and observe zero fallback use.",
       "rollbackDependency": "Older direct dequeue callers require the fallback while they remain supported.",
       "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "derived-projection-visibility-option",
+      "paths": ["shell/plugins/src/entity/derived-entity-projection.ts"],
+      "symbol": "visibility option compatibility",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Honors the retired visibility option when deriving projection partition behavior.",
+      "currentConsumers": "External or internal derived projections configured before partition-first options.",
+      "removalPrerequisite": "Migrate all supported projection declarations and observe zero explicit use of the retired visibility option.",
+      "rollbackDependency": "Prior projection declarations remain runnable during their support window.",
+      "targetRelease": "0.3.0"
     }
   ],
   "exemptions": [

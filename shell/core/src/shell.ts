@@ -1,3 +1,5 @@
+import type { AssetStore } from "@brains/assets";
+
 // Plugin framework types
 import type {
   RuntimeAppInfo,
@@ -473,6 +475,10 @@ export class Shell implements IShell {
 
   public getAttachmentRegistry(): IAttachmentsNamespace {
     return createAttachmentsNamespace(this.services.attachmentRegistry);
+  }
+
+  public getAssetStore(): AssetStore {
+    return this.services.assetStore;
   }
 
   public getRuntimeUploadRegistry(): IRuntimeUploadsNamespace {

@@ -1,10 +1,10 @@
+import type { AssetStore } from "@brains/assets";
 export type {
   PluginPackageConfig,
   PluginPackageConfigInput,
   PluginPackageDefinition,
   PluginPackageFamily,
 } from "../package-definition";
-
 import type {
   ContentVisibility,
   CountEntitiesRequest,
@@ -423,6 +423,7 @@ export interface BasePluginContext {
   readonly eval: IEvalNamespace;
   readonly insights: IInsightsNamespace;
   readonly permissions: IPermissionsNamespace;
+  readonly assets: AssetStore;
   readonly uploads: IRuntimeUploadsNamespace;
 }
 

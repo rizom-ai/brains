@@ -115,6 +115,7 @@ export class App {
     shellConfig.conversationDatabase ??= standard.conversationDatabase;
     shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
     shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
+    shellConfig.assetDirectory ??= standard.assetDirectory;
     shellConfig.embedding ??= standard.embedding;
   }
 
@@ -122,6 +123,9 @@ export class App {
     // Apply simple app config (these override shellConfig if both are provided)
     if (this.config.database) {
       shellConfig.database = { url: this.config.database };
+    }
+    if (this.config.assetDirectory) {
+      shellConfig.assetDirectory = this.config.assetDirectory;
     }
     if (this.config.profileKind) {
       shellConfig.profileKind = this.config.profileKind;
