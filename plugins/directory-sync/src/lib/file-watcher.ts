@@ -6,6 +6,8 @@ import type { Clock } from "@brains/utils/effect";
 import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
+const WATCH_SUPPRESSION_MS = 10_000;
+
 function isImageInImageDir(path: string, syncPath: string): boolean {
   const relativePath = toSyncRelativePath(syncPath, path);
   if (!relativePath.startsWith("image/")) return false;
@@ -30,6 +32,8 @@ export interface FileWatcherOptions {
   watchInterval: number;
   logger: Logger;
   onFileChange?: ((event: string, path: string) => Promise<void>) | undefined;
+  onFileChanges?:
+    ((changes: ReadonlyMap<string, string>) => Promise<void>) | undefined;
   clock?: Clock.Clock | undefined;
 }
 
@@ -40,6 +44,7 @@ export class FileWatcher {
   private watcher?: FSWatcher | undefined;
   private watchCallback?: ((event: string, path: string) => void) | undefined;
   private pendingChanges = new Map<string, string>();
+  private suppressedPaths = new Map<string, number>();
   private readonly delayScope: Scope.CloseableScope;
   private readonly delayedBatches: FiberMap.FiberMap<string, void, never>;
   private readonly clock: Clock.Clock | undefined;
@@ -51,12 +56,15 @@ export class FileWatcher {
   private readonly logger: Logger;
   private readonly onFileChange?:
     ((event: string, path: string) => Promise<void>) | undefined;
+  private readonly onFileChanges?:
+    ((changes: ReadonlyMap<string, string>) => Promise<void>) | undefined;
 
   constructor(options: FileWatcherOptions) {
     this.syncPath = options.syncPath;
     this.watchInterval = options.watchInterval;
     this.logger = options.logger;
     this.onFileChange = options.onFileChange;
+    this.onFileChanges = options.onFileChanges;
     this.clock = options.clock;
     this.delayScope = Effect.runSync(Scope.make());
     this.delayedBatches = Effect.runSync(
@@ -80,6 +88,7 @@ export class FileWatcher {
 
     const watcher = chokidar.watch(this.syncPath, {
       ignored: /(^|[/\\])\../, // ignore dotfiles
+      ignoreInitial: true,
       persistent: true,
       interval: this.watchInterval,
       awaitWriteFinish: {
@@ -124,6 +133,7 @@ export class FileWatcher {
 
     const closeDelay = this.closeDelayScope();
     this.pendingChanges.clear();
+    this.suppressedPaths.clear();
 
     const cleanup = [
       closeDelay,
@@ -161,14 +171,30 @@ export class FileWatcher {
     }
   }
 
+  suppressPaths(paths: string[]): void {
+    const expiresAt = Date.now() + WATCH_SUPPRESSION_MS;
+    for (const path of paths) {
+      const relativePath = toSyncRelativePath(this.syncPath, path);
+      this.pendingChanges.delete(relativePath);
+      this.suppressedPaths.set(relativePath, expiresAt);
+    }
+  }
+
   private async handleFileChange(event: string, path: string): Promise<void> {
     if (this.stopping || !shouldProcessPath(path, this.syncPath)) {
       return;
     }
 
-    this.logger.debug("File change detected", { event, path });
-
     const relativePath = toSyncRelativePath(this.syncPath, path);
+    if (this.isSuppressed(relativePath)) {
+      this.logger.debug("Suppressed git-triggered file change", {
+        event,
+        path,
+      });
+      return;
+    }
+
+    this.logger.debug("File change detected", { event, path });
     this.pendingChanges.set(relativePath, event);
 
     const delayedBatch = Effect.sleep(500).pipe(
@@ -196,6 +222,21 @@ export class FileWatcher {
       changeCount: changes.size,
     });
 
+    if (this.onFileChanges) {
+      const fullChanges = new Map(
+        [...changes].map(([path, event]) => [
+          resolveInSyncPath(this.syncPath, path),
+          event,
+        ]),
+      );
+      try {
+        await this.onFileChanges(fullChanges);
+      } catch (error) {
+        this.logger.error("Error processing file change batch", { error });
+      }
+      return;
+    }
+
     for (const [path, event] of changes) {
       const fullPath = resolveInSyncPath(this.syncPath, path);
 
@@ -211,6 +252,13 @@ export class FileWatcher {
         });
       }
     }
+  }
+
+  private isSuppressed(path: string): boolean {
+    const expiresAt = this.suppressedPaths.get(path);
+    if (expiresAt === undefined) return false;
+    this.suppressedPaths.delete(path);
+    return expiresAt > Date.now();
   }
 
   private startPendingProcessing(): void {

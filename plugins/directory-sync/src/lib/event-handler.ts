@@ -6,7 +6,7 @@ import type { JobRequest, IFileOperations } from "../types";
  */
 export class EventHandler {
   private readonly logger: Logger;
-  private readonly handleImport: (path: string) => Promise<void>;
+  private readonly handleImports: (paths: string[]) => Promise<void>;
   private readonly handleDelete: (path: string) => Promise<void>;
   private readonly deleteOnFileRemoval: boolean;
   private readonly fileOperations: IFileOperations;
@@ -24,16 +24,14 @@ export class EventHandler {
 
     // Create the import handler based on whether we have job queue
     if (jobQueueCallback) {
-      this.handleImport = async (path: string): Promise<void> => {
+      this.handleImports = async (paths: string[]): Promise<void> => {
         const jobId = await jobQueueCallback({
           type: "directory-import" as const,
-          data: {
-            paths: [path],
-          },
+          data: { paths },
         });
-        this.logger.debug("Queued import job for file change", {
+        this.logger.debug("Queued import job for file changes", {
           jobId,
-          path,
+          pathCount: paths.length,
         });
       };
 
@@ -73,8 +71,8 @@ export class EventHandler {
         }
       };
     } else {
-      this.handleImport = async (path: string): Promise<void> => {
-        await importFn([path]);
+      this.handleImports = async (paths: string[]): Promise<void> => {
+        await importFn(paths);
       };
 
       // Without job queue, just log
@@ -82,6 +80,38 @@ export class EventHandler {
         this.logger.warn("File deleted but no job queue available", { path });
       };
     }
+  }
+
+  /**
+   * Handle a watcher burst while keeping imports in one queued job.
+   * Pending imports are flushed before deletes so event ordering is preserved.
+   */
+  async handleFileChanges(changes: ReadonlyMap<string, string>): Promise<void> {
+    let importPaths: string[] = [];
+    const flushImports = async (): Promise<void> => {
+      if (importPaths.length === 0) return;
+      const paths = importPaths;
+      importPaths = [];
+      try {
+        await this.handleImports(paths);
+      } catch (error) {
+        this.logger.error("Failed to handle file change batch", {
+          paths,
+          error,
+        });
+      }
+    };
+
+    for (const [path, event] of changes) {
+      if (event === "add" || event === "change") {
+        importPaths.push(path);
+        continue;
+      }
+
+      await flushImports();
+      await this.handleFileChange(event, path);
+    }
+    await flushImports();
   }
 
   /**
@@ -94,7 +124,7 @@ export class EventHandler {
       switch (event) {
         case "add":
         case "change":
-          await this.handleImport(path);
+          await this.handleImports([path]);
           break;
 
         case "delete":

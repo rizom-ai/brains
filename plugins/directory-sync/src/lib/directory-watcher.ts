@@ -66,8 +66,10 @@ async function startDirectoryWatcher(
     syncPath,
     watchInterval,
     logger,
-    onFileChange: async (event: string, path: string): Promise<void> => {
-      await eventHandler.handleFileChange(event, path);
+    onFileChanges: async (
+      changes: ReadonlyMap<string, string>,
+    ): Promise<void> => {
+      await eventHandler.handleFileChanges(changes);
     },
   });
 

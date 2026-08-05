@@ -90,7 +90,12 @@ async function getChangedFilesSince(
   if (headBefore === headAfter) {
     return { files: [] };
   }
-  const diff = await git.diff([headBefore, headAfter, "--name-only"]);
+  const diff = await git.diff([
+    headBefore,
+    headAfter,
+    "--name-only",
+    "--no-renames",
+  ]);
   return { files: diff.split("\n").filter((f) => f.trim()) };
 }
 
@@ -111,7 +116,7 @@ async function resolveRemoteConflicts(
   await git.add(["-A"]);
   await git.commit("Auto-resolve merge conflict (remote wins)");
 
-  const diffOutput = await git.diff(["HEAD~1", "--name-only"]);
+  const diffOutput = await git.diff(["HEAD~1", "--name-only", "--no-renames"]);
   return { files: diffOutput.split("\n").filter((f) => f.trim()) };
 }
 

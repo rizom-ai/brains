@@ -62,6 +62,7 @@ export interface IDirectorySync {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
+    paths?: string[],
   ): Promise<{
     batchId: string;
     operationCount: number;
@@ -71,6 +72,7 @@ export interface IDirectorySync {
   } | null>;
   startWatching(): Promise<void>;
   stopWatching(): Promise<void>;
+  suppressWatchPaths(paths: string[]): void;
   setWatchCallback(callback: (event: string, path: string) => void): void;
 }
 

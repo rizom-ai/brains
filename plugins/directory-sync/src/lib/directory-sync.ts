@@ -241,8 +241,14 @@ export class DirectorySync implements IDirectorySync {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
+    paths?: string[],
   ): Promise<BatchResult | null> {
-    return this.batchQueue.queueSyncBatch(pluginContext, source, metadata);
+    return this.batchQueue.queueSyncBatch(
+      pluginContext,
+      source,
+      metadata,
+      paths,
+    );
   }
 
   async startWatching(): Promise<void> {
@@ -261,6 +267,10 @@ export class DirectorySync implements IDirectorySync {
     const fileWatcher = this.fileWatcher;
     this.fileWatcher = undefined;
     await stopDirectoryWatcher(fileWatcher);
+  }
+
+  suppressWatchPaths(paths: string[]): void {
+    this.fileWatcher?.suppressPaths(paths);
   }
 
   setWatchCallback(callback: (event: string, path: string) => void): void {

@@ -256,6 +256,33 @@ describe("GitSync (simplified)", () => {
       expect(result.files).toContain("new-post.md");
     });
 
+    it("returns both sides of a remote rename", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+
+      mkdirSync(join(dataDir, "post"), { recursive: true });
+      writeFileSync(join(dataDir, "post", "old.md"), "# Old");
+      await gs.commit("initial");
+      await gs.push();
+
+      const cloneDir = join(testDir, "clone");
+      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      execSync("git mv post/old.md post/new.md", {
+        cwd: cloneDir,
+        stdio: "ignore",
+      });
+      execSync(
+        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote rename"',
+        { cwd: cloneDir, stdio: "ignore" },
+      );
+      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+
+      const result = await gs.pull();
+      expect(result.files).toEqual(
+        expect.arrayContaining(["post/old.md", "post/new.md"]),
+      );
+    });
+
     it("should return empty files array when no changes", async () => {
       const gs = createGitSync();
       await gs.initialize();

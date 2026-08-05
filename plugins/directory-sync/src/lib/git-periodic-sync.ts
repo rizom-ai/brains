@@ -36,7 +36,12 @@ export function setupPeriodicGitSync(
         const batchResult = await directorySync.queueSyncBatch(
           pluginContext,
           "periodic-sync",
+          undefined,
+          pullResult.files,
         );
+        if (batchResult) {
+          directorySync.suppressWatchPaths(pullResult.files);
+        }
         return { files: pullResult.files, result: batchResult };
       }, signal);
 

@@ -75,14 +75,19 @@ describe("setupPeriodicGitSync", () => {
         const queueSyncBatchMock = mock(
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
+        const suppressWatchPathsMock = mock(() => {});
         const pullMock = mock(async (): Promise<PullResult> => ({
           files: ["a.md"],
         }));
 
+        const context = createMockServicePluginContext();
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
-          createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-          createMockServicePluginContext(),
+          createMockDirectorySync({
+            queueSyncBatch: queueSyncBatchMock,
+            suppressWatchPaths: suppressWatchPathsMock,
+          }),
+          context,
           0.001,
           createSilentLogger(),
           runtime,
@@ -90,11 +95,47 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+        expect(suppressWatchPathsMock).toHaveBeenCalledWith(["a.md"]);
+        expect(queueSyncBatchMock).toHaveBeenCalledWith(
+          context,
+          "periodic-sync",
+          undefined,
+          ["a.md"],
+        );
 
         pullMock.mockImplementation(async () => ({ files: [] }));
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("keeps watcher fallback active when the sync queue is busy", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const suppressWatchPathsMock = mock(() => {});
+
+        setupPeriodicGitSync(
+          createMockGitSync({
+            pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
+          }),
+          createMockDirectorySync({
+            queueSyncBatch: mock(async () => null),
+            suppressWatchPaths: suppressWatchPathsMock,
+          }),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+
+        expect(suppressWatchPathsMock).not.toHaveBeenCalled();
         yield* Effect.promise(() => runtime.close());
       }).pipe(Effect.provide(TestContext.TestContext)),
     );

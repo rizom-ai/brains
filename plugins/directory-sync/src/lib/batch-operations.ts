@@ -37,14 +37,17 @@ export class BatchOperationsManager {
    * by auto-sync's entity:created/entity:updated subscribers — batch export
    * would overwrite user edits with stale DB content before imports run.
    */
-  prepareBatchOperations(files: string[]): BatchOperationResult {
+  prepareBatchOperations(
+    files: string[],
+    includeCleanup: boolean = true,
+  ): BatchOperationResult {
     const operations: BatchOperation[] = [];
 
     const importOps = this.createImportOperations(files);
     operations.push(...importOps);
     const importOperationsCount = importOps.length;
 
-    if (this.deleteOnFileRemoval) {
+    if (includeCleanup && this.deleteOnFileRemoval) {
       operations.push({ type: "directory-cleanup", data: {} });
     }
 
@@ -69,8 +72,9 @@ export class BatchOperationsManager {
     source: string,
     files: string[],
     metadata?: BatchMetadata,
+    includeCleanup: boolean = true,
   ): Promise<BatchResult | null> {
-    const batchData = this.prepareBatchOperations(files);
+    const batchData = this.prepareBatchOperations(files, includeCleanup);
 
     if (batchData.operations.length === 0) {
       this.logger.debug("No sync operations needed", { source });

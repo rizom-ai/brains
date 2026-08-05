@@ -28,8 +28,24 @@ const eventPayload = {
   entityId: "1",
 };
 
+function createDirtyGitSync(
+  overrides: Parameters<typeof createMockGitSync>[0] = {},
+): ReturnType<typeof createMockGitSync> {
+  return createMockGitSync({
+    getStatus: mock(async () => ({
+      isRepo: true,
+      hasChanges: true,
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      files: [],
+    })),
+    ...overrides,
+  });
+}
+
 describe("setupGitAutoCommit", () => {
-  it("subscribes to every entity CRUD event", async () => {
+  it("skips commit and push when an imported remote change leaves git clean", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const clock = yield* TestClock.testClock();
@@ -40,6 +56,75 @@ describe("setupGitAutoCommit", () => {
         setupGitAutoCommit(
           harness.getServiceContext("directory-sync").messaging,
           createMockGitSync({ commit: commitMock, push: pushMock }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
+
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:updated", eventPayload, "test", true),
+        );
+        yield* TestClock.adjust(50);
+        yield* yieldToFibers();
+
+        expect(commitMock).not.toHaveBeenCalled();
+        expect(pushMock).not.toHaveBeenCalled();
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("pushes an existing ahead commit without creating an empty commit", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        const pushMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({
+            getStatus: mock(async () => ({
+              isRepo: true,
+              hasChanges: false,
+              ahead: 1,
+              behind: 0,
+              branch: "main",
+              files: [],
+            })),
+            commit: commitMock,
+            push: pushMock,
+          }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
+
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:updated", eventPayload, "test", true),
+        );
+        yield* TestClock.adjust(50);
+        yield* yieldToFibers();
+
+        expect(commitMock).not.toHaveBeenCalled();
+        expect(pushMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("subscribes to every entity CRUD event", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        const pushMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createDirtyGitSync({ commit: commitMock, push: pushMock }),
           50,
           createSilentLogger(),
           runtime,
@@ -74,7 +159,7 @@ describe("setupGitAutoCommit", () => {
         const pushMock = mock(async (): Promise<void> => {});
         setupGitAutoCommit(
           harness.getServiceContext("directory-sync").messaging,
-          createMockGitSync({ commit: commitMock, push: pushMock }),
+          createDirtyGitSync({ commit: commitMock, push: pushMock }),
           50,
           createSilentLogger(),
           runtime,
@@ -105,7 +190,7 @@ describe("setupGitAutoCommit", () => {
         const commitMock = mock(async (): Promise<void> => {});
         setupGitAutoCommit(
           harness.getServiceContext("directory-sync").messaging,
-          createMockGitSync({ commit: commitMock }),
+          createDirtyGitSync({ commit: commitMock }),
           50,
           createSilentLogger(),
           runtime,
@@ -134,7 +219,7 @@ describe("setupGitAutoCommit", () => {
         const pushMock = mock(async (): Promise<void> => {});
         setupGitAutoCommit(
           harness.getServiceContext("directory-sync").messaging,
-          createMockGitSync({
+          createDirtyGitSync({
             commit: mock(async (): Promise<void> => {
               commitStarted.resolve();
               await releaseCommit.promise;
@@ -176,7 +261,7 @@ describe("setupGitAutoCommit", () => {
         const commitMock = mock(async (): Promise<void> => {});
         setupGitAutoCommit(
           harness.getServiceContext("directory-sync").messaging,
-          createMockGitSync({ commit: commitMock }),
+          createDirtyGitSync({ commit: commitMock }),
           50,
           createSilentLogger(),
           runtime,

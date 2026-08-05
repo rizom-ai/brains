@@ -66,4 +66,43 @@ describe("queueSyncBatch should include images (regression)", () => {
     expect(result).not.toBeNull();
     expect(result?.totalFiles).toBe(2);
   });
+
+  it("queues only existing files reported by a periodic git pull", async () => {
+    mkdirSync(join(testDir, "post"), { recursive: true });
+    writeFileSync(join(testDir, "post", "changed.md"), "# Changed");
+    writeFileSync(join(testDir, "post", "unchanged.md"), "# Unchanged");
+
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const result = await dirSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      ["post/changed.md"],
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 1,
+      importOperationsCount: 1,
+      totalFiles: 1,
+    });
+  });
+
+  it("keeps cleanup for files deleted by a periodic git pull", async () => {
+    mkdirSync(join(testDir, "post"), { recursive: true });
+    writeFileSync(join(testDir, "post", "untouched.md"), "# Untouched");
+
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const result = await dirSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      ["post/deleted.md"],
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 1,
+      importOperationsCount: 0,
+      totalFiles: 0,
+    });
+  });
 });

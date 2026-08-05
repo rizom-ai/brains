@@ -28,10 +28,22 @@ export function setupGitAutoCommit(
   const commitAndPush = async (): Promise<void> => {
     const git = getGitSync();
     try {
-      await git.withLock(async () => {
-        await git.commit();
+      const pushed = await git.withLock(async () => {
+        const status = await git.getStatus();
+        if (!status.isRepo) {
+          throw new Error("Git repository is unavailable");
+        }
+        if (!status.hasChanges && status.ahead === 0) {
+          return false;
+        }
+        if (status.hasChanges) {
+          await git.commit();
+        }
         await git.push();
+        return true;
       });
+      if (!pushed) return;
+
       await operationStatus?.clearIssues(["git"]);
       await operationStatus?.recordTerminal(
         "save",

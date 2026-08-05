@@ -87,6 +87,27 @@ describe("FileWatcher lifecycle characterization", () => {
     await starting;
   }
 
+  it("ignores Chokidar's initial add events", async () => {
+    const fakeWatcher = new FSWatcher();
+    fakeWatcher.close = mock(() => Promise.resolve());
+    const watchSpy = spyOn(chokidar, "watch").mockReturnValue(fakeWatcher);
+    restoreWatch = (): void => watchSpy.mockRestore();
+    const syncPath = "/tmp/file-watcher-initial";
+    const watcher = new FileWatcher({
+      syncPath,
+      watchInterval: 100,
+      logger: createSilentLogger("file-watcher-initial"),
+    });
+
+    await startWatcher(watcher, fakeWatcher);
+
+    expect(watchSpy).toHaveBeenCalledWith(
+      syncPath,
+      expect.objectContaining({ ignoreInitial: true }),
+    );
+    await watcher.stop();
+  });
+
   it("waits for Chokidar close to settle", async () => {
     const closeGate = deferred();
     const fakeWatcher = new FSWatcher();
@@ -185,6 +206,107 @@ describe("FileWatcher lifecycle characterization", () => {
         yield* TestClock.adjust(1);
         yield* Effect.yieldNow();
         expect(onFileChange).toHaveBeenCalledTimes(2);
+        yield* Effect.promise(() => watcher.stop());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("delivers a burst through one batch callback", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const onFileChanges = mock(async (): Promise<void> => {});
+        const fakeWatcher = new FSWatcher();
+        fakeWatcher.close = mock(() => Promise.resolve());
+        installWatcher(fakeWatcher);
+        const syncPath = "/tmp/file-watcher-batch";
+        const watcher = new FileWatcher({
+          syncPath,
+          watchInterval: 100,
+          logger: createSilentLogger("file-watcher-batch"),
+          clock,
+          onFileChanges,
+        });
+
+        yield* Effect.promise(() => startWatcher(watcher, fakeWatcher));
+        fakeWatcher.emit("change", `${syncPath}/one.md`);
+        fakeWatcher.emit("add", `${syncPath}/two.md`);
+        yield* TestClock.adjust(500);
+        yield* Effect.yieldNow();
+
+        expect(onFileChanges).toHaveBeenCalledTimes(1);
+        expect(onFileChanges).toHaveBeenCalledWith(
+          new Map([
+            [`${syncPath}/one.md`, "change"],
+            [`${syncPath}/two.md`, "add"],
+          ]),
+        );
+        yield* Effect.promise(() => watcher.stop());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("suppresses watcher echoes for paths handled by git sync", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const onFileChanges = mock(async (): Promise<void> => {});
+        const fakeWatcher = new FSWatcher();
+        fakeWatcher.close = mock(() => Promise.resolve());
+        installWatcher(fakeWatcher);
+        const syncPath = "/tmp/file-watcher-suppressed";
+        const watcher = new FileWatcher({
+          syncPath,
+          watchInterval: 100,
+          logger: createSilentLogger("file-watcher-suppressed"),
+          clock,
+          onFileChanges,
+        });
+
+        yield* Effect.promise(() => startWatcher(watcher, fakeWatcher));
+        fakeWatcher.emit("change", `${syncPath}/git-change.md`);
+        watcher.suppressPaths(["git-change.md"]);
+        fakeWatcher.emit("change", `${syncPath}/local-change.md`);
+        yield* TestClock.adjust(500);
+        yield* Effect.yieldNow();
+
+        expect(onFileChanges).toHaveBeenCalledTimes(1);
+        expect(onFileChanges).toHaveBeenCalledWith(
+          new Map([[`${syncPath}/local-change.md`, "change"]]),
+        );
+        yield* Effect.promise(() => watcher.stop());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("suppresses only the next watcher echo for a git path", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const onFileChanges = mock(async (): Promise<void> => {});
+        const fakeWatcher = new FSWatcher();
+        fakeWatcher.close = mock(() => Promise.resolve());
+        installWatcher(fakeWatcher);
+        const syncPath = "/tmp/file-watcher-suppressed-once";
+        const watcher = new FileWatcher({
+          syncPath,
+          watchInterval: 100,
+          logger: createSilentLogger("file-watcher-suppressed-once"),
+          clock,
+          onFileChanges,
+        });
+
+        yield* Effect.promise(() => startWatcher(watcher, fakeWatcher));
+        watcher.suppressPaths(["changed.md"]);
+        fakeWatcher.emit("change", `${syncPath}/changed.md`);
+        fakeWatcher.emit("change", `${syncPath}/changed.md`);
+        yield* TestClock.adjust(500);
+        yield* Effect.yieldNow();
+
+        expect(onFileChanges).toHaveBeenCalledTimes(1);
+        expect(onFileChanges).toHaveBeenCalledWith(
+          new Map([[`${syncPath}/changed.md`, "change"]]),
+        );
         yield* Effect.promise(() => watcher.stop());
       }).pipe(Effect.provide(TestContext.TestContext)),
     );

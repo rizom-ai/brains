@@ -27,10 +27,11 @@ export function createDirectorySyncFacade(
     getAllMarkdownFiles: () => getActive().getAllMarkdownFiles(),
     ensureDirectoryStructure: () => getActive().ensureDirectoryStructure(),
     getStatus: () => getActive().getStatus(),
-    queueSyncBatch: (context, source, metadata) =>
-      getActive().queueSyncBatch(context, source, metadata),
+    queueSyncBatch: (context, source, metadata, paths) =>
+      getActive().queueSyncBatch(context, source, metadata, paths),
     startWatching: () => getActive().startWatching(),
     stopWatching: () => getActive().stopWatching(),
+    suppressWatchPaths: (paths) => getActive().suppressWatchPaths(paths),
     setWatchCallback: (callback) => getActive().setWatchCallback(callback),
   };
 }

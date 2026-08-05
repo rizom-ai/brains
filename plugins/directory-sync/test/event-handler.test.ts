@@ -42,6 +42,23 @@ describe("EventHandler", () => {
     });
 
     describe("handleFileChange", () => {
+      it("queues one import job for a burst of file changes", async () => {
+        await eventHandler.handleFileChanges(
+          new Map([
+            ["/test/one.md", "add"],
+            ["/test/two.md", "change"],
+          ]),
+        );
+
+        expect(mockJobQueueCallback).toHaveBeenCalledTimes(1);
+        expect(mockJobQueueCallback).toHaveBeenCalledWith({
+          type: "directory-import",
+          data: {
+            paths: ["/test/one.md", "/test/two.md"],
+          },
+        });
+      });
+
       it("should queue import job for 'add' event", async () => {
         await eventHandler.handleFileChange("add", "/test/file.md");
 
