@@ -7,6 +7,7 @@ import {
   existsSync,
   readFileSync,
   statSync,
+  mkdtempSync,
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -27,8 +28,7 @@ describe("FileOperations", () => {
 
   beforeEach(() => {
     // Create a unique test directory
-    testDir = join(tmpdir(), `test-file-ops-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-file-ops-"));
 
     mockEntityService = {
       serializeEntity: (entity: BaseEntity): string =>

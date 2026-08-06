@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -15,8 +15,7 @@ describe("queueSyncBatch should include images (regression)", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-batch-images-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-batch-images-"));
 
     const mockEntityService = createMockEntityService({
       entityTypes: ["post", "image"],

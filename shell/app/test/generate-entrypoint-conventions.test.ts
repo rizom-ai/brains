@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { generateEntrypoint } from "../src/generate-entrypoint";
@@ -13,7 +13,7 @@ describe("generateEntrypoint conventions", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `generate-entrypoint-conventions-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "generate-entrypoint-conventions-"));
     mkdirSync(join(testDir, "src"), { recursive: true });
   });
 

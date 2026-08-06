@@ -6,6 +6,7 @@ import {
   rmSync,
   statSync,
   writeFileSync,
+  mkdtempSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -36,7 +37,7 @@ describe("pilot origin CA bootstrap", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brains-ops-cert-bootstrap-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "brains-ops-cert-bootstrap-"));
     mkdirSync(join(testDir, "users"), { recursive: true });
     mkdirSync(join(testDir, "cohorts"), { recursive: true });
     writeFileSync(

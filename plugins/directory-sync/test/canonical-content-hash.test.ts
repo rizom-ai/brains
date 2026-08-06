@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
@@ -31,7 +31,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
     `---\ntitle: ${entity.id ?? ""}\n---\n\n${entity.content ?? ""}`;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-canonical-hash-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-canonical-hash-"));
     mkdirSync(join(testDir, "note"), { recursive: true });
 
     mockEntityService = createMockEntityService({ entityTypes: ["note"] });

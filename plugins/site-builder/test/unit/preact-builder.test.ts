@@ -5,7 +5,7 @@ import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import type { RouteDefinition } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { promises as fs } from "fs";
+import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { h, type VNode } from "preact";
@@ -52,7 +52,7 @@ describe("PreactBuilder", () => {
 
   beforeEach(async () => {
     // Create temporary directories for testing
-    testDir = join(tmpdir(), `preact-builder-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "preact-builder-test-"));
     outputDir = join(testDir, "output");
     workingDir = join(testDir, "working");
     logger = createSilentLogger();

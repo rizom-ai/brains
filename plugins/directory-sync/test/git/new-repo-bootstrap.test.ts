@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from "fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+  readFileSync,
+  mkdtempSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
@@ -13,7 +20,7 @@ describe("GitSync new-repo bootstrap regression", () => {
   let gitSync: GitSync | undefined;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-git-bootstrap-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-git-bootstrap-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
 

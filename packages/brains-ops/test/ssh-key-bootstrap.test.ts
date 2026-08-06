@@ -6,6 +6,7 @@ import {
   rmSync,
   statSync,
   writeFileSync,
+  mkdtempSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -26,8 +27,7 @@ describe("pilot ssh key bootstrap", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brains-ops-ssh-key-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brains-ops-ssh-key-"));
   });
 
   afterEach(() => {

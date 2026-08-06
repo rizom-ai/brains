@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -27,8 +27,7 @@ describe("Empty content race condition", () => {
   let mockEntityService: ReturnType<typeof createMockEntityService>;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-empty-race-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-empty-race-"));
 
     mockEntityService = createMockEntityService({
       entityTypes: ["deck", "note", "post"],

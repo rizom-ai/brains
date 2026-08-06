@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from "fs";
+import {
+  mkdirSync,
+  existsSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+  mkdtempSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
@@ -147,8 +154,7 @@ describe("brain auth recovery", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-cli-auth-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-cli-auth-"));
   });
 
   afterEach(() => {
@@ -407,8 +413,7 @@ describe("brain init (end-to-end)", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-cli-e2e-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-cli-e2e-"));
   });
 
   afterEach(() => {
@@ -541,8 +546,7 @@ describe("secrets push (end-to-end)", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-cli-secrets-push-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-cli-secrets-push-"));
   });
 
   afterEach(() => {

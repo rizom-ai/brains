@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, unlinkSync, existsSync } from "fs";
+import { rmSync, writeFileSync, unlinkSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
@@ -31,8 +31,7 @@ describe("Import then orphan cleanup", () => {
   let storedEntities: Record<string, BaseEntity[]>;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-import-orphan-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-import-orphan-"));
 
     storedEntities = { note: [] };
 

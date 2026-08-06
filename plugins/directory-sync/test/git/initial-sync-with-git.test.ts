@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
@@ -17,7 +17,7 @@ describe("Git-aware initial sync", () => {
   let dataDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-git-init-sync-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-git-init-sync-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
     mkdirSync(remoteDir, { recursive: true });

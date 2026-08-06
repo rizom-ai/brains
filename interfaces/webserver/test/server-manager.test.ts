@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
@@ -63,7 +63,7 @@ describe("ServerManager (in-process)", () => {
     getHealthData?: ServerManagerOptions["getHealthData"];
     getReadinessData?: () => Promise<RuntimeReadiness>;
   }): ServerManager {
-    testDir = join(tmpdir(), `webserver-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -406,7 +406,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {
-    testDir = join(tmpdir(), `webserver-cms-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-cms-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -447,7 +447,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("matches contributed prefix routes by segment with exact and longest-prefix precedence", async () => {
-    testDir = join(tmpdir(), `webserver-prefix-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-prefix-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -502,7 +502,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should reject non-public web routes with 401", async () => {
-    testDir = join(tmpdir(), `webserver-nonpublic-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-nonpublic-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -554,7 +554,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve web routes registered after the webserver starts", async () => {
-    testDir = join(tmpdir(), `webserver-late-web-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-late-web-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -605,7 +605,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed OPTIONS routes when configured", async () => {
-    testDir = join(tmpdir(), `webserver-options-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-options-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -652,7 +652,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed API routes on the shared host", async () => {
-    testDir = join(tmpdir(), `webserver-api-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-api-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -710,7 +710,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve API routes registered after the webserver starts", async () => {
-    testDir = join(tmpdir(), `webserver-late-api-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-late-api-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -816,7 +816,7 @@ describe("ServerManager (in-process)", () => {
       serve: typeof Bun.serve,
       idleTimeout?: number,
     ): ServerManager {
-      testDir = join(tmpdir(), `webserver-idle-${Date.now()}`);
+      testDir = mkdtempSync(join(tmpdir(), "webserver-idle-"));
       const prodDir = join(testDir, "dist", "production");
       const imagesDir = join(testDir, "dist", "images");
       mkdirSync(prodDir, { recursive: true });

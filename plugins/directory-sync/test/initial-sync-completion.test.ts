@@ -5,7 +5,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySyncPlugin - Initial Sync Completion", () => {
@@ -14,7 +14,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let seedContentPath: string;
 
   beforeEach(async () => {
-    syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
+    syncPath = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
     seedContentPath = join(syncPath, "..", "seed-content");
     mkdirSync(seedContentPath, { recursive: true });
     mkdirSync(join(seedContentPath, "note"), { recursive: true });
