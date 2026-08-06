@@ -31,9 +31,15 @@ permissions:
       - "created"
       - "done"
   trusted:
+    # Trusted may attempt a restricted write; the server is what must refuse it.
+    # Asserting the model never calls the tool would test self-censorship, which
+    # varies run to run across the same boundary.
     expectedTools:
       - toolName: system_create
-        shouldBeCalled: false
+        shouldBeCalled: true
+        argsContain:
+          visibility: restricted
+        resultErrorContains: "not allowed to write at that level"
     responseNotContains:
       - "saved"
       - "created"

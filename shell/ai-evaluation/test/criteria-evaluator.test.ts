@@ -76,6 +76,72 @@ describe("evaluateCriteria", () => {
     ]);
   });
 
+  it("passes resultErrorContains when the call was refused for the stated reason", () => {
+    // Server-side refusal is the property worth asserting. Expecting the model
+    // to decline to call at all tests self-censorship instead, and that varies
+    // run to run for the same permission boundary.
+    const results = evaluateCriteria(
+      {
+        expectedTools: [
+          {
+            toolName: "system_create",
+            argsContain: { visibility: "restricted" },
+            shouldBeCalled: true,
+            resultErrorContains: "not allowed to write at that level",
+          },
+        ],
+      },
+      { text: "" },
+      [
+        {
+          toolName: "system_create",
+          args: { visibility: "restricted" },
+          result: {
+            success: false,
+            error:
+              'Cannot create entity with visibility "restricted" — caller permission "trusted" is not allowed to write at that level.',
+          },
+        },
+      ],
+    );
+
+    expect(results).toContainEqual(
+      expect.objectContaining({
+        criterion: "toolResultErrorContains",
+        passed: true,
+      }),
+    );
+  });
+
+  it("fails resultErrorContains when the call succeeded instead of being refused", () => {
+    const results = evaluateCriteria(
+      {
+        expectedTools: [
+          {
+            toolName: "system_create",
+            shouldBeCalled: true,
+            resultErrorContains: "not allowed to write at that level",
+          },
+        ],
+      },
+      { text: "" },
+      [
+        {
+          toolName: "system_create",
+          args: { visibility: "restricted" },
+          result: { success: true, entityId: "note:leak" },
+        },
+      ],
+    );
+
+    expect(results).toContainEqual(
+      expect.objectContaining({
+        criterion: "toolResultErrorContains",
+        passed: false,
+      }),
+    );
+  });
+
   it("passes expectedAnyTool when any listed tool was called", () => {
     const results = evaluateCriteria(
       {

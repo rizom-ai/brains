@@ -455,6 +455,13 @@ describe("system_create tool", () => {
     return input;
   }
 
+  // ToolConfirmation.args is `unknown` by contract, so replaying a confirmation
+  // means validating the shape rather than asserting it.
+  const confirmationArgsSchema = z.record(z.string(), z.unknown());
+  function confirmationArgs(args: unknown): Record<string, unknown> {
+    return confirmationArgsSchema.parse(args);
+  }
+
   function execRaw(
     input: Record<string, unknown>,
     context?: CreateToolTestContext,
@@ -470,7 +477,7 @@ describe("system_create tool", () => {
   ): Promise<ToolResponse> {
     const result = await execRaw(input, context);
     if (!("needsConfirmation" in result)) return result;
-    return execRaw(result.args as Record<string, unknown>, context);
+    return execRaw(confirmationArgs(result.args), context);
   }
 
   function withGenerateSource(
@@ -601,7 +608,7 @@ describe("system_create tool", () => {
   ): Promise<ToolResponse> {
     const result = await execGenerateRaw(input, context);
     if (!("needsConfirmation" in result)) return result;
-    return execGenerateRaw(result.args as Record<string, unknown>, context);
+    return execGenerateRaw(confirmationArgs(result.args), context);
   }
 
   it("rejects unregistered entity types before confirming or generating", async () => {
@@ -733,7 +740,7 @@ describe("system_create tool", () => {
       throw new Error("Expected create confirmation");
     }
 
-    const result = await execRaw(pending.args as Record<string, unknown>, {
+    const result = await execRaw(confirmationArgs(pending.args), {
       userPermissionLevel: "admin",
     });
     expect(result).toMatchObject({ success: true });
