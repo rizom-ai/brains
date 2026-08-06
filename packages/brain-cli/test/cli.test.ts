@@ -129,6 +129,58 @@ describe("parseArgs", () => {
     expect(result.args).toEqual(["migrate"]);
   });
 
+  it("should parse binary asset migration flags", () => {
+    const result = parseArgs([
+      "migrate",
+      "binary-assets",
+      "--entity-type",
+      "image",
+      "--dry-run",
+      "--database-url",
+      "file:./custom/brain.db",
+      "--asset-directory",
+      "./custom/assets",
+    ]);
+
+    expect(result.command).toBe("migrate");
+    expect(result.args).toEqual(["binary-assets"]);
+    expect(result.flags["entity-type"]).toBe("image");
+    expect(result.flags["dry-run"]).toBe(true);
+    expect(result.flags["database-url"]).toBe("file:./custom/brain.db");
+    expect(result.flags["asset-directory"]).toBe("./custom/assets");
+  });
+
+  it("should parse binary asset reconciliation", () => {
+    const result = parseArgs([
+      "assets",
+      "reconcile",
+      "--entity-type",
+      "image",
+      "--from",
+      "brain-data",
+      "--dry-run",
+    ]);
+
+    expect(result.command).toBe("assets");
+    expect(result.args).toEqual(["reconcile"]);
+    expect(result.flags["entity-type"]).toBe("image");
+    expect(result.flags["from"]).toBe("brain-data");
+    expect(result.flags["dry-run"]).toBe(true);
+  });
+
+  it("should parse binary asset verification", () => {
+    const result = parseArgs([
+      "migrate",
+      "binary-assets",
+      "--entity-type",
+      "image",
+      "--verify",
+    ]);
+
+    expect(result.flags["entity-type"]).toBe("image");
+    expect(result.flags["verify"]).toBe(true);
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");

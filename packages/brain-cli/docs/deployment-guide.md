@@ -152,6 +152,37 @@ the database and asset references stay at one point in time; restore the matchin
 runtime release before restarting. `brain-data` remains a separate synced-content
 boundary and is not a substitute for routine runtime-state backups.
 
+### Image asset migration and rollback
+
+Deploy the image cutover and migration tooling together, but run the migration only in a
+stopped maintenance window:
+
+1. Stop the application and every worker. Keep them stopped until migration finishes.
+2. Take a SQLite-safe snapshot of `brain.db` including its WAL state, and snapshot the
+   configured asset directory. Keep both snapshots with the pre-cutover runtime release.
+3. Run `brain migrate binary-assets --entity-type image --dry-run`. Resolve every blocker
+   and confirm the reported unique asset bytes fit on the asset filesystem.
+4. Run `brain migrate binary-assets --entity-type image`.
+5. Run `brain migrate binary-assets --entity-type image --verify` before restarting.
+6. Start the application, trigger a preview site rebuild through the running command
+   surface, and compare representative image checksums and attachment behavior.
+
+The prewrite journal and final manifest default to
+`<data-dir>/migrations/binary-assets`. They contain no image payloads. Keep the journal
+after a failed prewrite; rerunning the command verifies and reuses completed asset writes.
+Do not treat prewritten but unreferenced assets as database corruption.
+
+To roll back, stop all processes, restore the matching pre-migration database/WAL snapshot
+and asset-directory snapshot together, deploy the matching pre-cutover runtime, and only
+then restart. Never restore only the database or only the assets. If the database is
+healthy but runtime assets are missing, repair from the synced checkout instead:
+
+```bash
+brain assets reconcile --entity-type image --from brain-data --dry-run
+brain assets reconcile --entity-type image --from brain-data
+brain migrate binary-assets --entity-type image --verify
+```
+
 ## Local secret sources
 
 The deploy CLI reads from `.env`, `.env.local`, and `process.env`.

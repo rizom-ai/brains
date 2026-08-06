@@ -231,6 +231,41 @@ comments where the YAML syntax permits. Review and apply the output only during 
 coordinated crossover; the canonical runtime path remains inactive during migration
 preparation.
 
+### `brain migrate binary-assets`
+
+Migrate legacy image data URLs in a local SQLite database to content-addressed assets.
+Run the application and all workers stopped for the complete mutating command.
+
+```bash
+brain migrate binary-assets --entity-type image --dry-run
+brain migrate binary-assets --entity-type image
+brain migrate binary-assets --entity-type image --verify
+```
+
+`--dry-run` validates every row and reports blockers, duplicate savings, required asset
+bytes, available filesystem space, and expected one-time content-hash changes without
+writing. The mutating command prewrites and verifies every unique asset, then updates all
+candidate rows and removes image FTS rows in one exclusive transaction. Its resumable
+journal and final manifest contain only IDs, hashes, media facts, and outcomes—never data
+URLs. `--verify` checks canonical hashes, metadata, asset digests, and FTS cleanup.
+
+Only local `file:` SQLite URLs are accepted. Advanced configurations can pass
+`--database-url <file:url>` and `--asset-directory <dir>` explicitly.
+
+### `brain assets reconcile`
+
+Restore missing image assets from the human-visible directory-sync checkout without
+changing entity references or content hashes.
+
+```bash
+brain assets reconcile --entity-type image --from brain-data --dry-run
+brain assets reconcile --entity-type image --from brain-data
+```
+
+Reconciliation scans every image row, verifies existing assets, validates source bytes
+against the stored digest and binary metadata, and streams only missing matching files
+into the asset store. Mismatches are reported and never rewrite an entity reference.
+
 ### `brain pin`
 
 Create a local `package.json` that pins `@rizom/brain` to the current version and then run `bun install`.

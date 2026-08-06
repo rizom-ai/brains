@@ -48,6 +48,22 @@
       "targetRelease": "post-yeehaa-image-soak"
     },
     {
+      "id": "image-data-url-offline-migration",
+      "paths": [
+        "packages/brain-cli/src/commands/migrate-binary-assets.ts",
+        "packages/brain-cli/src/lib/binary-asset-migration.ts",
+        "packages/brain-cli/src/lib/binary-asset-reconciliation.ts"
+      ],
+      "symbol": "brain migrate binary-assets",
+      "owner": "@rizom/brain",
+      "class": "offline-migration",
+      "behavior": "Migrates validated pre-cutover raster data URLs into durable assets and reports legacy image rows during verification or reconciliation.",
+      "currentConsumers": "Stopped local SQLite instances containing image rows written before the durable asset cutover.",
+      "removalPrerequisite": "Complete and verify every supported image migration, observe zero legacy image rows throughout the yeehaa.io soak, and close the rollback window.",
+      "rollbackDependency": "The offline command remains available while restoring a pre-cutover database is supported.",
+      "targetRelease": "post-yeehaa-image-soak"
+    },
+    {
       "id": "topic-entity-shape",
       "paths": [
         "entities/topics/src/lib/topic-adapter.ts",
