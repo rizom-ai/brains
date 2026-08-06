@@ -3,9 +3,11 @@
 ## Status
 
 Positioning doc for roadmap §3 (Trust & identity). Not an execution plan —
-the execution units are [multi-user.md](./multi-user.md), the identity parts
-of [atproto-integration.md](./atproto-integration.md), and the shipped
-[`auth-service` implementation](../../shell/auth-service/README.md); A2A request signing
+the execution units are the identity parts of
+[atproto-integration.md](./atproto-integration.md) and the shipped
+[`auth-service` implementation](../../shell/auth-service/README.md); multi-user
+shipped (runtime users, roles, attribution, management surfaces) and its plan
+is retired; A2A request signing
 shipped (RFC 9421 via `shared/http-signatures`, peer-trust store,
 task-caller binding) and its plan is retired. This doc exists
 because those plans each answer a slice of "who is talking to the brain,
@@ -19,8 +21,8 @@ Three kinds of subject talk to a brain, over five kinds of channel:
 
 | Subject                          | Channel                                       | Identity primitive                          | Owning plan                                        |
 | -------------------------------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------- |
-| Humans (operator, collaborators) | Session interfaces (dashboard, web-chat, CMS) | Passkey → `usr_<uuid>` session              | [multi-user.md](./multi-user.md)                   |
-| External clients (agents, IDEs)  | MCP over HTTP                                 | OAuth bearer, `sub` = user id               | [multi-user.md](./multi-user.md)                   |
+| Humans (operator, collaborators) | Session interfaces (dashboard, web-chat, CMS) | Passkey → `usr_<uuid>` session              | shipped (`shell/auth-service`)                     |
+| External clients (agents, IDEs)  | MCP over HTTP                                 | OAuth bearer, `sub` = user id               | shipped (`shell/auth-service`)                     |
 | Peer brains (directed RPC)       | A2A                                           | Domain, proven by RFC 9421 signature        | shipped (`shared/http-signatures`)                 |
 | Peer brains (ambient pub/sub)    | AT Protocol                                   | DID (`did:web:<domain>` by convention)      | [atproto-integration.md](./atproto-integration.md) |
 | Platform users                   | Discord (and future platform adapters)        | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
@@ -126,7 +128,7 @@ requests only (response/stream signing is a separate future question);
 and directory approval writes the runtime peer-trust record — pinned
 fingerprint plus granted inbound level — per decision 4.
 
-**multi-user.md** — decisions 14–15 own person-centered human claims, DB-backed access, invitations, and access-neutral external-peer associations. Brain/agent proof remains dependent on A2A/ATProto verification; a peer profile can never establish a human authentication binding.
+**Multi-user (shipped, `shell/auth-service`)** — decisions 14–15 own person-centered human claims, DB-backed access, invitations, and access-neutral external-peer associations. Brain/agent proof remains dependent on A2A/ATProto verification; a peer profile can never establish a human authentication binding.
 
 **atproto-integration.md** — the brain-DID convention
 (`did:web:<site-host>`) is ratified as the DID spelling of decision 2's
@@ -138,8 +140,8 @@ discovery stays pointed at the shared agent directory.
 The two subject tracks can otherwise proceed in parallel, with one explicit
 provider-connection dependency:
 
-- **Humans**: the auth runtime and multi-user phases 1–2 have shipped (real
-  users, roles, and per-session MCP permissions).
+- **Humans**: the auth runtime and multi-user work have shipped in full (real
+  users, roles, per-session MCP permissions, and the Admin/account surfaces).
 - **Brains**: A2A request signing shipped (keys, signing, verification,
   task binding); ATProto protocol work remains independent.
 - **Outbound ATProto OAuth**: the auth storage boundary is available. Bluesky

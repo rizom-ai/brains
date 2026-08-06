@@ -40,8 +40,8 @@ crossover, canary soak, `yeehaa.io` validation, and stable release complete.
 This plan supersedes the preset/three-reference-model framing of the retired
 `relay-presets.md` and the retired `custom-brain-definitions.md`. Team-native product work
 remains in [team-posture-capabilities.md](./team-posture-capabilities.md); real multi-user
-identity is documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md)
-and [multi-user.md](./multi-user.md).
+identity shipped and is documented in the
+[`auth-service` implementation guide](../../shell/auth-service/README.md).
 
 ## Goal
 

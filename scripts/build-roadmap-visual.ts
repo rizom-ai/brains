@@ -85,8 +85,18 @@ export function resolveStatus(statusText: string): StatusBucket {
   if (t.startsWith("active") || t.startsWith("in progress")) return "active";
   if (t.startsWith("done") || t.startsWith("complete")) return "done";
 
+  // A doc that disclaims being an execution plan describes an area and cites
+  // the shipped work that executes it, so its progress language belongs to
+  // other plans and must not bucket this one as shipped.
+  if (t.includes("not an execution plan")) return "proposed";
+
   // Otherwise infer from the full status prose.
-  const hasRemaining = /\b(remaining|pending|deferred)\b/.test(t);
+  // `remain` covers the bare verb ("deployment and backfill remain"), which is
+  // how plans actually phrase leftover work; matching only the gerund made
+  // shipped-with-follow-ups look finished.
+  const hasRemaining = /\b(remain|remains|remaining|pending|deferred)\b/.test(
+    t,
+  );
   const hasShipped =
     /\b(implemented|merged|landed|shipped|live|deployed|released)\b/.test(t);
 

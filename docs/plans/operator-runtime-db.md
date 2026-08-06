@@ -26,7 +26,7 @@ backup/restore expectations, and operator DB lifecycle. It intentionally does no
 auth table schemas or multi-user behavior:
 
 - auth schema, generated migrations, and clean-cutover behavior live in [`shell/auth-service`](../../shell/auth-service/README.md)
-- roles, permissions, People UX, and runtime user behavior live in [Multi-User & Permissions](./multi-user.md)
+- roles, permissions, People UX, and runtime user behavior shipped in [`shell/auth-service`](../../shell/auth-service/README.md)
 
 ## Scope
 
@@ -122,5 +122,4 @@ The earlier open question — "one shared runtime-state DB file, or one per cons
 ## Related plans
 
 - `shell/runtime-state` — the shipped ephemeral operational tier this plan is deliberately not part of
-- [`shell/auth-service` implementation guide](../../shell/auth-service/README.md)
-- [Multi-user and permissions](./multi-user.md)
+- [`shell/auth-service` implementation guide](../../shell/auth-service/README.md) — the shipped multi-user and permission model

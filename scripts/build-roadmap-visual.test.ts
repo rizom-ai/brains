@@ -64,6 +64,31 @@ describe("resolveStatus", () => {
     expect(resolveStatus("_Parked_ until the runtime lands.")).toBe("parked");
     expect(resolveStatus("*In progress* on feat/example.")).toBe("active");
   });
+
+  test("the bare verb 'remain' counts as outstanding work", () => {
+    // Plans write "deployment and backfill remain", not "remaining work is
+    // deployment". Matching only the gerund made shipped-with-follow-ups read
+    // as finished, which under the delete-on-completion convention would
+    // wrongly mark a live plan as removable.
+    expect(
+      resolveStatus("Phases 0-2B implemented. Digest participation remains."),
+    ).toBe("partial");
+    expect(
+      resolveStatus(
+        "Implemented in the repository. Deployment and live backfill remain operational follow-up work.",
+      ),
+    ).toBe("partial");
+  });
+
+  test("a doc that disclaims being an execution plan is never bucketed as shipped", () => {
+    // Positioning docs describe an area and cite the shipped work that
+    // executes it; progress language in them is about other plans.
+    expect(
+      resolveStatus(
+        "Positioning doc for roadmap section 3. Not an execution plan — the execution units are multi-user.md and the shipped auth-service implementation.",
+      ),
+    ).toBe("proposed");
+  });
 });
 
 const SAMPLE = `# brains roadmap

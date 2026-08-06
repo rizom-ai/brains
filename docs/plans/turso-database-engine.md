@@ -34,7 +34,8 @@ mission-critical-today → libSQL. The rewrite is still beta.
   rebuilt by importing markdown. Embeddings are not content — they are never
   exported to git; each node regenerates them locally (async jobs, `contentHash`
   staleness).
-- **Multi-user is not per-user data partitioning.** Per `multi-user.md`, a brain
+- **Multi-user is not per-user data partitioning.** Per the shipped
+  [`auth-service`](../../shell/auth-service/README.md) model, a brain
   is _one shared store_ accessed by multiple people via per-entity visibility
   (`public`/`shared`/`restricted`) and permission levels. One entities table, one
   embeddings store, regardless of user count. Multi-user therefore exerts **no**

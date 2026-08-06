@@ -19,7 +19,7 @@ Everything downstream is **already generic**: permission resolution, interface-p
 
 ## Source of truth
 
-This plan owns channel-identity typing, the app-scoped **channel registry**, delivery-provider registration, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics are documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md); person/role product behavior belongs to [multi-user.md](./multi-user.md).
+This plan owns channel-identity typing, the app-scoped **channel registry**, delivery-provider registration, and the console's connect-a-channel UX. Auth-DB schema/resolution mechanics and the shipped person/role product behavior are documented in the [`auth-service` implementation guide](../../shell/auth-service/README.md).
 
 ## Core decisions
 
@@ -155,5 +155,4 @@ Thin vertical slices; tests fold into each phase.
 
 ## Related plans
 
-- [`shell/auth-service`](../../shell/auth-service/README.md) — auth DB foundation, identity schema, resolution, and standalone-grant behavior.
-- [multi-user.md](./multi-user.md) — person/role product model and console UX.
+- [`shell/auth-service`](../../shell/auth-service/README.md) — auth DB foundation, identity schema, resolution, standalone-grant behavior, and the shipped person/role product model and console UX.
