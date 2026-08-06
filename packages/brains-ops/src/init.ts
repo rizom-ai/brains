@@ -19,6 +19,7 @@ const starterFilePaths = [
   ".gitignore",
   "cohorts/cohort-1.yaml",
   "users/alice.yaml",
+  ".github/actions/varlock-env/action.yml",
   ".github/workflows/build.yml",
   ".github/workflows/deploy.yml",
   ".github/workflows/directory-sync-stress.yml",

@@ -4,6 +4,7 @@ import {
   mkdtemp,
   mkdir,
   readFile,
+  readdir,
   stat,
   symlink,
   writeFile,
@@ -150,6 +151,9 @@ describe("initPilotRepo", () => {
       ),
     ).toBe(true);
     expect(
+      existsSync(join(repo, ".github", "actions", "varlock-env", "action.yml")),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, ".github", "workflows", "reconcile.yml")),
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
@@ -278,6 +282,30 @@ describe("initPilotRepo", () => {
     expect(stressWorkflow).toContain("if: always()");
     expect(stressWorkflow).toContain("actions/upload-artifact@v4");
     expect(stressWorkflow).not.toContain("push:");
+    const stressRunBlocks =
+      stressWorkflow.match(/run: \|\n(?: {10}.*\n)*/g) ?? [];
+    expect(stressRunBlocks.join("\n")).not.toMatch(
+      /\$\{\{ inputs\.(?:handle|confirm) \}\}/,
+    );
+    expect(stressWorkflow).toContain("HANDLE_INPUT: ${{ inputs.handle }}");
+    expect(stressWorkflow).toContain("CONFIRM_INPUT: ${{ inputs.confirm }}");
+
+    const varlockAction = await readFile(
+      join(repo, ".github", "actions", "varlock-env", "action.yml"),
+      "utf8",
+    );
+    expect(varlockAction).toContain("using: composite");
+    expect(varlockAction).toContain("bunx varlock@1.1.0 load");
+    expect(varlockAction).toContain("rmSync");
+    for (const workflowFile of await readdir(
+      join(repo, ".github", "workflows"),
+    )) {
+      const workflow = await readFile(
+        join(repo, ".github", "workflows", workflowFile),
+        "utf8",
+      );
+      expect(workflow).not.toContain("varlock-env.json");
+    }
 
     const deployWorkflow = await readFile(
       join(repo, ".github", "workflows", "deploy.yml"),

@@ -31,7 +31,7 @@ Directory-sync stress is deliberately smoke-only. The handle, domain, and conten
 - `load`: ramp through 50, 150, and 350 files, update 350, rename 100, update again, then delete all probes;
 - `stress`: continue the same deterministic ramp to 700 files and 200 renames.
 
-Each run creates a rollback branch, records health timeouts as failed samples rather than crashing the harness, samples container CPU/memory/PIDs, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. It never deploys or targets a non-smoke user.
+Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
 
 ## Scope
 

@@ -77,9 +77,9 @@ Profiles are deterministic and reversible:
 - `load`: ramps to 350 probes, updates all, renames 100, updates again, then deletes all;
 - `stress`: ramps to 700 probes and renames 200 before cleanup.
 
-The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, records health timeouts as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`.
+The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, gates on health timeouts during the monitored workload window, preserves warmup and cleanup samples as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`. Once cleanup confirms that no probes remain, it also prunes retained `ops/directory-sync-stress-backup-*` branches; if probes remain, the branches stay available for recovery.
 
-Treat any health failure, restart, OOM, residual probe, or entity-baseline drift as a failed gate. Do not restart the target during measurement. Recovery is a separate operator action after evidence collection.
+Treat any gated health failure, restart, OOM, residual probe, or entity-baseline drift as a failed gate. Do not restart the target during measurement. Recovery is a separate operator action after evidence collection.
 
 ## Stale deploy lock recovery
 

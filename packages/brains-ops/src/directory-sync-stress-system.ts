@@ -132,6 +132,7 @@ export interface CleanupDirectorySyncStressResult {
   artifactsDir: string;
   probesRemoved: number;
   probesRemaining: number;
+  backupBranchesDeleted: string[];
   cleanupCommit?: string;
 }
 
@@ -274,11 +275,16 @@ export async function cleanupDirectorySyncStress(
       logger(`Removed ${probesRemoved} directory-sync stress probes`);
     }
     const probesRemaining = (await listProbeFiles(checkoutDir)).length;
+    const backupBranchesDeleted =
+      probesRemaining === 0
+        ? await pruneStressBackupBranches(runner, checkoutDir, token)
+        : [];
     const result: CleanupDirectorySyncStressResult = {
       success: probesRemaining === 0,
       artifactsDir,
       probesRemoved,
       probesRemaining,
+      backupBranchesDeleted,
       ...(cleanupCommit ? { cleanupCommit } : {}),
     };
     await writeFile(
@@ -321,7 +327,10 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   #initialContainerState: StressContainerState | undefined;
   #monitorStopped = true;
   #monitorPromise: Promise<void> | undefined;
+  #monitorError: unknown;
   #monitorStart = "";
+  #gateOffset = 0;
+  #gateEndOffset: number | undefined;
 
   constructor(options: SystemDriverOptions) {
     this.#options = options;
@@ -384,18 +393,18 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     const originalHead = await this.#gitOutput(["rev-parse", "HEAD"]);
     this.#originalTree = await this.#gitOutput(["rev-parse", "HEAD^{tree}"]);
     this.#initialContainerState = await this.#readContainerState();
-    this.#backupBranch = `ops/directory-sync-stress-backup-${this.#options.runId}`;
-    await this.#git([
-      "push",
-      "origin",
-      `HEAD:refs/heads/${this.#backupBranch}`,
-    ]);
 
     const baseline = await this.#waitForHealthSnapshot(60_000);
     if (!baseline) {
       throw new Error("Smoke health was unavailable before stress testing");
     }
 
+    this.#backupBranch = `ops/directory-sync-stress-backup-${this.#options.runId}`;
+    await this.#git([
+      "push",
+      "origin",
+      `HEAD:refs/heads/${this.#backupBranch}`,
+    ]);
     await this.#discoverHealthEndpoints();
     await writeFile(
       join(this.#options.artifactsDir, "state.json"),
@@ -430,11 +439,19 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   async startMonitoring(): Promise<void> {
     this.#assertPrepared();
     this.#monitorStopped = false;
+    this.#monitorError = undefined;
+    this.#gateOffset = this.#healthSamples.length;
+    this.#gateEndOffset = undefined;
     this.#monitorStart = this.#options.now().toISOString();
     this.#monitorPromise = Promise.all([
       this.#monitorHealth(),
       this.#monitorRuntime(),
-    ]).then(() => undefined);
+    ])
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        this.#monitorError = error;
+        this.#monitorStopped = true;
+      });
   }
 
   async executePhase(
@@ -466,6 +483,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       checkoutDir,
       this.#options.environment.CONTENT_REPO_ADMIN_TOKEN,
     );
+    const pushedAt = this.#options.now().getTime();
     const commit = await this.#gitOutput(["rev-parse", "HEAD"]);
     const commitLatencyMs = await this.#waitForRuntimeCommit(
       commit,
@@ -476,11 +494,26 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     }
 
     let persistenceLatencyMs: number | undefined;
-    if (
-      phase.operation === "add" ||
-      phase.operation === "rename" ||
-      phase.operation === "delete"
-    ) {
+    if (phase.operation === "rename") {
+      const expectedNotes = baseline.notes + phase.targetProbeCount;
+      if (phase.settleMs > 0) {
+        await this.#options.sleep(phase.settleMs);
+      }
+      const snapshot = await this.#waitForStableEntityBaseline(
+        expectedNotes,
+        undefined,
+        20 * 60_000,
+      );
+      persistenceLatencyMs = this.#options.now().getTime() - pushedAt;
+      if (!snapshot) {
+        return failedPhase(
+          phase,
+          `health did not stabilize at ${expectedNotes} notes`,
+          commitLatencyMs,
+          persistenceLatencyMs,
+        );
+      }
+    } else if (phase.operation === "add" || phase.operation === "delete") {
       const expectedNotes = baseline.notes + phase.targetProbeCount;
       const persistenceStarted = this.#options.now().getTime();
       const snapshot = await this.#waitForEntityBaseline(
@@ -499,7 +532,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       }
     }
 
-    if (phase.settleMs > 0) {
+    if (phase.operation !== "rename" && phase.settleMs > 0) {
       await this.#options.sleep(phase.settleMs);
     }
 
@@ -559,6 +592,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       }
 
       const probesRemaining = (await listProbeFiles(this.#checkoutDir)).length;
+      this.#gateEndOffset = this.#healthSamples.length;
       const finalSnapshot = await this.#waitForEntityBaseline(
         baseline.notes,
         baseline.entities,
@@ -615,6 +649,10 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   async stopMonitoring(): Promise<StressMetrics> {
     this.#monitorStopped = true;
     await this.#monitorPromise;
+    await writeFile(
+      join(this.#options.artifactsDir, "health-samples.json"),
+      `${JSON.stringify(this.#healthSamples, null, 2)}\n`,
+    );
     if (this.#container && this.#monitorStart) {
       const logs = await this.#ssh(
         ["docker", "logs", "--since", this.#monitorStart, this.#container],
@@ -626,11 +664,16 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       );
     }
     const container = await this.#readContainerState();
-    return {
-      health: this.#healthSamples,
+    const gateEndOffset = this.#gateEndOffset ?? this.#healthSamples.length;
+    const metrics: StressMetrics = {
+      health: this.#healthSamples.slice(this.#gateOffset, gateEndOffset),
       runtime: this.#runtimeSamples,
       ...(container ? { container } : {}),
     };
+    if (this.#monitorError) {
+      throw this.#monitorError;
+    }
+    return metrics;
   }
 
   async dispose(): Promise<void> {
@@ -822,6 +865,34 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
           snapshot.entities === expectedEntities)
       ) {
         return snapshot;
+      }
+      await this.#options.sleep(5_000);
+    }
+    return undefined;
+  }
+
+  async #waitForStableEntityBaseline(
+    expectedNotes: number | undefined,
+    expectedEntities: number | undefined,
+    timeoutMs: number,
+  ): Promise<HealthPayload | undefined> {
+    const started = this.#options.now().getTime();
+    let consecutiveMatches = 0;
+    while (this.#options.now().getTime() - started < timeoutMs) {
+      const snapshot = await this.#fetchHealthPayload();
+      const matches =
+        snapshot !== undefined &&
+        (expectedNotes === undefined ||
+          noteCount(snapshot) === expectedNotes) &&
+        (expectedEntities === undefined ||
+          snapshot.entities === expectedEntities);
+      if (matches) {
+        consecutiveMatches += 1;
+        if (consecutiveMatches === 2) {
+          return snapshot;
+        }
+      } else {
+        consecutiveMatches = 0;
       }
       await this.#options.sleep(5_000);
     }
@@ -1171,6 +1242,46 @@ async function pushMainWithRebase(
     );
   }
   throw new Error("Unable to push content main after five rebase attempts");
+}
+
+async function pruneStressBackupBranches(
+  runner: StressCommandRunner,
+  checkoutDir: string,
+  token: string,
+): Promise<string[]> {
+  const result = await requireCommand(
+    runner,
+    "git",
+    [
+      "ls-remote",
+      "--heads",
+      "origin",
+      "refs/heads/ops/directory-sync-stress-backup-*",
+    ],
+    { cwd: checkoutDir, env: gitEnvironment(token) },
+  );
+  const branches = result.stdout
+    .split(/\r?\n/)
+    .map(
+      (line) =>
+        line.match(
+          /\trefs\/heads\/(ops\/directory-sync-stress-backup-[^\s]+)$/,
+        )?.[1],
+    )
+    .filter((branch): branch is string => branch !== undefined)
+    .sort();
+  for (const branch of branches) {
+    await requireCommand(
+      runner,
+      "git",
+      ["push", "origin", "--delete", branch],
+      {
+        cwd: checkoutDir,
+        env: gitEnvironment(token),
+      },
+    );
+  }
+  return branches;
 }
 
 async function gitOutput(
