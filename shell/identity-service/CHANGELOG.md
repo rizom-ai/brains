@@ -1,5 +1,14 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.255
+  - @brains/conversation-service@0.2.0-alpha.255
+  - @brains/entity-service@0.2.0-alpha.255
+
 ## 0.2.0-alpha.254
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @brains/admin
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.255
+  - @brains/utils@0.2.0-alpha.255
+  - @brains/auth-service@0.2.0-alpha.255
+  - @brains/plugins@0.2.0-alpha.255
+
 ## 0.2.0-alpha.254
 
 ### Patch Changes

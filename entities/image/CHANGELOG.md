@@ -1,5 +1,17 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/style-guide@0.2.0-alpha.255
+  - @brains/contracts@0.2.0-alpha.255
+  - @brains/image@0.2.0-alpha.255
+  - @brains/utils@0.2.0-alpha.255
+  - @brains/entity-service@0.2.0-alpha.255
+  - @brains/plugins@0.2.0-alpha.255
+
 ## 0.2.0-alpha.254
 
 ### Patch Changes

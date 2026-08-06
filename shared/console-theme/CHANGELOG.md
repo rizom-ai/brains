@@ -1,5 +1,7 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.255
+
 ## 0.2.0-alpha.254
 
 ## 0.2.0-alpha.253

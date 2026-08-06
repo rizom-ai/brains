@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- [#83](https://github.com/rizom-ai/brains/pull/83) [`ed13b92`](https://github.com/rizom-ai/brains/commit/ed13b9229fbed366fcef05e2b92bc92d00288017) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a smoke-only directory-sync stress runner with deterministic regression, load, and stress profiles, structured evidence, safety gates, and independent cleanup.
+
 ## 0.2.0-alpha.254
 
 ## 0.2.0-alpha.253
