@@ -231,6 +231,7 @@ export class ProjectionWaveScheduler {
       data: { waveId, ruleId: rule.ruleId },
       options: {
         source: "projection-scheduler",
+        rootJobId: `projection-wave:${waveId}`,
         metadata: {
           operationType: "data_processing",
           operationTarget: rule.ruleId,

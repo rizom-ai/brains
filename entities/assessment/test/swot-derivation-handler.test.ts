@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { resetPromptCache } from "@brains/plugins";
+import { ProjectionJsonObjectSchema, resetPromptCache } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAdapter, SwotAssessmentPlugin } from "../src";
 import { AgentAdapter, SkillAdapter } from "./helpers";
-import { SwotDerivationHandler } from "../src/handlers/swot-derivation-handler";
+import {
+  buildPromptContext,
+  SwotDerivationHandler,
+} from "../src/handlers/swot-derivation-handler";
 
 const agentAdapter = new AgentAdapter();
 const skillAdapter = new SkillAdapter();
@@ -32,6 +35,52 @@ describe("SwotDerivationHandler", () => {
     resetPromptCache();
     harness = createPluginHarness({ dataDir: "/tmp/test-swot-handler" });
     harness.getMockShell().getProfileKindRegistry().finalize();
+  });
+
+  it("builds JSON-compatible prompt context without optional evidence", () => {
+    const promptContext = buildPromptContext({
+      summary: {
+        brainSkillCount: 1,
+        approvedAgentCount: 1,
+        discoveredAgentCount: 0,
+        approvedCoverageRatio: 0,
+        uncoveredSkillCount: 1,
+        singleSourceSkillCount: 0,
+        pendingReviewCount: 0,
+      },
+      selfProfile: { name: "Owner" },
+      brainSkills: [
+        {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          approvedCoverageCount: 0,
+          approvedCoverageAgents: [],
+        },
+      ],
+      approvedAgents: [
+        {
+          brainName: "Collaborator",
+          category: "person",
+          skills: [
+            {
+              name: "Facilitation",
+              description: "Facilitation skill",
+              tags: ["facilitation"],
+            },
+          ],
+        },
+      ],
+      discoveredAgents: [],
+      hints: {
+        strongestTags: [],
+        uncoveredSkills: ["Research"],
+        singleSourceSkills: [],
+        agentOnlyTags: ["facilitation"],
+      },
+    });
+
+    expect(() => ProjectionJsonObjectSchema.parse(promptContext)).not.toThrow();
   });
 
   it("creates the swot entity from refined AI output", async () => {

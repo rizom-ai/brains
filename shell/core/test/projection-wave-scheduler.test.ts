@@ -214,6 +214,9 @@ describe("ProjectionWaveScheduler", () => {
       expect.objectContaining({
         type: "shell:projection-rule",
         data: { waveId: "wave-1", ruleId: "topics" },
+        options: expect.objectContaining({
+          rootJobId: "projection-wave:wave-1",
+        }),
       }),
     );
     expect(store.queuedRules).toEqual([

@@ -264,6 +264,38 @@ describe("JobQueueService", () => {
       });
     });
 
+    it("starts a fresh projection lineage when the root changes", async () => {
+      const parentProvenance = {
+        rootJobId: "wave-1",
+        causationId: "series-job-1",
+        projectionId: "series-projection",
+        projectionLineage: ["series-projection"],
+        derivationDepth: 1,
+      };
+
+      const jobId = await operationContext.run(
+        parentProvenance,
+        "complete-wave-1",
+        () =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: testEntity,
+            options: enqueueOpts({
+              rootJobId: "projection-wave:wave-2",
+              projection: { id: "series-projection" },
+            }),
+          }),
+      );
+
+      expect((await service.getStatus(jobId))?.metadata.provenance).toEqual({
+        rootJobId: "projection-wave:wave-2",
+        causationId: jobId,
+        projectionId: "series-projection",
+        projectionLineage: ["series-projection"],
+        derivationDepth: 1,
+      });
+    });
+
     it("creates provenance for a root projection job", async () => {
       const jobId = await service.enqueue({
         type: "shell:embedding",

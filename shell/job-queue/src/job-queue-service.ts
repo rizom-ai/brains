@@ -310,7 +310,16 @@ export class JobQueueService implements IJobQueueService {
     options: JobQueueEnqueueRequest["options"],
   ): OperationProvenance {
     const current = this.operationContext.current();
-    const inherited = options?.metadata.provenance ?? current?.provenance;
+    const inheritedCandidate =
+      options?.metadata.provenance ?? current?.provenance;
+    const inherited =
+      inheritedCandidate?.rootJobId === rootJobId
+        ? inheritedCandidate
+        : undefined;
+    const currentOperationId =
+      current?.provenance.rootJobId === rootJobId
+        ? current.operationId
+        : undefined;
     const projection = options?.projection;
     const projectionLineage = projection
       ? [...(inherited?.projectionLineage ?? []), projection.id]
@@ -319,7 +328,7 @@ export class JobQueueService implements IJobQueueService {
 
     return OperationProvenanceSchema.parse({
       rootJobId,
-      causationId: current?.operationId ?? inherited?.causationId ?? jobId,
+      causationId: currentOperationId ?? inherited?.causationId ?? jobId,
       ...(projectionId ? { projectionId } : {}),
       projectionLineage,
       ...(projection?.sourceEntity

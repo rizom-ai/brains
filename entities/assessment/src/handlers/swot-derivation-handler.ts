@@ -85,24 +85,28 @@ export function buildPromptContext(
   const dependableNetworkSkills = contextData.approvedAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
-      agentDescription: agent.description,
-      agentNotes: agent.notes,
+      ...(agent.description !== undefined
+        ? { agentDescription: agent.description }
+        : {}),
+      ...(agent.notes !== undefined ? { agentNotes: agent.notes } : {}),
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
-      examples: skill.examples,
+      ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
       signal: "dependable",
     })),
   );
   const tentativeNetworkSkills = contextData.discoveredAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
-      agentDescription: agent.description,
-      agentNotes: agent.notes,
+      ...(agent.description !== undefined
+        ? { agentDescription: agent.description }
+        : {}),
+      ...(agent.notes !== undefined ? { agentNotes: agent.notes } : {}),
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
-      examples: skill.examples,
+      ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
       signal: "tentative",
     })),
   );
@@ -124,7 +128,7 @@ export function buildPromptContext(
         name: skill.name,
         description: skill.description,
         tags: skill.tags,
-        examples: skill.examples,
+        ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
         candidateMatches: allNetworkSkills
           .map((networkSkill) => {
             const matchSignals = getMatchSignals(skill, networkSkill);
