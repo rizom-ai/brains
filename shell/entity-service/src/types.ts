@@ -53,6 +53,7 @@ export interface EntityJobOptions {
 }
 
 export {
+  canonicalContentVisibilitySchema,
   contentVisibilitySchema,
   normalizeContentVisibility,
   getVisibleContentVisibilities,
@@ -93,6 +94,8 @@ export interface CreateEntityFromMarkdownInput {
   entityType: string;
   id: string;
   markdown: string;
+  /** Explicit core visibility. When omitted, markdown frontmatter or the public default applies. */
+  visibility?: ContentVisibility;
 }
 
 /**
@@ -258,6 +261,7 @@ export interface CreateInput {
   entityType: string;
   prompt?: string;
   title?: string;
+  visibility?: ContentVisibility;
   content?: string;
   url?: string;
   from?: CreateFromInput;
@@ -346,6 +350,7 @@ export type CreateInterceptor = (
 export interface UploadSaveInput {
   upload: CreateFromUploadInput;
   title?: string;
+  visibility?: ContentVisibility;
 }
 
 export type UploadSaveHandler = (

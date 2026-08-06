@@ -122,6 +122,7 @@ export {
   baseEntitySchema,
   NOTE_ENTITY_TYPE,
   canWriteVisibility,
+  canonicalContentVisibilitySchema,
   contentVisibilitySchema,
   createResultAttachmentSchema,
   emptyFrontmatterSchema,

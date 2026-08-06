@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready to implement. This is a narrow command-contract correction: callers using an agent-backed interface must be able to save supplied material at an authorized non-public visibility without embedding policy frontmatter into the material itself. The plan should be removed after implementation, focused validation, and eval acceptance are complete.
+Implemented on `feat/system-create-visibility`; focused model-eval execution remains before closure. The typed command, confirmation, persistence, interceptor/upload propagation, deterministic coverage, and personal/team eval cases are in place. Tests, typechecks, lint, docs checks, and changeset validation pass. Eval execution is blocked locally because no AI API key is configured. Remove this plan after the focused evals pass and the implementation merges.
 
 ## Problem
 

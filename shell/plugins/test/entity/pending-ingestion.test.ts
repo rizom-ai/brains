@@ -85,11 +85,13 @@ describe("pending ingestion helpers", () => {
     expect(entityService.createEntity).not.toHaveBeenCalled();
   });
 
-  test("saveProcessedEntity updates an existing pending entity", async () => {
-    const existing = makeEntity();
+  test("saveProcessedEntity updates an existing non-public pending entity", async () => {
+    const existing = makeEntity({ visibility: "shared" });
     const updateEntity = mock(async (_request: unknown) => mutation("item-1"));
     const entityService = {
-      getEntity: mock(async () => existing),
+      getEntity: mock(async (request: { visibilityScope?: string }) =>
+        request.visibilityScope === "restricted" ? existing : null,
+      ),
       createEntity: mock(async (_request: unknown) => mutation("unexpected")),
       updateEntity,
     };
@@ -110,6 +112,11 @@ describe("pending ingestion helpers", () => {
       updated: true,
       mutation: mutation("item-1"),
       previousEntity: existing,
+    });
+    expect(entityService.getEntity).toHaveBeenCalledWith({
+      entityType: "test",
+      id: "item-1",
+      visibilityScope: "restricted",
     });
     expect(updateEntity).toHaveBeenCalledTimes(1);
     expect(updateEntity.mock.calls[0]?.[0]).toEqual({

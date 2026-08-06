@@ -47,6 +47,17 @@ export class WishlistPlugin extends EntityPlugin<
     _executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
+    if (input.visibility !== undefined && input.visibility !== "public") {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error:
+            "Wish creation currently supports public visibility only; use a note for shared or restricted capture.",
+        },
+      };
+    }
+
     const result = await new WishCreateHandler(this.logger, context).process(
       {
         ...(input.title ? { title: input.title } : {}),

@@ -20,6 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "note"
+        visibility: shared
   responseNotContains:
     - "I cannot"
     - "note_create"

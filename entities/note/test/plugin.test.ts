@@ -115,6 +115,7 @@ describe("NotePlugin", () => {
       const result = await interceptor(
         {
           entityType: "note",
+          visibility: "shared",
           from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
@@ -138,22 +139,26 @@ describe("NotePlugin", () => {
       let entity = await harness.getEntityService().getEntity({
         entityType: "note",
         id: "research-notes",
+        visibilityScope: "shared",
       });
       expect(entity?.metadata).toMatchObject({
         title: "research-notes",
         status: "generating",
       });
+      expect(entity?.visibility).toBe("shared");
 
       await runQueuedUploadImport();
 
       entity = await harness.getEntityService().getEntity({
         entityType: "note",
         id: "research-notes",
+        visibilityScope: "shared",
       });
       expect(entity?.content).toBe(
         `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
       );
       expect(entity?.metadata).toEqual({ title: "research-notes" });
+      expect(entity?.visibility).toBe("shared");
     });
 
     it("does not overwrite a note edited while its upload import is queued", async () => {

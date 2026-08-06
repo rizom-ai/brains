@@ -279,6 +279,26 @@ describe("system_create tool", () => {
     expect(contentField?.description).toContain("direct save request");
   });
 
+  it("exposes canonical visibility separately from exact source text", () => {
+    const baseInput = {
+      entityType: "note",
+      source: { kind: "text" as const, content: "Exact note text" },
+    };
+
+    for (const visibility of ["public", "shared", "restricted"] as const) {
+      expect(
+        createInputSchema.safeParse({ ...baseInput, visibility }).success,
+      ).toBe(true);
+    }
+    expect(
+      createInputSchema.safeParse({ ...baseInput, visibility: "private" })
+        .success,
+    ).toBe(false);
+    expect(createInputSchema.shape.visibility.description).toContain(
+      "team/collaborator",
+    );
+  });
+
   it("tells models same-message direct save content is sufficient", () => {
     const services = createMockSystemServices();
     const tool = createSystemTools(services).find(
@@ -684,6 +704,46 @@ describe("system_create tool", () => {
       summary: 'Create "Confirm Me"?',
     });
     expect(result).toHaveProperty("args.confirmed", true);
+  });
+
+  it("preserves explicit visibility through confirmation and persistence", async () => {
+    const sourceContent = "Keep this exact private note.";
+    const pending = await execRaw(
+      {
+        entityType: "note",
+        title: "Private Note",
+        visibility: "restricted",
+        content: sourceContent,
+      },
+      { userPermissionLevel: "admin" },
+    );
+
+    expect(pending).toMatchObject({
+      needsConfirmation: true,
+      preview: expect.stringContaining("Visibility: restricted"),
+      args: {
+        entityType: "note",
+        title: "Private Note",
+        visibility: "restricted",
+        source: { kind: "text", content: sourceContent },
+        confirmed: true,
+      },
+    });
+    if (!("needsConfirmation" in pending)) {
+      throw new Error("Expected create confirmation");
+    }
+
+    const result = await execRaw(pending.args as Record<string, unknown>, {
+      userPermissionLevel: "admin",
+    });
+    expect(result).toMatchObject({ success: true });
+    const entity = await services.entityService.getEntity({
+      entityType: "note",
+      id: "private-note",
+      visibilityScope: "restricted",
+    });
+    expect(entity?.visibility).toBe("restricted");
+    expect(entity?.content).toContain(sourceContent);
   });
 
   it("omits stale upload refs from direct-content confirmation preview copy", async () => {

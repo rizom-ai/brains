@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
 
-const canonicalContentVisibilitySchema: z.ZodEnum<{
+export const canonicalContentVisibilitySchema: z.ZodEnum<{
   public: "public";
   shared: "shared";
   restricted: "restricted";

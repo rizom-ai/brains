@@ -33,6 +33,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
+        visibility: shared
   responseNotContains:
     - "permission denied"
     - "owner only"

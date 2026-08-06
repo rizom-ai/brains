@@ -1,3 +1,4 @@
+import { canonicalContentVisibilitySchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
 type StrictObjectSchema<Shape extends z.ZodRawShape> = ReturnType<
@@ -379,6 +380,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
 export const createInputSchema: StrictObjectSchema<{
   entityType: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
+  visibility: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
   source: typeof createPreferredSourceInputSchema;
   replace: z.ZodOptional<z.ZodBoolean>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
@@ -391,6 +393,11 @@ export const createInputSchema: StrictObjectSchema<{
         "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
       ),
     title: z.string().optional().describe("Title for a new entity."),
+    visibility: canonicalContentVisibilitySchema
+      .optional()
+      .describe(
+        "Content visibility. Omit for public. Use shared for team/collaborator content readable by Trusted and Admin callers. Use restricted for private/admin-only content.",
+      ),
     source: createPreferredSourceInputSchema.describe(
       "Concrete source selector. Use exactly one source branch. For AI generation or source-derived artifacts, use system_generate instead.",
     ),

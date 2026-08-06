@@ -1,11 +1,9 @@
 import { isSavableAssistantMessage } from "@brains/conversation-service";
-import type {
-  CreateExecutionContext,
-  CreateInput,
-} from "@brains/entity-service";
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
+  type CreateExecutionContext,
+  type CreateInput,
 } from "@brains/entity-service";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -39,6 +37,7 @@ function buildUploadPreserveConfirmation(input: {
   filename: string;
   mediaType: string;
   entityType: string;
+  visibility: CreateInput["visibility"];
 }): { summary: string; preview: string } {
   const label = input.title ? ` as "${input.title}"` : "";
   return {
@@ -47,6 +46,7 @@ function buildUploadPreserveConfirmation(input: {
       `Filename: ${input.filename}`,
       `Media type: ${input.mediaType}`,
       `Entity type: ${input.entityType}`,
+      `Visibility: ${input.visibility ?? "public"}`,
       ...(input.title ? [`Title: ${input.title}`] : []),
     ].join("\n"),
   };
@@ -56,13 +56,15 @@ function buildCreateConfirmation(createInput: CreateInput): {
   summary: string;
   preview: string;
 } {
-  const { entityType, title, prompt, content, url, from } = createInput;
+  const { entityType, title, visibility, prompt, content, url, from } =
+    createInput;
   const label = title ? ` "${title}"` : ` ${entityType}`;
   const summary = `${prompt ? "Generate" : "Create"}${label}?`;
   const sourceAttachment =
     from?.kind === "entity-attachment" ? from : undefined;
   const previewParts = [
     `Entity type: ${entityType}`,
+    `Visibility: ${visibility ?? "public"}`,
     ...(title ? [`Title: ${title}`] : []),
     ...(url ? [`URL: ${url}`] : []),
     ...(from?.kind === "upload" ? ["Upload: uploaded file"] : []),
@@ -188,6 +190,7 @@ async function executeUploadPreserve(
   input: {
     upload: { kind: "upload"; id: string };
     title?: string;
+    visibility?: CreateInput["visibility"];
     handler: NonNullable<PreparedCreate["uploadPreserve"]>["handler"];
   },
   toolContext: CreateToolContext,
@@ -201,7 +204,13 @@ async function executeUploadPreserve(
     }),
   };
   return input.handler(
-    { upload: input.upload, ...(input.title && { title: input.title }) },
+    {
+      upload: input.upload,
+      ...(input.title && { title: input.title }),
+      ...(input.visibility !== undefined
+        ? { visibility: input.visibility }
+        : {}),
+    },
     executionContext,
   );
 }
@@ -230,6 +239,9 @@ async function executeDirectCreate(
               entityType: createInput.entityType,
               id,
               markdown: createInput.content,
+              ...(createInput.visibility !== undefined
+                ? { visibility: createInput.visibility }
+                : {}),
             },
             options: createOptions,
           })
@@ -239,6 +251,9 @@ async function executeDirectCreate(
               entityType: createInput.entityType,
               content: createInput.content ?? "",
               metadata: { title: createInput.title ?? id },
+              ...(createInput.visibility !== undefined
+                ? { visibility: createInput.visibility }
+                : {}),
               created: new Date().toISOString(),
               updated: new Date().toISOString(),
             },
@@ -407,21 +422,35 @@ async function prepareCreate(
     return { kind: "error", result: unregisteredDerivedError };
   }
 
-  const requestedVisibility = resolvedContent
+  const sourceVisibility = resolvedContent
     ? extractVisibilityFromMarkdown(resolvedContent)
     : undefined;
-  if (requestedVisibility) {
-    if (
-      !canWriteVisibility(toolContext.userPermissionLevel, requestedVisibility)
-    ) {
-      return {
-        kind: "error",
-        result: {
-          success: false,
-          error: `Cannot create entity with visibility "${requestedVisibility}" — caller permission "${toolContext.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
-        },
-      };
-    }
+  if (
+    input.visibility !== undefined &&
+    sourceVisibility !== undefined &&
+    input.visibility !== sourceVisibility
+  ) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error: `Conflicting entity visibility: system_create requested "${input.visibility}" but the source frontmatter declares "${sourceVisibility}".`,
+      },
+    };
+  }
+
+  const declaredVisibility = input.visibility ?? sourceVisibility;
+  const requestedVisibility = declaredVisibility ?? "public";
+  if (
+    !canWriteVisibility(toolContext.userPermissionLevel, requestedVisibility)
+  ) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error: `Cannot create entity with visibility "${requestedVisibility}" — caller permission "${toolContext.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
+      },
+    };
   }
 
   const eventContext = buildEntityMutationEventContext(toolContext);
@@ -429,6 +458,9 @@ async function prepareCreate(
   const createInput: CreateInput = {
     entityType: derivedEntityType,
     ...(title && { title }),
+    ...(declaredVisibility !== undefined
+      ? { visibility: declaredVisibility }
+      : {}),
     ...(resolvedContent && { content: resolvedContent }),
     ...(url && { url }),
     ...(from && { from }),
@@ -510,7 +542,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use source to choose exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again; for example, 'Save this as a note: ...' or 'Save this memo about the launch timeline' already supplies the content, even when it is only a short sentence or fragment. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind text for that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again; for example, 'Save this as a note: ...' or 'Save this memo about the launch timeline' already supplies the content, even when it is only a short sentence or fragment. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind text for that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);
@@ -529,6 +561,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
               filename: uploadPreserve.filename,
               mediaType: uploadPreserve.mediaType,
               entityType: createInput.entityType,
+              visibility: createInput.visibility,
             })
           : buildCreateConfirmation(createInput);
         const confirmationSource = freezeConfirmationSource({
@@ -539,6 +572,9 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           (confirmationToken) => ({
             entityType: createInput.entityType,
             ...(createInput.title && { title: createInput.title }),
+            ...(createInput.visibility !== undefined
+              ? { visibility: createInput.visibility }
+              : {}),
             source: confirmationSource,
             ...(createInput.replace && { replace: createInput.replace }),
             confirmed: true,
@@ -558,6 +594,9 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           {
             upload: uploadPreserve.upload,
             ...(createInput.title && { title: createInput.title }),
+            ...(createInput.visibility !== undefined
+              ? { visibility: createInput.visibility }
+              : {}),
             handler: uploadPreserve.handler,
           },
           toolContext,

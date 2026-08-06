@@ -221,6 +221,7 @@ export function createMockSystemServices(
     entityType: string;
     id: string;
     markdown: string;
+    visibility?: BaseEntity["visibility"];
   }> = [];
   let lastCreateRequest: unknown;
   let lastUpdateRequest: unknown;
@@ -294,7 +295,12 @@ export function createMockSystemServices(
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
-      input: { entityType: string; id: string; markdown: string };
+      input: {
+        entityType: string;
+        id: string;
+        markdown: string;
+        visibility?: BaseEntity["visibility"];
+      };
     }) => {
       lastCreateRequest = request;
       const input = request.input;
@@ -304,7 +310,7 @@ export function createMockSystemServices(
         entityType: input.entityType,
         content: input.markdown,
         contentHash: "",
-        visibility: "public",
+        visibility: input.visibility ?? "public",
         metadata: { title: input.id },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

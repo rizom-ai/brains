@@ -13,6 +13,7 @@ describe("convertToSDKTools", () => {
       inputSchema: {
         entityType: z.string(),
         title: z.string().optional(),
+        visibility: z.enum(["public", "shared", "restricted"]).optional(),
         source: z
           .object({ kind: z.literal("text"), content: z.string() })
           .optional(),
@@ -44,6 +45,7 @@ describe("convertToSDKTools", () => {
     expect(Object.keys(modelVisibleInputSchema)).toEqual([
       "entityType",
       "title",
+      "visibility",
       "source",
     ]);
   });

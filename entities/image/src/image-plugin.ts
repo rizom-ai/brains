@@ -248,6 +248,9 @@ export class ImagePlugin extends EntityPlugin<
         title: title ?? prompt.slice(0, 60).trim(),
         alt: title ?? prompt.slice(0, 60).trim(),
         attachmentType: "generated",
+        ...(input.visibility !== undefined
+          ? { visibility: input.visibility }
+          : {}),
       });
       const jobId = await context.jobs.enqueue({
         type: "image-generate",
@@ -303,6 +306,9 @@ export class ImagePlugin extends EntityPlugin<
       title: input.title ?? `cover-${resolved.entity.id}`,
       alt: input.title ?? `cover-${resolved.entity.id}`,
       attachmentType: "generated",
+      ...(input.visibility !== undefined
+        ? { visibility: input.visibility }
+        : {}),
       sourceEntityType: targetEntityType,
       sourceEntityId: resolved.entity.id,
     });
@@ -396,6 +402,9 @@ export class ImagePlugin extends EntityPlugin<
         sourceFilename: uploadRecord.filename,
         sourceMediaType: uploadRecord.mediaType,
         attachmentType: "uploaded",
+        ...(input.visibility !== undefined
+          ? { visibility: input.visibility }
+          : {}),
       },
       executionContext,
     );
@@ -495,6 +504,9 @@ export class ImagePlugin extends EntityPlugin<
       sourceEntityId: sourceInput.sourceEntityId,
       attachmentType,
       dedupKey,
+      ...(input.visibility !== undefined
+        ? { visibility: input.visibility }
+        : {}),
     });
     const jobId = await context.jobs.enqueue({
       type: "image-render-source",
@@ -536,6 +548,7 @@ export class ImagePlugin extends EntityPlugin<
       sourceFilename?: string;
       sourceMediaType?: string;
       dedupKey?: string;
+      visibility?: CreateInput["visibility"];
     },
     executionContext?: CreateExecutionContext,
   ): Promise<void> {
@@ -556,11 +569,14 @@ export class ImagePlugin extends EntityPlugin<
       ...(input.dedupKey && { dedupKey: input.dedupKey }),
     });
 
-    await createPendingEntity({
+    const pending = await createPendingEntity({
       entityService: context.entityService,
       entity: {
         id: input.id,
         ...entityData,
+        ...(input.visibility !== undefined
+          ? { visibility: input.visibility }
+          : {}),
         created: now,
         updated: now,
       },
@@ -575,6 +591,15 @@ export class ImagePlugin extends EntityPlugin<
           }
         : {}),
     });
+    if (
+      input.visibility !== undefined &&
+      pending.existingEntity !== undefined &&
+      pending.existingEntity.visibility !== input.visibility
+    ) {
+      throw new Error(
+        `Existing image visibility "${pending.existingEntity.visibility}" does not match requested visibility "${input.visibility}".`,
+      );
+    }
   }
 
   protected override async getInstructions(): Promise<string> {
@@ -602,6 +627,9 @@ export class ImagePlugin extends EntityPlugin<
           {
             entityType: this.entityType,
             ...(input.title !== undefined ? { title: input.title } : {}),
+            ...(input.visibility !== undefined
+              ? { visibility: input.visibility }
+              : {}),
             from: input.upload,
           },
           context,

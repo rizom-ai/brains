@@ -1,9 +1,11 @@
-import type {
-  BaseEntity,
-  CreateEntityOptions,
-  EntityInput,
-  EntityMutationResult,
-  UpdateEntityOptions,
+import {
+  internalFullScope,
+  type BaseEntity,
+  type ContentVisibility,
+  type CreateEntityOptions,
+  type EntityInput,
+  type EntityMutationResult,
+  type UpdateEntityOptions,
 } from "@brains/entity-service";
 
 export type PendingIngestionStatus = "pending" | "draft" | "failed";
@@ -18,6 +20,7 @@ export interface PendingEntityService {
   getEntity(request: {
     entityType: string;
     id: string;
+    visibilityScope?: ContentVisibility;
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
@@ -63,6 +66,7 @@ export async function createPendingEntity({
   const existingEntity = await entityService.getEntity({
     entityType: entity.entityType,
     id: entity.id,
+    visibilityScope: internalFullScope("pending entity identity check"),
   });
 
   if (existingEntity) {
@@ -129,6 +133,7 @@ export async function saveProcessedEntity({
   const previousEntity = await entityService.getEntity({
     entityType: entity.entityType,
     id: entity.id,
+    visibilityScope: internalFullScope("pending entity completion"),
   });
 
   if (previousEntity) {
@@ -184,7 +189,11 @@ export async function failPendingEntity({
   error,
   content,
 }: FailPendingEntityRequest): Promise<FailPendingEntityResult> {
-  const previousEntity = await entityService.getEntity({ entityType, id });
+  const previousEntity = await entityService.getEntity({
+    entityType,
+    id,
+    visibilityScope: internalFullScope("pending entity failure"),
+  });
 
   if (!previousEntity) {
     return { found: false };
