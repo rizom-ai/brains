@@ -34,7 +34,8 @@ focus and stale-item alerts. It is **not** a task manager, **not** a CRM, and
   and must not overload portfolio's `project`.
 - **No opportunity / pipeline / CRM entity exists on main** — the entity lives only in
   this plan's worktree. Upstream intake is its own domain: email becomes restricted
-  `mail-item` records ([email-triage.md](./email-triage.md), shipped in its worktree),
+  `mail-item` records (the shipped
+  [`@brains/email-triage`](../../plugins/email-triage/README.md)),
   and [lead-management.md](./lead-management.md) consolidates them into `lead`-state
   opportunities. The two services share only the entity package and never reference
   each other.
@@ -272,6 +273,7 @@ reassessed on the weekly cadence; nothing is locked).
 
 - [lead-management.md](./lead-management.md) — intake and consolidation of
   `lead`-state records; qualification transition.
-- [email-triage.md](./email-triage.md) — upstream derived mail items.
+- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; upstream
+  derived mail items.
 - [unified-inbox.md](./unified-inbox.md) — shared attention/heartbeat
   infrastructure this plan's alerts wait on.

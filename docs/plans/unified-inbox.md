@@ -14,8 +14,8 @@ invents its own surface: [atproto-integration.md](./atproto-integration.md) desi
 operator-only "Candidate Inbox", [bd-priority-engine.md](./bd-priority-engine.md) blocks
 stale-opportunity alerts on shared infrastructure ("scheduling, dedupe, and notification
 delivery must not become business-development-specific"), and
-[email-triage.md](./email-triage.md) needs somewhere for high-priority derived mail items
-to land. This plan is that shared surface: one contract, one dashboard widget, one
+the shipped [`@brains/email-triage`](../../plugins/email-triage/README.md) needs
+somewhere for high-priority derived mail items to land. This plan is that shared surface: one contract, one dashboard widget, one
 digest.
 
 ## What exists today (fact-check)
@@ -135,7 +135,8 @@ Tests are written first inside each phase.
 
 ## Related plans
 
-- [email-triage.md](./email-triage.md) — first real source (derived mail attention).
+- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; first real
+  source (derived mail attention).
 - [lead-management.md](./lead-management.md) — business qualification view; does not
   duplicate mail items in this inbox.
 - [atproto-integration.md](./atproto-integration.md) — its Candidate Inbox is specified

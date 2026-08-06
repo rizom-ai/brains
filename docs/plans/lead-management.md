@@ -2,8 +2,9 @@
 
 ## Status
 
-**Proposed, gated on [email-triage.md](./email-triage.md) (shipped through Phase 2A in
-its worktree) and on the shared `opportunity` entity owned by
+**Proposed, gated on the shipped
+[`@brains/email-triage`](../../plugins/email-triage/README.md) and on the shared
+`opportunity` entity owned by
 [bd-priority-engine.md](./bd-priority-engine.md).** Decided 2026-08-04: a lead is not a
 separate entity. It is an `opportunity` in the `lead` lifecycle state. This plugin
 consumes only durable mail items; it never subscribes to raw `EMAIL_INBOUND`, owns no
@@ -171,7 +172,7 @@ the reworked `entities/opportunity` package landing first.
 ## Out of scope
 
 - Raw email intake, classification, acknowledgement, and mail-item UX —
-  [email-triage.md](./email-triage.md).
+  [`@brains/email-triage`](../../plugins/email-triage/README.md).
 - Reply drafting and delivery — [email-reply-drafting.md](./email-reply-drafting.md).
 - Scoring rubric, ranking, focus, and heartbeat —
   [bd-priority-engine.md](./bd-priority-engine.md).
@@ -182,7 +183,8 @@ the reworked `entities/opportunity` package landing first.
 
 ## Related plans
 
-- [email-triage.md](./email-triage.md) — required durable source records.
+- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; required
+  durable source records.
 - [bd-priority-engine.md](./bd-priority-engine.md) — owns the shared `opportunity`
   entity and the committed-state surfaces.
 - [unified-inbox.md](./unified-inbox.md) — attention remains on open mail items to avoid

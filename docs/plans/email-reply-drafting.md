@@ -2,9 +2,10 @@
 
 ## Status
 
-**Proposed, gated, and requires a focused review after
-[email-triage.md](./email-triage.md).** Email triage will persist only a safe derived
-`mail-item`; it will not copy the original email. Lead context from
+**Proposed, gated on the shipped
+[`@brains/email-triage`](../../plugins/email-triage/README.md), and requires a focused
+review.** Email triage persists only a safe derived
+`mail-item`; it does not copy the original email. Lead context from
 [lead-management.md](./lead-management.md) is optional enrichment, not the source of
 threading or recipient truth.
 
@@ -83,8 +84,8 @@ Tests are written and observed failing before implementation in every phase.
 
 ## Related plans
 
-- [email-triage.md](./email-triage.md) — owns the derived mail item and opaque source
-  reference.
+- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; owns the
+  derived mail item and opaque source reference.
 - [lead-management.md](./lead-management.md) — optional business context.
 - [connected-channels.md](./connected-channels.md) — delivery-provider contract extended
   for threading.
