@@ -58,27 +58,26 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 
 Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`. If an entity type has exactly one operating service plugin and is not independently reused, it may live inside that service plugin as a compound package under `plugins/` instead of appearing here.
 
-| Package                        | Purpose                                                           |
-| ------------------------------ | ----------------------------------------------------------------- |
-| `entities/note`                | Knowledge capture (note entity type)                              |
-| `entities/blog`                | Essays and articles                                               |
-| `entities/decks`               | Presentations                                                     |
-| `entities/link`                | Curated bookmarks + URL capture                                   |
-| `entities/portfolio`           | Case studies                                                      |
-| `entities/products`            | Product listings                                                  |
-| `entities/topics`              | AI-powered tagging                                                |
-| `entities/conversation-memory` | Conversation summaries, decisions, and action items               |
-| `entities/social-media`        | Social media posts                                                |
-| `entities/wishlist`            | Feature request tracking                                          |
-| `entities/image`               | AI-generated images                                               |
-| `entities/series`              | Derived from posts                                                |
-| `entities/prompt`              | Editable AI prompts                                               |
-| `entities/site-info`           | Site metadata                                                     |
-| `entities/agent-discovery`     | Agent + skill entities (A2A)                                      |
-| `entities/assessment`          | Derived assessment outputs (SWOT)                                 |
-| `entities/doc`                 | Generic docs entity backing `/docs`                               |
-| `entities/document`            | Generated PDFs and publishable document attachments               |
-| `entities/rizom-ecosystem`     | Entity-backed Rizom ecosystem section used by Rizom site variants |
+| Package                        | Purpose                                             |
+| ------------------------------ | --------------------------------------------------- |
+| `entities/note`                | Knowledge capture (note entity type)                |
+| `entities/blog`                | Essays and articles                                 |
+| `entities/decks`               | Presentations                                       |
+| `entities/link`                | Curated bookmarks + URL capture                     |
+| `entities/portfolio`           | Case studies                                        |
+| `entities/products`            | Product listings                                    |
+| `entities/topics`              | AI-powered tagging                                  |
+| `entities/conversation-memory` | Conversation summaries, decisions, and action items |
+| `entities/social-media`        | Social media posts                                  |
+| `entities/wishlist`            | Feature request tracking                            |
+| `entities/image`               | AI-generated images                                 |
+| `entities/series`              | Derived from posts                                  |
+| `entities/prompt`              | Editable AI prompts                                 |
+| `entities/site-info`           | Site metadata                                       |
+| `entities/agent-discovery`     | Agent + skill entities (A2A)                        |
+| `entities/assessment`          | Derived assessment outputs (SWOT)                   |
+| `entities/doc`                 | Generic docs entity backing `/docs`                 |
+| `entities/document`            | Generated PDFs and publishable document attachments |
 
 ## Plugins (ServicePlugin — tools + infrastructure)
 

@@ -136,7 +136,7 @@ describe("canonical personal bundles", () => {
             ...home,
             sections: [
               ...(home.sections ?? []),
-              { id: "ecosystem", template: "rizom-ecosystem:ecosystem" },
+              { id: "ecosystem", template: "local-site:ecosystem" },
             ],
           },
         ],
@@ -157,7 +157,7 @@ describe("canonical personal bundles", () => {
     expect(pluginIds(resolved)).toContain("professional-site");
     expect(resolvedHome).toMatchObject({
       sections: expect.arrayContaining([
-        { id: "ecosystem", template: "rizom-ecosystem:ecosystem" },
+        { id: "ecosystem", template: "local-site:ecosystem" },
       ]),
     });
   });

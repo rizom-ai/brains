@@ -51,6 +51,19 @@ describe("resolveStatus", () => {
       ),
     ).toBe("proposed");
   });
+
+  test("a leading status token survives markdown emphasis", () => {
+    // Plans conventionally bold their status line, so the token arrives as
+    // "**Proposed, ...". Without stripping the emphasis the token check misses
+    // and the prose fallback reads an incidental "shipped" as a shipped plan.
+    expect(
+      resolveStatus(
+        "**Proposed, gated on [email-triage.md](./email-triage.md) (shipped through Phase 2A in its worktree).** Decided 2026-08-04.",
+      ),
+    ).toBe("proposed");
+    expect(resolveStatus("_Parked_ until the runtime lands.")).toBe("parked");
+    expect(resolveStatus("*In progress* on feat/example.")).toBe("active");
+  });
 });
 
 const SAMPLE = `# brains roadmap

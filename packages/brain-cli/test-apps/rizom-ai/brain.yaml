@@ -10,12 +10,11 @@ bundles:
 # pre-bundle baseline: Rover's default preset already carries
 # blog/decks/site-builder; explicit additions preserve the registry
 # (canonical ai.rizom.brain.* lexicons), product entities, newsletter,
-# ecosystem surface, and site-content entity type.
+# and site-content entity type.
 add:
   - web-chat
   - atproto-registry
   - products
-  - rizom-ecosystem
   - newsletter
   - site-content
   - obsidian-vault

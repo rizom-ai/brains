@@ -21,13 +21,13 @@ const fixtureOverrides = parseInstanceOverrides(
 registerPackage("@rizom/site-rizom", rizomSite);
 registerPackage("@brains/theme-rizom", rizomTheme);
 
-const ecosystemFactory = canonicalBrain.capabilities.find(
-  ([id]) => id === "rizom-ecosystem",
+const extensionFactory = canonicalBrain.capabilities.find(
+  ([id]) => id === "stock-photo",
 )?.[1];
-if (!ecosystemFactory) {
+if (!extensionFactory) {
   throw new Error("Canonical catalog is missing the fixture factory");
 }
-registerPackage("@fixture/commerce-extension", ecosystemFactory);
+registerPackage("@fixture/commerce-extension", extensionFactory);
 
 function runtimeOverrides(
   overrides: InstanceOverrides,
@@ -145,7 +145,6 @@ describe("canonical commerce posture", () => {
       "atproto-registry",
       "social-media",
       "wishlist",
-      "rizom-ecosystem",
       "obsidian-vault",
       "docs",
     ]) {
@@ -172,6 +171,6 @@ describe("canonical commerce posture", () => {
       }),
     );
 
-    expect(pluginIds(resolved)).toContain("rizom-ecosystem");
+    expect(pluginIds(resolved)).toContain("stock-photo");
   });
 });

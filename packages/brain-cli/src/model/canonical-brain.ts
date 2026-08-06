@@ -37,7 +37,6 @@ import { portfolioPlugin } from "@brains/portfolio";
 import { productsPlugin } from "@brains/products";
 import { profilePlugin } from "@brains/profile";
 import { promptPlugin } from "@brains/prompt";
-import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { onboardingPlugin } from "@brains/onboarding";
 import { seriesPlugin } from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -345,7 +344,6 @@ export const canonicalBrain: BrainDefinition = defineBrain({
 
     ["products", productsPlugin, undefined],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
-    ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["email-triage", emailTriage, {}],
     ["unified-inbox", unifiedInboxPlugin, {}],
   ],

@@ -44,7 +44,6 @@ const expectedCatalogIds = [
   "docs",
   "products",
   "obsidian-vault",
-  "rizom-ecosystem",
   "email-triage",
   "unified-inbox",
   "mcp",

@@ -60,7 +60,15 @@ const STATUS_META: Record<StatusBucket, { label: string }> = {
  * consider a bare "active"/"done" signal.
  */
 export function resolveStatus(statusText: string): StatusBucket {
-  const t = statusText.toLowerCase().trim();
+  // Leading markdown emphasis is stripped before anything else. Plans
+  // conventionally bold their status line, so the token arrives as
+  // "**Proposed, ..." and every startsWith check below would miss it, dropping
+  // the plan into the prose fallback where a single incidental "shipped" reads
+  // as a completed plan.
+  const t = statusText
+    .toLowerCase()
+    .trim()
+    .replace(/^[*_\s]+/, "");
 
   // These plans conventionally lead with their status token; trust it first so
   // a "Proposed" plan that merely mentions an "implemented baseline" elsewhere

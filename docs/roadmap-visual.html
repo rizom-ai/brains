@@ -149,14 +149,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</summary>
         <div class="cards">
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Multi-User &amp; Permissions</span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">runtime users, roles, active-user checks, attribution, management surfaces, person-scoped Trusted browser chat, and own-account self-service.</div>
-          <div class="card-file">multi-user.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Connected channels (extensible channel identity)</span>
@@ -180,6 +172,14 @@
           </div>
           <div class="card-desc">the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.</div>
           <div class="card-file">identity-and-trust.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Multi-User &amp; Permissions</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">runtime users, roles, active-user checks, attribution, management surfaces, person-scoped Trusted browser chat, and own-account self-service.</div>
+          <div class="card-file">multi-user.md</div>
         </div>
         </div>
       </details>
@@ -294,6 +294,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Lead management — inbound qualification on the opportunity lifecycle</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**after email triage**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into <code>@brains/business-development</code>.</div>
+          <div class="card-file">lead-management.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Email reply drafting and sending</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -308,14 +316,6 @@
           <div class="card-desc">the opt-in ingestion and operator workflow are implemented: opaque source references, conservative bulk filtering, restricted derived mail items, acknowledgement-gated persistence, bounded fallback retries, an Admin CMS desk, <code>email_triage_list</code>, typed status actions, compact dashboard counts, and a live <code>mail-items</code> inbox source. Shared inbox surfaces and digest participation remain in unified-inbox.</div>
           <div class="card-file">email-triage.md</div>
         </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Lead management — inbound qualification on the opportunity lifecycle</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">**after email triage**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into <code>@brains/business-development</code>.</div>
-          <div class="card-file">lead-management.md</div>
-        </div>
         </div>
       </details>
       <details class="group" open>
@@ -323,11 +323,35 @@
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Durable Binary Asset Storage Plan</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">move durable image bytes from base64 entity rows into a content-addressed asset store, validate the cutover on <code>yeehaa.io</code>, then migrate PDF documents as an independent follow-up phase.</div>
+          <div class="card-file">durable-binary-assets.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">parallelize multi-model eval runs.</div>
           <div class="card-file">parallel-eval-workers.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">HTTP route registry hardening</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
+          <div class="card-file">http-route-registry-hardening.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Directory Sync Import Load Follow-ups</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.</div>
+          <div class="card-file">directory-sync-import-load.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -352,14 +376,6 @@
           </div>
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">HTTP route registry hardening</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
-          <div class="card-file">http-route-registry-hardening.md</div>
         </div>
         </div>
       </details>

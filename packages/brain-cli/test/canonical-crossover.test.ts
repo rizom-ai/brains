@@ -184,7 +184,15 @@ describe("single canonical crossover", () => {
 
   test("removes archetype packages after moving their owned assets", () => {
     for (const model of ["rover", "relay", "ranger"]) {
-      expect(existsSync(join(repositoryRoot, "brains", model))).toBe(false);
+      // The manifest, not the directory. Builds and evals leave git-ignored
+      // artifacts behind (dist, .turbo, cache, eval-results), so the directory
+      // outlives the package on any checkout that ran the archetype before the
+      // crossover, and a bare existsSync fails there while the repository is
+      // in fact correct. Absence of the depth-1 package.json is what makes it
+      // no longer a workspace package.
+      expect(
+        existsSync(join(repositoryRoot, "brains", model, "package.json")),
+      ).toBe(false);
     }
     expect(
       existsSync(join(repositoryRoot, "packages/brain-cli/test-cases")),

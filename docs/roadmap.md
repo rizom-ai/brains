@@ -202,8 +202,10 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [durable-binary-assets.md](./plans/durable-binary-assets.md) — move durable image bytes from base64 entity rows into a content-addressed asset store, validate the cutover on `yeehaa.io`, then migrate PDF documents as an independent follow-up phase.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [directory-sync-import-load.md](./plans/directory-sync-import-load.md) — follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.
 
 Research probes (parked):
 

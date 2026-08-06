@@ -26,32 +26,31 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 
 ## Bundle availability
 
-| Entity type                          | Registered by                        | Selection                | Notes                                                      |
-| ------------------------------------ | ------------------------------------ | ------------------------ | ---------------------------------------------------------- |
-| `anchor-profile`                     | identity service + `@brains/profile` | `core`                   | Singleton person, team, or organization profile.           |
-| `brain-character`                    | identity service                     | `core`                   | Singleton persona/instructions source.                     |
-| `style-guide`                        | `@brains/style-guide`                | `core`                   | Messaging, voice, and visual generation guidance.          |
-| `note`                               | `@brains/note`                       | `core`                   | Root-level notes and general markdown knowledge.           |
-| `prompt`                             | `@brains/prompt`                     | `core`                   | Prompt/template overrides.                                 |
-| `link`                               | `@brains/link`                       | `core`                   | Captured links and extracted summaries.                    |
-| `wish`                               | `@brains/wishlist`                   | `core`                   | User requests and roadmap wishes.                          |
-| `topic`                              | `@brains/topics`                     | `core`                   | Derived topic clusters.                                    |
-| `agent`, `skill`                     | `@brains/agent-discovery`            | `core`                   | Peer contacts and advertised skills.                       |
-| `swot`                               | `@brains/assessment`                 | `core`                   | Assessment output from capability evidence.                |
-| `image`                              | `@brains/image-plugin`               | `core`                   | Uploaded or generated images.                              |
-| `document`                           | `@brains/document-plugin`            | `core`                   | Generated documents and durable attachments.               |
-| `deck`                               | `@brains/decks`                      | `core`                   | Presentation decks.                                        |
-| `site-info`                          | `@brains/site-info`                  | `site`                   | Singleton site metadata and CTA settings.                  |
-| `site-content`                       | `@brains/site-content`               | `site`                   | Route/section content blocks.                              |
-| `post`                               | `@brains/blog`                       | `publishing`             | Blog posts.                                                |
-| `series`                             | `@brains/series`                     | `publishing`             | Blog/content series pages.                                 |
-| `project`                            | `@brains/portfolio`                  | `publishing`             | Portfolio/case-study projects.                             |
-| `social-post`                        | `@brains/social-media`               | `publishing`             | Social publishing drafts and history.                      |
-| `newsletter`                         | `@brains/newsletter`                 | `publishing`             | Newsletter drafts, schedules, and send records.            |
-| `doc`                                | `@brains/doc`                        | `team`                   | Team documentation pages.                                  |
-| `summary`, `decision`, `action-item` | `@brains/conversation-memory`        | `team`                   | Team memory projections and first-class decisions/actions. |
-| `product`, `products-overview`       | `@brains/products`                   | `add: [products]`        | Commerce detail and overview content.                      |
-| `ecosystem-section`                  | `@brains/rizom-ecosystem`            | `add: [rizom-ecosystem]` | Rizom ecosystem content blocks.                            |
+| Entity type                          | Registered by                        | Selection         | Notes                                                      |
+| ------------------------------------ | ------------------------------------ | ----------------- | ---------------------------------------------------------- |
+| `anchor-profile`                     | identity service + `@brains/profile` | `core`            | Singleton person, team, or organization profile.           |
+| `brain-character`                    | identity service                     | `core`            | Singleton persona/instructions source.                     |
+| `style-guide`                        | `@brains/style-guide`                | `core`            | Messaging, voice, and visual generation guidance.          |
+| `note`                               | `@brains/note`                       | `core`            | Root-level notes and general markdown knowledge.           |
+| `prompt`                             | `@brains/prompt`                     | `core`            | Prompt/template overrides.                                 |
+| `link`                               | `@brains/link`                       | `core`            | Captured links and extracted summaries.                    |
+| `wish`                               | `@brains/wishlist`                   | `core`            | User requests and roadmap wishes.                          |
+| `topic`                              | `@brains/topics`                     | `core`            | Derived topic clusters.                                    |
+| `agent`, `skill`                     | `@brains/agent-discovery`            | `core`            | Peer contacts and advertised skills.                       |
+| `swot`                               | `@brains/assessment`                 | `core`            | Assessment output from capability evidence.                |
+| `image`                              | `@brains/image-plugin`               | `core`            | Uploaded or generated images.                              |
+| `document`                           | `@brains/document-plugin`            | `core`            | Generated documents and durable attachments.               |
+| `deck`                               | `@brains/decks`                      | `core`            | Presentation decks.                                        |
+| `site-info`                          | `@brains/site-info`                  | `site`            | Singleton site metadata and CTA settings.                  |
+| `site-content`                       | `@brains/site-content`               | `site`            | Route/section content blocks.                              |
+| `post`                               | `@brains/blog`                       | `publishing`      | Blog posts.                                                |
+| `series`                             | `@brains/series`                     | `publishing`      | Blog/content series pages.                                 |
+| `project`                            | `@brains/portfolio`                  | `publishing`      | Portfolio/case-study projects.                             |
+| `social-post`                        | `@brains/social-media`               | `publishing`      | Social publishing drafts and history.                      |
+| `newsletter`                         | `@brains/newsletter`                 | `publishing`      | Newsletter drafts, schedules, and send records.            |
+| `doc`                                | `@brains/doc`                        | `team`            | Team documentation pages.                                  |
+| `summary`, `decision`, `action-item` | `@brains/conversation-memory`        | `team`            | Team memory projections and first-class decisions/actions. |
+| `product`, `products-overview`       | `@brains/products`                   | `add: [products]` | Commerce detail and overview content.                      |
 
 The table describes built-in defaults. `add` and `remove` can adjust individual members; removing a member also removes its attached config and policy contributions.
 
@@ -344,22 +343,6 @@ Key metadata:
 - `dedupKey`
 
 Documents are non-embeddable publishable artifacts. A common flow is rendering a deck carousel into a durable PDF document, attaching it to `social-post.documents[]`, and publishing it as a native LinkedIn document/carousel post.
-
-### `ecosystem-section`
-
-Rizom ecosystem section content blocks rendered when the opt-in member and a compatible site are active.
-
-Key metadata:
-
-- `title`
-- `slug`
-- `status`: `draft` or `published`
-
-Structured body fields:
-
-- `eyebrow`
-- `headline`
-- `cards`: array of `{ suffix, title, body, linkLabel, linkHref }` (each card's `suffix` is one of `ai`, `foundation`, or `work`)
 
 ## Content and marketing entities
 

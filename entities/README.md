@@ -52,7 +52,6 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 | portfolio           | `project`                            |            | Portfolio projects with structured case studies          |
 | products            | `product`                            |            | Product entities with marketing overview                 |
 | prompt              | `prompt`                             |            | Reusable prompt entities                                 |
-| rizom-ecosystem     | `ecosystem-section`                  |            | Rizom ecosystem page sections (opt-in via brain.yaml)    |
 | series              | `series`                             | yes        | Cross-content series, projected from seriesName field    |
 | site-info           | `site-info`                          |            | Site metadata — title, description, CTA, theme           |
 | social-media        | `social-post`                        |            | Social media posts generated from published content      |

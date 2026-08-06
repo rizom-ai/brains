@@ -139,7 +139,6 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
 | `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |
 | `entities/assessment`          | `swot`                               | Derived assessment outputs                          |
-| `entities/rizom-ecosystem`     | `ecosystem-section`                  | Rizom site ecosystem section content                |
 
 ### Service plugins
 

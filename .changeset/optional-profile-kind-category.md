@@ -10,7 +10,6 @@
 "@brains/identity-service": patch
 "@brains/plugins": patch
 "@brains/profile": patch
-"@brains/rizom-ecosystem": patch
 "@brains/site-info": patch
 "@brains/site-personal": patch
 "@brains/site-professional": patch

@@ -73,7 +73,6 @@
     "@brains/products": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
-    "@brains/rizom-ecosystem": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
