@@ -1,5 +1,26 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist fenced job progress and terminal updates for bounded, indexed cross-process publication, and mark internal subscriptions required by durable execution separately from ordinary ingress subscriptions.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound background job execution with per-handler deadlines and required cancellation signals. Persist worker sessions and renewable attempt leases, fence completion, failure, progress, and heartbeat writes by unique attempt token, and immediately recover attempts when a stable worker slot starts a replacement session.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate web routing readiness from full operational health, expose durable worker-session degradation, and add `/health/operate` for operator alerting.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep SWOT projection inputs JSON-compatible when optional evidence is absent, and start each durable projection wave with a fresh causal root so successor waves cannot falsely trip repeated-lineage circuits.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split the bundled runtime into supervised web and durable execution children, with immutable handler inventory, execution-only plugin registration, web-owned enqueue validation, and budgeted worker restart isolation.
+
+- Updated dependencies [[`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298)]:
+  - @brains/utils@0.2.0-alpha.256
+  - @brains/contracts@0.2.0-alpha.256
+  - @brains/db@0.2.0-alpha.256
+  - @brains/mcp-service@0.2.0-alpha.256
+  - @brains/operation-context@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

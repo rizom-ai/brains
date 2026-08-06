@@ -1,5 +1,11 @@
 # @brains/utils
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound background job execution with per-handler deadlines and required cancellation signals. Persist worker sessions and renewable attempt leases, fence completion, failure, progress, and heartbeat writes by unique attempt token, and immediately recover attempts when a stable worker slot starts a replacement session.
+
 ## 0.2.0-alpha.255
 
 ## 0.2.0-alpha.254

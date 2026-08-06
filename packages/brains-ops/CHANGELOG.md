@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.256
+
+### Minor Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate dependency-free liveness from runtime readiness, expose bounded process and queue health signals, terminate unrecoverable job workers, and add Docker plus restart-budgeted host supervision to generated deployments.
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden deployed process ownership by draining aborted Git subprocesses, cancelling and awaiting active Git work during directory-sync shutdown, bounding initialization network probes, and running the packaged Brain entry point under `tini`.
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

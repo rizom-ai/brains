@@ -1,5 +1,20 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist fenced job progress and terminal updates for bounded, indexed cross-process publication, and mark internal subscriptions required by durable execution separately from ordinary ingress subscriptions.
+
+- Updated dependencies [[`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9)]:
+  - @brains/plugins@0.2.0-alpha.256
+  - @brains/utils@0.2.0-alpha.256
+  - @brains/contracts@0.2.0-alpha.256
+  - @brains/image@0.2.0-alpha.256
+  - @brains/site-composition@0.2.0-alpha.256
+  - @brains/site-engine@0.2.0-alpha.256
+  - @brains/ui-library@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

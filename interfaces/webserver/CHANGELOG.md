@@ -1,5 +1,15 @@
 # @brains/webserver
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate web routing readiness from full operational health, expose durable worker-session degradation, and add `/health/operate` for operator alerting.
+
+- Updated dependencies [[`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9)]:
+  - @brains/plugins@0.2.0-alpha.256
+  - @brains/contracts@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

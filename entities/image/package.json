@@ -1,7 +1,7 @@
 {
   "name": "@brains/image-plugin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.255",
+  "version": "0.2.0-alpha.256",
   "description": "Plugin for AI-powered image generation and management",
   "dependencies": {
     "@brains/contracts": "workspace:*",

@@ -1,5 +1,12 @@
 # @brains/notification-contracts
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- Updated dependencies [[`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298)]:
+  - @brains/utils@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

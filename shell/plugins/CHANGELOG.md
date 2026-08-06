@@ -1,5 +1,32 @@
 # @brains/plugins
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist fenced job progress and terminal updates for bounded, indexed cross-process publication, and mark internal subscriptions required by durable execution separately from ordinary ingress subscriptions.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate web routing readiness from full operational health, expose durable worker-session degradation, and add `/health/operate` for operator alerting.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split the bundled runtime into supervised web and durable execution children, with immutable handler inventory, execution-only plugin registration, web-owned enqueue validation, and budgeted worker restart isolation.
+
+- Updated dependencies [[`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9)]:
+  - @brains/job-queue@0.2.0-alpha.256
+  - @brains/utils@0.2.0-alpha.256
+  - @brains/content-service@0.2.0-alpha.256
+  - @brains/entity-service@0.2.0-alpha.256
+  - @brains/recurring-checks@0.2.0-alpha.256
+  - @brains/content-formatters@0.2.0-alpha.256
+  - @brains/contracts@0.2.0-alpha.256
+  - @brains/site-composition@0.2.0-alpha.256
+  - @brains/ai-service@0.2.0-alpha.256
+  - @brains/conversation-service@0.2.0-alpha.256
+  - @brains/identity-service@0.2.0-alpha.256
+  - @brains/mcp-service@0.2.0-alpha.256
+  - @brains/messaging-service@0.2.0-alpha.256
+  - @brains/runtime-state@0.2.0-alpha.256
+  - @brains/templates@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes

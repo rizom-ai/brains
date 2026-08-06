@@ -1,5 +1,33 @@
 # @rizom/brain
 
+## 0.2.0-alpha.256
+
+### Minor Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace event-owned derivations with durable scheduler-owned projection waves, atomically journal entity mutations, memoize immutable effective inputs, reconcile derived embeddings, trigger automatic site builds only at successful wave boundaries, remove the obsolete manual extraction tool, normalize optional undefined site data at the JSON boundary, and begin same-bundle runtime supervision with a lightweight parent that owns migrations, the web child lifecycle, bounded IPC readiness, and signal escalation.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate scheduler-owned projection composition before runtime startup, propagate causal operation provenance across jobs and entity mutations, persist bounded projection circuit diagnostics into readiness, and add schema-validated projection-rule and entity-database wave coordination contracts.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate dependency-free liveness from runtime readiness, expose bounded process and queue health signals, terminate unrecoverable job workers, and add Docker plus restart-budgeted host supervision to generated deployments.
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist fenced job progress and terminal updates for bounded, indexed cross-process publication, and mark internal subscriptions required by durable execution separately from ordinary ingress subscriptions.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound background job execution with per-handler deadlines and required cancellation signals. Persist worker sessions and renewable attempt leases, fence completion, failure, progress, and heartbeat writes by unique attempt token, and immediately recover attempts when a stable worker slot starts a replacement session.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden deployed process ownership by draining aborted Git subprocesses, cancelling and awaiting active Git work during directory-sync shutdown, bounding initialization network probes, and running the packaged Brain entry point under `tini`.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate web routing readiness from full operational health, expose durable worker-session degradation, and add `/health/operate` for operator alerting.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent derived entity feedback loops by excluding projection outputs from generic projection inputs by default and making SWOT a terminal projection output.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep SWOT projection inputs JSON-compatible when optional evidence is absent, and start each durable projection wave with a fresh causal root so successor waves cannot falsely trip repeated-lineage circuits.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split the bundled runtime into supervised web and durable execution children, with immutable handler inventory, execution-only plugin registration, web-owned enqueue validation, and budgeted worker restart isolation.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect stuck durable workers with a five-second IPC heartbeat and replace them after three missed beats under the existing restart budget.
+
 ## 0.2.0-alpha.255
 
 ## 0.2.0-alpha.254

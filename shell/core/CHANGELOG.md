@@ -1,5 +1,28 @@
 # @brains/core
 
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate web routing readiness from full operational health, expose durable worker-session degradation, and add `/health/operate` for operator alerting.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep SWOT projection inputs JSON-compatible when optional evidence is absent, and start each durable projection wave with a fresh causal root so successor waves cannot falsely trip repeated-lineage circuits.
+
+- [#84](https://github.com/rizom-ai/brains/pull/84) [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split the bundled runtime into supervised web and durable execution children, with immutable handler inventory, execution-only plugin registration, web-owned enqueue validation, and budgeted worker restart isolation.
+
+- Updated dependencies [[`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`1e45eca`](https://github.com/rizom-ai/brains/commit/1e45ecaaed5351964cbf8a0754a301507b15c298), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9), [`b155d93`](https://github.com/rizom-ai/brains/commit/b155d938c240bcc9500c2395f11763ab49a017c9)]:
+  - @brains/plugins@0.2.0-alpha.256
+  - @brains/utils@0.2.0-alpha.256
+  - @brains/recurring-checks@0.2.0-alpha.256
+  - @brains/contracts@0.2.0-alpha.256
+  - @brains/image@0.2.0-alpha.256
+  - @brains/notification-contracts@0.2.0-alpha.256
+  - @brains/site-composition@0.2.0-alpha.256
+  - @brains/runtime-state@0.2.0-alpha.256
+  - @brains/scheduler@0.2.0-alpha.256
+  - @brains/templates@0.2.0-alpha.256
+  - @brains/operation-context@0.2.0-alpha.256
+
 ## 0.2.0-alpha.255
 
 ### Patch Changes
